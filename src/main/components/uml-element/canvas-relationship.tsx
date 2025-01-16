@@ -196,18 +196,43 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
     const startPoint = handlerIndex + 1;
     const endPoint = Number(startPoint) + 1;
     const sourceDirection = this.props.relationship.source.direction;
+    const targetDirection = this.props.relationship.target.direction;
+
+    // Helper function to determine if direction is vertical
+    const isVerticalDirection = (direction: Direction) => {
+      return direction === Direction.Up || 
+             direction === Direction.Down || 
+             direction === Direction.Topleft || 
+             direction === Direction.Topright || 
+             direction === Direction.Bottomleft || 
+             direction === Direction.Bottomright;
+    };
+
+    // Helper function to determine if direction is horizontal
+    const isHorizontalDirection = (direction: Direction) => {
+      return direction === Direction.Left || 
+             direction === Direction.Right || 
+             direction === Direction.Upleft || 
+             direction === Direction.Upright || 
+             direction === Direction.Downleft || 
+             direction === Direction.Downright;
+    };
 
     switch (waypointDirection) {
       case 'horizontal':
-        sourceDirection === Direction.Up || sourceDirection === Direction.Down
-          ? this.updateXCoordinate(startPoint, endPoint, x, y)
-          : this.updateYCoordinate(startPoint, endPoint, x, y);
+        if (isVerticalDirection(sourceDirection) || isVerticalDirection(targetDirection)) {
+          this.updateXCoordinate(startPoint, endPoint, x, y);
+        } else {
+          this.updateYCoordinate(startPoint, endPoint, x, y);
+        }
         break;
 
       case 'vertical':
-        sourceDirection === Direction.Up || sourceDirection === Direction.Down
-          ? this.updateYCoordinate(startPoint, endPoint, x, y)
-          : this.updateXCoordinate(startPoint, endPoint, x, y);
+        if (isVerticalDirection(sourceDirection) || isVerticalDirection(targetDirection)) {
+          this.updateYCoordinate(startPoint, endPoint, x, y);
+        } else {
+          this.updateXCoordinate(startPoint, endPoint, x, y);
+        }
         break;
 
       default:
@@ -215,7 +240,6 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
     }
 
     const points = [new Point()];
-
     this.props.relationship.path.forEach((path) => {
       points.push(new Point(path.x, path.y));
     });
