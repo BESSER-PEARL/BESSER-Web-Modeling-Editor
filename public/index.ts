@@ -203,21 +203,31 @@ const render = async () => {
 
   const currentType = options.type || 'ClassDiagram' as DiagramType;
 
+  // Mettre à jour le sélecteur de type pour qu'il corresponde au type actuel
+  const typeSelector = document.querySelector('select[name="type"]') as HTMLSelectElement;
+  if (typeSelector) {
+    typeSelector.value = currentType;
+  }
+
   let modelToUse: Apollon.UMLModel | undefined;
 
   if (options.useSingleStorage) {
     // In single storage mode, use the legacy model
     modelToUse = JSON.parse(localStorage.getItem('apollon') || 'null');
-    if (modelToUse) {
-      // Update the type while preserving elements and relationships
-      modelToUse = {
-        ...modelToUse,
-        type: currentType
-      };
-    }
   } else {
     // Per-diagram storage mode
-    modelToUse = loadModelForType(currentType);
+    const savedModels: DiagramModels = JSON.parse(
+      localStorage.getItem('apollonModels') || '{}'
+    );
+    modelToUse = savedModels[currentType];
+  }
+
+  if (modelToUse) {
+    // Update the type while preserving elements and relationships
+    modelToUse = {
+      ...modelToUse,
+      type: currentType
+    };
   }
 
   options = {
