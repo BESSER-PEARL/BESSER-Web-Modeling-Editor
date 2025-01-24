@@ -83,9 +83,8 @@ export class AssociationsList extends Component<Props, State> {
   };
 
   getAssociations() {
-    console.log('All elements:', this.props.elements);
+
     const associations = Object.entries(this.props.elements).filter(([_, element]) => {
-      console.log('Checking element:', element);
       // Check if element has type property that matches any relationship type
       const isAssociation = element.type && (
         element.type === ClassRelationshipType.ClassBidirectional ||
@@ -96,10 +95,8 @@ export class AssociationsList extends Component<Props, State> {
         element.type === ClassRelationshipType.ClassDependency ||
         element.type === ClassRelationshipType.ClassRealization
       );
-      console.log('Is association:', isAssociation, 'Type:', element.type);
       return isAssociation;
     });
-    console.log('Found associations:', associations);
     return associations;
   }
 
