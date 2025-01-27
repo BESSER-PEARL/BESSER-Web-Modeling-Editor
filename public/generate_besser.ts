@@ -72,6 +72,15 @@ export async function generateOutput(generatorType: string) {
       return;
     }
 
+    if (generatorType === 'django') {
+      // Show Django configuration popup instead of direct generation
+      const popup = document.getElementById('djangoConfigPopup');
+      if (popup) {
+        popup.style.display = 'flex';
+      }
+      return;
+    }
+
     const response = await fetch('http://localhost:8000/generate-output', {
       method: 'POST',
       headers: {
@@ -229,6 +238,28 @@ window.addEventListener('load', () => {
     },
     exportBuml: async () => {
       await exportBuml((window as any).editor);
+    },
+    generateDjangoProject: async () => {
+      try {
+        const blob = await generateDjangoProject((window as any).editor);
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'django_project.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        const popup = document.getElementById('djangoConfigPopup');
+        if (popup) {
+          popup.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error generating Django project:', error);
+        alert(`Failed to generate Django project: ${error.message}`);
+      }
     }
   };
 });
@@ -264,4 +295,46 @@ export async function convertBumlToJson(file: File) {
   } catch (error) {
     console.error('Error during conversion:', error);
   }
+}
+
+export async function generateDjangoProject(editorInstance: any) {
+  const projectName = (document.getElementById('projectName') as HTMLInputElement).value;
+  const appName = (document.getElementById('appName') as HTMLInputElement).value;
+  const containerization = (document.getElementById('containerization') as HTMLInputElement).checked;
+
+  if (!projectName || !appName) {
+    throw new Error('Please fill in both project name and app name');
+  }
+
+  if (!editorInstance || !editorInstance.model) {
+    throw new Error("Editor is not properly initialized");
+  }
+
+  const diagramData = getDiagramData(editorInstance);
+  if (!diagramData) {
+    throw new Error("No diagram data available!");
+  }
+
+  const response = await fetch('http://localhost:8000/generate-output', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      elements: diagramData,
+      generator: "django",
+      config: {
+        project_name: projectName,
+        app_name: appName,
+        containerization: containerization
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  return blob;
 }

@@ -407,6 +407,7 @@ interface ApollonGlobal {
   generateCode?: (generatorType: string) => Promise<void>;
   convertBumlToJson?: (file: File) => Promise<void>;
   checkOclConstraints: () => Promise<void>;
+  generateDjangoProject: () => Promise<void>;
 }
 
 // Then declare it as part of the global Window interface
@@ -438,33 +439,8 @@ const setupGlobalApollon = (editor: Apollon.ApollonEditor | null) => {
     },
     generateCode: window.apollon?.generateCode,
     convertBumlToJson: window.apollon?.convertBumlToJson,
-    
-    checkOclConstraints: async () => {
-      try {
-        const currentEditor = (window as any).editor;
-        if (!currentEditor) {
-          throw new Error("Editor is not initialized");
-        }
-
-        const result = await checkOclConstraints(currentEditor);
-        
-        // Show result in popup with line breaks
-        const popup = document.getElementById('messagePopup');
-        const messageText = document.getElementById('messageText');
-        if (popup && messageText) {
-          messageText.innerHTML = result.message.replace(/\n/g, '<br>');
-          popup.style.display = 'flex';
-        }
-      } catch (error) {
-        // Show error in popup
-        const popup = document.getElementById('messagePopup');
-        const messageText = document.getElementById('messageText');
-        if (popup && messageText) {
-          messageText.innerHTML = `Error: ${error.message}`.replace(/\n/g, '<br>');
-          popup.style.display = 'flex';
-        }
-      }
-    },
+    checkOclConstraints: window.apollon?.checkOclConstraints,
+    generateDjangoProject: window.apollon?.generateDjangoProject
   };
 
   window.apollon = apollonGlobal;
@@ -520,6 +496,67 @@ window.addEventListener('load', () => {
         }
       } else {
         alert("BUML export is only supported for State Machine and Class diagrams.");
+      }
+    },
+    generateDjangoProject: async () => {
+      const projectName = (document.getElementById('projectName') as HTMLInputElement).value;
+      const appName = (document.getElementById('appName') as HTMLInputElement).value;
+      const containerization = (document.getElementById('containerization') as HTMLInputElement).checked;
+
+      if (!projectName || !appName) {
+        alert('Please fill in both project name and app name');
+        return;
+      }
+
+      try {
+        const editorInstance = (window as any).editor;
+        if (!editorInstance || !editorInstance.model) {
+          throw new Error("Editor is not properly initialized");
+        }
+
+        const diagramData = getDiagramData(editorInstance);
+        if (!diagramData) {
+          throw new Error("No diagram data available!");
+        }
+
+        const response = await fetch('http://localhost:8000/generate-output', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            elements: diagramData,
+            generator: "django",
+            config: {
+              project_name: projectName,
+              app_name: appName,
+              containerization: containerization
+            }
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'django_project.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        // Close the popup
+        const popup = document.getElementById('djangoConfigPopup');
+        if (popup) {
+          popup.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error generating Django project:', error);
+        alert(`Failed to generate Django project: ${error.message}`);
       }
     }
   } as ApollonGlobal;
