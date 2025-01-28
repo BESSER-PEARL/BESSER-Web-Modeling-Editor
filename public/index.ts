@@ -439,7 +439,26 @@ const setupGlobalApollon = (editor: Apollon.ApollonEditor | null) => {
     },
     generateCode: window.apollon?.generateCode,
     convertBumlToJson: window.apollon?.convertBumlToJson,
-    checkOclConstraints: window.apollon?.checkOclConstraints,
+    checkOclConstraints: async () => {
+      try {
+        const currentEditor = (window as any).editor;
+        if (!currentEditor) {
+          throw new Error("Editor is not initialized");
+        }
+        const result = await checkOclConstraints(currentEditor);
+        
+        // Show result in message popup
+        const messagePopup = document.getElementById('messagePopup');
+        const messageText = document.getElementById('messageText');
+        if (messagePopup && messageText) {
+          messageText.innerHTML = result.message;
+          messagePopup.style.display = 'flex';
+        }
+      } catch (error) {
+        console.error("Error checking OCL constraints:", error);
+        alert(`Failed to check OCL constraints: ${error.message}`);
+      }
+    },
     generateDjangoProject: window.apollon?.generateDjangoProject
   };
 
