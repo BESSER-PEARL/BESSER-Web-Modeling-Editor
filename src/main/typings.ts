@@ -44,7 +44,6 @@ export type UMLModel = {
   interactive: Selection;
   relationships: { [id: string]: UMLRelationship };
   assessments: { [id: string]: Assessment };
-  oclConstraints?: string; 
 };
 
 export type UMLModelElementType = UMLElementType | UMLRelationshipType | UMLDiagramType;

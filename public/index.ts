@@ -2,7 +2,7 @@ import * as Apollon from '../src/main';
 import * as themings from './themings.json';
 import('./styles.css');
 import { exportDiagram, importDiagram } from '../src/main/services/diagramExportImport/diagramExportService';
-import { generateOutput, convertBumlToJson, exportBuml } from './generate_besser';
+import { generateOutput, convertBumlToJson, exportBuml, checkOclConstraints } from './generate_besser';
 import { getDiagramData } from './utils.ts';
 
 const container = document.getElementById('apollon')!;
@@ -203,21 +203,31 @@ const render = async () => {
 
   const currentType = options.type || 'ClassDiagram' as DiagramType;
 
+  // Mettre à jour le sélecteur de type pour qu'il corresponde au type actuel
+  const typeSelector = document.querySelector('select[name="type"]') as HTMLSelectElement;
+  if (typeSelector) {
+    typeSelector.value = currentType;
+  }
+
   let modelToUse: Apollon.UMLModel | undefined;
 
   if (options.useSingleStorage) {
     // In single storage mode, use the legacy model
     modelToUse = JSON.parse(localStorage.getItem('apollon') || 'null');
-    if (modelToUse) {
-      // Update the type while preserving elements and relationships
-      modelToUse = {
-        ...modelToUse,
-        type: currentType
-      };
-    }
   } else {
     // Per-diagram storage mode
-    modelToUse = loadModelForType(currentType);
+    const savedModels: DiagramModels = JSON.parse(
+      localStorage.getItem('apollonModels') || '{}'
+    );
+    modelToUse = savedModels[currentType];
+  }
+
+  if (modelToUse) {
+    // Update the type while preserving elements and relationships
+    modelToUse = {
+      ...modelToUse,
+      type: currentType
+    };
   }
 
   options = {
@@ -396,8 +406,8 @@ interface ApollonGlobal {
   importDiagram: (file: File) => Promise<void>;
   generateCode?: (generatorType: string) => Promise<void>;
   convertBumlToJson?: (file: File) => Promise<void>;
-  openOclPopup: () => void;
-  saveOcl: () => void;
+  checkOclConstraints: () => Promise<void>;
+  generateDjangoProject: () => Promise<void>;
 }
 
 // Then declare it as part of the global Window interface
@@ -429,55 +439,8 @@ const setupGlobalApollon = (editor: Apollon.ApollonEditor | null) => {
     },
     generateCode: window.apollon?.generateCode,
     convertBumlToJson: window.apollon?.convertBumlToJson,
-    openOclPopup: () => {
-      const popup = document.getElementById('oclPopup');
-      const textarea = document.getElementById('oclText') as HTMLTextAreaElement;
-      
-      if (!popup || !textarea) {
-        console.error('Required OCL popup elements not found');
-        return;
-      }
-
-      // Load saved OCL
-      const savedOcl = localStorage.getItem('diagramOCL') || '';
-      textarea.value = savedOcl;
-      
-      // Show popup
-      popup.style.display = 'flex';
-
-      // Close on outside click
-      const closeOnOutsideClick = (e: MouseEvent) => {
-        if (e.target === popup) {
-          popup.style.display = 'none';
-          document.removeEventListener('click', closeOnOutsideClick);
-        }
-      };
-      document.addEventListener('click', closeOnOutsideClick);
-    },
-
-    saveOcl: () => {
-      const popup = document.getElementById('oclPopup') as HTMLElement;
-      const textarea = document.getElementById('oclText') as HTMLTextAreaElement;
-      
-      if (!popup || !textarea) {
-        console.error('Required OCL elements not found');
-        return;
-      }
-
-      try {
-        // Basic OCL validation could be added here
-        const oclContent = textarea.value.trim();
-        
-        // Save OCL
-        localStorage.setItem('diagramOCL', oclContent);
-        
-        // Hide popup
-        popup.style.display = 'none';
-      } catch (error) {
-        console.error('Error saving OCL:', error);
-        alert('Failed to save OCL constraints');
-      }
-    }
+    checkOclConstraints: window.apollon?.checkOclConstraints,
+    generateDjangoProject: window.apollon?.generateDjangoProject
   };
 
   window.apollon = apollonGlobal;
@@ -533,6 +496,67 @@ window.addEventListener('load', () => {
         }
       } else {
         alert("BUML export is only supported for State Machine and Class diagrams.");
+      }
+    },
+    generateDjangoProject: async () => {
+      const projectName = (document.getElementById('projectName') as HTMLInputElement).value;
+      const appName = (document.getElementById('appName') as HTMLInputElement).value;
+      const containerization = (document.getElementById('containerization') as HTMLInputElement).checked;
+
+      if (!projectName || !appName) {
+        alert('Please fill in both project name and app name');
+        return;
+      }
+
+      try {
+        const editorInstance = (window as any).editor;
+        if (!editorInstance || !editorInstance.model) {
+          throw new Error("Editor is not properly initialized");
+        }
+
+        const diagramData = getDiagramData(editorInstance);
+        if (!diagramData) {
+          throw new Error("No diagram data available!");
+        }
+
+        const response = await fetch('http://localhost:8000/generate-output', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            elements: diagramData,
+            generator: "django",
+            config: {
+              project_name: projectName,
+              app_name: appName,
+              containerization: containerization
+            }
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'django_project.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+
+        // Close the popup
+        const popup = document.getElementById('djangoConfigPopup');
+        if (popup) {
+          popup.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error generating Django project:', error);
+        alert(`Failed to generate Django project: ${error.message}`);
       }
     }
   } as ApollonGlobal;

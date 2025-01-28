@@ -10,6 +10,7 @@ import { UMLClassPackage } from './uml-class-package/uml-class-package';
 import { UMLClass } from './uml-class/uml-class';
 import { UMLEnumeration } from './uml-enumeration/uml-enumeration';
 import { UMLInterface } from './uml-interface/uml-interface';
+import { ClassOCLConstraint } from './uml-class-ocl/uml-class-ocl-constraint';
 
 export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (id: string) => string): UMLElement[] => {
   const elements: UMLElement[] = [];
@@ -186,6 +187,11 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   elements.push(
     ...(umlEnumeration.render(layer, [umlEnumerationCase1, umlEnumerationCase2, umlEnumerationCase3]) as UMLElement[]),
   );
+
+  const umlOCLConstraint = new ClassOCLConstraint({
+          constraint: "OCL " + translate('packages.OCLConstraint.Constraint'),
+         });
+  elements.push(...(umlOCLConstraint.render(layer) as UMLElement[]));
 
   return elements;
 };

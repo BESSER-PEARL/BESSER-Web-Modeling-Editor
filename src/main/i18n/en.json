@@ -184,6 +184,9 @@
       "StateMergeNode": "Condition",
       "StateObjectNode": "Object",
       "StateTransition": "Transition"
+    },
+    "OCLConstraint": {
+      "Constraint": "Constraint"
     }
   }
 }

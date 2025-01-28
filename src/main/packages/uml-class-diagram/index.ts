@@ -6,6 +6,7 @@ export const ClassElementType = {
   Enumeration: 'Enumeration',
   ClassAttribute: 'ClassAttribute',
   ClassMethod: 'ClassMethod',
+  ClassOCLConstraint: 'ClassOCLConstraint',
 } as const;
 
 export const ClassRelationshipType = {
@@ -16,4 +17,5 @@ export const ClassRelationshipType = {
   ClassDependency: 'ClassDependency',
   ClassAggregation: 'ClassAggregation',
   ClassComposition: 'ClassComposition',
+  ClassOCLLink: 'ClassOCLLink',
 } as const;

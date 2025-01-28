@@ -4,11 +4,11 @@ export const exportDiagram = async (editor: ApollonEditor | null) => {
     if (!editor) return;
     const model = editor.model;
     
-    // Add OCL constraints to the model before export
-    const oclConstraints = localStorage.getItem('diagramOCL');
-    if (oclConstraints) {
-        model.oclConstraints = oclConstraints;
-    }
+    // // Maybe usable for notes 
+    // const oclConstraints = localStorage.getItem('diagramOCL');
+    // if (oclConstraints) {
+    //     model.oclConstraints = oclConstraints;
+    // }
     
     const jsonString = JSON.stringify(model, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -28,11 +28,11 @@ export const importDiagram = async (file: File, editor: ApollonEditor | null) =>
         const text = await file.text();
         const jsonModel = JSON.parse(text);
         
-        // Handle OCL constraints if present in the imported model
-        if (jsonModel.oclConstraints) {
-            localStorage.setItem('diagramOCL', jsonModel.oclConstraints);
-            delete jsonModel.oclConstraints; // Remove from model before setting
-        }
+        // // Handle OCL constraints if present in the imported model
+        // if (jsonModel.oclConstraints) {
+        //     localStorage.setItem('diagramOCL', jsonModel.oclConstraints);
+        //     delete jsonModel.oclConstraints; // Remove from model before setting
+        // }
         
         editor.model = jsonModel;
         return true;

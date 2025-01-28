@@ -356,3 +356,31 @@ section:has(> h3:contains("Import/Export")) .file-input-label {
 .popup-buttons button:hover {
   background: var(--apollon-gray);
 }
+
+/* Loading spinner styles */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--apollon-primary);
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.button-with-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-with-spinner.loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

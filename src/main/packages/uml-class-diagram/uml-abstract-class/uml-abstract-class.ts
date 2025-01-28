@@ -2,6 +2,7 @@ import { ClassElementType } from '..';
 import { UMLClassifier } from '../../common/uml-classifier/uml-classifier';
 import { UMLElementType } from '../../uml-element-type';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { ClassRelationshipType } from '..';
 import { UMLClassifierAttribute } from '../../common/uml-classifier/uml-classifier-attribute';
 import { UMLClassifierMethod } from '../../common/uml-classifier/uml-classifier-method';
 
@@ -9,6 +10,17 @@ export class UMLAbstractClass extends UMLClassifier {
   type: UMLElementType = ClassElementType.AbstractClass;
   italic: boolean = true;
   stereotype: string | null = 'abstract';
+
+  static supportedRelationships = [
+    ClassRelationshipType.ClassBidirectional,
+    ClassRelationshipType.ClassOCLLink,
+    ClassRelationshipType.ClassAggregation,
+    ClassRelationshipType.ClassDependency,
+    ClassRelationshipType.ClassComposition,
+    ClassRelationshipType.ClassUnidirectional,
+    ClassRelationshipType.ClassInheritance,
+    ClassRelationshipType.ClassRealization,
+  ];
 
   reorderChildren(children: IUMLElement[]): string[] {
     const attributes = children.filter((x): x is UMLClassifierAttribute => x.type === ClassElementType.ClassAttribute);

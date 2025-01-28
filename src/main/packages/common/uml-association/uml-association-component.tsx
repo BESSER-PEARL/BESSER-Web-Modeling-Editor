@@ -119,6 +119,8 @@ export const getMarkerForTypeForUMLAssociation = (relationshipType: UMLRelations
       case ClassRelationshipType.ClassInheritance:
       case ClassRelationshipType.ClassRealization:
         return Marker.Triangle;
+      case ClassRelationshipType.ClassOCLLink:
+        //return Marker.Arrow;
     }
   })(relationshipType);
 };
@@ -131,6 +133,8 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
       case ClassRelationshipType.ClassDependency:
       case ClassRelationshipType.ClassRealization:
         return 7;
+      case ClassRelationshipType.ClassOCLLink:
+        return "5,5";
     }
   })(element.type);
 

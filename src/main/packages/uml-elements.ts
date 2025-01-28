@@ -64,6 +64,7 @@ import { UMLStateInitialNode } from './uml-state-diagram/uml-state-initial-node/
 import { UMLStateMergeNode } from './uml-state-diagram/uml-state-merge-node/uml-state-merge-node';
 import { UMLStateObjectNode } from './uml-state-diagram/uml-state-object-node/uml-state-object-node';
 import { UMLStateCodeBlock } from './uml-state-diagram/uml-state-code-block/uml-state-code-block';
+import { ClassOCLConstraint } from './uml-class-diagram/uml-class-ocl/uml-class-ocl-constraint';
 
 export const UMLElements = {
   [UMLElementType.Package]: UMLClassPackage,
@@ -73,6 +74,7 @@ export const UMLElements = {
   [UMLElementType.Enumeration]: UMLEnumeration,
   [UMLElementType.ClassAttribute]: UMLClassAttribute,
   [UMLElementType.ClassMethod]: UMLClassMethod,
+  [UMLElementType.ClassOCLConstraint]: ClassOCLConstraint,
   [UMLElementType.ObjectName]: UMLObjectName,
   [UMLElementType.ObjectAttribute]: UMLObjectAttribute,
   [UMLElementType.ObjectMethod]: UMLObjectMethod,

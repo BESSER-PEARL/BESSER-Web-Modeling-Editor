@@ -1,7 +1,7 @@
 {
-  "name": "@BESSER/BESSER-GUI",
+  "name": "@besser/besser-web-modeling-editor",
   "version": "1.0.0",
-  "description": "BESSER Graphical User Interface",
+  "description": "BESSER Web Modeling Editor",
   "keywords": [],
   "homepage": "https://github.com/BESSER-PEARL/Apollon",
   "bugs": "https://github.com/BESSER-PEARL/Apollon",
@@ -9,7 +9,7 @@
   "author": {
     "name": "Armen SULEJMANI",
     "email": "armen.sulejmani@list.lu",
-    "url": ""
+    "url": "https://armen-sulejmani.com"
   },
   "main": "lib/es5/index.js",
   "module": "lib/es6/index.js",
@@ -24,7 +24,8 @@
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable",
     "start": "webpack serve --config ./webpack/webpack.dev.js",
-    "build": "rm -rf dist && webpack --config ./webpack/webpack.prod.js",
+    "clean": "rimraf dist",
+    "build": "npm run clean && webpack --config ./webpack/webpack.prod.js",
     "lint": "npm run lint:ts && npm run lint:css",
     "lint:ts": "eslint -c .eslintrc.js src/main",
     "lint:css": "stylelint 'src/**/*.ts'",
@@ -41,7 +42,8 @@
     "docs:copy-api": "cp lib/es6/apollon-editor.d.ts lib/es6/typings.d.ts lib/es6/compat/helpers.d.ts docs/source/user/api && cp lib/es6/packages/diagram-type.d.ts docs/source/dev/api",
     "docs:prepare": "npm run docs:copy-api && cd docs && pip3 install -r requirements.txt",
     "docs:build": "cd docs && make clean && make html",
-    "docs:watch": "npm run docs:build && serve -p 8088 docs/build/html & chokidar \"docs/source/**/*\" \"docs/images/**/*\" -c \"npm run docs:build\""
+    "docs:watch": "npm run docs:build && serve -p 8088 docs/build/html & chokidar \"docs/source/**/*\" \"docs/images/**/*\" -c \"npm run docs:build\"",
+    "serve": "http-server dist -p 8080"
   },
   "husky": {
     "hooks": {
@@ -55,6 +57,7 @@
   "dependencies": {
     "@BESSER/Besser": "file:",
     "@BESSER/BESSER-GUI": "file:",
+    "@besser/besser-web-modeling-editor": "file:",
     "@ls1intum/apollon": "file:",
     "@monaco-editor/react": "4.6.0",
     "fast-json-patch": "3.1.1",
@@ -108,6 +111,7 @@
     "eslint-plugin-react": "7.34.1",
     "fork-ts-checker-webpack-plugin": "9.0.2",
     "html-webpack-plugin": "5.6.0",
+    "http-server": "14.1.1",
     "husky": "8.0.3",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",

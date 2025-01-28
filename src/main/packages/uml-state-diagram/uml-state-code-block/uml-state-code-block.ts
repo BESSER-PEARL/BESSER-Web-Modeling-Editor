@@ -60,7 +60,7 @@ export class UMLStateCodeBlock extends UMLElement implements IUMLStateCodeBlockE
 
       // Set version
       this.code.version = values.code?.version || '1.0';
-    };
+    }
   }
 
   serialize() {

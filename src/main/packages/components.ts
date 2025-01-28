@@ -74,6 +74,7 @@ import { UMLStateObjectNodeComponent } from './uml-state-diagram/uml-state-objec
 import { UMLStateTransitionComponent } from './uml-state-diagram/uml-state-transition/uml-state-transition-component';
 import { UMLStateCodeBlockComponent } from './uml-state-diagram/uml-state-code-block/uml-state-code-block-component';
 import { UMLStateMemberComponent } from './uml-state-diagram/uml-state/uml-state-member-component';
+import { ClassOCLConstraintComponent } from './uml-class-diagram/uml-class-ocl/uml-class-ocl-constraint-component';
 
 export const Components: {
   [key in UMLElementType | UMLRelationshipType]:
@@ -87,6 +88,7 @@ export const Components: {
   [UMLElementType.Enumeration]: UMLClassifierComponent,
   [UMLElementType.ClassAttribute]: UMLClassifierMemberComponent,
   [UMLElementType.ClassMethod]: UMLClassifierMemberComponent,
+  [UMLElementType.ClassOCLConstraint]: ClassOCLConstraintComponent,
   [UMLElementType.ObjectName]: UMLClassifierComponent,
   [UMLElementType.ObjectAttribute]: UMLClassifierMemberComponent,
   [UMLElementType.ObjectMethod]: UMLClassifierMemberComponent,
@@ -141,6 +143,7 @@ export const Components: {
   [UMLRelationshipType.ClassInheritance]: UMLAssociationComponent,
   [UMLRelationshipType.ClassRealization]: UMLAssociationComponent,
   [UMLRelationshipType.ClassUnidirectional]: UMLAssociationComponent,
+  [UMLRelationshipType.ClassOCLLink]: UMLAssociationComponent,
   [UMLRelationshipType.ObjectLink]: UMLObjectLinkComponent,
   [UMLRelationshipType.ActivityControlFlow]: UMLActivityControlFlowComponent,
   [UMLRelationshipType.UseCaseAssociation]: UMLUseCaseAssociationComponent,
