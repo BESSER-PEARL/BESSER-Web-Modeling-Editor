@@ -50,7 +50,59 @@
       line-height: 1.5;
       margin: 10px 0;
     }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .form-group input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .error-message {
+      color: #f44336;
+      font-size: 0.8em;
+      margin-top: 5px;
+      display: none;
+    }
   </style>
+  <script>
+    function preventSpaces(event) {
+      if (event.key === ' ') {
+        event.preventDefault();
+        return false;
+      }
+    }
+
+    function removeSpaces(element) {
+      element.value = element.value.replace(/\s/g, '_');
+    }
+
+    function validateNames() {
+      const projectName = document.getElementById('projectName').value;
+      const appName = document.getElementById('appName').value;
+      const errorMessage = document.getElementById('nameError');
+      const generateButton = document.querySelector('#djangoConfigPopup button[onclick*="generateDjangoProject"]');
+
+      if (projectName && appName && projectName === appName) {
+        errorMessage.style.display = 'block';
+        generateButton.disabled = true;
+        return false;
+      } else {
+        errorMessage.style.display = 'none';
+        generateButton.disabled = false;
+        return true;
+      }
+    }
+  </script>
 </head>
 
 
@@ -218,6 +270,7 @@
       <main id="apollon"></main>
     </div>
   </div>
+
   <div id="oclPopup" class="popup-overlay">
     <div class="popup-content">
       <textarea id="oclText" placeholder="Enter your OCL constraints here, separated by commas..."></textarea>
@@ -235,6 +288,46 @@
       </div>
     </div>
   </div>
+
+  <div id="djangoConfigPopup" class="popup-overlay" style="display: none;">
+    <div class="popup-content">
+      <h3>Django Project Configuration</h3>
+      <div class="form-group">
+        <label for="projectName">Project Name:</label>
+        <input type="text" 
+               id="projectName" 
+               placeholder="my_django_project" 
+               pattern="[a-zA-Z0-9_-]+" 
+               onkeypress="return preventSpaces(event)"
+               oninput="removeSpaces(this); validateNames()"
+               title="Only letters, numbers, underscores, and hyphens allowed (no spaces)"
+               required>
+      </div>
+      <div class="form-group">
+        <label for="appName">App Name:</label>
+        <input type="text" 
+               id="appName" 
+               placeholder="my_app" 
+               pattern="[a-zA-Z0-9_-]+" 
+               onkeypress="return preventSpaces(event)"
+               oninput="removeSpaces(this); validateNames()"
+               title="Only letters, numbers, underscores, and hyphens allowed (no spaces)"
+               required>
+        <div id="nameError" class="error-message">Project name and app name cannot be the same</div>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="containerization">
+          Include Docker containerization
+        </label>
+      </div>
+      <div class="popup-buttons">
+        <button onclick="window.apollon.generateDjangoProject()">Generate</button>
+        <button onclick="document.getElementById('djangoConfigPopup').style.display='none'">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
 </body>
 
 </html>
