@@ -335,15 +335,17 @@ const awaitEditorInitialization = async () => {
 export const deleteEverything = () => {
   try {
     if (options.useSingleStorage) {
-      // Single storage mode - just remove the combined storage
-      localStorage.removeItem('apollonModels');
+      // Single storage mode - remove the legacy storage
+      localStorage.removeItem('apollon');
     } else {
-      // Per-diagram storage mode - remove all diagram-specific keys
+      // Per-diagram storage mode - remove the models storage and all diagram-specific keys
+      localStorage.removeItem('apollonModels');
       const allKeys = Object.keys(localStorage);
       const apollonKeys = allKeys.filter(key => key.startsWith('apollon_'));
       apollonKeys.forEach(key => localStorage.removeItem(key));
     }
 
+    // Remove options and reset to defaults
     localStorage.removeItem('apollonOptions');
 
     options = {
@@ -351,7 +353,9 @@ export const deleteEverything = () => {
       colorEnabled: true,
       scale: 0.8,
       type: 'ClassDiagram' as DiagramType,
-      useSingleStorage: options.useSingleStorage
+      savedModels: {},
+      useSingleStorage: options.useSingleStorage,
+      legacyModel: undefined
     };
 
     if (editor) {
