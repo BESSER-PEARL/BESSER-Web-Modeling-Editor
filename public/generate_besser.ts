@@ -8,6 +8,10 @@ export async function exportBuml(editorInstance: any) {
       return;
     }
 
+    // Add validation before generation
+    if (!validateBeforeGeneration(editorInstance)) {
+      return;
+    }
     const diagramData = getDiagramData(editorInstance);
     if (!diagramData) {
       console.error("No diagram data available!");
