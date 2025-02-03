@@ -139,11 +139,11 @@ export function validateBeforeGeneration(editor: Apollon.ApollonEditor): boolean
     const associationResult = validateAssociationEnds(editor);
     if (!associationResult.isValid) {
         showValidationMessage(
-            "⚠️ Cannot generate code:\n\n" + associationResult.message + 
+            "⚠️ Continuing generation with default association end names: \n\n" + associationResult.message + 
             "\n\nPlease add missing role names to all associations.",
             true
         );
-        return false;
+        return true;
     }
     
     return true;
