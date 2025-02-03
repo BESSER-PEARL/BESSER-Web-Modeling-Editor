@@ -103,6 +103,15 @@ export async function generateOutput(generatorType: string) {
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      if (response.status === 400 && errorData.detail) {
+        showValidationMessage(`⚠️ Error: ${errorData.detail}`, true);
+        return;
+      }
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+    }
+    
     if (response.ok) {
       const blob = await response.blob();
       
