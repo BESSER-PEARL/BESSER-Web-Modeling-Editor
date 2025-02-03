@@ -128,12 +128,12 @@ export function validateBeforeGeneration(editor: Apollon.ApollonEditor): boolean
     const classNameResult = validateClassNames(editor);
     if (!classNameResult.isValid) {
         showValidationMessage(
-            "⚠️ Some class names are not unique. Code generation will continue, but certain names have been modified to avoid duplicates.\n\n" +
+            "⚠️ Some class names are not unique.\n\n" +
             classNameResult.message +
             "\n\nPlease review and update the class names if necessary.",
             true
         );
-        return true;
+        return false;
     }
 
     const associationResult = validateAssociationEnds(editor);
