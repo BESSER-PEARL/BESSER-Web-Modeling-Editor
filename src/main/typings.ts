@@ -59,6 +59,7 @@ export type UMLModelElement = {
   strokeColor?: string;
   textColor?: string;
   assessmentNote?: string;
+  timestamp?: string | Date;
 };
 
 export type UMLElement = UMLModelElement & {

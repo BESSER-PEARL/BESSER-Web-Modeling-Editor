@@ -33,6 +33,8 @@ export interface IUMLElement {
   /** Note to show for element's assessment */
   assessmentNote?: string;
   isManuallyLayouted?: boolean;
+  /** Timestamp of element creation */
+  timestamp?: string | Date;
 }
 
 export const enum ResizeFrom {
@@ -90,8 +92,13 @@ export abstract class UMLElement implements IUMLElement, ILayoutable {
   textColor?: string;
   assessmentNote?: string;
   resizeFrom: ResizeFrom = ResizeFrom.BOTTOMRIGHT;
+  timestamp: string | Date = new Date().toISOString();
 
   constructor(values?: DeepPartial<IUMLElement>) {
+    // Only set timestamp if this is a new element (no values provided)
+    if (!values) {
+        this.timestamp = new Date().toISOString();
+    }
     assign<IUMLElement>(this, values);
   }
 
@@ -102,7 +109,8 @@ export abstract class UMLElement implements IUMLElement, ILayoutable {
    */
   clone<T extends UMLElement>(override?: DeepPartial<IUMLElement>): T {
     const Constructor = this.constructor as new (values?: DeepPartial<IUMLElement>) => T;
-    const values: IUMLElement = { ...this, ...override, id: uuid() };
+    const values: IUMLElement = { ...this, ...override, id: uuid(), timestamp: new Date().toISOString() // New timestamp for cloned element
+    };
 
     return new Constructor(values);
   }
@@ -120,6 +128,7 @@ export abstract class UMLElement implements IUMLElement, ILayoutable {
       strokeColor: this.strokeColor,
       textColor: this.textColor,
       assessmentNote: this.assessmentNote,
+      timestamp: typeof this.timestamp === 'string' ? this.timestamp : this.timestamp.toISOString(),
     };
   }
 
@@ -135,6 +144,8 @@ export abstract class UMLElement implements IUMLElement, ILayoutable {
     this.strokeColor = values.strokeColor;
     this.textColor = values.textColor;
     this.assessmentNote = values.assessmentNote;
+    // Only set timestamp from values during deserialization
+    this.timestamp = values.timestamp || new Date().toISOString();
   }
 
   abstract render(canvas: ILayer): ILayoutable[];
