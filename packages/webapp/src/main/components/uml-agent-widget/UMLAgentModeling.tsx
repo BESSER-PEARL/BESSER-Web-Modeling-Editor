@@ -664,61 +664,73 @@ export const UMLAgentModeling: React.FC = () => {
 
   // Handle sending messages
   const sendMessage = async () => {
-    const validation = uiService.validateUserInput(inputValue);
-    if (!validation.valid) {
-      uiService.showToast(validation.error!, 'error');
-      return;
-    }
-
-    // Check rate limit BEFORE sending
-    const rateLimitCheck = await rateLimiter.checkRateLimit(inputValue.length);
-    if (!rateLimitCheck.allowed) {
-      uiService.showToast(rateLimitCheck.reason!, 'error');
-      return;
-    }
-
-    const userMessage: ChatMessage = {
-      id: uiService.generateId('msg'),
-      action: 'user_message',
-      message: inputValue,
-      isUser: true,
-      timestamp: new Date(),
-      diagramType: currentDiagramType
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-
-    // Update rate limit status
-    const status = rateLimiter.getRateLimitStatus();
-    setRateLimitStatus(status);
-
-    // Send message with diagram type and current model context
-    const modelSnapshot = modelingService?.getCurrentModel();
-    const sendResult: SendStatus = wsService.sendMessage(inputValue, currentDiagramType, modelSnapshot);
-
-    if (sendResult === 'error') {
-      uiService.showToast('Failed to send message', 'error');
-      setMessages(prev => prev.filter(message => message.id !== userMessage.id));
-      return;
-    }
-
-    if (sendResult === 'queued') {
-      uiService.showToast('Connection unavailable — queued your request for retry.', 'info');
-      const state = wsService.connectionState as ConnectionStatus;
-      setConnectionStatus(state === 'connected' ? 'connected' : 'connecting');
-      if (state === 'disconnected') {
-        wsService.connect().catch(() => setConnectionStatus('disconnected'));
+    try {
+      const validation = uiService.validateUserInput(inputValue);
+      if (!validation.valid) {
+        uiService.showToast(validation.error!, 'error');
+        return;
       }
-    }
 
-    setInputValue('');
+      // Check rate limit BEFORE sending
+      const rateLimitCheck = await rateLimiter.checkRateLimit(inputValue.length);
+      if (!rateLimitCheck.allowed) {
+        uiService.showToast(rateLimitCheck.reason!, 'error');
+        return;
+      }
+
+      const userMessage: ChatMessage = {
+        id: uiService.generateId('msg'),
+        action: 'user_message',
+        message: inputValue,
+        isUser: true,
+        timestamp: new Date(),
+        diagramType: currentDiagramType
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+
+      // Update rate limit status
+      const status = rateLimiter.getRateLimitStatus();
+      setRateLimitStatus(status);
+
+      // Send message with diagram type and current model context
+      const modelSnapshot = modelingService?.getCurrentModel();
+      const sendResult: SendStatus = wsService.sendMessage(inputValue, currentDiagramType, modelSnapshot);
+
+      if (sendResult === 'error') {
+        uiService.showToast('Failed to send message', 'error');
+        setMessages(prev => prev.filter(message => message.id !== userMessage.id));
+        return;
+      }
+
+      if (sendResult === 'queued') {
+        uiService.showToast('Connection unavailable — queued your request for retry.', 'info');
+        const state = wsService.connectionState as ConnectionStatus;
+        setConnectionStatus(state === 'connected' ? 'connected' : 'connecting');
+        if (state === 'disconnected') {
+          wsService.connect().catch(() => setConnectionStatus('disconnected'));
+        }
+      }
+
+      setInputValue('');
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
+      uiService.showToast('An error occurred while sending the message', 'error');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
       sendMessage();
     }
+  };
+
+  const handleSendClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    sendMessage();
   };
 
   const renderMessage = (message: ChatMessage) => {
@@ -919,14 +931,22 @@ export const UMLAgentModeling: React.FC = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
+                onKeyDown={(e) => {
+                  // Prevent any form submission behavior
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
                 placeholder="Describe what you want to create or modify..."
                 disabled={isInputDisabled}
               />
             </div>
 
             <button
+              type="button"
               className="send-button"
-              onClick={sendMessage}
+              onClick={handleSendClick}
               disabled={isSendDisabled}
             >
               Send
