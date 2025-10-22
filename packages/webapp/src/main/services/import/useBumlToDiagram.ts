@@ -15,7 +15,7 @@ export const useBumlToDiagram = () => {
     formData.append('buml_file', file);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/get-json-model`, {
+      const response = await fetch(`${BACKEND_URL}/get-single-json-model`, {
         method: 'POST',
         body: formData,
       });

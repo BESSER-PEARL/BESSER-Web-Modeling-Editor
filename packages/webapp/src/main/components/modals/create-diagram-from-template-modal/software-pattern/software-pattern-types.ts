@@ -14,7 +14,6 @@ export enum SoftwarePatternType {
   LIBRARY = 'Library',
   TEAMOCL = 'Team Player with OCL',
   DPP = 'Digital Product Passport ',
-  AISANDBOX = 'AI Sandbox',
   // Behavioral pattern
   COMMAND = 'Command',
   OBSERVER = 'Observer',

@@ -217,13 +217,13 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
                 </Nav.Item>
               )}
             </>
-            {/* {APPLICATION_SERVER_VERSION && (
+            {APPLICATION_SERVER_VERSION && (
               <Nav.Item>
                 <Nav.Link onClick={handleQuickShare} title="Store and share your diagram into the database">
                   Save & Share
                 </Nav.Link>
               </Nav.Item>
-            )} */}
+            )}
             <HelpMenu />
             <DiagramTitle
               type="text"

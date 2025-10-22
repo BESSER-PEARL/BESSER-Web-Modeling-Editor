@@ -16,9 +16,10 @@ import { VersionManagementSidebar } from './components/version-management-sideba
 import { SidebarLayout } from './components/sidebar/SidebarLayout';
 import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
+import { AgentConfigScreen } from './components/agent/AgentConfigScreen';
+import { AgentPersonalizationConfigScreen } from './components/agent/AgentPersonalizationConfigScreen';
 import { TeamPage } from './components/team/TeamPage';
 import { useProject } from './hooks/useProject';
-import { UMLBotWidget } from './components/uml-bot-widget/UMLBotWidgetRefactored';
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -32,9 +33,7 @@ function AppContentInner() {
   const location = useLocation();
   
   // Check if current path contains a token (collaboration route)
-  const hasTokenInUrl = location.pathname !== '/' && 
-                       location.pathname !== '/project-settings' && 
-                       location.pathname !== '/teampage';
+  const hasTokenInUrl = location.pathname !== '/' && location.pathname !== '/project-settings' && location.pathname !== '/teampage' && location.pathname !== '/agent-config' && location.pathname !== '/agent-personalization'; 
   
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
@@ -107,14 +106,14 @@ function AppContentInner() {
       {/* {isFirefox && <FirefoxIncompatibilityHint />} */}
       <Routes>
         {/* Collaboration route with token */}
-        {/* <Route 
+        <Route 
           path="/:token" 
           element={
             // <SidebarLayout>  No collaboration support yet
               <ApollonEditorComponentWithConnection />
             // </SidebarLayout>
           } 
-        /> */}
+        />
         
         {/* Main editor route */}
         <Route 
@@ -125,8 +124,7 @@ function AppContentInner() {
             </SidebarLayout>
           } 
         />
-                
-
+        
         {/* Project settings route */}
         <Route 
           path="/project-settings" 
@@ -136,12 +134,31 @@ function AppContentInner() {
             </SidebarLayout>
           } 
         />
-        
+
+        {/* Agent configuration route */}
+        <Route 
+          path="/agent-config" 
+          element={
+            <SidebarLayout>
+              <AgentConfigScreen />
+            </SidebarLayout>
+          } 
+        />
+
+        {/* Agent personalization route */}
+        <Route 
+          path="/agent-personalization" 
+          element={
+            <SidebarLayout>
+              <AgentPersonalizationConfigScreen />
+            </SidebarLayout>
+          } 
+        />
+
         {/* Team page route */}
         <Route path="/teampage" element={<TeamPage />} />
       </Routes>
       <ErrorPanel />
-      <UMLBotWidget />
       <ToastContainer />
     </ApollonEditorProvider>
   );

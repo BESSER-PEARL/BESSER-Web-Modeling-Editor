@@ -39,7 +39,7 @@ export const FileMenu: React.FC = () => {
   const [isImporting, setIsImporting] = React.useState(false);
 
   const exportDiagram = async (exportType: 'PNG' | 'PNG_WHITE' | 'SVG' | 'JSON' | 'PDF' | 'BUML'): Promise<void> => {
-    if (!editor) {
+    if (!editor || !diagram?.title) {
       toast.error('No diagram available to export');
       return;
     }

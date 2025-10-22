@@ -7,7 +7,6 @@ import { UMLDiagramType } from '@besser/wme';
 import libraryModel from '../../../templates/pattern/structural/Library.json';
 import teamOclModel from '../../../templates/pattern/structural/team_player_ocl.json';
 import dppModel from '../../../templates/pattern/structural/dpp.json';
-import aiSandboxModel from '../../../templates/pattern/structural/ai_sandbox.json';
 import commandModel from '../../../templates/pattern/behavioral/command.json';
 import factoryModel from '../../../templates/pattern/creational/factory.json';
 import observerModel from '../../../templates/pattern/behavioral/observer.json';
@@ -37,13 +36,6 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.ClassDiagram,
           dppModel as any,
-          SoftwarePatternCategory.STRUCTURAL,
-        );
-      case SoftwarePatternType.AISANDBOX:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          UMLDiagramType.ClassDiagram,
-          aiSandboxModel as any,
           SoftwarePatternCategory.STRUCTURAL,
         );
       case SoftwarePatternType.COMMAND:

@@ -11,14 +11,6 @@ export const BASE_URL = `${DEPLOYMENT_URL}/api`;
 export const NO_HTTP_URL = DEPLOYMENT_URL?.split('//')[1] || '';
 export const WS_PROTOCOL = DEPLOYMENT_URL?.startsWith('https') ? 'wss' : 'ws';
 
-const defaultBotWsUrl = process.env.NODE_ENV === 'development'
-  ? 'ws://localhost:8765'
-  : DEPLOYMENT_URL
-    ? `${WS_PROTOCOL}://${NO_HTTP_URL}`
-    : 'ws://localhost:8765';
-
-export const UML_BOT_WS_URL = process.env.UML_BOT_WS_URL || defaultBotWsUrl;
-
 // prefixes
 export const localStoragePrefix = 'besser_';
 export const localStorageDiagramPrefix = localStoragePrefix + 'diagram_';

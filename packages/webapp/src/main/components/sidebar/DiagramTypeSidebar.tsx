@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { 
   Diagram3, 
@@ -94,7 +94,8 @@ const sidebarItems: SidebarItem[] = [
 export const DiagramTypeSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const [showAgentMenu, setShowAgentMenu] = useState(false);
+
   // Use the new project-based state management
   const {
     currentProject,
@@ -103,8 +104,27 @@ export const DiagramTypeSidebar: React.FC = () => {
     switchDiagramType
   } = useProject();
 
+  useEffect(() => {
+    if (!showAgentMenu) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const menu = document.getElementById('agent-menu-modal');
+      if (menu && !menu.contains(event.target as Node)) {
+        setShowAgentMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [showAgentMenu]);
+
+
   const handleItemClick = (item: SidebarItem) => {
-    // Handle navigation items (home, settings)
+    if (item.type === UMLDiagramType.AgentDiagram) {
+      setShowAgentMenu(true);
+      return;
+    }
+    // Handle navigation items (home, settings, agent-config)
     if (item.path) {
       navigate(item.path);
       return;
@@ -135,7 +155,32 @@ export const DiagramTypeSidebar: React.FC = () => {
     }
   };
 
+  const handleAgentMenuSelect = (choice: 'diagram' | 'config' | 'personalization') => {
+    setShowAgentMenu(false);
+    if (choice === 'diagram') {
+      // Switch to Agent Diagram as usual
+      try {
+        switchDiagramType(UMLDiagramType.AgentDiagram);
+        if (location.pathname !== '/') {
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Failed to switch diagram type:', error);
+      }
+    } else if (choice === 'config') {
+      // Navigate to agent config editor (replace with your actual path)
+      navigate('/agent-config');
+    } else if (choice === 'personalization') {
+      // Navigate to agent personalization editor (replace with your actual path)
+      navigate('/agent-personalization');
+    }
+  };
+
   const isItemActive = (item: SidebarItem): boolean => {
+    // Only highlight Agent Diagram if not on /agent-config
+    if (item.type === UMLDiagramType.AgentDiagram) {
+      return location.pathname === '/' && toUMLDiagramType(currentDiagramType) === UMLDiagramType.AgentDiagram;
+    }
     if (item.path) {
       return location.pathname === item.path;
     }
@@ -180,6 +225,66 @@ export const DiagramTypeSidebar: React.FC = () => {
           </React.Fragment>
         );
       })}
+
+      {/* Agent menu modal/dropdown */}
+      {showAgentMenu && (
+        <>
+          {/* Overlay to block interaction with other elements */}
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.15)',
+              zIndex: 9999,
+            }}
+          />
+          <div
+            id="agent-menu-modal"
+            style={{
+              position: 'fixed',
+              left: 70,
+              top: 100,
+              zIndex: 10000,
+              background: 'var(--apollon-background)',
+              border: '1px solid var(--apollon-switch-box-border-color)',
+              borderRadius: 8,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              padding: '16px 24px',
+              minWidth: 250,
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Choose Agent View</div>
+            <Button
+              variant={location.pathname === '/' ? 'primary' : 'outline-primary'}
+              style={{ width: '100%', marginBottom: 8 }}
+              onClick={() => handleAgentMenuSelect('diagram')}
+            >
+              Agent Diagram
+            </Button>
+            <Button
+              variant={location.pathname === '/agent-config' ? 'primary' : 'outline-primary'}
+              style={{ width: '100%' }}
+              onClick={() => handleAgentMenuSelect('config')}
+            >
+              Agent Configuration
+            </Button>
+            <Button
+              variant={location.pathname === '/agent-personalization' ? 'primary' : 'outline-primary'}
+              style={{ width: '100%', marginTop: 8 }}
+              onClick={() => handleAgentMenuSelect('personalization')}
+            >
+              Agent Personalization
+            </Button>
+            <Button
+              variant="link"
+              style={{ width: '100%', marginTop: 8, color: '#888' }}
+              onClick={() => setShowAgentMenu(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </>
+      )}
     </SidebarContainer>
   );
 };
