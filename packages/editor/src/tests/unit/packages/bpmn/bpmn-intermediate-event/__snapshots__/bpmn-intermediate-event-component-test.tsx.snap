@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render the bpmn-intermediate-event-component 1`] = `
+<body>
+  <div>
+    <svg>
+      <g>
+        <circle
+          class="sc-iGgWBj gRgQSU"
+          cx="50%"
+          cy="50%"
+          fill="transparent"
+          r="19.5"
+          stroke="black"
+        />
+        <circle
+          class="sc-iGgWBj gRgQSU"
+          cx="50%"
+          cy="50%"
+          fill="transparent"
+          r="16.5"
+          stroke="black"
+        />
+        <text
+          pointer-events="none"
+          text-anchor="middle"
+          width="80"
+          x="20"
+          y="60"
+        >
+          <tspan
+            dy="11"
+            x="20"
+          >
+            Event
+          </tspan>
+        </text>
+      </g>
+    </svg>
+  </div>
+</body>
+`;

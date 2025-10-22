@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render the flowchart-input-output-component 1`] = `
+<body>
+  <div>
+    <svg>
+      <g>
+        <polyline
+          class="sc-aXZVg bUvEJV"
+          fill="white"
+          points="180 0, 140 100, -20 100, 20 0, 180 0"
+          stroke="black"
+        />
+        <text
+          font-weight="bold"
+          height="100"
+          pointer-events="none"
+          text-anchor="middle"
+          width="160"
+          x="80"
+          y="50"
+        >
+          <tspan
+            dy="5.5"
+            x="80"
+          >
+            TestInputOutputComponent
+          </tspan>
+        </text>
+      </g>
+    </svg>
+  </div>
+</body>
+`;

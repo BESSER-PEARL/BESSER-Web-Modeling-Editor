@@ -1,0 +1,182 @@
+{
+  "views": {
+    "modelling": "Modeling",
+    "exporting": "Interactive",
+    "highlight": "Show interactive elements"
+  },
+  "sidebar": {
+    "classAttribute": "+ attribute: str",
+    "classMethod": "+ method()",
+    "enumAttribute": "Case",
+    "objectAttribute": "attribute = value"
+  },
+  "popup": {
+    "attributes": "Attributes",
+    "methods": "Methods",
+    "relationship": "Relationship",
+    "association": "Association",
+    "multiplicity": "Multiplicity",
+    "role": "Role",
+    "messages": "Messages",
+    "condition": "Conditions",
+    "tokens": "Tokens",
+    "capacity": "Capacity",
+    "intent_name": "Intent name",
+    "training_sentences": "Training sentences",
+    "objectLink": "Object Link",
+    "linkDetails": "Link Details",
+    "noAssociation": "No Association",
+    "noAssociationsAvailable": "No associations available for the connected object classes"
+  },
+  "assessment": {
+    "assessment": "Assessment for",
+    "score": "Points",
+    "feedback": "Feedback",
+    "feedbackPlaceholder": "You can enter feedback here...",
+    "additionalFeedbackPlaceholder": "You can enter additional feedback here..."
+  },
+  "packages": {
+    "ClassDiagram": {
+      "Package": "Package",
+      "Class": "Class",
+      "AbstractClass": "Abstract",
+      "Interface": "Interface",
+      "Enumeration": "Enumeration",
+      "ClassAttribute": "Attribute",
+      "ClassMethod": "Method",
+      "ClassAggregation": "Aggregation",
+      "ClassBidirectional": "Association (bidirectional)",
+      "ClassComposition": "Composition",
+      "ClassDependency": "Dependency",
+      "ClassInheritance": "Generalization",
+      "ClassRealization": "Realization",
+      "ClassUnidirectional": "Association (unidirectional)"
+    },
+    "ObjectDiagram": {
+      "ObjectName": "Object",
+      "ObjectAttribute": "Attribute",
+      "ObjectMethod": "Method",
+      "ObjectLink": "Relationship"
+    },
+    "ActivityDiagram": {
+      "Activity": "Activity",
+      "ActivityActionNode": "Action",
+      "ActivityFinalNode": "Final Node",
+      "ActivityForkNode": "Fork Node",
+      "ActivityInitialNode": "Initial Node",
+      "ActivityMergeNode": "Condition",
+      "ActivityObjectNode": "Object",
+      "ActivityControlFlow": "Control Flow"
+    },
+    "UseCaseDiagram": {
+      "UseCase": "UseCase",
+      "UseCaseActor": "Actor",
+      "UseCaseSystem": "System",
+      "UseCaseAssociation": "Association",
+      "UseCaseExtend": "Extend",
+      "UseCaseGeneralization": "Generalization",
+      "UseCaseInclude": "Include"
+    },
+    "CommunicationDiagram": {
+      "ObjectName": "Object",
+      "ObjectAttribute": "Attribute",
+      "ObjectMethod": "Method",
+      "CommunicationLink": "Communication Link"
+    },
+    "ComponentDiagram": {
+      "Component": "Component",
+      "Subsystem": "Subsystem",
+      "ComponentDependency": "Dependency",
+      "ComponentInterface": "Interface",
+      "ComponentInterfaceProvided": "Provided Interface",
+      "ComponentInterfaceRequired": "Required Interface"
+    },
+    "DeploymentDiagram": {
+      "DeploymentNode": "Node",
+      "DeploymentComponent": "Component",
+      "DeploymentArtifact": "Artifact",
+      "DeploymentInterface": "Interface",
+      "DeploymentInterfaceProvided": "Provided Interface",
+      "DeploymentInterfaceRequired": "Required Interface",
+      "DeploymentAssociation": "Deployment Association",
+      "DeploymentDependency": "Deployment Dependency"
+    },
+    "PetriNet": {
+      "PetriNetPlace": "Place",
+      "PetriNetTransition": "Transition"
+    },
+    "ReachabilityGraph": {
+      "ReachabilityGraphIsInitialMarking": "Is initial marking",
+      "ReachabilityGraphMarking": "Marking"
+    },
+    "SyntaxTree": {
+      "SyntaxTreeTerminal": "Terminal",
+      "SyntaxTreeNonterminal": "Nonterminal",
+      "SyntaxTreeLink": "Link"
+    },
+    "Flowchart": {
+      "FlowchartTerminal": "Terminal",
+      "FlowchartDecision": "Decision",
+      "FlowchartProcess": "Process",
+      "FlowchartFunctionCall": "Function Call",
+      "FlowchartInputOutput": "Input Output",
+      "FlowchartFlowline": "Flowline"
+    },
+    "ColorLegend": {
+      "ColorLegend": "Color Description"
+    },
+    "BPMN": {
+      "BPMNTask": "Task",
+      "BPMNUserTask": "User Task",
+      "BPMNSendTask": "Send Task",
+      "BPMNReceiveTask": "Receive Task",
+      "BPMNManualTask": "Manual Task",
+      "BPMNBusinessRuleTask": "Business Rule Task",
+      "BPMNScriptTask": "Script Task",
+      "BPMNSubprocess": "Subprocess",
+      "BPMNTransaction": "Transaction",
+      "BPMNCallActivity": "Call Activity",
+      "BPMNAnnotation": "Annotation",
+      "BPMNStartEvent": "Start Event",
+      "BPMNMessageStartEvent": "Message Start Event",
+      "BPMNTimerStartEvent": "Timer Start Event",
+      "BPMNConditionalStartEvent": "Conditional Start Event",
+      "BPMNSignalStartEvent": "Signal Start Event",
+      "BPMNIntermediateEvent": "Intermediate Event",
+      "BPMNMessageIntermediateCatchEvent": "Message Intermediate Catch Event",
+      "BPMNMessageIntermediateThrowEvent": "Message Intermediate Throw Event",
+      "BPMNTimerIntermediateCatchEvent": "Timer Intermediate Catch Event",
+      "BPMNEscalationIntermediateThrowEvent": "Escalation Intermediate Throw Event",
+      "BPMNConditionalIntermediateCatchEvent": "Conditional Intermediate Catch Event",
+      "BPMNLinkIntermediateCatchEvent": "Link Intermediate Catch Event",
+      "BPMNLinkIntermediateThrowEvent": "Link Intermediate Throw Event",
+      "BPMNCompensationIntermediateThrowEvent": "Compensation Intermediate Throw Event",
+      "BPMNSignalIntermediateCatchEvent": "Signal Intermediate Catch Event",
+      "BPMNSignalIntermediateThrowEvent": "Signal Intermediate Throw Event",
+      "BPMNEndEvent": "End Event",
+      "BPMNMessageEndEvent": "Message End Event",
+      "BPMNEscalationEndEvent": "Escalation End Event",
+      "BPMNErrorEndEvent": "Error End Event",
+      "BPMNCompensationEndEvent": "Compensation End Event",
+      "BPMNSignalEndEvent": "Signal End Event",
+      "BPMNTerminateEndEvent": "Terminate End Event",
+      "BPMNGateway": "Gateway",
+      "BPMNComplexGateway": "Complex",
+      "BPMNEventBasedGateway": "Event-based",
+      "BPMNInclusiveGateway": "Inclusive",
+      "BPMNExclusiveGateway": "Exclusive",
+      "BPMNParallelGateway": "Parallel",
+      "BPMNConversation": "Conversation",
+      "BPMNCallConversation": "Call Conversation",
+      "BPMNSequenceFlow": "Sequence",
+      "BPMNMessageFlow": "Message",
+      "BPMNAssociationFlow": "Association",
+      "BPMNDataAssociationFlow": "Data Association",
+      "BPMNDataObject": "Data Object",
+      "BPMNPool": "Pool",
+      "BPMNSwimlane": "Lane",
+      "BPMNSwimlanes": "Lanes",
+      "BPMNGroup": "Group"
+    }
+  }
+}

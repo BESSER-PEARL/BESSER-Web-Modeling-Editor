@@ -1,0 +1,71 @@
+{
+  "name": "besser_wme_standalone",
+  "version": "1.0.0",
+  "private": true,
+  "repository": "git@github.com:BESSER/BESSER_WME_standalone.git",
+  "license": "MIT",
+  "author": {
+    "name": "Armen",
+    "email": "armen.sulejmani@list.lu",
+    "url": "http://armen.sulejmani.com"
+  },
+  "engines": {
+    "node": ">=22.10.0"
+  },
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/webapp",
+    "packages/editor"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run start:webapp\" \"npm run start:server\"",
+    "start": "concurrently \"npm run start:webapp\" \"npm run start:server\"",
+    "start:webapp": "npm run start --workspace=webapp",
+    "start:server": "npm run start --workspace=server",
+    "build": "npm run build:shared && concurrently \"npm run build:webapp\" \"npm run build:server\"",
+    "build:local": "npm run build:shared && concurrently \"npm run build:webapp:local\" \"npm run build:server\"",
+    "build:shared": "npm run build --workspace=shared",
+    "build:webapp": "npm run build --workspace=webapp",
+    "build:webapp:local": "npm run build:local --workspace=webapp",
+    "build:server": "npm run build --workspace=server",
+    "lint": "concurrently \"npm run lint:webapp\" \"npm run lint:server\"",
+    "lint:webapp": "npm run lint --workspace=webapp",
+    "lint:server": "npm run lint --workspace=server",
+    "prettier:check": "prettier --check 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
+    "prettier:write": "prettier --write 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
+    "update": "ncu -i --deep --format group"
+  },
+  "overrides": {
+    "semver": "7.5.4",
+    "word-wrap": "1.2.5",
+    "tough-cookie": "4.1.3",
+    "postcss": "8.4.38",
+    "crypto-js": "4.2.0"
+  },
+  "dependencies": {
+    "@besser/wme": "*",
+    "@sentry/node": "8.55.0",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@typescript-eslint/eslint-plugin": "8.15.0",
+    "@typescript-eslint/parser": "8.15.0",
+    "concurrently": "9.1.0",
+    "css-loader": "^7.1.2",
+    "dotenv-webpack": "^8.1.0",
+    "eslint": "^9.34.0",
+    "prettier": "3.3.3",
+    "style-loader": "^4.0.0",
+    "stylelint": "16.3.1",
+    "stylelint-config-recommended": "14.0.1",
+    "ts-loader": "9.5.1",
+    "typescript": "5.6.3",
+    "webpack": "5.96.1",
+    "webpack-cli": "5.1.4",
+    "webpack-dev-server": "^5.2.2",
+    "webpack-merge": "6.0.1"
+  }
+}

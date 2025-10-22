@@ -1,0 +1,194 @@
+{
+  "version": "2.0.0",
+  "type": "ClassDiagram",
+  "size": { "width": 1140, "height": 440 },
+  "interactive": { "elements": [], "relationships": [] },
+  "elements": [
+    {
+      "id": "73bc497f-9e10-4ca5-8fa4-da9dbff9c898",
+      "name": "Factory",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 0, "y": 0, "width": 230, "height": 70 },
+      "attributes": [],
+      "methods": ["f55ff046-d385-40bd-abcc-a34f08932589"]
+    },
+    {
+      "id": "f55ff046-d385-40bd-abcc-a34f08932589",
+      "name": "+ createProduct()",
+      "type": "ClassMethod",
+      "owner": "73bc497f-9e10-4ca5-8fa4-da9dbff9c898",
+      "bounds": { "x": 0, "y": 40, "width": 230, "height": 30 }
+    },
+    {
+      "id": "0004117e-ff03-4dfa-ab0a-1d96d75159b6",
+      "name": "Product",
+      "type": "AbstractClass",
+      "owner": null,
+      "bounds": { "x": 530, "y": 0, "width": 200, "height": 110 },
+      "attributes": ["406e3558-46fd-4963-94c2-63a9763db4cd"],
+      "methods": ["fe8d9f8b-2829-4abb-810e-7216a37d2d07"]
+    },
+    {
+      "id": "406e3558-46fd-4963-94c2-63a9763db4cd",
+      "name": "+ attribute: Type",
+      "type": "ClassAttribute",
+      "owner": "0004117e-ff03-4dfa-ab0a-1d96d75159b6",
+      "bounds": { "x": 530, "y": 50, "width": 200, "height": 30 }
+    },
+    {
+      "id": "fe8d9f8b-2829-4abb-810e-7216a37d2d07",
+      "name": "+ doSomething()",
+      "type": "ClassMethod",
+      "owner": "0004117e-ff03-4dfa-ab0a-1d96d75159b6",
+      "bounds": { "x": 530, "y": 80, "width": 200, "height": 30 }
+    },
+    {
+      "id": "f51782f8-39e0-40d4-a777-07c69b6efba6",
+      "name": "ConcreteProduct1",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 230, "y": 200, "width": 200, "height": 70 },
+      "attributes": [],
+      "methods": ["4232a324-397b-40bc-81ca-8ac412a6f3ec"]
+    },
+    {
+      "id": "4232a324-397b-40bc-81ca-8ac412a6f3ec",
+      "name": "+ doSomething()",
+      "type": "ClassMethod",
+      "owner": "f51782f8-39e0-40d4-a777-07c69b6efba6",
+      "bounds": { "x": 230, "y": 240, "width": 200, "height": 30 }
+    },
+    {
+      "id": "09599afe-b617-4f08-aace-7fc13aec1a90",
+      "name": "ConcreteProduct2",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 530, "y": 200, "width": 200, "height": 70 },
+      "attributes": [],
+      "methods": ["d584ee9b-0854-431b-9dfd-77e86218b211"]
+    },
+    {
+      "id": "d584ee9b-0854-431b-9dfd-77e86218b211",
+      "name": "+ doSomething()",
+      "type": "ClassMethod",
+      "owner": "09599afe-b617-4f08-aace-7fc13aec1a90",
+      "bounds": { "x": 530, "y": 240, "width": 200, "height": 30 }
+    },
+    {
+      "id": "08d7438d-d7e4-4ee6-af0c-6afc589737c9",
+      "name": "ConcreteProduct3",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 830, "y": 200, "width": 200, "height": 70 },
+      "attributes": [],
+      "methods": ["14039991-9d40-41df-8110-d8fee2dbdd5a"]
+    },
+    {
+      "id": "14039991-9d40-41df-8110-d8fee2dbdd5a",
+      "name": "+ doSomething()",
+      "type": "ClassMethod",
+      "owner": "08d7438d-d7e4-4ee6-af0c-6afc589737c9",
+      "bounds": { "x": 830, "y": 240, "width": 200, "height": 30 }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "09bcbbb9-c686-4d7c-9d59-1bcb57a5fa56",
+      "name": "",
+      "type": "ClassUnidirectional",
+      "owner": null,
+      "bounds": { "x": 230, "y": 35, "width": 300, "height": 1 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 300, "y": 0 }
+      ],
+      "source": {
+        "direction": "Right",
+        "element": "73bc497f-9e10-4ca5-8fa4-da9dbff9c898",
+        "multiplicity": "",
+        "role": "creates"
+      },
+      "target": {
+        "direction": "Left",
+        "element": "0004117e-ff03-4dfa-ab0a-1d96d75159b6",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "94f09716-2ace-438a-ac17-d70bea75a9cf",
+      "name": "",
+      "type": "ClassInheritance",
+      "owner": null,
+      "bounds": { "x": 630, "y": 110, "width": 300, "height": 90 },
+      "path": [
+        { "x": 300, "y": 90 },
+        { "x": 300, "y": 45 },
+        { "x": 0, "y": 45 },
+        { "x": 0, "y": 0 }
+      ],
+      "source": {
+        "direction": "Up",
+        "element": "08d7438d-d7e4-4ee6-af0c-6afc589737c9",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Down",
+        "element": "0004117e-ff03-4dfa-ab0a-1d96d75159b6",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "eec3447f-26ab-46bc-b3d7-1b0b25731a8f",
+      "name": "",
+      "type": "ClassInheritance",
+      "owner": null,
+      "bounds": { "x": 630, "y": 110, "width": 1, "height": 90 },
+      "path": [
+        { "x": 0, "y": 90 },
+        { "x": 0, "y": 0 }
+      ],
+      "source": {
+        "direction": "Up",
+        "element": "09599afe-b617-4f08-aace-7fc13aec1a90",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Down",
+        "element": "0004117e-ff03-4dfa-ab0a-1d96d75159b6",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "b95a7b44-275b-4807-98b5-576f60fa47f1",
+      "name": "",
+      "type": "ClassInheritance",
+      "owner": null,
+      "bounds": { "x": 330, "y": 110, "width": 300, "height": 90 },
+      "path": [
+        { "x": 0, "y": 90 },
+        { "x": 0, "y": 45 },
+        { "x": 300, "y": 45 },
+        { "x": 300, "y": 0 }
+      ],
+      "source": {
+        "direction": "Up",
+        "element": "f51782f8-39e0-40d4-a777-07c69b6efba6",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Down",
+        "element": "0004117e-ff03-4dfa-ab0a-1d96d75159b6",
+        "multiplicity": "",
+        "role": ""
+      }
+    }
+  ],
+  "assessments": []
+}

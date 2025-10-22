@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "declaration": true,
+    "rootDir": "src",
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

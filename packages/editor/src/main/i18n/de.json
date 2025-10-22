@@ -1,0 +1,176 @@
+{
+  "views": {
+    "modelling": "Modellierung",
+    "exporting": "Interaktiv",
+    "highlight": "Zeige interaktive Elemente"
+  },
+  "sidebar": {
+    "classAttribute": "+ attribut: Typ",
+    "classMethod": "+ methode()",
+    "enumAttribute": "Fall",
+    "objectAttribute": "attribut = Wert"
+  },
+  "popup": {
+    "attributes": "Attribute",
+    "methods": "Methoden",
+    "relationship": "Beziehung",
+    "association": "Assoziation",
+    "multiplicity": "Multiziplität",
+    "role": "Rolle",
+    "messages": "Nachrichten",
+    "condition": "Bedingungen",
+    "tokens": "Tokens",
+    "capacity": "Kapazität"
+  },
+  "assessment": {
+    "assessment": "Bewertung für",
+    "score": "Punkte",
+    "feedback": "Feedback",
+    "feedbackPlaceholder": "Du kannst hier Feedback abgeben...",
+    "additionalFeedbackPlaceholder": "Du kannst hier zusätzliches Feedback abgeben..."
+  },
+  "packages": {
+    "ClassDiagram": {
+      "Package": "Paket",
+      "Class": "Klasse",
+      "AbstractClass": "Abstrakt",
+      "Interface": "Schnittstelle",
+      "Enumeration": "Aufzählung",
+      "ClassAttribute": "Attribut",
+      "ClassMethod": "Methode",
+      "ClassAggregation": "Aggregation",
+      "ClassBidirectional": "Assoziation (bidirektional)",
+      "ClassComposition": "Komposition",
+      "ClassDependency": "Abhängigkeit",
+      "ClassInheritance": "Vererbung",
+      "ClassRealization": "Realisierung",
+      "ClassUnidirectional": "Assoziation (unidirektional)"
+    },
+    "ObjectDiagram": {
+      "ObjectName": "Objekt",
+      "ObjectAttribute": "Attribut",
+      "ObjectMethod": "Methode",
+      "ObjectLink": "Beziehung"
+    },
+    "ActivityDiagram": {
+      "Activity": "Aktivität",
+      "ActivityActionNode": "Aktion",
+      "ActivityFinalNode": "Endknoten",
+      "ActivityForkNode": "Verzweigungsknoten",
+      "ActivityInitialNode": "Startknoten",
+      "ActivityMergeNode": "Bedingung",
+      "ActivityObjectNode": "Objekt",
+      "ActivityControlFlow": "Kontrollfluss"
+    },
+    "UseCaseDiagram": {
+      "UseCase": "Anwendungsfall",
+      "UseCaseActor": "Akteur",
+      "UseCaseSystem": "System",
+      "UseCaseAssociation": "Assoziation",
+      "UseCaseExtend": "Extend",
+      "UseCaseGeneralization": "Generalisierung",
+      "UseCaseInclude": "Include"
+    },
+    "CommunicationDiagram": {
+      "ObjectName": "Objekt",
+      "ObjectAttribute": "Attribut",
+      "ObjectMethod": "Methode",
+      "CommunicationLink": "Kommunikation"
+    },
+    "ComponentDiagram": {
+      "Component": "Komponente",
+      "Subsystem": "Teilsystem",
+      "ComponentDependency": "Abhängigkeit",
+      "ComponentInterface": "Schnittstelle",
+      "ComponentInterfaceProvided": "Bereitgestellte Schnittstelle",
+      "ComponentInterfaceRequired": "Verwendete Schnittstelle"
+    },
+    "DeploymentDiagram": {
+      "DeploymentNode": "Knoten",
+      "DeploymentComponent": "Komponente",
+      "DeploymentArtifact": "Artefakt",
+      "DeploymentInterface": "Schnittstelle",
+      "DeploymentInterfaceProvided": "Bereitgestellte Schnittstelle",
+      "DeploymentInterfaceRequired": "Verwendete Schnittstelle",
+      "DeploymentAssociation": "Deployment Verbindung",
+      "DeploymentDependency": "Deployment Abhängigkeit"
+    },
+    "PetriNet": {
+      "PetriNetPlace": "Platz",
+      "PetriNetTransition": "Transition"
+    },
+    "ReachabilityGraph": {
+      "ReachabilityGraphIsInitialMarking": "Ist Anfangsmarkierung",
+      "ReachabilityGraphMarking": "Markierung"
+    },
+    "SyntaxTree": {
+      "SyntaxTreeTerminal": "Terminal",
+      "SyntaxTreeNonterminal": "Nichtterminal",
+      "SyntaxTreeLink": "Verbindung"
+    },
+    "Flowchart": {
+      "FlowchartTerminal": "Terminator",
+      "FlowchartDecision": "Entscheidung",
+      "FlowchartProcess": "Operation",
+      "FlowchartFunctionCall": "Unterprogramm ausführen",
+      "FlowchartInputOutput": "Ein- und Ausgabe",
+      "FlowchartFlowline": "Verbindung"
+    },
+    "ColorLegend": {
+      "ColorLegend": "Farbe Beschreibung"
+    },
+    "BPMN": {
+      "BPMNTask": "Task",
+      "BPMNUserTask": "User Task",
+      "BPMNSendTask": "Send Task",
+      "BPMNReceiveTask": "Receive Task",
+      "BPMNManualTask": "Manual Task",
+      "BPMNBusinessRuleTask": "Business Rule Task",
+      "BPMNScriptTask": "Script Task",
+      "BPMNSubprocess": "Sub-Prozess",
+      "BPMNTransaction": "Transaktion",
+      "BPMNCallActivity": "Aufruf-Aktivität",
+      "BPMNAnnotation": "Annotation",
+      "BPMNStartEvent": "Start-Ereignis",
+      "BPMNMessageStartEvent": "Message Start Event",
+      "BPMNTimerStartEvent": "Timer Start Event",
+      "BPMNConditionalStartEvent": "Conditional Start Event",
+      "BPMNSignalStartEvent": "Signal Start Event",
+      "BPMNIntermediateEvent": "Zwischenereignis",
+      "BPMNMessageIntermediateCatchEvent": "Message Intermediate Catch Event",
+      "BPMNMessageIntermediateThrowEvent": "Message Intermediate Throw Event",
+      "BPMNTimerIntermediateCatchEvent": "Timer Intermediate Catch Event",
+      "BPMNEscalationIntermediateThrowEvent": "Escalation Intermediate Throw Event",
+      "BPMNConditionalIntermediateCatchEvent": "Conditional Intermediate Catch Event",
+      "BPMNLinkIntermediateCatchEvent": "Link Intermediate Catch Event",
+      "BPMNLinkIntermediateThrowEvent": "Link Intermediate Throw Event",
+      "BPMNCompensationIntermediateThrowEvent": "Compensation Intermediate Throw Event",
+      "BPMNSignalIntermediateCatchEvent": "Signal Intermediate Catch Event",
+      "BPMNSignalIntermediateThrowEvent": "Signal Intermediate Throw Event",
+      "BPMNEndEvent": "End-Ereignis",
+      "BPMNMessageEndEvent:": "Message End Event",
+      "BPMNEscalationEndEvent": "Escalation End Event",
+      "BPMNErrorEndEvent": "Error End Event",
+      "BPMNCompensationEndEvent": "Compensation End Event",
+      "BPMNSignalEndEvent": "Signal End Event",
+      "BPMNTerminateEndEvent": "Terminate End Event",
+      "BPMNGateway": "Gateway",
+      "BPMNComplexGateway": "Komplex",
+      "BPMNEventBasedGateway": "Ereignis-basiert",
+      "BPMNExclusiveGateway": "Exklusiv",
+      "BPMNInclusiveGateway": "Inklusiv",
+      "BPMNParallelGateway": "Parallel",
+      "BPMNConversation": "Konversation",
+      "BPMNCallConversation": "Aufruf-Konversation",
+      "BPMNSequenceFlow": "Sequenz",
+      "BPMNMessageFlow": "Nachricht",
+      "BPMNAssociationFlow": "Assoziation",
+      "BPMNDataAssociationFlow": "Daten-Assoziation",
+      "BPMNDataObject": "Datenobjekt",
+      "BPMNPool": "Pool",
+      "BPMNSwimlane": "Bahn",
+      "BPMNSwimlanes": "Bahnen",
+      "BPMNGroup": "Gruppe"
+    }
+  }
+}
