@@ -1,0 +1,37 @@
+services:
+  redis:
+    image: redis/redis-stack-server:7.4.0-v1
+    container_name: apollon-redis
+    volumes:
+      - ./redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - apollon-network
+
+  apollon-standalone:
+    image: "ghcr.io/ls1intum/apollon_standalone:${IMAGE_TAG}"
+    container_name: apollon-standalone
+    environment:
+      - APOLLON_REDIS_URL=redis://apollon-redis:6379
+      - APOLLON_REDIS_DIAGRAM_TTL=${APOLLON_REDIS_DIAGRAM_TTL}
+      - APOLLON_REDIS_MIGRATE_FROM_FILE=true
+      - DEPLOYMENT_URL=${DEPLOYMENT_URL}
+    volumes:
+      - /opt/apollon/diagrams:/app/diagrams
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - apollon-network
+
+networks:
+  apollon-network:
+    driver: bridge

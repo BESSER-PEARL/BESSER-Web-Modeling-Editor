@@ -1,0 +1,232 @@
+{
+  "version": "2.0.0",
+  "type": "ClassDiagram",
+  "size": { "width": 1080, "height": 400 },
+  "interactive": { "elements": [], "relationships": [] },
+  "elements": [
+    {
+      "id": "e69a98c2-e32c-42f5-af10-e2af2080d788",
+      "name": "Client",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 0, "y": 320, "width": 200, "height": 40 },
+      "attributes": [],
+      "methods": []
+    },
+    {
+      "id": "14240666-7054-40fb-938f-48ab4b07895f",
+      "name": "Invoker",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 320, "y": 10, "width": 230, "height": 70 },
+      "attributes": [],
+      "methods": ["09c42746-4760-4b2a-bb8f-5cc7c114bdc9"]
+    },
+    {
+      "id": "09c42746-4760-4b2a-bb8f-5cc7c114bdc9",
+      "name": "+ setCommand(c: Command)",
+      "type": "ClassMethod",
+      "owner": "14240666-7054-40fb-938f-48ab4b07895f",
+      "bounds": { "x": 320, "y": 50, "width": 230, "height": 30 }
+    },
+    {
+      "id": "dcb4a870-6546-4dd5-851d-8d8c64b0b070",
+      "name": "Command",
+      "type": "Interface",
+      "owner": null,
+      "bounds": { "x": 840, "y": 0, "width": 200, "height": 80 },
+      "attributes": [],
+      "methods": ["8e2eb899-8290-4a98-b9fe-10bce0cd54ee"]
+    },
+    {
+      "id": "8e2eb899-8290-4a98-b9fe-10bce0cd54ee",
+      "name": "+ execute()",
+      "type": "ClassMethod",
+      "owner": "dcb4a870-6546-4dd5-851d-8d8c64b0b070",
+      "bounds": { "x": 840, "y": 50, "width": 200, "height": 30 }
+    },
+    {
+      "id": "ded3a8b8-26c7-4f24-9c22-c676fd65a926",
+      "name": "ConcreteCommand",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 840, "y": 200, "width": 200, "height": 100 },
+      "attributes": ["1641f749-8490-4e6d-9435-92e629ec96a1"],
+      "methods": ["eb296f6c-6d4b-4296-8022-8842482e8451"]
+    },
+    {
+      "id": "1641f749-8490-4e6d-9435-92e629ec96a1",
+      "name": "- state",
+      "type": "ClassAttribute",
+      "owner": "ded3a8b8-26c7-4f24-9c22-c676fd65a926",
+      "bounds": { "x": 840, "y": 240, "width": 200, "height": 30 }
+    },
+    {
+      "id": "eb296f6c-6d4b-4296-8022-8842482e8451",
+      "name": "+ execute()",
+      "type": "ClassMethod",
+      "owner": "ded3a8b8-26c7-4f24-9c22-c676fd65a926",
+      "bounds": { "x": 840, "y": 270, "width": 200, "height": 30 }
+    },
+    {
+      "id": "8782a7e0-0649-4efe-8a3b-22a2c07a0bda",
+      "name": "Receiver",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 330, "y": 200, "width": 200, "height": 70 },
+      "attributes": [],
+      "methods": ["89cbb2bb-cc45-469f-92cd-c446b9a109f3"]
+    },
+    {
+      "id": "89cbb2bb-cc45-469f-92cd-c446b9a109f3",
+      "name": "+ action()",
+      "type": "ClassMethod",
+      "owner": "8782a7e0-0649-4efe-8a3b-22a2c07a0bda",
+      "bounds": { "x": 330, "y": 240, "width": 200, "height": 30 }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "9911c02c-b35f-4b8a-a5cb-0b8183b2b4b4",
+      "name": "",
+      "type": "ClassInheritance",
+      "owner": null,
+      "bounds": { "x": 940, "y": 80, "width": 1, "height": 120 },
+      "path": [
+        { "x": 0, "y": 120 },
+        { "x": 0, "y": 0 }
+      ],
+      "source": {
+        "direction": "Up",
+        "element": "ded3a8b8-26c7-4f24-9c22-c676fd65a926",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Down",
+        "element": "dcb4a870-6546-4dd5-851d-8d8c64b0b070",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "8da243e3-d884-453f-a0c1-c9268868a392",
+      "name": "",
+      "type": "ClassUnidirectional",
+      "owner": null,
+      "bounds": { "x": 530, "y": 235, "width": 310, "height": 1 },
+      "path": [
+        { "x": 310, "y": 0 },
+        { "x": 0, "y": 0 }
+      ],
+      "source": {
+        "direction": "Left",
+        "element": "ded3a8b8-26c7-4f24-9c22-c676fd65a926",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Right",
+        "element": "8782a7e0-0649-4efe-8a3b-22a2c07a0bda",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "f2e3fec7-f7dc-4626-b74a-1f44f7a3f9a7",
+      "name": "",
+      "type": "ClassUnidirectional",
+      "owner": null,
+      "bounds": { "x": 550, "y": 45, "width": 290, "height": 1 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 290, "y": 0 }
+      ],
+      "source": {
+        "direction": "Right",
+        "element": "14240666-7054-40fb-938f-48ab4b07895f",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Left",
+        "element": "dcb4a870-6546-4dd5-851d-8d8c64b0b070",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "9523398e-6b5b-4fe5-a199-1cb76c08e880",
+      "name": "",
+      "type": "ClassUnidirectional",
+      "owner": null,
+      "bounds": { "x": 100, "y": 45, "width": 220, "height": 275 },
+      "path": [
+        { "x": 0, "y": 275 },
+        { "x": 0, "y": 0 },
+        { "x": 220, "y": 0 }
+      ],
+      "source": {
+        "direction": "Up",
+        "element": "e69a98c2-e32c-42f5-af10-e2af2080d788",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Left",
+        "element": "14240666-7054-40fb-938f-48ab4b07895f",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "1e30b301-60c4-4af4-816e-2b9ec4500708",
+      "name": "",
+      "type": "ClassUnidirectional",
+      "owner": null,
+      "bounds": { "x": 100, "y": 235, "width": 230, "height": 85 },
+      "path": [
+        { "x": 0, "y": 85 },
+        { "x": 0, "y": 0 },
+        { "x": 230, "y": 0 }
+      ],
+      "source": {
+        "direction": "Up",
+        "element": "e69a98c2-e32c-42f5-af10-e2af2080d788",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Left",
+        "element": "8782a7e0-0649-4efe-8a3b-22a2c07a0bda",
+        "multiplicity": "",
+        "role": ""
+      }
+    },
+    {
+      "id": "e346fe55-ec51-4827-a303-c8646889c5e3",
+      "name": "",
+      "type": "ClassDependency",
+      "owner": null,
+      "bounds": { "x": 200, "y": 300, "width": 740, "height": 40 },
+      "path": [
+        { "x": 0, "y": 40 },
+        { "x": 740, "y": 40 },
+        { "x": 740, "y": 0 }
+      ],
+      "source": {
+        "direction": "Right",
+        "element": "e69a98c2-e32c-42f5-af10-e2af2080d788",
+        "multiplicity": "",
+        "role": ""
+      },
+      "target": {
+        "direction": "Down",
+        "element": "ded3a8b8-26c7-4f24-9c22-c676fd65a926",
+        "multiplicity": "",
+        "role": ""
+      }
+    }
+  ],
+  "assessments": []
+}

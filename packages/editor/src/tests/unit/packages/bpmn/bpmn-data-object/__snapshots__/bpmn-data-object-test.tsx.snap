@@ -1,0 +1,32 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render the bpmn-data-object-component 1`] = `
+<body>
+  <div>
+    <svg>
+      <g>
+        <polyline
+          class="sc-aXZVg bUvEJV"
+          fill="white"
+          points="0 0, 0 100, 160 100, 160 15, 145 0, 145 15, 160 15, 145 0, 0 0"
+          stroke="black"
+        />
+        <text
+          pointer-events="none"
+          text-anchor="middle"
+          width="320"
+          x="80"
+          y="120"
+        >
+          <tspan
+            dy="11"
+            x="80"
+          >
+            Data Object
+          </tspan>
+        </text>
+      </g>
+    </svg>
+  </div>
+</body>
+`;

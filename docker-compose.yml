@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  apollon_redis:
+    image: redis/redis-stack-server:latest
+    container_name: apollon_redis
+    volumes:
+      - apollon_redis_data:/data
+    networks:
+      - apollon_network
+
+  apollon_standalone:
+    build:
+      context: .
+      dockerfile: Dockerfile.redis
+    container_name: apollon_standalone
+    environment:
+      - APOLLON_REDIS_URL=redis://apollon_redis:6379
+      - APOLLON_REDIS_DIAGRAM_TTL=${APOLLON_REDIS_DIAGRAM_TTL}
+      - APOLLON_REDIS_MIGRATE_FROM_FILE=true
+      - DEPLOYMENT_URL=${DEPLOYMENT_URL}
+    volumes:
+      - ./diagrams:/app/diagrams
+    restart: always
+    networks:
+      - apollon_network
+    ports:
+      - "8080:8080"     # Expose the service on 8080
+
+volumes:
+  apollon_redis_data:
+    driver: local
+
+networks:
+  apollon_network:
+    driver: bridge

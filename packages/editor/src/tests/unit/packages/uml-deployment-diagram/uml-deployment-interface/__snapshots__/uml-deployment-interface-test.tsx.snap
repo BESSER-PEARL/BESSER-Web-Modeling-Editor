@@ -1,0 +1,30 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render the uml-deployment-interface-component 1`] = `
+<body>
+  <div>
+    <svg>
+      <g>
+        <circle
+          class="sc-iGgWBj fvtjvB"
+          cx="50%"
+          cy="50%"
+          fill="white"
+          r="10"
+          stroke="black"
+          stroke-width="2"
+        />
+        <text
+          dominant-baseline="auto"
+          font-weight="bold"
+          pointer-events="none"
+          text-anchor="start"
+          x="25"
+        >
+          TestDeploymentComponent
+        </text>
+      </g>
+    </svg>
+  </div>
+</body>
+`;

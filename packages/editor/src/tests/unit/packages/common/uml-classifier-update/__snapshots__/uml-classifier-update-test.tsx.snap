@@ -1,0 +1,147 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`test class association popup render 1`] = `
+<body>
+  <div>
+    <div>
+      <section>
+        <div
+          class="sc-fjvvzt cQBzZO"
+        >
+          <input
+            class="sc-bmzYkS sc-iHGNWf fEVqYL gacFBO"
+            maxlength="100"
+            value=""
+          />
+          <button
+            class="sc-eeDRCY sc-koXPp fShmjg dCdHsc"
+            color="link"
+            tabindex="-1"
+          >
+            <svg
+              class="sc-dhKdcB dMUpVV"
+              height="16px"
+              viewBox="0 0 448 512"
+              width="16px"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M440 64H336l-33.6-44.8A48 48 0 0 0 264 0h-80a48 48 0 0 0-38.4 19.2L112 64H8a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h18.9l33.2 372.3a48 48 0 0 0 47.8 43.7h232.2a48 48 0 0 0 47.8-43.7L421.1 96H440a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8zM171.2 38.4A16.1 16.1 0 0 1 184 32h80a16.1 16.1 0 0 1 12.8 6.4L296 64H152zm184.8 427a15.91 15.91 0 0 1-15.9 14.6H107.9A15.91 15.91 0 0 1 92 465.4L59 96h330z"
+              />
+            </svg>
+          </button>
+        </div>
+        <hr
+          class="sc-tagGq XeZYh"
+        />
+      </section>
+      <section>
+        <div
+          class="sc-esYiGF dWYmfg"
+        >
+          <button
+            class="sc-eeDRCY sc-koXPp fShmjg jwSmKw sc-fXSgeo jURMRc"
+            color="primary"
+          >
+            Abstract
+          </button>
+          <button
+            class="sc-eeDRCY sc-koXPp fShmjg jwSmKw sc-fXSgeo jURMRc"
+            color="primary"
+          >
+            Interface
+          </button>
+          <button
+            class="sc-eeDRCY sc-koXPp fShmjg jwSmKw sc-fXSgeo jURMRc"
+            color="primary"
+          >
+            Enumeration
+          </button>
+        </div>
+        <hr
+          class="sc-tagGq XeZYh"
+        />
+      </section>
+      <section>
+        <h1
+          class="sc-lcIPJg chQxvR"
+        >
+          Attributes
+        </h1>
+        <div
+          class="sc-JrDLc cQSxzb"
+        >
+          <input
+            class="sc-bmzYkS sc-iHGNWf fEVqYL etmSlo"
+            maxlength="100"
+            value="attribute"
+          />
+          <button
+            class="sc-eeDRCY sc-koXPp fShmjg dCdHsc"
+            color="link"
+            tabindex="-1"
+          >
+            <svg
+              class="sc-dhKdcB dMUpVV"
+              height="16px"
+              viewBox="0 0 448 512"
+              width="16px"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M440 64H336l-33.6-44.8A48 48 0 0 0 264 0h-80a48 48 0 0 0-38.4 19.2L112 64H8a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h18.9l33.2 372.3a48 48 0 0 0 47.8 43.7h232.2a48 48 0 0 0 47.8-43.7L421.1 96H440a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8zM171.2 38.4A16.1 16.1 0 0 1 184 32h80a16.1 16.1 0 0 1 12.8 6.4L296 64H152zm184.8 427a15.91 15.91 0 0 1-15.9 14.6H107.9A15.91 15.91 0 0 1 92 465.4L59 96h330z"
+              />
+            </svg>
+          </button>
+        </div>
+        <input
+          class="sc-bmzYkS sc-iHGNWf fEVqYL lmyIYN"
+          maxlength="100"
+          value=""
+        />
+      </section>
+      <section>
+        <hr
+          class="sc-tagGq XeZYh"
+        />
+        <h1
+          class="sc-lcIPJg chQxvR"
+        >
+          Methods
+        </h1>
+        <div
+          class="sc-JrDLc cQSxzb"
+        >
+          <input
+            class="sc-bmzYkS sc-iHGNWf fEVqYL etmSlo"
+            maxlength="100"
+            value="classMethod"
+          />
+          <button
+            class="sc-eeDRCY sc-koXPp fShmjg dCdHsc"
+            color="link"
+            tabindex="-1"
+          >
+            <svg
+              class="sc-dhKdcB dMUpVV"
+              height="16px"
+              viewBox="0 0 448 512"
+              width="16px"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M440 64H336l-33.6-44.8A48 48 0 0 0 264 0h-80a48 48 0 0 0-38.4 19.2L112 64H8a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h18.9l33.2 372.3a48 48 0 0 0 47.8 43.7h232.2a48 48 0 0 0 47.8-43.7L421.1 96H440a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8zM171.2 38.4A16.1 16.1 0 0 1 184 32h80a16.1 16.1 0 0 1 12.8 6.4L296 64H152zm184.8 427a15.91 15.91 0 0 1-15.9 14.6H107.9A15.91 15.91 0 0 1 92 465.4L59 96h330z"
+              />
+            </svg>
+          </button>
+        </div>
+        <input
+          class="sc-bmzYkS sc-iHGNWf fEVqYL lmyIYN"
+          maxlength="100"
+          value=""
+        />
+      </section>
+    </div>
+  </div>
+</body>
+`;

@@ -1,0 +1,24 @@
+FROM node:22-alpine
+RUN apk add --no-cache \
+  build-base \
+  g++ \
+  cairo-dev \
+  jpeg-dev \
+  pango-dev \
+  giflib-dev
+
+ENV DEPLOYMENT_URL="http://localhost:8080"
+ENV APOLLON_REDIS_URL="redis://localhost:6379"
+ENV APOLLON_REDIS_DIAGRAM_TTL="30d"
+
+WORKDIR /app
+
+COPY . .
+RUN npm install
+RUN npm run build
+
+WORKDIR /app/build/server
+
+EXPOSE 8080
+
+CMD [ "node", "bundle.js" ]

@@ -1,0 +1,2 @@
+0 0 * * * /usr/bin/find /opt/apollon_standalone/diagrams/* -mtime +84 -type f -delete >> /var/log/cron.log 2>&1
+# An empty line is required at the end of this file for a valid cron file.

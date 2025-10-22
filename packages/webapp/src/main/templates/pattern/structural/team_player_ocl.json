@@ -1,0 +1,281 @@
+{
+  "version": "3.0.0",
+  "type": "ClassDiagram",
+  "size": {
+    "width": 1140,
+    "height": 640
+  },
+  "interactive": {
+    "elements": {},
+    "relationships": {}
+  },
+  "elements": {
+    "3838ec45-6993-4a30-b40b-b4f10400b68b": {
+        "id": "3838ec45-6993-4a30-b40b-b4f10400b68b",
+        "name": "teamCenter",
+        "type": "ClassOCLConstraint",
+        "owner": null,
+        "bounds": {
+            "x": -600,
+            "y": -220,
+            "width": 170,
+            "height": 100
+        },
+        "constraint": "context Team inv inv2: self.players-> collect(p:Player| p.position = 'center')->size()<3"
+    },
+    "1f0a08bb-5f31-43b4-8a30-13a8249500d9": {
+        "id": "1f0a08bb-5f31-43b4-8a30-13a8249500d9",
+        "name": "Team",
+        "type": "Class",
+        "owner": null,
+        "bounds": {
+            "x": -350,
+            "y": -230,
+            "width": 160,
+            "height": 130
+        },
+        "attributes": [
+            "511375c5-2c01-4bfa-b9f3-039f778aec55",
+            "37fdafce-3a07-4fc1-bbc3-6e7e1c23b829",
+            "62360929-2b51-4a25-8cce-7a676409e24d"
+        ],
+        "methods": []
+    },
+    "511375c5-2c01-4bfa-b9f3-039f778aec55": {
+        "id": "511375c5-2c01-4bfa-b9f3-039f778aec55",
+        "name": "+ city: str",
+        "type": "ClassAttribute",
+        "owner": "1f0a08bb-5f31-43b4-8a30-13a8249500d9",
+        "bounds": {
+            "x": -349.5,
+            "y": -189.5,
+            "width": 159,
+            "height": 30
+        }
+    },
+    "37fdafce-3a07-4fc1-bbc3-6e7e1c23b829": {
+        "id": "37fdafce-3a07-4fc1-bbc3-6e7e1c23b829",
+        "name": "+ name: str",
+        "type": "ClassAttribute",
+        "owner": "1f0a08bb-5f31-43b4-8a30-13a8249500d9",
+        "bounds": {
+            "x": -349.5,
+            "y": -159.5,
+            "width": 159,
+            "height": 30
+        }
+    },
+    "62360929-2b51-4a25-8cce-7a676409e24d": {
+        "id": "62360929-2b51-4a25-8cce-7a676409e24d",
+        "name": "+ division: str",
+        "type": "ClassAttribute",
+        "owner": "1f0a08bb-5f31-43b4-8a30-13a8249500d9",
+        "bounds": {
+            "x": -349.5,
+            "y": -129.5,
+            "width": 159,
+            "height": 30
+        }
+    },
+    "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee": {
+        "id": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
+        "name": "Player",
+        "type": "Class",
+        "owner": null,
+        "bounds": {
+            "x": 30,
+            "y": -240,
+            "width": 160,
+            "height": 160
+        },
+        "attributes": [
+            "0fd62f59-953d-4157-a6aa-150b566e7179",
+            "c6570a3c-eb3c-40c3-88cc-e299b8786fef",
+            "669ddf0f-20c9-492a-af0d-6fd8422d5332",
+            "60632e39-262a-4c33-be26-2fc41fe17d84"
+        ],
+        "methods": []
+    },
+    "0fd62f59-953d-4157-a6aa-150b566e7179": {
+        "id": "0fd62f59-953d-4157-a6aa-150b566e7179",
+        "name": "+ position: str",
+        "type": "ClassAttribute",
+        "owner": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
+        "bounds": {
+            "x": 30.5,
+            "y": -199.5,
+            "width": 159,
+            "height": 30
+        }
+    },
+    "c6570a3c-eb3c-40c3-88cc-e299b8786fef": {
+        "id": "c6570a3c-eb3c-40c3-88cc-e299b8786fef",
+        "name": "+ age: int",
+        "type": "ClassAttribute",
+        "owner": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
+        "bounds": {
+            "x": 30.5,
+            "y": -169.5,
+            "width": 159,
+            "height": 30
+        }
+    },
+    "669ddf0f-20c9-492a-af0d-6fd8422d5332": {
+        "id": "669ddf0f-20c9-492a-af0d-6fd8422d5332",
+        "name": "+ name: str",
+        "type": "ClassAttribute",
+        "owner": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
+        "bounds": {
+            "x": 30.5,
+            "y": -139.5,
+            "width": 159,
+            "height": 30
+        }
+    },
+    "60632e39-262a-4c33-be26-2fc41fe17d84": {
+        "id": "60632e39-262a-4c33-be26-2fc41fe17d84",
+        "name": "+ jerseyNumber: int",
+        "type": "ClassAttribute",
+        "owner": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
+        "bounds": {
+            "x": 30.5,
+            "y": -109.5,
+            "width": 159,
+            "height": 30
+        }
+    },
+    "c5dd70c4-8a90-4358-8e2d-7b688b5d056a": {
+        "id": "c5dd70c4-8a90-4358-8e2d-7b688b5d056a",
+        "name": "playerAge",
+        "type": "ClassOCLConstraint",
+        "owner": null,
+        "bounds": {
+            "x": 310,
+            "y": -220,
+            "width": 160,
+            "height": 100
+        },
+        "constraint": "context Player inv inv1: self.age > 10"
+    }
+},
+"relationships": {
+    "886b17da-0af2-414f-a9b0-77605df85ac6": {
+        "id": "886b17da-0af2-414f-a9b0-77605df85ac6",
+        "name": "team_player",
+        "type": "ClassBidirectional",
+        "owner": null,
+        "bounds": {
+            "x": -190,
+            "y": -175,
+            "width": 220,
+            "height": 48.60000038146973
+        },
+        "path": [
+            {
+                "x": 0,
+                "y": 10
+            },
+            {
+                "x": 220,
+                "y": 10
+            }
+        ],
+        "source": {
+            "direction": "Right",
+            "element": "1f0a08bb-5f31-43b4-8a30-13a8249500d9",
+            "multiplicity": "1..1",
+            "role": "team",
+            "bounds": {
+                "x": -140,
+                "y": -240,
+                "width": 0,
+                "height": 0
+            }
+        },
+        "target": {
+            "direction": "Left",
+            "element": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
+            "multiplicity": "0..*",
+            "role": "players",
+            "bounds": {
+                "x": 0,
+                "y": -225,
+                "width": 0,
+                "height": 0
+            }
+        },
+        "isManuallyLayouted": false
+    },
+    "5313aed8-9ce8-4189-8db6-b65d552f91c9": {
+        "id": "5313aed8-9ce8-4189-8db6-b65d552f91c9",
+        "name": "",
+        "type": "ClassOCLLink",
+        "owner": null,
+        "bounds": {
+            "x": 190,
+            "y": -180,
+            "width": 120,
+            "height": 31
+        },
+        "path": [
+            {
+                "x": 120,
+                "y": 10
+            },
+            {
+                "x": 0,
+                "y": 10
+            }
+        ],
+        "source": {
+            "direction": "Left",
+            "element": "c5dd70c4-8a90-4358-8e2d-7b688b5d056a",
+            "multiplicity": "",
+            "role": ""
+        },
+        "target": {
+            "direction": "Right",
+            "element": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
+            "multiplicity": "",
+            "role": ""
+        },
+        "isManuallyLayouted": false
+    },
+    "2af4f7c7-bd87-482d-8856-8fa14b3d25bf": {
+        "id": "2af4f7c7-bd87-482d-8856-8fa14b3d25bf",
+        "name": "",
+        "type": "ClassOCLLink",
+        "owner": null,
+        "bounds": {
+            "x": -430,
+            "y": -180,
+            "width": 80,
+            "height": 31
+        },
+        "path": [
+            {
+                "x": 0,
+                "y": 10
+            },
+            {
+                "x": 80,
+                "y": 10
+            }
+        ],
+        "source": {
+            "direction": "Right",
+            "element": "3838ec45-6993-4a30-b40b-b4f10400b68b",
+            "multiplicity": "",
+            "role": ""
+        },
+        "target": {
+            "direction": "Left",
+            "element": "1f0a08bb-5f31-43b4-8a30-13a8249500d9",
+            "multiplicity": "",
+            "role": ""
+        },
+        "isManuallyLayouted": false
+    }
+},
+"assessments": {}
+}

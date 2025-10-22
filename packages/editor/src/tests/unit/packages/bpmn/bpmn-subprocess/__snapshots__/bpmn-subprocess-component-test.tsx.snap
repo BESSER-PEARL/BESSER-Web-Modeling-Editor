@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`render the bpmn-subprocess-component 1`] = `
+<body>
+  <div>
+    <svg>
+      <g>
+        <rect
+          class="sc-fqkvVR kprGcp"
+          fill="white"
+          height="100%"
+          rx="10"
+          ry="10"
+          stroke="black"
+          width="100%"
+        />
+        <rect
+          class="sc-fqkvVR zazVk"
+          fill="transparent"
+          height="14"
+          stroke="black"
+          width="14"
+          x="73"
+          y="86"
+        />
+        <polyline
+          class="sc-aXZVg bUvEJV"
+          fill="white"
+          points="76 93, 84 93"
+          stroke="black"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <polyline
+          class="sc-aXZVg bUvEJV"
+          fill="white"
+          points="80 89, 80 97"
+          stroke="black"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <text
+          font-weight="bold"
+          height="100"
+          pointer-events="none"
+          text-anchor="middle"
+          width="160"
+          x="80"
+          y="50"
+        >
+          <tspan
+            dy="5.5"
+            x="80"
+          >
+            SyntaxTreeTerminal
+          </tspan>
+        </text>
+      </g>
+    </svg>
+  </div>
+</body>
+`;
