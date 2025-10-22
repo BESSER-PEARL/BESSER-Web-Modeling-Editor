@@ -25,6 +25,9 @@ export type {
 export { UIService } from './UIService';
 export type { MessageDisplayConfig } from './UIService';
 
+export { RateLimiterService } from './RateLimiterService';
+export type { RateLimitConfig, RateLimitResult, RateLimitStatus, RateLimiterOptions } from './RateLimiterService';
+
 export { ConverterFactory } from './converters';
 export type { DiagramType, DiagramConverter } from './converters';
 

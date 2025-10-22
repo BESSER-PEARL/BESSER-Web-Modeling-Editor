@@ -17,60 +17,42 @@ COPY . .
 
 # Install dependencies and build the application
 RUN npm install
-# Only build webapp (skip shared and server since collaboration is disabled)
-RUN npm run build:webapp
+RUN npm run build
 
-# Second stage: Sets up the container to serve the static webapp
-FROM nginx:alpine
+# Second stage: Sets up the container to run the application
+FROM node:20.18.0
 
-# Copy the built webapp
-COPY --from=builder /build_application/build/webapp /usr/share/nginx/html
+# Install cron for scheduling
+RUN apt-get update && apt-get -y install cron
 
-# Expose port 80
-EXPOSE 80
+# Expose the application's default port
+EXPOSE 8080
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Create a user and set up necessary directories and permissions
+RUN useradd -r -s /bin/false apollon_standalone \
+    && mkdir /opt/apollon_standalone \
+    && touch /var/log/cron.log \
+    && chmod 622 /var/log/cron.log
 
+# Start cron service
+RUN service cron start
+RUN chown -R apollon_standalone /opt/apollon_standalone
 
+# Switch to non-root user for security
+USER apollon_standalone
+WORKDIR /opt/apollon_standalone
 
+# Create a directory for storing diagrams
+RUN mkdir diagrams
 
-# RUN npm run build
+# Copy build results from the first stage
+COPY --chown=apollon_standalone:apollon_standalone --from=builder $build_dir .
 
-# # Second stage: Sets up the container to run the application
-# FROM node:20.18.0
+# Add cron job for deleting stale diagrams
+RUN crontab delete-stale-diagrams.cronjob.txt
 
-# # Install cron for scheduling
-# RUN apt-get update && apt-get -y install cron
+# Set the working directory for the server
+WORKDIR /opt/apollon_standalone/build/server
 
-# # Expose the application's default port
-# EXPOSE 8080
-
-# # Create a user and set up necessary directories and permissions
-# RUN useradd -r -s /bin/false apollon_standalone \
-#     && mkdir /opt/apollon_standalone \
-#     && touch /var/log/cron.log \
-#     && chmod 622 /var/log/cron.log
-
-# # Start cron service
-# RUN service cron start
-# RUN chown -R apollon_standalone /opt/apollon_standalone
-
-# # Switch to non-root user for security
-# USER apollon_standalone
-# WORKDIR /opt/apollon_standalone
-
-# # Create a directory for storing diagrams
-# RUN mkdir diagrams
-
-# # Copy build results from the first stage
-# COPY --chown=apollon_standalone:apollon_standalone --from=builder $build_dir .
-
-# # Add cron job for deleting stale diagrams
-# RUN crontab delete-stale-diagrams.cronjob.txt
-
-# # Set the working directory for the server
-# WORKDIR /opt/apollon_standalone/build/server
-
-# # Start the application
-# CMD [ "node", "./src/main/server.js" ]
+# Start the application
+CMD [ "node", "./src/main/server.js" ]
