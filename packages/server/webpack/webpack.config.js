@@ -14,13 +14,31 @@ module.exports = {
     filename: 'bundle.js',
   },
   resolve: {
-    extensions: ['.ts', '.js'], //resolve all the modules other than index.ts
+    extensions: ['.ts', '.tsx', '.js', '.jsx'], //resolve all the modules other than index.ts
+    alias: {
+      '@besser/wme': path.resolve(__dirname, '../../editor/src/main/index.ts'),
+    },
+    fallback: {
+      fs: false,
+      path: false,
+    },
   },
   module: {
     rules: [
       {
-        use: 'ts-loader',
-        test: /\.ts?$/,
+        use: {
+          loader: 'ts-loader',
+          options: {
+            transpileOnly: true,
+            compilerOptions: {
+              declaration: false,
+              jsx: 'react',
+            },
+            onlyCompileBundledFiles: true,
+          },
+        },
+        test: /\.tsx?$/,
+        exclude: /node_modules/,
       },
       {
         use: 'node-loader',
