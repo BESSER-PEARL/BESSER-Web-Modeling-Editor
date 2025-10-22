@@ -86,6 +86,7 @@ const getDiagramTypeColor = (type: SupportedDiagramType): string => {
     'ObjectDiagram': 'success',
     'StateMachineDiagram': 'warning',
     'AgentDiagram': 'info',
+    'GUINoCodeDiagram': 'dark',
   };
   return colors[type] || 'secondary';
 };
@@ -131,6 +132,19 @@ export const ProjectSettingsScreen: React.FC = () => {
     if (!currentProject) return;
     
     try {
+      // ✅ Force GrapesJS to save before exporting (if editor is active)
+      const grapesJsEditor = (window as any).editor;
+      if (grapesJsEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
+        console.log('💾 Forcing GrapesJS save before export...');
+        await new Promise<void>((resolve) => {
+          grapesJsEditor.store((result: any) => {
+            console.log('✅ GrapesJS data saved before export');
+            // Small delay to ensure storage writes complete
+            setTimeout(() => resolve(), 100);
+          });
+        });
+      }
+      
       exportProject(currentProject.id);
       toast.success('Project exported successfully!');
     } catch (error) {

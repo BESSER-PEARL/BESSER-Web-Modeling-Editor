@@ -4,10 +4,9 @@ import { uuid } from '../../utils/uuid';
 import { Diagram, loadImportedDiagram } from '../diagram/diagramSlice';
 import { displayError } from '../error-management/errorManagementSlice';
 import { useNavigate } from 'react-router-dom';
-import { diagramBridge, UMLDiagramType } from '@besser/wme';
 import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../types/project';
+import { isUMLModel, toSupportedDiagramType } from '../../types/project';
 import { useBumlToDiagram, isBumlFile, isJsonFile } from './useBumlToDiagram';
 
 export const useImportDiagram = () => {
@@ -39,7 +38,7 @@ export const useImportDiagram = () => {
       }
 
       // Ensure the diagram has a valid model with type
-      if (!diagram.model || !diagram.model.type) {
+      if (!isUMLModel(diagram.model)) {
         throw new Error('Invalid diagram: missing model or type information');
       }
 
@@ -90,7 +89,7 @@ export const useImportDiagramToProject = () => {
       }
       
       // Validate that it's a valid diagram
-      if (!diagram.model || !diagram.model.type) {
+      if (!isUMLModel(diagram.model)) {
         throw new Error('Invalid diagram format: missing model or type');
       }
 
@@ -131,7 +130,7 @@ export const useImportDiagramToProject = () => {
       ProjectStorageRepository.saveProject(updatedProject);
 
       // If importing a Class Diagram, update the diagram bridge for Object Diagram compatibility
-      if (diagramType === 'ClassDiagram' && importedDiagram.model) {
+      if (diagramType === 'ClassDiagram' && isUMLModel(importedDiagram.model)) {
         try {
           const { diagramBridge } = await import('@besser/wme');
           diagramBridge.setClassDiagramData(importedDiagram.model);

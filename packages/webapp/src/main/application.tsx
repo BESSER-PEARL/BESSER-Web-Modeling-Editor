@@ -18,7 +18,7 @@ import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
 import { TeamPage } from './components/team/TeamPage';
 import { useProject } from './hooks/useProject';
-import { UMLBotWidget } from './components/uml-bot-widget/UMLBotWidgetRefactored';
+import {  GrapesJsEditor } from './components/grapesjs-editor';
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -34,7 +34,8 @@ function AppContentInner() {
   // Check if current path contains a token (collaboration route)
   const hasTokenInUrl = location.pathname !== '/' && 
                        location.pathname !== '/project-settings' && 
-                       location.pathname !== '/teampage';
+                       location.pathname !== '/teampage' &&
+                       location.pathname !== '/grapesjs';
   
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
@@ -125,7 +126,18 @@ function AppContentInner() {
             </SidebarLayout>
           } 
         />
-                
+
+
+        {/* GrapesJS Studio Editor route - Multi-page support */}
+        <Route 
+          path="/grapesjs"
+          element={
+            <SidebarLayout>
+              <GrapesJsEditor />
+            </SidebarLayout>
+          } 
+        />
+
 
         {/* Project settings route */}
         <Route 
@@ -141,7 +153,6 @@ function AppContentInner() {
         <Route path="/teampage" element={<TeamPage />} />
       </Routes>
       <ErrorPanel />
-      <UMLBotWidget />
       <ToastContainer />
     </ApollonEditorProvider>
   );

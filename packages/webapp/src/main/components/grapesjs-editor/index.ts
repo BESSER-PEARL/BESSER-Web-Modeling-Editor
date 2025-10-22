@@ -1,0 +1,1 @@
+export { GrapesJsEditor } from './GrapesJsEditor';

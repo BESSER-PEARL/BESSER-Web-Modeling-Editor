@@ -19,7 +19,7 @@ import {
   Tag
 } from 'react-bootstrap-icons';
 import { useProject } from '../../../hooks/useProject';
-import { toUMLDiagramType } from '../../../types/project';
+import { isUMLModel } from '../../../types/project';
 
 // Legacy project type (kept for compatibility)
 export interface BesserProject {
@@ -79,12 +79,12 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
 
       // Load the default diagram type in the editor
       const currentDiagram = project.diagrams[project.currentDiagramType];
-      if (currentDiagram?.model) {
+      if (isUMLModel(currentDiagram?.model)) {
         // Convert to legacy Diagram format for compatibility with current editor
         const legacyDiagram = {
           id: currentDiagram.id,
           title: currentDiagram.title,
-          model: currentDiagram.model,
+          model: isUMLModel(currentDiagram.model) ? currentDiagram.model : undefined,
           lastUpdate: currentDiagram.lastUpdate,
           description: currentDiagram.description,
         };

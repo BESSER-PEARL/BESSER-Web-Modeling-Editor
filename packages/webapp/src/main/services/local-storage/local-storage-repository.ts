@@ -10,6 +10,7 @@ import {
 } from '../../constant';
 import { Diagram } from '../diagram/diagramSlice';
 import { UMLDiagramType } from '@besser/wme';
+import { isUMLModel } from '../../types/project';
 
 type LocalDiagramEntry = {
   id: string;
@@ -26,7 +27,7 @@ export const LocalStorageRepository = {
     const localDiagramEntry: LocalDiagramEntry = {
       id: diagram.id,
       title: diagram.title,
-      type: diagram.model?.type ?? 'ClassDiagram',
+      type: isUMLModel(diagram.model) ? diagram.model.type : UMLDiagramType.ClassDiagram,
       lastUpdate: new Date().toISOString(),
     };
 

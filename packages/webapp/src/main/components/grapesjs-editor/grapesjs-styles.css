@@ -1,0 +1,240 @@
+/* GrapesJS Editor - Minimal Custom Styles */
+
+/* Just some basic theme adjustments */
+.gjs-one-bg {
+  background-color: #3d3d3d;
+}
+
+.gjs-two-color {
+  color: #ffffff !important;
+}
+
+.gjs-three-bg {
+  background-color: #2a2a2a;
+  color: #fff;
+}
+
+.gjs-four-color,
+.gjs-four-color-h:hover {
+  color: #fff !important;
+}
+
+/* Make blocks with SVG media smaller to match Font Awesome icon blocks */
+.gjs-block__media {
+  width: 100%;
+  height: auto;
+  max-height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gjs-block__media svg {
+  width: 35px !important;
+  height: 35px !important;
+  max-width: 35px !important;
+  max-height: 35px !important;
+}
+
+.gjs-block {
+  min-height: auto !important;
+  padding: 8px !important;
+}
+
+.gjs-block-label {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  margin-top: 4px !important;
+}
+
+/* Absolute positioning visual feedback */
+[style*="position: absolute"],
+[style*="position:absolute"] {
+  outline: 2px dashed #667eea !important;
+  outline-offset: -2px;
+}
+
+.gjs-selected[style*="position: absolute"],
+.gjs-selected[style*="position:absolute"] {
+  outline: 2px solid #667eea !important;
+  outline-offset: -2px;
+}
+
+/* Improve dragging for absolute positioned elements */
+.gjs-cv-canvas [style*="position: absolute"],
+.gjs-cv-canvas [style*="position:absolute"] {
+  cursor: move;
+}
+
+/* Pages Panel Styling - Minimalistic */
+#pages-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+#pages-dropdown svg {
+  pointer-events: none;
+}
+
+#pages-dropdown:hover svg path {
+  fill: #fff;
+}
+
+.pages-select-minimal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.pages-select-minimal:hover {
+  opacity: 0;
+}
+
+.pages-select-minimal option {
+  background: #2a2a2a;
+  color: #fff;
+  padding: 8px;
+  font-size: 14px;
+}
+
+/* Old pages select styling (kept for compatibility) */
+.pages-select {
+  padding: 6px 12px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s;
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.pages-select:hover {
+  background: #333;
+}
+
+.pages-select:focus {
+  border-color: #007bff;
+}
+
+.pages-select option {
+  background: #2a2a2a;
+  color: #fff;
+  padding: 8px;
+}
+
+/* Emoji fallback icons for FontAwesome */
+.fa {
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+}
+
+.fa-plus:before { content: "➕"; }
+.fa-file:before { content: "📄"; }
+
+/* Pages Panel Styling - Exact Studio SDK Structure */
+#pages-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.gs-studio-panel {
+  border-color: #555;
+}
+
+.gs-panel-pages .gs-block-manager {
+  height: 100%;
+}
+
+.gs-panel-pages .gs-block-manager__header {
+  background: transparent;
+}
+
+.gs-panel-pages .gs-block-manager__content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.gs-panel-pages .gs-cmp-accordion-handler {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.gs-panel-pages .gs-cmp-accordion-handler:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.gs-page-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.gs-page-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.gs-page-item svg path {
+  transition: fill 0.2s;
+}
+
+.delete-page-btn {
+  transition: all 0.2s;
+}
+
+.delete-page-btn:hover {
+  background: #c0392b !important;
+  transform: scale(1.1);
+}
+
+#add-page-btn {
+  flex-shrink: 0;
+}
+
+/* Utility classes for consistency */
+.gs-utl-grid {
+  display: grid;
+}
+
+.gs-utl-gap-2 {
+  gap: 0.5rem;
+}
+
+.gs-utl-p-2 {
+  padding: 0.5rem;
+}
+
+.gs-utl-text-sm {
+  font-size: 0.875rem;
+}
+
+.gs-utl-grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+
+/* Universal GrapesJS Editor Background - force gray everywhere */
+.gjs-editor-cont,
+.gjs-editor,
+.gjs-cv-canvas,
+.gjs-pn-panel,
+.gjs-mdl-dialog,
+.gjs-blocks-cs,
+.gjs-block,
+.gjs-clm-tags,
+.gjs-sm-sectors,
+.sp-container,
+.gjs-pn-panel.gjs-pn-commands,
+.gjs-one-bg {
+  background-color: #727171 !important;
+}

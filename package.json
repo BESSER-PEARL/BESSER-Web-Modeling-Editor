@@ -46,6 +46,8 @@
   "dependencies": {
     "@besser/wme": "*",
     "@sentry/node": "8.55.0",
+    "grapesjs": "^0.22.13",
+    "grapesjs-blocks-basic": "^1.0.2",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1"
   },
