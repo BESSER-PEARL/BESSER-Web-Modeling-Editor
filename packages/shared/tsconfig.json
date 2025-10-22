@@ -1,10 +1,14 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "esModuleInterop": true,
     "outDir": "dist",
     "declaration": true,
-    "rootDir": "src",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@besser/wme": ["../editor/src/main/index.ts"]
+    }
   },
   "include": ["src"]
 }

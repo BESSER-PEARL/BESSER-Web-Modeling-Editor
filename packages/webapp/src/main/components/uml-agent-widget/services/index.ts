@@ -1,5 +1,5 @@
 /**
- * Index file for UML Bot Widget services
+ * Index file for UML Agent Widget services
  * Provides easy imports for all service classes
  */
 
@@ -14,7 +14,7 @@ export type {
 export { WebSocketService } from './WebSocketService';
 export type { 
   ChatMessage, 
-  BotResponse, 
+  AgentResponse, 
   InjectionCommand, 
   MessageHandler, 
   ConnectionHandler, 

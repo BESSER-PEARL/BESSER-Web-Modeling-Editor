@@ -415,7 +415,7 @@ const ConnectionStatusDot = styled.span<{ status: ConnectionStatus }>`
  * Enhanced UML Bot Widget with improved architecture
  * Uses service layer for better separation of concerns
  */
-export const UMLBotWidget: React.FC = () => {
+export const UMLAgentModeling: React.FC = () => {
   // State management
   const [isVisible, setIsVisible] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);

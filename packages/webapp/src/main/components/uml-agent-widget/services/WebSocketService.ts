@@ -1,5 +1,5 @@
 /**
- * WebSocket service for UML Bot communication
+ * WebSocket service for UML Agent communication
  * Handles all WebSocket messaging, connection management, and response parsing
  */
 
@@ -12,7 +12,7 @@ export interface ChatMessage {
   diagramType?: string; // Track which diagram type this message relates to
 }
 
-export interface BotResponse {
+export interface AgentResponse {
   action: string;
   message: string | object;
   diagramType?: string;
@@ -34,7 +34,7 @@ export type TypingHandler = (typing: boolean) => void;
 export type InjectionHandler = (command: InjectionCommand) => void;
 
 /**
- * WebSocket service for managing bot communication
+ * WebSocket service for managing agent communication
  */
 export type SendStatus = 'sent' | 'queued' | 'error';
 
@@ -167,7 +167,7 @@ export class WebSocketService {
   }
 
   /**
-   * Send message to bot with diagram type
+   * Send message to agent with diagram type
    * CRITICAL: Sends text message FIRST for intent detection, then JSON payload after delay
    */
   sendMessage(message: string, diagramType?: string, model?: any): SendStatus {
@@ -190,7 +190,7 @@ export class WebSocketService {
       this.sendTextMessage(messageWithPrefix, type);
 
       // Step 2: Send JSON payload with model context AFTER a small delay
-      // This ensures the bot processes intent BEFORE receiving the full context
+      // This ensures the agent processes intent BEFORE receiving the full context
       if (model) {
         setTimeout(() => {
           // console.log('[ws] Step 2: Sending JSON payload with model context');
@@ -205,7 +205,7 @@ export class WebSocketService {
     }
   }
   /**
-   * Send model context to bot with diagram type (new feature)
+   * Send model context to agent with diagram type (new feature)
    */
   sendModelContext(model: any, message: string, diagramType?: string): boolean {
     const type = diagramType || 'ClassDiagram';
@@ -266,7 +266,7 @@ export class WebSocketService {
    */
   private handleMessage(event: MessageEvent): void {
     try {
-      const payload = JSON.parse(event.data) as BotResponse;
+      const payload = JSON.parse(event.data) as AgentResponse;
       
       // Hide typing indicator
       this.onTypingHandler?.(false);
@@ -306,7 +306,7 @@ export class WebSocketService {
            ['inject_element', 'inject_complete_system', 'modify_model'].includes(data.action);
   }
 
-  private extractInjectionCommand(payload: BotResponse): InjectionCommand | null {
+  private extractInjectionCommand(payload: AgentResponse): InjectionCommand | null {
     const { action, message, diagramType } = payload;
 
     // Direct object payload
