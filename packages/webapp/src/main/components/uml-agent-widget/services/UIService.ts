@@ -1,5 +1,5 @@
 /**
- * UI utility service for UML Bot Widget
+ * UI utility service for UML Agent Widget
  * Handles message formatting, validation, and UI state management
  */
 

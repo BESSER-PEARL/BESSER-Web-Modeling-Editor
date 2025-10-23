@@ -17,7 +17,8 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@besser/wme": ["../editor/src/main/index.ts"]
+      "@besser/wme": ["../editor/src/main/index.ts"],
+      "shared": ["../shared/src/index.ts"]
     }
   }
 }
