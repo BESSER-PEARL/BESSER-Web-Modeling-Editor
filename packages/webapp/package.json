@@ -42,6 +42,8 @@
     "websocket": "1.0.35"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "8.15.0",
+    "@typescript-eslint/parser": "8.15.0",
     "@stylelint/postcss-css-in-js": "0.38.0",
     "@svgr/webpack": "8.1.0",
     "@types/react": "18.2.79",

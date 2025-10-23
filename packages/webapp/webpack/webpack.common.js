@@ -19,6 +19,7 @@ module.exports = {
     extensions: ['.js', '.ts', '.tsx'],
     alias: {
       '@besser/wme': path.resolve(__dirname, '../../editor/src/main/index.ts'),
+      'shared': path.resolve(__dirname, '../../shared/src/index.ts'),
     },
   },
   performance: {

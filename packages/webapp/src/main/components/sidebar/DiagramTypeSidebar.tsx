@@ -7,6 +7,7 @@ import {
   ArrowRepeat, 
   Gear,
   PencilSquare,
+  House
 } from 'react-bootstrap-icons';
 import { UMLDiagramType } from '@besser/wme';
 import { useNavigate, useLocation } from 'react-router-dom';

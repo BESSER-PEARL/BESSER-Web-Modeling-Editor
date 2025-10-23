@@ -70,7 +70,7 @@ const ProjectName = styled.div`
   align-items: center;
   
   &::before {
-    content: "\\2022";
+    content: "📁";
     margin-right: 6px;
     font-size: 0.8rem;
   }

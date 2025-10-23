@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { isUMLModel, toSupportedDiagramType } from '../../types/project';
+import { diagramBridge, UMLDiagramType } from '@besser/wme';
 import { useBumlToDiagram, isBumlFile, isJsonFile } from './useBumlToDiagram';
 
 export const useImportDiagram = () => {

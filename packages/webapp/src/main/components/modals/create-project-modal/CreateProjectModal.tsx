@@ -20,6 +20,7 @@ import {
 } from 'react-bootstrap-icons';
 import { useProject } from '../../../hooks/useProject';
 import { isUMLModel } from '../../../types/project';
+import { toUMLDiagramType } from '../../../types/project';
 
 // Legacy project type (kept for compatibility)
 export interface BesserProject {
