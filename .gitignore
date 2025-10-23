@@ -108,9 +108,3 @@ build
 .DS_Store
 .run/
 
-# Agent
-ModelingAgent/venv/
-ModelingAgent/saved/
-ModelingAgent/config.ini
-ModelingAgent/diagram_handlers/__pycache__/
-ModelingAgent/__pycache__/
