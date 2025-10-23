@@ -13,23 +13,39 @@ const DEFAULT_RATE_LIMIT_CONFIG = {
 
 export class UmlAgentRateLimiterResource {
   private readonly rateLimiter = new UmlAgentRateLimiterService(DEFAULT_RATE_LIMIT_CONFIG);
+  private debug: boolean = false;
+
+  private log(...args: any[]): void {
+    if (this.debug) {
+      console.log('[RateLimiterResource]', ...args);
+    }
+  }
 
   checkRateLimit(req: Request, res: Response): void {
+    const clientKey = this.getClientKey(req);
+    this.log('📥 Rate limit check request from:', clientKey);
+    
     const lengthValue = (req.body?.messageLength ?? req.query?.messageLength) as unknown;
     const messageLength = Number(lengthValue);
 
     if (!Number.isFinite(messageLength) || messageLength < 0) {
+      this.log('❌ Invalid message length:', lengthValue);
       res.status(400).json(this.buildErrorResponse('Invalid message length'));
       return;
     }
 
-    const clientKey = this.getClientKey(req);
     const result = this.rateLimiter.check(clientKey, messageLength);
+    this.log('📤 Sending response:', {
+      allowed: result.allowed,
+      status: result.status,
+      httpStatus: result.allowed ? 200 : 429,
+    });
     res.status(result.allowed ? 200 : 429).json(result);
   }
 
   resetRateLimit(req: Request, res: Response): void {
     const clientKey = this.getClientKey(req);
+    this.log('🔄 Rate limit reset request from:', clientKey);
     this.rateLimiter.reset(clientKey);
     res.status(204).send();
   }

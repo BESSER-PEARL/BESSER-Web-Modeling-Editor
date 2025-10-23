@@ -34,10 +34,21 @@ const CLIENT_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 export class UmlAgentRateLimiterService {
   private clients = new Map<string, ClientRateLimitState>();
   private lastCleanup: number = 0;
+  private debug: boolean = false; // Enable debug logging
 
-  constructor(private readonly config: UmlAgentRateLimitConfig) {}
+  private log(...args: any[]): void {
+    if (this.debug) {
+      console.log('[ServerRateLimiter]', ...args);
+    }
+  }
+
+  constructor(private readonly config: UmlAgentRateLimitConfig) {
+    this.log('🚀 Server RateLimiter initialized:', config);
+  }
 
   check(clientKey: string, messageLength: number, now: number = Date.now()): UmlAgentRateLimitResult {
+    this.log('🔍 Checking rate limit for client:', clientKey, 'messageLength:', messageLength);
+    
     const state = this.getState(clientKey);
     state.lastSeen = now;
 
@@ -45,8 +56,16 @@ export class UmlAgentRateLimiterService {
     this.cleanupStaleClients(now);
 
     const statusBefore = this.buildStatus(state, now);
+    this.log('📊 Status before check:', {
+      clientKey,
+      requestsLastMinute: statusBefore.requestsLastMinute,
+      requestsLastHour: statusBefore.requestsLastHour,
+      cooldownRemaining: statusBefore.cooldownRemaining,
+      totalClients: this.clients.size,
+    });
 
     if (messageLength > this.config.maxMessageLength) {
+      this.log('❌ Message too long');
       return {
         allowed: false,
         reason: `Message too long (max ${this.config.maxMessageLength} characters)`,
@@ -55,6 +74,7 @@ export class UmlAgentRateLimiterService {
     }
 
     if (statusBefore.cooldownRemaining > 0) {
+      this.log('⏳ Cooldown active');
       return {
         allowed: false,
         reason: `Please wait ${Math.ceil(statusBefore.cooldownRemaining / 1000)} seconds between requests`,
@@ -64,6 +84,7 @@ export class UmlAgentRateLimiterService {
     }
 
     if (statusBefore.requestsLastMinute >= this.config.maxRequestsPerMinute) {
+      this.log('🚫 Per-minute limit exceeded');
       return {
         allowed: false,
         reason: `Rate limit exceeded: ${this.config.maxRequestsPerMinute} requests per minute`,
@@ -73,6 +94,7 @@ export class UmlAgentRateLimiterService {
     }
 
     if (statusBefore.requestsLastHour >= this.config.maxRequestsPerHour) {
+      this.log('🚫 Per-hour limit exceeded');
       return {
         allowed: false,
         reason: `Rate limit exceeded: ${this.config.maxRequestsPerHour} requests per hour`,
@@ -85,6 +107,12 @@ export class UmlAgentRateLimiterService {
     state.requestHistory.push({ timestamp: now, messageLength });
 
     const statusAfter = this.buildStatus(state, now);
+    this.log('✅ Request allowed. Status after:', {
+      requestsLastMinute: statusAfter.requestsLastMinute,
+      requestsLastHour: statusAfter.requestsLastHour,
+      cooldownRemaining: statusAfter.cooldownRemaining,
+    });
+    
     return {
       allowed: true,
       status: statusAfter,
@@ -92,6 +120,7 @@ export class UmlAgentRateLimiterService {
   }
 
   reset(clientKey: string): void {
+    this.log('🔄 Resetting rate limit for client:', clientKey);
     this.clients.delete(clientKey);
   }
 

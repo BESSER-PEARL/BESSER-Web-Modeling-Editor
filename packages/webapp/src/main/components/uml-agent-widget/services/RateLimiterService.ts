@@ -55,6 +55,13 @@ export class RateLimiterService {
   private endpoint: string;
   private lastRemoteStatus: RateLimitStatus | null = null;
   private lastRemoteStatusTimestamp: number = 0;
+  private debug: boolean = false; // Enable debug logging
+
+  private log(...args: any[]): void {
+    if (this.debug) {
+      console.log('[RateLimiter]', ...args);
+    }
+  }
 
   constructor(options?: RateLimiterOptions) {
     this.config = {
@@ -69,8 +76,22 @@ export class RateLimiterService {
     this.persistLocally = options?.persistLocally ?? true;
     this.storage = RateLimiterService.resolveStorage();
 
+    this.log('🚀 RateLimiter initialized:', {
+      persistLocally: this.persistLocally,
+      useServerSide: this.useServerSide,
+      endpoint: this.endpoint,
+      storageAvailable: !!this.storage,
+      config: this.config,
+    });
+
     if (this.persistLocally) {
       this.loadState();
+      this.log('📦 State loaded:', {
+        requestHistoryCount: this.requestHistory.length,
+        lastRequestTime: this.lastRequestTime,
+        oldestRequest: this.requestHistory[0]?.timestamp,
+        newestRequest: this.requestHistory[this.requestHistory.length - 1]?.timestamp,
+      });
     }
   }
 
@@ -78,7 +99,10 @@ export class RateLimiterService {
    * Check if a request is allowed based on rate limits
    */
   async checkRateLimit(messageLength: number): Promise<RateLimitResult> {
+    this.log('🔍 Checking rate limit:', { messageLength, useServerSide: this.useServerSide });
+
     if (messageLength > this.config.maxMessageLength) {
+      this.log('❌ Message too long');
       return {
         allowed: false,
         reason: `Message too long (max ${this.config.maxMessageLength} characters)`,
@@ -86,8 +110,10 @@ export class RateLimiterService {
     }
 
     if (this.useServerSide && typeof fetch === 'function') {
+      this.log('📡 Checking server-side rate limit...');
       const serverResult = await this.tryServerRateLimit(messageLength);
       if (serverResult) {
+        this.log('✅ Server response:', serverResult);
         if (serverResult.status) {
           this.updateRemoteStatus(serverResult.status, serverResult.allowed, messageLength);
         }
@@ -97,9 +123,12 @@ export class RateLimiterService {
           retryAfter: serverResult.retryAfter,
         };
       }
+      this.log('⚠️ Server check failed, falling back to local');
     }
 
-    return this.checkLocalRateLimit(messageLength);
+    const localResult = this.checkLocalRateLimit(messageLength);
+    this.log('🏠 Local rate limit result:', localResult);
+    return localResult;
   }
 
   /**
@@ -108,16 +137,22 @@ export class RateLimiterService {
   getRateLimitStatus(): RateLimitStatus {
     const now = Date.now();
 
-    if (this.lastRemoteStatus) {
+    // If we have recent server data (within last 5 seconds), use it
+    if (this.lastRemoteStatus && (now - this.lastRemoteStatusTimestamp) < 5000) {
       const elapsed = now - this.lastRemoteStatusTimestamp;
-      return {
+      const status = {
         requestsLastMinute: this.lastRemoteStatus.requestsLastMinute,
         requestsLastHour: this.lastRemoteStatus.requestsLastHour,
         cooldownRemaining: Math.max(0, this.lastRemoteStatus.cooldownRemaining - elapsed),
       };
+      this.log('📊 Status (server):', status);
+      return status;
     }
 
-    return this.getLocalStatus(now);
+    // Otherwise fall back to local state (shows persisted data after reload)
+    const localStatus = this.getLocalStatus(now);
+    this.log('📊 Status (local):', localStatus);
+    return localStatus;
   }
 
   /**
@@ -160,6 +195,7 @@ export class RateLimiterService {
 
   private async tryServerRateLimit(messageLength: number): Promise<ServerRateLimitResponse | null> {
     try {
+      this.log('📤 Sending server request to:', this.endpoint);
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: {
@@ -169,8 +205,11 @@ export class RateLimiterService {
         body: JSON.stringify({ messageLength }),
       });
 
+      this.log('📥 Server response status:', response.status);
+
       const data = await response.json().catch(() => null);
       if (!data || typeof data.allowed !== 'boolean') {
+        this.log('❌ Invalid server response:', data);
         return null;
       }
 
@@ -190,7 +229,8 @@ export class RateLimiterService {
         retryAfter: typeof data.retryAfter === 'number' ? data.retryAfter : undefined,
         status,
       };
-    } catch {
+    } catch (error) {
+      this.log('❌ Server request failed:', error);
       return null;
     }
   }
@@ -327,17 +367,24 @@ export class RateLimiterService {
 
   private loadState(): void {
     if (!this.storage) {
+      this.log('⚠️ No storage available for loading state');
       return;
     }
 
     try {
       const storedValue = this.storage.getItem(RATE_LIMIT_STORAGE_KEY);
+      this.log('📖 Reading from storage:', RATE_LIMIT_STORAGE_KEY);
+      
       if (!storedValue) {
+        this.log('ℹ️ No stored state found');
         return;
       }
 
+      this.log('📄 Raw stored value:', storedValue);
       const parsed: RateLimiterPersistedState = JSON.parse(storedValue);
+      
       if (!Array.isArray(parsed?.requestHistory) || typeof parsed?.lastRequestTime !== 'number') {
+        this.log('❌ Invalid stored state format:', parsed);
         return;
       }
 
@@ -346,9 +393,16 @@ export class RateLimiterService {
           typeof record?.timestamp === 'number' && typeof record?.messageLength === 'number'
       );
       this.lastRequestTime = parsed.lastRequestTime;
+      
+      this.log('✅ State loaded successfully:', {
+        requestCount: this.requestHistory.length,
+        lastRequestTime: new Date(this.lastRequestTime).toISOString(),
+      });
+      
       this.cleanupOldRecords(Date.now(), false);
       this.persistState();
-    } catch {
+    } catch (error) {
+      this.log('❌ Error loading state:', error);
       try {
         this.storage.removeItem(RATE_LIMIT_STORAGE_KEY);
       } catch {
@@ -359,6 +413,7 @@ export class RateLimiterService {
 
   private persistState(): void {
     if (!this.storage) {
+      this.log('⚠️ No storage available for persisting state');
       return;
     }
 
@@ -368,8 +423,15 @@ export class RateLimiterService {
     };
 
     try {
-      this.storage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(state));
-    } catch {
+      const serialized = JSON.stringify(state);
+      this.storage.setItem(RATE_LIMIT_STORAGE_KEY, serialized);
+      this.log('💾 State persisted:', {
+        key: RATE_LIMIT_STORAGE_KEY,
+        requestCount: this.requestHistory.length,
+        lastRequestTime: new Date(this.lastRequestTime).toISOString(),
+      });
+    } catch (error) {
+      this.log('❌ Error persisting state:', error);
       this.storage = null;
     }
   }
