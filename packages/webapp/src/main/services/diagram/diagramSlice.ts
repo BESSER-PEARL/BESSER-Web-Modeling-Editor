@@ -4,7 +4,6 @@ import { uuid } from '../../utils/uuid';
 import { addDiagramToCurrentProject } from '../../utils/localStorage';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isUMLModel, toUMLDiagramType } from '../../types/project';
-import { toUMLDiagramType } from '../../types/project';
 import { DeepPartial } from '../../utils/types';
 
 export type Diagram = {

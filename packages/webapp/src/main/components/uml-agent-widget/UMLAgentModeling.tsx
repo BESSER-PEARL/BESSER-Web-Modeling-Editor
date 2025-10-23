@@ -11,6 +11,7 @@ import { UIService } from './services/UIService';
 import { RateLimiterService, RateLimitStatus } from './services/RateLimiterService';
 import { JsonViewerModal } from '../modals/json-viewer-modal/json-viewer-modal';
 import { UML_BOT_WS_URL } from '../../constant';
+import { isUMLModel } from '../../types/project';
 
 // Styled Components
 const ChatWidgetContainer = styled.div`
@@ -508,12 +509,16 @@ export const UMLAgentModeling: React.FC = () => {
   // Update modeling service with current model and detect diagram type
   useEffect(() => {
     if (modelingService && currentDiagram?.diagram?.model) {
-      modelingService.updateCurrentModel(currentDiagram.diagram.model);
-      
-      // Detect and update diagram type
-      const detectedType = currentDiagram.diagram.model.type || 'ClassDiagram';
-      setCurrentDiagramType(detectedType);
-      // console.log('📊 Current diagram type:', detectedType);
+      // TODO: Refactor isUMLModel to be more robust and handle agent to do grapesjs
+      // Only update if it's a UML model (not GrapesJS/GUI data for now)
+      if (isUMLModel(currentDiagram.diagram.model)) {
+        modelingService.updateCurrentModel(currentDiagram.diagram.model);
+        
+        // Detect and update diagram type
+        const detectedType = currentDiagram.diagram.model.type || 'ClassDiagram';
+        setCurrentDiagramType(detectedType);
+        // console.log('📊 Current diagram type:', detectedType);
+      }
     }
   }, [modelingService, currentDiagram]);
 
