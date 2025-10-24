@@ -475,10 +475,8 @@ export const UMLAgentModeling: React.FC = () => {
   const currentDiagram = useAppSelector(state => state.diagram);
   const location = useLocation();
 
-  // Check if we're on a diagram page (not /project-settings, /teampage, etc.)
-  const isOnDiagramPage = location.pathname === '/' || 
-                         (!location.pathname.includes('/project-settings') && 
-                          !location.pathname.includes('/teampage'));
+  // Show widget only if path is exactly '/'
+  const isOnDiagramPage = location.pathname === '/';
 
   // Hide widget when not on diagram page
   useEffect(() => {
