@@ -62,8 +62,8 @@ export const useGenerateCode = () => {
         return;
       }
 
-      // For React generator, send the entire project
-      if (generatorType === 'react') {
+      // For Web App generator, send the entire project
+      if (generatorType === 'web_app') {
         return await generateCodeFromProject(generatorType, config);
       }
 

@@ -231,7 +231,7 @@ export const GenerateCodeMenu: React.FC = () => {
         ) : isGUINoCodeDiagram ? (
           // No-Code Diagram: Show No-Code generation options
           <>
-          <Dropdown.Item onClick={() => handleGenerateCode('react')}>React + TS</Dropdown.Item>
+          <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>React + FastAPI</Dropdown.Item>
           </>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
           // ...existing code...
