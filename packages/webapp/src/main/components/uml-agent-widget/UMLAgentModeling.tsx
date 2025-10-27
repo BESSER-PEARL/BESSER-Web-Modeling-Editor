@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import styled from 'styled-components';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useLocation } from 'react-router-dom';
 
 // Import our new services
 import { UMLModelingService, ClassSpec, SystemSpec, ModelModification, BESSERModel, ModelUpdate } from './services/UMLModelingService';
 import { WebSocketService, ChatMessage, InjectionCommand, SendStatus } from './services/WebSocketService';
 import { UIService } from './services/UIService';
+import { RateLimiterService, RateLimitStatus } from './services/RateLimiterService';
 import { JsonViewerModal } from '../modals/json-viewer-modal/json-viewer-modal';
 import { UML_BOT_WS_URL } from '../../constant';
 
@@ -14,21 +16,21 @@ import { UML_BOT_WS_URL } from '../../constant';
 const ChatWidgetContainer = styled.div`
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  right: 60px; 
   z-index: 1000;
 `;
 
 const ChatWindow = styled.div<{ isVisible: boolean }>`
-  width: 420px;
-  height: 550px;
+  width: 400px; /* Slightly smaller width */
+  height: 550px; /* Slightly smaller height */
   background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: absolute;
-  bottom: 80px;
+  bottom: 70px;
   right: 0;
   transform: ${props => props.isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)'};
   opacity: ${props => props.isVisible ? '1' : '0'};
@@ -175,8 +177,8 @@ const ChatInput = styled.div`
 `;
 
 const CircleButton = styled.button<{ isOpen: boolean }>`
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea, #764ba2);
   border: none;
@@ -184,15 +186,15 @@ const CircleButton = styled.button<{ isOpen: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.35);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: ${props => props.isOpen ? 'rotate(45deg)' : 'rotate(0deg)'};
   color: white;
-  font-size: 24px;
+  font-size: 22px;
   
   &:hover {
     transform: ${props => props.isOpen ? 'rotate(45deg) scale(1.05)' : 'rotate(0deg) scale(1.05)'};
-    box-shadow: 0 8px 30px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 6px 24px rgba(102, 126, 234, 0.45);
   }
   
   &:active {
@@ -366,6 +368,7 @@ const StatusBar = styled.div`
     font-size: 11px;
     font-weight: 600;
     margin-left: 8px;
+    cursor: pointer;
   }
 
   .json-button {
@@ -391,6 +394,31 @@ const StatusBar = styled.div`
       transform: scale(0.95);
     }
   }
+
+  .rate-limit-indicator {
+    padding: 3px 6px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &.warning {
+      background: #fef3c7;
+      border-color: #fbbf24;
+      color: #d97706;
+    }
+
+    &.danger {
+      background: #fee2e2;
+      border-color: #f87171;
+      color: #dc2626;
+    }
+  }
 `;
 
 const ConnectionStatusDot = styled.span<{ status: ConnectionStatus }>`
@@ -411,11 +439,142 @@ const ConnectionStatusDot = styled.span<{ status: ConnectionStatus }>`
   transition: background 0.2s ease;
 `;
 
+const DisclaimerModal = styled.div<{ isVisible: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: ${props => props.isVisible ? 'flex' : 'none'};
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  
+  .disclaimer-content {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    
+    .disclaimer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      
+      h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .close-button {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #64748b;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+        
+        &:hover {
+          background: #f1f5f9;
+          color: #2d3748;
+        }
+      }
+    }
+    
+    .disclaimer-body {
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.6;
+      
+      p {
+        margin: 0 0 12px 0;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+      
+      strong {
+        color: #2d3748;
+      }
+      
+      ul {
+        margin: 8px 0;
+        padding-left: 20px;
+        
+        li {
+          margin: 4px 0;
+        }
+      }
+    }
+    
+    .disclaimer-footer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+      
+      button {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+      }
+    }
+  }
+`;
+
+const InfoButton = styled.button`
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+  }
+`;
+
 /**
  * Enhanced UML Bot Widget with improved architecture
  * Uses service layer for better separation of concerns
+ * Includes rate limiting and conditional visibility
  */
-export const UMLBotWidget: React.FC = () => {
+export const UMLAgentModeling: React.FC = () => {
   // State management
   const [isVisible, setIsVisible] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -425,10 +584,18 @@ export const UMLBotWidget: React.FC = () => {
   const [currentDiagramType, setCurrentDiagramType] = useState<string>('ClassDiagram');
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [showJsonModal, setShowJsonModal] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus>({ requestsLastMinute: 0, requestsLastHour: 0, cooldownRemaining: 0 });
 
   // Services
   const [wsService] = useState(() => new WebSocketService(UML_BOT_WS_URL));
   const [uiService] = useState(() => new UIService());
+  const [rateLimiter] = useState(() => new RateLimiterService({
+    maxRequestsPerMinute: 8,
+    maxRequestsPerHour: 40,
+    maxMessageLength: 1000,
+    cooldownPeriodMs: 3000, // 3 seconds between requests
+  }));
   const [modelingService, setModelingService] = useState<UMLModelingService | null>(null);
 
   // Refs and hooks
@@ -436,6 +603,19 @@ export const UMLBotWidget: React.FC = () => {
   const { editor } = useContext(ApollonEditorContext);
   const dispatch = useAppDispatch();
   const currentDiagram = useAppSelector(state => state.diagram);
+  const location = useLocation();
+
+  // Check if we're on a diagram page (not /project-settings, /teampage, etc.)
+  const isOnDiagramPage = location.pathname === '/' || 
+                         (!location.pathname.includes('/project-settings') && 
+                          !location.pathname.includes('/teampage'));
+
+  // Hide widget when not on diagram page
+  useEffect(() => {
+    if (!isOnDiagramPage) {
+      setIsVisible(false);
+    }
+  }, [isOnDiagramPage]);
 
   useEffect(() => {
     return () => {
@@ -615,50 +795,73 @@ export const UMLBotWidget: React.FC = () => {
 
   // Handle sending messages
   const sendMessage = async () => {
-    const validation = uiService.validateUserInput(inputValue);
-    if (!validation.valid) {
-      uiService.showToast(validation.error!, 'error');
-      return;
-    }
-
-    const userMessage: ChatMessage = {
-      id: uiService.generateId('msg'),
-      action: 'user_message',
-      message: inputValue,
-      isUser: true,
-      timestamp: new Date(),
-      diagramType: currentDiagramType
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-
-    // Send message with diagram type and current model context
-    const modelSnapshot = modelingService?.getCurrentModel();
-    const sendResult: SendStatus = wsService.sendMessage(inputValue, currentDiagramType, modelSnapshot);
-
-    if (sendResult === 'error') {
-      uiService.showToast('Failed to send message', 'error');
-      setMessages(prev => prev.filter(message => message.id !== userMessage.id));
-      return;
-    }
-
-    if (sendResult === 'queued') {
-      uiService.showToast('Connection unavailable — queued your request for retry.', 'info');
-      const state = wsService.connectionState as ConnectionStatus;
-      setConnectionStatus(state === 'connected' ? 'connected' : 'connecting');
-      if (state === 'disconnected') {
-        wsService.connect().catch(() => setConnectionStatus('disconnected'));
+    try {
+      const validation = uiService.validateUserInput(inputValue);
+      if (!validation.valid) {
+        uiService.showToast(validation.error!, 'error');
+        return;
       }
-    }
 
-    setInputValue('');
+      // Check rate limit BEFORE sending
+      const rateLimitCheck = await rateLimiter.checkRateLimit(inputValue.length);
+      if (!rateLimitCheck.allowed) {
+        uiService.showToast(rateLimitCheck.reason!, 'error');
+        return;
+      }
+
+      const userMessage: ChatMessage = {
+        id: uiService.generateId('msg'),
+        action: 'user_message',
+        message: inputValue,
+        isUser: true,
+        timestamp: new Date(),
+        diagramType: currentDiagramType
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+
+      // Update rate limit status
+      const status = rateLimiter.getRateLimitStatus();
+      setRateLimitStatus(status);
+
+      // Send message with diagram type and current model context
+      const modelSnapshot = modelingService?.getCurrentModel();
+      const sendResult: SendStatus = wsService.sendMessage(inputValue, currentDiagramType, modelSnapshot);
+
+      if (sendResult === 'error') {
+        uiService.showToast('Failed to send message', 'error');
+        setMessages(prev => prev.filter(message => message.id !== userMessage.id));
+        return;
+      }
+
+      if (sendResult === 'queued') {
+        uiService.showToast('Connection unavailable — queued your request for retry.', 'info');
+        const state = wsService.connectionState as ConnectionStatus;
+        setConnectionStatus(state === 'connected' ? 'connected' : 'connecting');
+        if (state === 'disconnected') {
+          wsService.connect().catch(() => setConnectionStatus('disconnected'));
+        }
+      }
+
+      setInputValue('');
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
+      uiService.showToast('An error occurred while sending the message', 'error');
+    }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
       sendMessage();
     }
+  };
+
+  const handleSendClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    sendMessage();
   };
 
   const renderMessage = (message: ChatMessage) => {
@@ -744,6 +947,15 @@ export const UMLBotWidget: React.FC = () => {
   const isInputDisabled = connectionStatus === 'closing';
   const isSendDisabled = inputValue.trim().length === 0 || connectionStatus === 'closing';
 
+  // Rate limit indicator
+  const getRateLimitClass = () => {
+    if (rateLimitStatus.requestsLastMinute >= 7) return 'danger';
+    if (rateLimitStatus.requestsLastMinute >= 5) return 'warning';
+    return '';
+  };
+
+  const rateLimitLabel = `${rateLimitStatus.requestsLastMinute}/8 per min`;
+
   const handleShowJson = () => {
     setShowJsonModal(true);
   };
@@ -782,6 +994,11 @@ export const UMLBotWidget: React.FC = () => {
     return currentModel ? JSON.stringify(currentModel, null, 2) : '{\n  "error": "No diagram model available"\n}';
   };
 
+  // Don't render the widget if not on a diagram page
+  if (!isOnDiagramPage) {
+    return null;
+  }
+
   return (
     <>
     <ChatWidgetContainer>
@@ -794,12 +1011,18 @@ export const UMLBotWidget: React.FC = () => {
               <div className="subtitle">Enhanced with AI</div>
             </div>
           </div>
-          <div 
-            className="status-indicator" 
-            style={{ 
-              background: wsService.connected ? '#4CAF50' : '#f44336' 
-            }} 
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <InfoButton onClick={() => setShowDisclaimer(true)} title="Privacy & Data Processing Info">
+              ℹ️
+            </InfoButton>
+            <div 
+              className="status-indicator" 
+              style={{ 
+                background: wsService.connected ? '#4CAF50' : '#f44336',
+                marginLeft: 0
+              }} 
+            />
+          </div>
         </ChatHeader>
         
         <ChatMessages>
@@ -828,12 +1051,12 @@ export const UMLBotWidget: React.FC = () => {
             <div className="status-left">
               <ConnectionStatusDot status={connectionStatus} />
               <span>{formatConnectionStatusLabel(connectionStatus)}</span>
-              <div className="diagram-type-badge">
+              <div className="diagram-type-badge" onClick={handleShowJson} title="View diagram JSON" style={{ cursor: 'pointer' }}>
                 📊 {currentDiagramType.replace('Diagram', '')}
               </div>
-              <button className="json-button" onClick={handleShowJson} title="View diagram JSON">
-                📋 JSON
-              </button>
+              <div className={`rate-limit-indicator ${getRateLimitClass()}`} title="Rate limit status">
+                ⚡ {rateLimitLabel}
+              </div>
             </div>
             <span>{messageCountLabel}</span>
           </StatusBar>
@@ -844,15 +1067,16 @@ export const UMLBotWidget: React.FC = () => {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 placeholder="Describe what you want to create or modify..."
                 disabled={isInputDisabled}
               />
             </div>
 
             <button
+              type="button"
               className="send-button"
-              onClick={sendMessage}
+              onClick={handleSendClick}
               disabled={isSendDisabled}
             >
               Send
@@ -861,7 +1085,7 @@ export const UMLBotWidget: React.FC = () => {
         </ChatWindow>
 
         <CircleButton isOpen={isVisible} onClick={() => setIsVisible(!isVisible)}>
-          {isVisible ? '✕' : <img src="/img/agent_back.png" alt="Agent" style={{ width: 45, height: 45, borderRadius: '50%', filter: 'invert(0)' }} />}
+          {isVisible ? '✕' : <img src="/img/agent_back.png" alt="Agent" style={{ width: 40, height: 40, borderRadius: '50%', filter: 'invert(0)' }} />}
         </CircleButton>
       </ChatWidgetContainer>
 
@@ -873,6 +1097,42 @@ export const UMLBotWidget: React.FC = () => {
         onCopy={handleCopyJson}
         onDownload={handleDownloadJson}
       />
+
+      <DisclaimerModal isVisible={showDisclaimer}>
+        <div className="disclaimer-content">
+          <div className="disclaimer-header">
+            <h3>
+              <span>🔒</span>
+              Privacy & Data Processing
+            </h3>
+            <button className="close-button" onClick={() => setShowDisclaimer(false)}>
+              ✕
+            </button>
+          </div>
+          <div className="disclaimer-body">
+            <p>
+              <strong>Data Processing Notice:</strong>
+            </p>
+            <p>
+              When you use the UML Assistant, your messages and diagram data are processed to provide AI-powered modeling assistance. Here's what you should know:
+            </p>
+            <ul>
+              <li>Your diagram models and messages are sent to our AI service for processing</li>
+              <li>Data is transmitted securely over encrypted connections</li>
+              <li>We process your requests to generate UML diagrams and provide modeling suggestions</li>
+              <li>Your conversation history is stored locally in your browser session</li>
+            </ul>
+            <p>
+              <strong>Your Privacy:</strong> We are committed to protecting your data. Please avoid sharing sensitive or confidential information in your messages.
+            </p>
+          </div>
+          <div className="disclaimer-footer">
+            <button onClick={() => setShowDisclaimer(false)}>
+              I Understand
+            </button>
+          </div>
+        </div>
+      </DisclaimerModal>
     </>
   );
 };

@@ -20,14 +20,20 @@ export class ObjectDiagramConverter implements DiagramConverter {
     const attrHeight = (spec.attributes?.length || 0) * 30;
     const totalHeight = baseHeight + attrHeight;
     
-    const objectElement = {
+    const objectElement: any = {
       type: "ObjectName",
       id: objectId,
       name: `${spec.objectName}: ${spec.className}`,
       owner: null,
       bounds: { x: pos.x, y: pos.y, width: 240, height: totalHeight },
-      attributes: [] as string[]
+      attributes: [] as string[],
+      methods: []
     };
+    
+    // Add classId reference if provided
+    if (spec.classId) {
+      objectElement.classId = spec.classId;
+    }
     
     const attributes = this.createAttributes(spec, objectId, pos.y + 60, pos.x);
     objectElement.attributes = Object.keys(attributes);
@@ -99,7 +105,7 @@ export class ObjectDiagramConverter implements DiagramConverter {
     spec.attributes?.forEach((attr: any) => {
       const attrId = generateUniqueId('attr');
       
-      attributes[attrId] = {
+      const attributeElement: any = {
         id: attrId,
         name: `${attr.name} = ${attr.value}`,
         type: "ObjectAttribute",
@@ -107,6 +113,12 @@ export class ObjectDiagramConverter implements DiagramConverter {
         bounds: { x: startX + 1, y: currentY, width: 238, height: 30 }
       };
       
+      // Add attributeId reference if provided (links to class diagram attribute)
+      if (attr.attributeId) {
+        attributeElement.attributeId = attr.attributeId;
+      }
+      
+      attributes[attrId] = attributeElement;
       currentY += 30;
     });
     

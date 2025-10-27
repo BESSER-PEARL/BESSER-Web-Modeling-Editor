@@ -19,6 +19,7 @@ module.exports = {
     extensions: ['.js', '.ts', '.tsx'],
     alias: {
       '@besser/wme': path.resolve(__dirname, '../../editor/src/main/index.ts'),
+      'shared': path.resolve(__dirname, '../../shared/src/index.ts'),
     },
   },
   performance: {
@@ -92,7 +93,7 @@ module.exports = {
       'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN || null),
       'process.env.POSTHOG_HOST': JSON.stringify(process.env.POSTHOG_HOST || null),
       'process.env.POSTHOG_KEY': JSON.stringify(process.env.POSTHOG_KEY || null),
-      'process.env.UML_BOT_WS_URL': JSON.stringify(process.env.UML_BOT_WS_URL || ''),
+      // 'process.env.UML_BOT_WS_URL': JSON.stringify(process.env.UML_BOT_WS_URL || ''),
     }),
   ],
 };
