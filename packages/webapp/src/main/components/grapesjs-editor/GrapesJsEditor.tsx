@@ -6,15 +6,7 @@ import gjsStyleBg from 'grapesjs-style-bg';
 // @ts-ignore
 import gjsBlocksBasic from 'grapesjs-blocks-basic';
 // @ts-ignore
-import gjsNavbar from 'grapesjs-navbar';
-// @ts-ignore
-import gjsTabs from 'grapesjs-tabs';
-// @ts-ignore
-import gjsTooltip from 'grapesjs-tooltip';
-// @ts-ignore
 import gjsPluginForms from 'grapesjs-plugin-forms';
-// @ts-ignore
-import gjsTuiImageEditor from 'grapesjs-tui-image-editor';
 import './grapesjs-styles.css';
 import { getClassOptions } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
@@ -52,16 +44,12 @@ export const GrapesJsEditor: React.FC = () => {
         stepsBeforeSave: 1,
       },
 
-      // Plugins
+      // Plugins - only essential ones for code generation
       plugins: [
         gjsPresetWebpage as any, 
         gjsStyleBg as any,
         gjsBlocksBasic as any,
-        gjsNavbar as any,
-        gjsTabs as any,
-        gjsTooltip as any,
         gjsPluginForms as any,
-        gjsTuiImageEditor as any,
       ],
       pluginsOpts: {
         'grapesjs-preset-webpage': {
@@ -73,7 +61,8 @@ export const GrapesJsEditor: React.FC = () => {
           filestackOpts: null,
           aviaryOpts: false,
           blocksBasicOpts: {
-            blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
+            // Only blocks supported by the generator
+            blocks: ['column1', 'column2', 'column3', 'text', 'link', 'image'],
             flexGrid: true,
           },
           customStyleManager: [
@@ -85,26 +74,25 @@ export const GrapesJsEditor: React.FC = () => {
             {
               name: 'Dimension',
               open: false,
-              buildProps: ['width', 'height', 'max-width', 'min-height'],
+              buildProps: ['width', 'height', 'max-width', 'min-height', 'padding', 'margin'],
+            },
+            {
+              name: 'Typography',
+              open: false,
+              buildProps: ['font-size', 'font-weight', 'font-family', 'color', 'line-height', 'text-align'],
+            },
+            {
+              name: 'Decorations',
+              open: false,
+              buildProps: ['background-color', 'border-radius', 'border', 'box-shadow'],
             },
           ],
         },
         'grapesjs-style-bg': {},
         'grapesjs-blocks-basic': {},
-        'grapesjs-navbar': {},
-        'grapesjs-tabs': {},
-        'grapesjs-tooltip': {
-          // Tooltip options
-        },
         'grapesjs-plugin-forms': {
-          // Form plugin options
-        },
-        'grapesjs-tui-image-editor': {
-          config: {
-            includeUI: {
-              initMenu: 'filter',
-            },
-          },
+          // Form plugin options - keep minimal
+          blocks: ['form', 'input', 'textarea', 'select', 'button', 'label', 'checkbox'],
         },
       },
 

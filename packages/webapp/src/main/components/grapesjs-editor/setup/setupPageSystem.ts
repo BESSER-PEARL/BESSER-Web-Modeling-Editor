@@ -12,6 +12,17 @@ export function setupPageSystem(editor: Editor) {
   
   const pagesManager = editor.Pages;
   let accordionExpanded = true;
+  let updateTimeout: NodeJS.Timeout | null = null;
+  
+  // Suppress ResizeObserver errors
+  const resizeObserverErrorHandler = (e: ErrorEvent) => {
+    if (e.message === 'ResizeObserver loop completed with undelivered notifications.' || 
+        e.message === 'ResizeObserver loop limit exceeded') {
+      e.stopImmediatePropagation();
+      return false;
+    }
+  };
+  window.addEventListener('error', resizeObserverErrorHandler);
   
   // Wait for editor to fully load
   editor.on('load', () => {
@@ -171,17 +182,25 @@ export function setupPageSystem(editor: Editor) {
     },
   });
 
-  // Update pages list in the panel
+  // Update pages list in the panel with debouncing
   function updatePagesList(editor: Editor) {
-    const pagesList = document.getElementById('pages-list');
-    if (!pagesList) return;
+    // Debounce updates to prevent ResizeObserver errors
+    if (updateTimeout) {
+      clearTimeout(updateTimeout);
+    }
+    
+    updateTimeout = setTimeout(() => {
+      const pagesList = document.getElementById('pages-list');
+      if (!pagesList) return;
 
-    const pages = pagesManager.getAll();
-    const currentPage = pagesManager.getSelected();
-    
-    console.log('Updating pages list:', pages.length, 'pages');
-    
-    pagesList.innerHTML = '';
+      const pages = pagesManager.getAll();
+      const currentPage = pagesManager.getSelected();
+      
+      console.log('Updating pages list:', pages.length, 'pages');
+      
+      // Use requestAnimationFrame to batch DOM updates
+      requestAnimationFrame(() => {
+        pagesList.innerHTML = '';
     
     // Show empty state if no pages
     if (pages.length === 0) {
@@ -331,6 +350,8 @@ export function setupPageSystem(editor: Editor) {
       
       pagesList.appendChild(pageItem);
     });
+      }); // End requestAnimationFrame
+    }, 16); // End setTimeout (debounce at ~60fps)
   }
 
   // Command: Add new page
@@ -465,22 +486,26 @@ export function setupPageSystem(editor: Editor) {
     };
   }
 
-  // Listen to page changes
+  // Listen to page changes with debouncing
+  let pageSelectTimeout: NodeJS.Timeout | null = null;
   editor.on('page:select', (page: any) => {
     console.log('Page selected event:', page?.get('name'));
-    setTimeout(() => {
+    if (pageSelectTimeout) clearTimeout(pageSelectTimeout);
+    pageSelectTimeout = setTimeout(() => {
       updatePagesSelect(editor);
       updatePagesList(editor);
-      editor.refresh();
-    }, 50);
+      requestAnimationFrame(() => editor.refresh());
+    }, 100);
   });
 
+  let pageChangeTimeout: NodeJS.Timeout | null = null;
   editor.on('page:add page:remove', () => {
     console.log('Page added/removed event');
-    setTimeout(() => {
+    if (pageChangeTimeout) clearTimeout(pageChangeTimeout);
+    pageChangeTimeout = setTimeout(() => {
       updatePagesSelect(editor);
       updatePagesList(editor);
-    }, 100);
+    }, 150);
   });
 
   // Initialize pages after editor loads
