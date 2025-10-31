@@ -1,22 +1,33 @@
-/* GrapesJS Editor - Minimal Custom Styles */
+/* GrapesJS Editor - Clean White Theme (matching sidebar-component.tsx) */
 
-/* Just some basic theme adjustments */
-.gjs-one-bg {
-  background-color: #3d3d3d;
+/* White, clean backgrounds like the rest of the webapp */
+.gjs-one-bg,
+.gjs-two-bg,
+.gjs-three-bg,
+.gjs-four-bg {
+  background-color: #ffffff !important;
 }
 
-.gjs-two-color {
-  color: #ffffff !important;
+.gjs-pn-panel {
+  background-color: #ffffff !important;
+  border-right: 1px solid #ddd !important;
 }
 
-.gjs-three-bg {
-  background-color: #2a2a2a;
-  color: #fff;
+.gjs-blocks-c,
+.gjs-sm-sectors,
+.gjs-clm-tags {
+  background-color: #ffffff !important;
 }
 
+/* Dark text on white background */
+.gjs-two-color,
 .gjs-four-color,
 .gjs-four-color-h:hover {
-  color: #fff !important;
+  color: #333 !important;
+}
+
+.gjs-block-label {
+  color: #333 !important;
 }
 
 /* Make blocks with SVG media smaller to match Font Awesome icon blocks */
@@ -47,23 +58,36 @@
   margin-top: 4px !important;
 }
 
-/* Absolute positioning visual feedback */
+/* Absolute positioning visual feedback - Improved */
 [style*="position: absolute"],
-[style*="position:absolute"] {
-  outline: 2px dashed #667eea !important;
-  outline-offset: -2px;
+[style*="position:absolute"],
+.gjs-cv-canvas [style*="position: absolute"],
+.gjs-cv-canvas [style*="position:absolute"] {
+  outline: 2px dashed #0066cc !important;
+  outline-offset: 2px;
+  cursor: move !important;
+  user-select: none;
 }
 
 .gjs-selected[style*="position: absolute"],
 .gjs-selected[style*="position:absolute"] {
-  outline: 2px solid #667eea !important;
-  outline-offset: -2px;
+  outline: 2px solid #0066cc !important;
+  outline-offset: 2px;
+  cursor: move !important;
 }
 
-/* Improve dragging for absolute positioned elements */
+/* Make absolute positioned elements easily draggable */
+.gjs-cv-canvas [style*="position: absolute"]:hover,
+.gjs-cv-canvas [style*="position:absolute"]:hover {
+  outline-color: #0052a3 !important;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2) !important;
+}
+
+/* Ensure absolute positioned elements can be moved */
 .gjs-cv-canvas [style*="position: absolute"],
 .gjs-cv-canvas [style*="position:absolute"] {
-  cursor: move;
+  pointer-events: auto !important;
+  z-index: auto !important;
 }
 
 /* Pages Panel Styling - Minimalistic */
@@ -223,18 +247,129 @@
 }
 
 
-/* Universal GrapesJS Editor Background - force gray everywhere */
-.gjs-editor-cont,
-.gjs-editor,
-.gjs-cv-canvas,
-.gjs-pn-panel,
-.gjs-mdl-dialog,
-.gjs-blocks-cs,
-.gjs-block,
-.gjs-clm-tags,
-.gjs-sm-sectors,
-.sp-container,
-.gjs-pn-panel.gjs-pn-commands,
-.gjs-one-bg {
-  background-color: #727171 !important;
+/* Clean, minimal styling - matching webapp white theme */
+
+/* Panel borders like sidebar-component.tsx */
+.gjs-pn-views-container,
+.gjs-pn-options,
+.gjs-pn-commands {
+  border-right: 1px solid #ddd !important;
+}
+
+/* Clean buttons */
+.gjs-pn-btn {
+  background-color: transparent !important;
+  border: none !important;
+  color: #333 !important;
+}
+
+.gjs-pn-btn:hover {
+  background-color: #f5f5f5 !important;
+}
+
+.gjs-pn-btn.gjs-pn-active {
+  background-color: #e8e8e8 !important;
+}
+
+/* Clean inputs like the webapp */
+.gjs-sm-property input,
+.gjs-sm-property select,
+.gjs-field input,
+.gjs-field select {
+  background-color: #ffffff !important;
+  border: 1px solid #ddd !important;
+  color: #333 !important;
+  border-radius: 4px !important;
+}
+
+.gjs-sm-property input:focus,
+.gjs-sm-property select:focus {
+  border-color: #0066cc !important;
+  outline: none !important;
+}
+
+/* Clean blocks */
+.gjs-block {
+  background-color: #ffffff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.gjs-block:hover {
+  background-color: #f5f5f5 !important;
+  border-color: #0066cc !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15) !important;
+}
+
+/* Canvas and frame styling */
+.gjs-cv-canvas {
+  background-color: #f9f9f9 !important;
+}
+
+.gjs-frame {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 1px #ddd !important;
+}
+
+/* Modal styling */
+.gjs-mdl-dialog {
+  background-color: #ffffff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.gjs-mdl-header {
+  background-color: #f5f5f5 !important;
+  color: #333 !important;
+  border-bottom: 1px solid #ddd !important;
+  padding: 16px 20px !important;
+  font-weight: 600 !important;
+}
+
+.gjs-mdl-content {
+  background-color: #ffffff !important;
+  padding: 20px !important;
+}
+
+.gjs-mdl-btn-close {
+  color: #666 !important;
+  transition: color 0.2s !important;
+}
+
+.gjs-mdl-btn-close:hover {
+  color: #e74c3c !important;
+}
+
+/* Improve selected component styling */
+.gjs-selected {
+  outline: 2px solid #0066cc !important;
+  outline-offset: 2px !important;
+}
+
+.gjs-hovered {
+  outline: 2px dashed #0066cc !important;
+  outline-offset: 2px !important;
+  opacity: 0.8 !important;
+}
+
+/* Toolbar improvements */
+.gjs-toolbar {
+  background: #ffffff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  padding: 4px !important;
+}
+
+.gjs-toolbar-item {
+  color: #333 !important;
+  border-radius: 2px !important;
+  transition: all 0.2s !important;
+}
+
+.gjs-toolbar-item:hover {
+  background-color: #f5f5f5 !important;
 }

@@ -27,28 +27,31 @@ export function setupPageSystem(editor: Editor) {
         pagesPanel.style.cssText = 'display: none; flex-grow: 1; border-bottom-width: 1px; overflow: hidden;';
         
         pagesPanel.innerHTML = `
-          <div class="gs-block-manager gs-utl-overflow-hidden gs-utl-flex-nowrap gs-utl-gap-2 gs-utl-flex gs-utl-flex-col gs-utl-h-full gs-utl-flex-wrap">
-
-                <button id="add-page-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3); transition: all 0.2s;">
-                  <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path>
-                  </svg>
-                  New Page
-                </button>
-              </div>
+          <div class="gs-block-manager gs-utl-overflow-hidden gs-utl-flex-nowrap gs-utl-gap-2 gs-utl-flex gs-utl-flex-col gs-utl-h-full gs-utl-flex-wrap" style="background: #ffffff; padding: 12px;">
+            <!-- Header -->
+            <div style="padding-bottom: 12px; border-bottom: 1px solid #ddd;">
+              <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #333;">Pages</h3>
               
               <!-- Search Row -->
-              <div class="gs-utl-flex gs-utl-items-center gs-utl-gap-2" style="background: #2c2c2c; border: 1px solid #3a3a3a; border-radius: 8px; padding: 8px 12px;">
-                <svg style="width: 18px; height: 18px; color: #888; flex-shrink: 0;" viewBox="0 0 24 24">
+              <div style="display: flex; align-items: center; gap: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 6px 10px;">
+                <svg style="width: 16px; height: 16px; color: #666; flex-shrink: 0;" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path>
                 </svg>
-                <input id="pages-search-input" type="search" placeholder="Search pages..." style="flex: 1; background: transparent; border: none; color: #fff; font-size: 13px; outline: none; font-family: inherit;" />
+                <input id="pages-search-input" type="search" placeholder="Search pages..." style="flex: 1; background: transparent; border: none; color: #333; font-size: 13px; outline: none; font-family: inherit;" />
               </div>
+              
+              <!-- Add Page Button -->
+              <button id="add-page-btn" style="width: 100%; margin-top: 10px; background:rgb(205, 218, 231); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"></path>
+                </svg>
+                New Page
+              </button>
             </div>
             
             <!-- Pages List -->
             <div class="gs-block-manager__content gs-utl-overflow-y-auto gs-utl-overflow-x-hidden gs-utl-flex-1">
-              <div id="pages-list" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+              <div id="pages-list" style="padding: 8px 0; display: flex; flex-direction: column; gap: 6px;"></div>
             </div>
           </div>
         `;
@@ -95,6 +98,14 @@ export function setupPageSystem(editor: Editor) {
                 updatePagesList(editor);
               }
             }
+          });
+          
+          // Add hover effect
+          addPageBtn.addEventListener('mouseenter', () => {
+            addPageBtn.style.background = '#0052a3';
+          });
+          addPageBtn.addEventListener('mouseleave', () => {
+            addPageBtn.style.background = '#rgb(205, 218, 231)';
           });
         }
         
@@ -175,12 +186,12 @@ export function setupPageSystem(editor: Editor) {
     // Show empty state if no pages
     if (pages.length === 0) {
       pagesList.innerHTML = `
-        <div style="padding: 40px 20px; text-align: center; color: #999;">
-          <svg style="width: 64px; height: 64px; margin: 0 auto 16px; opacity: 0.5;" viewBox="0 0 24 24">
+        <div style="padding: 40px 20px; text-align: center; color: #666;">
+          <svg style="width: 48px; height: 48px; margin: 0 auto 16px; opacity: 0.3;" viewBox="0 0 24 24">
             <path fill="currentColor" d="M19,5V7H15V5M9,5V11H5V5M19,13V19H15V13M9,17V19H5V17M21,3H13V9H21M11,3H3V13H11M21,11H13V21H21M11,15H3V21H11Z"></path>
           </svg>
-          <p style="font-size: 14px; margin-bottom: 8px; font-weight: 500;">No pages yet</p>
-          <p style="font-size: 12px; opacity: 0.7;">Click "Add Page" to create your first page</p>
+          <p style="font-size: 13px; margin-bottom: 6px; font-weight: 500; color: #333;">No pages yet</p>
+          <p style="font-size: 12px; color: #999;">Click "New Page" above to get started</p>
         </div>
       `;
       return;
@@ -194,69 +205,72 @@ export function setupPageSystem(editor: Editor) {
       const pageItem = document.createElement('div');
       pageItem.className = 'gs-block-item gs-page-item';
       pageItem.style.cssText = `
-        padding: 12px 14px;
-        background: ${isSelected ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#2c2c2c'};
-        color: white;
-        border: 2px solid ${isSelected ? '#764ba2' : '#3a3a3a'};
-        border-radius: 8px;
+        padding: 10px 12px;
+        background: ${isSelected ? '#0066cc' : '#ffffff'};
+        color: ${isSelected ? '#ffffff' : '#333'};
+        border: 1px solid ${isSelected ? '#0066cc' : '#ddd'};
+        border-radius: 4px;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: ${isSelected ? '0 4px 12px rgba(118, 75, 162, 0.3)' : '0 2px 4px rgba(0,0,0,0.2)'};
-        transform: ${isSelected ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)'};
+        transition: all 0.2s ease;
+        box-shadow: ${isSelected ? '0 2px 4px rgba(0, 102, 204, 0.2)' : 'none'};
       `;
+      
+      const currentRoute = page.get?.('attributes')?.route || page.get?.('attributes')?.['data-route'] || `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
       
       pageItem.innerHTML = `
         <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <svg style="width: 20px; height: 20px; flex-shrink: 0; opacity: ${isSelected ? '1' : '0.7'};" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"></path>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg style="width: 16px; height: 16px; flex-shrink: 0;" viewBox="0 0 24 24">
+              <path fill="${isSelected ? '#ffffff' : '#666'}" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"></path>
             </svg>
-            <span class="gs-page-item-name" style="flex: 1; font-size: 14px; font-weight: ${isSelected ? '700' : '500'}; letter-spacing: 0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pageName}</span>
-            ${isSelected ? '<span style="font-size: 14px; font-weight: bold; animation: fadeIn 0.3s;">✓</span>' : ''}
+            <span class="gs-page-item-name" style="flex: 1; font-size: 13px; font-weight: ${isSelected ? '600' : '400'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${pageName}</span>
+            ${isSelected ? '<span style="font-size: 12px; opacity: 0.9;">●</span>' : ''}
           </div>
-          <div style="display: flex; align-items: center; gap: 6px; padding-left: 30px;">
-            <span style="font-size: 10px; opacity: 0.6; font-family: 'Courier New', monospace; text-transform: uppercase;">ID:</span>
-            <span style="font-size: 10px; opacity: 0.7; font-family: 'Courier New', monospace; color: ${isSelected ? '#e0e0e0' : '#aaa'};">${pageId}</span>
+          <div style="display: flex; align-items: center; gap: 6px; padding-left: 24px; font-size: 11px; color: ${isSelected ? 'rgba(255,255,255,0.9)' : '#666'};">
+            <code style="background: ${isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)'}; padding: 2px 6px; border-radius: 2px; font-family: 'Courier New', monospace; font-size: 10px;">${currentRoute}</code>
+            <button class="edit-route-btn" data-index="${index}" style="background: ${isSelected ? 'rgba(255,255,255,0.2)' : 'transparent'}; border: 1px solid ${isSelected ? 'rgba(255,255,255,0.5)' : '#0066cc'}; color: ${isSelected ? '#ffffff' : '#0066cc'}; padding: 2px 6px; border-radius: 2px; cursor: pointer; font-size: 9px; margin-left: auto; opacity: 0; transition: all 0.2s; font-weight: 500;">Edit</button>
           </div>
         </div>
-        <button class="delete-page-btn" data-index="${index}" style="background: rgba(231, 76, 60, 0.9); color: white; border: none; padding: 6px 11px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-left: 10px; opacity: 0; transition: all 0.2s; transform: scale(0.9);">×</button>
+        <button class="delete-page-btn" data-index="${index}" style="background: transparent; color: ${isSelected ? '#ffffff' : '#e74c3c'}; border: none; padding: 4px 8px; border-radius: 2px; cursor: pointer; font-size: 14px; margin-left: 8px; opacity: 0; transition: all 0.2s;">×</button>
       `;
       
       // Hover effect
       pageItem.addEventListener('mouseenter', () => {
         const deleteBtn = pageItem.querySelector('.delete-page-btn') as HTMLElement;
+        const editRouteBtn = pageItem.querySelector('.edit-route-btn') as HTMLElement;
         if (deleteBtn) {
           deleteBtn.style.opacity = '1';
-          deleteBtn.style.transform = 'scale(1)';
+        }
+        if (editRouteBtn) {
+          editRouteBtn.style.opacity = '1';
         }
         if (!isSelected) {
-          pageItem.style.background = 'linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%)';
-          pageItem.style.borderColor = '#667eea';
-          pageItem.style.transform = 'translateY(-2px) scale(1.02)';
-          pageItem.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.2)';
+          pageItem.style.background = '#f5f5f5';
+          pageItem.style.borderColor = '#0066cc';
         }
       });
       
       pageItem.addEventListener('mouseleave', () => {
         const deleteBtn = pageItem.querySelector('.delete-page-btn') as HTMLElement;
+        const editRouteBtn = pageItem.querySelector('.edit-route-btn') as HTMLElement;
         if (deleteBtn) {
           deleteBtn.style.opacity = '0';
-          deleteBtn.style.transform = 'scale(0.9)';
+        }
+        if (editRouteBtn) {
+          editRouteBtn.style.opacity = '0';
         }
         if (!isSelected) {
-          pageItem.style.background = '#2c2c2c';
-          pageItem.style.borderColor = '#3a3a3a';
-          pageItem.style.transform = 'translateY(0) scale(1)';
-          pageItem.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+          pageItem.style.background = '#ffffff';
+          pageItem.style.borderColor = '#ddd';
         }
       });
       
       // Click to select page
       pageItem.addEventListener('click', (e: any) => {
-        if (!e.target.classList.contains('delete-page-btn')) {
+        if (!e.target.classList.contains('delete-page-btn') && !e.target.classList.contains('edit-route-btn')) {
           console.log('Selecting page:', pageName);
           pagesManager.select(page);
           setTimeout(() => {
@@ -266,19 +280,44 @@ export function setupPageSystem(editor: Editor) {
         }
       });
       
+      // Edit route button
+      const editRouteBtn = pageItem.querySelector('.edit-route-btn');
+      if (editRouteBtn) {
+        editRouteBtn.addEventListener('click', (e: any) => {
+          e.stopPropagation();
+          
+          const currentRoute = page.get?.('attributes')?.route || page.get?.('attributes')?.['data-route'] || `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
+          const newRoute = prompt(`Edit route path for page "${pageName}":\n\nExamples:\n- /home\n- /users\n- /products/:id\n- /dashboard`, currentRoute);
+          
+          if (newRoute !== null && newRoute.trim()) {
+            let route = newRoute.trim();
+            if (!route.startsWith('/')) {
+              route = '/' + route;
+            }
+            
+            // Set the route attribute
+            const attrs = page.get?.('attributes') || {};
+            attrs.route = route;
+            attrs['data-route'] = route;
+            if (page.set) {
+              page.set('attributes', attrs);
+            }
+            
+            console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
+            updatePagesList(editor);
+          }
+        });
+      }
+      
       // Delete button
       const deleteBtn = pageItem.querySelector('.delete-page-btn');
       if (deleteBtn) {
         deleteBtn.addEventListener('mouseenter', () => {
-          (deleteBtn as HTMLElement).style.background = 'rgba(231, 76, 60, 1)';
-          (deleteBtn as HTMLElement).style.transform = 'scale(1.1)';
-          (deleteBtn as HTMLElement).style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.4)';
+          (deleteBtn as HTMLElement).style.background = isSelected ? 'rgba(255,255,255,0.2)' : '#ffebee';
         });
         
         deleteBtn.addEventListener('mouseleave', () => {
-          (deleteBtn as HTMLElement).style.background = 'rgba(231, 76, 60, 0.9)';
-          (deleteBtn as HTMLElement).style.transform = 'scale(1)';
-          (deleteBtn as HTMLElement).style.boxShadow = 'none';
+          (deleteBtn as HTMLElement).style.background = 'transparent';
         });
         
         deleteBtn.addEventListener('click', (e: any) => {
