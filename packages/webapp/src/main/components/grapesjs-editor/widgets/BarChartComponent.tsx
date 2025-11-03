@@ -17,7 +17,7 @@ const defaultData = [
 
 export const BarChartComponent: React.FC<BarChartComponentProps> = ({
   color = '#3498db',
-  title = 'Revenue by Category',
+  title = 'Bar Chart Title',
   data = defaultData,
 }) => {
   return (

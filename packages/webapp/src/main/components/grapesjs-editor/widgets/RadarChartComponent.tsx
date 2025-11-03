@@ -18,7 +18,7 @@ const defaultData = [
 
 export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
   color = '#8884d8',
-  title = 'Performance Metrics',
+  title = 'Radar Chart Title',
   data = defaultData,
 }) => {
   return (

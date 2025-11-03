@@ -14,7 +14,7 @@ const defaultData = [
 ];
 
 export const RadialBarChartComponent: React.FC<RadialBarChartComponentProps> = ({
-  title = 'Customer Satisfaction',
+  title = 'Radial Bar Chart Title',
   data = defaultData,
 }) => {
   return (

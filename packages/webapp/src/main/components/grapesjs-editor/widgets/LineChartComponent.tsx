@@ -18,7 +18,7 @@ const defaultData = [
 
 export const LineChartComponent: React.FC<LineChartComponentProps> = ({
   color = '#4CAF50',
-  title = 'Sales Over Time',
+  title = 'Line Chart Title',
   data = defaultData,
 }) => {
   return (
