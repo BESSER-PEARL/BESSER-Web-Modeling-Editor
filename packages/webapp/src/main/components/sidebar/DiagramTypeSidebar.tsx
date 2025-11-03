@@ -95,7 +95,7 @@ const sidebarItems: SidebarItem[] = [
   { type: UMLDiagramType.ObjectDiagram, label: 'Object Diagram', icon: <Diagram2 size={20} /> },
   { type: UMLDiagramType.StateMachineDiagram, label: 'State Machine', icon: <ArrowRepeat size={20} /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent Diagram', icon: <Robot size={20} /> },
-  { type: 'grapesjs', label: 'GrapesJS Editor', icon: <PencilSquare size={20} />, path: '/grapesjs' },
+  { type: 'grapesjs', label: 'Graphical UI', icon: <PencilSquare size={20} />, path: '/grapesjs' },
   { type: 'settings', label: 'Project Settings', icon: <Gear size={20} />, path: '/project-settings' },
 ];
 
