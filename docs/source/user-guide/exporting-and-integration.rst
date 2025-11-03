@@ -9,6 +9,11 @@ Export formats
 
 Use ``File → Export`` to download the active diagram in the following formats:
 
+``B-UML``
+    Generate B-UML models for use in the BESSER platform.
+``JSON``
+    Serialises the diagram model for re-importing or processing with custom
+    scripts.
 ``PNG``
     Choose between transparent or white backgrounds. Suitable for slide decks and
     documents.
@@ -16,9 +21,7 @@ Use ``File → Export`` to download the active diagram in the following formats:
     Vector exports that preserve layers and text for downstream editing.
 ``PDF``
     High-fidelity format ideal for documentation packages.
-``JSON``
-    Serialises the diagram model for re-importing or processing with custom
-    scripts.
+
 
 Programmatic exports
 --------------------

@@ -11,7 +11,6 @@ production-ready assets.
    workspace-tour
    diagramming-basics
    templates-and-assets
-   collaboration
    exporting-and-integration
    automation-and-shortcuts
    customization-and-accessibility

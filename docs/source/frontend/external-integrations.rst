@@ -32,7 +32,7 @@ Backend APIs
 
 * The webapp communicates with the collaboration server via ``BASE_URL`` derived
   from ``DEPLOYMENT_URL``.
-* ``BACKEND_URL`` can point to auxiliary services when running in development.
+* ``BACKEND_URL`` can point to the BESSER Backend services when running in development.
 * Use ``LocalStorageRepository`` and ``ProjectStorageRepository`` to bridge with
   other systems through background sync jobs.
 

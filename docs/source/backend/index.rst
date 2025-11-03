@@ -11,6 +11,5 @@ behaviour and extension points.
    server-overview
    rest-api
    storage
-   collaboration-services
    security-and-observability
    background-jobs

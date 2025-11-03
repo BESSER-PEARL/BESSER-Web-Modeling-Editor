@@ -2,7 +2,7 @@ System architecture
 ===================
 
 BESSER WME Standalone is a monorepo of TypeScript packages orchestrated through
-a npm workspace (:file:`package.json`). The architecture is divided into three
+a npm workspace (:file:`package.json`). The architecture is divided into two
 primary layers.
 
 1. **Core modelling engine** – consumed from the ``@besser/wme`` npm package. It
@@ -10,9 +10,9 @@ primary layers.
 2. **Web application** – housed under :file:`packages/webapp`. A React
    single-page application integrates the engine, templates, analytics, and
    routing. Webpack handles bundling and environment injection.
-3. **Collaboration server** – located in :file:`packages/server`. An Express
-   application serves the static assets, exposes REST APIs, and manages storage
-   adapters for collaboration features.
+.. 3. **Collaboration server** – located in :file:`packages/server`. An Express
+..    application serves the static assets, exposes REST APIs, and manages storage
+..    adapters for collaboration features.
 
 Shared infrastructure
 ---------------------

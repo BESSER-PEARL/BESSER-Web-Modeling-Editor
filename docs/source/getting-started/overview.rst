@@ -16,8 +16,6 @@ switching, auto-layout, and inline styling controls provide a familiar diagram
 editing experience.
 * **Template and asset management** – curated diagram templates, custom assets,
 and palette management are available out of the box.
-* **Collaboration-ready** – optional server features unlock shared editing,
-feedback reviews, version history, embedding, and secure share links.
 * **Multiple deployment models** – run the editor as static assets, serve it via
 Node.js, or host both editor and server via Docker or container orchestration.
 
@@ -43,28 +41,16 @@ The repository is organised as a multi-package workspace:
 Core capabilities at a glance
 -----------------------------
 
-* **Diagram editing** with BPMN, UML, and domain-specific notation palettes.
+* **Diagram editing** with UML, and domain-specific notation palettes.
 * **File management** via local browser storage, downloadable exports (PNG,
   SVG, PDF, JSON), and template imports.
-* **Sharing workflows** supporting edit, embed, feedback collection, and review
-  modes through secure share tokens.
+* **Generation** transform your  diagrams into B-UML models or code snippets using
+  built-in generators.
 * **Customisation** including dark/light mode, custom CSS overrides, and
   optional analytics hooks.
 * **Automation hooks** for build pipelines through the exposed npm scripts and
   CLI utilities documented later in this guide.
 
-Use cases
----------
-
-BESSER WME Standalone is suitable for:
-
-* Teaching and workshops that require a zero-install modelling environment.
-* Design sessions in agile teams where diagrams evolve quickly and need
-  shareable history.
-* Integration into low-code delivery pipelines that require programmatic export
-  of diagram artefacts.
-* Embedding interactive diagrams into documentation, issue trackers, or
-  knowledge bases via the embed mode.
 
 What's next
 -----------
