@@ -36,6 +36,14 @@ export const GrapesJsEditor: React.FC = () => {
       width: 'auto',
       fromElement: false,
       
+      // ========================================
+      // 🎨 CUSTOMIZE YOUR DEFAULT CANVAS HTML HERE (Alternative location)
+      // ========================================
+      // This HTML will appear in the canvas when GrapesJS first initializes
+      // Note: The primary default content is in setupPageSystem.ts > loadDefaultPages()
+      // This is just a fallback for the initial canvas before pages load
+      components: '',  // Empty initially - pages will load default content
+      
       // Storage configuration - integrate with ProjectStorageRepository
       storageManager: {
         type: 'remote',
