@@ -551,35 +551,35 @@ export const registerLayoutComponents = (editor: any) => {
 
   // Add blocks to Block Manager
   editor.BlockManager.add('flex-container', {
-    label: '📦 Flex Container',
+    label: 'Flex Container',
     category: 'Layout',
     content: { type: 'flex-container' },
     media: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M2,7H8V13H2V7M16,11H10V13H16V11M2,17H8V15H2V17M10,15H22V17H10V15M22,9V7H10V9H22M22,13H18V11H22V13Z"/></svg>',
   });
 
   editor.BlockManager.add('flex-item', {
-    label: '📋 Flex Item',
+    label: 'Flex Item',
     category: 'Layout',
     content: { type: 'flex-item' },
     media: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V5H19V19Z"/></svg>',
   });
 
   editor.BlockManager.add('grid-container', {
-    label: '🔲 Grid Container',
+    label: 'Grid Container',
     category: 'Layout',
     content: { type: 'grid-container' },
     media: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M10,4V8H14V4H10M16,4V8H20V4H16M16,10V14H20V10H16M16,16V20H20V16H16M14,20V16H10V20H14M8,20V16H4V20H8M8,14V10H4V14H8M8,8V4H4V8H8M10,14H14V10H10V14M4,2H20A2,2 0 0,1 22,4V20A2,2 0 0,1 20,22H4C2.92,22 2,21.1 2,20V4A2,2 0 0,1 4,2Z"/></svg>',
   });
 
   editor.BlockManager.add('grid-item', {
-    label: '⬜ Grid Item',
+    label: 'Grid Item',
     category: 'Layout',
     content: { type: 'grid-item' },
     media: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M19,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,5V19H5V5H19Z"/></svg>',
   });
 
   editor.BlockManager.add('card-component', {
-    label: '🎴 Card',
+    label: 'Card',
     category: 'Layout',
     content: { type: 'card-component' },
     media: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M16.5,16.25C16.5,14.75 13.5,14 12,14C10.5,14 7.5,14.75 7.5,16.25V17H16.5M12,12.25A2.25,2.25 0 0,0 14.25,10A2.25,2.25 0 0,0 12,7.75A2.25,2.25 0 0,0 9.75,10A2.25,2.25 0 0,0 12,12.25Z"/></svg>',

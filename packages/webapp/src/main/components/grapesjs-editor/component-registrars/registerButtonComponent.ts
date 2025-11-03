@@ -296,14 +296,14 @@ export const registerButtonComponent = (editor: any) => {
 
   // Add blocks to Block Manager
   editor.BlockManager.add('action-button', {
-    label: '⚡ Action Button',
+    label: 'Action Button',
     category: 'Basic',
     content: { type: 'action-button' },
     media: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"/></svg>',
   });
   
   editor.BlockManager.add('link-button', {
-    label: '🔗 Link',
+    label: 'Link',
     category: 'Basic',
     content: { type: 'link-button' },
     media: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M3.9,12C3.9,10.29 5.29,8.9 7,8.9H11V7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H11V15.1H7C5.29,15.1 3.9,13.71 3.9,12M8,13H16V11H8V13M17,7H13V8.9H17C18.71,8.9 20.1,10.29 20.1,12C20.1,13.71 18.71,15.1 17,15.1H13V17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7Z"/></svg>',
