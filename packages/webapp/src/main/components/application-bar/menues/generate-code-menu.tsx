@@ -219,8 +219,8 @@ export const GenerateCodeMenu: React.FC = () => {
   };
 
   const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
-  // Detect if we're on the GrapesJS GUI / No-Code editor page by checking the URL path
-  const isGUINoCodeDiagram = /grapesjs/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
 
   return (
     <>

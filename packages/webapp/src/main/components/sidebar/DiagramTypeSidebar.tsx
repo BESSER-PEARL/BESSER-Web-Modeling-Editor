@@ -80,7 +80,7 @@ const GIcon = styled.span`
   font-family: 'Arial', sans-serif;
 `;
 
-type SidebarItemType = UMLDiagramType | 'home' | 'settings' | 'grapesjs';
+type SidebarItemType = UMLDiagramType | 'home' | 'settings' | 'graphical-ui-editor';
 
 interface SidebarItem {
   type: SidebarItemType;
@@ -95,7 +95,7 @@ const sidebarItems: SidebarItem[] = [
   { type: UMLDiagramType.ObjectDiagram, label: 'Object Diagram', icon: <Diagram2 size={20} /> },
   { type: UMLDiagramType.StateMachineDiagram, label: 'State Machine', icon: <ArrowRepeat size={20} /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent Diagram', icon: <Robot size={20} /> },
-  { type: 'grapesjs', label: 'Graphical UI', icon: <PencilSquare size={20} />, path: '/grapesjs' },
+  { type: 'graphical-ui-editor', label: 'Graphical UI', icon: <PencilSquare size={20} />, path: '/graphical-ui-editor' },
   { type: 'settings', label: 'Project Settings', icon: <Gear size={20} />, path: '/project-settings' },
 ];
 
@@ -112,14 +112,14 @@ export const DiagramTypeSidebar: React.FC = () => {
   } = useProject();
 
   const handleItemClick = (item: SidebarItem) => {
-    // Handle navigation items (home, settings, grapesjs)
+    // Handle navigation items (home, settings, graphical-ui-editor
     if (item.path) {
       navigate(item.path);
       return;
     }
 
     // This should not happen with current setup, but let's be safe
-    if (item.type === 'home' || item.type === 'settings' || item.type === 'grapesjs') {
+    if (item.type === 'home' || item.type === 'settings' || item.type === 'graphical-ui-editor') {
       return;
     }
 

@@ -18,7 +18,7 @@ import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
 import { TeamPage } from './components/team/TeamPage';
 import { useProject } from './hooks/useProject';
-import {  GrapesJsEditor } from './components/grapesjs-editor';
+import {  GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 
 const postHogOptions = {
@@ -36,7 +36,7 @@ function AppContentInner() {
   const hasTokenInUrl = location.pathname !== '/' && 
                        location.pathname !== '/project-settings' && 
                        location.pathname !== '/teampage' &&
-                       location.pathname !== '/grapesjs';
+                       location.pathname !== '/graphical-ui-editor';
   
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
@@ -129,12 +129,12 @@ function AppContentInner() {
         />
 
 
-        {/* GrapesJS Studio Editor route - Multi-page support */}
+        {/* GraphicalUIEditor Studio Editor route - Multi-page support */}
         <Route 
-          path="/grapesjs"
+          path="/graphical-ui-editor"
           element={
             <SidebarLayout>
-              <GrapesJsEditor />
+              <GraphicalUIEditor />
             </SidebarLayout>
           } 
         />

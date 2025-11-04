@@ -21,7 +21,7 @@ import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData } from '../../types/project';
 
-export const GrapesJsEditor: React.FC = () => {
+export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
@@ -159,12 +159,12 @@ export const GrapesJsEditor: React.FC = () => {
 
     // Load storage after everything is initialized
     editor.on('load', () => {
-      console.log('[GrapesJsEditor] Editor ready, loading stored data');
+      console.log('[GraphicalUIEditor] Editor ready, loading stored data');
       editor.StorageManager.load((data: unknown) => {
         if (data && Object.keys(data as Record<string, unknown>).length > 0) {
-          console.log('[GrapesJsEditor] Stored data loaded successfully');
+          console.log('[GraphicalUIEditor] Stored data loaded successfully');
         } else {
-          console.log('[GrapesJsEditor] No stored data found, using defaults');
+          console.log('[GraphicalUIEditor] No stored data found, using defaults');
         }
       });
     });
@@ -197,16 +197,16 @@ function setupProjectStorageIntegration(
         const model = project?.diagrams?.GUINoCodeDiagram?.model;
 
         if (isGrapesJSProjectData(model)) {
-          console.log('[GrapesJsEditor] Loading GrapesJS data from project storage');
+          console.log('[GraphicalUIEditor] Loading GrapesJS data from project storage');
 
           if (Array.isArray(model.pages) && model.pages.length > 0) {
             return model;
           }
 
-          console.log('[GrapesJsEditor] Stored data has no pages, keeping defaults');
+          console.log('[GraphicalUIEditor] Stored data has no pages, keeping defaults');
           return {};
         }
-        console.log('[GrapesJsEditor] No GrapesJS data found, starting fresh');
+        console.log('[GraphicalUIEditor] No GrapesJS data found, starting fresh');
         return {};
       } catch (error) {
         console.error('Error loading from project storage:', error);
@@ -228,7 +228,7 @@ function setupProjectStorageIntegration(
 
         // Validate that this could be GrapesJS data
         if (!isGrapesJSProjectData(data)) {
-          console.warn('[GrapesJsEditor] Received data that doesn\'t look like GrapesJS format, skipping save');
+          console.warn('[GraphicalUIEditor] Received data that doesn\'t look like GrapesJS format, skipping save');
           setSaveStatus('error');
           return;
         }
@@ -248,7 +248,7 @@ function setupProjectStorageIntegration(
         );
         
         if (updated) {
-          console.log('[GrapesJsEditor] GrapesJS data saved to project storage');
+          console.log('[GraphicalUIEditor] GrapesJS data saved to project storage');
           setSaveStatus('saved');
           // Show saved notification briefly
           setTimeout(() => {
@@ -534,7 +534,7 @@ function setupKeyboardShortcuts(editor: Editor) {
       return false;
     });
     
-    console.log('[GrapesJsEditor] Keyboard shortcuts registered');
+    console.log('[GraphicalUIEditor] Keyboard shortcuts registered');
   });
 }
 

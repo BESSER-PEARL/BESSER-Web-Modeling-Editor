@@ -226,15 +226,15 @@ export function setupLayoutBlocks(editor: Editor) {
     attributes: { class: 'fa fa-minus' }
   });
   
-  // Spacer
-  bm.add('spacer', {
-    label: 'Spacer',
-    category: 'Layout',
-    content: `
-      <div style="height: 50px; background: transparent;"></div>
-    `,
-    attributes: { class: 'fa fa-arrows-v' }
-  });
+  // // Spacer
+  // bm.add('spacer', {
+  //   label: 'Spacer',
+  //   category: 'Layout',
+  //   content: `
+  //     <div style="height: 50px; background: transparent;"></div>
+  //   `,
+  //   attributes: { class: 'fa fa-arrows-v' }
+  // });
   
   // Divider
   bm.add('divider', {
@@ -246,66 +246,66 @@ export function setupLayoutBlocks(editor: Editor) {
     attributes: { class: 'fa fa-minus' }
   });
   
-  // Pricing Table (3 tiers)
-  bm.add('pricing-table', {
-    label: 'Pricing Table',
-    category: 'Layout',
-    content: `
-      <section style="padding: 60px 20px; background: #f9f9f9;">
-        <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
-          <h2 style="font-size: 36px; margin-bottom: 50px; color: #333;">Choose Your Plan</h2>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px;">
-            <!-- Basic Plan -->
-            <div style="background: white; border-radius: 12px; padding: 40px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); transition: transform 0.3s;">
-              <h3 style="color: #666; margin-top: 0; font-size: 20px;">Basic</h3>
-              <div style="margin: 20px 0;">
-                <span style="font-size: 48px; font-weight: bold; color: #333;">$9</span>
-                <span style="color: #999;">/month</span>
-              </div>
-              <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ 10 GB Storage</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Basic Support</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ 1 User</li>
-              </ul>
-              <button style="width: 100%; padding: 12px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">Select Plan</button>
-            </div>
-            <!-- Pro Plan (Featured) -->
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 40px 30px; box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4); transform: scale(1.05); color: white;">
-              <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 10px;">POPULAR</div>
-              <h3 style="margin-top: 0; font-size: 20px;">Pro</h3>
-              <div style="margin: 20px 0;">
-                <span style="font-size: 48px; font-weight: bold;">$29</span>
-                <span style="opacity: 0.8;">/month</span>
-              </div>
-              <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ 100 GB Storage</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ Priority Support</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ 10 Users</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ Advanced Features</li>
-              </ul>
-              <button style="width: 100%; padding: 12px; background: white; color: #667eea; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">Select Plan</button>
-            </div>
-            <!-- Enterprise Plan -->
-            <div style="background: white; border-radius: 12px; padding: 40px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-              <h3 style="color: #666; margin-top: 0; font-size: 20px;">Enterprise</h3>
-              <div style="margin: 20px 0;">
-                <span style="font-size: 48px; font-weight: bold; color: #333;">$99</span>
-                <span style="color: #999;">/month</span>
-              </div>
-              <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
-                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Unlimited Storage</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ 24/7 Support</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Unlimited Users</li>
-                <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Custom Integration</li>
-              </ul>
-              <button style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">Select Plan</button>
-            </div>
-          </div>
-        </div>
-      </section>
-    `,
-    attributes: { class: 'fa fa-usd' }
-  });
+  // // Pricing Table (3 tiers)
+  // bm.add('pricing-table', {
+  //   label: 'Pricing Table',
+  //   category: 'Layout',
+  //   content: `
+  //     <section style="padding: 60px 20px; background: #f9f9f9;">
+  //       <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
+  //         <h2 style="font-size: 36px; margin-bottom: 50px; color: #333;">Choose Your Plan</h2>
+  //         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px;">
+  //           <!-- Basic Plan -->
+  //           <div style="background: white; border-radius: 12px; padding: 40px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); transition: transform 0.3s;">
+  //             <h3 style="color: #666; margin-top: 0; font-size: 20px;">Basic</h3>
+  //             <div style="margin: 20px 0;">
+  //               <span style="font-size: 48px; font-weight: bold; color: #333;">$9</span>
+  //               <span style="color: #999;">/month</span>
+  //             </div>
+  //             <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
+  //               <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ 10 GB Storage</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Basic Support</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ 1 User</li>
+  //             </ul>
+  //             <button style="width: 100%; padding: 12px; background: #e0e0e0; color: #333; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">Select Plan</button>
+  //           </div>
+  //           <!-- Pro Plan (Featured) -->
+  //           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 40px 30px; box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4); transform: scale(1.05); color: white;">
+  //             <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 10px;">POPULAR</div>
+  //             <h3 style="margin-top: 0; font-size: 20px;">Pro</h3>
+  //             <div style="margin: 20px 0;">
+  //               <span style="font-size: 48px; font-weight: bold;">$29</span>
+  //               <span style="opacity: 0.8;">/month</span>
+  //             </div>
+  //             <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
+  //               <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ 100 GB Storage</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ Priority Support</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ 10 Users</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2);">✓ Advanced Features</li>
+  //             </ul>
+  //             <button style="width: 100%; padding: 12px; background: white; color: #667eea; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">Select Plan</button>
+  //           </div>
+  //           <!-- Enterprise Plan -->
+  //           <div style="background: white; border-radius: 12px; padding: 40px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+  //             <h3 style="color: #666; margin-top: 0; font-size: 20px;">Enterprise</h3>
+  //             <div style="margin: 20px 0;">
+  //               <span style="font-size: 48px; font-weight: bold; color: #333;">$99</span>
+  //               <span style="color: #999;">/month</span>
+  //             </div>
+  //             <ul style="list-style: none; padding: 0; margin: 30px 0; text-align: left;">
+  //               <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Unlimited Storage</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ 24/7 Support</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Unlimited Users</li>
+  //               <li style="padding: 10px 0; border-bottom: 1px solid #eee;">✓ Custom Integration</li>
+  //             </ul>
+  //             <button style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer;">Select Plan</button>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </section>
+  //   `,
+  //   attributes: { class: 'fa fa-usd' }
+  // });
   
   // Feature Grid (3 features)
   bm.add('feature-grid', {
@@ -341,57 +341,57 @@ export function setupLayoutBlocks(editor: Editor) {
     attributes: { class: 'fa fa-star' }
   });
   
-  // Testimonial Section
-  bm.add('testimonial-section', {
-    label: 'Testimonials',
-    category: 'Layout',
-    content: `
-      <section style="padding: 80px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-        <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
-          <h2 style="font-size: 36px; margin-bottom: 50px;">What Our Clients Say</h2>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
-            <!-- Testimonial 1 -->
-            <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px; padding: 30px; text-align: left;">
-              <div style="font-size: 40px; opacity: 0.3; margin-bottom: 10px;">"</div>
-              <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">This product has completely transformed the way we work. Highly recommended!</p>
-              <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
-                <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">👤</div>
-                <div>
-                  <div style="font-weight: bold;">John Doe</div>
-                  <div style="opacity: 0.8; font-size: 14px;">CEO, Company Inc.</div>
-                </div>
-              </div>
-            </div>
-            <!-- Testimonial 2 -->
-            <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px; padding: 30px; text-align: left;">
-              <div style="font-size: 40px; opacity: 0.3; margin-bottom: 10px;">"</div>
-              <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">Amazing service and incredible support. Best decision we've made this year!</p>
-              <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
-                <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">👤</div>
-                <div>
-                  <div style="font-weight: bold;">Jane Smith</div>
-                  <div style="opacity: 0.8; font-size: 14px;">Marketing Director</div>
-                </div>
-              </div>
-            </div>
-            <!-- Testimonial 3 -->
-            <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px; padding: 30px; text-align: left;">
-              <div style="font-size: 40px; opacity: 0.3; margin-bottom: 10px;">"</div>
-              <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">Exceeded all our expectations. The team is professional and responsive.</p>
-              <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
-                <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">👤</div>
-                <div>
-                  <div style="font-weight: bold;">Mike Johnson</div>
-                  <div style="opacity: 0.8; font-size: 14px;">Product Manager</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    `,
-    attributes: { class: 'fa fa-quote-left' }
-  });
+  // // Testimonial Section
+  // bm.add('testimonial-section', {
+  //   label: 'Testimonials',
+  //   category: 'Layout',
+  //   content: `
+  //     <section style="padding: 80px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+  //       <div style="max-width: 1200px; margin: 0 auto; text-align: center;">
+  //         <h2 style="font-size: 36px; margin-bottom: 50px;">What Our Clients Say</h2>
+  //         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px;">
+  //           <!-- Testimonial 1 -->
+  //           <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px; padding: 30px; text-align: left;">
+  //             <div style="font-size: 40px; opacity: 0.3; margin-bottom: 10px;">"</div>
+  //             <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">This product has completely transformed the way we work. Highly recommended!</p>
+  //             <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
+  //               <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">👤</div>
+  //               <div>
+  //                 <div style="font-weight: bold;">John Doe</div>
+  //                 <div style="opacity: 0.8; font-size: 14px;">CEO, Company Inc.</div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //           <!-- Testimonial 2 -->
+  //           <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px; padding: 30px; text-align: left;">
+  //             <div style="font-size: 40px; opacity: 0.3; margin-bottom: 10px;">"</div>
+  //             <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">Amazing service and incredible support. Best decision we've made this year!</p>
+  //             <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
+  //               <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">👤</div>
+  //               <div>
+  //                 <div style="font-weight: bold;">Jane Smith</div>
+  //                 <div style="opacity: 0.8; font-size: 14px;">Marketing Director</div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //           <!-- Testimonial 3 -->
+  //           <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px; padding: 30px; text-align: left;">
+  //             <div style="font-size: 40px; opacity: 0.3; margin-bottom: 10px;">"</div>
+  //             <p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px;">Exceeded all our expectations. The team is professional and responsive.</p>
+  //             <div style="display: flex; align-items: center; gap: 15px; margin-top: 20px;">
+  //               <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">👤</div>
+  //               <div>
+  //                 <div style="font-weight: bold;">Mike Johnson</div>
+  //                 <div style="opacity: 0.8; font-size: 14px;">Product Manager</div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </section>
+  //   `,
+  //   attributes: { class: 'fa fa-quote-left' }
+  // });
   
   // CTA Banner
   bm.add('cta-banner', {
@@ -412,34 +412,34 @@ export function setupLayoutBlocks(editor: Editor) {
     attributes: { class: 'fa fa-bullhorn' }
   });
   
-  // Contact Form
-  bm.add('contact-form', {
-    label: 'Contact Form',
-    category: 'Layout',
-    content: `
-      <section style="padding: 60px 20px; background: #f5f5f5;">
-        <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-          <h2 style="text-align: center; color: #333; margin-bottom: 30px;">Get In Touch</h2>
-          <form>
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Name</label>
-              <input type="text" placeholder="Your name" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;">
-            </div>
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Email</label>
-              <input type="email" placeholder="your@email.com" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;">
-            </div>
-            <div style="margin-bottom: 20px;">
-              <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Message</label>
-              <textarea placeholder="Your message..." rows="5" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; resize: vertical;"></textarea>
-            </div>
-            <button type="submit" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: transform 0.2s;">Send Message</button>
-          </form>
-        </div>
-      </section>
-    `,
-    attributes: { class: 'fa fa-envelope' }
-  });
+  // // Contact Form
+  // bm.add('contact-form', {
+  //   label: 'Contact Form',
+  //   category: 'Layout',
+  //   content: `
+  //     <section style="padding: 60px 20px; background: #f5f5f5;">
+  //       <div style="max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+  //         <h2 style="text-align: center; color: #333; margin-bottom: 30px;">Get In Touch</h2>
+  //         <form>
+  //           <div style="margin-bottom: 20px;">
+  //             <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Name</label>
+  //             <input type="text" placeholder="Your name" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;">
+  //           </div>
+  //           <div style="margin-bottom: 20px;">
+  //             <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Email</label>
+  //             <input type="email" placeholder="your@email.com" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box;">
+  //           </div>
+  //           <div style="margin-bottom: 20px;">
+  //             <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Message</label>
+  //             <textarea placeholder="Your message..." rows="5" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; resize: vertical;"></textarea>
+  //           </div>
+  //           <button type="submit" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: transform 0.2s;">Send Message</button>
+  //         </form>
+  //       </div>
+  //     </section>
+  //   `,
+  //   attributes: { class: 'fa fa-envelope' }
+  // });
   
   // Stats/Counter Section
   bm.add('stats-section', {
@@ -476,51 +476,51 @@ export function setupLayoutBlocks(editor: Editor) {
     attributes: { class: 'fa fa-line-chart' }
   });
   
-  // Image Gallery
-  bm.add('image-gallery', {
-    label: 'Image Gallery',
-    category: 'Layout',
-    content: `
-      <section style="padding: 60px 20px;">
-        <div style="max-width: 1200px; margin: 0 auto;">
-          <h2 style="text-align: center; font-size: 36px; margin-bottom: 50px; color: #333;">Gallery</h2>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-            <!-- Image 1 -->
-            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">📷</div>
-            <!-- Image 2 -->
-            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🖼️</div>
-            <!-- Image 3 -->
-            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🎨</div>
-            <!-- Image 4 -->
-            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🌄</div>
-            <!-- Image 5 -->
-            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🎭</div>
-            <!-- Image 6 -->
-            <div style="aspect-ratio: 1; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">✨</div>
-          </div>
-        </div>
-      </section>
-    `,
-    attributes: { class: 'fa fa-picture-o' }
-  });
+  // // Image Gallery
+  // bm.add('image-gallery', {
+  //   label: 'Image Gallery',
+  //   category: 'Layout',
+  //   content: `
+  //     <section style="padding: 60px 20px;">
+  //       <div style="max-width: 1200px; margin: 0 auto;">
+  //         <h2 style="text-align: center; font-size: 36px; margin-bottom: 50px; color: #333;">Gallery</h2>
+  //         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+  //           <!-- Image 1 -->
+  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">📷</div>
+  //           <!-- Image 2 -->
+  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🖼️</div>
+  //           <!-- Image 3 -->
+  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🎨</div>
+  //           <!-- Image 4 -->
+  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🌄</div>
+  //           <!-- Image 5 -->
+  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🎭</div>
+  //           <!-- Image 6 -->
+  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">✨</div>
+  //         </div>
+  //       </div>
+  //     </section>
+  //   `,
+  //   attributes: { class: 'fa fa-picture-o' }
+  // });
   
   // Newsletter Signup
-  bm.add('newsletter-signup', {
-    label: 'Newsletter',
-    category: 'Layout',
-    content: `
-      <section style="padding: 60px 20px; background: #ecf0f1;">
-        <div style="max-width: 600px; margin: 0 auto; text-align: center;">
-          <h2 style="font-size: 32px; color: #333; margin-bottom: 15px;">📧 Subscribe to Our Newsletter</h2>
-          <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Get the latest updates and exclusive offers delivered to your inbox.</p>
-          <form style="display: flex; gap: 10px; max-width: 500px; margin: 0 auto; flex-wrap: wrap;">
-            <input type="email" placeholder="Enter your email" style="flex: 1; min-width: 250px; padding: 15px 20px; border: 2px solid #ddd; border-radius: 50px; font-size: 16px; outline: none;">
-            <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 35px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; white-space: nowrap;">Subscribe</button>
-          </form>
-          <p style="color: #999; font-size: 12px; margin-top: 15px;">We respect your privacy. Unsubscribe at any time.</p>
-        </div>
-      </section>
-    `,
-    attributes: { class: 'fa fa-paper-plane' }
-  });
+  // bm.add('newsletter-signup', {
+  //   label: 'Newsletter',
+  //   category: 'Layout',
+  //   content: `
+  //     <section style="padding: 60px 20px; background: #ecf0f1;">
+  //       <div style="max-width: 600px; margin: 0 auto; text-align: center;">
+  //         <h2 style="font-size: 32px; color: #333; margin-bottom: 15px;">📧 Subscribe to Our Newsletter</h2>
+  //         <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Get the latest updates and exclusive offers delivered to your inbox.</p>
+  //         <form style="display: flex; gap: 10px; max-width: 500px; margin: 0 auto; flex-wrap: wrap;">
+  //           <input type="email" placeholder="Enter your email" style="flex: 1; min-width: 250px; padding: 15px 20px; border: 2px solid #ddd; border-radius: 50px; font-size: 16px; outline: none;">
+  //           <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 35px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; white-space: nowrap;">Subscribe</button>
+  //         </form>
+  //         <p style="color: #999; font-size: 12px; margin-top: 15px;">We respect your privacy. Unsubscribe at any time.</p>
+  //       </div>
+  //     </section>
+  //   `,
+  //   attributes: { class: 'fa fa-paper-plane' }
+  // });
 }

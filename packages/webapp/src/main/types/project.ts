@@ -84,6 +84,22 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
 export const createEmptyDiagram = (title: string, type: UMLDiagramType | null): ProjectDiagram => {
   // For GUI/No-Code diagram
   if (type === null) {
+    // ========================================
+    // 🎨 DEFAULT PAGE CONTENT
+    // ========================================
+    // This HTML will be the default content when a new project is created
+    const defaultPageHTML = `<div style="padding: 40px; text-align: center; font-family: Arial, sans-serif;">
+  <h1 style="color: #333; margin-bottom: 20px; font-size: 48px;">Welcome to BESSER GUI Editor</h1>
+  <p style="color: #666; margin-bottom: 30px; font-size: 18px;">Build beautiful multi-page websites with drag and drop!</p>
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 12px; color: white; max-width: 800px; margin: 0 auto;">
+    <h2 style="margin-bottom: 20px;">Getting Started</h2>
+    <p style="margin: 10px 0; font-size: 16px;">📦 1. Select blocks from the panel</p>
+    <p style="margin: 10px 0; font-size: 16px;">🖱️ 2. Drag them into the canvas</p>
+    <p style="margin: 10px 0; font-size: 16px;">📄 3. Switch between pages using the pages dropdown</p>
+    <p style="margin: 10px 0; font-size: 16px;">✏️ 4. Click to edit and style</p>
+  </div>
+</div>`;
+    
     return {
       id: crypto.randomUUID(),
       title,
@@ -92,7 +108,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null): 
           {
             name: 'Home',
             styles: '',
-            component: '',
+            component: defaultPageHTML, // Now includes default content
           },
         ],
         styles: [],
