@@ -5,6 +5,9 @@ interface RadarChartComponentProps {
   color?: string;
   title?: string;
   data?: Array<{ subject: string; A: number; fullMark: number }>;
+  showGrid?: boolean;
+  showTooltip?: boolean;
+  showRadiusAxis?: boolean;
 }
 
 const defaultData = [
@@ -20,6 +23,9 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
   color = '#8884d8',
   title = 'Radar Chart Title',
   data = defaultData,
+  showGrid = true,
+  showTooltip = true,
+  showRadiusAxis = true,
 }) => {
   return (
     <div
@@ -36,9 +42,9 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
       </h3>
       <ResponsiveContainer width="100%" height={300}>
         <RadarChart data={data}>
-          <PolarGrid stroke="#e0e0e0" />
+          {showGrid && <PolarGrid stroke="#e0e0e0" />}
           <PolarAngleAxis dataKey="subject" stroke="#666" />
-          <PolarRadiusAxis stroke="#666" />
+          {showRadiusAxis && <PolarRadiusAxis stroke="#666" />}
           <Radar
             name="Score"
             dataKey="A"
@@ -46,7 +52,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
             fill={color}
             fillOpacity={0.6}
           />
-          <Tooltip />
+          {showTooltip && <Tooltip />}
           <Legend />
         </RadarChart>
       </ResponsiveContainer>

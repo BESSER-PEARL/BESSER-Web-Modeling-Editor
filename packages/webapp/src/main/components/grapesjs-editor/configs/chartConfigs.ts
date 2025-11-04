@@ -96,12 +96,10 @@ export const chartConfigs: ChartConfig[] = [
       { type: 'select', label: 'Label Field', name: 'label-field', value: '', options: [], changeProp: 1 },
       { type: 'select', label: 'Data Field', name: 'data-field', value: '', options: [], changeProp: 1 },
       { type: 'checkbox', label: 'Show Legend', name: 'show-legend', value: true, changeProp: 1 },
-      { type: 'select', label: 'Legend Position', name: 'legend-position', value: 'right',
+      { type: 'select', label: 'Legend Position', name: 'legend-position', value: 'bottom',
         options: [
           { value: 'top', label: 'Top' },
-          { value: 'right', label: 'Right' },
-          { value: 'bottom', label: 'Bottom' },
-          { value: 'left', label: 'Left' }
+          { value: 'bottom', label: 'Bottom' }
         ], changeProp: 1 },
       { type: 'checkbox', label: 'Show Labels', name: 'show-labels', value: true, changeProp: 1 },
       { type: 'select', label: 'Label Position', name: 'label-position', value: 'inside',

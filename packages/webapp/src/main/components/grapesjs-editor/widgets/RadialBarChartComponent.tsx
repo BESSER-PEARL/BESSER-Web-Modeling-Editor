@@ -4,6 +4,8 @@ import { RadialBarChart, RadialBar, Legend, Tooltip, ResponsiveContainer } from 
 interface RadialBarChartComponentProps {
   title?: string;
   data?: Array<{ name: string; value: number; fill: string }>;
+  startAngle?: number;
+  endAngle?: number;
 }
 
 const defaultData = [
@@ -16,6 +18,8 @@ const defaultData = [
 export const RadialBarChartComponent: React.FC<RadialBarChartComponentProps> = ({
   title = 'Radial Bar Chart Title',
   data = defaultData,
+  startAngle = 90,
+  endAngle = 450,
 }) => {
   return (
     <div
@@ -37,8 +41,8 @@ export const RadialBarChartComponent: React.FC<RadialBarChartComponentProps> = (
           innerRadius="10%"
           outerRadius="80%"
           data={data}
-          startAngle={180}
-          endAngle={0}
+          startAngle={startAngle}
+          endAngle={endAngle}
         >
           <RadialBar
             label={{ position: 'insideStart', fill: '#fff' }}

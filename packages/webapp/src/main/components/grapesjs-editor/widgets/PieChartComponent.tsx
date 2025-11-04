@@ -1,9 +1,14 @@
 import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
 
 interface PieChartComponentProps {
   title?: string;
   data?: Array<{ name: string; value: number }>;
+  showLegend?: boolean;
+  legendPosition?: 'top' | 'right' | 'bottom' | 'left';
+  showLabels?: boolean;
+  labelPosition?: 'inside' | 'outside';
+  paddingAngle?: number;
 }
 
 const defaultData = [
@@ -18,6 +23,11 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 export const PieChartComponent: React.FC<PieChartComponentProps> = ({
   title = 'Pie Chart Title',
   data = defaultData,
+  showLegend = true,
+  legendPosition = 'right',
+  showLabels = true,
+  labelPosition = 'inside',
+  paddingAngle = 0,
 }) => {
   return (
     <div
@@ -38,18 +48,29 @@ export const PieChartComponent: React.FC<PieChartComponentProps> = ({
             data={data}
             cx="50%"
             cy="50%"
-            labelLine={false}
-            label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
-            outerRadius={80}
+            labelLine={showLabels ? labelPosition === 'outside' : false}
+            label={showLabels ? (entry: any) => {
+              const percent = entry.percent;
+              return labelPosition === 'inside' ? 
+                `${(percent * 100).toFixed(0)}%` : 
+                `${entry.name}: ${(percent * 100).toFixed(0)}%`;
+            } : undefined}
+            outerRadius={100}
             fill="#8884d8"
             dataKey="value"
+            paddingAngle={paddingAngle}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
           <Tooltip />
-          <Legend />
+          {showLegend && (
+            <Legend 
+              verticalAlign={legendPosition === 'top' || legendPosition === 'bottom' ? legendPosition : 'middle'}
+              align={legendPosition === 'left' || legendPosition === 'right' ? legendPosition : 'center'} 
+            />
+          )}
         </PieChart>
       </ResponsiveContainer>
       <div style={{ marginTop: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px' }}>

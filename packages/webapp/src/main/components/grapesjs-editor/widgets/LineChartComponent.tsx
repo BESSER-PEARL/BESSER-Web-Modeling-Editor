@@ -5,6 +5,12 @@ interface LineChartComponentProps {
   color?: string;
   title?: string;
   data?: Array<{ name: string; value: number }>;
+  showGrid?: boolean;
+  showLegend?: boolean;
+  showTooltip?: boolean;
+  lineWidth?: number;
+  curveType?: 'linear' | 'monotone' | 'step' | 'stepBefore' | 'stepAfter';
+  animate?: boolean;
 }
 
 const defaultData = [
@@ -20,6 +26,12 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
   color = '#4CAF50',
   title = 'Line Chart Title',
   data = defaultData,
+  showGrid = true,
+  showLegend = true,
+  showTooltip = true,
+  lineWidth = 2,
+  curveType = 'monotone',
+  animate = true,
 }) => {
   return (
     <div
@@ -36,19 +48,20 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
       </h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+          {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />}
           <XAxis dataKey="name" stroke="#666" />
           <YAxis stroke="#666" />
-          <Tooltip />
-          <Legend />
+          {showTooltip && <Tooltip />}
+          {showLegend && <Legend />}
           <Line
-            type="monotone"
+            type={curveType}
             dataKey="value"
             stroke={color}
-            strokeWidth={3}
+            strokeWidth={lineWidth}
             dot={{ fill: color, r: 5 }}
             activeDot={{ r: 7 }}
             name="Monthly Sales"
+            isAnimationActive={animate}
           />
         </LineChart>
       </ResponsiveContainer>
