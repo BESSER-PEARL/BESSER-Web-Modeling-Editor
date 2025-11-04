@@ -25,156 +25,61 @@ export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Initialize GrapesJS editor with project storage integration
-    const editor = grapesjs.init({
-      container: containerRef.current,
-      height: '100vh',
-      width: 'auto',
-      fromElement: false,
+    try {
+      // Initialize GrapesJS editor
+      const editor = initializeEditor(containerRef.current);
       
-      // ========================================
-      // 🎨 CUSTOMIZE YOUR DEFAULT CANVAS HTML HERE (Alternative location)
-      // ========================================
-      // This HTML will appear in the canvas when GrapesJS first initializes
-      // Note: The primary default content is in setupPageSystem.ts > loadDefaultPages()
-      // This is just a fallback for the initial canvas before pages load
-      components: '',  // Empty initially - pages will load default content
-      
-      // Storage configuration - integrate with ProjectStorageRepository
-      storageManager: {
-        type: 'remote',
-        autosave: true,
-        autoload: true,
-        stepsBeforeSave: 1,
-      },
+      // Store editor reference
+      editorRef.current = editor;
+      (window as any).editor = editor;
 
-      // Plugins - only essential ones for code generation
-      plugins: [
-        gjsPresetWebpage as any, 
-        gjsStyleBg as any,
-        gjsBlocksBasic as any,
-        gjsPluginForms as any,
-      ],
-      pluginsOpts: {
-        'grapesjs-preset-webpage': {
-          modalImportTitle: 'Import Template',
-          modalImportLabel: '<div style="margin-bottom: 10px; font-size: 13px;">Paste here your HTML/CSS and click Import</div>',
-          modalImportContent: function(editor: Editor) {
-            return editor.getHtml() + '<style>' + editor.getCss() + '</style>';
-          },
-          filestackOpts: null,
-          aviaryOpts: false,
-          blocksBasicOpts: {
-            // Only blocks supported by the generator
-            blocks: ['column1', 'column2', 'column3', 'text', 'link', 'image'],
-            flexGrid: true,
-          },
-          customStyleManager: [
-            {
-              name: 'Position',
-              open: true,
-              buildProps: ['position', 'top', 'right', 'bottom', 'left', 'z-index'],
-            },
-            {
-              name: 'Dimension',
-              open: false,
-              buildProps: ['width', 'height', 'max-width', 'min-height', 'padding', 'margin'],
-            },
-            {
-              name: 'Typography',
-              open: false,
-              buildProps: ['font-size', 'font-weight', 'font-family', 'color', 'line-height', 'text-align'],
-            },
-            {
-              name: 'Decorations',
-              open: false,
-              buildProps: ['background-color', 'border-radius', 'border', 'box-shadow'],
-            },
-          ],
-        },
-        'grapesjs-style-bg': {},
-        'grapesjs-blocks-basic': {},
-        'grapesjs-plugin-forms': {
-          // Form plugin options - keep minimal
-          blocks: ['form', 'input', 'textarea', 'select', 'button', 'label', 'checkbox'],
-        },
-      },
+      // Setup all editor features
+      const cleanup = setupEditorFeatures(editor, setSaveStatus, saveIntervalRef);
 
-      // Show borders by default
-      showOffsets: true,
-      
-      // Enable absolute positioning with free dragging
-      canvas: {
-        styles: [],
-        scripts: [],
-      },
-    });
-    
-    // Enable absolute positioning dragging
-    enableAbsolutePositioning(editor);
+      // Register all custom components
+      registerCustomComponents(editor);
 
-    // Store editor reference
-    editorRef.current = editor;
-    (window as any).editor = editor;
-
-    // Setup custom storage manager to use ProjectStorageRepository
-    setupProjectStorageIntegration(editor, setSaveStatus);
-
-    // Setup custom commands (export, JSON)
-    setupCommands(editor);
-
-    // Setup page management system with route editing
-    setupPageSystem(editor);
-    setupPageRouting(editor);
-    
-    // Setup data binding UI
-    setupDataBindingTraits(editor);
-    
-    // Setup layout blocks
-    setupLayoutBlocks(editor);
-    
-    // Setup keyboard shortcuts
-    setupKeyboardShortcuts(editor);
-
-    // Register custom components
-    chartConfigs.forEach((config) => {
-      registerChartComponent(editor, config);
-    });
-
-    // Register map component
-    registerMapComponent(editor, mapConfig);
-
-    // Register button components (action-button and link-button)
-    registerButtonComponent(editor);
-
-    // Register enhanced form components
-    registerFormComponents(editor);
-
-    // Register layout components (flex, grid, card)
-    registerLayoutComponents(editor);
-
-    // Load storage after everything is initialized
-    editor.on('load', () => {
-      console.log('[GraphicalUIEditor] Editor ready, loading stored data');
-      editor.StorageManager.load((data: unknown) => {
-        if (data && Object.keys(data as Record<string, unknown>).length > 0) {
-          console.log('[GraphicalUIEditor] Stored data loaded successfully');
-        } else {
-          console.log('[GraphicalUIEditor] No stored data found, using defaults');
-        }
+      // Handle editor load event
+      editor.on('load', () => {
+        console.log('[GraphicalUIEditor] Editor ready, loading stored data');
+        editor.StorageManager.load((data: unknown) => {
+          if (data && Object.keys(data as Record<string, unknown>).length > 0) {
+            console.log('[GraphicalUIEditor] Stored data loaded successfully');
+          } else {
+            console.log('[GraphicalUIEditor] No stored data found, using defaults');
+          }
+        });
       });
-    });
 
-    // Cleanup on unmount
-    return () => {
-      if (editorRef.current) {
-        editorRef.current.destroy();
-      }
-    };
+      // Cleanup on unmount
+      return () => {
+        console.log('[GraphicalUIEditor] Cleaning up...');
+        
+        // Clear save interval
+        if (saveIntervalRef.current) {
+          clearInterval(saveIntervalRef.current);
+          saveIntervalRef.current = null;
+        }
+        
+        // Call cleanup function
+        if (cleanup) cleanup();
+        
+        // Destroy editor
+        if (editorRef.current) {
+          editorRef.current.destroy();
+          editorRef.current = null;
+        }
+        
+        console.log('[GraphicalUIEditor] Cleanup complete');
+      };
+    } catch (error) {
+      console.error('[GraphicalUIEditor] Failed to initialize editor:', error);
+    }
   }, []);
 
   return (
@@ -182,14 +87,149 @@ export const GraphicalUIEditor: React.FC = () => {
   );
 };
 
-// Helper: Setup ProjectStorageRepository integration
+// ============================================
+// EDITOR INITIALIZATION
+// ============================================
+
+/**
+ * Initialize GrapesJS editor with configuration
+ */
+function initializeEditor(container: HTMLDivElement): Editor {
+  return grapesjs.init({
+    container,
+    height: '100vh',
+    width: 'auto',
+    fromElement: false,
+    components: '', // Empty initially - pages will load default content
+    
+    // Storage configuration
+    storageManager: {
+      type: 'remote',
+      autosave: true,
+      autoload: true,
+      stepsBeforeSave: 1,
+    },
+
+    // Essential plugins only
+    plugins: [
+      gjsPresetWebpage as any, 
+      gjsStyleBg as any,
+      gjsBlocksBasic as any,
+      gjsPluginForms as any,
+    ],
+    
+    pluginsOpts: {
+      'grapesjs-preset-webpage': {
+        modalImportTitle: 'Import Template',
+        modalImportLabel: '<div style="margin-bottom: 10px; font-size: 13px;">Paste here your HTML/CSS and click Import</div>',
+        modalImportContent: (editor: Editor) => editor.getHtml() + '<style>' + editor.getCss() + '</style>',
+        filestackOpts: null,
+        aviaryOpts: false,
+        blocksBasicOpts: {
+          blocks: ['column1', 'column2', 'column3', 'text', 'link', 'image'],
+          flexGrid: true,
+        },
+        customStyleManager: [
+          {
+            name: 'Position',
+            open: true,
+            buildProps: ['position', 'top', 'right', 'bottom', 'left', 'z-index'],
+          },
+          {
+            name: 'Dimension',
+            open: false,
+            buildProps: ['width', 'height', 'max-width', 'min-height', 'padding', 'margin'],
+          },
+          {
+            name: 'Typography',
+            open: false,
+            buildProps: ['font-size', 'font-weight', 'font-family', 'color', 'line-height', 'text-align'],
+          },
+          {
+            name: 'Decorations',
+            open: false,
+            buildProps: ['background-color', 'border-radius', 'border', 'box-shadow'],
+          },
+        ],
+      },
+      'grapesjs-style-bg': {},
+      'grapesjs-blocks-basic': {},
+      'grapesjs-plugin-forms': {
+        blocks: ['form', 'input', 'textarea', 'select', 'button', 'label', 'checkbox'],
+      },
+    },
+
+    showOffsets: true,
+    canvas: {
+      styles: [],
+      scripts: [],
+    },
+  });
+}
+
+/**
+ * Setup all editor features in organized order
+ */
+function setupEditorFeatures(
+  editor: Editor, 
+  setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
+  saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>
+): () => void {
+  // Core features
+  const cleanupStorage = setupProjectStorageIntegration(editor, setSaveStatus, saveIntervalRef);
+  setupCommands(editor);
+  setupKeyboardShortcuts(editor);
+  
+  // Page system (consolidated)
+  if (editor.Pages) {
+    setupPageSystem(editor);
+    setupPageRouting(editor);
+    addPagesButton(editor);
+  } else {
+    console.warn('[GraphicalUIEditor] Pages API not available');
+  }
+  
+  // Additional features
+  setupDataBindingTraits(editor);
+  setupLayoutBlocks(editor);
+  enableAbsolutePositioning(editor);
+  
+  // Return cleanup function
+  return cleanupStorage;
+}
+
+/**
+ * Register all custom components
+ */
+function registerCustomComponents(editor: Editor) {
+  // Register charts
+  chartConfigs.forEach((config) => {
+    registerChartComponent(editor, config);
+  });
+
+  // Register other components
+  registerMapComponent(editor, mapConfig);
+  registerButtonComponent(editor);
+  registerFormComponents(editor);
+  registerLayoutComponents(editor);
+  
+  console.log('[GraphicalUIEditor] All custom components registered');
+}
+
+// ============================================
+// STORAGE INTEGRATION
+// ============================================
+
+/**
+ * Setup ProjectStorageRepository integration
+ */
 function setupProjectStorageIntegration(
   editor: Editor,
-  setSaveStatus: (status: 'saved' | 'saving' | 'error') => void
-) {
+  setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
+  saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>
+): () => void {
   const sm = editor.StorageManager;
   
-  // Custom storage implementation
   sm.add('remote', {
     async load() {
       try {
@@ -197,19 +237,17 @@ function setupProjectStorageIntegration(
         const model = project?.diagrams?.GUINoCodeDiagram?.model;
 
         if (isGrapesJSProjectData(model)) {
-          console.log('[GraphicalUIEditor] Loading GrapesJS data from project storage');
-
+          console.log('[Storage] Loading GrapesJS data from project storage');
           if (Array.isArray(model.pages) && model.pages.length > 0) {
             return model;
           }
-
-          console.log('[GraphicalUIEditor] Stored data has no pages, keeping defaults');
+          console.log('[Storage] Stored data has no pages, keeping defaults');
           return {};
         }
-        console.log('[GraphicalUIEditor] No GrapesJS data found, starting fresh');
+        console.log('[Storage] No GrapesJS data found, starting fresh');
         return {};
       } catch (error) {
-        console.error('Error loading from project storage:', error);
+        console.error('[Storage] Error loading:', error);
         setSaveStatus('error');
         return {};
       }
@@ -221,22 +259,18 @@ function setupProjectStorageIntegration(
         const project = ProjectStorageRepository.getCurrentProject();
 
         if (!project) {
-          console.warn('No active project found, cannot save GrapesJS data');
+          console.warn('[Storage] No active project found');
           setSaveStatus('error');
           return;
         }
 
-        // Validate that this could be GrapesJS data
         if (!isGrapesJSProjectData(data)) {
-          console.warn('[GraphicalUIEditor] Received data that doesn\'t look like GrapesJS format, skipping save');
+          console.warn('[Storage] Invalid GrapesJS format, skipping save');
           setSaveStatus('error');
           return;
         }
 
-        // Normalize to proper GrapesJS format
         const grapesData = normalizeToGrapesJSProjectData(data);
-
-        // Update the GUINoCodeDiagram with GrapesJS data
         const updated = ProjectStorageRepository.updateDiagram(
           project.id,
           'GUINoCodeDiagram',
@@ -248,18 +282,15 @@ function setupProjectStorageIntegration(
         );
         
         if (updated) {
-          console.log('[GraphicalUIEditor] GrapesJS data saved to project storage');
+          console.log('[Storage] Data saved successfully');
           setSaveStatus('saved');
-          // Show saved notification briefly
-          setTimeout(() => {
-            updateSaveStatusUI(editor, 'saved');
-          }, 100);
+          setTimeout(() => updateSaveStatusUI(editor, 'saved'), 100);
         } else {
-          console.error('Failed to save GrapesJS data');
+          console.error('[Storage] Failed to save data');
           setSaveStatus('error');
         }
       } catch (error) {
-        console.error('Error saving to project storage:', error);
+        console.error('[Storage] Error saving:', error);
         setSaveStatus('error');
       }
     },
@@ -280,132 +311,162 @@ function setupProjectStorageIntegration(
     setSaveStatus('error');
     updateSaveStatusUI(editor, 'error');
   });
+  
+  // Wait for editor to be fully loaded before setting up auto-save
+  let isEditorReady = false;
+  
+  editor.on('load', () => {
+    // Add a delay to ensure everything is fully initialized
+    setTimeout(() => {
+      isEditorReady = true;
+      console.log('[Storage] Editor fully loaded, auto-save enabled');
+      
+      let saveTimeout: NodeJS.Timeout | null = null;
+      
+      // Safe save function that checks if editor is ready
+      const safeSave = () => {
+        if (!isEditorReady) {
+          console.log('[Storage] Editor not ready, skipping save');
+          return;
+        }
+        
+        // Check if editor and its internals are still available
+        if (!editor || !(editor as any).em || !(editor as any).em.storables) {
+          console.log('[Storage] Editor not available or destroyed, skipping save');
+          return;
+        }
+        
+        try {
+          console.log('[Storage] Auto-saving changes...');
+          editor.store();
+        } catch (error) {
+          console.error('[Storage] Auto-save error:', error);
+        }
+      };
+      
+      // Debounced save function to avoid too many saves
+      const debouncedSave = () => {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(safeSave, 2000); // Wait 2 seconds after last change
+      };
+      
+      // Auto-save on changes
+      editor.on('component:add component:remove component:update', debouncedSave);
+      editor.on('page:add page:remove page:update', debouncedSave);
+      editor.on('style:update', debouncedSave);
+      
+      // Periodic backup save every 30 seconds - store in ref so we can clear it
+      saveIntervalRef.current = setInterval(() => {
+        safeSave();
+      }, 30000);
+      
+      console.log('[Storage] Auto-save listeners initialized');
+    }, 2000); // Wait 2 seconds after load event
+  });
+  
+  // Return cleanup function
+  return () => {
+    console.log('[Storage] Cleaning up storage integration');
+    isEditorReady = false;
+    
+    if (saveIntervalRef.current) {
+      clearInterval(saveIntervalRef.current);
+      saveIntervalRef.current = null;
+    }
+  };
 }
 
-// Helper: Update save status UI
+/**
+ * Update save status UI indicator
+ */
 function updateSaveStatusUI(editor: Editor, status: 'saved' | 'saving' | 'error') {
   const statusEl = document.getElementById('save-status-indicator');
-  if (statusEl) {
-    const icons = {
-      saved: '✓',
-      saving: '⟳',
-      error: '⚠'
-    };
-    const messages = {
-      saved: 'Saved',
-      saving: 'Saving...',
-      error: 'Error saving'
-    };
-    const colors = {
-      saved: '#27ae60',
-      saving: '#3498db',
-      error: '#e74c3c'
-    };
-    
-    statusEl.innerHTML = `
-      <span style="color: ${colors[status]}; display: flex; align-items: center; gap: 6px;">
-        <span style="font-size: 16px; ${status === 'saving' ? 'animation: spin 1s linear infinite;' : ''}">${icons[status]}</span>
-        <span style="font-size: 12px; font-weight: 500;">${messages[status]}</span>
-      </span>
-    `;
-  }
+  if (!statusEl) return;
+  
+  const config = {
+    saved: { icon: '✓', message: 'Saved', color: '#27ae60' },
+    saving: { icon: '⟳', message: 'Saving...', color: '#3498db' },
+    error: { icon: '⚠', message: 'Error saving', color: '#e74c3c' }
+  };
+  
+  const { icon, message, color } = config[status];
+  const spinAnimation = status === 'saving' ? 'animation: spin 1s linear infinite;' : '';
+  
+  statusEl.innerHTML = `
+    <span style="color: ${color}; display: flex; align-items: center; gap: 6px;">
+      <span style="font-size: 16px; ${spinAnimation}">${icon}</span>
+      <span style="font-size: 12px; font-weight: 500;">${message}</span>
+    </span>
+  `;
 }
 
-// Helper: Setup custom commands (export and JSON only)
+// ============================================
+// COMMANDS
+// ============================================
+
+/**
+ * Setup custom commands for export, JSON, etc.
+ */
+/**
+ * Setup custom commands for export, JSON, etc.
+ */
 function setupCommands(editor: Editor) {
-  // Enhanced Export template command
+  // Save project command
+  editor.Commands.add('save-project', {
+    run(editor: Editor) {
+      try {
+        console.log('[Save] Manual save triggered');
+        
+        // Check if editor has storables before trying to save
+        const editorModel = (editor as any).em;
+        if (!editorModel || !editorModel.storables) {
+          console.warn('[Save] Editor not fully initialized yet, please wait a moment');
+          alert('Editor is still loading. Please wait a moment and try again.');
+          return;
+        }
+        
+        editor.store();
+        console.log('[Save] Manual save completed');
+      } catch (error) {
+        console.error('[Save] Manual save error:', error);
+        alert('Error saving project. Please check the console for details.');
+      }
+    }
+  });
+  
+  // Export template command
   editor.Commands.add('export-template', {
     run(editor: Editor) {
-      const html = editor.getHtml();
-      const css = editor.getCss();
-      const js = `<script>
-// GrapesJS Generated Code
-console.log('Page loaded successfully');
-</script>`;
+      const html = editor.getHtml() || '';
+      const css = editor.getCss() || '';
+      const fullCode = generateHTMLTemplate(html, css);
       
-      const fullCode = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BESSER Generated Page</title>
-  <style>
-${css}
-  </style>
-</head>
-<body>
-${html}
-${js}
-</body>
-</html>`;
+      const downloadBtn = createDownloadButton('download-html-btn', '📥 Download HTML');
       
-      const downloadBtn = `
-        <button id="download-html-btn" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
-          📥 Download HTML
-        </button>
-      `;
-      
-      editor.Modal.setTitle('Export Template')
-        .setContent(`
-          <div style="padding: 20px;">
-            ${downloadBtn}
-            <textarea id="export-code-textarea" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa;">${fullCode}</textarea>
-          </div>
-        `)
+      editor.Modal
+        .setTitle('Export Template')
+        .setContent(createModalContent(downloadBtn, fullCode, 'export-code-textarea'))
         .open();
         
-      // Add download functionality
       setTimeout(() => {
-        const downloadBtn = document.getElementById('download-html-btn');
-        if (downloadBtn) {
-          downloadBtn.addEventListener('click', () => {
-            const blob = new Blob([fullCode], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'index.html';
-            a.click();
-            URL.revokeObjectURL(url);
-          });
-        }
+        attachDownloadHandler('download-html-btn', fullCode, 'index.html', 'text/html');
       }, 100);
     },
   });
 
-  // Enhanced Show JSON command
+  // Show JSON command
   editor.Commands.add('show-json', {
     run(editor: Editor) {
       const projectData = JSON.stringify(editor.getProjectData(), null, 2);
+      const downloadBtn = createDownloadButton('download-json-btn', '📥 Download JSON');
       
-      const downloadBtn = `
-        <button id="download-json-btn" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
-          📥 Download JSON
-        </button>
-      `;
-      
-      editor.Modal.setTitle('Project JSON')
-        .setContent(`
-          <div style="padding: 20px;">
-            ${downloadBtn}
-            <textarea id="json-data-textarea" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa;">${projectData}</textarea>
-          </div>
-        `)
+      editor.Modal
+        .setTitle('Project JSON')
+        .setContent(createModalContent(downloadBtn, projectData, 'json-data-textarea'))
         .open();
         
-      // Add download functionality
       setTimeout(() => {
-        const downloadBtn = document.getElementById('download-json-btn');
-        if (downloadBtn) {
-          downloadBtn.addEventListener('click', () => {
-            const blob = new Blob([projectData], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'project.json';
-            a.click();
-            URL.revokeObjectURL(url);
-          });
-        }
+        attachDownloadHandler('download-json-btn', projectData, 'project.json', 'application/json');
       }, 100);
     },
   });
@@ -420,10 +481,9 @@ ${js}
     },
   });
   
-  // Enhanced Preview command with filtering
+  // Preview mode with filtering
   editor.Commands.add('preview-mode', {
     run(editor: Editor) {
-      // Filter preview to show only widgets and base components
       setTimeout(() => filterPreviewContent(editor), 100);
       editor.runCommand('preview');
     },
@@ -433,122 +493,172 @@ ${js}
     },
   });
   
-  // Also filter when using default preview command
-  editor.on('run:preview', () => {
-    setTimeout(() => filterPreviewContent(editor), 100);
-  });
-  
-  editor.on('stop:preview', () => {
-    restorePreviewContent(editor);
-  });
+  // Filter preview on default preview command
+  editor.on('run:preview', () => setTimeout(() => filterPreviewContent(editor), 100));
+  editor.on('stop:preview', () => restorePreviewContent(editor));
 }
 
+/**
+ * Generate HTML template with CSS
+ */
+function generateHTMLTemplate(html: string, css: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BESSER Generated Page</title>
+  <style>
+${css}
+  </style>
+</head>
+<body>
+${html}
+  <script>
+    console.log('Page loaded successfully');
+  </script>
+</body>
+</html>`;
+}
 
+/**
+ * Create download button HTML
+ */
+function createDownloadButton(id: string, label: string): string {
+  return `
+    <button id="${id}" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+      ${label}
+    </button>
+  `;
+}
 
-// Helper: Setup Keyboard Shortcuts
+/**
+ * Create modal content with textarea
+ */
+function createModalContent(downloadBtn: string, content: string, textareaId: string): string {
+  return `
+    <div style="padding: 20px;">
+      ${downloadBtn}
+      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa;">${content}</textarea>
+    </div>
+  `;
+}
+
+/**
+ * Attach download handler to button
+ */
+function attachDownloadHandler(buttonId: string, content: string, filename: string, mimeType: string) {
+  const btn = document.getElementById(buttonId);
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+}
+
+// ============================================
+// KEYBOARD SHORTCUTS
+// ============================================
+
+/**
+ * Setup keyboard shortcuts
+ */
+/**
+ * Setup keyboard shortcuts
+ */
 function setupKeyboardShortcuts(editor: Editor) {
-  // Add keyboard shortcuts
   editor.on('load', () => {
     const keymaps = editor.Keymaps;
     
-    // Save - Ctrl+S / Cmd+S
-    keymaps.add('core:save', 'ctrl+s, cmd+s', () => {
-      editor.store();
-      return false; // Prevent default
-    });
-    
-    // Preview - Ctrl+P / Cmd+P
-    keymaps.add('core:preview-toggle', 'ctrl+p, cmd+p', () => {
-      editor.runCommand('preview');
-      return false;
-    });
-    
-    // Undo - Ctrl+Z / Cmd+Z
-    keymaps.add('core:undo', 'ctrl+z, cmd+z', () => {
-      editor.runCommand('core:undo');
-      return false;
-    });
-    
-    // Redo - Ctrl+Shift+Z / Cmd+Shift+Z
-    keymaps.add('core:redo', 'ctrl+shift+z, cmd+shift+z', () => {
-      editor.runCommand('core:redo');
-      return false;
-    });
-    
-    // Copy - Ctrl+C / Cmd+C
-    keymaps.add('core:copy', 'ctrl+c, cmd+c', () => {
-      editor.runCommand('core:copy');
-      return false;
-    });
-    
-    // Paste - Ctrl+V / Cmd+V
-    keymaps.add('core:paste', 'ctrl+v, cmd+v', () => {
-      editor.runCommand('core:paste');
-      return false;
-    });
-    
-    // Delete - Delete / Backspace
-    keymaps.add('core:component-delete', 'delete, backspace', () => {
-      const selected = editor.getSelected();
-      if (selected) {
-        selected.remove();
-      }
-      return false;
-    });
-    
-    // Duplicate - Ctrl+D / Cmd+D
-    keymaps.add('core:component-duplicate', 'ctrl+d, cmd+d', () => {
-      const selected = editor.getSelected();
-      if (selected) {
-        const cloned = selected.clone();
-        const parent = selected.parent();
-        if (parent) {
-          parent.append(cloned);
-          editor.select(cloned);
+    const shortcuts = [
+      { id: 'core:save', keys: 'ctrl+s, cmd+s', action: () => { editor.store(); return false; } },
+      { id: 'core:preview-toggle', keys: 'ctrl+p, cmd+p', action: () => { editor.runCommand('preview'); return false; } },
+      { id: 'core:undo', keys: 'ctrl+z, cmd+z', action: () => { editor.runCommand('core:undo'); return false; } },
+      { id: 'core:redo', keys: 'ctrl+shift+z, cmd+shift+z', action: () => { editor.runCommand('core:redo'); return false; } },
+      { id: 'core:copy', keys: 'ctrl+c, cmd+c', action: () => { editor.runCommand('core:copy'); return false; } },
+      { id: 'core:paste', keys: 'ctrl+v, cmd+v', action: () => { editor.runCommand('core:paste'); return false; } },
+      { id: 'core:component-delete', keys: 'delete, backspace', action: () => { 
+        const selected = editor.getSelected();
+        if (selected) selected.remove();
+        return false;
+      }},
+      { id: 'core:component-duplicate', keys: 'ctrl+d, cmd+d', action: () => {
+        const selected = editor.getSelected();
+        if (selected) {
+          const cloned = selected.clone();
+          const parent = selected.parent();
+          if (parent) {
+            parent.append(cloned);
+            editor.select(cloned);
+          }
         }
-      }
-      return false;
-    });
-    
-    // Select Parent - Escape
-    keymaps.add('core:component-select-parent', 'escape', () => {
-      const selected = editor.getSelected();
-      if (selected) {
-        const parent = selected.parent();
-        if (parent && parent.get('type') !== 'wrapper') {
-          editor.select(parent);
+        return false;
+      }},
+      { id: 'core:component-select-parent', keys: 'escape', action: () => {
+        const selected = editor.getSelected();
+        if (selected) {
+          const parent = selected.parent();
+          if (parent && parent.get('type') !== 'wrapper') {
+            editor.select(parent);
+          }
         }
-      }
-      return false;
+        return false;
+      }},
+      { id: 'core:export', keys: 'ctrl+e, cmd+e', action: () => { editor.runCommand('export-template'); return false; } },
+      { id: 'core:show-json', keys: 'ctrl+j, cmd+j', action: () => { editor.runCommand('show-json'); return false; } },
+    ];
+    
+    shortcuts.forEach(({ id, keys, action }) => {
+      keymaps.add(id, keys, action);
     });
     
-    // Export - Ctrl+E / Cmd+E
-    keymaps.add('core:export', 'ctrl+e, cmd+e', () => {
-      editor.runCommand('export-template');
-      return false;
-    });
-    
-    // Show JSON - Ctrl+J / Cmd+J
-    keymaps.add('core:show-json', 'ctrl+j, cmd+j', () => {
-      editor.runCommand('show-json');
-      return false;
-    });
-    
-    console.log('[GraphicalUIEditor] Keyboard shortcuts registered');
+    console.log('[Keyboard] Shortcuts registered');
   });
 }
 
-// Helper: Setup Page Routing (allow setting custom routes for pages)
+// ============================================
+// PAGE ROUTING
+// ============================================
+
+/**
+ * Add Pages button to the toolbar
+ */
+function addPagesButton(editor: Editor) {
+  editor.on('load', () => {
+    const panelManager = editor.Panels;
+    
+    // Add button to open pages panel
+    panelManager.addButton('options', {
+      id: 'open-pages',
+      className: 'fa fa-file-text',
+      command: 'show-pages',
+      attributes: { title: 'Manage Pages' },
+      label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" /></svg>',
+    });
+    
+    console.log('[Pages] Button added to toolbar');
+  });
+}
+
+/**
+ * Setup page routing system
+ */
+/**
+ * Setup page routing system
+ */
 function setupPageRouting(editor: Editor) {
   if (!editor.Pages) return;
   
   editor.on('page:select', (page: any) => {
     if (!page) return;
-    
-    // Add route attribute editing to page traits
     const currentRoute = page.get('attributes')?.route || `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
-    
-    console.log(`[Page Routing] Selected page: ${page.getName()}, route: ${currentRoute}`);
+    console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
   });
   
   // Add command to edit page route
@@ -564,89 +674,81 @@ function setupPageRouting(editor: Editor) {
       const attrs: any = currentPage.get('attributes') || {};
       const currentRoute = attrs.route || `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
       
-      const newRoute = prompt(`Edit route path for page "${pageName}":\n\n(e.g., /home, /users/:id, /products)`, currentRoute);
+      const newRoute = prompt(
+        `Edit route path for page "${pageName}":\n\nExamples:\n- /home\n- /users/:id\n- /products`, 
+        currentRoute
+      );
       
       if (newRoute !== null && newRoute.trim()) {
         let route = newRoute.trim();
-        if (!route.startsWith('/')) {
-          route = '/' + route;
-        }
+        if (!route.startsWith('/')) route = '/' + route;
         
-        // Set the route attribute
         attrs.route = route;
         attrs['data-route'] = route;
         currentPage.set('attributes', attrs);
         
         console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
-        
         alert(`Route updated to: ${route}`);
       }
     }
   });
 }
 
-// Helper: Setup Data Binding Traits (allow setting data-source, data-bind on components)
+// ============================================
+// DATA BINDING
+// ============================================
+
+/**
+ * Setup data binding traits for components
+ */
+/**
+ * Setup data binding traits for components
+ */
 function setupDataBindingTraits(editor: Editor) {
-  // Add data binding traits to all component types
+  const dataBindableTypes = ['text', 'input', 'select', 'textarea', 'default', 'list', 'data-list', 'table'];
+  
+  // Add data binding traits to components
   editor.on('component:selected', (component: any) => {
     if (!component) return;
     
     const compType = component.get('type');
+    if (!dataBindableTypes.includes(compType) && component.get('tagName') !== 'input') return;
     
-    // Add data binding traits for components that can bind to data
-    const dataBindableTypes = [
-      'text',
-      'input',
-      'select',
-      'textarea',
-      'default',
-      'list',
-      'data-list',
-      'table'
-    ];
+    const traits = component.get('traits');
+    const hasDataSource = traits.where({ name: 'data-source' }).length > 0;
     
-    if (dataBindableTypes.includes(compType) || component.get('tagName') === 'input') {
-      const traits = component.get('traits');
-      
-      // Check if data binding traits already exist
-      const hasDataSource = traits.where({ name: 'data-source' }).length > 0;
-      
-      if (!hasDataSource) {
-        // Add data binding traits
-        traits.add([
-          {
-            type: 'text',
-            label: 'Data Source',
-            name: 'data-source',
-            placeholder: 'e.g., User or User.name',
-            changeProp: 1,
-          },
-          {
-            type: 'text',
-            label: 'Display Field',
-            name: 'label-field',
-            placeholder: 'Field to display',
-            changeProp: 1,
-          },
-          {
-            type: 'text',
-            label: 'Value Field',
-            name: 'value-field',
-            placeholder: 'Field for value',
-            changeProp: 1,
-          }
-        ]);
-        
-        console.log('[Data Binding] Added data binding traits to:', compType);
-      }
+    if (!hasDataSource) {
+      traits.add([
+        {
+          type: 'text',
+          label: 'Data Source',
+          name: 'data-source',
+          placeholder: 'e.g., User or User.name',
+          changeProp: 1,
+        },
+        {
+          type: 'text',
+          label: 'Display Field',
+          name: 'label-field',
+          placeholder: 'Field to display',
+          changeProp: 1,
+        },
+        {
+          type: 'text',
+          label: 'Value Field',
+          name: 'value-field',
+          placeholder: 'Field for value',
+          changeProp: 1,
+        }
+      ]);
+      console.log('[Data Binding] Added traits to:', compType);
     }
   });
   
-  // Add a visual indicator for components with data binding
+  // Visual indicator for components with data binding
   editor.on('component:update', (component: any) => {
     const attrs = component.getAttributes();
     if (attrs['data-source'] || attrs['data-bind']) {
-      // Add a visual class to indicate data binding
       component.addClass('has-data-binding');
     } else {
       component.removeClass('has-data-binding');
@@ -661,7 +763,6 @@ function setupDataBindingTraits(editor: Editor) {
       outline-offset: 2px;
       position: relative;
     }
-    
     .has-data-binding::before {
       content: 'DATA';
       position: absolute;
@@ -680,12 +781,20 @@ function setupDataBindingTraits(editor: Editor) {
   `;
   document.head.appendChild(style);
   
-  console.log('[Data Binding] Data binding traits system initialized');
+  console.log('[Data Binding] System initialized');
 }
 
-// Helper: Enable Absolute Positioning with Free Dragging
+// ============================================
+// ABSOLUTE POSITIONING
+// ============================================
+
+/**
+ * Enable absolute positioning with free dragging
+ */
+/**
+ * Enable absolute positioning with free dragging
+ */
 function enableAbsolutePositioning(editor: Editor) {
-  // Enable canvas drag for absolute positioned elements
   editor.on('load', () => {
     const canvas = editor.Canvas;
     const frame = canvas.getFrameEl();
@@ -695,49 +804,13 @@ function enableAbsolutePositioning(editor: Editor) {
     const frameDoc = frame.contentWindow.document;
     let isDragging = false;
     let dragTarget: any = null;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let dragStartLeft = 0;
-    let dragStartTop = 0;
+    let dragStart = { x: 0, y: 0, left: 0, top: 0 };
     
-    // Mouse down on absolute positioned elements
     frameDoc.addEventListener('mousedown', (e: any) => {
-      const target = e.target;
-      if (!target) return;
-      
-      // Check if element or parent has absolute positioning
-      const el = target.closest('[style*="position: absolute"], [style*="position:absolute"]');
+      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
       if (!el) return;
       
-      // Find the GrapesJS component for this element
-      // Try multiple methods to find the component
-      let component: any = null;
-      
-      // Method 1: Check element's data attribute
-      const componentId = el.getAttribute('data-gjs-id');
-      if (componentId) {
-        const wrapper = editor.getWrapper();
-        if (wrapper) {
-          component = wrapper.find(`[data-gjs-id="${componentId}"]`)[0];
-        }
-      }
-      
-      // Method 2: Walk up DOM to find component
-      if (!component) {
-        let checkEl: any = el;
-        while (checkEl && !component) {
-          if (checkEl.__gjscomp) {
-            component = checkEl.__gjscomp;
-            break;
-          }
-          if (checkEl.parentElement && checkEl.parentElement !== frameDoc.body) {
-            checkEl = checkEl.parentElement;
-          } else {
-            break;
-          }
-        }
-      }
-      
+      const component = findComponent(editor, el);
       if (!component) return;
       
       const style = component.getStyle();
@@ -746,19 +819,12 @@ function enableAbsolutePositioning(editor: Editor) {
       if (position === 'absolute' || position === 'fixed') {
         isDragging = true;
         dragTarget = component;
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-        
-        // Get current position
-        const leftValue = Array.isArray(style.left) ? style.left[0] : style.left;
-        const topValue = Array.isArray(style.top) ? style.top[0] : style.top;
-        const leftStr = typeof leftValue === 'string' ? leftValue : '0';
-        const topStr = typeof topValue === 'string' ? topValue : '0';
-        
-        const currentLeft = parseInt(leftStr.replace('px', ''), 10);
-        const currentTop = parseInt(topStr.replace('px', ''), 10);
-        dragStartLeft = isNaN(currentLeft) ? 0 : currentLeft;
-        dragStartTop = isNaN(currentTop) ? 0 : currentTop;
+        dragStart = {
+          x: e.clientX,
+          y: e.clientY,
+          left: parseStyleValue(style.left),
+          top: parseStyleValue(style.top)
+        };
         
         el.style.cursor = 'move';
         e.preventDefault();
@@ -766,130 +832,119 @@ function enableAbsolutePositioning(editor: Editor) {
       }
     });
     
-    // Mouse move - drag absolute positioned elements
     frameDoc.addEventListener('mousemove', (e: any) => {
       if (!isDragging || !dragTarget) return;
       
-      const rect = frame.getBoundingClientRect();
-      const deltaX = e.clientX - dragStartX;
-      const deltaY = e.clientY - dragStartY;
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
       
-      const newLeft = dragStartLeft + deltaX;
-      const newTop = dragStartTop + deltaY;
-      
-      // Update component position
       dragTarget.setStyle({
-        left: `${newLeft}px`,
-        top: `${newTop}px`,
+        left: `${dragStart.left + deltaX}px`,
+        top: `${dragStart.top + deltaY}px`,
       });
       
       e.preventDefault();
     });
     
-    // Mouse up - stop dragging
     frameDoc.addEventListener('mouseup', () => {
       if (isDragging && dragTarget) {
         const el = dragTarget.getEl();
-        if (el) {
-          el.style.cursor = '';
-        }
+        if (el) el.style.cursor = '';
       }
       isDragging = false;
       dragTarget = null;
     });
     
-    // Set cursor for absolute positioned elements
     frameDoc.addEventListener('mousemove', (e: any) => {
       if (isDragging) return;
-      
-      const target = e.target;
-      if (!target) return;
-      
-      const el = target.closest('[style*="position: absolute"], [style*="position:absolute"]');
-      if (el) {
-        el.style.cursor = 'move';
-      }
+      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
+      if (el) el.style.cursor = 'move';
     });
   });
   
-  console.log('[Absolute Positioning] Absolute positioning dragging enabled');
+  console.log('[Absolute Positioning] Dragging enabled');
 }
 
-// Helper: Filter Preview Content (hide editor elements, keep only widgets and base components)
+/**
+ * Find GrapesJS component for DOM element
+ */
+function findComponent(editor: Editor, el: HTMLElement): any {
+  const componentId = el.getAttribute('data-gjs-id');
+  if (componentId) {
+    const wrapper = editor.getWrapper();
+    if (wrapper) {
+      const found = wrapper.find(`[data-gjs-id="${componentId}"]`);
+      if (found && found[0]) return found[0];
+    }
+  }
+  
+  let checkEl: any = el;
+  while (checkEl) {
+    if (checkEl.__gjscomp) return checkEl.__gjscomp;
+    if (!checkEl.parentElement || checkEl.parentElement === el.ownerDocument.body) break;
+    checkEl = checkEl.parentElement;
+  }
+  
+  return null;
+}
+
+/**
+ * Parse CSS style value to number
+ */
+function parseStyleValue(value: any): number {
+  if (Array.isArray(value)) value = value[0];
+  if (typeof value !== 'string') return 0;
+  const parsed = parseInt(value.replace('px', ''), 10);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+// ============================================
+// PREVIEW FILTERING
+// ============================================
+
+/**
+ * Filter preview content to show only widgets and base components
+ */
+/**
+ * Filter preview content to show only widgets and base components
+ */
 function filterPreviewContent(editor: Editor) {
   const frame = editor.Canvas.getFrameEl();
   if (!frame || !frame.contentWindow) return;
   
   const frameDoc = frame.contentWindow.document;
-  const frameBody = frameDoc.body;
   
-  // Remove existing filter style if any
+  // Remove existing filter if any
   const existingStyle = frameDoc.getElementById('preview-filter-style');
-  if (existingStyle) {
-    existingStyle.remove();
-  }
+  if (existingStyle) existingStyle.remove();
   
-  // Add CSS to hide editor UI elements in preview
+  // Add CSS to hide editor UI
   const style = frameDoc.createElement('style');
   style.id = 'preview-filter-style';
   style.textContent = `
-    /* Hide GrapesJS editor UI elements */
-    .gjs-selected,
-    .gjs-hovered,
-    .gjs-highlightable,
-    [data-gjs-highlightable],
-    [data-gjs-type="toolbar"],
-    [data-gjs-type="toolbar-item"],
-    .gjs-toolbar,
-    .gjs-cv-cover,
-    .gjs-cv-canvas > .gjs-cover,
-    .gjs-resizer,
-    .gjs-ruler,
-    .gjs-ruler-v,
-    .gjs-ruler-h,
-    .gjs-offset-v,
-    .gjs-offset-h,
-    .gjs-offset,
-    .gjs-badge {
+    .gjs-selected, .gjs-hovered, .gjs-highlightable, [data-gjs-highlightable],
+    [data-gjs-type="toolbar"], [data-gjs-type="toolbar-item"], .gjs-toolbar,
+    .gjs-cv-cover, .gjs-cv-canvas > .gjs-cover, .gjs-resizer, .gjs-ruler,
+    .gjs-ruler-v, .gjs-ruler-h, .gjs-offset-v, .gjs-offset-h, .gjs-offset, .gjs-badge {
       display: none !important;
       visibility: hidden !important;
       opacity: 0 !important;
     }
-    
-    /* Keep only actual content components - widgets and base components */
     [data-gjs-type]:not([data-gjs-type="toolbar"]):not([data-gjs-type="toolbar-item"]) {
       visibility: visible !important;
       display: block !important;
     }
-    
-    /* Remove editor overlays */
-    .gjs-cv-canvas .gjs-cv-cover,
-    .gjs-cv-canvas .gjs-selected,
-    .gjs-cv-canvas .gjs-hovered {
-      display: none !important;
-    }
   `;
   frameDoc.head.appendChild(style);
   
-  // Also hide elements programmatically
-  const hideSelectors = [
-    '.gjs-selected',
-    '.gjs-hovered',
-    '.gjs-toolbar',
-    '.gjs-resizer',
-    '.gjs-cv-cover',
-    '.gjs-ruler',
-    '.gjs-offset',
-  ];
-  
+  // Hide elements programmatically
+  const hideSelectors = ['.gjs-selected', '.gjs-hovered', '.gjs-toolbar', '.gjs-resizer', '.gjs-cv-cover', '.gjs-ruler', '.gjs-offset'];
   hideSelectors.forEach(selector => {
     try {
-      const elements = frameBody.querySelectorAll(selector);
-      elements.forEach((el: any) => {
+      frameDoc.body.querySelectorAll(selector).forEach((el: any) => {
         if (el && !el.hasAttribute('data-gjs-type')) {
           el.style.display = 'none';
           el.style.visibility = 'hidden';
-          el.style.opacity = '0';
           el.setAttribute('data-preview-hidden', 'true');
         }
       });
@@ -898,29 +953,28 @@ function filterPreviewContent(editor: Editor) {
     }
   });
   
-  console.log('[Preview Filter] Preview content filtered - only widgets and base components visible');
+  console.log('[Preview] Content filtered');
 }
 
-// Helper: Restore Preview Content
+/**
+ * Restore preview content
+ */
 function restorePreviewContent(editor: Editor) {
   const frame = editor.Canvas.getFrameEl();
   if (!frame || !frame.contentWindow) return;
   
   const frameDoc = frame.contentWindow.document;
   
-  // Remove preview filter style
+  // Remove filter style
   const filterStyle = frameDoc.getElementById('preview-filter-style');
-  if (filterStyle) {
-    filterStyle.remove();
-  }
+  if (filterStyle) filterStyle.remove();
   
-  // Restore all hidden elements
-  const hiddenElements = frameDoc.querySelectorAll('[data-preview-hidden="true"]');
-  hiddenElements.forEach((el: any) => {
+  // Restore hidden elements
+  frameDoc.querySelectorAll('[data-preview-hidden="true"]').forEach((el: any) => {
     el.style.display = '';
     el.style.visibility = '';
     el.removeAttribute('data-preview-hidden');
   });
   
-  console.log('[Preview Filter] Preview content restored');
+  console.log('[Preview] Content restored');
 }
