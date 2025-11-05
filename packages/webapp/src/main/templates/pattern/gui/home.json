@@ -1,0 +1,554 @@
+            {
+              "name": "Home",
+              "frames": [
+                {
+                  "component": {
+                    "type": "wrapper",
+                    "stylable": [
+                      "background",
+                      "background-color",
+                      "background-image",
+                      "background-repeat",
+                      "background-attachment",
+                      "background-position",
+                      "background-size"
+                    ],
+                    "components": [
+                      {
+                        "tagName": "meta",
+                        "void": true,
+                        "attributes": {
+                          "charset": "utf-8"
+                        }
+                      },
+                      {
+                        "tagName": "meta",
+                        "void": true,
+                        "attributes": {
+                          "name": "viewport",
+                          "content": "width=device-width, initial-scale=1"
+                        }
+                      },
+                      {
+                        "tagName": "nav",
+                        "attributes": {
+                          "id": "i5jh"
+                        },
+                        "components": [
+                          {
+                            "type": "text",
+                            "attributes": {
+                              "id": "io07"
+                            },
+                            "components": [
+                              {
+                                "type": "textnode",
+                                "content": "BESSER"
+                              }
+                            ]
+                          },
+                          {
+                            "attributes": {
+                              "id": "inp2m"
+                            },
+                            "components": [
+                              {
+                                "type": "link",
+                                "attributes": {
+                                  "href": "/",
+                                  "id": "ibtww"
+                                },
+                                "components": [
+                                  {
+                                    "type": "textnode",
+                                    "content": "Home"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "link",
+                                "attributes": {
+                                  "href": "/about",
+                                  "id": "ild7j"
+                                },
+                                "components": [
+                                  {
+                                    "type": "textnode",
+                                    "content": "About"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "classes": [
+                          {
+                            "name": "gjs-row",
+                            "private": 1
+                          }
+                        ],
+                        "attributes": {
+                          "id": "iiqx6"
+                        },
+                        "components": [
+                          {
+                            "classes": [
+                              {
+                                "name": "gjs-cell",
+                                "private": 1
+                              }
+                            ],
+                            "attributes": {
+                              "id": "ifczf"
+                            },
+                            "components": [
+                              {
+                                "type": "line-chart",
+                                "style": "",
+                                "classes": [
+                                  "line-chart-component",
+                                  "has-data-binding"
+                                ],
+                                "attributes": {
+                                  "chart-color": "#4CAF50",
+                                  "chart-title": "Line Chart Title",
+                                  "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                  "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                  "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                  "line-width": "2",
+                                  "show-grid": "",
+                                  "show-legend": "",
+                                  "show-tooltip": "",
+                                  "curve-type": "monotone",
+                                  "animate": "",
+                                  "id": "i72zk"
+                                },
+                                "chart-color": "#4CAF50",
+                                "chart-title": "Line Chart Title",
+                                "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                "line-width": "2",
+                                "show-grid": "",
+                                "show-legend": "",
+                                "show-tooltip": "",
+                                "curve-type": "monotone",
+                                "animate": ""
+                              }
+                            ]
+                          },
+                          {
+                            "classes": [
+                              {
+                                "name": "gjs-cell",
+                                "private": 1
+                              }
+                            ],
+                            "attributes": {
+                              "id": "iz1hy"
+                            },
+                            "components": [
+                              {
+                                "type": "pie-chart",
+                                "style": "",
+                                "classes": [
+                                  "pie-chart-component",
+                                  "has-data-binding"
+                                ],
+                                "attributes": {
+                                  "chart-title": "Pie Chart Title",
+                                  "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                  "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                  "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                  "show-legend": "",
+                                  "legend-position": "bottom",
+                                  "show-labels": "",
+                                  "label-position": "inside",
+                                  "padding-angle": "0",
+                                  "id": "i8fz6"
+                                },
+                                "chart-title": "Pie Chart Title",
+                                "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                "show-legend": "",
+                                "legend-position": "bottom",
+                                "show-labels": "",
+                                "label-position": "inside",
+                                "padding-angle": "0"
+                              }
+                            ]
+                          },
+                          {
+                            "classes": [
+                              {
+                                "name": "gjs-cell",
+                                "private": 1
+                              }
+                            ],
+                            "components": [
+                              {
+                                "type": "radar-chart",
+                                "style": "",
+                                "classes": [
+                                  "radar-chart-component",
+                                  "has-data-binding"
+                                ],
+                                "attributes": {
+                                  "chart-color": "#8884d8",
+                                  "chart-title": "Radar Chart Title",
+                                  "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                  "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                  "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                  "show-grid": "",
+                                  "show-tooltip": "",
+                                  "show-radius-axis": "",
+                                  "id": "id9ne"
+                                },
+                                "chart-color": "#8884d8",
+                                "chart-title": "Radar Chart Title",
+                                "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                "show-grid": "",
+                                "show-tooltip": "",
+                                "show-radius-axis": ""
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "classes": [
+                          {
+                            "name": "gjs-row",
+                            "private": 1
+                          }
+                        ],
+                        "attributes": {
+                          "id": "is6fi"
+                        },
+                        "components": [
+                          {
+                            "classes": [
+                              {
+                                "name": "gjs-cell",
+                                "private": 1
+                              }
+                            ],
+                            "attributes": {
+                              "id": "i2lt6"
+                            },
+                            "components": [
+                              {
+                                "type": "bar-chart",
+                                "style": "",
+                                "classes": [
+                                  "bar-chart-component",
+                                  "has-data-binding"
+                                ],
+                                "attributes": {
+                                  "chart-color": "#3498db",
+                                  "chart-title": "Bar Chart Title",
+                                  "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                  "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                  "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                  "bar-width": "30",
+                                  "orientation": "vertical",
+                                  "show-grid": "",
+                                  "show-legend": "",
+                                  "stacked": false,
+                                  "id": "iy0gc"
+                                },
+                                "chart-color": "#3498db",
+                                "chart-title": "Bar Chart Title",
+                                "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                "bar-width": "30",
+                                "orientation": "vertical",
+                                "show-grid": "",
+                                "show-legend": "",
+                                "stacked": false
+                              }
+                            ]
+                          },
+                          {
+                            "classes": [
+                              {
+                                "name": "gjs-cell",
+                                "private": 1
+                              }
+                            ],
+                            "attributes": {
+                              "id": "igud3"
+                            },
+                            "components": [
+                              {
+                                "type": "radial-bar-chart",
+                                "style": "",
+                                "classes": [
+                                  "radial-bar-chart-component",
+                                  "has-data-binding"
+                                ],
+                                "attributes": {
+                                  "chart-title": "Radial Bar Chart Title",
+                                  "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                  "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                  "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                  "start-angle": "90",
+                                  "end-angle": "450",
+                                  "id": "ig59l"
+                                },
+                                "chart-title": "Radial Bar Chart Title",
+                                "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                "start-angle": "90",
+                                "end-angle": "450"
+                              }
+                            ]
+                          },
+                          {
+                            "classes": [
+                              {
+                                "name": "gjs-cell",
+                                "private": 1
+                              }
+                            ],
+                            "components": [
+                              {
+                                "type": "line-chart",
+                                "style": "",
+                                "classes": [
+                                  "line-chart-component",
+                                  "has-data-binding"
+                                ],
+                                "attributes": {
+                                  "chart-color": "#4CAF50",
+                                  "chart-title": "Line Chart Title",
+                                  "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                  "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                  "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                  "line-width": "2",
+                                  "show-grid": "",
+                                  "show-legend": "",
+                                  "show-tooltip": "",
+                                  "curve-type": "monotone",
+                                  "animate": "",
+                                  "id": "i4f21"
+                                },
+                                "chart-color": "#4CAF50",
+                                "chart-title": "Line Chart Title",
+                                "data-source": "a87eb810-2e0a-492b-8cd3-62251566f648",
+                                "label-field": "f63380b5-ccf8-448a-bb82-70d62d61442e",
+                                "data-field": "2294f9b0-aa04-4c5d-8851-b333f6b3c2fc",
+                                "line-width": "2",
+                                "show-grid": "",
+                                "show-legend": "",
+                                "show-tooltip": "",
+                                "curve-type": "monotone",
+                                "animate": ""
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "tagName": "footer",
+                        "attributes": {
+                          "id": "ictst"
+                        },
+                        "components": [
+                          {
+                            "attributes": {
+                              "id": "i8uhg"
+                            },
+                            "components": [
+                              {
+                                "components": [
+                                  {
+                                    "tagName": "h4",
+                                    "type": "text",
+                                    "attributes": {
+                                      "id": "i3p8x"
+                                    },
+                                    "components": [
+                                      {
+                                        "type": "textnode",
+                                        "content": "About BESSER"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "tagName": "p",
+                                    "type": "text",
+                                    "attributes": {
+                                      "id": "i9x6g"
+                                    },
+                                    "components": [
+                                      {
+                                        "type": "textnode",
+                                        "content": "BESSER is a low-code platform for building smarter software faster. Empower your development with our dashboard generator and modeling tools."
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "components": [
+                                  {
+                                    "tagName": "h4",
+                                    "type": "text",
+                                    "attributes": {
+                                      "id": "iybmm"
+                                    },
+                                    "components": [
+                                      {
+                                        "type": "textnode",
+                                        "content": "Quick Links"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "tagName": "ul",
+                                    "attributes": {
+                                      "id": "im0xi"
+                                    },
+                                    "components": [
+                                      {
+                                        "tagName": "li",
+                                        "attributes": {
+                                          "id": "ichrl"
+                                        },
+                                        "components": [
+                                          {
+                                            "type": "link",
+                                            "attributes": {
+                                              "href": "#",
+                                              "id": "i0wq2"
+                                            },
+                                            "components": [
+                                              {
+                                                "type": "textnode",
+                                                "content": "Dashboard Generator"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "tagName": "li",
+                                        "attributes": {
+                                          "id": "ixtnt"
+                                        },
+                                        "components": [
+                                          {
+                                            "type": "link",
+                                            "attributes": {
+                                              "href": "#",
+                                              "id": "i2f1j"
+                                            },
+                                            "components": [
+                                              {
+                                                "type": "textnode",
+                                                "content": "API Reference"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "tagName": "li",
+                                        "attributes": {
+                                          "id": "irxsn"
+                                        },
+                                        "components": [
+                                          {
+                                            "type": "link",
+                                            "attributes": {
+                                              "href": "#",
+                                              "id": "inu9a"
+                                            },
+                                            "components": [
+                                              {
+                                                "type": "textnode",
+                                                "content": "Support"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "components": [
+                                  {
+                                    "tagName": "h4",
+                                    "type": "text",
+                                    "attributes": {
+                                      "id": "igd5a"
+                                    },
+                                    "components": [
+                                      {
+                                        "type": "textnode",
+                                        "content": "Contact"
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "tagName": "p",
+                                    "type": "text",
+                                    "attributes": {
+                                      "id": "itmu2"
+                                    },
+                                    "components": [
+                                      {
+                                        "type": "textnode",
+                                        "content": "Email: info@besser-pearl.org"
+                                      },
+                                      {
+                                        "tagName": "br",
+                                        "void": true
+                                      },
+                                      {
+                                        "type": "textnode",
+                                        "content": "Phone: (123) 456-7890"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "attributes": {
+                              "id": "iph4d"
+                            },
+                            "components": [
+                              {
+                                "type": "textnode",
+                                "content": "\n          © 2025 BESSER. All rights reserved.\n        "
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    "head": {
+                      "type": "head"
+                    },
+                    "docEl": {
+                      "tagName": "html"
+                    }
+                  },
+                  "id": "5NNAwALRgy9L45y5"
+                }
+              ],
+              "id": "yXWXAvEmfeStNpkm"
+            }

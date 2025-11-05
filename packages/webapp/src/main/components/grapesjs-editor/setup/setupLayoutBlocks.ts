@@ -147,10 +147,8 @@ export function setupLayoutBlocks(editor: Editor) {
       <nav style="background: linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%) !important; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; font-family: Arial, sans-serif;">
         <div style="font-size: 24px; font-weight: bold;">BESSER</div>
         <div style="display: flex; gap: 30px;">
-          <a href="#" style="color: white; text-decoration: none;">Home</a>
-          <a href="#" style="color: white; text-decoration: none;">Dashboard Generator</a>
-          <a href="#" style="color: white; text-decoration: none;">Documentation</a>
-          <a href="#" style="color: white; text-decoration: none;">Community</a>
+          <a href="/" style="color: white; text-decoration: none;">Home</a>
+          <a href="/about" style="color: white; text-decoration: none;">About</a>
         </div>
       </nav>
     `,
@@ -171,9 +169,7 @@ export function setupLayoutBlocks(editor: Editor) {
           <div>
             <h4 style="margin-top: 0;">Quick Links</h4>
             <ul style="list-style: none; padding: 0; opacity: 0.8;">
-              <li style="margin: 8px 0;"><a href="#" style="color: white; text-decoration: none;">Dashboard Generator</a></li>
-              <li style="margin: 8px 0;"><a href="#" style="color: white; text-decoration: none;">API Reference</a></li>
-              <li style="margin: 8px 0;"><a href="#" style="color: white; text-decoration: none;">Support</a></li>
+              <li style="margin: 8px 0;"><a href="/about" style="color: white; text-decoration: none;">About</a></li>
             </ul>
           </div>
           <div>
@@ -356,7 +352,7 @@ export function setupLayoutBlocks(editor: Editor) {
           <h2 style="font-size: 42px; margin-bottom: 20px; font-weight: bold;">Build Smarter Dashboards Faster with BESSER</h2>
           <p style="font-size: 20px; margin-bottom: 40px; opacity: 0.95;">Create interactive dashboards effortlessly and streamline your workflow with BESSER's low-code platform.</p>
           <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
-            <button style="background: white; color: #4b3c82; border: none; padding: 18px 40px; font-size: 18px; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s;">Try Dashboard Generator</button>
+            <button style="background: white; color: #4b3c82; border: none; padding: 18px 40px; font-size: 18px; border-radius: 50px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s;">Try Dashboard</button>
             <button style="background: transparent; color: white; border: 2px solid white; padding: 18px 40px; font-size: 18px; border-radius: 50px; cursor: pointer; font-weight: bold; transition: all 0.2s;">Explore Features</button>
           </div>
         </div>
