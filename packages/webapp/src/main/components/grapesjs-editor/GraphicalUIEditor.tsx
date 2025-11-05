@@ -115,7 +115,7 @@ function initializeEditor(container: HTMLDivElement): Editor {
       gjsPresetWebpage as any, 
       gjsStyleBg as any,
       gjsBlocksBasic as any,
-      gjsPluginForms as any,
+      // gjsPluginForms as any,
     ],
     
     pluginsOpts: {
@@ -126,7 +126,7 @@ function initializeEditor(container: HTMLDivElement): Editor {
         filestackOpts: null,
         aviaryOpts: false,
         blocksBasicOpts: {
-          blocks: ['column1', 'column2', 'column3', 'text', 'link', 'image'],
+          blocks: ['column1', 'column2', 'column3', 'text', 'image'],
           flexGrid: true,
         },
         customStyleManager: [
@@ -153,10 +153,13 @@ function initializeEditor(container: HTMLDivElement): Editor {
         ],
       },
       'grapesjs-style-bg': {},
-      'grapesjs-blocks-basic': {},
-      'grapesjs-plugin-forms': {
-        blocks: ['form', 'input', 'textarea', 'select', 'button', 'label', 'checkbox'],
+      'grapesjs-blocks-basic': {
+        blocks: ['column1', 'column2', 'column3', 'text', 'image'],
+        flexGrid: true,
       },
+      // 'grapesjs-plugin-forms': {
+      //   blocks: ['form', 'input', 'textarea', 'select', 'button', 'label', 'checkbox'],
+      // },
     },
 
     showOffsets: true,
@@ -179,6 +182,11 @@ function setupEditorFeatures(
   const cleanupStorage = setupProjectStorageIntegration(editor, setSaveStatus, saveIntervalRef);
   setupCommands(editor);
   setupKeyboardShortcuts(editor);
+  
+  // Remove unwanted blocks after editor loads
+  editor.on('load', () => {
+    removeUnwantedBlocks(editor);
+  });
   
   // Page system (consolidated)
   if (editor.Pages) {
@@ -210,10 +218,53 @@ function registerCustomComponents(editor: Editor) {
   // Register other components
   registerMapComponent(editor, mapConfig);
   registerButtonComponent(editor);
-  registerFormComponents(editor);
+  // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);
   
   console.log('[GraphicalUIEditor] All custom components registered');
+}
+
+/**
+ * Remove unwanted blocks from the Block Manager
+ */
+function removeUnwantedBlocks(editor: Editor) {
+  const blockManager = editor.BlockManager;
+  
+  // Blocks to explicitly remove (unwanted blocks)
+  const blocksToRemove = [
+    'link-block',      // Link Block
+    'quote',           // Quote
+    'link',            // Link
+    'video',           // Video
+    'map',             // Map (we have custom map in Charts category)
+    'sect100',         // Section blocks
+    'sect50',
+    'sect30',
+    'sect37',
+    'divider',
+    'text-sect',
+    // Form blocks (removing for now as requested)
+    'form',            // Form
+    'input',           // Input Field
+    'textarea',        // Text Area
+    'select',          // Dropdown
+    'button',          // Button (default form button, we have custom)
+    'label',           // Label
+    'checkbox',        // Checkbox
+    'radio',           // Radio
+  ];
+  
+  // Remove unwanted blocks by ID
+  blocksToRemove.forEach(blockId => {
+    try {
+      blockManager.remove(blockId);
+      console.log(`[Block Manager] Removed block: ${blockId}`);
+    } catch (e) {
+      // Block might not exist, ignore
+    }
+  });
+  
+  console.log('[Block Manager] Unwanted blocks removed, keeping Basic, Layout, and Charts');
 }
 
 // ============================================
