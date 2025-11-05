@@ -15,7 +15,7 @@ export function setupLayoutBlocks(editor: Editor) {
         <p>Container - drag content here</p>
       </div>
     `,
-    attributes: { class: 'fa fa-square-o' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // Section Block
@@ -30,7 +30,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </section>
     `,
-    attributes: { class: 'fa fa-bars' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="6" width="20" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // 2 Column Grid
@@ -47,7 +47,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </div>
     `,
-    attributes: { class: 'fa fa-columns' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="9" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="9" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // 3 Column Grid
@@ -67,7 +67,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </div>
     `,
-    attributes: { class: 'fa fa-th' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="5.5" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="4" width="5.5" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="16" y="4" width="6" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // 4 Column Grid
@@ -90,7 +90,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </div>
     `,
-    attributes: { class: 'fa fa-th-large' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="4" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7.5" y="4" width="4" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="4" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="18.5" y="4" width="3.5" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
   });
   
   // Flexbox Row
@@ -107,7 +107,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </div>
     `,
-    attributes: { class: 'fa fa-arrows-h' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="8" width="9" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="8" width="9" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // Flexbox Column
@@ -124,7 +124,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </div>
     `,
-    attributes: { class: 'fa fa-arrows-v' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="4" y="2" width="16" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="16" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // Hero Section
@@ -140,7 +140,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </section>
     `,
-    attributes: { class: 'fa fa-header' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="6" y1="9" x2="18" y2="9" stroke="currentColor" stroke-width="2"/><line x1="6" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="17" r="1.5" fill="currentColor"/></svg>',
   });
   
   // Card Layout
@@ -154,7 +154,7 @@ export function setupLayoutBlocks(editor: Editor) {
         <button style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 15px;">Learn More</button>
       </div>
     `,
-    attributes: { class: 'fa fa-id-card-o' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.5"/></svg>',
   });
   
   // Split Section (50/50)
@@ -173,7 +173,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </section>
     `,
-    attributes: { class: 'fa fa-pause' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="5" width="9" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="5" width="9" height="14" rx="1" fill="currentColor" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // Header/Navbar
@@ -191,7 +191,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </nav>
     `,
-    attributes: { class: 'fa fa-navicon' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="20" height="4" rx="1" fill="currentColor"/><line x1="2" y1="11" x2="22" y2="11" stroke="currentColor" stroke-width="2"/><line x1="2" y1="15" x2="22" y2="15" stroke="currentColor" stroke-width="2"/><line x1="2" y1="19" x2="22" y2="19" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // Footer
@@ -223,18 +223,8 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </footer>
     `,
-    attributes: { class: 'fa fa-minus' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="16" width="20" height="6" rx="1" fill="currentColor"/><rect x="2" y="2" width="20" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
-  
-  // // Spacer
-  // bm.add('spacer', {
-  //   label: 'Spacer',
-  //   category: 'Layout',
-  //   content: `
-  //     <div style="height: 50px; background: transparent;"></div>
-  //   `,
-  //   attributes: { class: 'fa fa-arrows-v' }
-  // });
   
   // Divider
   bm.add('divider', {
@@ -243,7 +233,7 @@ export function setupLayoutBlocks(editor: Editor) {
     content: `
       <hr style="border: none; border-top: 2px solid #ddd; margin: 30px 0;">
     `,
-    attributes: { class: 'fa fa-minus' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // // Pricing Table (3 tiers)
@@ -338,7 +328,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </section>
     `,
-    attributes: { class: 'fa fa-star' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="6" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="18" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
   // // Testimonial Section
@@ -409,7 +399,7 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </section>
     `,
-    attributes: { class: 'fa fa-bullhorn' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="6" width="20" height="12" rx="2" fill="currentColor"/><path d="M8 12 L11 15 L16 10" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   });
   
   // // Contact Form
@@ -473,54 +463,6 @@ export function setupLayoutBlocks(editor: Editor) {
         </div>
       </section>
     `,
-    attributes: { class: 'fa fa-line-chart' }
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M2 20 L7 12 L12 16 L22 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="16" r="2" fill="currentColor"/><circle cx="22" cy="4" r="2" fill="currentColor"/></svg>',
   });
-  
-  // // Image Gallery
-  // bm.add('image-gallery', {
-  //   label: 'Image Gallery',
-  //   category: 'Layout',
-  //   content: `
-  //     <section style="padding: 60px 20px;">
-  //       <div style="max-width: 1200px; margin: 0 auto;">
-  //         <h2 style="text-align: center; font-size: 36px; margin-bottom: 50px; color: #333;">Gallery</h2>
-  //         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-  //           <!-- Image 1 -->
-  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">📷</div>
-  //           <!-- Image 2 -->
-  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🖼️</div>
-  //           <!-- Image 3 -->
-  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🎨</div>
-  //           <!-- Image 4 -->
-  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🌄</div>
-  //           <!-- Image 5 -->
-  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">🎭</div>
-  //           <!-- Image 6 -->
-  //           <div style="aspect-ratio: 1; background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer; transition: transform 0.3s;">✨</div>
-  //         </div>
-  //       </div>
-  //     </section>
-  //   `,
-  //   attributes: { class: 'fa fa-picture-o' }
-  // });
-  
-  // Newsletter Signup
-  // bm.add('newsletter-signup', {
-  //   label: 'Newsletter',
-  //   category: 'Layout',
-  //   content: `
-  //     <section style="padding: 60px 20px; background: #ecf0f1;">
-  //       <div style="max-width: 600px; margin: 0 auto; text-align: center;">
-  //         <h2 style="font-size: 32px; color: #333; margin-bottom: 15px;">📧 Subscribe to Our Newsletter</h2>
-  //         <p style="color: #666; font-size: 16px; margin-bottom: 30px;">Get the latest updates and exclusive offers delivered to your inbox.</p>
-  //         <form style="display: flex; gap: 10px; max-width: 500px; margin: 0 auto; flex-wrap: wrap;">
-  //           <input type="email" placeholder="Enter your email" style="flex: 1; min-width: 250px; padding: 15px 20px; border: 2px solid #ddd; border-radius: 50px; font-size: 16px; outline: none;">
-  //           <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 35px; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; white-space: nowrap;">Subscribe</button>
-  //         </form>
-  //         <p style="color: #999; font-size: 12px; margin-top: 15px;">We respect your privacy. Unsubscribe at any time.</p>
-  //       </div>
-  //     </section>
-  //   `,
-  //   attributes: { class: 'fa fa-paper-plane' }
-  // });
 }

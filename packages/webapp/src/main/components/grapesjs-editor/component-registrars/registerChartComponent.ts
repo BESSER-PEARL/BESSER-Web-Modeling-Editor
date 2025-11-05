@@ -4,6 +4,48 @@ import { ChartConfig } from '../configs/chartConfigs';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions } from '../diagram-helpers';
 
 /**
+ * Build chart props from attributes - extracted to avoid duplication
+ */
+const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any => {
+  // Common props for all charts
+  const props: any = {
+    title: attrs['chart-title'] || config.defaultTitle,
+    color: attrs['chart-color'] || config.defaultColor,
+    showGrid: attrs['show-grid'] !== undefined ? attrs['show-grid'] === true || attrs['show-grid'] === 'true' : true,
+    showLegend: attrs['show-legend'] !== undefined ? attrs['show-legend'] === true || attrs['show-legend'] === 'true' : true,
+  };
+
+  // Chart-specific props
+  if (config.id === 'line-chart') {
+    props.showTooltip = attrs['show-tooltip'] !== undefined ? attrs['show-tooltip'] === true || attrs['show-tooltip'] === 'true' : true;
+    props.lineWidth = attrs['line-width'] !== undefined ? Number(attrs['line-width']) : 2;
+    props.curveType = attrs['curve-type'] || 'monotone';
+    props.animate = attrs['animate'] !== undefined ? attrs['animate'] === true || attrs['animate'] === 'true' : true;
+  } 
+  else if (config.id === 'bar-chart') {
+    props.barWidth = attrs['bar-width'] !== undefined ? Number(attrs['bar-width']) : 30;
+    props.orientation = attrs['orientation'] || 'vertical';
+    props.stacked = attrs['stacked'] !== undefined ? attrs['stacked'] === true || attrs['stacked'] === 'true' : false;
+  }
+  else if (config.id === 'pie-chart') {
+    props.legendPosition = attrs['legend-position'] || 'right';
+    props.showLabels = attrs['show-labels'] !== undefined ? attrs['show-labels'] === true || attrs['show-labels'] === 'true' : true;
+    props.labelPosition = attrs['label-position'] || 'inside';
+    props.paddingAngle = attrs['padding-angle'] !== undefined ? Number(attrs['padding-angle']) : 0;
+  }
+  else if (config.id === 'radar-chart') {
+    props.showTooltip = attrs['show-tooltip'] !== undefined ? attrs['show-tooltip'] === true || attrs['show-tooltip'] === 'true' : true;
+    props.showRadiusAxis = attrs['show-radius-axis'] !== undefined ? attrs['show-radius-axis'] === true || attrs['show-radius-axis'] === 'true' : true;
+  }
+  else if (config.id === 'radial-bar-chart') {
+    props.startAngle = attrs['start-angle'] !== undefined ? Number(attrs['start-angle']) : 90;
+    props.endAngle = attrs['end-angle'] !== undefined ? Number(attrs['end-angle']) : 450;
+  }
+
+  return props;
+};
+
+/**
  * Register a chart component in the GrapesJS editor
  * @param editor - GrapesJS editor instance
  * @param config - Chart configuration
@@ -106,42 +148,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
           const container = view.el;
           container.innerHTML = '';
           const root = ReactDOM.createRoot(container);
-          
-          // Common props for all charts
-          const props: any = {
-            title: attrs['chart-title'] || config.defaultTitle,
-            color: attrs['chart-color'] || config.defaultColor,
-            showGrid: attrs['show-grid'] !== undefined ? attrs['show-grid'] === true || attrs['show-grid'] === 'true' : true,
-            showLegend: attrs['show-legend'] !== undefined ? attrs['show-legend'] === true || attrs['show-legend'] === 'true' : true,
-          };
-
-          // Chart-specific props
-          if (config.id === 'line-chart') {
-            props.showTooltip = attrs['show-tooltip'] !== undefined ? attrs['show-tooltip'] === true || attrs['show-tooltip'] === 'true' : true;
-            props.lineWidth = attrs['line-width'] !== undefined ? Number(attrs['line-width']) : 2;
-            props.curveType = attrs['curve-type'] || 'monotone';
-            props.animate = attrs['animate'] !== undefined ? attrs['animate'] === true || attrs['animate'] === 'true' : true;
-          } 
-          else if (config.id === 'bar-chart') {
-            props.barWidth = attrs['bar-width'] !== undefined ? Number(attrs['bar-width']) : 30;
-            props.orientation = attrs['orientation'] || 'vertical';
-            props.stacked = attrs['stacked'] !== undefined ? attrs['stacked'] === true || attrs['stacked'] === 'true' : false;
-          }
-          else if (config.id === 'pie-chart') {
-            props.legendPosition = attrs['legend-position'] || 'right';
-            props.showLabels = attrs['show-labels'] !== undefined ? attrs['show-labels'] === true || attrs['show-labels'] === 'true' : true;
-            props.labelPosition = attrs['label-position'] || 'inside';
-            props.paddingAngle = attrs['padding-angle'] !== undefined ? Number(attrs['padding-angle']) : 0;
-          }
-          else if (config.id === 'radar-chart') {
-            props.showTooltip = attrs['show-tooltip'] !== undefined ? attrs['show-tooltip'] === true || attrs['show-tooltip'] === 'true' : true;
-            props.showRadiusAxis = attrs['show-radius-axis'] !== undefined ? attrs['show-radius-axis'] === true || attrs['show-radius-axis'] === 'true' : true;
-          }
-          else if (config.id === 'radial-bar-chart') {
-            props.startAngle = attrs['start-angle'] !== undefined ? Number(attrs['start-angle']) : 90;
-            props.endAngle = attrs['end-angle'] !== undefined ? Number(attrs['end-angle']) : 450;
-          }
-
+          const props = buildChartProps(attrs, config);
           root.render(React.createElement(config.component, props));
         }
       },
@@ -150,42 +157,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
         const root = ReactDOM.createRoot(el);
-        
-        // Common props for all charts
-        const props: any = {
-          title: attrs['chart-title'] || config.defaultTitle,
-          color: attrs['chart-color'] || config.defaultColor,
-          showGrid: attrs['show-grid'] !== undefined ? attrs['show-grid'] === true || attrs['show-grid'] === 'true' : true,
-          showLegend: attrs['show-legend'] !== undefined ? attrs['show-legend'] === true || attrs['show-legend'] === 'true' : true,
-        };
-
-        // Chart-specific props
-        if (config.id === 'line-chart') {
-          props.showTooltip = attrs['show-tooltip'] !== undefined ? attrs['show-tooltip'] === true || attrs['show-tooltip'] === 'true' : true;
-          props.lineWidth = attrs['line-width'] !== undefined ? Number(attrs['line-width']) : 2;
-          props.curveType = attrs['curve-type'] || 'monotone';
-          props.animate = attrs['animate'] !== undefined ? attrs['animate'] === true || attrs['animate'] === 'true' : true;
-        } 
-        else if (config.id === 'bar-chart') {
-          props.barWidth = attrs['bar-width'] !== undefined ? Number(attrs['bar-width']) : 30;
-          props.orientation = attrs['orientation'] || 'vertical';
-          props.stacked = attrs['stacked'] !== undefined ? attrs['stacked'] === true || attrs['stacked'] === 'true' : false;
-        }
-        else if (config.id === 'pie-chart') {
-          props.legendPosition = attrs['legend-position'] || 'right';
-          props.showLabels = attrs['show-labels'] !== undefined ? attrs['show-labels'] === true || attrs['show-labels'] === 'true' : true;
-          props.labelPosition = attrs['label-position'] || 'inside';
-          props.paddingAngle = attrs['padding-angle'] !== undefined ? Number(attrs['padding-angle']) : 0;
-        }
-        else if (config.id === 'radar-chart') {
-          props.showTooltip = attrs['show-tooltip'] !== undefined ? attrs['show-tooltip'] === true || attrs['show-tooltip'] === 'true' : true;
-          props.showRadiusAxis = attrs['show-radius-axis'] !== undefined ? attrs['show-radius-axis'] === true || attrs['show-radius-axis'] === 'true' : true;
-        }
-        else if (config.id === 'radial-bar-chart') {
-          props.startAngle = attrs['start-angle'] !== undefined ? Number(attrs['start-angle']) : 90;
-          props.endAngle = attrs['end-angle'] !== undefined ? Number(attrs['end-angle']) : 450;
-        }
-
+        const props = buildChartProps(attrs, config);
         root.render(React.createElement(config.component, props));
       },
     },
