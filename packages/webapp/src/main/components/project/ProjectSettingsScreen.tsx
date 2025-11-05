@@ -132,13 +132,11 @@ export const ProjectSettingsScreen: React.FC = () => {
     if (!currentProject) return;
     
     try {
-      // ✅ Force GrapesJS to save before exporting (if editor is active)
+      // Force GrapesJS to save before exporting (if editor is active)
       const GraphicalUIEditor = (window as any).editor;
       if (GraphicalUIEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
-        console.log('💾 Forcing GrapesJS save before export...');
         await new Promise<void>((resolve) => {
           GraphicalUIEditor.store((result: any) => {
-            console.log('✅ GrapesJS data saved before export');
             // Small delay to ensure storage writes complete
             setTimeout(() => resolve(), 100);
           });

@@ -16,7 +16,8 @@ import {
   InfoCircle,
   Person,
   FileText,
-  Tag
+  Tag,
+  Grid3x3Gap
 } from 'react-bootstrap-icons';
 import { useProject } from '../../../hooks/useProject';
 import { isUMLModel } from '../../../types/project';
@@ -43,6 +44,7 @@ const DIAGRAM_ICONS = {
   [UMLDiagramType.ObjectDiagram]: Diagram2,
   [UMLDiagramType.AgentDiagram]: Robot,
   [UMLDiagramType.StateMachineDiagram]: ArrowRepeat,
+  'GUI': Grid3x3Gap,
 };
 
 export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
@@ -158,9 +160,10 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
               <option value={UMLDiagramType.ObjectDiagram}>Object Diagram</option>
               <option value={UMLDiagramType.StateMachineDiagram}>State Machine Diagram</option>
               <option value={UMLDiagramType.AgentDiagram}>Agent Diagram</option>
+              <option value="GUI">Graphical UI Editor (GUI)</option>
             </Form.Select>
             <Form.Text className="text-muted">
-              This will be the active diagram when you first open the project.
+              This will be the active view when you first open the project.
             </Form.Text>
           </Form.Group>
 
@@ -180,22 +183,26 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
                     <Diagram2 className="text-success me-2" size={16} />
                     <span className="small">Object Diagram</span>
                   </div>
-                </Col>
-                <Col md={6}>
                   <div className="d-flex align-items-center mb-2">
                     <ArrowRepeat className="text-warning me-2" size={16} />
                     <span className="small">State Machine Diagram</span>
                   </div>
+                </Col>
+                <Col md={6}>
                   <div className="d-flex align-items-center mb-2">
                     <Robot className="text-info me-2" size={16} />
                     <span className="small">Agent Diagram</span>
+                  </div>
+                  <div className="d-flex align-items-center mb-2">
+                    <Grid3x3Gap className="text-purple me-2" size={16} />
+                    <span className="small">Graphical UI Editor</span>
                   </div>
                 </Col>
               </Row>
               <div className="mt-2">
                 <small className="text-muted">
                   <InfoCircle className="me-1" size={14} />
-                  All diagram types are always available. Switch between them anytime using the diagram type selector.
+                  All diagram types and GUI editor are always available. Switch between them anytime.
                 </small>
               </div>
             </Card.Body>
