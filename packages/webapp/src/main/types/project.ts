@@ -1,7 +1,5 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import homeTemplate from '../templates/pattern/gui/home.json';
-import aboutTemplate from '../templates/pattern/gui/about.json';
-
+import CompleteGUI from '../templates/pattern/gui/Complete.json';
 // Supported diagram types in projects
 export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram';
 
@@ -91,29 +89,11 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null): 
     // ========================================
     // This HTML will be the default content when a new project is created
     // Import the templates from external JSON files
-    const defaultPageHTML = homeTemplate;
-    const defaultAboutHTML = aboutTemplate;
-
+    const defaultCompleteHTML = CompleteGUI;
     return {
       id: crypto.randomUUID(),
       title,
-      model: {
-        pages: [
-          {
-            name: 'Home',
-            styles: '',
-            component: defaultPageHTML, // Now includes default content
-          }, {
-            name: 'About',
-            styles: '',
-            component: defaultAboutHTML, // Now includes default content
-          },
-        ],
-        styles: [],
-        assets: [],
-        symbols: [],
-        version: '0.21.13',
-      },
+      model: defaultCompleteHTML,
       lastUpdate: new Date().toISOString(),
     };
   }
