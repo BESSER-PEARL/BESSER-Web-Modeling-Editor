@@ -33,43 +33,6 @@ export function setupLayoutBlocks(editor: Editor) {
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="6" width="20" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
-  // 2 Column Grid
-  bm.add('grid-2col', {
-    label: '2 Columns',
-    category: 'Layout',
-    content: `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
-        <div style="padding: 20px; background: #f0f0f0; border: 2px dashed #ccc; min-height: 100px;">
-          <p>Column 1</p>
-        </div>
-        <div style="padding: 20px; background: #f0f0f0; border: 2px dashed #ccc; min-height: 100px;">
-          <p>Column 2</p>
-        </div>
-      </div>
-    `,
-    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="9" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="9" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-  });
-  
-  // 3 Column Grid
-  bm.add('grid-3col', {
-    label: '3 Columns',
-    category: 'Layout',
-    content: `
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 20px;">
-        <div style="padding: 20px; background: #f0f0f0; border: 2px dashed #ccc; min-height: 100px;">
-          <p>Column 1</p>
-        </div>
-        <div style="padding: 20px; background: #f0f0f0; border: 2px dashed #ccc; min-height: 100px;">
-          <p>Column 2</p>
-        </div>
-        <div style="padding: 20px; background: #f0f0f0; border: 2px dashed #ccc; min-height: 100px;">
-          <p>Column 3</p>
-        </div>
-      </div>
-    `,
-    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="5.5" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="4" width="5.5" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="16" y="4" width="6" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-  });
-  
   // 4 Column Grid
   bm.add('grid-4col', {
     label: '4 Columns',
