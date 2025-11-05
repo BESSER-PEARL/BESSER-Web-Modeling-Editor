@@ -5,6 +5,19 @@ import { RadarChartComponent } from '../widgets/RadarChartComponent';
 import { RadialBarChartComponent } from '../widgets/RadialBarChartComponent';
 import { getClassOptions } from '../diagram-helpers';
 
+// Aggregation options for dashboard metrics
+export const aggregationOptions = [
+  { value: '', label: 'None' },
+  { value: 'sum', label: 'Sum' },
+  { value: 'avg', label: 'Average' },
+  { value: 'count', label: 'Count' },
+  { value: 'min', label: 'Minimum' },
+  { value: 'max', label: 'Maximum' },
+  { value: 'median', label: 'Median' },
+  { value: 'first', label: 'First' },
+  { value: 'last', label: 'Last' },
+];
+
 // Chart configuration interface
 export interface ChartTrait {
   type: string;
@@ -42,6 +55,9 @@ export const chartConfigs: ChartConfig[] = [
       { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
       { type: 'select', label: 'Label Field', name: 'label-field', value: '', options: [], changeProp: 1 },
       { type: 'select', label: 'Data Field', name: 'data-field', value: '', options: [], changeProp: 1 },
+      // TODO: Uncomment when backend aggregation is ready
+      // { type: 'select', label: 'Aggregation', name: 'aggregation', value: '', options: aggregationOptions, changeProp: 1 },
+      // { type: 'select', label: 'Group By', name: 'group-by', value: '', options: [], changeProp: 1 },
       { type: 'number', label: 'Line Width', name: 'line-width', value: 2, changeProp: 1 },
       { type: 'checkbox', label: 'Show Grid', name: 'show-grid', value: true, changeProp: 1 },
       { type: 'checkbox', label: 'Show Legend', name: 'show-legend', value: true, changeProp: 1 },

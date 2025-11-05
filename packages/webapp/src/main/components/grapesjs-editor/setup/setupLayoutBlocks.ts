@@ -424,4 +424,72 @@ export function setupLayoutBlocks(editor: Editor) {
     `,
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M2 20 L7 12 L12 16 L22 4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="16" r="2" fill="currentColor"/><circle cx="22" cy="4" r="2" fill="currentColor"/></svg>',
   });
+
+  // Analytics Dashboard Template
+  bm.add('analytics-dashboard', {
+    label: 'Analytics Dashboard',
+    category: 'Templates',
+    content: `
+      <div class="dashboard-container" style="padding: 20px; background: linear-gradient(135deg, rgb(75, 60, 130) 0%, rgb(90, 61, 145) 100%);">
+        <div style="max-width: 1400px; margin: 0 auto;">
+          <!-- Dashboard Header -->
+          <div style="margin-bottom: 30px;">
+            <h1 style="color: white; margin: 0 0 10px 0; font-size: 32px;">Analytics Dashboard</h1>
+            <p style="color: rgba(255,255,255,0.8); margin: 0;">Real-time insights and metrics</p>
+          </div>
+          
+          <!-- KPI Cards Row -->
+          <div class="kpi-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div data-gjs-type="metric-card"></div>
+            <div data-gjs-type="metric-card"></div>
+            <div data-gjs-type="metric-card"></div>
+            <div data-gjs-type="metric-card"></div>
+          </div>
+          
+          <!-- Charts Row -->
+          <div class="charts-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin-bottom: 20px;">
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Revenue Trend</h3>
+              <div style="width: 100%; height: 300px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px; color: #666;">
+                📊 Drop a Line Chart here
+              </div>
+            </div>
+            <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <h3 style="margin: 0 0 20px 0; color: #2c3e50;">Category Distribution</h3>
+              <div style="width: 100%; height: 300px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px; color: #666;">
+                🥧 Drop a Pie Chart here
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="3" width="20" height="5" rx="1" fill="currentColor" opacity="0.3"/><rect x="2" y="10" width="9" height="11" rx="1" fill="currentColor"/><rect x="13" y="10" width="9" height="11" rx="1" fill="currentColor"/></svg>',
+  });
+
+  // KPI Dashboard Template
+  bm.add('kpi-dashboard', {
+    label: 'KPI Dashboard',
+    category: 'Templates',
+    content: `
+      <div class="kpi-dashboard" style="padding: 40px 20px; background: #f5f7fa;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+          <!-- Header -->
+          <div style="margin-bottom: 40px; text-align: center;">
+            <h1 style="color: #2c3e50; margin: 0 0 10px 0;">Key Performance Indicators</h1>
+            <p style="color: #7f8c8d; margin: 0;">Track your most important metrics at a glance</p>
+          </div>
+          
+          <!-- 3-Column KPI Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
+            <div data-gjs-type="metric-card" data-gjs-metric-title="Total Revenue" data-gjs-format="currency" data-gjs-value-color="#3498db"></div>
+            <div data-gjs-type="metric-card" data-gjs-metric-title="Active Users" data-gjs-format="number" data-gjs-value-color="#2ecc71"></div>
+            <div data-gjs-type="metric-card" data-gjs-metric-title="System Uptime" data-gjs-format="percentage" data-gjs-value-color="#e74c3c"></div>
+          </div>
+        </div>
+      </div>
+    `,
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="4" width="6" height="6" rx="1" fill="currentColor"/><rect x="3" y="13" width="6" height="6" rx="1" fill="currentColor"/><rect x="12" y="4" width="9" height="15" rx="1" fill="currentColor" opacity="0.5"/></svg>',
+  });
 }
+
