@@ -558,7 +558,6 @@ function generateHTMLTemplate(html: string, css: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BESSER Generated Page</title>
   <style>
 ${css}
   </style>
