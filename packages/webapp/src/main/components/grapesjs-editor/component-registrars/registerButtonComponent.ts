@@ -19,16 +19,15 @@ export const registerButtonComponent = (editor: any) => {
         },
         style: {
           display: 'inline-block',
-          padding: '12px 24px',
-          background: '#3498db',
+          padding: '10px 20px',
+          background: '#007bff',
           color: '#ffffff',
           'text-decoration': 'none',
-          'border-radius': '6px',
-          'font-size': '16px',
-          'font-weight': 'bold',
+          'border-radius': '4px',
+          'font-size': '14px',
+          'font-weight': 'normal',
           cursor: 'pointer',
           border: 'none',
-          transition: 'all 0.3s ease',
         },
         content: 'Button',
         'button-label': 'Button',
@@ -237,12 +236,12 @@ export const registerButtonComponent = (editor: any) => {
         
         // Update styling based on button style
         const styleColors: Record<string, {bg: string, text: string}> = {
-          primary: { bg: '#3498db', text: '#ffffff' },
-          secondary: { bg: '#95a5a6', text: '#ffffff' },
-          success: { bg: '#27ae60', text: '#ffffff' },
-          danger: { bg: '#e74c3c', text: '#ffffff' },
-          warning: { bg: '#f39c12', text: '#ffffff' },
-          info: { bg: '#3498db', text: '#ffffff' },
+          primary: { bg: '#007bff', text: '#ffffff' },
+          secondary: { bg: '#6c757d', text: '#ffffff' },
+          success: { bg: '#28a745', text: '#ffffff' },
+          danger: { bg: '#dc3545', text: '#ffffff' },
+          warning: { bg: '#ffc107', text: '#212529' },
+          info: { bg: '#17a2b8', text: '#ffffff' },
         };
         
         const colors = styleColors[buttonStyle] || styleColors.primary;
@@ -271,7 +270,7 @@ export const registerButtonComponent = (editor: any) => {
     label: 'Button',
     category: 'Basic',
     content: { type: 'action-button' },
-    media: '<button style="display: inline-block; padding: 8px 16px; background: #3498db; color: #ffffff; border: none; border-radius: 4px; font-size: 14px; cursor: pointer;">Button</button>',
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="8" width="18" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });
   
 };

@@ -199,7 +199,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: 'Charts',
+    category: 'Basic',
     content: { type: config.id },
     media: config.icon,
   });
