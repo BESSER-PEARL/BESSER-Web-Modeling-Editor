@@ -132,22 +132,36 @@ export const ProjectSettingsScreen: React.FC = () => {
     if (!currentProject) return;
     
     try {
+      setIsLoading(true);
+      
       // Force GrapesJS to save before exporting (if editor is active)
       const GraphicalUIEditor = (window as any).editor;
       if (GraphicalUIEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
-        await new Promise<void>((resolve) => {
+        console.log('[Export] Forcing GrapesJS save before export...');
+        
+        // Wait for the store operation to complete
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('GrapesJS save timeout'));
+          }, 5000);
+          
           GraphicalUIEditor.store((result: any) => {
-            // Small delay to ensure storage writes complete
-            setTimeout(() => resolve(), 100);
+            clearTimeout(timeout);
+            console.log('[Export] GrapesJS save completed');
+            // Add a longer delay to ensure storage writes complete to localStorage
+            setTimeout(() => resolve(), 300);
           });
         });
       }
       
-      exportProject(currentProject.id);
+      // Export with force refresh to get the latest data from localStorage
+      await exportProject(currentProject.id, true);
       toast.success('Project exported successfully!');
     } catch (error) {
       console.error('Error exporting project:', error);
-      toast.error('Failed to export project');
+      toast.error(`Failed to export project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -312,10 +326,11 @@ export const ProjectSettingsScreen: React.FC = () => {
               <ActionButton
                 variant="outline-primary"
                 onClick={handleExportProject}
+                disabled={isLoading}
                 className="d-flex align-items-center gap-2"
               >
                 <Download size={16} />
-                Export Project
+                {isLoading ? 'Exporting...' : 'Export Project'}
               </ActionButton>
             </div>
           </Form>

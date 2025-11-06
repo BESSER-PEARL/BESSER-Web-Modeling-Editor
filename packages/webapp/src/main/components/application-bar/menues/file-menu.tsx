@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useImportDiagramPictureFromImage } from '../../../services/import/useImportDiagramPicture';
 import { Dropdown, NavDropdown, Modal, Spinner } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
@@ -16,6 +16,8 @@ import { toast } from 'react-toastify';
 import { importProject } from '../../../services/import/useImportProject';
 import { useImportDiagramToProjectWorkflow } from '../../../services/import/useImportDiagram';
 import { useProject } from '../../../hooks/useProject';
+import { JsonViewerModal } from '../../modals/json-viewer-modal/json-viewer-modal';
+import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
 
 export const FileMenu: React.FC = () => {
   const apollonEditor = useContext(ApollonEditorContext);
@@ -37,6 +39,11 @@ export const FileMenu: React.FC = () => {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [fileError, setFileError] = React.useState('');
   const [isImporting, setIsImporting] = React.useState(false);
+
+  // JSON Viewer modal state
+  const [showJsonViewer, setShowJsonViewer] = useState(false);
+  const [jsonToView, setJsonToView] = useState('');
+  const [jsonDiagramType, setJsonDiagramType] = useState('');
 
   const exportDiagram = async (exportType: 'PNG' | 'PNG_WHITE' | 'SVG' | 'JSON' | 'PDF' | 'BUML'): Promise<void> => {
     if (!editor) {
@@ -84,6 +91,79 @@ export const FileMenu: React.FC = () => {
   // };
   const handleLoadTemplate = () => dispatch(showModal({ type: ModalContentType.CreateDiagramFromTemplateModal }));
   const handleExportProject = () => dispatch(showModal({ type: ModalContentType.ExportProjectModal }));
+
+  // Handler for previewing project JSON
+  const handlePreviewProjectJSON = async () => {
+    if (!currentProject) {
+      toast.error('No project is open. Please create or open a project first.');
+      return;
+    }
+
+    try {
+      // Force GrapesJS to save before previewing (if editor is active)
+      const GraphicalUIEditor = (window as any).editor;
+      if (GraphicalUIEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
+        console.log('[Preview] Forcing GrapesJS save before preview...');
+        
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('GrapesJS save timeout'));
+          }, 5000);
+          
+          GraphicalUIEditor.store((result: any) => {
+            clearTimeout(timeout);
+            console.log('[Preview] GrapesJS save completed');
+            setTimeout(() => resolve(), 300);
+          });
+        });
+      }
+
+      // Reload the project from storage to get the latest data
+      const freshProject = ProjectStorageRepository.loadProject(currentProject.id);
+      if (!freshProject) {
+        toast.error('Failed to load project data');
+        return;
+      }
+
+      // Format the JSON with the same structure as export (V2.0.0 format)
+      const exportData = {
+        project: freshProject,
+        exportedAt: new Date().toISOString(),
+        version: '2.0.0'
+      };
+      
+      const jsonString = JSON.stringify(exportData, null, 2);
+      setJsonToView(jsonString);
+      setJsonDiagramType('Project (V2.0.0)');
+      setShowJsonViewer(true);
+    } catch (error) {
+      console.error('Error previewing project JSON:', error);
+      toast.error(`Failed to preview project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  // Handler for copying JSON to clipboard
+  const handleCopyJsonToClipboard = () => {
+    navigator.clipboard.writeText(jsonToView)
+      .then(() => toast.success('JSON copied to clipboard!'))
+      .catch(() => toast.error('Failed to copy JSON to clipboard'));
+  };
+
+  // Handler for downloading JSON
+  const handleDownloadJson = () => {
+    if (!currentProject) return;
+    
+    const blob = new Blob([jsonToView], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentProject.name.replace(/\s+/g, '_')}_project.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Project JSON downloaded!');
+  };
 
   // Handler for importing single diagram to project
   const handleImportDiagramToCurrentProject = async () => {
@@ -202,6 +282,13 @@ export const FileMenu: React.FC = () => {
           Export Project
         </NavDropdown.Item>
 
+        {/* Preview Project JSON - only show when a project is active */}
+        {currentProject && (
+          <NavDropdown.Item onClick={handlePreviewProjectJSON}>
+            Preview Project JSON
+          </NavDropdown.Item>
+        )}
+
       </NavDropdown>
 
       {/* Modal for API key and file upload */}
@@ -264,6 +351,16 @@ export const FileMenu: React.FC = () => {
           </button>
         </Modal.Footer>
       </Modal>
+
+      {/* JSON Viewer Modal */}
+      <JsonViewerModal
+        isVisible={showJsonViewer}
+        jsonData={jsonToView}
+        diagramType={jsonDiagramType}
+        onClose={() => setShowJsonViewer(false)}
+        onCopy={handleCopyJsonToClipboard}
+        onDownload={handleDownloadJson}
+      />
     </>
   );
 };
