@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ChartConfig } from '../configs/chartConfigs';
-import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId } from '../diagram-helpers';
+import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
 /**
  * Build chart props from attributes - extracted to avoid duplication
@@ -150,7 +150,8 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
           const attrOptions = getAttributeOptionsByClassId(classId);
           const inheritedAttrOptions = getInheritedAttributeOptionsByClassId(classId);
           const relOptions = getEndsByClassId(classId);
-          const allOptions = [...attrOptions, ...inheritedAttrOptions, ...relOptions];
+          const inheritedRelOptions = getInheritedEndsByClassId(classId);
+          const allOptions = [...attrOptions, ...inheritedAttrOptions, ...relOptions, ...inheritedRelOptions];
           const labelTrait = traits.where({ name: 'label-field' })[0];
           const dataTrait = traits.where({ name: 'data-field' })[0];
           if (labelTrait) labelTrait.set('options', allOptions);

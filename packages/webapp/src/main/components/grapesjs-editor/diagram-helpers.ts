@@ -163,3 +163,45 @@ export function getInheritedAttributeOptionsByClassId(classId: string): { value:
 
   return inheritedAttributes;
 }
+
+/**
+ * Get relationships inherited from parent classes (traverse up the inheritance tree)
+ */
+export function getInheritedEndsByClassId(classId: string): { value: string; label: string }[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements || !('relationships' in classDiagram) || !classDiagram.relationships) {
+    return [];
+  }
+
+  // Helper to recursively collect parent class IDs (where classId is the source, parent is the target)
+  function getParentClassIds(currentId: string, visited = new Set<string>()): string[] {
+    if (visited.has(currentId)) return [];
+    visited.add(currentId);
+    const parents = Object.values((classDiagram as any).relationships)
+      .filter((rel: any) => rel?.type === 'ClassInheritance' && rel?.source?.element === currentId)
+      .map((rel: any) => rel.target.element);
+    return parents.reduce((acc: string[], parentId: string) => {
+      acc.push(parentId);
+      acc.push(...getParentClassIds(parentId, visited));
+      return acc;
+    }, []);
+  }
+
+  const parentIds = getParentClassIds(classId);
+  if (parentIds.length === 0) return [];
+
+  // Collect relationships from all parent classes (excluding inheritance relationships)
+  const inheritedEnds: { value: string; label: string }[] = [];
+  Object.values((classDiagram as any).relationships)
+    .filter((rel: any) => rel?.type !== 'ClassInheritance')
+    .forEach((rel: any) => {
+      if (parentIds.includes(rel?.source?.element)) {
+        inheritedEnds.push({ value: rel.target.element, label: rel.target.role });
+      } else if (parentIds.includes(rel?.target?.element)) {
+        inheritedEnds.push({ value: rel.source.element, label: rel.source.role });
+      }
+    });
+
+  return inheritedEnds;
+}
