@@ -39,6 +39,7 @@ export function getEndsByClassId(classId: string): { value: string; label: strin
   }
 
   return Object.values(classDiagram.relationships)
+    .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
     .map((relationship: any) => {
       if (relationship?.source?.element === classId) {
         return { value: relationship.target.element, label: relationship.target.role };
