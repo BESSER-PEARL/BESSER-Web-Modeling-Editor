@@ -2048,7 +2048,7 @@
         "direction": "Up",
         "element": "e4422346-28c3-44e5-b12b-b0eafe8f9796",
         "multiplicity": "1",
-        "role": ""
+        "role": "tool"
         },
         "target": {
         "direction": "Left",
@@ -2095,7 +2095,7 @@
         "direction": "Bottomright",
         "element": "b910ce24-f2bd-40de-b141-ce2956087223",
         "multiplicity": "1",
-        "role": ""
+        "role": "dataset"
         },
         "target": {
         "direction": "Downleft",
@@ -2138,7 +2138,7 @@
         "direction": "Left",
         "element": "f49d964c-1a1c-4702-b121-44abd8b251cd",
         "multiplicity": "*",
-        "role": ""
+        "role": "legal_requirements"
         },
         "target": {
         "direction": "Right",
