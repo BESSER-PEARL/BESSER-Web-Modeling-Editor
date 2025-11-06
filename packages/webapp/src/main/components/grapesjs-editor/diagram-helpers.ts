@@ -128,3 +128,38 @@ export function getElementNameById(elementId: string): string | null {
   const element = Object.values(classDiagram.elements).find((el: any) => el?.id === elementId);
   return element ? (element as any).name : null;
 }
+
+/**
+ * Get attributes inherited from parent classes (traverse up the inheritance tree)
+ */
+export function getInheritedAttributeOptionsByClassId(classId: string): { value: string; label: string }[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements || !('relationships' in classDiagram) || !classDiagram.relationships) {
+    return [];
+  }
+
+  // Helper to recursively collect parent class IDs (where classId is the source, parent is the target)
+  function getParentClassIds(currentId: string, visited = new Set<string>()): string[] {
+    if (visited.has(currentId)) return [];
+    visited.add(currentId);
+    const parents = Object.values((classDiagram as any).relationships)
+      .filter((rel: any) => rel?.type === 'ClassInheritance' && rel?.source?.element === currentId)
+      .map((rel: any) => rel.target.element);
+    return parents.reduce((acc: string[], parentId: string) => {
+      acc.push(parentId);
+      acc.push(...getParentClassIds(parentId, visited));
+      return acc;
+    }, []);
+  }
+
+  const parentIds = getParentClassIds(classId);
+  if (parentIds.length === 0) return [];
+
+  // Collect attributes from all parent classes
+  const inheritedAttributes = Object.values(classDiagram.elements)
+    .filter((element: any) => element?.type === 'ClassAttribute' && parentIds.includes(element.owner))
+    .map((attr: any) => ({ value: attr.id, label: attr.name }));
+
+  return inheritedAttributes;
+}
