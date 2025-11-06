@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ChartConfig } from '../configs/chartConfigs';
-import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getInheritedAttributeOptionsByClassId } from '../diagram-helpers';
+import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId } from '../diagram-helpers';
 
 /**
  * Build chart props from attributes - extracted to avoid duplication
@@ -40,6 +40,33 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
   else if (config.id === 'radial-bar-chart') {
     props.startAngle = attrs['start-angle'] !== undefined ? Number(attrs['start-angle']) : 90;
     props.endAngle = attrs['end-angle'] !== undefined ? Number(attrs['end-angle']) : 450;
+  }
+  else if (config.id === 'table-chart') {
+    const toBool = (value: any, defaultValue: boolean) => {
+      if (value === undefined || value === null || value === '') return defaultValue;
+      return value === true || value === 'true' || value === 1 || value === '1';
+    };
+
+    props.showHeader = toBool(attrs['show-header'], true);
+    props.striped = toBool(attrs['striped-rows'], false);
+    props.showPagination = toBool(attrs['show-pagination'], true);
+    if (attrs['rows-per-page'] !== undefined) {
+      const parsed = Number(attrs['rows-per-page']);
+      props.rowsPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+    } else {
+      props.rowsPerPage = 5;
+    }
+    const classId = attrs['data-source'];
+    const classMetadata = typeof classId === 'string' && classId ? getClassMetadata(classId) : undefined;
+    if (classMetadata?.attributes?.length) {
+      props.columns = classMetadata.attributes.map(attr => ({
+        field: attr.name,
+        label: attr.name.replace(/_/g, ' ') || attr.name,
+      }));
+    }
+    props.dataBinding = {
+      entity: classMetadata?.name || attrs['data-source'] || '',
+    };
   }
 
   return props;
