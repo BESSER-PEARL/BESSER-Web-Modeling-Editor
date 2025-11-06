@@ -53,11 +53,9 @@ export const MetricCardComponent: React.FC<MetricCardComponentProps> = ({
   trend = 0,
   data_binding,
 }) => {
-  // Display data binding info if available
+  // Display data binding info if available - just show placeholder value in editor
   const hasDataBinding = data_binding && data_binding.entity;
-  const displayValue = hasDataBinding 
-    ? `${data_binding.aggregation?.toUpperCase() || 'SUM'}(${data_binding.data_field || 'field'})`
-    : formatValue(value, format);
+  const displayValue = formatValue(value, format);
 
   const trendColor = trend >= 0 ? positiveColor : negativeColor;
 
@@ -111,26 +109,7 @@ export const MetricCardComponent: React.FC<MetricCardComponentProps> = ({
             fontWeight: '500',
           }}
         >
-          {hasDataBinding ? '📊 Data bound to ' + (data_binding.entity || 'entity') : formatTrend(trend)}
-        </div>
-      )}
-
-      {/* Data Binding Info (for editor preview) */}
-      {hasDataBinding && (
-        <div
-          style={{
-            marginTop: '10px',
-            padding: '8px',
-            background: '#f0f0f0',
-            borderRadius: '4px',
-            fontSize: '11px',
-            color: '#666',
-            fontFamily: 'monospace',
-          }}
-        >
-          <div>📦 Entity: {data_binding.entity}</div>
-          <div>📊 Field: {data_binding.data_field || 'none'}</div>
-          <div>🧮 Agg: {data_binding.aggregation || 'none'}</div>
+          {/* {formatTrend(trend)} */}
         </div>
       )}
     </div>

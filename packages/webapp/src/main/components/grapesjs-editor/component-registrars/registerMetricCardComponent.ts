@@ -170,7 +170,7 @@ export const registerMetricCardComponent = (editor: any, config: MetricCardConfi
   // Add metric card to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: 'Dashboard',
+    category: 'Basic',
     content: { type: config.id },
     media: config.icon,
   });
