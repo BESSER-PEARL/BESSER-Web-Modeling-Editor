@@ -226,7 +226,7 @@ function registerCustomComponents(editor: Editor) {
   // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);
   
-  console.log('[GraphicalUIEditor] All custom components registered');
+  // console.log('[GraphicalUIEditor] All custom components registered');
 }
 
 /**
@@ -263,13 +263,13 @@ function removeUnwantedBlocks(editor: Editor) {
   blocksToRemove.forEach(blockId => {
     try {
       blockManager.remove(blockId);
-      console.log(`[Block Manager] Removed block: ${blockId}`);
+      // console.log(`[Block Manager] Removed block: ${blockId}`);
     } catch (e) {
       // Block might not exist, ignore
     }
   });
   
-  console.log('[Block Manager] Unwanted blocks removed, keeping Basic, Layout, and Charts');
+  // console.log('[Block Manager] Unwanted blocks removed, keeping Basic, Layout, and Charts');
 }
 
 // ============================================
@@ -293,14 +293,14 @@ function setupProjectStorageIntegration(
         const model = project?.diagrams?.GUINoCodeDiagram?.model;
 
         if (isGrapesJSProjectData(model)) {
-          console.log('[Storage] Loading GrapesJS data from project storage');
+          // console.log('[Storage] Loading GrapesJS data from project storage');
           if (Array.isArray(model.pages) && model.pages.length > 0) {
             return model;
           }
-          console.log('[Storage] Stored data has no pages, keeping defaults');
+          // console.log('[Storage] Stored data has no pages, keeping defaults');
           return {};
         }
-        console.log('[Storage] No GrapesJS data found, starting fresh');
+        // console.log('[Storage] No GrapesJS data found, starting fresh');
         return {};
       } catch (error) {
         console.error('[Storage] Error loading:', error);
@@ -338,7 +338,7 @@ function setupProjectStorageIntegration(
         );
         
         if (updated) {
-          console.log('[Storage] Data saved successfully');
+          // console.log('[Storage] Data saved successfully');
           setSaveStatus('saved');
           setTimeout(() => updateSaveStatusUI(editor, 'saved'), 100);
         } else {
@@ -375,7 +375,7 @@ function setupProjectStorageIntegration(
     // Add a delay to ensure everything is fully initialized
     setTimeout(() => {
       isEditorReady = true;
-      console.log('[Storage] Editor fully loaded, auto-save enabled');
+      // console.log('[Storage] Editor fully loaded, auto-save enabled');
       
       let saveTimeout: NodeJS.Timeout | null = null;
       
@@ -393,7 +393,7 @@ function setupProjectStorageIntegration(
         }
         
         try {
-          console.log('[Storage] Auto-saving changes...');
+          // console.log('[Storage] Auto-saving changes...');
           editor.store();
         } catch (error) {
           console.error('[Storage] Auto-save error:', error);
@@ -416,13 +416,13 @@ function setupProjectStorageIntegration(
         safeSave();
       }, 30000);
       
-      console.log('[Storage] Auto-save listeners initialized');
+      // console.log('[Storage] Auto-save listeners initialized');
     }, 2000); // Wait 2 seconds after load event
   });
   
   // Return cleanup function
   return () => {
-    console.log('[Storage] Cleaning up storage integration');
+    // console.log('[Storage] Cleaning up storage integration');
     isEditorReady = false;
     
     if (saveIntervalRef.current) {
@@ -537,21 +537,21 @@ function setupCommands(editor: Editor) {
     },
   });
   
-  // Preview mode with filtering
-  editor.Commands.add('preview-mode', {
-    run(editor: Editor) {
-      setTimeout(() => filterPreviewContent(editor), 100);
-      editor.runCommand('preview');
-    },
-    stop(editor: Editor) {
-      editor.stopCommand('preview');
-      restorePreviewContent(editor);
-    },
-  });
+  // // Preview mode with filtering
+  // editor.Commands.add('preview-mode', {
+  //   run(editor: Editor) {
+  //     setTimeout(() => filterPreviewContent(editor), 100);
+  //     editor.runCommand('preview');
+  //   },
+  //   stop(editor: Editor) {
+  //     editor.stopCommand('preview');
+  //     restorePreviewContent(editor);
+  //   },
+  // });
   
-  // Filter preview on default preview command
-  editor.on('run:preview', () => setTimeout(() => filterPreviewContent(editor), 100));
-  editor.on('stop:preview', () => restorePreviewContent(editor));
+//   // Filter preview on default preview command
+//   editor.on('run:preview', () => setTimeout(() => filterPreviewContent(editor), 100));
+//   editor.on('stop:preview', () => restorePreviewContent(editor));
 }
 
 /**
@@ -673,7 +673,7 @@ function setupKeyboardShortcuts(editor: Editor) {
       keymaps.add(id, keys, action);
     });
     
-    console.log('[Keyboard] Shortcuts registered');
+    // console.log('[Keyboard] Shortcuts registered');
   });
 }
 
@@ -682,11 +682,22 @@ function setupKeyboardShortcuts(editor: Editor) {
 // ============================================
 
 /**
- * Add Pages button to the toolbar
+ * Add Pages button to the toolbar and remove preview button
  */
 function addPagesButton(editor: Editor) {
   editor.on('load', () => {
     const panelManager = editor.Panels;
+    
+    // Remove preview button (eye icon)
+    try {
+      const previewBtn = document.querySelector('[title="Preview"]');
+      if (previewBtn) {
+        previewBtn.remove();
+        // console.log('[Toolbar] Preview button removed');
+      }
+    } catch (error) {
+      console.warn('[Toolbar] Could not remove preview button:', error);
+    }
     
     // Add button to open pages panel
     panelManager.addButton('options', {
@@ -697,7 +708,7 @@ function addPagesButton(editor: Editor) {
       label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" /></svg>',
     });
     
-    console.log('[Pages] Button added to toolbar');
+    // console.log('[Pages] Button added to toolbar');
   });
 }
 
@@ -713,7 +724,7 @@ function setupPageRouting(editor: Editor) {
   editor.on('page:select', (page: any) => {
     if (!page) return;
     const currentRoute = page.get('attributes')?.route || `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
-    console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
+    // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
   });
   
   // Add command to edit page route
@@ -742,7 +753,7 @@ function setupPageRouting(editor: Editor) {
         attrs['data-route'] = route;
         currentPage.set('attributes', attrs);
         
-        console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
+        // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
         alert(`Route updated to: ${route}`);
       }
     }

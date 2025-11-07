@@ -141,7 +141,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
         const dataSourceTrait = traits.where({ name: 'data-source' })[0];
         if (dataSourceTrait) {
           const classOptions = getClassOptions();
-          console.log('📊 Chart Component - Loading class options:', classOptions);
+          // console.log('📊 Chart Component - Loading class options:', classOptions);
           dataSourceTrait.set('options', classOptions);
         }
 
