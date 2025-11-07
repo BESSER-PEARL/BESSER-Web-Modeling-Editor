@@ -202,7 +202,7 @@ function setupEditorFeatures(
   // Additional features
   setupDataBindingTraits(editor);
   setupLayoutBlocks(editor);
-  enableAbsolutePositioning(editor);
+  // enableAbsolutePositioning(editor);
   
   // Return cleanup function
   return cleanupStorage;
@@ -809,32 +809,6 @@ function setupDataBindingTraits(editor: Editor) {
       component.removeClass('has-data-binding');
     }
   });
-  
-  // Add CSS for data binding indicator
-  const style = document.createElement('style');
-  style.textContent = `
-    .has-data-binding {
-      outline: 2px dashed #0066cc !important;
-      outline-offset: 2px;
-      position: relative;
-    }
-    .has-data-binding::before {
-      content: 'DATA';
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: #0066cc;
-      color: white;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      z-index: 1000;
-      box-shadow: 0 2px 4px rgba(0, 102, 204, 0.3);
-    }
-  `;
-  document.head.appendChild(style);
   
   console.log('[Data Binding] System initialized');
 }

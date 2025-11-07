@@ -58,38 +58,6 @@
   margin-top: 4px !important;
 }
 
-/* Absolute positioning visual feedback - Improved */
-[style*="position: absolute"],
-[style*="position:absolute"],
-.gjs-cv-canvas [style*="position: absolute"],
-.gjs-cv-canvas [style*="position:absolute"] {
-  outline: 2px dashed #0066cc !important;
-  outline-offset: 2px;
-  cursor: move !important;
-  user-select: none;
-}
-
-.gjs-selected[style*="position: absolute"],
-.gjs-selected[style*="position:absolute"] {
-  outline: 2px solid #0066cc !important;
-  outline-offset: 2px;
-  cursor: move !important;
-}
-
-/* Make absolute positioned elements easily draggable */
-.gjs-cv-canvas [style*="position: absolute"]:hover,
-.gjs-cv-canvas [style*="position:absolute"]:hover {
-  outline-color: #0052a3 !important;
-  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2) !important;
-}
-
-/* Ensure absolute positioned elements can be moved */
-.gjs-cv-canvas [style*="position: absolute"],
-.gjs-cv-canvas [style*="position:absolute"] {
-  pointer-events: auto !important;
-  z-index: auto !important;
-}
-
 /* Pages Panel Styling - Minimalistic */
 #pages-dropdown {
   position: relative;
