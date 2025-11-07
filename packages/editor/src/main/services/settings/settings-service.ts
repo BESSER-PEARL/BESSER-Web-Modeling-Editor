@@ -6,6 +6,8 @@ export interface IApplicationSettings {
   showInstancedObjects: boolean;
   /** Whether to show class icons in the diagram */
   showIconView: boolean;
+  /** Whether to show association names in the diagram */
+  showAssociationNames: boolean;
   /** Other settings can be added here */
   // theme: 'light' | 'dark';
   // autoSave: boolean;
@@ -17,6 +19,7 @@ export interface IApplicationSettings {
 export const DEFAULT_SETTINGS: IApplicationSettings = {
   showInstancedObjects: true, // Default to true to show instances
   showIconView: false, // Default to false to hide class icons
+  showAssociationNames: false, // Default to false to hide association names
 };
 
 /**
@@ -165,6 +168,13 @@ export class SettingsService implements ISettingsService {
    */
   shouldShowIconView(): boolean {
     return this.settings.showIconView;
+  }
+
+  /**
+   * Check if association names should be shown in the diagram
+   */
+  shouldShowAssociationNames(): boolean {
+    return this.settings.showAssociationNames;
   }
 }
 

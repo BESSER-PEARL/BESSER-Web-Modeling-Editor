@@ -5,6 +5,7 @@ import { ClassRelationshipType } from '../../uml-class-diagram';
 import { UMLAssociation } from './uml-association';
 import { GeneralRelationshipType, UMLRelationshipType } from '../../uml-relationship-type';
 import { ThemedPath, ThemedPathContrast, ThemedPolyline } from '../../../components/theme/themedComponents';
+import { settingsService } from '../../../services/settings/settings-service';
 
 const Marker = {
   Arrow: (id: string, color?: string) => (
@@ -106,6 +107,12 @@ export const computeTextPositionForUMLAssociation = (alignmentPath: Point[], has
   return alignmentPath[0].add(vector.normalize().scale(distance));
 };
 
+export const computeMiddlePositionForUMLAssociation = (alignmentPath: Point[]): Point => {
+  if (alignmentPath.length < 2) return new Point();
+  const midIndex = Math.floor(alignmentPath.length / 2);
+  return new Point(alignmentPath[midIndex].x, alignmentPath[midIndex].y);
+};
+
 export const getMarkerForTypeForUMLAssociation = (relationshipType: UMLRelationshipType) => {
   return ((type) => {
     switch (type) {
@@ -130,6 +137,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
   const isInheritance = element.type === ClassRelationshipType.ClassInheritance;
   // Add special check for OCL Link
   const isLinkRel = element.type === ClassRelationshipType.ClassLinkRel;
+  const showAssociationNames = settingsService.shouldShowAssociationNames();
 
   const stroke = ((type) => {
     switch (type) {
@@ -145,6 +153,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
 
   const path = element.path.map((point) => new Point(point.x, point.y));
   const source: Point = computeTextPositionForUMLAssociation(path);
+  const middle: Point = computeMiddlePositionForUMLAssociation(path);
   const target: Point = computeTextPositionForUMLAssociation(path.reverse(), !!marker);
   const id = `marker-${element.id}`;
 
@@ -160,6 +169,18 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
         markerEnd={`url(#${id})`}
         strokeDasharray={stroke}
       />
+      {showAssociationNames && element.name && !isInheritance && !isLinkRel && (
+        <text
+          x={middle.x || 0}
+          y={middle.y || 0}
+          textAnchor="middle"
+          dy="-5"
+          pointerEvents="none"
+          style={{ ...textFill, fontSize: '12px', fontWeight: 'bold' }}
+        >
+          {element.name}
+        </text>
+      )}
       {!isInheritance && !isLinkRel && (
         <>
           <text
