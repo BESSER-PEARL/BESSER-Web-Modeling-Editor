@@ -1,11 +1,27 @@
 ﻿import { Editor } from 'grapesjs';
 
+// Guard to prevent duplicate initialization
+let pageSystemInitialized = false;
+let pagesListRaf: number | null = null;
+
 export function setupPageSystem(editor: Editor) {
+  if (pageSystemInitialized) return;
+  pageSystemInitialized = true;
+  
   console.log('[Page System] Initializing');
   initializePagesPanel(editor);
   setupPageCommands(editor);
   setupPageListeners(editor);
   addPagesPanelCSS();
+  
+  // Suppress harmless ResizeObserver warning in development
+  if (process.env.NODE_ENV === 'development') {
+    window.addEventListener('error', e => {
+      if (e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+        e.stopImmediatePropagation();
+      }
+    }, true);
+  }
 }
 
 export function loadDefaultPages(editor: Editor) {
@@ -51,57 +67,67 @@ function updatePagesList(editor: Editor) {
   const list = document.getElementById('pages-list');
   if (!list || !editor.Pages) return;
   
-  const selected = editor.Pages.getSelected();
-  list.innerHTML = '';
+  // Cancel any pending animation frame to prevent multiple updates
+  if (pagesListRaf !== null) {
+    cancelAnimationFrame(pagesListRaf);
+  }
   
-  editor.Pages.getAll().forEach((page: any) => {
-    const item = document.createElement('div');
-    item.className = 'page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
-    item.innerHTML = '<span class=\"page-name\">' + page.getName() + '</span><div class=\"page-actions\"><button class=\"rename-page-btn\"></button><button class=\"delete-page-btn\"></button></div>';
+  // Defer DOM-heavy operations using requestAnimationFrame
+  pagesListRaf = requestAnimationFrame(() => {
+    pagesListRaf = null;
     
-    item.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).tagName !== 'BUTTON') editor.Pages.select(page);
-    });
+    const selected = editor.Pages.getSelected();
+    list.innerHTML = '';
     
-    item.querySelector('.rename-page-btn')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const newName = prompt('Enter new page name:', page.getName());
-      if (newName?.trim()) {
-        page.set('name', newName.trim());
-        updatePagesList(editor);
-      }
-    });
-    
-    item.querySelector('.delete-page-btn')?.addEventListener('click', (e) => {
-      e.stopPropagation();
+    editor.Pages.getAll().forEach((page: any) => {
+      const item = document.createElement('div');
+      item.className = 'page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
+      item.innerHTML = '<span class=\"page-name\">' + page.getName() + '</span><div class=\"page-actions\"><button class=\"rename-page-btn\"></button><button class=\"delete-page-btn\"></button></div>';
       
-      // Prevent deleting the last page
-      const totalPages = editor.Pages.getAll().length;
-      if (totalPages <= 1) {
-        alert('Cannot delete the last page. At least one page is required.');
-        return;
-      }
+      item.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).tagName !== 'BUTTON') editor.Pages.select(page);
+      });
       
-      if (confirm('Delete page "' + page.getName() + '"?')) {
-        // If deleting the selected page, select another one first
-        const isSelected = editor.Pages.getSelected()?.getId() === page.getId();
+      item.querySelector('.rename-page-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newName = prompt('Enter new page name:', page.getName());
+        if (newName?.trim()) {
+          page.set('name', newName.trim());
+          updatePagesList(editor);
+        }
+      });
+      
+      item.querySelector('.delete-page-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         
-        if (isSelected) {
-          const allPages = editor.Pages.getAll();
-          const currentIndex = allPages.findIndex((p: any) => p.getId() === page.getId());
-          const nextPage = allPages[currentIndex + 1] || allPages[currentIndex - 1];
-          if (nextPage) {
-            editor.Pages.select(nextPage);
-          }
+        // Prevent deleting the last page
+        const totalPages = editor.Pages.getAll().length;
+        if (totalPages <= 1) {
+          alert('Cannot delete the last page. At least one page is required.');
+          return;
         }
         
-        editor.Pages.remove(page);
-        updatePagesList(editor);
-        console.log(`[Pages] Deleted page: ${page.getName()}`);
-      }
+        if (confirm('Delete page "' + page.getName() + '"?')) {
+          // If deleting the selected page, select another one first
+          const isSelected = editor.Pages.getSelected()?.getId() === page.getId();
+          
+          if (isSelected) {
+            const allPages = editor.Pages.getAll();
+            const currentIndex = allPages.findIndex((p: any) => p.getId() === page.getId());
+            const nextPage = allPages[currentIndex + 1] || allPages[currentIndex - 1];
+            if (nextPage) {
+              editor.Pages.select(nextPage);
+            }
+          }
+          
+          editor.Pages.remove(page);
+          updatePagesList(editor);
+          console.log(`[Pages] Deleted page: ${page.getName()}`);
+        }
+      });
+      
+      list.appendChild(item);
     });
-    
-    list.appendChild(item);
   });
 }
 
@@ -136,6 +162,10 @@ function setupPageCommands(editor: Editor) {
 }
 
 function setupPageListeners(editor: Editor) {
+  // Ensure listeners aren't added multiple times
+  if ((editor as any).__pagesListenersAttached) return;
+  (editor as any).__pagesListenersAttached = true;
+  
   const events = ['page:add', 'page:remove', 'page:select', 'page:update'];
   events.forEach(event => editor.on(event, () => updatePagesList(editor)));
   
