@@ -35,7 +35,9 @@ interface OwnProps {
   element: UMLClassifier;
 }
 
-type StateProps = {};
+type StateProps = {
+  elements: ModelState['elements'];
+};
 
 interface DispatchProps {
   create: typeof UMLElementRepository.create;
@@ -48,12 +50,15 @@ type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-    create: UMLElementRepository.create,
-    update: UMLElementRepository.update,
-    delete: UMLElementRepository.delete,
-    getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
-  }),
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(
+    (state) => ({ elements: state.elements }),
+    {
+      create: UMLElementRepository.create,
+      update: UMLElementRepository.update,
+      delete: UMLElementRepository.delete,
+      getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
+    }
+  ),
 );
 
 type State = {
@@ -89,7 +94,7 @@ class ClassifierUpdate extends Component<Props, State> {
   }
 
   render() {
-    const { element, getById } = this.props;
+    const { element, getById, elements } = this.props;
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
     const attributes = children.filter((child) => child instanceof UMLClassAttribute);
     const methods = children.filter((child) => child instanceof UMLClassMethod);
@@ -97,6 +102,11 @@ class ClassifierUpdate extends Component<Props, State> {
     const methodRefs: (Textfield<string> | null)[] = [];
 
     const isEnumeration = element.type === ClassElementType.Enumeration;
+
+    // Get all enumerations from the current elements state
+    const availableEnumerations = Object.values(elements)
+      .filter((el) => el.type === ClassElementType.Enumeration)
+      .map((el) => ({ value: el.name, label: el.name }));
 
     return (
       <div>
@@ -159,6 +169,8 @@ class ClassifierUpdate extends Component<Props, State> {
               onDelete={this.delete}
               onRefChange={(ref) => (attributeRefs[index] = ref)}
               element={attribute}
+              isEnumeration={isEnumeration}
+              availableEnumerations={availableEnumerations}
             />
           ))}
           <Textfield
