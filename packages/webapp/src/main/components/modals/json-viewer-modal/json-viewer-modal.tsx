@@ -1,6 +1,17 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import hljs from 'highlight.js/lib/core';
+import jsonLang from 'highlight.js/lib/languages/json';
+import pythonLang from 'highlight.js/lib/languages/python';
+
+if (!hljs.getLanguage('json')) {
+  hljs.registerLanguage('json', jsonLang);
+}
+
+if (!hljs.getLanguage('python')) {
+  hljs.registerLanguage('python', pythonLang);
+}
 
 const ModalOverlay = styled.div<{ $isVisible: boolean }>`
   position: fixed;
@@ -72,18 +83,6 @@ const ModalBody = styled.div`
   flex: 1;
   overflow: auto;
   padding: 20px;
-
-  pre {
-    margin: 0;
-    background: #1e293b;
-    color: #e2e8f0;
-    padding: 20px;
-    border-radius: 8px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 13px;
-    line-height: 1.6;
-    overflow: auto;
-  }
 `;
 
 const ModalFooter = styled.div`
@@ -124,6 +123,107 @@ const ModalFooter = styled.div`
   }
 `;
 
+const TabSwitcher = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  button {
+    flex: 1;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  button.active {
+    background: linear-gradient(135deg, #22d3ee, #0ea5e9);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+  }
+`;
+
+const PlaceholderBox = styled.div`
+  background: #0f172a;
+  color: #94a3b8;
+  padding: 32px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px dashed #334155;
+`;
+
+const ErrorBox = styled.div`
+  background: #331919;
+  color: #fecaca;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  font-weight: 600;
+`;
+
+const CodeBlock = styled.pre`
+  margin: 0;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 20px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: auto;
+  border: 1px solid #1e293b;
+
+  code {
+    display: block;
+    background: transparent;
+    color: inherit;
+    white-space: pre;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-literal {
+    color: #93c5fd;
+  }
+
+  .hljs-string,
+  .hljs-title,
+  .hljs-name,
+  .hljs-attr {
+    color: #fcd34d;
+  }
+
+  .hljs-number,
+  .hljs-symbol,
+  .hljs-bullet {
+    color: #fca5a5;
+  }
+
+  .hljs-built_in,
+  .hljs-type,
+  .hljs-attribute {
+    color: #a5b4fc;
+  }
+
+  .hljs-comment,
+  .hljs-quote {
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-selector-attr {
+    color: #67e8f9;
+  }
+`;
+
 interface JsonViewerModalProps {
   isVisible: boolean;
   jsonData: string;
@@ -131,7 +231,53 @@ interface JsonViewerModalProps {
   onClose: () => void;
   onCopy: () => void;
   onDownload: () => void;
+  enableBumlView?: boolean;
+  bumlData?: string;
+  bumlLabel?: string;
+  isBumlLoading?: boolean;
+  bumlError?: string;
+  onRequestBuml?: () => void;
+  onCopyBuml?: () => void;
+  onDownloadBuml?: () => void;
 }
+
+type SupportedLanguage = 'json' | 'python';
+
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const highlightCode = (code: string, language: SupportedLanguage): string => {
+  if (!code) {
+    return '';
+  }
+
+  try {
+    return hljs.highlight(code, { language }).value;
+  } catch (error) {
+    console.warn('Failed to highlight code, falling back to plain text.', error);
+    return escapeHtml(code);
+  }
+};
+
+const HighlightedCode: React.FC<{ code: string; language: SupportedLanguage }> = ({
+  code,
+  language,
+}) => {
+  const highlightedMarkup = React.useMemo(
+    () => highlightCode(code, language),
+    [code, language],
+  );
+
+  return (
+    <CodeBlock>
+      <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightedMarkup }} />
+    </CodeBlock>
+  );
+};
 
 export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
   isVisible,
@@ -139,18 +285,44 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
   diagramType,
   onClose,
   onCopy,
-  onDownload
+  onDownload,
+  enableBumlView = false,
+  bumlData,
+  bumlLabel = 'Diagram BUML',
+  isBumlLoading = false,
+  bumlError,
+  onRequestBuml,
+  onCopyBuml,
+  onDownloadBuml,
 }) => {
   if (!isVisible) {
     return null;
   }
+
+  const [activeTab, setActiveTab] = React.useState<'json' | 'buml'>('json');
+
+  React.useEffect(() => {
+    if (isVisible) {
+      setActiveTab('json');
+    }
+  }, [isVisible]);
+
+  const handleTabChange = (tab: 'json' | 'buml') => {
+    setActiveTab(tab);
+    if (tab === 'buml' && enableBumlView && onRequestBuml && !bumlData && !isBumlLoading) {
+      onRequestBuml();
+    }
+  };
+
+  const isBumlView = enableBumlView && activeTab === 'buml';
+  const headerTitle = isBumlView ? bumlLabel : 'Diagram JSON';
 
   return createPortal(
     <ModalOverlay $isVisible={isVisible} onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <h3>
-            📋 Diagram JSON
+            📋 {headerTitle}
             <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#64748b' }}>
               ({diagramType})
             </span>
@@ -159,18 +331,75 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
             ✕
           </button>
         </ModalHeader>
-        
+
         <ModalBody>
-          <pre>{jsonData}</pre>
+          {enableBumlView && (
+            <TabSwitcher>
+              <button
+                type="button"
+                className={activeTab === 'json' ? 'active' : ''}
+                onClick={() => handleTabChange('json')}
+              >
+                JSON
+              </button>
+              <button
+                type="button"
+                className={activeTab === 'buml' ? 'active' : ''}
+                onClick={() => handleTabChange('buml')}
+              >
+                BUML
+              </button>
+            </TabSwitcher>
+          )}
+
+          {isBumlView ? (
+            <>
+              {isBumlLoading && <PlaceholderBox>Generating BUML preview...</PlaceholderBox>}
+              {!isBumlLoading && bumlError && <ErrorBox>{bumlError}</ErrorBox>}
+              {!isBumlLoading && !bumlError && bumlData && (
+                <HighlightedCode code={bumlData} language="python" />
+              )}
+              {!isBumlLoading && !bumlError && !bumlData && (
+                <PlaceholderBox>No BUML preview is available yet.</PlaceholderBox>
+              )}
+            </>
+          ) : (
+            <HighlightedCode code={jsonData} language="json" />
+          )}
         </ModalBody>
-        
+
         <ModalFooter>
-          <button className="download-button" onClick={onDownload}>
-            💾 Download
-          </button>
-          <button className="copy-button" onClick={onCopy}>
-            📋 Copy to Clipboard
-          </button>
+          {isBumlView ? (
+            <>
+              {onDownloadBuml && (
+                <button
+                  className="download-button"
+                  onClick={onDownloadBuml}
+                  disabled={isBumlLoading || !bumlData}
+                >
+                  💾 Download BUML
+                </button>
+              )}
+              {onCopyBuml && (
+                <button
+                  className="copy-button"
+                  onClick={onCopyBuml}
+                  disabled={isBumlLoading || !bumlData}
+                >
+                  📋 Copy BUML
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <button className="download-button" onClick={onDownload}>
+                💾 Download
+              </button>
+              <button className="copy-button" onClick={onCopy}>
+                📋 Copy to Clipboard
+              </button>
+            </>
+          )}
         </ModalFooter>
       </ModalContent>
     </ModalOverlay>,

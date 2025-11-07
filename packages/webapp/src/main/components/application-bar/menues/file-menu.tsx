@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext } from 'react';
 import { useImportDiagramPictureFromImage } from '../../../services/import/useImportDiagramPicture';
 import { Dropdown, NavDropdown, Modal, Spinner } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
@@ -12,12 +12,14 @@ import { useExportPDF } from '../../../services/export/useExportPdf';
 import { useExportPNG } from '../../../services/export/useExportPng';
 import { useExportSVG } from '../../../services/export/useExportSvg';
 import { useExportBUML } from '../../../services/export/useExportBuml';
+import { useProjectBumlPreview } from '../../../services/export/useProjectBumlPreview';
 import { toast } from 'react-toastify';
 import { importProject } from '../../../services/import/useImportProject';
 import { useImportDiagramToProjectWorkflow } from '../../../services/import/useImportDiagram';
 import { useProject } from '../../../hooks/useProject';
 import { JsonViewerModal } from '../../modals/json-viewer-modal/json-viewer-modal';
 import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
+import { useProjectPreviewModal } from './hooks/useProjectPreviewModal';
 
 export const FileMenu: React.FC = () => {
   const apollonEditor = useContext(ApollonEditorContext);
@@ -30,6 +32,7 @@ export const FileMenu: React.FC = () => {
   const exportAsPDF = useExportPDF();
   const exportAsJSON = useExportJSON();
   const exportAsBUML = useExportBUML();
+  const generateProjectBumlPreview = useProjectBumlPreview();
   const handleImportDiagramToProject = useImportDiagramToProjectWorkflow();
   const importDiagramPictureFromImage = useImportDiagramPictureFromImage();
 
@@ -40,10 +43,23 @@ export const FileMenu: React.FC = () => {
   const [fileError, setFileError] = React.useState('');
   const [isImporting, setIsImporting] = React.useState(false);
 
-  // JSON Viewer modal state
-  const [showJsonViewer, setShowJsonViewer] = useState(false);
-  const [jsonToView, setJsonToView] = useState('');
-  const [jsonDiagramType, setJsonDiagramType] = useState('');
+  const {
+    showJsonViewer,
+    jsonToView,
+    jsonDiagramType,
+    bumlPreview,
+    bumlPreviewError,
+    isBumlPreviewLoading,
+    canPreviewBuml,
+    bumlPreviewLabel,
+    openPreviewModal,
+    closePreviewModal,
+    handleCopyJson,
+    handleDownloadJson,
+    handleRequestBumlPreview,
+    handleCopyBumlPreview,
+    handleDownloadBumlPreview,
+  } = useProjectPreviewModal(generateProjectBumlPreview);
 
   const exportDiagram = async (exportType: 'PNG' | 'PNG_WHITE' | 'SVG' | 'JSON' | 'PDF' | 'BUML'): Promise<void> => {
     if (!editor) {
@@ -133,38 +149,16 @@ export const FileMenu: React.FC = () => {
       };
       
       const jsonString = JSON.stringify(exportData, null, 2);
-      setJsonToView(jsonString);
-      setJsonDiagramType('Project (V2.0.0)');
-      setShowJsonViewer(true);
+      openPreviewModal({
+        project: freshProject,
+        jsonContent: jsonString,
+        diagramLabel: 'Project (V2.0.0)',
+      });
     } catch (error) {
       console.error('Error previewing project JSON:', error);
       toast.error(`Failed to preview project: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
-
-  // Handler for copying JSON to clipboard
-  const handleCopyJsonToClipboard = () => {
-    navigator.clipboard.writeText(jsonToView)
-      .then(() => toast.success('JSON copied to clipboard!'))
-      .catch(() => toast.error('Failed to copy JSON to clipboard'));
-  };
-
-  // Handler for downloading JSON
-  const handleDownloadJson = () => {
-    if (!currentProject) return;
-    
-    const blob = new Blob([jsonToView], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${currentProject.name.replace(/\s+/g, '_')}_project.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success('Project JSON downloaded!');
-  };
-
   // Handler for importing single diagram to project
   const handleImportDiagramToCurrentProject = async () => {
     if (!currentProject) {
@@ -285,7 +279,7 @@ export const FileMenu: React.FC = () => {
         {/* Preview Project JSON - only show when a project is active */}
         {currentProject && (
           <NavDropdown.Item onClick={handlePreviewProjectJSON}>
-            Preview Project JSON
+            Preview Project
           </NavDropdown.Item>
         )}
 
@@ -357,9 +351,17 @@ export const FileMenu: React.FC = () => {
         isVisible={showJsonViewer}
         jsonData={jsonToView}
         diagramType={jsonDiagramType}
-        onClose={() => setShowJsonViewer(false)}
-        onCopy={handleCopyJsonToClipboard}
+        onClose={closePreviewModal}
+        onCopy={handleCopyJson}
         onDownload={handleDownloadJson}
+        enableBumlView={canPreviewBuml}
+        bumlData={bumlPreview}
+        bumlLabel={bumlPreviewLabel}
+        isBumlLoading={isBumlPreviewLoading}
+        bumlError={bumlPreviewError}
+        onRequestBuml={handleRequestBumlPreview}
+        onCopyBuml={handleCopyBumlPreview}
+        onDownloadBuml={handleDownloadBumlPreview}
       />
     </>
   );
