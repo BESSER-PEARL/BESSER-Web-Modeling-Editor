@@ -18,6 +18,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { updateCollaborators } from '../../services/share/shareSlice';
 import { showModal } from '../../services/modal/modalSlice';
 import { toast } from 'react-toastify';
+import { isUMLModel } from '../../types/project';
 
 const ApollonContainer = styled.div`
   display: flex;
@@ -93,7 +94,7 @@ export const ApollonEditorComponentWithConnection: React.FC = () => {
           }
           
           // Handle diagram updates - only update if there's a significant change
-          if (diagram?.model && editorRef.current) {
+          if (diagram?.model && isUMLModel(diagram.model) && editorRef.current) {
             // Check if the model has actually changed to avoid unnecessary updates
             const currentModel = editorRef.current.model;
             if (!currentModel || JSON.stringify(currentModel) !== JSON.stringify(diagram.model)) {
@@ -186,6 +187,12 @@ export const ApollonEditorComponentWithConnection: React.FC = () => {
         DiagramRepository.getDiagramFromServerByToken(token).then(async (diagram) => {
           if (!diagram) {
             toast.error('Diagram not found');
+            navigate('/', { relative: 'path' });
+            return;
+          }
+
+          if (!isUMLModel(diagram.model)) {
+            toast.error('Unsupported diagram data received from server');
             navigate('/', { relative: 'path' });
             return;
           }

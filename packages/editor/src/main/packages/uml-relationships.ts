@@ -8,6 +8,7 @@ import { UMLClassInheritance } from './uml-class-diagram/uml-class-inheritance/u
 import { UMLClassRealization } from './uml-class-diagram/uml-class-realization/uml-class-realization';
 import { UMLClassUnidirectional } from './uml-class-diagram/uml-class-unidirectional/uml-class-unidirectional';
 import { UMLClassOCLLink } from './uml-class-diagram/uml-class-ocl-link/uml-class-ocl-link';
+import { UMLLink } from './common/uml-link/uml-link';
 import { UMLClassLinkRel } from './uml-class-diagram/uml-class-link-rel/uml-class-link-rel';
 import { UMLCommunicationLink } from './uml-communication-diagram/uml-communication-link/uml-communication-link';
 import { UMLComponentDependency } from './uml-component-diagram/uml-component-dependency/uml-component-dependency';
@@ -43,6 +44,7 @@ export const UMLRelationships = {
   [UMLRelationshipType.ClassRealization]: UMLClassRealization,
   [UMLRelationshipType.ClassUnidirectional]: UMLClassUnidirectional,
   [UMLRelationshipType.ClassOCLLink]: UMLClassOCLLink,
+  [UMLRelationshipType.Link]: UMLLink,
   [UMLRelationshipType.ClassLinkRel]: UMLClassLinkRel,
   [UMLRelationshipType.ObjectLink]: UMLObjectLink,
   [UMLRelationshipType.ActivityControlFlow]: UMLActivityControlFlow,

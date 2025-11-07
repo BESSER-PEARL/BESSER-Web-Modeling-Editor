@@ -18,6 +18,7 @@ import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
 import { TeamPage } from './components/team/TeamPage';
 import { useProject } from './hooks/useProject';
+import {  GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 
 const postHogOptions = {
@@ -34,7 +35,8 @@ function AppContentInner() {
   // Check if current path contains a token (collaboration route)
   const hasTokenInUrl = location.pathname !== '/' && 
                        location.pathname !== '/project-settings' && 
-                       location.pathname !== '/teampage';
+                       location.pathname !== '/teampage' &&
+                       location.pathname !== '/graphical-ui-editor';
   
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
@@ -125,7 +127,18 @@ function AppContentInner() {
             </SidebarLayout>
           } 
         />
-                
+
+
+        {/* GraphicalUIEditor Studio Editor route - Multi-page support */}
+        <Route 
+          path="/graphical-ui-editor"
+          element={
+            <SidebarLayout>
+              <GraphicalUIEditor />
+            </SidebarLayout>
+          } 
+        />
+
 
         {/* Project settings route */}
         <Route 

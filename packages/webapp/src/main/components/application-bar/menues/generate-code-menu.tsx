@@ -219,6 +219,8 @@ export const GenerateCodeMenu: React.FC = () => {
   };
 
   const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
+  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
 
   return (
     <>
@@ -226,6 +228,11 @@ export const GenerateCodeMenu: React.FC = () => {
         {isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
           <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
+        ) : isGUINoCodeDiagram ? (
+          // No-Code Diagram: Show No-Code generation options
+          <>
+          <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
+          </>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
           // ...existing code...
           <>

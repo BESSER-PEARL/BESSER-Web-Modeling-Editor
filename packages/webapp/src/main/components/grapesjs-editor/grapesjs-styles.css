@@ -1,0 +1,343 @@
+/* GraphicalUIEditor Editor - Clean White Theme (matching sidebar-component.tsx) */
+
+/* White, clean backgrounds like the rest of the webapp */
+.gjs-one-bg,
+.gjs-two-bg,
+.gjs-three-bg,
+.gjs-four-bg {
+  background-color: #ffffff !important;
+}
+
+.gjs-pn-panel {
+  background-color: #ffffff !important;
+  border-right: 1px solid #ddd !important;
+}
+
+.gjs-blocks-c,
+.gjs-sm-sectors,
+.gjs-clm-tags {
+  background-color: #ffffff !important;
+}
+
+/* Dark text on white background */
+.gjs-two-color,
+.gjs-four-color,
+.gjs-four-color-h:hover {
+  color: #333 !important;
+}
+
+.gjs-block-label {
+  color: #333 !important;
+}
+
+/* Make blocks with SVG media smaller to match Font Awesome icon blocks */
+.gjs-block__media {
+  width: 100%;
+  height: auto;
+  max-height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gjs-block__media svg {
+  width: 35px !important;
+  height: 35px !important;
+  max-width: 35px !important;
+  max-height: 35px !important;
+}
+
+.gjs-block {
+  min-height: auto !important;
+  padding: 8px !important;
+}
+
+.gjs-block-label {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  margin-top: 4px !important;
+}
+
+/* Pages Panel Styling - Minimalistic */
+#pages-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+#pages-dropdown svg {
+  pointer-events: none;
+}
+
+#pages-dropdown:hover svg path {
+  fill: #fff;
+}
+
+.pages-select-minimal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.pages-select-minimal:hover {
+  opacity: 0;
+}
+
+.pages-select-minimal option {
+  background: #2a2a2a;
+  color: #fff;
+  padding: 8px;
+  font-size: 14px;
+}
+
+/* Old pages select styling (kept for compatibility) */
+.pages-select {
+  padding: 6px 12px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s;
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.pages-select:hover {
+  background: #333;
+}
+
+.pages-select:focus {
+  border-color: #007bff;
+}
+
+.pages-select option {
+  background: #2a2a2a;
+  color: #fff;
+  padding: 8px;
+}
+
+/* Emoji fallback icons for FontAwesome */
+.fa {
+  display: inline-block;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+}
+
+.fa-plus:before { content: "➕"; }
+.fa-file:before { content: "📄"; }
+
+/* Pages Panel Styling - Exact Studio SDK Structure */
+#pages-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.gs-studio-panel {
+  border-color: #555;
+}
+
+.gs-panel-pages .gs-block-manager {
+  height: 100%;
+}
+
+.gs-panel-pages .gs-block-manager__header {
+  background: transparent;
+}
+
+.gs-panel-pages .gs-block-manager__content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.gs-panel-pages .gs-cmp-accordion-handler {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.gs-panel-pages .gs-cmp-accordion-handler:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.gs-page-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.gs-page-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.gs-page-item svg path {
+  transition: fill 0.2s;
+}
+
+.delete-page-btn {
+  transition: all 0.2s;
+}
+
+.delete-page-btn:hover {
+  background: #c0392b !important;
+  transform: scale(1.1);
+}
+
+#add-page-btn {
+  flex-shrink: 0;
+}
+
+/* Utility classes for consistency */
+.gs-utl-grid {
+  display: grid;
+}
+
+.gs-utl-gap-2 {
+  gap: 0.5rem;
+}
+
+.gs-utl-p-2 {
+  padding: 0.5rem;
+}
+
+.gs-utl-text-sm {
+  font-size: 0.875rem;
+}
+
+.gs-utl-grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+
+/* Clean, minimal styling - matching webapp white theme */
+
+/* Panel borders like sidebar-component.tsx */
+.gjs-pn-views-container,
+.gjs-pn-options,
+.gjs-pn-commands {
+  border-right: 1px solid #ddd !important;
+}
+
+/* Clean buttons */
+.gjs-pn-btn {
+  background-color: transparent !important;
+  border: none !important;
+  color: #333 !important;
+}
+
+.gjs-pn-btn:hover {
+  background-color: #f5f5f5 !important;
+}
+
+.gjs-pn-btn.gjs-pn-active {
+  background-color: #e8e8e8 !important;
+}
+
+/* Clean inputs like the webapp */
+.gjs-sm-property input,
+.gjs-sm-property select,
+.gjs-field input,
+.gjs-field select {
+  background-color: #ffffff !important;
+  border: 1px solid #ddd !important;
+  color: #333 !important;
+  border-radius: 4px !important;
+}
+
+.gjs-sm-property input:focus,
+.gjs-sm-property select:focus {
+  border-color: #0066cc !important;
+  outline: none !important;
+}
+
+/* Clean blocks */
+.gjs-block {
+  background-color: #ffffff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  transition: all 0.2s ease !important;
+}
+
+.gjs-block:hover {
+  background-color: #f5f5f5 !important;
+  border-color: #0066cc !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15) !important;
+}
+
+/* Canvas and frame styling */
+.gjs-cv-canvas {
+  background-color: #f9f9f9 !important;
+}
+
+.gjs-frame {
+  background-color: #ffffff !important;
+  box-shadow: 0 0 0 1px #ddd !important;
+}
+
+/* Modal styling */
+.gjs-mdl-dialog {
+  background-color: #ffffff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.gjs-mdl-header {
+  background-color: #f5f5f5 !important;
+  color: #333 !important;
+  border-bottom: 1px solid #ddd !important;
+  padding: 16px 20px !important;
+  font-weight: 600 !important;
+}
+
+.gjs-mdl-content {
+  background-color: #ffffff !important;
+  padding: 20px !important;
+}
+
+.gjs-mdl-btn-close {
+  color: #666 !important;
+  transition: color 0.2s !important;
+}
+
+.gjs-mdl-btn-close:hover {
+  color: #e74c3c !important;
+}
+
+/* Improve selected component styling */
+.gjs-selected {
+  outline: 2px solid #0066cc !important;
+  outline-offset: 2px !important;
+}
+
+.gjs-hovered {
+  outline: 2px dashed #0066cc !important;
+  outline-offset: 2px !important;
+  opacity: 0.8 !important;
+}
+
+/* Toolbar improvements */
+.gjs-toolbar {
+  background: #ffffff !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  padding: 4px !important;
+}
+
+.gjs-toolbar-item {
+  color: #333 !important;
+  border-radius: 2px !important;
+  transition: all 0.2s !important;
+}
+
+.gjs-toolbar-item:hover {
+  background-color: #f5f5f5 !important;
+}

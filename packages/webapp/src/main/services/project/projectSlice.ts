@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { UMLModel, UMLDiagramType } from '@besser/wme';
-import { BesserProject, ProjectDiagram, SupportedDiagramType, toSupportedDiagramType, toUMLDiagramType } from '../../types/project';
+import { BesserProject, ProjectDiagram, SupportedDiagramType, isUMLModel, toSupportedDiagramType, toUMLDiagramType } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../constant';
 
@@ -55,16 +55,20 @@ export const loadProjectThunk = createAsyncThunk(
       const compatibleDiagram = {
         id: currentDiagram.id,
         title: currentDiagram.title,
-        model: currentDiagram.model,
+        model: isUMLModel(currentDiagram.model) ? currentDiagram.model : undefined,
         lastUpdate: currentDiagram.lastUpdate,
       };
       
-      // Update the diagram slice
-      console.log('Syncing project load to diagram slice...');
-      dispatch(changeDiagramType(diagramType));
-      dispatch(loadDiagram(compatibleDiagram));
-      dispatch(setCreateNewEditor(true));
-      console.log('Successfully synced project load');
+      // Update the diagram slice (only for UML diagrams, skip GUINoCodeDiagram)
+      if (diagramType !== null) {
+        console.log('Syncing project load to diagram slice...');
+        dispatch(changeDiagramType(diagramType));
+        dispatch(loadDiagram(compatibleDiagram));
+        dispatch(setCreateNewEditor(true));
+        console.log('Successfully synced project load');
+      } else {
+        console.log('Skipping diagram sync for non-UML diagram type:', project.currentDiagramType);
+      }
     } catch (error) {
       console.warn('Could not sync to diagram slice:', error);
     }
@@ -93,12 +97,21 @@ export const createProjectThunk = createAsyncThunk(
         lastUpdate: currentDiagram.lastUpdate,
       };
       
-      // Update the diagram slice
-      console.log('Syncing project creation to diagram slice...');
-      dispatch(changeDiagramType(diagramType));
-      dispatch(loadDiagram(compatibleDiagram));
-      dispatch(setCreateNewEditor(true));
-      console.log('Successfully synced project creation');
+      // Update the diagram slice (only for UML diagrams, skip GUINoCodeDiagram)
+      if (diagramType !== null) {
+        console.log('Syncing project creation to diagram slice...');
+        dispatch(changeDiagramType(diagramType));
+        dispatch(loadDiagram({
+          id: currentDiagram.id,
+          title: currentDiagram.title,
+          model: isUMLModel(currentDiagram.model) ? currentDiagram.model : undefined,
+          lastUpdate: currentDiagram.lastUpdate,
+        }));
+        dispatch(setCreateNewEditor(true));
+        console.log('Successfully synced project creation');
+      } else {
+        console.log('Skipping diagram sync for non-UML diagram type:', project.currentDiagramType);
+      }
     } catch (error) {
       console.warn('Could not sync to diagram slice:', error);
     }
@@ -157,11 +170,12 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     // Special handling for Object Diagrams - set up reference to Class Diagram
     if (diagramType === UMLDiagramType.ObjectDiagram) {
       const classDiagram = currentProject.diagrams.ClassDiagram;
-      if (classDiagram?.model) {
+      const classDiagramModel = classDiagram?.model;
+      if (isUMLModel(classDiagramModel)) {
         try {
           const { diagramBridge } = await import('@besser/wme');
           // Set the class diagram data in the bridge so Object Diagram can reference it
-          diagramBridge.setClassDiagramData(classDiagram.model);
+          diagramBridge.setClassDiagramData(classDiagramModel);
           console.log('Set class diagram reference for object diagram');
         } catch (error) {
           console.warn('Could not set class diagram reference:', error);
@@ -177,7 +191,7 @@ export const switchDiagramTypeThunk = createAsyncThunk(
       const compatibleDiagram = {
         id: diagram.id,
         title: diagram.title,
-        model: diagram.model,
+        model: isUMLModel(diagram.model) ? diagram.model : undefined,
         lastUpdate: diagram.lastUpdate,
       };
       

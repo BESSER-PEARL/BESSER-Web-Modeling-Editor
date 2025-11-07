@@ -1,0 +1,94 @@
+# Move to ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@main in the future
+name: Build and Push Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        type: string
+        default: ${{ github.repository }}
+        description: "The name for the docker image (Default: Repository name)"
+      docker-file:
+        type: string
+        default: Dockerfile
+        description: "The path to the Dockerfile (Default: ./Dockerfile)"
+      docker-context:
+        type: string
+        default: .
+        description: "The context for the Docker build (Default: .)"
+      build-args:
+        type: string
+        description: "List of additional build contexts (e.g., name=path)"
+        required: false
+      platforms:
+        type: string
+        description: "List of platforms for which to build the image"
+        default: linux/amd64,linux/arm64
+      registry:
+        type: string
+        default: ghcr.io
+        description: "The registry to push the image to (Default: ghcr.io)"
+      
+    secrets:
+      registry-user:
+        required: false
+      registry-password:
+        required: false
+    
+    outputs:
+      image-tag:
+        description: "The tag of the pushed image"
+        value: ${{ jobs.build.outputs.image-tag }}
+jobs:
+  build:
+    name: Build Docker Image for ${{ inputs.image-name }}
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.set-tag.outputs.image-tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+  
+      - name: Install Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.registry-user || github.actor }}
+          password: ${{ secrets.registry-password || secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.registry }}/${{ inputs.image-name }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,prefix=,format=long
+
+      - name: Set image tag output
+        id: set-tag
+        run: echo "image-tag=${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.docker-context }}
+          file: ${{ inputs.docker-file }}
+          platforms: ${{ inputs.platforms }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ inputs.build-args }}
+          push: true

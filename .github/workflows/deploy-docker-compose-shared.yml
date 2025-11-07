@@ -1,0 +1,163 @@
+# ls1intum/.github/workflows/deploy-docker-compose.yml
+name: Deploy Docker Compose
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        description: "The deployment environment (e.g., production, staging)"
+        required: true
+      docker-compose-file:
+        type: string
+        default: "./docker-compose.yml"
+        description: "Path to the Docker Compose file (Default: ./docker-compose.yml)"
+      main-image-name:
+        type: string
+        description: "The name of the main image for checking if it exists with the given tag"
+        required: true
+      image-tag:
+        type: string
+        description: "Image tag to deploy (default: pr-<number> if PR exists, latest for default branch)"
+      env-vars:
+        type: string
+        description: "Additional environment variables in KEY=VALUE format, separated by newlines"
+        required: false
+
+jobs:
+  prepare-deploy:
+    runs-on: ubuntu-latest
+    environment: Dev
+    outputs:
+      image-tag-to-deploy: ${{ steps.retrieve-image-tag.outputs.image-tag-to-deploy }}
+    
+    steps:
+      - name: Retrieve image tag to deploy
+        id: retrieve-image-tag
+        run: |
+          if [ -n "${{ inputs.image-tag }}" ]; then
+            echo "Use image-tag input ${{ inputs.image-tag }} for deployment."
+            echo "image-tag-to-deploy=${{ inputs.image-tag }}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          REF=$(echo "${{ github.event.ref }}" | sed -n 's#^refs/heads/##p')
+          echo "Check if $REF is the default branch (${{ github.event.repository.default_branch }})."
+          if [ "$REF" = "${{ github.event.repository.default_branch }}" ]; then
+            echo "Use latest for deployment."
+            echo "image-tag-to-deploy=latest" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          PULLS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/pulls?head=${{ github.repository_owner }}:${REF}")
+          PR_NUMBER=$(echo "$PULLS" | jq -r '.[0].number')
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No PR found for branch $REF."
+            exit 1
+          else
+            echo "PR #$PR_NUMBER found for branch $REF."
+            echo "Use image-tag pr-$PR_NUMBER for deployment."
+            echo "image-tag-to-deploy=pr-$PR_NUMBER" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if image exists
+        run: |
+          IMAGE_NAME="${{ inputs.main-image-name }}"
+          IMAGE_TAG="${{ steps.retrieve-image-tag.outputs.image-tag-to-deploy }}"
+
+          ENCODED_TOKEN=$(echo -n "${{ secrets.GITHUB_TOKEN }}" | base64)
+          TAG_EXISTS=$(curl -s -H "Authorization: Bearer ${ENCODED_TOKEN}" \
+            https://ghcr.io/v2/${IMAGE_NAME}/tags/list \
+            | jq -r --arg TAG "${IMAGE_TAG}" '.tags[] | select(. == $TAG)')
+          
+          if [ -z "$TAG_EXISTS" ]; then
+            echo "Image ${IMAGE_NAME}:${IMAGE_TAG} does not exist."
+            exit 1
+          else
+            echo "Image ${IMAGE_NAME}:${IMAGE_TAG} exists."
+          fi
+
+  deploy:
+    needs: prepare-deploy
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: SSH to VM and execute docker compose down (if exists)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.VM_HOST }}
+          username: ${{ vars.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
+          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
+          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
+          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
+          script: |
+            #!/bin/bash
+            set -e  # Exit immediately if a command exits with a non-zero status
+
+            COMPOSE_FILE="${{ inputs.docker-compose-file }}"
+
+            # Check if docker-compose.prod.yml exists
+            if [ -f "$COMPOSE_FILE" ]; then
+              echo "$COMPOSE_FILE found."
+          
+              # Check if .env exists
+              if [ -f ".env" ]; then
+                docker compose -f "$COMPOSE_FILE" --env-file=".env" down --remove-orphans --rmi all
+              else
+                docker compose -f "$COMPOSE_FILE" down --remove-orphans --rmi all
+              fi
+            else
+              echo "$COMPOSE_FILE does not exist. Skipping docker compose down."
+            fi
+
+      - name: Copy docker compose file to VM host
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.VM_HOST }}
+          username: ${{ vars.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
+          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
+          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
+          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
+          source: ${{ inputs.docker-compose-file }}
+          target: /home/${{ vars.VM_USERNAME }}
+
+      - name: SSH to VM and create .env file
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.VM_HOST }}
+          username: ${{ vars.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
+          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
+          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
+          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
+          script: |
+            touch .env
+
+            echo "ENVIRONMENT=${{ inputs.environment }}" > .env
+            echo "IMAGE_TAG=${{ needs.prepare-deploy.outputs.image-tag-to-deploy }}" >> .env
+            if [ "${{ inputs.env-vars }}" != "" ]; then
+              echo "${{ inputs.env-vars }}" >> .env
+            fi
+
+      - name: SSH to VM and execute docker compose up
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.VM_HOST }}
+          username: ${{ vars.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
+          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
+          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
+          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
+          script: |
+            docker compose -f ${{ inputs.docker-compose-file }} --env-file=.env up --pull=always -d

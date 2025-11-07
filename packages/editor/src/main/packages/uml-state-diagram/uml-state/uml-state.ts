@@ -1,5 +1,5 @@
 import { DeepPartial } from 'redux';
-import { StateElementType } from '..';
+import { StateElementType, StateRelationshipType } from '..';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { IUMLContainer, UMLContainer } from '../../../services/uml-container/uml-container';
@@ -11,6 +11,7 @@ import { Text } from '../../../utils/svg/text';
 import { UMLElementType } from '../../uml-element-type';
 import { UMLStateBody } from '../uml-state-body/uml-state-body';
 import { UMLStateFallbackBody } from '../uml-state-fallback_body/uml-state-fallback_body';
+import { GeneralRelationshipType } from '../../uml-relationship-type';
 
 export interface IUMLState extends IUMLContainer {
   italic: boolean;
@@ -37,6 +38,12 @@ export class UMLState extends UMLContainer implements IUMLState {
   deviderPosition: number = 0;
   hasBody: boolean = false;
   hasFallbackBody: boolean = false;
+
+
+   static supportedRelationships = [
+    StateRelationshipType.StateTransition,
+    GeneralRelationshipType.Link,
+   ];
 
   get headerHeight() {
     return this.stereotype ? UMLState.stereotypeHeaderHeight : UMLState.nonStereotypeHeaderHeight;

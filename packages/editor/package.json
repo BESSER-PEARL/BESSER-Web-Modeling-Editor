@@ -87,7 +87,8 @@
     "postcss-syntax": "0.36.2",
     "prettier": "3.2.5",
     "redux-mock-store": "1.5.4",
-    "serve": "14.2.4",
+    "rimraf": "5.0.5",
+    "serve": "^14.2.5",
     "sleep-promise": "9.1.0",
     "start-server-and-test": "2.0.3",
     "style-loader": "3.3.4",
@@ -100,8 +101,7 @@
     "typescript": "5.4.5",
     "webpack": "5.96.1",
     "webpack-cli": "5.1.4",
-    "webpack-dev-server": "4.15.2",
-    "webpack-merge": "5.10.0",
-    "rimraf": "5.0.5"
+    "webpack-dev-server": "^4.15.2",
+    "webpack-merge": "5.10.0"
   }
 }
