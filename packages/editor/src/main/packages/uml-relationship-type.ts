@@ -12,8 +12,12 @@ import { SyntaxTreeRelationshipType } from './syntax-tree';
 import { FlowchartRelationshipType } from './flowchart';
 import { BPMNRelationshipType } from './bpmn';
 import { StateRelationshipType } from './uml-state-diagram';
+import { GeneralRelationshipType } from './common/uml-link/general-relationship-type';
 
 import { AgentRelationshipType } from './agent-state-diagram';
+
+export { GeneralRelationshipType };
+
 
 export type UMLRelationshipType =
   | keyof typeof ClassRelationshipType
@@ -29,7 +33,8 @@ export type UMLRelationshipType =
   | keyof typeof FlowchartRelationshipType
   | keyof typeof BPMNRelationshipType
   | keyof typeof StateRelationshipType
-  | keyof typeof AgentRelationshipType;
+  | keyof typeof AgentRelationshipType
+  | keyof typeof GeneralRelationshipType;
 
 export const UMLRelationshipType = {
   ...ClassRelationshipType,
@@ -46,6 +51,7 @@ export const UMLRelationshipType = {
   ...BPMNRelationshipType,
   ...StateRelationshipType,
   ...AgentRelationshipType,
+  ...GeneralRelationshipType,
 };
 
 export const DefaultUMLRelationshipType: { [key in UMLDiagramType]: UMLRelationshipType } = {

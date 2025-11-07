@@ -9,6 +9,7 @@ import { LocalStorageRepository } from '../../../services/local-storage/local-st
 import { displayError } from '../../../services/error-management/errorManagementSlice';
 import { DiagramRepository } from '../../../services/diagram/diagram-repository';
 import { setDisplayUnpublishedVersion } from '../../../services/diagram/diagramSlice';
+import { isUMLModel } from '../../../types/project';
 
 export const CreateVersionModal: React.FC<ModalContentProps> = ({ close }) => {
   const dispatch = useAppDispatch();
@@ -23,7 +24,7 @@ export const CreateVersionModal: React.FC<ModalContentProps> = ({ close }) => {
   };
 
   const createNewVersion = () => {
-    if (!diagram || !diagram.model || Object.keys(diagram.model.elements).length === 0) {
+    if (!diagram || !isUMLModel(diagram.model) || Object.keys(diagram.model.elements).length === 0) {
       dispatch(
         displayError(
           'Publishing version fialed',

@@ -17,6 +17,7 @@ import {
   updateDiagramThunk,
 } from '../../../services/diagram/diagramSlice';
 import { selectDisplaySidebar, toggleSidebar } from '../../../services/version-management/versionManagementSlice';
+import { isUMLModel } from '../../../types/project';
 
 export const ShareModal: React.FC<ModalContentProps> = ({ close }) => {
   const dispatch = useAppDispatch();
@@ -141,7 +142,7 @@ export const ShareModal: React.FC<ModalContentProps> = ({ close }) => {
   };
 
   const publishDiagram = async () => {
-    if (!diagram || !diagram.model || Object.keys(diagram.model.elements).length === 0) {
+    if (!diagram || !isUMLModel(diagram.model) || Object.keys(diagram.model.elements).length === 0) {
       dispatch(
         displayError(
           'Sharing diagram failed',

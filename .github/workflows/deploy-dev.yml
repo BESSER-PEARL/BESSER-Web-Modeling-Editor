@@ -1,0 +1,32 @@
+name: Deploy to Dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      image-tag:
+        type: string
+        description: "Image tag to deploy (default: pr-<number> if PR exists, latest for default branch)"
+
+jobs:  
+  prepare-env:
+    runs-on: ubuntu-latest
+    environment: Dev
+    outputs:
+      env-vars: |
+        DEPLOYMENT_URL=${{ vars.DEPLOYMENT_URL }}
+        APOLLON_REDIS_DIAGRAM_TTL=${{ vars.APOLLON_REDIS_DIAGRAM_TTL }}
+    steps:
+      - name: Do nothing
+        run: echo "Nothing to do here"
+
+  deploy:
+    needs: prepare-env
+    # TODO: uses: ls1intum/.github/.github/workflows/deploy-docker-compose.yml@main
+    uses: ./.github/workflows/deploy-docker-compose-shared.yml
+    with:
+      environment: Dev
+      docker-compose-file: "./docker-compose.prod.yml"
+      main-image-name: ls1intum/apollon_standalone
+      image-tag: ${{ inputs.image-tag }}
+      env-vars: ${{ needs.prepare-env.outputs.env-vars }}
+    secrets: inherit

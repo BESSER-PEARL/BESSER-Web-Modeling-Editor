@@ -7,6 +7,7 @@ import { setCreateNewEditor, updateDiagramThunk, selectCreatenewEditor } from '.
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectPreviewedDiagramIndex } from '../../services/version-management/versionManagementSlice';
+import { isUMLModel } from '../../types/project';
 
 const ApollonContainer = styled.div`
   display: flex;
@@ -39,7 +40,7 @@ export const ApollonEditorComponent: React.FC = () => {
         await editorRef.current.nextRender;
 
         // Only load the model if we're not changing diagram type
-        if (reduxDiagram.model && reduxDiagram.model.type === options.type) {
+        if (reduxDiagram.model && isUMLModel(reduxDiagram.model) && reduxDiagram.model.type === options.type) {
           editorRef.current.model = reduxDiagram.model;
         }
 
@@ -59,7 +60,7 @@ export const ApollonEditorComponent: React.FC = () => {
         await editorRef.current.nextRender;
 
         const modelToPreview = reduxDiagram?.versions && reduxDiagram.versions[previewedDiagramIndex]?.model;
-        if (modelToPreview) {
+        if (isUMLModel(modelToPreview)) {
           editorRef.current.model = modelToPreview;
         }
       }

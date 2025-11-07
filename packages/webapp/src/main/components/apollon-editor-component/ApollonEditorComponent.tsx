@@ -8,6 +8,7 @@ import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectPreviewedDiagramIndex } from '../../services/version-management/versionManagementSlice';
 import { addDiagramToCurrentProject } from '../../utils/localStorage';
+import { isUMLModel } from '../../types/project';
 
 const ApollonContainer = styled.div`
   display: flex;
@@ -28,6 +29,7 @@ export const ApollonEditorComponent: React.FC = () => {
   const createNewEditor = useAppSelector(selectCreatenewEditor);
   const previewedDiagramIndex = useAppSelector(selectPreviewedDiagramIndex);
   const { setEditor } = useContext(ApollonEditorContext);
+  const currentModel = isUMLModel(reduxDiagram?.model) ? reduxDiagram?.model : undefined;
   
   // Track if this diagram was added to the project to avoid duplicate additions
   const diagramAddedToProjectRef = useRef<string | null>(null);
@@ -50,8 +52,8 @@ export const ApollonEditorComponent: React.FC = () => {
         await editorRef.current.nextRender;
 
         // Only load the model if we're not changing diagram type
-        if (reduxDiagram && reduxDiagram.model && reduxDiagram.model.type === options.type) {
-          editorRef.current.model = reduxDiagram.model;
+        if (currentModel && currentModel.type === options.type) {
+          editorRef.current.model = currentModel;
         }
 
         // Debounced model change handler
@@ -61,9 +63,9 @@ export const ApollonEditorComponent: React.FC = () => {
           
           clearTimeout(timeoutId);
           timeoutId = setTimeout(() => {
-            if (JSON.stringify(model) !== JSON.stringify(reduxDiagram?.model)) {
+            if (JSON.stringify(model) !== JSON.stringify(currentModel)) {
               // Check if this is a drag and drop operation (empty diagram becomes non-empty)
-              const wasEmpty = !reduxDiagram?.model || !reduxDiagram.model.elements || Object.keys(reduxDiagram.model.elements).length === 0;
+              const wasEmpty = !currentModel || !currentModel.elements || Object.keys(currentModel.elements).length === 0;
               const isNowNonEmpty = model && model.elements && Object.keys(model.elements).length > 0;
               
               // If diagram went from empty to non-empty, and hasn't been added to project yet, add it
@@ -92,7 +94,7 @@ export const ApollonEditorComponent: React.FC = () => {
         await editorRef.current.nextRender;
 
         const modelToPreview = reduxDiagram?.versions && reduxDiagram.versions[previewedDiagramIndex]?.model;
-        if (modelToPreview) {
+        if (isUMLModel(modelToPreview)) {
           editorRef.current.model = modelToPreview;
         }
       }

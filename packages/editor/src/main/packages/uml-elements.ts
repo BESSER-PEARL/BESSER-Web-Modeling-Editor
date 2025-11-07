@@ -40,6 +40,8 @@ import { FlowchartDecision } from './flowchart/flowchart-decision/flowchart-deci
 import { FlowchartProcess } from './flowchart/flowchart-process/flowchart-process';
 import { FlowchartInputOutput } from './flowchart/flowchart-input-output/flowchart-input-output';
 import { ColorLegend } from './common/color-legend/color-legend';
+import { Comments } from './common/comments/comments';
+
 import { BPMNTask } from './bpmn/bpmn-task/bpmn-task';
 import { BPMNSubprocess } from './bpmn/bpmn-subprocess/bpmn-subprocess';
 import { BPMNStartEvent } from './bpmn/bpmn-start-event/bpmn-start-event';
@@ -72,6 +74,7 @@ import { AgentIntentBody } from './agent-state-diagram/agent-intent-body/agent-i
 import { AgentState } from './agent-state-diagram/agent-state/agent-state';
 import { AgentStateBody } from './agent-state-diagram/agent-state-body/agent-state-body';
 import { AgentStateFallbackBody } from './agent-state-diagram/agent-state-fallback-body/agent-state-fallback-body';
+
 
 
 export const UMLElements = {
@@ -117,6 +120,7 @@ export const UMLElements = {
   [UMLElementType.FlowchartDecision]: FlowchartDecision,
   [UMLElementType.FlowchartInputOutput]: FlowchartInputOutput,
   [UMLElementType.ColorLegend]: ColorLegend,
+  [UMLElementType.Comments]: Comments,
   [UMLElementType.BPMNTask]: BPMNTask,
   [UMLElementType.BPMNSubprocess]: BPMNSubprocess,
   [UMLElementType.BPMNTransaction]: BPMNTransaction,
