@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
 import { useImportDiagramPictureFromImage } from '../../../services/import/useImportDiagramPicture';
+import { useImportDiagramFromKG } from '../../../services/import/useImportDiagramKG';
 import { Dropdown, NavDropdown, Modal, Spinner } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { ModalContentType } from '../../modals/application-modal-types';
@@ -30,9 +31,10 @@ export const FileMenu: React.FC = () => {
   const exportAsBUML = useExportBUML();
   const handleImportDiagramToProject = useImportDiagramToProjectWorkflow();
   const importDiagramPictureFromImage = useImportDiagramPictureFromImage();
+  const importDiagramFromKG = useImportDiagramFromKG();
 
   // Modal state for feedback and input
-  const [showImportModal, setShowImportModal] = React.useState(false);
+  const [importModalType, setImportModalType] = React.useState<'image' | 'kg' | null>(null);
   const [apiKey, setApiKey] = React.useState('');
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [fileError, setFileError] = React.useState('');
@@ -102,21 +104,48 @@ export const FileMenu: React.FC = () => {
     }
   };
 
-  // Handler for importing diagram picture to project, triggers modal popup
   const handleImportDiagramPictureToCurrentProject = React.useCallback(() => {
-    setShowImportModal(true);
+    setImportModalType('image');
     setApiKey('');
     setSelectedFile(null);
     setFileError('');
   }, []);
 
+  const handleImportKGToCurrentProject = React.useCallback(() => {
+    setImportModalType('kg');
+    setApiKey('');
+    setSelectedFile(null);
+    setFileError('');
+  }, []);
+
+
   // File input change handler (PNG/JPEG only)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
       const allowedTypes = ['image/png', 'image/jpeg'];
       if (!allowedTypes.includes(file.type)) {
         setFileError('Only PNG or JPEG files are allowed.');
+        setSelectedFile(null);
+      } else {
+        setFileError('');
+        setSelectedFile(file);
+      }
+    } else {
+      setFileError('');
+      setSelectedFile(null);
+    }
+  };
+
+  // KG File input change handler (TTL/JSON only)
+  const handleKGFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      const allowedTypes = ['application/json', 'text/turtle', 'application/x-turtle'];
+      const allowedExtensions = ['.json', '.ttl'];
+       const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+      if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+        setFileError('Only TTL or JSON files are allowed.');
         setSelectedFile(null);
       } else {
         setFileError('');
@@ -136,9 +165,25 @@ export const FileMenu: React.FC = () => {
       const result = await importDiagramPictureFromImage(selectedFile, apiKey);
       toast.success(result.message);
       toast.info(`Imported diagram type: ${result.diagramType}`);
-      setShowImportModal(false);
+      setImportModalType(null);
     } catch (error) {
-      setShowImportModal(false);
+      setImportModalType(null);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  // Handler for Import KG button in modal
+  const handleImportDiagramFromKG = async () => {
+    if (!selectedFile || !apiKey || fileError) return;
+    setIsImporting(true);
+    try {
+      const result = await importDiagramFromKG(selectedFile, apiKey);
+      toast.success(result.message);
+      toast.info(`Imported diagram type: ${result.diagramType}`);
+      setImportModalType(null);
+    } catch (error) {
+      setImportModalType(null);
     } finally {
       setIsImporting(false);
     }
@@ -183,6 +228,19 @@ export const FileMenu: React.FC = () => {
           </>
         )}
 
+        {/* Import Single Diagram from KG to Project - only show when a project is active */}
+        {currentProject && (
+          <>
+            {/* <NavDropdown.Divider /> */}
+            <NavDropdown.Item 
+              onClick={handleImportKGToCurrentProject}
+              title="Import and convert a Knowledge Graph (KG) into a class diagram and add it to the current project"
+            >
+              Import Class Diagram from KG to Project
+            </NavDropdown.Item>
+          </>
+        )}
+
         {/* Load */}
         {/* <NavDropdown.Item onClick={handleLoadProject}>
           Load Project
@@ -204,66 +262,127 @@ export const FileMenu: React.FC = () => {
 
       </NavDropdown>
 
-      {/* Modal for API key and file upload */}
-      <Modal show={showImportModal} onHide={() => setShowImportModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Import Class Diagram from Image</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {isImporting && (
-            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 80 }}>
-              <Spinner animation="border" role="status" aria-label="Importing...">
-                <span className="visually-hidden">Importing...</span>
-              </Spinner>
-            </div>
-          )}
-          {!isImporting && (
-            <>
-              <p className="mb-3 text-muted">
-                OpenAI's GPT will be used as a large language model (LLM) to automatically extract the class diagram from your uploaded image and import it into the modeling environment.
-              </p>
-              <form>
-                <div className="mb-3">
-                  <label htmlFor="openai-api-key" className="form-label">OpenAI API Key</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="openai-api-key"
-                    value={apiKey}
-                    onChange={e => setApiKey(e.target.value)}
-                    placeholder="Enter your OpenAI API key"
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="diagram-image-file" className="form-label">Upload Diagram Image (PNG or JPEG)</label>
-                  <input
-                    type="file"
-                    className="form-control"
-                    id="diagram-image-file"
-                    accept="image/png, image/jpeg"
-                    onChange={handleFileChange}
-                  />
-                  {fileError && <div className="text-danger mt-1">{fileError}</div>}
-                  {selectedFile && <div className="mt-1">Selected file: {selectedFile.name}</div>}
-                </div>
-              </form>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <button className="btn btn-secondary" onClick={() => setShowImportModal(false)} disabled={isImporting}>
-            Cancel
-          </button>
-          <button
-            className="btn btn-primary"
-            disabled={!apiKey || !selectedFile || !!fileError || isImporting}
-            onClick={handleImportDiagramPictureFromImage}
-          >
-            {isImporting ? 'Importing...' : 'Import'}
-          </button>
-        </Modal.Footer>
-      </Modal>
+      {/* Import from Image Modal */}
+      {importModalType === 'image' && (
+        <Modal show onHide={() => setImportModalType(null)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Import Class Diagram from Image</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {isImporting ? (
+              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 80 }}>
+                <Spinner animation="border" role="status" aria-label="Importing..." />
+              </div>
+            ) : (
+              <>
+                <p className="mb-3 text-muted">
+                  OpenAI's GPT will be used as a large language model (LLM) to automatically extract the class diagram
+                  from your uploaded image and import it into the modeling environment.
+                </p>
+                <form>
+                  <div className="mb-3">
+                    <label htmlFor="openai-api-key" className="form-label">OpenAI API Key</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="openai-api-key"
+                      value={apiKey}
+                      onChange={e => setApiKey(e.target.value)}
+                      placeholder="Enter your OpenAI API key"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="diagram-image-file" className="form-label">Upload Diagram Image (PNG or JPEG)</label>
+                    <input
+                      type="file"
+                      className="form-control"
+                      id="diagram-image-file"
+                      accept="image/png, image/jpeg"
+                      onChange={handleImageFileChange}
+                    />
+                    {fileError && <div className="text-danger mt-1">{fileError}</div>}
+                    {selectedFile && <div className="mt-1">Selected file: {selectedFile.name}</div>}
+                  </div>
+                </form>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <button className="btn btn-secondary" onClick={() => setImportModalType(null)} disabled={isImporting}>
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={!apiKey || !selectedFile || !!fileError || isImporting}
+              onClick={handleImportDiagramPictureFromImage}
+            >
+              {isImporting ? 'Importing...' : 'Import'}
+            </button>
+          </Modal.Footer>
+        </Modal>
+      )}
+
+      {/* Import from KG Modal */}
+      {importModalType === 'kg' && (
+        <Modal show onHide={() => setImportModalType(null)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Import Class Diagram from Knowledge Graph (KG)</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {isImporting ? (
+              <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 80 }}>
+                <Spinner animation="border" role="status" aria-label="Importing..." />
+              </div>
+            ) : (
+              <>
+                <p className="mb-3 text-muted">
+                  OpenAI's GPT will be used as a large language model (LLM) to automatically extract the class diagram
+                  from your uploaded Knowledge Graph and import it into the modeling environment.
+                </p>
+                <form>
+                  <div className="mb-3">
+                    <label htmlFor="openai-api-key" className="form-label">OpenAI API Key</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="openai-api-key"
+                      value={apiKey}
+                      onChange={e => setApiKey(e.target.value)}
+                      placeholder="Enter your OpenAI API key"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label htmlFor="diagram-kg-file" className="form-label">Upload Knowledge Graph (TTL or JSON)</label>
+                    <input
+                      type="file"
+                      className="form-control"
+                      id="diagram-kg-file"
+                      accept=".ttl,.json"
+                      onChange={handleKGFileChange}
+                    />
+                    {fileError && <div className="text-danger mt-1">{fileError}</div>}
+                    {selectedFile && <div className="mt-1">Selected file: {selectedFile.name}</div>}
+                  </div>
+                </form>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <button className="btn btn-secondary" onClick={() => setImportModalType(null)} disabled={isImporting}>
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={!apiKey || !selectedFile || !!fileError || isImporting}
+              onClick={handleImportDiagramFromKG}
+            >
+              {isImporting ? 'Importing...' : 'Import'}
+            </button>
+          </Modal.Footer>
+        </Modal>
+      )}
     </>
   );
 };
