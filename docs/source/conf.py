@@ -50,8 +50,17 @@ exclude_patterns = [
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "furo"
 html_static_path = ["_static"]
+
+# Use Furo's light/dark logos. Place the images in docs/source/_static/
+html_theme_options = {
+    "light_logo": "besser_logo_light.png",
+    "dark_logo": "besser_logo_dark.png",
+}
+
+# Optional: favicon placed in _static directory
+html_favicon = "_static/besser_ico.ico"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
