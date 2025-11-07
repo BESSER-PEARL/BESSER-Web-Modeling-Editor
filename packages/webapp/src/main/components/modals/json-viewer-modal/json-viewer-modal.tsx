@@ -288,7 +288,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
   onDownload,
   enableBumlView = false,
   bumlData,
-  bumlLabel = 'Diagram BUML',
+  bumlLabel = 'Diagram B-UML',
   isBumlLoading = false,
   bumlError,
   onRequestBuml,
@@ -347,20 +347,20 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                 className={activeTab === 'buml' ? 'active' : ''}
                 onClick={() => handleTabChange('buml')}
               >
-                BUML
+                B-UML
               </button>
             </TabSwitcher>
           )}
 
           {isBumlView ? (
             <>
-              {isBumlLoading && <PlaceholderBox>Generating BUML preview...</PlaceholderBox>}
+              {isBumlLoading && <PlaceholderBox>Generating B-UML preview...</PlaceholderBox>}
               {!isBumlLoading && bumlError && <ErrorBox>{bumlError}</ErrorBox>}
               {!isBumlLoading && !bumlError && bumlData && (
                 <HighlightedCode code={bumlData} language="python" />
               )}
               {!isBumlLoading && !bumlError && !bumlData && (
-                <PlaceholderBox>No BUML preview is available yet.</PlaceholderBox>
+                <PlaceholderBox>No B-UML preview is available yet.</PlaceholderBox>
               )}
             </>
           ) : (
@@ -377,7 +377,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                   onClick={onDownloadBuml}
                   disabled={isBumlLoading || !bumlData}
                 >
-                  💾 Download BUML
+                  💾 Download B-UML
                 </button>
               )}
               {onCopyBuml && (
@@ -386,7 +386,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                   onClick={onCopyBuml}
                   disabled={isBumlLoading || !bumlData}
                 >
-                  📋 Copy BUML
+                  📋 Copy B-UML
                 </button>
               )}
             </>

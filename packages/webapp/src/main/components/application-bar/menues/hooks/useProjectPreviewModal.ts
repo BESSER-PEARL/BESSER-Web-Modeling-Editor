@@ -89,12 +89,12 @@ export const useProjectPreviewModal = (
     try {
       const bumlText = await generateProjectBumlPreview(projectForPreview);
       setBumlPreview(bumlText);
-      toast.success('BUML preview generated!');
+      toast.success('B-UML preview generated!');
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to generate BUML preview.';
+        error instanceof Error ? error.message : 'Failed to generate B-UML preview.';
       setBumlPreviewError(message);
-      toast.error(`Failed to generate BUML preview: ${message}`);
+      toast.error(`Failed to generate B-UML preview: ${message}`);
     } finally {
       setIsBumlPreviewLoading(false);
     }
@@ -102,14 +102,14 @@ export const useProjectPreviewModal = (
 
   const handleCopyBumlPreview = useCallback(() => {
     if (!bumlPreview) {
-      toast.error('No BUML preview to copy.');
+      toast.error('No B-UML preview to copy.');
       return;
     }
 
     navigator.clipboard
       .writeText(bumlPreview)
-      .then(() => toast.success('BUML copied to clipboard!'))
-      .catch(() => toast.error('Failed to copy BUML to clipboard'));
+      .then(() => toast.success('B-UML copied to clipboard!'))
+      .catch(() => toast.error('Failed to copy B-UML to clipboard'));
   }, [bumlPreview]);
 
   const handleDownloadBumlPreview = useCallback(() => {
@@ -119,7 +119,7 @@ export const useProjectPreviewModal = (
     }
 
     if (!bumlPreview) {
-      toast.error('No BUML preview to download.');
+      toast.error('No B-UML preview to download.');
       return;
     }
 
@@ -136,16 +136,16 @@ export const useProjectPreviewModal = (
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success('BUML preview downloaded!');
+    toast.success('B-UML preview downloaded!');
   }, [bumlPreview, projectForPreview]);
 
   const canPreviewBuml = Boolean(projectForPreview);
 
   const bumlPreviewLabel = useMemo(() => {
     if (!projectForPreview?.name) {
-      return 'Project BUML';
+      return 'Project B-UML';
     }
-    return `Project BUML Preview (${projectForPreview.name})`;
+    return `Project B-UML Preview (${projectForPreview.name})`;
   }, [projectForPreview]);
 
   return {
