@@ -114,7 +114,7 @@ export const updatable = (
     }
 
     render() {
-      const { updateStart, deleteElement, getElementById, getRelationshipById, hovered, selected, isObjectDiagram, ...props } =
+      const { updateStart, deleteElement, getElementById, getRelationshipById, hovered, selected, isObjectDiagram, openAssociationPopup, ...props } =
         this.props;
 
       const element = getElementById(props.id);

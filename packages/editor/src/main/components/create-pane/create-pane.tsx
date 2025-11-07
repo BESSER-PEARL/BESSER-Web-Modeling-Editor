@@ -27,6 +27,7 @@ import { PreviewElement } from '../../packages/compose-preview';
 import { composeSyntaxTreePreview } from '../../packages/syntax-tree/syntax-tree-preview';
 import { composeFlowchartPreview } from '../../packages/flowchart/flowchart-diagram-preview';
 import { ColorLegend } from '../../packages/common/color-legend/color-legend';
+import { Comments } from '../../packages/common/comments/comments';
 import { Separator } from './create-pane-styles';
 import { composeBPMNPreview } from '../../packages/bpmn/bpmn-diagram-preview';
 import { composeStatePreview } from '../../packages/uml-state-diagram/state-preview';
@@ -106,13 +107,18 @@ const getInitialState = ({ type, canvas, translate, colorEnabled }: Props) => {
       previews.push(...composeObjectPreview(canvas, translate));
       break;
   }
-  // if (colorEnabled) {
-  //   utils.push(
-  //     new ColorLegend({
-  //       name: translate('packages.ColorLegend.ColorLegend'),
-  //     }),
-  //   );
-  // }
+  if (colorEnabled) {
+    // utils.push(
+    //   new ColorLegend({
+    //     name: translate('packages.ColorLegend.ColorLegend'),
+    //   }),
+    // );
+    utils.push(
+      new Comments({
+        name: 'Comments',
+      }),
+    );
+  }
 
   return { previews, utils };
 };

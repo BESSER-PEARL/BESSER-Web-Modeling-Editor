@@ -2,14 +2,14 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 
-const ModalOverlay = styled.div<{ isVisible: boolean }>`
+const ModalOverlay = styled.div<{ $isVisible: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  display: ${props => props.isVisible ? 'flex' : 'none'};
+  display: ${props => props.$isVisible ? 'flex' : 'none'};
   align-items: center;
   justify-content: center;
   z-index: 99999;
@@ -146,7 +146,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
   }
 
   return createPortal(
-    <ModalOverlay isVisible={isVisible} onClick={onClose}>
+    <ModalOverlay $isVisible={isVisible} onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <h3>

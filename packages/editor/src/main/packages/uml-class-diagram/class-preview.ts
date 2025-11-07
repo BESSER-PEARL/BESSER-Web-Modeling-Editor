@@ -154,7 +154,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
     height: umlEnumeration.bounds.height,
   };
   const umlEnumerationCase1 = new UMLClassAttribute({
-    name: translate('sidebar.enumAttribute') + '_11',
+    name: translate('sidebar.enumAttribute') + '_1',
     owner: umlEnumeration.id,
     bounds: {
       x: 0,

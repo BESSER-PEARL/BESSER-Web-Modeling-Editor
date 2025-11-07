@@ -21,7 +21,7 @@ const ChatWidgetContainer = styled.div`
   z-index: 1000;
 `;
 
-const ChatWindow = styled.div<{ isVisible: boolean }>`
+const ChatWindow = styled.div<{ $isVisible: boolean }>`
   width: 400px; /* Slightly smaller width */
   height: 550px; /* Slightly smaller height */
   background: white;
@@ -33,9 +33,9 @@ const ChatWindow = styled.div<{ isVisible: boolean }>`
   position: absolute;
   bottom: 70px;
   right: 0;
-  transform: ${props => props.isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)'};
-  opacity: ${props => props.isVisible ? '1' : '0'};
-  visibility: ${props => props.isVisible ? 'visible' : 'hidden'};
+  transform: ${props => props.$isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)'};
+  opacity: ${props => props.$isVisible ? '1' : '0'};
+  visibility: ${props => props.$isVisible ? 'visible' : 'hidden'};
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid #e0e0e0;
 `;
@@ -177,7 +177,7 @@ const ChatInput = styled.div`
   }
 `;
 
-const CircleButton = styled.button<{ isOpen: boolean }>`
+const CircleButton = styled.button<{ $isOpen: boolean }>`
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -189,24 +189,24 @@ const CircleButton = styled.button<{ isOpen: boolean }>`
   justify-content: center;
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.35);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: ${props => props.isOpen ? 'rotate(45deg)' : 'rotate(0deg)'};
+  transform: ${props => props.$isOpen ? 'rotate(45deg)' : 'rotate(0deg)'};
   color: white;
   font-size: 22px;
   
   &:hover {
-    transform: ${props => props.isOpen ? 'rotate(45deg) scale(1.05)' : 'rotate(0deg) scale(1.05)'};
+    transform: ${props => props.$isOpen ? 'rotate(45deg) scale(1.05)' : 'rotate(0deg) scale(1.05)'};
     box-shadow: 0 6px 24px rgba(102, 126, 234, 0.45);
   }
   
   &:active {
-    transform: ${props => props.isOpen ? 'rotate(45deg) scale(0.95)' : 'rotate(0deg) scale(0.95)'};
+    transform: ${props => props.$isOpen ? 'rotate(45deg) scale(0.95)' : 'rotate(0deg) scale(0.95)'};
   }
 `;
 
-const Message = styled.div<{ isUser: boolean }>`
+const Message = styled.div<{ $isUser: boolean }>`
   margin-bottom: 16px;
   display: flex;
-  justify-content: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+  justify-content: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
   align-items: flex-end;
   gap: 10px;
   
@@ -214,7 +214,7 @@ const Message = styled.div<{ isUser: boolean }>`
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: ${props => props.isUser ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#677ae4'};
+    background: ${props => props.$isUser ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#677ae4'};
     display: flex;
     align-items: center;
     justify-content: center;
@@ -231,12 +231,12 @@ const Message = styled.div<{ isUser: boolean }>`
     border-radius: 20px;
     font-size: 14px;
     line-height: 1.5;
-    background: ${props => props.isUser 
+    background: ${props => props.$isUser 
       ? 'linear-gradient(135deg, #667eea, #764ba2)' 
       : '#ffffff'};
-    color: ${props => props.isUser ? 'white' : '#2d3748'};
+    color: ${props => props.$isUser ? 'white' : '#2d3748'};
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
-    border: ${props => props.isUser ? 'none' : '1px solid #e2e8f0'};
+    border: ${props => props.$isUser ? 'none' : '1px solid #e2e8f0'};
     position: relative;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -246,13 +246,13 @@ const Message = styled.div<{ isUser: boolean }>`
       content: '';
       position: absolute;
       bottom: 0;
-      ${props => props.isUser ? 'right: -6px' : 'left: -6px'};
+      ${props => props.$isUser ? 'right: -6px' : 'left: -6px'};
       width: 0;
       height: 0;
       border: 8px solid transparent;
-      border-top-color: ${props => props.isUser ? '#764ba2' : '#ffffff'};
+      border-top-color: ${props => props.$isUser ? '#764ba2' : '#ffffff'};
       border-bottom: 0;
-      transform: rotate(${props => props.isUser ? '-45deg' : '45deg'});
+      transform: rotate(${props => props.$isUser ? '-45deg' : '45deg'});
     }
     
     .model-import-button {
@@ -422,12 +422,12 @@ const StatusBar = styled.div`
   }
 `;
 
-const ConnectionStatusDot = styled.span<{ status: ConnectionStatus }>`
+const ConnectionStatusDot = styled.span<{ $status: ConnectionStatus }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: ${({ status }) => {
-    switch (status) {
+  background: ${({ $status }) => {
+    switch ($status) {
       case 'connected':
         return '#4CAF50';
       case 'connecting':
@@ -743,7 +743,7 @@ export const UMLAgentModeling: React.FC = () => {
     const hasImportableModel = uiService.containsImportableModel(content);
     
     return (
-      <Message key={message.id} isUser={message.isUser}>
+      <Message key={message.id} $isUser={message.isUser}>
         {!message.isUser && (
           <div className="avatar">
             <img src="/img/agent_back.png" alt="Agent" style={{ width: 32, height: 32, borderRadius: '50%' }} />
@@ -874,7 +874,7 @@ export const UMLAgentModeling: React.FC = () => {
   return (
     <>
     <ChatWidgetContainer>
-      <ChatWindow isVisible={isVisible}>
+      <ChatWindow $isVisible={isVisible}>
         <ChatHeader>
           <div className="header-content">
             <div className="agent-logo"><img src="/img/agent_back.png" alt="Agent" style={{ width: 25, height: 25, borderRadius: '50%' }}></img></div>
@@ -915,7 +915,7 @@ export const UMLAgentModeling: React.FC = () => {
         
           <StatusBar>
             <div className="status-left">
-              <ConnectionStatusDot status={connectionStatus} />
+              <ConnectionStatusDot $status={connectionStatus} />
               <span>{formatConnectionStatusLabel(connectionStatus)}</span>
               <div className="diagram-type-badge" onClick={handleShowJson} title="View diagram JSON" style={{ cursor: 'pointer' }}>
                 📊 {currentDiagramType.replace('Diagram', '')}
@@ -957,7 +957,7 @@ export const UMLAgentModeling: React.FC = () => {
           </ChatInput>
         </ChatWindow>
 
-        <CircleButton isOpen={isVisible} onClick={() => setIsVisible(!isVisible)}>
+        <CircleButton $isOpen={isVisible} onClick={() => setIsVisible(!isVisible)}>
           {isVisible ? '✕' : <img src="/img/agent_back.png" alt="Agent" style={{ width: 40, height: 40, borderRadius: '50%', filter: 'invert(0)' }} />}
         </CircleButton>
       </ChatWidgetContainer>

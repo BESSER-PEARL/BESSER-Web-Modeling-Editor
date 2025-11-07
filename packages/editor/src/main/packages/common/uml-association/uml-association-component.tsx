@@ -3,7 +3,7 @@ import { Direction, IUMLElementPort } from '../../../services/uml-element/uml-el
 import { Point } from '../../../utils/geometry/point';
 import { ClassRelationshipType } from '../../uml-class-diagram';
 import { UMLAssociation } from './uml-association';
-import { UMLRelationshipType } from '../../uml-relationship-type';
+import { GeneralRelationshipType, UMLRelationshipType } from '../../uml-relationship-type';
 import { ThemedPath, ThemedPathContrast, ThemedPolyline } from '../../../components/theme/themedComponents';
 
 const Marker = {
@@ -138,6 +138,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
         return 7;
       case ClassRelationshipType.ClassOCLLink:
       case ClassRelationshipType.ClassLinkRel:
+      case GeneralRelationshipType.Link:
         return "5,5";
     }
   })(element.type);

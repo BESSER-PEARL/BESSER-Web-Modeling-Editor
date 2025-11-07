@@ -29,6 +29,8 @@ import { FlowchartFunctionCallUpdate } from './flowchart/flowchart-function-call
 import { FlowchartInputOutputUpdate } from './flowchart/flowchart-input-output/flowchart-input-output-update';
 import { FlowchartFlowlineUpdate } from './flowchart/flowchart-flowline/flowchart-flowline-update';
 import { ColorLegendUpdate } from './common/color-legend/color-legend-update';
+import { CommentsUpdate } from './common/comments/comments-update';
+
 import { BPMNFlowUpdate } from './bpmn/bpmn-flow/bpmn-flow-update';
 import { BPMNGatewayUpdate } from './bpmn/bpmn-gateway/bpmn-gateway-update';
 import { BPMNPoolUpdate } from './bpmn/bpmn-pool/bpmn-pool-update';
@@ -91,6 +93,8 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.FlowchartFunctionCall]: FlowchartFunctionCallUpdate,
   [UMLElementType.FlowchartInputOutput]: FlowchartInputOutputUpdate,
   [UMLElementType.ColorLegend]: ColorLegendUpdate,
+  [UMLElementType.Comments]: CommentsUpdate,
+
   [UMLElementType.BPMNTask]: BPMNTaskUpdate,
   [UMLElementType.BPMNSubprocess]: DefaultPopup,
   [UMLElementType.BPMNTransaction]: DefaultPopup,
@@ -131,6 +135,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLRelationshipType.ClassRealization]: UMLClassAssociationUpdate,
   [UMLRelationshipType.ClassUnidirectional]: UMLClassAssociationUpdate,
   [UMLRelationshipType.ClassOCLLink]: DefaultRelationshipPopup,
+  [UMLRelationshipType.Link]: DefaultRelationshipPopup,
   [UMLRelationshipType.ClassLinkRel]: DefaultRelationshipPopup,
   [UMLRelationshipType.ObjectLink]: UMLObjectLinkUpdate,
   [UMLRelationshipType.ActivityControlFlow]: UMLActivityControlFlowUpdate,

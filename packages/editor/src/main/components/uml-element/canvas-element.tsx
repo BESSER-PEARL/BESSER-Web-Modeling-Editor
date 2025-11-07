@@ -69,6 +69,9 @@ class CanvasElementComponent extends Component<Props> {
       zoomFactor: _zoomFactor,
       selectionBoxActive: _selectionBoxActive,
       allElements,
+      id: _id,
+      type: _type,
+      name: _name,
       ...props
     } = this.props;
 
