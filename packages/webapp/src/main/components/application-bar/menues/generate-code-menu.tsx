@@ -21,8 +21,8 @@ export const GenerateCodeMenu: React.FC = () => {
   const [projectName, setProjectName] = useState('');
   const [appName, setAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
-  const [sqlDialect, setSqlDialect] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb'>('sqlite');
-  const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb'>('sqlite');
+  const [sqlDialect, setSqlDialect] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
+  const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<'regular' | 'smart_data'>('regular');
   const [loadingAgent, setLoadingAgent] = useState(false);
 
@@ -477,13 +477,14 @@ export const GenerateCodeMenu: React.FC = () => {
               <Form.Label>Select SQL Dialect</Form.Label>
               <Form.Select 
                 value={sqlDialect} 
-                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql'| 'mssql' | 'mariadb')}
+                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql'| 'mssql' | 'mariadb' | 'oracle')}
               >
                 <option value="sqlite">SQLite</option>
                 <option value="postgresql">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
                 <option value="mssql">MS SQL Server</option>
                 <option value="mariadb">MariaDB</option>;
+                <option value="oracle">Oracle</option>
               </Form.Select>
               <Form.Text className="text-muted">
                 Choose the SQL dialect for your generated DDL statements

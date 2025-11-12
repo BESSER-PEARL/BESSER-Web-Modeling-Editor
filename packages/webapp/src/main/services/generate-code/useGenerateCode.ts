@@ -15,11 +15,11 @@ export interface DjangoConfig {
 }
 
 export interface SQLConfig {
-  dialect: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb';
+  dialect: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
 }
 
 export interface SQLAlchemyConfig {
-  dbms: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb';
+  dbms: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
 }
 
 export interface JSONSchemaConfig {
