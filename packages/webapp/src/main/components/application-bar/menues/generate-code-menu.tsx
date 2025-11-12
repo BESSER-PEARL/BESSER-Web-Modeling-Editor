@@ -225,14 +225,14 @@ export const GenerateCodeMenu: React.FC = () => {
   return (
     <>
       <NavDropdown title="Generate" className="pt-0 pb-0">
-        {isAgentDiagram ? (
-          // Agent Diagram: Show agent generation option
-          <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
-        ) : isGUINoCodeDiagram ? (
+        {isGUINoCodeDiagram ? (
           // No-Code Diagram: Show No-Code generation options
           <>
           <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
           </>
+        ) : isAgentDiagram ? (
+          // Agent Diagram: Show agent generation option
+          <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
           // ...existing code...
           <>
