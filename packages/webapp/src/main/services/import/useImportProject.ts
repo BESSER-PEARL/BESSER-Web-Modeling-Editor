@@ -60,8 +60,63 @@ function convertLegacyToProject(data: LegacyImportData): BesserProject {
   };
 }
 
+// Check if GUI model is empty
+function isGUIModelEmpty(guiModel: any): boolean {
+  if (!guiModel) return true;
+  
+  // Check if it's a GrapesJS model structure
+  if (guiModel.pages) {
+    // Empty if no pages
+    if (!guiModel.pages || guiModel.pages.length === 0) {
+      return true;
+    }
+    
+    // Check if all pages are empty (have no frames or only empty frames)
+    for (const page of guiModel.pages) {
+      if (!page.frames || page.frames.length === 0) {
+        continue; // This page is empty, check next
+      }
+      
+      // Check if any frame has components
+      for (const frame of page.frames) {
+        if (frame.component && 
+            frame.component.components && 
+            frame.component.components.length > 0) {
+          return false; // Found a frame with components, not empty
+        }
+      }
+    }
+    
+    // All pages checked and none have components
+    return true;
+  }
+  
+  return false;
+}
+
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject): void {
+  // Check if the imported GUI model is empty
+  const importedGUIModel = project.diagrams?.GUINoCodeDiagram?.model;
+  
+  if (isGUIModelEmpty(importedGUIModel)) {
+    // Try to get the current project's GUI model
+    const currentProject = ProjectStorageRepository.getCurrentProject();
+    
+    if (currentProject?.diagrams?.GUINoCodeDiagram?.model) {
+      // Keep the existing GUI model if it's not empty
+      const existingGUIModel = currentProject.diagrams.GUINoCodeDiagram.model;
+      if (!isGUIModelEmpty(existingGUIModel)) {
+        console.log('Imported GUI model is empty, keeping existing GUI model');
+        project.diagrams.GUINoCodeDiagram = {
+          ...project.diagrams.GUINoCodeDiagram,
+          model: existingGUIModel,
+          lastUpdate: currentProject.diagrams.GUINoCodeDiagram.lastUpdate
+        };
+      }
+    }
+  }
+  
   ProjectStorageRepository.saveProject(project);
 }
 

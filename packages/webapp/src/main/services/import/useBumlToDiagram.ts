@@ -57,6 +57,42 @@ export const useBumlToDiagram = () => {
         } else if (projectData.AgentDiagram) {
           diagramData = projectData.AgentDiagram;
           title = diagramData.title || 'Imported Agent Diagram';
+        } else if (projectData.GUINoCodeDiagram) {
+          // Check if GUI model is empty
+          const guiModel = projectData.GUINoCodeDiagram.model;
+          
+          // Helper function to check if GUI model is truly empty
+          const isGUIEmpty = (model: any): boolean => {
+            if (!model || !model.pages || model.pages.length === 0) {
+              return true;
+            }
+            
+            // Check if all pages have no components
+            for (const page of model.pages) {
+              if (!page.frames || page.frames.length === 0) {
+                continue;
+              }
+              
+              for (const frame of page.frames) {
+                if (frame.component && 
+                    frame.component.components && 
+                    frame.component.components.length > 0) {
+                  return false; // Found components, not empty
+                }
+              }
+            }
+            
+            return true; // All pages checked, no components found
+          };
+          
+          if (isGUIEmpty(guiModel)) {
+            // Empty GUI model - skip it and keep looking for other diagrams
+            console.warn('GUINoCodeDiagram is empty (no components), will try to find other diagram types...');
+            throw new Error('The GUI model in this file is empty and no other diagram types were found.');
+          }
+          // GUI model has content but this function only returns single UML diagrams
+          // If there's a GUI model, user should use the proper project import
+          throw new Error('This file contains a GUI model. GUI models can only be imported through the Project Import feature (File > Import Project).');
         } else {
           throw new Error('No valid diagram found in the BUML file');
         }
