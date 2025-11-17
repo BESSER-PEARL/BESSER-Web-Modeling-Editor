@@ -1,32 +1,54 @@
 import React from 'react';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-interface RadarChartComponentProps {
+interface SeriesItem {
+  name: string;
   color?: string;
+  data: Array<{ subject?: string; name?: string; value: number; fullMark?: number }>;
+}
+
+interface RadarChartComponentProps {
+  series?: SeriesItem[];
   title?: string;
-  data?: Array<{ subject: string; A: number; fullMark: number }>;
   showGrid?: boolean;
   showTooltip?: boolean;
   showRadiusAxis?: boolean;
 }
 
-const defaultData = [
-  { subject: 'Performance', A: 85, fullMark: 100 },
-  { subject: 'Quality', A: 75, fullMark: 100 },
-  { subject: 'Security', A: 90, fullMark: 100 },
-  { subject: 'Usability', A: 80, fullMark: 100 },
-  { subject: 'Scalability', A: 70, fullMark: 100 },
-  { subject: 'Reliability', A: 88, fullMark: 100 },
+const defaultSeries: SeriesItem[] = [
+  { name: 'Series 1', color: '#8884d8', data: [
+    { subject: 'Performance', value: 85, fullMark: 100 },
+    { subject: 'Quality', value: 75, fullMark: 100 },
+    { subject: 'Security', value: 90, fullMark: 100 },
+    { subject: 'Usability', value: 80, fullMark: 100 },
+    { subject: 'Scalability', value: 70, fullMark: 100 },
+    { subject: 'Reliability', value: 88, fullMark: 100 },
+  ]},
 ];
 
+// Merge all subjects/names for the axis
+function mergeRadarData(series: SeriesItem[]) {
+  // Accept both 'subject' and 'name' as the axis key
+  const allSubjects = Array.from(new Set(series.flatMap(s => s.data.map(d => d.subject ?? d.name))));
+  return allSubjects.map(subject => {
+    const entry: any = { subject };
+    series.forEach(s => {
+      const found = s.data.find(d => (d.subject ?? d.name) === subject);
+      entry[s.name] = found ? found.value : 0;
+      if (found && found.fullMark !== undefined) entry.fullMark = found.fullMark;
+    });
+    return entry;
+  });
+}
+
 export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
-  color = '#8884d8',
+  series = defaultSeries,
   title = 'Radar Chart Title',
-  data = defaultData,
   showGrid = true,
   showTooltip = true,
   showRadiusAxis = true,
 }) => {
+  const mergedData = mergeRadarData(series);
   return (
     <div
       className="radar-chart-container"
@@ -41,24 +63,31 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
         {title}
       </h3>
       <ResponsiveContainer width="100%" height={300}>
-        <RadarChart data={data}>
+        <RadarChart data={mergedData}>
           {showGrid && <PolarGrid stroke="#e0e0e0" />}
           <PolarAngleAxis dataKey="subject" stroke="#666" />
           {showRadiusAxis && <PolarRadiusAxis stroke="#666" />}
-          <Radar
-            name="Score"
-            dataKey="A"
-            stroke={color}
-            fill={color}
-            fillOpacity={0.6}
-          />
+          {series.map((s, idx) => (
+            <Radar
+              key={s.name || idx}
+              name={s.name}
+              dataKey={s.name}
+              stroke={s.color || '#8884d8'}
+              fill={s.color || '#8884d8'}
+              fillOpacity={0.6}
+            />
+          ))}
           {showTooltip && <Tooltip />}
           <Legend />
         </RadarChart>
       </ResponsiveContainer>
       <div style={{ marginTop: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px' }}>
         <p style={{ margin: 0, fontSize: '14px', color: '#666', fontFamily: 'Arial, sans-serif' }}>
-          <span style={{ color: color, fontWeight: 'bold' }}>▲</span> Performance across different metrics
+          {series.map((s, idx) => (
+            <span key={s.name || idx} style={{ color: s.color || '#8884d8', fontWeight: 'bold', marginRight: 10 }}>
+              ▲ {s.name}
+            </span>
+          ))}
         </p>
       </div>
     </div>
