@@ -51,7 +51,7 @@ export const chartConfigs: ChartConfig[] = [
     dataSource: '',
     icon: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M3 3v18h18v-2H5V3H3zm2 12l3-4 3 3 5-6 4 5v2l-4-5-5 6-3-3-3 4z"/></svg>',
     traits: [
-      { type: 'color', label: 'Line Color', name: 'chart-color', value: '#4CAF50', changeProp: 1 },
+      // Removed 'Line Color' trait
       { type: 'text', label: 'Chart Title', name: 'chart-title', value: 'Line Chart Title', changeProp: 1 },
       { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
       { type: 'select', label: 'Label Field', name: 'label-field', value: '', options: [], changeProp: 1 },
@@ -83,7 +83,7 @@ export const chartConfigs: ChartConfig[] = [
     dataSource: '',
     icon: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M22,21H2V3H4V19H6V10H10V19H12V6H16V19H18V14H22V21Z"/></svg>',
     traits: [
-      { type: 'color', label: 'Bar Color', name: 'chart-color', value: '#3498db', changeProp: 1 },
+      // Removed 'Bar Color' trait
       { type: 'text', label: 'Chart Title', name: 'chart-title', value: 'Bar Chart Title', changeProp: 1 },
       { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
       { type: 'select', label: 'Label Field', name: 'label-field', value: '', options: [], changeProp: 1 },
@@ -136,7 +136,7 @@ export const chartConfigs: ChartConfig[] = [
     dataSource: '',
     icon: '<svg viewBox="0 0 24 24" width="100%" height="100%"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="12" x2="12" y2="3"/><line x1="12" y1="12" x2="20" y2="8"/><line x1="12" y1="12" x2="17" y2="20"/><line x1="12" y1="12" x2="7" y2="20"/><line x1="12" y1="12" x2="4" y2="8"/><polygon points="12,6 17.5,9.5 15,16 9,16 6.5,9.5"/></g></svg>',
     traits: [
-      { type: 'color', label: 'Chart Color', name: 'chart-color', value: '#8884d8', changeProp: 1 },
+      // Removed 'Chart Color' trait
       { type: 'text', label: 'Chart Title', name: 'chart-title', value: 'Radar Chart Title', changeProp: 1 },
       { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
       { type: 'select', label: 'Label Field', name: 'label-field', value: '', options: [], changeProp: 1 },

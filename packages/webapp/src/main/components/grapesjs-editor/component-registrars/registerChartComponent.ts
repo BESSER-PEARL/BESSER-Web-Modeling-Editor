@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { ChartConfig } from '../configs/chartConfigs';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
+import registerSeriesManagerTrait from '../traits/registerSeriesManagerTrait';
+
 /**
  * Build chart props from attributes - extracted to avoid duplication
  */
@@ -78,8 +80,33 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
  * @param config - Chart configuration
  */
 export const registerChartComponent = (editor: any, config: ChartConfig) => {
+  // Register the custom series-manager trait type (safe to call multiple times)
+  registerSeriesManagerTrait(editor);
   // Build trait values inside the attributes object
   const traitAttributes: Record<string, any> = { class: `${config.id}-component` };
+  // Add the series-manager trait for all charts except PieChart and RadialBarChart (at the end)
+  if (!config.traits) config.traits = [];
+  const noSeriesCharts = ['pie-chart', 'radial-bar-chart'];
+  if (!noSeriesCharts.includes(config.id)) {
+    // Only add if not already present
+    if (!config.traits.some(t => t.name === 'series')) {
+      config.traits.push({
+        type: 'series-manager',
+        name: 'series',
+        label: 'Series',
+        value: '',
+        changeProp: 1
+      });
+    }
+  }
+
+  // Remove Data Source, Data Field, Label Field traits for charts with series-manager
+  if (['line-chart', 'bar-chart', 'radar-chart'].includes(config.id)) {
+    config.traits = config.traits.filter(
+      t => !['data-source', 'label-field', 'data-field'].includes(t.name)
+    );
+  }
+
   if (Array.isArray(config.traits)) {
     config.traits.forEach(trait => {
       traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
@@ -177,7 +204,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
           const container = view.el;
           container.innerHTML = '';
           const root = ReactDOM.createRoot(container);
-          const props = buildChartProps(attrs, config);
+          const props = getChartProps(attrs, config);
           root.render(React.createElement(config.component, props));
         }
       },
@@ -185,8 +212,8 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
     view: {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
+        const props = getChartProps(attrs, config);
         const root = ReactDOM.createRoot(el);
-        const props = buildChartProps(attrs, config);
         root.render(React.createElement(config.component, props));
       },
     },
@@ -196,6 +223,62 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       }
     },
   });
+
+  // Patch: Wrap buildChartProps to inject fake series for charts with series-manager
+  const getChartProps = (attrs: Record<string, any>, config: ChartConfig) => {
+    if (['line-chart', 'bar-chart', 'radar-chart'].includes(config.id)) {
+      // Use the original logic, but inject fake series if needed
+      const props = buildChartProps(attrs, config);
+      let series: any[] = [];
+      try {
+        series = JSON.parse(attrs['series'] || '[]');
+      } catch {}
+      if (!Array.isArray(series) || series.length === 0) {
+        // Create 2 fake series with similar data
+        const fakeData = [
+          { name: 'Jan', value: 30 },
+          { name: 'Feb', value: 35 },
+          { name: 'Mar', value: 55 },
+          { name: 'Apr', value: 45 },
+          { name: 'May', value: 75 },
+          { name: 'Jun', value: 65 },
+        ];
+        series = [
+          { name: 'Series 1', color: '#4CAF50', data: fakeData },
+          { name: 'Series 2', color: '#3498db', data: fakeData.map(d => ({ ...d, value: d.value + 10 })) },
+        ];
+      } else {
+        // For each series, if no data, inject similar fake data
+        const baseData = [
+          { name: 'Jan', value: 30 },
+          { name: 'Feb', value: 35 },
+          { name: 'Mar', value: 55 },
+          { name: 'Apr', value: 45 },
+          { name: 'May', value: 75 },
+          { name: 'Jun', value: 65 },
+        ];
+        series = series.map((s, i) => ({
+          ...s,
+          data: Array.isArray(s.data) && s.data.length > 0 ? s.data : baseData.map(d => ({ ...d, value: d.value + i * 10 })),
+          color: s.color || (i === 0 ? '#4CAF50' : '#3498db'),
+        }));
+      }
+      props.series = series;
+      return props;
+    }
+    // Fallback to default
+    return buildChartProps(attrs, config);
+  };
+
+  // For charts with series-manager, ensure a default series is created on block creation
+  if (['line-chart', 'bar-chart', 'radar-chart'].includes(config.id)) {
+    if (!traitAttributes['series'] || traitAttributes['series'] === '' || traitAttributes['series'] === '[]') {
+      const defaultSeries = [
+        { name: 'Series 1', color: '#4CAF50', data: [] }
+      ];
+      traitAttributes['series'] = JSON.stringify(defaultSeries);
+    }
+  }
 
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {
