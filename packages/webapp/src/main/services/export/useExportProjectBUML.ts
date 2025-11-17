@@ -3,7 +3,7 @@ import JSZip from 'jszip';
 import { toast } from 'react-toastify';
 import { BesserProject, SupportedDiagramType } from '../../types/project';
 import { ApollonEditor, diagramBridge, UMLDiagramType } from '@besser/wme';
-import { validateDiagram } from '../validation/diagramValidation';
+import { validateDiagram } from '../validation/validateDiagram';
 import { toUMLDiagramType } from '../../types/project';
 import { buildExportableProjectPayload } from './projectExportUtils';
 
@@ -14,10 +14,10 @@ async function convertDiagramModelToBUML(diagram: any, diagramTitle: string, pro
   } as ApollonEditor;
 
   // Add validation before export
-  const validationResult = validateDiagram(mockEditor);
+  const validationResult = await validateDiagram(mockEditor, diagramTitle);
   if (!validationResult.isValid) {
-    toast.error(validationResult.message);
-    throw new Error(validationResult.message);
+    toast.error(validationResult.message || 'Validation failed');
+    throw new Error(validationResult.message || 'Validation failed');
   }
 
   if (!diagram) {

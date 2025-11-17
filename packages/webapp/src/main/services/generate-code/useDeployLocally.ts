@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ApollonEditor } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
-import { validateDiagram } from '../validation/diagramValidation';
+import { validateDiagram } from '../validation/validateDiagram';
 import { BACKEND_URL } from '../../constant';
 import React from 'react';
 
@@ -22,9 +22,9 @@ export const useDeployLocally = () => {
     async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<void> => {
       
       // Validate diagram before generation
-      const validationResult = validateDiagram(editor);
+      const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message);
+        toast.error(validationResult.message || 'Validation failed');
         return;
       }
 

@@ -15,7 +15,7 @@ import { LayoutTextSidebarReverse, Github, Share, House } from 'react-bootstrap-
 import { selectDisplaySidebar, toggleSidebar } from '../../services/version-management/versionManagementSlice';
 import { ClassDiagramImporter } from './menues/class-diagram-importer';
 import { GenerateCodeMenu } from './menues/generate-code-menu';
-import { checkOclConstraints } from '../../services/validation/checkOCL';
+import { validateDiagram } from '../../services/validation/validateDiagram';
 import { UMLDiagramType } from '@besser/wme';
 import { DiagramRepository } from '../../services/diagram/diagram-repository';
 import { displayError } from '../../services/error-management/errorManagementSlice';
@@ -114,9 +114,9 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const handleOpenModal = () => {
     dispatch(showModal({ type: ModalContentType.ShareModal, size: 'lg' }));
   };
-  const handleOclCheck = async () => {
+  const handleQualityCheck = async () => {
     if (editor) {
-      await checkOclConstraints(editor, diagram.title);
+      await validateDiagram(editor, diagram.title);
     }
   };
 
@@ -214,7 +214,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
               <GenerateCodeMenu />
               {APPLICATION_SERVER_VERSION && (
                 <Nav.Item>
-                  <Nav.Link onClick={handleOclCheck}>Quality Check</Nav.Link>
+                  <Nav.Link onClick={handleQualityCheck}>Quality Check</Nav.Link>
                 </Nav.Item>
               )}
             </>
