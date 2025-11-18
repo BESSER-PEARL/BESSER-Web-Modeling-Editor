@@ -109,9 +109,6 @@ export const chartConfigs: ChartConfig[] = [
     icon: '<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" d="M11,2V22C5.9,21.5 2,17.2 2,12C2,6.8 5.9,2.5 11,2M13,2V11H22C21.5,6.2 17.8,2.5 13,2M13,13V22C17.7,21.5 21.5,17.8 22,13H13Z"/></svg>',
     traits: [
       { type: 'text', label: 'Chart Title', name: 'chart-title', value: 'Pie Chart Title', changeProp: 1 },
-      { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
-      { type: 'select', label: 'Label Field', name: 'label-field', value: '', options: [], changeProp: 1 },
-      { type: 'select', label: 'Data Field', name: 'data-field', value: '', options: [], changeProp: 1 },
       { type: 'checkbox', label: 'Show Legend', name: 'show-legend', value: true, changeProp: 1 },
       { type: 'select', label: 'Legend Position', name: 'legend-position', value: 'bottom',
         options: [
@@ -125,6 +122,7 @@ export const chartConfigs: ChartConfig[] = [
           { value: 'outside', label: 'Outside' }
         ], changeProp: 1 },
       { type: 'number', label: 'Padding Angle', name: 'padding-angle', value: 0, changeProp: 1 },
+  { type: 'series-manager', name: 'series', label: 'Series', value: '[{"name":"Series 1","dataSource":"","labelField":"","dataField":"","color":"#00C49F","data":[{"name":"Category A","value":90,"color":"#00C49F"},{"name":"Category B","value":70,"color":"#0088FE"},{"name":"Category C","value":50,"color":"#FFBB28"},{"name":"Category D","value":30,"color":"#FF8042"},{"name":"Category E","value":15,"color":"#A569BD"}]}]', changeProp: 1 },
     ],
   },
   {
@@ -155,12 +153,10 @@ export const chartConfigs: ChartConfig[] = [
     dataSource: '',
     icon: '<svg viewBox="0 0 24 24" width="100%" height="100%"><g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="3"/></g></svg>',
     traits: [
-      { type: 'text', label: 'Chart Title', name: 'chart-title', value: 'Radial Bar Chart Title', changeProp: 1 },
-      { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
-      { type: 'select', label: 'Label Field', name: 'label-field', value: '', options: [], changeProp: 1 },
-      { type: 'select', label: 'Data Field', name: 'data-field', value: '', options: [], changeProp: 1 },
-      { type: 'number', label: 'Start Angle', name: 'start-angle', value: 90, changeProp: 1 },
-      { type: 'number', label: 'End Angle', name: 'end-angle', value: 450, changeProp: 1 },
+  { type: 'text', label: 'Chart Title', name: 'chart-title', value: 'Radial Bar Chart Title', changeProp: 1 },
+  { type: 'number', label: 'Start Angle', name: 'start-angle', value: 90, changeProp: 1 },
+  { type: 'number', label: 'End Angle', name: 'end-angle', value: 450, changeProp: 1 },
+  { type: 'series-manager', name: 'series', label: 'Series', value: '[{"name":"Series 1","dataSource":"","labelField":"","dataField":"","color":"#4CAF50","data":[{"name":"Category A","value":90,"fill":"#00C49F"},{"name":"Category B","value":70,"fill":"#0088FE"},{"name":"Category C","value":50,"fill":"#FFBB28"},{"name":"Category D","value":30,"fill":"#FF8042"},{"name":"Category E","value":15,"fill":"#A569BD"}]}]', changeProp: 1 },
     ],
   },
   {
