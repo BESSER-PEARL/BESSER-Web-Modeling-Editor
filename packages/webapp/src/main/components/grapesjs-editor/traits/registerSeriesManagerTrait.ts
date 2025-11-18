@@ -23,7 +23,7 @@ interface SeriesItem {
 export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
   editor.TraitManager.addType('series-manager', {
     createInput({ trait, component }: { trait: any; component: GrapesJSComponent }) {
-      const el = document.createElement('div');
+  const el = document.createElement('div');
   el.className = 'series-manager-panel';
 
       // Helper to get dropdown options for a classId
@@ -48,22 +48,30 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
         series = [];
       }
 
-      // Render the UI
-      const render = () => {
-        el.innerHTML = '';
+    // Render the UI
+    const render = () => {
+  el.innerHTML = '';
   // Add a title for the section
   const title = document.createElement('div');
   title.textContent = 'Chart Series';
   title.className = 'series-title';
   el.appendChild(title);
+  // Add a horizontal line after the title
+  const hr = document.createElement('hr');
+  hr.className = 'series-title-separator';
+  el.appendChild(hr);
+
+  // Detect chart type from component class (for single-series restriction)
+  const chartClass = (component.getAttributes()?.class || '').toLowerCase();
+  const isPieOrRadial = chartClass.includes('pie-chart') || chartClass.includes('radial-bar-chart');
+
 
         series.forEach((s: SeriesItem, idx: number) => {
           const row = document.createElement('div');
-          row.className = 'series-row';
-
           // Collapsible state
           let expanded = true;
           if (typeof s["_expanded"] === "boolean") expanded = s["_expanded"];
+          row.className = 'series-row' + (expanded ? '' : ' collapsed');
 
           // Header bar
           const header = document.createElement('div');
@@ -85,9 +93,9 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           // Series name (inline editable)
           let editingName = false;
           const nameSpan = document.createElement('span');
+          nameSpan.className = 'series-row-name';
           nameSpan.textContent = s.name || `Series ${idx + 1}`;
           nameSpan.style.fontWeight = '600';
-          nameSpan.style.fontSize = '15px';
           nameSpan.style.flex = '1';
           nameSpan.style.overflow = 'hidden';
           nameSpan.style.textOverflow = 'ellipsis';
@@ -220,111 +228,162 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           });
 
           // Color (GrapesJS-style: text + preview + popover picker, no alpha)
+
           const colorLabel = document.createElement('label');
           colorLabel.textContent = 'Color';
-          const colorPickerContainer = document.createElement('div');
-          colorPickerContainer.className = 'color-picker-container';
-
-          // Hex input field
-          const hexInput = document.createElement('input');
-          hexInput.type = 'text';
-          hexInput.value = s.color || '#4CAF50';
-          hexInput.placeholder = '#4CAF50';
-          hexInput.setAttribute('data-color-idx', idx.toString());
-          hexInput.style.width = '80px';
-
-          // Color preview box
-          const colorBox = document.createElement('div');
-          colorBox.className = 'color-box';
-          colorBox.style.background = s.color || '#4CAF50';
-          colorBox.title = 'Pick color';
-
-          // Popover for color picker
-          let pickerPopover: HTMLDivElement | null = null;
-          let colorPicker: HTMLElement | null = null;
-
-          function closePopover() {
-            if (pickerPopover) {
-              document.body.removeChild(pickerPopover);
-              pickerPopover = null;
-              colorPicker = null;
-              document.removeEventListener('mousedown', handleClickOutside);
+          let colorInputContainer: HTMLElement;
+          // Predefined palette
+          const palette = [
+            '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#F39C12', '#4CAF50', '#8884d8', '#3498db'
+          ];
+          if (isPieOrRadial) {
+            // Dropdown for palette sets (list of lists)
+            colorInputContainer = document.createElement('div');
+            colorInputContainer.className = 'color-picker-container';
+            // Define palette sets (7+ options: grays, elegant, pastel, vibrant, earth, blue/green, default)
+            const paletteSets = [
+              ['#00C49F', '#0088FE', '#FFBB28', '#FF8042', '#A569BD'],
+              ['#2D3142', '#4F5D75', '#BFC0C0', '#EF8354', '#1B263B'],
+              ['#A3C4BC', '#E6B89C', '#ED6A5A', '#F6DFEB', '#C9BBCF'],
+              ['#22223B', '#4A4E69', '#9A8C98', '#C9ADA7', '#F2E9E4'],
+              ['#A98467', '#6F432A', '#C6AC8F', '#99775C', '#432818'],
+              ['#264653', '#2A9D8F', '#E9C46A', '#F4A261', '#E76F51'],
+              ['#F72585', '#B5179E', '#7209B7', '#3A0CA3', '#4361EE'],
+            ];
+            // Find which palette matches current data colors (using .fill for RadialBarChart, .color for PieChart)
+            let selectedPaletteIdx = 0;
+            if (s.data && s.data.length > 0) {
+              paletteSets.forEach((palette, pIdx) => {
+                if ('fill' in s.data[0]) {
+                  if (s.data.every((d, i) => (d as any).fill === palette[i % palette.length])) {
+                    selectedPaletteIdx = pIdx;
+                  }
+                } else {
+                  if (s.data.every((d, i) => (d as any).color === palette[i % palette.length])) {
+                    selectedPaletteIdx = pIdx;
+                  }
+                }
+              });
             }
-          }
-          function handleClickOutside(e: MouseEvent) {
-            if (pickerPopover && !pickerPopover.contains(e.target as Node) && e.target !== colorBox) {
-              closePopover();
-            }
-          }
-
-          colorBox.addEventListener('click', () => {
-            if (pickerPopover) {
-              closePopover();
-              return;
-            }
-            pickerPopover = document.createElement('div');
-            pickerPopover.style.position = 'absolute';
-            pickerPopover.style.zIndex = '9999';
-            pickerPopover.style.background = '#fff';
-            pickerPopover.style.border = '1px solid #ccc';
-            pickerPopover.style.borderRadius = '8px';
-            pickerPopover.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-            pickerPopover.style.padding = '10px';
-            pickerPopover.style.display = 'flex';
-            pickerPopover.style.justifyContent = 'center';
-            pickerPopover.style.alignItems = 'center';
-
-            colorPicker = document.createElement('hex-color-picker');
-            colorPicker.setAttribute('color', hexInput.value);
-            colorPicker.style.width = '180px';
-            colorPicker.style.height = '180px';
-            pickerPopover.appendChild(colorPicker);
-
-            // Position popover: try right, if not enough space, open to the left
-            const rect = colorBox.getBoundingClientRect();
-            const popoverWidth = 200; // width + padding
-            const spaceRight = window.innerWidth - rect.right;
-            let left;
-            if (spaceRight < popoverWidth && rect.left > popoverWidth) {
-              // Open to the left
-              left = rect.left + window.scrollX - popoverWidth;
-            } else {
-              // Open to the right (default)
-              left = rect.right + window.scrollX;
-            }
-            pickerPopover.style.left = left + 'px';
-            pickerPopover.style.top = rect.top + window.scrollY + 'px';
-
-            document.body.appendChild(pickerPopover);
-            setTimeout(() => {
-              document.addEventListener('mousedown', handleClickOutside);
-            }, 0);
-
-            colorPicker.addEventListener('color-changed', (e: any) => {
-              const hex = e.detail.value;
-              hexInput.value = hex;
-              colorBox.style.background = hex;
-              series[idx].color = hex;
-              update();
+            // Mount React PaletteDropdown
+            import('./mountPaletteDropdown').then(({ mountPaletteDropdown }) => {
+              mountPaletteDropdown({
+                container: colorInputContainer,
+                palettes: paletteSets,
+                value: selectedPaletteIdx,
+                onChange: (idx: number) => {
+                  const palette = paletteSets[idx];
+                  if (s.data && Array.isArray(s.data)) {
+                    if ('fill' in s.data[0]) {
+                      s.data.forEach((d, i) => { (d as any).fill = palette[i % palette.length]; });
+                    } else {
+                      s.data.forEach((d, i) => { (d as any).color = palette[i % palette.length]; });
+                    }
+                  }
+                  s.color = palette[0];
+                  update();
+                },
+              });
             });
-          });
+          } else {
+            // Improved stylish hex input + color preview + popover color picker
+            colorInputContainer = document.createElement('div');
+            colorInputContainer.className = 'color-picker-container';
+            colorInputContainer.style.position = 'relative';
+            const hexInput = document.createElement('input');
+            hexInput.type = 'text';
+            hexInput.value = s.color || '#4CAF50';
+            hexInput.placeholder = '#4CAF50';
+            hexInput.setAttribute('data-color-idx', idx.toString());
+            hexInput.style.width = '80px';
+            hexInput.style.marginRight = '8px';
+            // Color preview box
+            const colorBox = document.createElement('div');
+            colorBox.className = 'color-box';
+            colorBox.style.background = s.color || '#4CAF50';
+            colorBox.title = 'Pick color';
+            colorBox.style.display = 'inline-block';
+            colorBox.style.width = '28px';
+            colorBox.style.height = '28px';
+            colorBox.style.border = '1.5px solid #3182ce';
+            colorBox.style.borderRadius = '4px';
+            colorBox.style.cursor = 'pointer';
+            colorBox.style.verticalAlign = 'middle';
+            colorBox.style.marginLeft = '2px';
+            colorBox.style.position = 'relative';
 
-          // Sync input and preview
-          hexInput.addEventListener('input', (e: any) => {
-            let val = e.target.value.trim();
-            if (/^#[0-9a-fA-F]{3,8}$/.test(val)) {
-              colorBox.style.background = val;
-              if (colorPicker) colorPicker.setAttribute('color', val);
-              series[idx].color = val;
-              update();
+            let popover: HTMLElement | null = null;
+            function closePopover() {
+              if (popover) {
+                popover.remove();
+                popover = null;
+                document.removeEventListener('mousedown', handleDocumentMouseDown, true);
+              }
             }
-          });
-
-          colorPickerContainer.appendChild(hexInput);
-          colorPickerContainer.appendChild(colorBox);
+            function handleDocumentMouseDown(ev: MouseEvent) {
+              if (!popover) return;
+              const target = ev.target as Node;
+              if (popover.contains(target) || target === colorBox) return;
+              closePopover();
+            }
+            colorBox.addEventListener('click', (e) => {
+              // Only one popover at a time
+              closePopover();
+              popover = document.createElement('div');
+              popover.style.position = 'absolute';
+              popover.style.zIndex = '1000';
+              popover.style.bottom = '38px';
+              popover.style.background = '#fff';
+              popover.style.border = '1.5px solid #3182ce';
+              popover.style.borderRadius = '8px';
+              popover.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+              popover.style.padding = '8px';
+              popover.style.display = 'flex';
+              popover.style.justifyContent = 'center';
+              popover.style.alignItems = 'center';
+              popover.style.minWidth = '140px';
+              popover.style.maxWidth = '180px';
+              popover.style.minHeight = '60px';
+              popover.style.transform = 'translateY(-8px)';
+              // Auto-position left or right based on available space
+              const boxRect = colorBox.getBoundingClientRect();
+              const parentRect = colorInputContainer.getBoundingClientRect();
+              const popoverWidth = 160; // reduced estimate
+              const spaceRight = window.innerWidth - boxRect.right;
+              const spaceLeft = boxRect.left;
+              if (spaceRight > popoverWidth || spaceRight > spaceLeft) {
+                popover.style.left = '0';
+              } else {
+                popover.style.right = '0';
+              }
+              const picker = document.createElement('hex-color-picker');
+              picker.setAttribute('color', s.color || '#4CAF50');
+              picker.addEventListener('color-changed', (ev: any) => {
+                const val = ev.detail.value;
+                hexInput.value = val;
+                colorBox.style.background = val;
+                s.color = val;
+                update();
+              });
+              popover.appendChild(picker);
+              colorInputContainer.appendChild(popover);
+              setTimeout(() => {
+                document.addEventListener('mousedown', handleDocumentMouseDown, true);
+              }, 0);
+            });
+            hexInput.addEventListener('input', (e: any) => {
+              let val = e.target.value.trim();
+              if (/^#[0-9a-fA-F]{3,8}$/.test(val)) {
+                colorBox.style.background = val;
+                s.color = val;
+                update();
+              }
+            });
+            colorInputContainer.appendChild(hexInput);
+            colorInputContainer.appendChild(colorBox);
+          }
 
           // Append all fields to details
-          // (Name label and input removed; now handled inline in header)
           details.appendChild(dsLabel);
           details.appendChild(dsSelect);
           details.appendChild(labelFieldLabel);
@@ -332,7 +391,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           details.appendChild(dataFieldLabel);
           details.appendChild(dataFieldSelect);
           details.appendChild(colorLabel);
-          details.appendChild(colorPickerContainer);
+          details.appendChild(colorInputContainer);
 
           row.appendChild(details);
 
@@ -346,35 +405,66 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
             details.style.display = expanded ? 'block' : 'none';
             chevron.innerHTML = expanded ? '&#9660;' : '&#9654;';
             header.style.marginBottom = expanded ? '10px' : '0';
+            if (expanded) {
+              row.classList.remove('collapsed');
+            } else {
+              row.classList.add('collapsed');
+            }
           });
 
           el.appendChild(row);
         });
 
-        // Add button
-        const addBtn = document.createElement('button');
-  addBtn.textContent = 'Add Series';
-  addBtn.type = 'button';
-  addBtn.className = 'add-btn';
-  addBtn.onclick = () => {
-          // Generate random but close values for each new series
-          const defaultNames = ['A', 'B', 'C', 'D', 'E', 'F'];
-          const idx = series.length;
-          // Helper for random value in a range
-          function randNear(base: number, spread: number) {
-            return Math.round(base + (Math.random() - 0.5) * spread);
+        // Add button (disabled/hidden for PieChart and RadialBarChart if already one series)
+    if (!(isPieOrRadial && series.length >= 1)) {
+      const addBtn = document.createElement('button');
+      addBtn.innerHTML = '<span class="add-btn-plus">&#43;</span>';
+      addBtn.type = 'button';
+      addBtn.className = 'add-btn add-btn-circle';
+      addBtn.title = 'Add Series';
+      addBtn.onclick = () => {
+        // Generate random but close values for each new series
+        const defaultNames = ['A', 'B', 'C', 'D', 'E'];
+        const idx = series.length;
+        function randNear(base: number, spread: number): number {
+          return Math.round(base + (Math.random() - 0.5) * spread);
+        }
+        const barBase = 50 + idx * 10;
+        const barData = defaultNames.map((n) => ({ name: `Category ${n}`, value: randNear(barBase, 40) }));
+        const radarBase = 75 + idx * 6;
+        const radarData = defaultNames.map((n) => ({ subject: `Metric ${n}`, value: randNear(radarBase, 30), fullMark: 100 }));
+        // PieChart and RadialBarChart: 5 categories, use color/fill keys
+        if (isPieOrRadial) {
+          // Use palette 0 as default
+          const palette = ['#00C49F', '#0088FE', '#FFBB28', '#FF8042', '#A569BD'];
+          if (chartClass.includes('pie-chart')) {
+            const pieData = defaultNames.map((n, i) => ({ name: `Category ${n}`, value: randNear(barBase, 40), color: palette[i] }));
+            series.push({ name: `Series ${idx + 1}`, color: palette[0], data: pieData });
+          } else {
+            // RadialBarChart
+            const radialData = defaultNames.map((n, i) => ({ name: `Category ${n}`, value: randNear(barBase, 40), fill: palette[i] }));
+            series.push({ name: `Series ${idx + 1}`, color: palette[0], data: radialData });
           }
-          // For BarChart: use { name, value }
-          const barBase = 50 + idx * 10;
-          const barData = defaultNames.map((n) => ({ name: `Category ${n}`, value: randNear(barBase, 40) }));
-          // For RadarChart: use { subject, value, fullMark }
-          const radarBase = 75 + idx * 6;
-          const radarData = defaultNames.map((n) => ({ subject: `Metric ${n}`, value: randNear(radarBase, 30), fullMark: 100 }));
-          // Default to barData, user can edit for radar
+        } else if (chartClass.includes('radar-chart') || chartClass.includes('line-chart') || chartClass.includes('bar-chart')) {
+          // Assign a random color from the palette for radar, line, and bar charts
+          const palette = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#F39C12', '#4CAF50', '#8884d8', '#3498db'];
+          const randomColor = palette[Math.floor(Math.random() * palette.length)];
+          let data;
+          if (chartClass.includes('radar-chart')) {
+            // Map radarData to use 'name' instead of 'subject' for type compatibility
+            data = radarData.map((d) => ({ name: d.subject, value: d.value, fullMark: d.fullMark }));
+          } else {
+            data = barData;
+          }
+          series.push({ name: `Series ${idx + 1}`, dataSource: '', labelField: '', dataField: '', color: randomColor, data });
+        } else {
+          // Default fallback
           series.push({ name: `Series ${idx + 1}`, dataSource: '', labelField: '', dataField: '', color: '#4CAF50', data: barData });
-          update();
-        };
-        el.appendChild(addBtn);
+        }
+        update();
+      };
+      el.appendChild(addBtn);
+    }
       };
 
       // Update component attribute when changed
