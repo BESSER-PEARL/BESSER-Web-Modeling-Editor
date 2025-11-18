@@ -84,20 +84,16 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
   registerSeriesManagerTrait(editor);
   // Build trait values inside the attributes object
   const traitAttributes: Record<string, any> = { class: `${config.id}-component` };
-  // Add the series-manager trait for all charts except PieChart and RadialBarChart (at the end)
+  // Add the series-manager trait for all charts (including PieChart and RadialBarChart)
   if (!config.traits) config.traits = [];
-  const noSeriesCharts = ['pie-chart', 'radial-bar-chart'];
-  if (!noSeriesCharts.includes(config.id)) {
-    // Only add if not already present
-    if (!config.traits.some(t => t.name === 'series')) {
-      config.traits.push({
-        type: 'series-manager',
-        name: 'series',
-        label: 'Series',
-        value: '',
-        changeProp: 1
-      });
-    }
+  if (!config.traits.some(t => t.name === 'series')) {
+    config.traits.push({
+      type: 'series-manager',
+      name: 'series',
+      label: 'Series',
+      value: '',
+      changeProp: 1
+    });
   }
 
   // Remove Data Source, Data Field, Label Field traits for charts with series-manager
@@ -224,58 +220,71 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
     },
   });
 
-  // Patch: Wrap buildChartProps to inject fake series for charts with series-manager
+  // Patch: Wrap buildChartProps to never inject fake/default series/data. Pass empty series/data if none exist.
   const getChartProps = (attrs: Record<string, any>, config: ChartConfig) => {
-    if (['line-chart', 'bar-chart', 'radar-chart'].includes(config.id)) {
-      // Use the original logic, but inject fake series if needed
-      const props = buildChartProps(attrs, config);
+    const props = buildChartProps(attrs, config);
+    // For all charts with series-manager, always use the real series, or empty array
+    if (config.traits && config.traits.some(t => t.name === 'series')) {
       let series: any[] = [];
       try {
         series = JSON.parse(attrs['series'] || '[]');
       } catch {}
-      if (!Array.isArray(series) || series.length === 0) {
-        // Create 2 fake series with similar data
-        const fakeData = [
-          { name: 'Jan', value: 30 },
-          { name: 'Feb', value: 35 },
-          { name: 'Mar', value: 55 },
-          { name: 'Apr', value: 45 },
-          { name: 'May', value: 75 },
-          { name: 'Jun', value: 65 },
-        ];
-        series = [
-          { name: 'Series 1', color: '#4CAF50', data: fakeData },
-          { name: 'Series 2', color: '#3498db', data: fakeData.map(d => ({ ...d, value: d.value + 10 })) },
-        ];
-      } else {
-        // For each series, if no data, inject similar fake data
-        const baseData = [
-          { name: 'Jan', value: 30 },
-          { name: 'Feb', value: 35 },
-          { name: 'Mar', value: 55 },
-          { name: 'Apr', value: 45 },
-          { name: 'May', value: 75 },
-          { name: 'Jun', value: 65 },
-        ];
-        series = series.map((s, i) => ({
-          ...s,
-          data: Array.isArray(s.data) && s.data.length > 0 ? s.data : baseData.map(d => ({ ...d, value: d.value + i * 10 })),
-          color: s.color || (i === 0 ? '#4CAF50' : '#3498db'),
-        }));
-      }
-      props.series = series;
-      return props;
+      props.series = Array.isArray(series) ? series : [];
     }
-    // Fallback to default
-    return buildChartProps(attrs, config);
+    return props;
   };
 
   // For charts with series-manager, ensure a default series is created on block creation
   if (['line-chart', 'bar-chart', 'radar-chart'].includes(config.id)) {
     if (!traitAttributes['series'] || traitAttributes['series'] === '' || traitAttributes['series'] === '[]') {
-      const defaultSeries = [
-        { name: 'Series 1', color: '#4CAF50', data: [] }
-      ];
+      let defaultSeries;
+      if (config.id === 'line-chart') {
+        defaultSeries = [
+          {
+            name: 'Series 1',
+            color: '#4CAF50',
+            data: [
+              { name: 'Category A', value: 40 },
+              { name: 'Category B', value: 65 },
+              { name: 'Category C', value: 85 },
+              { name: 'Category D', value: 55 },
+              { name: 'Category E', value: 75 },
+            ],
+          },
+        ];
+      } else if (config.id === 'bar-chart') {
+        defaultSeries = [
+          {
+            name: 'Series 1',
+            color: '#3498db',
+            data: [
+              { name: 'Category A', value: 40 },
+              { name: 'Category B', value: 65 },
+              { name: 'Category C', value: 85 },
+              { name: 'Category D', value: 55 },
+              { name: 'Category E', value: 75 },
+            ],
+          },
+        ];
+      } else if (config.id === 'radar-chart') {
+        defaultSeries = [
+          {
+            name: 'Series 1',
+            color: '#8884d8',
+            data: [
+              { subject: 'Category A', value: 85, fullMark: 100 },
+              { subject: 'Category B', value: 75, fullMark: 100 },
+              { subject: 'Category C', value: 90, fullMark: 100 },
+              { subject: 'Category D', value: 80, fullMark: 100 },
+              { subject: 'Category E', value: 70, fullMark: 100 },
+            ],
+          },
+        ];
+      } else {
+        defaultSeries = [
+          { name: 'Series 1', color: '#4CAF50', data: [] }
+        ];
+      }
       traitAttributes['series'] = JSON.stringify(defaultSeries);
     }
   }
