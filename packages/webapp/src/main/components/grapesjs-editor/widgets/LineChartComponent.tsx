@@ -20,13 +20,14 @@ interface LineChartComponentProps {
   series?: SeriesItem[];
 }
 
+
+// Use the same default data as BarChart for consistency
 const defaultData = [
-  { name: 'Jan', value: 30 },
-  { name: 'Feb', value: 35 },
-  { name: 'Mar', value: 55 },
-  { name: 'Apr', value: 45 },
-  { name: 'May', value: 75 },
-  { name: 'Jun', value: 65 },
+  { name: 'Category A', value: 40 },
+  { name: 'Category B', value: 65 },
+  { name: 'Category C', value: 85 },
+  { name: 'Category D', value: 55 },
+  { name: 'Category E', value: 75 },
 ];
 
 const defaultSeries: SeriesItem[] = [
@@ -36,6 +37,7 @@ const defaultSeries: SeriesItem[] = [
     data: defaultData,
   },
 ];
+
 
 export const LineChartComponent: React.FC<LineChartComponentProps> = ({
   color = '#4CAF50',
@@ -49,16 +51,11 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
   animate = true,
   series,
 }) => {
-  // If series prop is provided and is a non-empty array, use it. Otherwise, fallback to single-series mode.
-  const chartSeries: SeriesItem[] = Array.isArray(series) && series.length > 0
-    ? series
-    : [
-        {
-          name: 'Monthly Sales',
-          color,
-          data,
-        },
-      ];
+  // If series prop is provided, use it. If it's an empty array, show "No data available". If undefined, use defaultSeries.
+  let chartSeries: SeriesItem[] = defaultSeries;
+  if (Array.isArray(series)) {
+    chartSeries = series.length > 0 ? series : [];
+  }
 
   // Merge all data points by name for X axis
   const allNames = Array.from(
@@ -73,6 +70,8 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
     return entry;
   });
 
+  const isEmpty = !chartSeries || chartSeries.length === 0 || allNames.length === 0;
+
   return (
     <div
       className="line-chart-container"
@@ -86,28 +85,32 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
       <h3 style={{ margin: '0 0 15px 0', color: '#333', fontFamily: 'Arial, sans-serif' }}>
         {title}
       </h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={mergedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />}
-          <XAxis dataKey="name" stroke="#666" />
-          <YAxis stroke="#666" />
-          {showTooltip && <Tooltip />}
-          {showLegend && <Legend />}
-          {chartSeries.map((s, idx) => (
-            <Line
-              key={s.name || idx}
-              type={curveType}
-              dataKey={`value${idx}`}
-              stroke={s.color || color}
-              strokeWidth={lineWidth}
-              dot={{ fill: s.color || color, r: 5 }}
-              activeDot={{ r: 7 }}
-              name={s.name || `Series ${idx + 1}`}
-              isAnimationActive={animate}
-            />
-          ))}
-        </LineChart>
-      </ResponsiveContainer>
+      {isEmpty ? (
+        <div style={{ textAlign: 'center', padding: '120px 0', color: '#888' }}>No data available</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={mergedData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />}
+            <XAxis dataKey="name" stroke="#666" />
+            <YAxis stroke="#666" />
+            {showTooltip && <Tooltip />}
+            {showLegend && <Legend />}
+            {chartSeries.map((s, idx) => (
+              <Line
+                key={s.name || idx}
+                type={curveType}
+                dataKey={`value${idx}`}
+                stroke={s.color || color}
+                strokeWidth={lineWidth}
+                dot={{ fill: s.color || color, r: 5 }}
+                activeDot={{ r: 7 }}
+                name={s.name || `Series ${idx + 1}`}
+                isAnimationActive={animate}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      )}
       <div style={{ marginTop: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px' }}>
         <p style={{ margin: 0, fontSize: '14px', color: '#666', fontFamily: 'Arial, sans-serif' }}>
           {chartSeries.map((s, idx) => (
