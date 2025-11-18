@@ -12,9 +12,9 @@ type GrapesJSComponent = {
 
 interface SeriesItem {
   name: string;
-  dataSource?: string;
-  labelField?: string;
-  dataField?: string;
+  'data-source'?: string;
+  'label-field'?: string;
+  'data-field'?: string;
   filter?: string;
   color?: string;
   data: Array<{ name: string; value: number }>;
@@ -41,7 +41,23 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
       const attrVal = component.getAttributes()['series'];
       if (typeof attrVal === 'string' && attrVal.trim().startsWith('[')) {
         try {
-          series = JSON.parse(attrVal);
+          series = JSON.parse(attrVal).map((s: any) => {
+            // Convert kebab-case keys to camelCase if present (for backward compatibility)
+            const out: any = { ...s };
+            if ('data-source' in out) {
+              out.dataSource = out['data-source'];
+              delete out['data-source'];
+            }
+            if ('label-field' in out) {
+              out.labelField = out['label-field'];
+              delete out['label-field'];
+            }
+            if ('data-field' in out) {
+              out.dataField = out['data-field'];
+              delete out['data-field'];
+            }
+            return out;
+          });
         } catch (e) {
           series = [];
         }
@@ -181,7 +197,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
             const option = document.createElement('option');
             option.value = opt.value;
             option.textContent = opt.name;
-            if (opt.value === s.dataSource) option.selected = true;
+            if (opt.value === s['data-source']) option.selected = true;
             dsSelect.appendChild(option);
           });
 
@@ -196,14 +212,14 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           labelFieldSelect.appendChild(labelBlank);
           // Get label/data field options for the selected data source
           let labelFieldOptions: Array<{ value: string; label: string }> = [];
-          if (s.dataSource) {
-            labelFieldOptions = getFieldOptions(s.dataSource);
+          if (s['data-source']) {
+            labelFieldOptions = getFieldOptions(s['data-source']);
           }
           labelFieldOptions.forEach(opt => {
             const option = document.createElement('option');
             option.value = opt.value;
             option.textContent = opt.label;
-            if (opt.value === s.labelField) option.selected = true;
+            if (opt.value === s['label-field']) option.selected = true;
             labelFieldSelect.appendChild(option);
           });
 
@@ -217,14 +233,14 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           dataBlank.textContent = '';
           dataFieldSelect.appendChild(dataBlank);
           let dataFieldOptions: Array<{ value: string; label: string }> = [];
-          if (s.dataSource) {
-            dataFieldOptions = getFieldOptions(s.dataSource);
+          if (typeof s['data-source'] === 'string' && s['data-source']) {
+            dataFieldOptions = getFieldOptions(s['data-source']);
           }
           dataFieldOptions.forEach(opt => {
             const option = document.createElement('option');
             option.value = opt.value;
             option.textContent = opt.label;
-            if (opt.value === s.dataField) option.selected = true;
+            if (opt.value === s['data-field']) option.selected = true;
             dataFieldSelect.appendChild(option);
           });
 
@@ -470,10 +486,10 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           } else {
             data = barData;
           }
-          series.push({ name: `Series ${idx + 1}`, dataSource: '', labelField: '', dataField: '', color: randomColor, data });
+          series.push({ name: `Series ${idx + 1}`, 'data-source': '', 'label-field': '', 'data-field': '', color: randomColor, data });
         } else {
           // Default fallback
-          series.push({ name: `Series ${idx + 1}`, dataSource: '', labelField: '', dataField: '', color: '#4CAF50', data: barData });
+          series.push({ name: `Series ${idx + 1}`, 'data-source': '', 'label-field': '', 'data-field': '', color: '#4CAF50', data: barData });
         }
         update();
       };
@@ -483,7 +499,9 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
 
       // Update component attribute when changed
       const update = () => {
-        const seriesStr = JSON.stringify(series);
+        // Output kebab-case keys for data binding, and keep 'data' property for chart rendering
+        const cleanSeries = series.map((s: any) => ({ ...s }));
+        const seriesStr = JSON.stringify(cleanSeries);
         component.addAttributes({ series: seriesStr });
         // Also update the trait value directly for GrapesJS persistence
         if (typeof (component as any).set === 'function') {
@@ -509,22 +527,22 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
         // Data Source
         if (target.tagName === 'SELECT' && target.dataset.dsIdx !== undefined) {
           const idx = Number(target.dataset.dsIdx);
-          series[idx].dataSource = target.value;
-          // Reset labelField and dataField when dataSource changes
-          series[idx].labelField = '';
-          series[idx].dataField = '';
+          series[idx]['data-source'] = target.value;
+          // Reset label-field and data-field when data-source changes
+          series[idx]['label-field'] = '';
+          series[idx]['data-field'] = '';
           update(); // This will re-render and update the dropdowns
         }
         // Label Field
         if (target.tagName === 'SELECT' && target.dataset.labelIdx !== undefined) {
           const idx = Number(target.dataset.labelIdx);
-          series[idx].labelField = target.value;
+          series[idx]['label-field'] = target.value;
           update();
         }
         // Data Field
         if (target.tagName === 'SELECT' && target.dataset.datafieldIdx !== undefined) {
           const idx = Number(target.dataset.datafieldIdx);
-          series[idx].dataField = target.value;
+          series[idx]['data-field'] = target.value;
           update();
         }
         // Filter
