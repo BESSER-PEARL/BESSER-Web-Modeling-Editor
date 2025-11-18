@@ -15,6 +15,7 @@ interface SeriesItem {
   dataSource?: string;
   labelField?: string;
   dataField?: string;
+  filter?: string;
   color?: string;
   data: Array<{ name: string; value: number }>;
   _expanded?: boolean;
@@ -227,6 +228,17 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
             dataFieldSelect.appendChild(option);
           });
 
+          // Filter (text input)
+          const filterLabel = document.createElement('label');
+          filterLabel.textContent = 'Filter';
+          const filterInput = document.createElement('input');
+          filterInput.type = 'text';
+          filterInput.value = s.filter || '';
+          filterInput.placeholder = 'Filter expression';
+          filterInput.setAttribute('data-filter-idx', idx.toString());
+          filterInput.style.width = '100%';
+          filterInput.style.margin = '4px 0 8px 0';
+
           // Color (GrapesJS-style: text + preview + popover picker, no alpha)
 
           const colorLabel = document.createElement('label');
@@ -390,6 +402,8 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           details.appendChild(labelFieldSelect);
           details.appendChild(dataFieldLabel);
           details.appendChild(dataFieldSelect);
+          details.appendChild(filterLabel);
+          details.appendChild(filterInput);
           details.appendChild(colorLabel);
           details.appendChild(colorInputContainer);
 
@@ -512,6 +526,12 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           const idx = Number(target.dataset.datafieldIdx);
           series[idx].dataField = target.value;
           update();
+        }
+        // Filter
+        if (target.tagName === 'INPUT' && target.dataset.filterIdx !== undefined) {
+          const idx = Number(target.dataset.filterIdx);
+          series[idx].filter = target.value;
+          // Do not call update() here to avoid chart refresh
         }
         // Color
         if (target.type === 'color' && target.dataset.colorIdx !== undefined) {
