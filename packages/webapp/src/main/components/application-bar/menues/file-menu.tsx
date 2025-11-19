@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useImportDiagramPictureFromImage } from '../../../services/import/useImportDiagramPicture';
 import { Dropdown, NavDropdown, Modal, Spinner } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
@@ -20,6 +20,7 @@ import { useProject } from '../../../hooks/useProject';
 import { JsonViewerModal } from '../../modals/json-viewer-modal/json-viewer-modal';
 import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
 import { useProjectPreviewModal } from './hooks/useProjectPreviewModal';
+import { ExportProjectModal } from '../../modals/export-project-modal/export-project-modal';
 
 export const FileMenu: React.FC = () => {
   const apollonEditor = useContext(ApollonEditorContext);
@@ -38,6 +39,7 @@ export const FileMenu: React.FC = () => {
 
   // Modal state for feedback and input
   const [showImportModal, setShowImportModal] = React.useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [apiKey, setApiKey] = React.useState('');
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [fileError, setFileError] = React.useState('');
@@ -106,7 +108,7 @@ export const FileMenu: React.FC = () => {
   //   }
   // };
   const handleLoadTemplate = () => dispatch(showModal({ type: ModalContentType.CreateDiagramFromTemplateModal }));
-  const handleExportProject = () => dispatch(showModal({ type: ModalContentType.ExportProjectModal }));
+  const handleExportProject = () => setShowExportModal(true);
 
   // Handler for previewing project JSON
   const handlePreviewProjectJSON = async () => {
@@ -362,6 +364,12 @@ export const FileMenu: React.FC = () => {
         onRequestBuml={handleRequestBumlPreview}
         onCopyBuml={handleCopyBumlPreview}
         onDownloadBuml={handleDownloadBumlPreview}
+      />
+
+      {/* Export Project Modal */}
+      <ExportProjectModal 
+        show={showExportModal} 
+        onHide={() => setShowExportModal(false)} 
       />
     </>
   );
