@@ -85,15 +85,20 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null): 
   // For GUI/No-Code diagram
   if (type === null) {
     // ========================================
-    // 🎨 DEFAULT PAGE CONTENT
+    // 🎨 EMPTY GUI DIAGRAM
     // ========================================
-    // This HTML will be the default content when a new project is created
-    // Import the templates from external JSON files
-    const defaultCompleteHTML = CompleteGUI;
+    // The GUI diagram starts with minimal structure - the template will be loaded
+    // only on first visit to the GUI editor
     return {
       id: crypto.randomUUID(),
       title,
-      model: defaultCompleteHTML,
+      model: {
+        pages: [],
+        styles: [],
+        assets: [],
+        symbols: [],
+        version: '0.21.13'
+      } as GrapesJSProjectData, // Empty structure - will be populated on first editor load
       lastUpdate: new Date().toISOString(),
     };
   }
@@ -113,6 +118,11 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null): 
     },
     lastUpdate: new Date().toISOString(),
   };
+};
+
+// Factory to create default GUI template (used on first editor load)
+export const createDefaultGUITemplate = (): GrapesJSProjectData => {
+  return CompleteGUI as GrapesJSProjectData;
 };
 
 // Default project factory
