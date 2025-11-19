@@ -18,6 +18,7 @@ import { registerMapComponent } from './component-registrars/registerMapComponen
 import { registerButtonComponent } from './component-registrars/registerButtonComponent';
 import { registerFormComponents } from './component-registrars/registerFormComponents';
 import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
+import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
@@ -225,6 +226,7 @@ function registerCustomComponents(editor: Editor) {
   registerButtonComponent(editor);
   // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);
+  registerAgentComponent(editor);
   
   // console.log('[GraphicalUIEditor] All custom components registered');
 }
