@@ -104,30 +104,42 @@ function isGUIModelEmpty(guiModel: any): boolean {
   if (!guiModel) return true;
   
   // Check if it's a GrapesJS model structure
-  if (guiModel.pages) {
+  if (guiModel.pages !== undefined) {
     // Empty if no pages
-    if (!guiModel.pages || guiModel.pages.length === 0) {
+    if (!guiModel.pages) {
       return true;
     }
     
-    // Check if all pages are empty (have no frames or only empty frames)
-    for (const page of guiModel.pages) {
-      if (!page.frames || page.frames.length === 0) {
-        continue; // This page is empty, check next
+    // Handle pages as array (expected format)
+    if (Array.isArray(guiModel.pages)) {
+      if (guiModel.pages.length === 0) {
+        return true;
       }
       
-      // Check if any frame has components
-      for (const frame of page.frames) {
-        if (frame.component && 
-            frame.component.components && 
-            frame.component.components.length > 0) {
-          return false; // Found a frame with components, not empty
+      // Check if all pages are empty (have no frames or only empty frames)
+      for (const page of guiModel.pages) {
+        if (!page.frames || page.frames.length === 0) {
+          continue; // This page is empty, check next
+        }
+        
+        // Check if any frame has components
+        for (const frame of page.frames) {
+          if (frame.component && 
+              frame.component.components && 
+              frame.component.components.length > 0) {
+            return false; // Found a frame with components, not empty
+          }
         }
       }
+      
+      // All pages checked and none have components
+      return true;
     }
     
-    // All pages checked and none have components
-    return true;
+    // Handle pages as object (legacy/invalid format) - check if empty object
+    if (typeof guiModel.pages === 'object') {
+      return Object.keys(guiModel.pages).length === 0;
+    }
   }
   
   return false;
