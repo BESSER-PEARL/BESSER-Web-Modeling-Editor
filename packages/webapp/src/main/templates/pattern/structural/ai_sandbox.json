@@ -610,7 +610,7 @@
     },
     "a70c5525-afb0-4ee1-a637-f5cb25ab19ad": {
         "id": "a70c5525-afb0-4ee1-a637-f5cb25ab19ad",
-        "name": "+ type: DatasetType",
+        "name": "+ dataset_type: DatasetType",
         "type": "ClassAttribute",
         "owner": "b910ce24-f2bd-40de-b141-ce2956087223",
         "bounds": {
