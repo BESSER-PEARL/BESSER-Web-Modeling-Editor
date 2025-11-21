@@ -39,7 +39,8 @@ export const GenerateCodeMenu: React.FC = () => {
                             (BACKEND_URL ?? '').includes('127.0.0.1');
 
   const handleGenerateCode = async (generatorType: string) => {
-    if (!editor) {
+    // For GUI/No-Code diagrams, we don't need the apollon editor
+    if (!isGUINoCodeDiagram && !editor) {
       toast.error('No diagram available to generate code from');
       return;
     }
@@ -74,7 +75,9 @@ export const GenerateCodeMenu: React.FC = () => {
         const jsonSchemaConfig: JSONSchemaConfig = {
           mode: 'smart_data'
         };
-        await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
+        if (editor) {
+          await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
+        }
       } catch (error) {
         console.error('Error in Smart Data Models generation:', error);
         toast.error('Smart Data Models generation failed. Check console for details.');
@@ -83,7 +86,9 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      await generateCode(editor, generatorType, diagram.title);
+      if (editor) {
+        await generateCode(editor, generatorType, diagram.title);
+      }
     } catch (error) {
       console.error('Error in code generation:', error);
       toast.error('Code generation failed. Check console for details.');

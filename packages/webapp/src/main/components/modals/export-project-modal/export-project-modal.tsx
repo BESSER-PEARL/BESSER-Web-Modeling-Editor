@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
-import { Button, Form } from 'react-bootstrap';
-import { ModalContentProps } from '../application-modal-types';
+import { Button, Form, Modal } from 'react-bootstrap';
 import { useExportPNG } from '../../../services/export/useExportPng';
 import { useExportSVG } from '../../../services/export/useExportSvg';
 import { useAppSelector } from '../../store/hooks';
@@ -11,18 +10,42 @@ import { useProject } from '../../../hooks/useProject';
 import { exportProjectById } from '../../../services/export/useExportProjectJSON';
 import { ProjectDiagram, SupportedDiagramType } from '../../../types/project';
 import styled from 'styled-components';
-import { FileEarmarkArrowDown, Image, FileEarmarkCode, FileEarmarkText } from 'react-bootstrap-icons';
+import { FileEarmarkArrowDown, Image, FileEarmarkCode, FileEarmarkText, X } from 'react-bootstrap-icons';
 
 // Styled Components - Clean grey/white design
+const StyledModal = styled(Modal)`
+  .modal-dialog {
+    max-width: 700px;
+    width: 90vw;
+    margin: 1.5rem auto;
+  }
+  
+  .modal-content {
+    background: white;
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  }
+  
+  [data-theme="dark"] & .modal-content {
+    background: #1a1d21;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal-body {
+    padding: 0;
+  }
+`;
+
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 1rem 1.5rem;
   background: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   
   [data-theme="dark"] & {
     background: #2b3035;
@@ -34,7 +57,7 @@ const ModalTitle = styled.h3`
   color: #212529;
   margin: 0;
   font-weight: 600;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   display: flex;
   align-items: center;
   
@@ -47,14 +70,14 @@ const CloseButton = styled(Button)`
   background: #fff;
   border: 1px solid #dee2e6;
   color: #6c757d;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
   
   &:hover {
@@ -91,9 +114,8 @@ const CloseButton = styled(Button)`
 
 const ModalBody = styled.div`
   background: #ffffff;
-  padding: 2rem;
+  padding: 1.25rem;
   color: #212529;
-  min-height: 500px;
   
   [data-theme="dark"] & {
     background: #212529;
@@ -104,7 +126,7 @@ const ModalBody = styled.div`
 const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 1.25rem;
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -114,8 +136,8 @@ const ContentGrid = styled.div`
 const ExportSection = styled.div`
   background: #f8f9fa;
   border: 1px solid #dee2e6;
-  border-radius: 12px;
-  padding: 2rem;
+  border-radius: 10px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -129,11 +151,11 @@ const ExportSection = styled.div`
 const SectionTitle = styled.h5`
   color: #212529;
   font-weight: 600;
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   
   [data-theme="dark"] & {
     color: #f8f9fa;
@@ -144,9 +166,9 @@ const DiagramSelectionBox = styled.div`
   background: #ffffff;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  padding: 1.25rem;
-  margin-bottom: 1.5rem;
-  max-height: 200px;
+  padding: 0.875rem;
+  margin-bottom: 1rem;
+  max-height: 150px;
   overflow-y: auto;
   
   [data-theme="dark"] & {
@@ -155,7 +177,7 @@ const DiagramSelectionBox = styled.div`
   }
   
   &::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
   
   &::-webkit-scrollbar-track {
@@ -177,7 +199,7 @@ const DiagramSelectionBox = styled.div`
   }
   
   .form-check {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     
     &:last-child {
       margin-bottom: 0;
@@ -187,7 +209,7 @@ const DiagramSelectionBox = styled.div`
   .form-check-label {
     color: #495057;
     font-weight: 500;
-    font-size: 1rem;
+    font-size: 0.875rem;
     
     [data-theme="dark"] & {
       color: #f8f9fa;
@@ -205,20 +227,20 @@ const DiagramSelectionBox = styled.div`
 const ExportButtonsGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.625rem;
   margin-top: auto;
 `;
 
 const ExportButton = styled(Button)`
-  padding: 1.25rem;
+  padding: 0.75rem 1rem;
   font-weight: 600;
   border-radius: 8px;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  font-size: 1.05rem;
+  gap: 0.5rem;
+  font-size: 0.9rem;
   
   &:hover {
     transform: translateY(-2px);
@@ -234,10 +256,10 @@ const CurrentDiagramInfo = styled.div`
   background: #ffffff;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
   color: #6c757d;
-  font-size: 1rem;
+  font-size: 0.875rem;
   
   strong {
     color: #212529;
@@ -256,9 +278,9 @@ const CurrentDiagramInfo = styled.div`
 
 const InfoText = styled.p`
   color: #6c757d;
-  font-size: 0.95rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
   
   [data-theme="dark"] & {
     color: #adb5bd;
@@ -268,9 +290,9 @@ const InfoText = styled.p`
 const ModalFooterStyled = styled.div`
   background: #f8f9fa;
   border-top: 1px solid #dee2e6;
-  padding: 1.25rem 2rem;
-  border-bottom-left-radius: 20px;
-  border-bottom-right-radius: 20px;
+  padding: 0.875rem 1.5rem;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
   
   [data-theme="dark"] & {
     background: #2b3035;
@@ -286,42 +308,11 @@ const FooterContent = styled.div`
   
   small {
     color: #6c757d;
-    font-size: 0.95rem;
+    font-size: 0.8rem;
     
     [data-theme="dark"] & {
       color: #adb5bd;
     }
-  }
-`;
-
-const ModalContainer = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-`;
-
-const ModalContent = styled.div`
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  max-width: 900px;
-  width: 90vw;
-  max-height: 90vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  
-  [data-theme="dark"] & {
-    background: #1a1d21;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   }
 `;
 
@@ -335,7 +326,12 @@ const diagramLabels: Record<SupportedDiagramType, string> = {
 
 const formatsRequiringSelection = new Set(['JSON', 'BUML']);
 
-export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
+interface ExportProjectModalProps {
+  show: boolean;
+  onHide: () => void;
+}
+
+export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, onHide }) => {
   const apollonEditor = useContext(ApollonEditorContext);
   const editor = apollonEditor?.editor;
   const diagram = useAppSelector((state) => state.diagram.diagram);
@@ -413,22 +409,30 @@ export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
           toast.error('Unknown export format.');
           return;
       }
-      close();
+      onHide();
     } catch (error) {
       toast.error('Export failed.');
     }
   };
 
   return (
-    <ModalContainer onClick={close}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
+    <StyledModal 
+      show={show} 
+      onHide={onHide} 
+      centered 
+      backdrop={true}
+      keyboard={true}
+      aria-labelledby="export-modal-title"
+      aria-describedby="export-modal-description"
+    >
+      <Modal.Body>
         <ModalHeader>
-          <ModalTitle>
-            <FileEarmarkArrowDown size={24} style={{ marginRight: '0.5rem' }} />
+          <ModalTitle id="export-modal-title">
+            <FileEarmarkArrowDown size={20} style={{ marginRight: '0.5rem' }} />
             Export Project
           </ModalTitle>
-          <CloseButton onClick={close} aria-label="Close">
-            ×
+          <CloseButton onClick={onHide} aria-label="Close">
+            <X size={16} />
           </CloseButton>
         </ModalHeader>
         
@@ -437,7 +441,7 @@ export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
             {/* Project Export Section */}
             <ExportSection>
               <SectionTitle>
-                <FileEarmarkCode size={24} />
+                <FileEarmarkCode size={18} />
                 Multiple Diagrams
               </SectionTitle>
               
@@ -448,7 +452,7 @@ export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
               {diagramEntries.length > 0 ? (
                 <>
                   <DiagramSelectionBox>
-                    <div style={{ color: '#495057', fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.95rem' }}>
+                    <div style={{ color: '#495057', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.8rem' }}>
                       Select Diagrams:
                     </div>
                     {diagramEntries.map(([type, projectDiagram]) => (
@@ -466,18 +470,16 @@ export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
                   <ExportButtonsGrid>
                     <ExportButton
                       variant="primary"
-                      size="lg"
                       onClick={() => handleExport('JSON')}
                     >
-                      <FileEarmarkText size={22} />
+                      <FileEarmarkText size={18} />
                       Export as JSON
                     </ExportButton>
                     <ExportButton
                       variant="primary"
-                      size="lg"
                       onClick={() => handleExport('BUML')}
                     >
-                      <FileEarmarkCode size={22} />
+                      <FileEarmarkCode size={18} />
                       Export as B-UML
                     </ExportButton>
                   </ExportButtonsGrid>
@@ -492,7 +494,7 @@ export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
             {/* Current Diagram Export Section */}
             <ExportSection>
               <SectionTitle>
-                <Image size={24} />
+                <Image size={18} />
                 Current Diagram
               </SectionTitle>
               
@@ -507,26 +509,23 @@ export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
               <ExportButtonsGrid>
                 <ExportButton
                   variant="secondary"
-                  size="lg"
                   onClick={() => handleExport('SVG')}
                 >
-                  <FileEarmarkCode size={22} />
+                  <FileEarmarkCode size={18} />
                   Export as SVG
                 </ExportButton>
                 <ExportButton
                   variant="outline-secondary"
-                  size="lg"
                   onClick={() => handleExport('PNG_WHITE')}
                 >
-                  <Image size={22} />
+                  <Image size={18} />
                   Export PNG (White)
                 </ExportButton>
                 <ExportButton
                   variant="outline-dark"
-                  size="lg"
                   onClick={() => handleExport('PNG')}
                 >
-                  <Image size={22} />
+                  <Image size={18} />
                   Export PNG (Transparent)
                 </ExportButton>
               </ExportButtonsGrid>
@@ -539,14 +538,15 @@ export const ExportProjectModal: React.FC<ModalContentProps> = ({ close }) => {
             <small>💡 Use JSON/B-UML to backup your entire project</small>
             <Button 
               variant="secondary" 
-              onClick={close}
-              style={{ fontWeight: 600, padding: '0.5rem 1.5rem' }}
+              onClick={onHide}
+              size="sm"
+              style={{ fontWeight: 600 }}
             >
               Close
             </Button>
           </FooterContent>
         </ModalFooterStyled>
-      </ModalContent>
-    </ModalContainer>
+      </Modal.Body>
+    </StyledModal>
   );
 };

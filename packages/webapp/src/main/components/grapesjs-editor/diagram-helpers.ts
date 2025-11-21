@@ -7,6 +7,11 @@ function getClassDiagramModel() {
   return project?.diagrams?.ClassDiagram?.model;
 }
 
+function getAgentDiagramModel() {
+  const project = ProjectStorageRepository.getCurrentProject();
+  return project?.diagrams?.AgentDiagram?.model;
+}
+
 export function getClassOptions(): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
@@ -204,4 +209,21 @@ export function getInheritedEndsByClassId(classId: string): { value: string; lab
     });
 
   return inheritedEnds;
+}
+
+/**
+ * Get agent options from AgentDiagram - returns the entire diagram as an option
+ */
+export function getAgentOptions(): { value: string; label: string }[] {
+  // Get the project to access AgentDiagram
+  const project = ProjectStorageRepository.getCurrentProject();
+  const agentDiagramData = project?.diagrams?.AgentDiagram;
+  
+  if (agentDiagramData?.title) {
+    // Return the diagram title as the agent identifier (entire diagram, not individual states)
+    return [{ value: agentDiagramData.title, label: agentDiagramData.title }];
+  }
+  
+  console.warn('[diagram-helpers] No Agent diagram data available');
+  return [];
 }

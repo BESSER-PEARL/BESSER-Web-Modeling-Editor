@@ -13,7 +13,6 @@ import { DeleteVersionModal } from './delete-version-modal/delete-version-modal'
 import { RestoreVersionModal } from './restore-version-modal/restore-version-modal';
 import { EditVersionModal } from './edit-version-info-modal/edit-version-info-modal';
 import { CreateVersionModal } from './create-version-modal/create-version-modal';
-import { ExportProjectModal } from './export-project-modal/export-project-modal';
 
 export const ApplicationModalContent: { [key in ModalContentType]: React.FC<ModalContentProps> } = {
   [ModalContentType.HelpModelingModal]: HelpModelingModal,
@@ -30,5 +29,4 @@ export const ApplicationModalContent: { [key in ModalContentType]: React.FC<Moda
   [ModalContentType.RestoreVersionModal]: RestoreVersionModal,
   [ModalContentType.EditVersionInfoModal]: EditVersionModal,
   [ModalContentType.CreateVersionModal]: CreateVersionModal,
-  [ModalContentType.ExportProjectModal]: ExportProjectModal,
 };

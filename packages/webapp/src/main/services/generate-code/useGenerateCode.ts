@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { ApollonEditor } from '@besser/wme';
 import { useFileDownload } from '../file-download/useFileDownload';
 import { toast } from 'react-toastify';
-import { validateDiagram } from '../validation/diagramValidation';
+import { validateDiagram } from '../validation/validateDiagram';
 import { BACKEND_URL } from '../../constant';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { isGrapesJSProjectData } from '../../types/project';
@@ -50,9 +50,9 @@ export const useGenerateCode = () => {
       console.log('Starting code generation...'); 
       
       // Validate diagram before generation
-      const validationResult = validateDiagram(editor);
+      const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message);
+        toast.error(validationResult.message || 'Validation failed');
         return;
       }
 
