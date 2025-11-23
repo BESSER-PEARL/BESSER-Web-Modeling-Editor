@@ -54,7 +54,7 @@ export const StartProjectModal: React.FC<ModalContentProps> = ({ close }) => {
                 <FileText size={40} className="mb-2 text-success" />
                 <Card.Title>From Spreadsheet</Card.Title>
                 <Card.Text className="text-muted text-center small">
-                  Import a spreadsheet (CSV/Excel) to generate your initial class diagram.
+                  Import a spreadsheet (CSV) to generate your initial class diagram.
                 </Card.Text>
               </Card.Body>
             </CardButton>
