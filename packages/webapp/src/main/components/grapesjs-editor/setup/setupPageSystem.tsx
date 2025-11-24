@@ -1,4 +1,8 @@
-﻿import { Editor } from 'grapesjs';
+﻿import * as React from 'react';
+import { Editor } from 'grapesjs';
+import { AddPageModal } from '../../modals/page-modal/AddPageModal';
+import ReactDOM from 'react-dom';
+import { getClassOptions } from '../diagram-helpers';
 
 // Guard to prevent duplicate initialization
 let pageSystemInitialized = false;
@@ -46,8 +50,60 @@ function initializePagesPanel(editor: Editor) {
   container.innerHTML = '<div class="pages-panel-header"><h3>Pages</h3><div class="pages-panel-controls"><button id=\"add-page-btn\" title="Add new page">+</button><button id=\"close-pages-btn\" title="Close panel">×</button></div></div><input type=\"text\" id=\"page-search\" placeholder=\"Search pages...\" /><div id=\"pages-list\"></div>';
   editor.getContainer()?.appendChild(container);
   
+  // Modal container for AddPageModal
+  let addPageModalContainer: HTMLDivElement | null = null;
+  function showAddPageModal(onCreate: (selectedClassId: string | null) => void) {
+    if (!addPageModalContainer) {
+      addPageModalContainer = document.createElement('div');
+      document.body.appendChild(addPageModalContainer);
+    }
+    ReactDOM.render(
+      <AddPageModal
+        show={true}
+        onClose={() => ReactDOM.unmountComponentAtNode(addPageModalContainer!)}
+        onCreate={(selectedClassId) => {
+          ReactDOM.unmountComponentAtNode(addPageModalContainer!);
+          onCreate(selectedClassId);
+        }}
+      />,
+      addPageModalContainer
+    );
+  }
+
   setTimeout(() => {
-    document.getElementById('add-page-btn')?.addEventListener('click', () => editor.runCommand('add-page'));
+    document.getElementById('add-page-btn')?.addEventListener('click', () => {
+      showAddPageModal((selectedClassId) => {
+        let name = 'New Page';
+        let id = 'new-page';
+        if (selectedClassId) {
+          const classOption = getClassOptions().find(opt => opt.value === selectedClassId);
+          name = classOption ? classOption.label : 'Class Page';
+          id = name.toLowerCase().replace(/\s+/g, '-');
+        }
+        const page = editor.Pages.add({ id, name });
+        if (page) {
+          editor.Pages.select(page);
+          updatePagesList(editor);
+          if (selectedClassId) {
+            // Auto-generate page content for the selected class using GrapesJS TableChart block/component
+            editor.setComponents([
+              {
+                type: 'table-chart',
+                attributes: {
+                  'data-source': selectedClassId,
+                  'chart-title': name,
+                  'chart-color': '#2c3e50',
+                  'show-header': true,
+                  'striped-rows': false,
+                  'show-pagination': true,
+                  'rows-per-page': 5
+                }
+              }
+            ]);
+          }
+        }
+      });
+    });
     document.getElementById('close-pages-btn')?.addEventListener('click', () => {
       const panel = document.querySelector('.pages-panel-container') as HTMLElement;
       if (panel) panel.style.display = 'none';

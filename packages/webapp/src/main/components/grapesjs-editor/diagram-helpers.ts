@@ -205,3 +205,17 @@ export function getInheritedEndsByClassId(classId: string): { value: string; lab
 
   return inheritedEnds;
 }
+
+/**
+ * Generate GrapesJS page content for a class: title and TableChartComponent block
+ */
+export function generateClassPageContent(classId: string): string {
+  const classMeta = getClassMetadata(classId);
+  if (!classMeta) return '';
+  // Title block
+  const titleHtml = `<h2>${classMeta.name}</h2>`;
+  // Table block using TableChartComponent block (assumes block is registered)
+  // The data-source trait is set to the class name
+  const tableHtml = `<div data-gjs-type="table-chart-component" data-source="${classMeta.name}"></div>`;
+  return `${titleHtml}\n${tableHtml}`;
+}
