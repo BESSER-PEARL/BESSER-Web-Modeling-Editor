@@ -4,32 +4,15 @@ import {
     QFTGate, QFTDaggerGate,
     SwapGate,
     IncrementGate, DecrementGate, AdditionGate, SubtractionGate, MultiplicationGate,
-    BlochSphereGate, DensityMatrixGate, ProbabilityGate, AmplitudeGate, ChanceGate
+    BlochSphereGate, DensityMatrixGate, ProbabilityGate, AmplitudeGate, ChanceGate,
+    XPowGate, YPowGate, ZPowGate, ExpXGate, ExpYGate, ExpZGate,
+    ModularAddGate, ModularSubGate, ModularMulGate, ModularInvMulGate,
+    ComparisonGate, CountingGate, CycleBitsGate, ReverseBitsGate, XorGate, PhaseGradientGate,
+    InputAGate, InputBGate, RandomGate,
+    MysteryGate, ZeroGate, UniversalNotGate
 } from './gates';
 
-export const GATE_RADIUS = 20;
-export const GATE_SIZE = 40; // 2 * GATE_RADIUS
-export const WIRE_SPACING = 50;
-export const TOP_MARGIN = 50;
-export const LEFT_MARGIN = 50;
-
-export const COLORS = {
-    GATE_FILL: 'white',
-    HIGHLIGHTED_GATE_FILL: '#FB7',
-    TIME_DEPENDENT_HIGHLIGHT: '#FFC',
-    DISPLAY_GATE_IN_TOOLBOX_FILL: '#4F4',
-    DISPLAY_GATE_BACK: '#EFE',
-    DISPLAY_GATE_FORE: '#3F3',
-    OPERATION_BACK: '#FFE',
-    OPERATION_FORE: '#FF0',
-    SUPERPOSITION_BACK: '#EFF',
-    SUPERPOSITION_MID: '#8FF',
-    SUPERPOSITION_FORE: '#0BB',
-    BACKGROUND: 'white',
-    TOOLBOX_BACKGROUND: '#CCC',
-    STROKE: 'black',
-    TEXT: 'black',
-};
+export * from './layout-constants';
 
 export const GATES: Gate[] = [
     // Probes
@@ -65,6 +48,14 @@ export const GATES: Gate[] = [
     { type: 'T', id: 't', label: 'T', symbol: 'T', description: 'Z^1/4 Gate', isControl: false },
     { type: 'T_DAG', id: 't-dag', label: 'T†', symbol: 'T†', description: 'Inverse Z^1/4 Gate', isControl: false },
 
+    // Parametrized Rotations
+    { ...XPowGate, id: 'x-pow', isControl: false },
+    { ...YPowGate, id: 'y-pow', isControl: false },
+    { ...ZPowGate, id: 'z-pow', isControl: false },
+    { ...ExpXGate, id: 'exp-x', isControl: false },
+    { ...ExpYGate, id: 'exp-y', isControl: false },
+    { ...ExpZGate, id: 'exp-z', isControl: false },
+
     // Fourier Transform
     { ...QFTGate, id: 'qft', isControl: false },
     { ...QFTDaggerGate, id: 'qft-dag', isControl: false },
@@ -76,9 +67,33 @@ export const GATES: Gate[] = [
     { ...SubtractionGate, id: 'sub', isControl: false },
     { ...MultiplicationGate, id: 'mul', isControl: false },
 
+    // Modular Arithmetic
+    { ...ModularAddGate, id: 'mod-add', isControl: false },
+    { ...ModularSubGate, id: 'mod-sub', isControl: false },
+    { ...ModularMulGate, id: 'mod-mul', isControl: false },
+    { ...ModularInvMulGate, id: 'mod-inv-mul', isControl: false },
+
+    // Logic
+    { ...ComparisonGate, id: 'compare', isControl: false },
+    { ...CountingGate, id: 'count-1s', isControl: false },
+    { ...CycleBitsGate, id: 'cycle-bits', isControl: false },
+    { ...ReverseBitsGate, id: 'reverse-bits', isControl: false },
+    { ...XorGate, id: 'xor', isControl: false },
+    { ...PhaseGradientGate, id: 'phase-gradient', isControl: false },
+
+    // Input
+    { ...InputAGate, id: 'input-a', isControl: false },
+    { ...InputBGate, id: 'input-b', isControl: false },
+    { ...RandomGate, id: 'random', isControl: false },
+
     // Multi-wire gates
     { ...InterleaveGate, id: 'interleave', isControl: false },
     { ...DeinterleaveGate, id: 'deinterleave', isControl: false },
+
+    // Obscure
+    { ...MysteryGate, id: 'mystery', isControl: false },
+    { ...ZeroGate, id: 'zero', isControl: false },
+    { ...UniversalNotGate, id: 'universal-not', isControl: false },
 
     // Others
     { type: 'SPACER', id: 'spacer', label: '…', symbol: '…', description: 'Spacer', isControl: false },
@@ -106,6 +121,10 @@ export const TOOLBOX_GROUPS = [
         gates: ['T', 'T_DAG']
     },
     {
+        name: 'Parametrized',
+        gates: ['X_POW', 'Y_POW', 'Z_POW', 'EXP_X', 'EXP_Y', 'EXP_Z']
+    },
+    {
         name: 'Fourier Transform',
         gates: ['QFT', 'QFT_DAG']
     },
@@ -114,7 +133,23 @@ export const TOOLBOX_GROUPS = [
         gates: ['INC', 'DEC', 'ADD', 'SUB', 'MUL']
     },
     {
+        name: 'Modular',
+        gates: ['MOD_ADD', 'MOD_SUB', 'MOD_MUL', 'MOD_INV_MUL']
+    },
+    {
+        name: 'Logic',
+        gates: ['COMPARE', 'COUNT_1S', 'CYCLE_BITS', 'REVERSE_BITS', 'XOR', 'PHASE_GRADIENT']
+    },
+    {
+        name: 'Input',
+        gates: ['INPUT_A', 'INPUT_B', 'RANDOM']
+    },
+    {
         name: 'Multi-Wire',
         gates: ['INTERLEAVE', 'DEINTERLEAVE']
+    },
+    {
+        name: 'Obscure',
+        gates: ['MYSTERY', 'ZERO', 'UNIVERSAL_NOT']
     }
 ];

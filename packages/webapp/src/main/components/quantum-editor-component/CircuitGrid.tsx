@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
 import { Circuit, GateType } from './types';
-import { COLORS, GATE_SIZE, WIRE_SPACING, TOP_MARGIN, LEFT_MARGIN } from './constants';
+import { COLORS, GATE_SIZE, WIRE_SPACING, TOP_MARGIN, LEFT_MARGIN } from './layout-constants';
 import { Gate } from './Gate';
 
 const GridContainer = styled.div`

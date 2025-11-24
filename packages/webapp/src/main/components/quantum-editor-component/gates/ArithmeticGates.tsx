@@ -1,13 +1,15 @@
 import React from 'react';
 import { GateDefinition } from './GateDefinition';
 
+import { COLORS } from '../layout-constants';
+
 // Arithmetic Gate Drawer
 const ArithmeticDrawer = ({ rect, label }: { rect: { x: number, y: number, width: number, height: number }, label: string }) => {
     const { width, height } = rect;
 
     return (
         <svg width={width} height={height} style={{ position: 'absolute', top: 0, left: 0 }}>
-            <rect x={0} y={0} width={width} height={height} fill="#FFE" stroke="black" strokeWidth={1} />
+            <rect x={0} y={0} width={width} height={height} fill={COLORS.OPERATION_BACK} stroke="black" strokeWidth={1} />
             <text
                 x={width / 2}
                 y={height / 2}

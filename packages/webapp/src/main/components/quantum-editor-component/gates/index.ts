@@ -3,3 +3,8 @@ export { QFTGate, QFTDaggerGate } from './QFTGate';
 export { SwapGate } from './SwapGate';
 export { IncrementGate, DecrementGate, AdditionGate, SubtractionGate, MultiplicationGate } from './ArithmeticGates';
 export { BlochSphereGate, DensityMatrixGate, ProbabilityGate, AmplitudeGate, ChanceGate } from './DisplayGates';
+export * from './RotationGates';
+export * from './ModularArithmeticGates';
+export * from './LogicGates';
+export * from './InputGates';
+export * from './ObscureGates';

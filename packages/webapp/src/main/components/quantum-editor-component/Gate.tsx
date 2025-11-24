@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Gate as GateType } from './types';
-import { GATE_SIZE, WIRE_SPACING, COLORS } from './constants';
+import { GATE_SIZE, WIRE_SPACING, COLORS } from './layout-constants';
+import { useTooltip } from './Tooltip';
 
 const GateContainer = styled.div<{ $width: number, $height: number, $isControl: boolean }>`
   position: relative;
@@ -68,11 +69,24 @@ interface GateProps {
 
 export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GateProps): JSX.Element {
   const [showResizeTab, setShowResizeTab] = useState(false);
+  const { showTooltip, hideTooltip } = useTooltip();
   const width = (gate.width || 1) * GATE_SIZE;
   const height = (gate.height || 1) * WIRE_SPACING;
   const isControl = gate.isControl || false;
   const isAntiControl = gate.type === 'ANTI_CONTROL';
   const canResize = gate.canResize || false;
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    if (isDragging) return;
+    setShowResizeTab(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    showTooltip(rect.right + 5, rect.top, gate.label || gate.type, gate.description || '');
+  };
+
+  const handleMouseLeave = () => {
+    setShowResizeTab(false);
+    hideTooltip();
+  };
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -110,8 +124,8 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
         $height={height}
         $isControl={isControl}
         onMouseDown={onMouseDown}
-        onMouseEnter={() => setShowResizeTab(true)}
-        onMouseLeave={() => setShowResizeTab(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         style={{ opacity: isDragging ? 0.5 : 1 }}
       >
         {gate.drawer({ rect: { x: 0, y: 0, width, height } })}
@@ -133,6 +147,8 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
         $height={GATE_SIZE}
         $isControl={true}
         onMouseDown={onMouseDown}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         style={{ opacity: isDragging ? 0.5 : 1 }}
       >
         <ControlDot $isAntiControl={isAntiControl} />
@@ -147,8 +163,8 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
       $height={height}
       $isControl={false}
       onMouseDown={onMouseDown}
-      onMouseEnter={() => setShowResizeTab(true)}
-      onMouseLeave={() => setShowResizeTab(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
       {gate.symbol || gate.label}

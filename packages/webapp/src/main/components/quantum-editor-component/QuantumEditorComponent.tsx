@@ -1,11 +1,21 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Circuit, GateType } from './types';
-import { COLORS, GATES, LEFT_MARGIN, TOP_MARGIN, WIRE_SPACING, GATE_SIZE } from './constants';
+import { GATES } from './constants';
 import { GatePalette } from './GatePalette';
 import { CircuitGrid } from './CircuitGrid';
 import { Gate } from './Gate';
 import { compactCircuit, downloadCircuitAsJSON } from './utils';
+import { TooltipProvider } from './Tooltip';
+import {
+    GATE_SIZE,
+    WIRE_SPACING,
+    TOP_MARGIN,
+    LEFT_MARGIN,
+    COLORS
+} from './layout-constants';
 
 const EditorContainer = styled.div`
   display: flex;
@@ -54,6 +64,7 @@ export function QuantumEditorComponent(): JSX.Element {
     const [draggedGate, setDraggedGate] = useState<{ gate: GateType, offset: { x: number, y: number }, originalPos?: { col: number, row: number } } | null>(null);
     const [mousePos, setMousePos] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
     const circuitGridRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleDragStart = (gate: GateType, e: React.MouseEvent, originalPos?: { col: number, row: number }) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -274,52 +285,118 @@ export function QuantumEditorComponent(): JSX.Element {
         });
     };
 
+    const handleExportJSON = () => {
+        downloadCircuitAsJSON(circuit);
+    };
+
+    const handleImportJSON = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const importedData = JSON.parse(content);
+
+                // Basic validation (can be improved)
+                if (importedData.cols && Array.isArray(importedData.cols)) {
+                    // TODO: Implement full import logic to map Quirk JSON to our Circuit structure
+                    // For now, we'll just log it. 
+                    // We need a proper deserializer which is a separate task.
+                    console.log("Imported JSON:", importedData);
+                    alert("Import logic is coming in the next step! JSON loaded.");
+                } else {
+                    alert("Invalid circuit JSON format.");
+                }
+            } catch (error) {
+                console.error("Error parsing JSON:", error);
+                alert("Failed to parse JSON file.");
+            }
+        };
+        reader.readAsText(file);
+        // Reset input
+        event.target.value = '';
+    };
+
     return (
-        <EditorContainer onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
-            <Toolbar>
-                <h3>Quantum Editor</h3>
-                <button
-                    onClick={() => downloadCircuitAsJSON(circuit)}
-                    style={{
-                        marginLeft: 'auto',
-                        padding: '8px 16px',
-                        backgroundColor: '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    Export as JSON
-                </button>
-            </Toolbar>
-            <Workspace>
-                <PaletteContainer>
-                    <GatePalette onDragStart={handleDragStart} />
-                </PaletteContainer>
-                <CircuitContainer>
-                    <CircuitGrid
-                        ref={circuitGridRef}
-                        circuit={circuit}
-                        onGateDrop={() => { }} // Handled by global mouse up
-                        draggedGate={draggedGate ? { ...draggedGate, x: mousePos.x, y: mousePos.y } : null}
-                        onDragStart={handleDragStart}
-                        onGateResize={handleGateResize}
-                    />
-                </CircuitContainer>
-            </Workspace>
-            {draggedGate && (
-                <div style={{
-                    position: 'fixed',
-                    left: mousePos.x - draggedGate.offset.x,
-                    top: mousePos.y - draggedGate.offset.y,
-                    pointerEvents: 'none',
-                    zIndex: 1000
-                }}>
-                    <Gate gate={GATES.find(g => g.type === draggedGate.gate)!} isDragging />
-                </div>
-            )}
-        </EditorContainer>
+        <TooltipProvider>
+            <DndProvider backend={HTML5Backend}>
+                <EditorContainer onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+                    <Toolbar>
+                        <h3>Quantum Editor</h3>
+                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={handleExportJSON}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                Export JSON
+                            </button>
+                            <button
+                                onClick={handleImportJSON}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#2196F3',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                Import JSON
+                            </button>
+                            <input
+                                type="file"
+                                accept=".json"
+                                ref={fileInputRef}
+                                style={{ display: 'none' }}
+                                onChange={handleFileChange}
+                            />
+                        </div>
+                    </Toolbar>
+                    <Workspace>
+                        <PaletteContainer>
+                            <GatePalette onDragStart={handleDragStart} />
+                        </PaletteContainer>
+                        <CircuitContainer>
+                            <CircuitGrid
+                                ref={circuitGridRef}
+                                circuit={circuit}
+                                onGateDrop={() => { }} // Handled by global mouse up
+                                draggedGate={draggedGate ? { ...draggedGate, x: mousePos.x, y: mousePos.y } : null}
+                                onDragStart={handleDragStart}
+                                onGateResize={handleGateResize}
+                            />
+                        </CircuitContainer>
+                    </Workspace>
+                    {draggedGate && (
+                        <div style={{
+                            position: 'fixed',
+                            left: mousePos.x - draggedGate.offset.x,
+                            top: mousePos.y - draggedGate.offset.y,
+                            pointerEvents: 'none',
+                            zIndex: 1000
+                        }}>
+                            <Gate gate={GATES.find(g => g.type === draggedGate.gate)!} isDragging />
+                        </div>
+                    )}
+                </EditorContainer>
+            </DndProvider>
+        </TooltipProvider>
     );
 }
