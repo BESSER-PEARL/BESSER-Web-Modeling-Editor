@@ -181,7 +181,7 @@ export async function exportProjectAsSingleBUMLFile(
 
   // IMPORTANT: Always get fresh data from localStorage to ensure we have the latest changes
   //   const projectPayload = buildExportableProjectPayload(project, diagramTypes);
-  const freshProject = ProjectStorageRepository.getProject(project.id);
+  const freshProject = ProjectStorageRepository.loadProject(project.id);
   const projectToUse = freshProject || project;
   
   console.log('[BUML Export] Using project data:', projectToUse.id, 

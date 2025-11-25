@@ -24,7 +24,7 @@ export async function exportProjectAsJson(
   // and the Redux state might be stale
   //   const projectPayload = buildExportableProjectPayload(project, diagramTypes);
 
-  const freshProject = ProjectStorageRepository.getProject(project.id);
+  const freshProject = ProjectStorageRepository.loadProject(project.id);
   const projectToExport = freshProject || project;
   
   console.log('[Export] Using project data:', projectToExport.id, 
