@@ -51,6 +51,7 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
     props.striped = toBool(attrs['striped-rows'], false);
     props.showPagination = toBool(attrs['show-pagination'], true);
     props.actionButtons = toBool(attrs['action-buttons'], true);
+    props.filter = typeof attrs['filter'] === 'string' ? attrs['filter'] : '';
     if (attrs['rows-per-page'] !== undefined) {
       const parsed = Number(attrs['rows-per-page']);
       props.rowsPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
@@ -89,6 +90,14 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       name: 'action-buttons',
       label: 'Action buttons',
       value: true,
+      changeProp: 1,
+    });
+    // Add the new trait for filter
+    traitsList.push({
+      type: 'text',
+      name: 'filter',
+      label: 'Filter',
+      value: '',
       changeProp: 1,
     });
   }

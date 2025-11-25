@@ -16,6 +16,7 @@ interface TableChartComponentProps {
   columns?: TableColumn[];
   actionButtons?: boolean;
   dataBinding?: { entity?: string };
+  filter?: string;
 }
 
 export const TableChartComponent: React.FC<TableChartComponentProps> = ({
