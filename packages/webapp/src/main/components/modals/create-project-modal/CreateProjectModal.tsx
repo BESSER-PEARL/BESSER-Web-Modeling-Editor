@@ -17,7 +17,8 @@ import {
   Person,
   FileText,
   Tag,
-  Grid3x3Gap
+  Grid3x3Gap,
+  Cpu
 } from 'react-bootstrap-icons';
 import { useProject } from '../../../hooks/useProject';
 import { isUMLModel } from '../../../types/project';
@@ -45,6 +46,7 @@ const DIAGRAM_ICONS = {
   [UMLDiagramType.AgentDiagram]: Robot,
   [UMLDiagramType.StateMachineDiagram]: ArrowRepeat,
   'GUI': Grid3x3Gap,
+  'Quantum': Cpu,
 };
 
 export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
@@ -161,6 +163,7 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
               <option value={UMLDiagramType.StateMachineDiagram}>State Machine Diagram</option>
               <option value={UMLDiagramType.AgentDiagram}>Agent Diagram</option>
               <option value="GUI">Graphical UI Editor (GUI)</option>
+              <option value="Quantum">Quantum Circuit Editor</option>
             </Form.Select>
             <Form.Text className="text-muted">
               This will be the active view when you first open the project.
@@ -194,15 +197,19 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
                     <span className="small">Agent Diagram</span>
                   </div>
                   <div className="d-flex align-items-center mb-2">
-                    <Grid3x3Gap className="text-purple me-2" size={16} />
+                    <Grid3x3Gap className="text-dark me-2" size={16} />
                     <span className="small">Graphical UI Editor</span>
+                  </div>
+                  <div className="d-flex align-items-center mb-2">
+                    <Cpu className="text-secondary me-2" size={16} />
+                    <span className="small">Quantum Circuit Editor</span>
                   </div>
                 </Col>
               </Row>
               <div className="mt-2">
                 <small className="text-muted">
                   <InfoCircle className="me-1" size={14} />
-                  All diagram types and GUI editor are always available. Switch between them anytime.
+                  All diagram types and editors are always available. Switch between them anytime.
                 </small>
               </div>
             </Card.Body>

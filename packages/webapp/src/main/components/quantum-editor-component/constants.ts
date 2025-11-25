@@ -259,9 +259,9 @@ export const TOOLBOX_GROUPS = [
         toolbox: 'Toolbox2',
         gates: ['ONE', 'MINUS_ONE', 'PHASE_I', 'PHASE_MINUS_I', 'PHASE_SQRT_I', 'PHASE_SQRT_MINUS_I']
     },
-    {
-        name: 'Custom',
-        toolbox: 'Toolbox2',
-        gates: ['MYSTERY', 'ZERO', 'UNIVERSAL_NOT', 'SPACER']
-    }
+    // {
+    //     name: 'Custom',
+    //     toolbox: 'Toolbox2',
+    //     gates: ['MYSTERY', 'ZERO', 'UNIVERSAL_NOT', 'SPACER']
+    // }
 ];

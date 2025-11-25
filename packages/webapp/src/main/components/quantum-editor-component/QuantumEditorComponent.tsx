@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -7,7 +7,7 @@ import { GATES } from './constants';
 import { GatePalette } from './GatePalette';
 import { CircuitGrid } from './CircuitGrid';
 import { Gate } from './Gate';
-import { trimCircuit, downloadCircuitAsJSON, deserializeCircuit } from './utils';
+import { trimCircuit, downloadCircuitAsJSON, deserializeCircuit, serializeCircuit } from './utils';
 import { TooltipProvider } from './Tooltip';
 import {
     GATE_SIZE,
@@ -17,6 +17,8 @@ import {
     COLORS
 } from './layout-constants';
 import { useUndoRedo } from './useUndoRedo';
+import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
+import { QuantumCircuitData, isQuantumCircuitData } from '../../types/project';
 
 const EditorContainer = styled.div`
   display: flex;
@@ -56,7 +58,51 @@ const CircuitContainer = styled.div`
   position: relative;
 `;
 
+const SaveStatus = styled.div<{ $status: 'saved' | 'saving' | 'error' }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: ${props => {
+    switch (props.$status) {
+      case 'saved': return '#27ae60';
+      case 'saving': return '#3498db';
+      case 'error': return '#e74c3c';
+    }
+  }};
+`;
+
 export function QuantumEditorComponent(): JSX.Element {
+    const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+    const [isInitialized, setIsInitialized] = useState(false);
+    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Load initial circuit from storage
+    const loadInitialCircuit = (): Circuit => {
+        try {
+            const project = ProjectStorageRepository.getCurrentProject();
+            const model = project?.diagrams?.QuantumCircuitDiagram?.model;
+            
+            if (isQuantumCircuitData(model) && model.cols.length > 0) {
+                console.log('[QuantumEditor] Loading circuit from project storage (Quirk format)');
+                // Deserialize from Quirk format to internal Circuit format
+                return deserializeCircuit(model);
+            }
+        } catch (error) {
+            console.error('[QuantumEditor] Error loading circuit:', error);
+        }
+        
+        // Return default empty circuit
+        return {
+            columns: [],
+            qubitCount: 5,
+        };
+    };
+    
     const {
         state: circuit,
         setState: setCircuit,
@@ -64,10 +110,119 @@ export function QuantumEditorComponent(): JSX.Element {
         redo,
         canUndo,
         canRedo
-    } = useUndoRedo<Circuit>({
-        columns: [], // Start empty
-        qubitCount: 5, // Default to 5 qubits
-    });
+    } = useUndoRedo<Circuit>(loadInitialCircuit());
+    
+    // Save circuit to project storage
+    const saveCircuit = useCallback((circuitData: Circuit) => {
+        try {
+            setSaveStatus('saving');
+            const project = ProjectStorageRepository.getCurrentProject();
+            
+            if (!project) {
+                console.warn('[QuantumEditor] No active project found');
+                setSaveStatus('error');
+                return;
+            }
+            
+            // Serialize to Quirk format for compact storage
+            const quirkData = serializeCircuit(circuitData);
+            const quantumData: QuantumCircuitData = {
+                ...quirkData,
+                version: '1.0.0'
+            };
+            
+            // Check if there are actual changes before saving
+            const currentModel = project.diagrams.QuantumCircuitDiagram?.model;
+            const hasChanges = JSON.stringify(currentModel) !== JSON.stringify(quantumData);
+            
+            if (!hasChanges) {
+                console.log('[QuantumEditor] No changes detected, skipping save');
+                setSaveStatus('saved');
+                return;
+            }
+            
+            const updated = ProjectStorageRepository.updateDiagram(
+                project.id,
+                'QuantumCircuitDiagram',
+                {
+                    ...project.diagrams.QuantumCircuitDiagram,
+                    model: quantumData,
+                    lastUpdate: new Date().toISOString(),
+                }
+            );
+            
+            if (updated) {
+                console.log('[QuantumEditor] Circuit saved successfully (Quirk format):', quirkData);
+                setSaveStatus('saved');
+            } else {
+                console.error('[QuantumEditor] Failed to save circuit');
+                setSaveStatus('error');
+            }
+        } catch (error) {
+            console.error('[QuantumEditor] Error saving circuit:', error);
+            setSaveStatus('error');
+        }
+    }, []);
+    
+    // Debounced save on circuit changes
+    useEffect(() => {
+        if (!isInitialized) {
+            setIsInitialized(true);
+            return;
+        }
+        
+        // Clear previous timeout
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+        
+        // Debounce save by 1 second
+        saveTimeoutRef.current = setTimeout(() => {
+            console.log('[QuantumEditor] Auto-saving circuit (debounced)...');
+            saveCircuit(circuit);
+        }, 1000);
+        
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+            }
+        };
+    }, [circuit, saveCircuit, isInitialized]);
+    
+    // Auto-save every 30 seconds
+    useEffect(() => {
+        autoSaveIntervalRef.current = setInterval(() => {
+            if (isInitialized) {
+                console.log('[QuantumEditor] Auto-saving circuit (periodic)...');
+                saveCircuit(circuit);
+            }
+        }, 30000);
+        
+        return () => {
+            if (autoSaveIntervalRef.current) {
+                clearInterval(autoSaveIntervalRef.current);
+            }
+        };
+    }, [circuit, saveCircuit, isInitialized]);
+    
+    // Save before unload
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            if (isInitialized) {
+                console.log('[QuantumEditor] Saving circuit before unload...');
+                saveCircuit(circuit);
+            }
+        };
+        
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            // Final save on unmount
+            if (isInitialized) {
+                saveCircuit(circuit);
+            }
+        };
+    }, [circuit, saveCircuit, isInitialized]);
 
     const [draggedGate, setDraggedGate] = useState<{ gate: GateType, offset: { x: number, y: number }, originalPos?: { col: number, row: number } } | null>(null);
     const [mousePos, setMousePos] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
@@ -327,6 +482,11 @@ export function QuantumEditorComponent(): JSX.Element {
     const handleExportJSON = () => {
         downloadCircuitAsJSON(circuit);
     };
+    
+    const handleManualSave = () => {
+        console.log('[QuantumEditor] Manual save triggered');
+        saveCircuit(circuit);
+    };
 
     const handleImportJSON = () => {
         if (fileInputRef.current) {
@@ -383,6 +543,11 @@ export function QuantumEditorComponent(): JSX.Element {
                 <EditorContainer onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
                     <Toolbar>
                         <h3>Quantum Editor</h3>
+                        <SaveStatus $status={saveStatus}>
+                            {saveStatus === 'saved' && '✓ Saved'}
+                            {saveStatus === 'saving' && '⟳ Saving...'}
+                            {saveStatus === 'error' && '⚠ Error'}
+                        </SaveStatus>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <button
                                 onClick={undo}
@@ -408,6 +573,21 @@ export function QuantumEditorComponent(): JSX.Element {
                             </button>
                         </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={handleManualSave}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: saveStatus === 'saved' ? '#28a745' : '#ffc107',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}
+                                title="Manually save circuit to project"
+                            >
+                                💾 Save Now
+                            </button>
                             <button
                                 onClick={handleExportJSON}
                                 style={{

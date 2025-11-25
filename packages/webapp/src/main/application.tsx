@@ -38,7 +38,8 @@ function AppContentInner() {
                        location.pathname !== '/project-settings' && 
                        location.pathname !== '/teampage' &&
                        location.pathname !== '/graphical-ui-editor' &&
-                       location.pathname !== '/quantum-editor';
+                       location.pathname !== '/quantum-editor' &&
+                       !location.pathname.startsWith('/quantum');
   
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
