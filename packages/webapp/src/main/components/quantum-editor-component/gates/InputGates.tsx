@@ -1,6 +1,5 @@
 import React from 'react';
 import { GateDefinition } from './GateDefinition';
-
 import { COLORS } from '../layout-constants';
 
 const InputDrawer = ({ rect, label }: { rect: { x: number, y: number, width: number, height: number }, label: string }) => {
@@ -56,5 +55,15 @@ export const RandomGate: GateDefinition = {
     description: 'Initialize to random state',
     width: 1,
     height: 1,
-    drawer: (params) => <InputDrawer {...params} label="Random" />
+    drawer: (params) => <InputDrawer {...params} label="Rand" />
+};
+
+export const InputRGate: GateDefinition = {
+    type: 'INPUT_R',
+    label: 'Input R',
+    symbol: 'Input R',
+    description: 'Input R',
+    width: 1,
+    height: 1,
+    drawer: (params) => <InputDrawer {...params} label="Input R" />
 };

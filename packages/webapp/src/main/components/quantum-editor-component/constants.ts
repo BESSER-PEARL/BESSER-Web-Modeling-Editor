@@ -1,52 +1,91 @@
 import { Gate } from './types';
 import {
-    InterleaveGate, DeinterleaveGate,
-    QFTGate, QFTDaggerGate,
+    InterleaveGate, DeinterleaveGate, RotateBitsLeftGate, RotateBitsRightGate,
+    QFTGate, QFTDaggerGate, PhaseGradientGate, PhaseGradientDaggerGate, PhaseGradientInverseGate, PhaseGradientInverseDaggerGate,
     SwapGate,
-    IncrementGate, DecrementGate, AdditionGate, SubtractionGate, MultiplicationGate,
-    BlochSphereGate, DensityMatrixGate, ProbabilityGate, AmplitudeGate, ChanceGate,
+    IncrementGate, DecrementGate, AdditionGate, SubtractionGate, MultiplicationGate, AddABGate, SubABGate, MulInvGate,
+    BlochSphereGate, DensityMatrixGate, AmplitudeGate, ChanceGate,
     XPowGate, YPowGate, ZPowGate, ExpXGate, ExpYGate, ExpZGate,
-    ModularAddGate, ModularSubGate, ModularMulGate, ModularInvMulGate,
-    ComparisonGate, CountingGate, CycleBitsGate, ReverseBitsGate, XorGate, PhaseGradientGate,
-    InputAGate, InputBGate, RandomGate,
-    MysteryGate, ZeroGate, UniversalNotGate
+    ModularAddGate, ModularSubGate, ModularMulGate, ModularInvMulGate, ModularIncGate, ModularDecGate, ModularMulBGate, ModularMulBInvGate,
+    ComparisonGate, GreaterThanGate, LessEqualGate, GreaterEqualGate, EqualGate, NotEqualGate, CompareALessGate, CompareAGreaterGate, CompareAEqualGate, CountingGate, CycleBitsGate, ReverseBitsGate, XorGate,
+    InputAGate, InputBGate, InputRGate, RandomGate,
+    MysteryGate, ZeroGate, UniversalNotGate,
+    MeasureGate, MeasureXGate, MeasureYGate, ControlGate, AntiControlGate, PostSelectOffGate, PostSelectOnGate, PostSelectXOffGate, PostSelectXOnGate, PostSelectYOffGate, PostSelectYOnGate, ControlXGate, ControlYGate,
+    HGate, XGate, YGate, ZGate,
+    SGate, SDaggerGate, VGate, VDaggerGate, SqrtYGate, SqrtYDaggerGate,
+    TGate, TDaggerGate,
+    SqrtSqrtXGate, SqrtSqrtXDaggerGate, SqrtSqrtYGate, SqrtSqrtYDaggerGate,
+    PhaseIGate, PhaseMinusIGate, PhaseSqrtIGate, PhaseSqrtMinusIGate, OneGate, MinusOneGate,
+    ZPowTGate, ZPowNegTGate, YPowTGate, YPowNegTGate, XPowTGate, XPowNegTGate,
+    ZFuncTGate, RzFuncTGate, YFuncTGate, RyFuncTGate, XFuncTGate, RxFuncTGate, TimeShiftGate, TimeShiftInverseGate,
+    SampleGate, DetectGate, AxisSampleGate
 } from './gates';
 
 export * from './layout-constants';
 
 export const GATES: Gate[] = [
     // Probes
-    { type: 'MEASURE', id: 'measure', label: 'Measure', symbol: 'M', description: 'Measures the qubit in the Z basis.', isControl: false },
-    { type: 'CONTROL', id: 'control', label: '•', symbol: '•', description: 'Control', isControl: true },
-    { type: 'ANTI_CONTROL', id: 'anti-control', label: '◦', symbol: '◦', description: 'Anti-Control', isControl: true },
-    { type: 'POST_SELECT_OFF', id: 'post-off', label: '|0⟩', symbol: '|0⟩', description: 'Post-select Off', isControl: false },
-    { type: 'POST_SELECT_ON', id: 'post-on', label: '|1⟩', symbol: '|1⟩', description: 'Post-select On', isControl: false },
+    { ...MeasureGate, id: 'measure' },
+    { ...MeasureXGate, id: 'measure-x' },
+    { ...MeasureYGate, id: 'measure-y' },
+    { ...ControlGate, id: 'control' },
+    { ...AntiControlGate, id: 'anti-control' },
+    { ...PostSelectOffGate, id: 'post-off' },
+    { ...PostSelectOnGate, id: 'post-on' },
+    { ...PostSelectXOffGate, id: 'post-x-off' },
+    { ...PostSelectXOnGate, id: 'post-x-on' },
+    { ...PostSelectYOffGate, id: 'post-y-off' },
+    { ...PostSelectYOnGate, id: 'post-y-on' },
+    { ...ControlXGate, id: 'control-x' },
+    { ...ControlYGate, id: 'control-y' },
 
     // Displays
     { ...BlochSphereGate, id: 'bloch', isControl: false },
     { ...DensityMatrixGate, id: 'density', isControl: false },
-    { ...ProbabilityGate, id: 'prob', isControl: false },
     { ...AmplitudeGate, id: 'amp', isControl: false },
     { ...ChanceGate, id: 'chance', isControl: false },
 
     // Half Turns
-    { type: 'H', id: 'h', label: 'H', symbol: 'H', description: 'Hadamard Gate', isControl: false },
-    { type: 'X', id: 'x', label: 'X', symbol: 'X', description: 'Pauli X Gate', isControl: false },
-    { type: 'Y', id: 'y', label: 'Y', symbol: 'Y', description: 'Pauli Y Gate', isControl: false },
-    { type: 'Z', id: 'z', label: 'Z', symbol: 'Z', description: 'Pauli Z Gate', isControl: false },
+    { ...HGate, id: 'h' },
+    { ...XGate, id: 'x' },
+    { ...YGate, id: 'y' },
+    { ...ZGate, id: 'z' },
     { ...SwapGate, id: 'swap', isControl: false },
 
     // Quarter Turns
-    { type: 'S', id: 's', label: 'S', symbol: 'S', description: 'Sqrt Z Gate', isControl: false },
-    { type: 'S_DAG', id: 's-dag', label: 'S†', symbol: 'S†', description: 'Inverse Sqrt Z Gate', isControl: false },
-    { type: 'V', id: 'v', label: 'V', symbol: '√X', description: 'Sqrt X Gate', isControl: false },
-    { type: 'V_DAG', id: 'v-dag', label: 'V†', symbol: '√X†', description: 'Inverse Sqrt X Gate', isControl: false },
-    { type: 'SQRT_Y', id: 'sqrt-y', label: '√Y', symbol: '√Y', description: 'Sqrt Y Gate', isControl: false },
-    { type: 'SQRT_Y_DAG', id: 'sqrt-y-dag', label: '√Y†', symbol: '√Y†', description: 'Inverse Sqrt Y Gate', isControl: false },
+    { ...SGate, id: 's' },
+    { ...SDaggerGate, id: 's-dag' },
+    { ...VGate, id: 'v' },
+    { ...VDaggerGate, id: 'v-dag' },
+    { ...SqrtYGate, id: 'sqrt-y' },
+    { ...SqrtYDaggerGate, id: 'sqrt-y-dag' },
 
     // Eighth Turns
-    { type: 'T', id: 't', label: 'T', symbol: 'T', description: 'Z^1/4 Gate', isControl: false },
-    { type: 'T_DAG', id: 't-dag', label: 'T†', symbol: 'T†', description: 'Inverse Z^1/4 Gate', isControl: false },
+    { ...TGate, id: 't' },
+    { ...TDaggerGate, id: 't-dag' },
+    { ...SqrtSqrtXGate, id: 'sqrt-sqrt-x' },
+    { ...SqrtSqrtXDaggerGate, id: 'sqrt-sqrt-x-dag' },
+    { ...SqrtSqrtYGate, id: 'sqrt-sqrt-y' },
+    { ...SqrtSqrtYDaggerGate, id: 'sqrt-sqrt-y-dag' },
+
+    // Spinning (Time Dependent)
+    { ...ZPowTGate, id: 'z-pow-t', isControl: false },
+    { ...ZPowNegTGate, id: 'z-pow-neg-t', isControl: false },
+    { ...YPowTGate, id: 'y-pow-t', isControl: false },
+    { ...YPowNegTGate, id: 'y-pow-neg-t', isControl: false },
+    { ...XPowTGate, id: 'x-pow-t', isControl: false },
+    { ...XPowNegTGate, id: 'x-pow-neg-t', isControl: false },
+
+    // Formulaic
+    { ...ZFuncTGate, id: 'z-func-t', isControl: false },
+    { ...RzFuncTGate, id: 'rz-func-t', isControl: false },
+    { ...YFuncTGate, id: 'y-func-t', isControl: false },
+    { ...RyFuncTGate, id: 'ry-func-t', isControl: false },
+    { ...XFuncTGate, id: 'x-func-t', isControl: false },
+    { ...XFuncTGate, id: 'x-func-t', isControl: false },
+    { ...RxFuncTGate, id: 'rx-func-t', isControl: false },
+    { ...TimeShiftGate, id: 'time-shift', isControl: false },
+    { ...TimeShiftInverseGate, id: 'time-shift-inv', isControl: false },
 
     // Parametrized Rotations
     { ...XPowGate, id: 'x-pow', isControl: false },
@@ -56,9 +95,18 @@ export const GATES: Gate[] = [
     { ...ExpYGate, id: 'exp-y', isControl: false },
     { ...ExpZGate, id: 'exp-z', isControl: false },
 
-    // Fourier Transform
+    // Sampling
+    { ...SampleGate, id: 'sample', isControl: false },
+    { ...DetectGate, id: 'detect', isControl: false },
+    { ...AxisSampleGate, id: 'axis-sample', isControl: false },
+
+    // Frequency
     { ...QFTGate, id: 'qft', isControl: false },
     { ...QFTDaggerGate, id: 'qft-dag', isControl: false },
+    { ...PhaseGradientGate, id: 'phase-gradient', isControl: false },
+    { ...PhaseGradientDaggerGate, id: 'phase-gradient-dag', isControl: false },
+    { ...PhaseGradientInverseGate, id: 'phase-gradient-inv', isControl: false },
+    { ...PhaseGradientInverseDaggerGate, id: 'phase-gradient-inv-dag', isControl: false },
 
     // Arithmetic
     { ...IncrementGate, id: 'inc', isControl: false },
@@ -66,34 +114,59 @@ export const GATES: Gate[] = [
     { ...AdditionGate, id: 'add', isControl: false },
     { ...SubtractionGate, id: 'sub', isControl: false },
     { ...MultiplicationGate, id: 'mul', isControl: false },
+    { ...AddABGate, id: 'add-ab', isControl: false },
+    { ...SubABGate, id: 'sub-ab', isControl: false },
+    { ...MulInvGate, id: 'mul-inv', isControl: false },
 
     // Modular Arithmetic
+    { ...ModularIncGate, id: 'mod-inc', isControl: false },
+    { ...ModularDecGate, id: 'mod-dec', isControl: false },
     { ...ModularAddGate, id: 'mod-add', isControl: false },
     { ...ModularSubGate, id: 'mod-sub', isControl: false },
     { ...ModularMulGate, id: 'mod-mul', isControl: false },
     { ...ModularInvMulGate, id: 'mod-inv-mul', isControl: false },
+    { ...ModularMulBGate, id: 'mod-mul-b', isControl: false },
+    { ...ModularMulBInvGate, id: 'mod-mul-b-inv', isControl: false },
 
-    // Logic
-    { ...ComparisonGate, id: 'compare', isControl: false },
+    // Compare
+    { ...ComparisonGate, id: 'compare-lt', isControl: false },
+    { ...GreaterThanGate, id: 'compare-gt', isControl: false },
+    { ...LessEqualGate, id: 'compare-le', isControl: false },
+    { ...GreaterEqualGate, id: 'compare-ge', isControl: false },
+    { ...EqualGate, id: 'compare-eq', isControl: false },
+    { ...NotEqualGate, id: 'compare-ne', isControl: false },
+    { ...CompareALessGate, id: 'compare-a-lt', isControl: false },
+    { ...CompareAGreaterGate, id: 'compare-a-gt', isControl: false },
+    { ...CompareAEqualGate, id: 'compare-a-eq', isControl: false },
     { ...CountingGate, id: 'count-1s', isControl: false },
     { ...CycleBitsGate, id: 'cycle-bits', isControl: false },
     { ...ReverseBitsGate, id: 'reverse-bits', isControl: false },
     { ...XorGate, id: 'xor', isControl: false },
-    { ...PhaseGradientGate, id: 'phase-gradient', isControl: false },
 
     // Input
     { ...InputAGate, id: 'input-a', isControl: false },
     { ...InputBGate, id: 'input-b', isControl: false },
+    { ...InputRGate, id: 'input-r', isControl: false },
     { ...RandomGate, id: 'random', isControl: false },
 
-    // Multi-wire gates
+    // Order
     { ...InterleaveGate, id: 'interleave', isControl: false },
     { ...DeinterleaveGate, id: 'deinterleave', isControl: false },
+    { ...RotateBitsLeftGate, id: 'rotate-bits-left', isControl: false },
+    { ...RotateBitsRightGate, id: 'rotate-bits-right', isControl: false },
 
-    // Obscure
+    // Custom
     { ...MysteryGate, id: 'mystery', isControl: false },
     { ...ZeroGate, id: 'zero', isControl: false },
     { ...UniversalNotGate, id: 'universal-not', isControl: false },
+
+    // Scalar
+    { ...PhaseIGate, id: 'phase-i', isControl: false },
+    { ...PhaseMinusIGate, id: 'phase-minus-i', isControl: false },
+    { ...PhaseSqrtIGate, id: 'phase-sqrt-i', isControl: false },
+    { ...PhaseSqrtMinusIGate, id: 'phase-sqrt-minus-i', isControl: false },
+    { ...OneGate, id: 'one', isControl: false },
+    { ...MinusOneGate, id: 'minus-one', isControl: false },
 
     // Others
     { type: 'SPACER', id: 'spacer', label: '…', symbol: '…', description: 'Spacer', isControl: false },
@@ -102,54 +175,93 @@ export const GATES: Gate[] = [
 export const TOOLBOX_GROUPS = [
     {
         name: 'Probes',
+        toolbox: 'Toolbox',
         gates: ['MEASURE', 'CONTROL', 'ANTI_CONTROL', 'POST_SELECT_OFF', 'POST_SELECT_ON']
     },
     {
         name: 'Displays',
-        gates: ['BLOCH', 'DENSITY', 'PROB', 'AMPLITUDE', 'CHANCE']
+        toolbox: 'Toolbox',
+        gates: ['BLOCH', 'DENSITY', 'AMPLITUDE', 'CHANCE']
     },
     {
         name: 'Half Turns',
+        toolbox: 'Toolbox',
         gates: ['H', 'X', 'Y', 'Z', 'SWAP']
     },
     {
         name: 'Quarter Turns',
+        toolbox: 'Toolbox',
         gates: ['S', 'S_DAG', 'V', 'V_DAG', 'SQRT_Y', 'SQRT_Y_DAG']
     },
     {
         name: 'Eighth Turns',
-        gates: ['T', 'T_DAG']
+        toolbox: 'Toolbox',
+        gates: ['T', 'T_DAG', 'SQRT_SQRT_X', 'SQRT_SQRT_X_DAG', 'SQRT_SQRT_Y', 'SQRT_SQRT_Y_DAG']
     },
     {
         name: 'Parametrized',
+        toolbox: 'Toolbox',
         gates: ['X_POW', 'Y_POW', 'Z_POW', 'EXP_X', 'EXP_Y', 'EXP_Z']
     },
     {
-        name: 'Fourier Transform',
-        gates: ['QFT', 'QFT_DAG']
+        name: 'Sampling',
+        toolbox: 'Toolbox',
+        gates: ['SAMPLE', 'DETECT', 'AXIS_SAMPLE']
     },
     {
         name: 'Arithmetic',
-        gates: ['INC', 'DEC', 'ADD', 'SUB', 'MUL']
+        toolbox: 'Toolbox',
+        gates: ['INC', 'DEC', 'ADD', 'SUB', 'MUL', 'ADD_AB', 'SUB_AB', 'MUL_INV']
+    },
+    {
+        name: 'Compare',
+        toolbox: 'Toolbox',
+        gates: ['COMPARE', 'GREATER_THAN', 'LESS_EQUAL', 'GREATER_EQUAL', 'EQUAL', 'NOT_EQUAL', 'COMPARE_A_LT', 'COMPARE_A_GT', 'COMPARE_A_EQ', 'COUNT_1S', 'CYCLE_BITS', 'XOR']
+    },
+    {
+        name: 'Inputs',
+        toolbox: 'Toolbox',
+        gates: ['INPUT_A', 'INPUT_B', 'INPUT_R', 'RANDOM']
+    },
+    // Toolbox 2
+    {
+        name: 'X/Y Probes',
+        toolbox: 'Toolbox2',
+        gates: ['CONTROL_X', 'CONTROL_Y', 'POST_SELECT_X_OFF', 'POST_SELECT_X_ON', 'POST_SELECT_Y_OFF', 'POST_SELECT_Y_ON', 'MEASURE_X', 'MEASURE_Y']
+    },
+    {
+        name: 'Order',
+        toolbox: 'Toolbox2',
+        gates: ['INTERLEAVE', 'DEINTERLEAVE', 'REVERSE_BITS', 'ROTATE_BITS_LEFT', 'ROTATE_BITS_RIGHT', 'TIME_SHIFT', 'TIME_SHIFT_INV']
+    },
+    {
+        name: 'Frequency',
+        toolbox: 'Toolbox2',
+        gates: ['QFT', 'QFT_DAG', 'PHASE_GRADIENT', 'PHASE_GRADIENT_DAG', 'PHASE_GRADIENT_INV', 'PHASE_GRADIENT_INV_DAG']
+    },
+    {
+        name: 'Spinning',
+        toolbox: 'Toolbox2',
+        gates: ['Z_POW_T', 'Z_POW_NEG_T', 'Y_POW_T', 'Y_POW_NEG_T', 'X_POW_T', 'X_POW_NEG_T']
+    },
+    {
+        name: 'Formulaic',
+        toolbox: 'Toolbox2',
+        gates: ['Z_FUNC_T', 'RZ_FUNC_T', 'Y_FUNC_T', 'RY_FUNC_T', 'X_FUNC_T', 'RX_FUNC_T']
     },
     {
         name: 'Modular',
-        gates: ['MOD_ADD', 'MOD_SUB', 'MOD_MUL', 'MOD_INV_MUL']
+        toolbox: 'Toolbox2',
+        gates: ['MOD_INC', 'MOD_DEC', 'MOD_ADD', 'MOD_SUB', 'MOD_MUL', 'MOD_INV_MUL', 'MOD_MUL_B', 'MOD_MUL_B_INV']
     },
     {
-        name: 'Logic',
-        gates: ['COMPARE', 'COUNT_1S', 'CYCLE_BITS', 'REVERSE_BITS', 'XOR', 'PHASE_GRADIENT']
+        name: 'Scalar',
+        toolbox: 'Toolbox2',
+        gates: ['ONE', 'MINUS_ONE', 'PHASE_I', 'PHASE_MINUS_I', 'PHASE_SQRT_I', 'PHASE_SQRT_MINUS_I']
     },
     {
-        name: 'Input',
-        gates: ['INPUT_A', 'INPUT_B', 'RANDOM']
-    },
-    {
-        name: 'Multi-Wire',
-        gates: ['INTERLEAVE', 'DEINTERLEAVE']
-    },
-    {
-        name: 'Obscure',
-        gates: ['MYSTERY', 'ZERO', 'UNIVERSAL_NOT']
+        name: 'Custom',
+        toolbox: 'Toolbox2',
+        gates: ['MYSTERY', 'ZERO', 'UNIVERSAL_NOT', 'SPACER']
     }
 ];

@@ -74,3 +74,55 @@ export const ModularInvMulGate: GateDefinition = {
     maxHeight: 16,
     drawer: (params) => <ModularDrawer {...params} label="/A mod R" />
 };
+
+export const ModularIncGate: GateDefinition = {
+    type: 'MOD_INC',
+    label: '+1 mod R',
+    symbol: '+1 mod R',
+    description: 'Modular Increment',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <ModularDrawer {...params} label="+1 mod R" />
+};
+
+export const ModularDecGate: GateDefinition = {
+    type: 'MOD_DEC',
+    label: '-1 mod R',
+    symbol: '-1 mod R',
+    description: 'Modular Decrement',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <ModularDrawer {...params} label="-1 mod R" />
+};
+
+export const ModularMulBGate: GateDefinition = {
+    type: 'MOD_MUL_B',
+    label: '*B mod R',
+    symbol: '*B mod R',
+    description: 'Modular Multiply by B',
+    width: 1,
+    height: 3,
+    canResize: true,
+    minHeight: 3,
+    maxHeight: 16,
+    drawer: (params) => <ModularDrawer {...params} label="*B mod R" />
+};
+
+export const ModularMulBInvGate: GateDefinition = {
+    type: 'MOD_MUL_B_INV',
+    label: '*B A⁻¹ mod R',
+    symbol: '*B A⁻¹ mod R',
+    description: 'Modular Multiply by B * A inverse',
+    width: 1,
+    height: 3,
+    canResize: true,
+    minHeight: 3,
+    maxHeight: 16,
+    drawer: (params) => <ModularDrawer {...params} label="*B A⁻¹ mod R" />
+};

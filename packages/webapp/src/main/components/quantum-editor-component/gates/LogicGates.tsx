@@ -36,6 +36,101 @@ export const ComparisonGate: GateDefinition = {
     drawer: (params) => <LogicDrawer {...params} label="A < B" />
 };
 
+export const GreaterThanGate: GateDefinition = {
+    type: 'GREATER_THAN',
+    label: 'A > B',
+    symbol: 'A > B',
+    description: 'Output 1 if A > B',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <LogicDrawer {...params} label="A > B" />
+};
+
+export const LessEqualGate: GateDefinition = {
+    type: 'LESS_EQUAL',
+    label: 'A ≤ B',
+    symbol: 'A ≤ B',
+    description: 'Output 1 if A ≤ B',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <LogicDrawer {...params} label="A ≤ B" />
+};
+
+export const GreaterEqualGate: GateDefinition = {
+    type: 'GREATER_EQUAL',
+    label: 'A ≥ B',
+    symbol: 'A ≥ B',
+    description: 'Output 1 if A ≥ B',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <LogicDrawer {...params} label="A ≥ B" />
+};
+
+export const EqualGate: GateDefinition = {
+    type: 'EQUAL',
+    label: 'A = B',
+    symbol: 'A = B',
+    description: 'Output 1 if A = B',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <LogicDrawer {...params} label="A = B" />
+};
+
+export const NotEqualGate: GateDefinition = {
+    type: 'NOT_EQUAL',
+    label: 'A ≠ B',
+    symbol: 'A ≠ B',
+    description: 'Output 1 if A ≠ B',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <LogicDrawer {...params} label="A ≠ B" />
+};
+
+export const CompareALessGate: GateDefinition = {
+    type: 'COMPARE_A_LT',
+    label: 'Input < A',
+    symbol: 'Input < A',
+    description: 'Output 1 if Input < A',
+    width: 1,
+    height: 1,
+    drawer: (params) => <LogicDrawer {...params} label="Input < A" />
+};
+
+export const CompareAGreaterGate: GateDefinition = {
+    type: 'COMPARE_A_GT',
+    label: 'Input > A',
+    symbol: 'Input > A',
+    description: 'Output 1 if Input > A',
+    width: 1,
+    height: 1,
+    drawer: (params) => <LogicDrawer {...params} label="Input > A" />
+};
+
+export const CompareAEqualGate: GateDefinition = {
+    type: 'COMPARE_A_EQ',
+    label: 'Input = A',
+    symbol: 'Input = A',
+    description: 'Output 1 if Input = A',
+    width: 1,
+    height: 1,
+    drawer: (params) => <LogicDrawer {...params} label="Input = A" />
+};
+
 export const CountingGate: GateDefinition = {
     type: 'COUNT_1S',
     label: 'Count 1s',
@@ -62,19 +157,6 @@ export const CycleBitsGate: GateDefinition = {
     drawer: (params) => <LogicDrawer {...params} label="Cycle" />
 };
 
-export const ReverseBitsGate: GateDefinition = {
-    type: 'REVERSE_BITS',
-    label: 'Reverse',
-    symbol: 'Reverse',
-    description: 'Reverse bit order',
-    width: 1,
-    height: 2,
-    canResize: true,
-    minHeight: 2,
-    maxHeight: 16,
-    drawer: (params) => <LogicDrawer {...params} label="Reverse" />
-};
-
 export const XorGate: GateDefinition = {
     type: 'XOR',
     label: '⊕',
@@ -88,15 +170,4 @@ export const XorGate: GateDefinition = {
     drawer: (params) => <LogicDrawer {...params} label="⊕" />
 };
 
-export const PhaseGradientGate: GateDefinition = {
-    type: 'PHASE_GRADIENT',
-    label: 'Phase Grad',
-    symbol: 'Phase Grad',
-    description: 'Phase Gradient',
-    width: 1,
-    height: 2,
-    canResize: true,
-    minHeight: 2,
-    maxHeight: 16,
-    drawer: (params) => <LogicDrawer {...params} label="Phase Grad" />
-};
+

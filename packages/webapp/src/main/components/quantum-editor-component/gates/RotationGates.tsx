@@ -1,13 +1,13 @@
 import React from 'react';
 import { GateDefinition } from './GateDefinition';
-import { GATE_SIZE, WIRE_SPACING } from '../layout-constants';
+import { GATE_SIZE, WIRE_SPACING, COLORS } from '../layout-constants';
 
 // Rotation Gate Drawer
 const RotationDrawer = ({ rect, label, symbol }: { rect: { x: number, y: number, width: number, height: number }, label: string, symbol: string }) => {
     const { width, height } = rect;
     return (
         <svg width={width} height={height} style={{ position: 'absolute', top: 0, left: 0 }}>
-            <rect x={0} y={0} width={width} height={height} fill="white" stroke="black" strokeWidth={1} />
+            <rect x={0} y={0} width={width} height={height} fill={COLORS.GATE_FILL} stroke="black" strokeWidth={1} />
             <text
                 x={width / 2}
                 y={height / 2}

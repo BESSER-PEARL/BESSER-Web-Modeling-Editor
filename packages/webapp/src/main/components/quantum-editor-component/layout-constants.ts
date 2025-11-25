@@ -1,6 +1,6 @@
 export const GATE_RADIUS = 20;
 export const GATE_SIZE = 40; // 2 * GATE_RADIUS
-export const WIRE_SPACING = 50;
+export const WIRE_SPACING = 40;
 export const TOP_MARGIN = 50;
 export const LEFT_MARGIN = 50;
 
@@ -17,7 +17,7 @@ export const COLORS = {
     SUPERPOSITION_MID: '#8FF',
     SUPERPOSITION_FORE: '#0BB',
     BACKGROUND: 'white',
-    TOOLBOX_BACKGROUND: '#CCC',
+    TOOLBOX_BACKGROUND: '#F0F0F0',
     STROKE: 'black',
     TEXT: 'black',
 };

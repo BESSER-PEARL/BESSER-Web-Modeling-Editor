@@ -46,9 +46,9 @@ export const ZeroGate: GateDefinition = {
 export const UniversalNotGate: GateDefinition = {
     type: 'UNIVERSAL_NOT',
     label: 'Not',
-    symbol: 'Not',
+    symbol: '⊕',
     description: 'Universal Not',
     width: 1,
     height: 1,
-    drawer: (params) => <ObscureDrawer {...params} label="Not" />
+    drawer: (params) => <ObscureDrawer {...params} label="⊕" />
 };

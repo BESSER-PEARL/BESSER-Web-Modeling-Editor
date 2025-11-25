@@ -2,7 +2,6 @@ import React from 'react';
 import { GateDefinition } from './GateDefinition';
 import { GATE_SIZE, WIRE_SPACING } from '../layout-constants';
 
-// Ported from Quirk
 function interleaveBit(bit: number, len: number): number {
     let h = Math.ceil(len / 2);
     let group = Math.floor(bit / h);

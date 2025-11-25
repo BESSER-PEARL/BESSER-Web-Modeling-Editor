@@ -88,3 +88,45 @@ export const MultiplicationGate: GateDefinition = {
     maxHeight: 16,
     drawer: (params) => <ArithmeticDrawer {...params} label="×A" />
 };
+
+// Add A*B Gate
+export const AddABGate: GateDefinition = {
+    type: 'ADD_AB',
+    label: '+AB',
+    symbol: '+AB',
+    description: 'Add A*B',
+    width: 1,
+    height: 3,
+    canResize: true,
+    minHeight: 3,
+    maxHeight: 16,
+    drawer: (params) => <ArithmeticDrawer {...params} label="+AB" />
+};
+
+// Subtract A*B Gate
+export const SubABGate: GateDefinition = {
+    type: 'SUB_AB',
+    label: '-AB',
+    symbol: '-AB',
+    description: 'Subtract A*B',
+    width: 1,
+    height: 3,
+    canResize: true,
+    minHeight: 3,
+    maxHeight: 16,
+    drawer: (params) => <ArithmeticDrawer {...params} label="-AB" />
+};
+
+// Inverse Multiplication Gate
+export const MulInvGate: GateDefinition = {
+    type: 'MUL_INV',
+    label: '×A⁻¹',
+    symbol: '×A⁻¹',
+    description: 'Multiply by A inverse',
+    width: 1,
+    height: 2,
+    canResize: true,
+    minHeight: 2,
+    maxHeight: 16,
+    drawer: (params) => <ArithmeticDrawer {...params} label="×A⁻¹" />
+};

@@ -15,6 +15,8 @@ export interface Gate {
     canResize?: boolean; // Whether this gate can be resized (height can change)
     minHeight?: number; // Minimum height for resizable gates (default 2)
     maxHeight?: number; // Maximum height for resizable gates (default 16)
+    backgroundColor?: string; // Optional override for gate background color
+    noBorder?: boolean; // If true, removes the standard gate border and background
 }
 
 export interface CircuitColumn {

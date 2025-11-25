@@ -4,15 +4,16 @@ import { Gate as GateType } from './types';
 import { GATE_SIZE, WIRE_SPACING, COLORS } from './layout-constants';
 import { useTooltip } from './Tooltip';
 
-const GateContainer = styled.div<{ $width: number, $height: number, $isControl: boolean }>`
+const GateContainer = styled.div<{ $width: number, $height: number, $isControl: boolean, $backgroundColor?: string, $noBorder?: boolean }>`
   position: relative;
   width: ${props => props.$width}px;
   height: ${props => props.$height}px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: ${props => props.$isControl ? 'transparent' : COLORS.GATE_FILL};
-  border: ${props => props.$isControl ? 'none' : `1px solid ${COLORS.STROKE}`};
+  justify-content: center;
+  background-color: ${props => props.$isControl || props.$noBorder ? 'transparent' : (props.$backgroundColor || COLORS.GATE_FILL)};
+  border: ${props => props.$isControl || props.$noBorder ? 'none' : `1px solid ${COLORS.STROKE}`};
   border-radius: ${props => props.$isControl ? '50%' : '2px'};
   cursor: pointer;
   user-select: none;
@@ -123,6 +124,7 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
         $width={width}
         $height={height}
         $isControl={isControl}
+        $noBorder={gate.noBorder}
         onMouseDown={onMouseDown}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -162,6 +164,7 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
       $width={width}
       $height={height}
       $isControl={false}
+      $backgroundColor={gate.backgroundColor}
       onMouseDown={onMouseDown}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

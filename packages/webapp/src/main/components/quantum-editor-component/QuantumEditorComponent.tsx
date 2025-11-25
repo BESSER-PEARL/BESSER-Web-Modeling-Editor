@@ -7,7 +7,7 @@ import { GATES } from './constants';
 import { GatePalette } from './GatePalette';
 import { CircuitGrid } from './CircuitGrid';
 import { Gate } from './Gate';
-import { compactCircuit, downloadCircuitAsJSON } from './utils';
+import { trimCircuit, downloadCircuitAsJSON, deserializeCircuit } from './utils';
 import { TooltipProvider } from './Tooltip';
 import {
     GATE_SIZE,
@@ -16,6 +16,7 @@ import {
     LEFT_MARGIN,
     COLORS
 } from './layout-constants';
+import { useUndoRedo } from './useUndoRedo';
 
 const EditorContainer = styled.div`
   display: flex;
@@ -56,7 +57,14 @@ const CircuitContainer = styled.div`
 `;
 
 export function QuantumEditorComponent(): JSX.Element {
-    const [circuit, setCircuit] = useState<Circuit>({
+    const {
+        state: circuit,
+        setState: setCircuit,
+        undo,
+        redo,
+        canUndo,
+        canRedo
+    } = useUndoRedo<Circuit>({
         columns: [], // Start empty
         qubitCount: 5, // Default to 5 qubits
     });
@@ -125,7 +133,7 @@ export function QuantumEditorComponent(): JSX.Element {
                 newGates[pos.row] = null;
                 newColumns[pos.col] = { ...newColumns[pos.col], gates: newGates };
             }
-            return compactCircuit({ ...prev, columns: newColumns });
+            return trimCircuit({ ...prev, columns: newColumns });
         });
     };
 
@@ -193,8 +201,27 @@ export function QuantumEditorComponent(): JSX.Element {
                 return true;
             };
 
-            // Find the first available column for this gate (Quirk's auto-push behavior)
-            let targetCol = col;
+            // Calculate the last non-empty column index to implement clamping
+            // This prevents creating large gaps by dropping gates far to the right
+            let lastNonEmptyCol = -1;
+            for (let i = newColumns.length - 1; i >= 0; i--) {
+                if (!newColumns[i].gates.every(g => g === null)) {
+                    lastNonEmptyCol = i;
+                    break;
+                }
+            }
+
+            // Clamp the target column to be at most one past the last non-empty column
+            // We start at the requested 'col', but limit it.
+            let targetCol = Math.min(col, lastNonEmptyCol + 1);
+
+            // Ensure columns exist up to the target position
+            while (newColumns.length <= targetCol) {
+                newColumns.push({ gates: Array(newWireCount).fill(null) });
+            }
+
+            // Find the first available column for this gate starting from the clamped column
+            // If the position is occupied, we push to the right (standard collision handling).
             while (!isPositionAvailable(targetCol, row, gateHeight)) {
                 targetCol++; // Push to next column
                 // Ensure the column exists
@@ -217,15 +244,21 @@ export function QuantumEditorComponent(): JSX.Element {
             // Mark occupied rows as null (they're covered by the gate above)
             for (let i = 1; i < gateHeight; i++) {
                 if (row + i < newWireCount) {
-                    newGates[row + i] = null;
+                    newGates[row + i] = {
+                        type: 'OCCUPIED',
+                        id: `${newGate.id}_occupied_${i}`,
+                        label: '',
+                        height: 1,
+                        width: 1
+                    };
                 }
             }
 
             newColumns[targetCol] = { ...newColumns[targetCol], gates: newGates };
 
-            // Apply gravity
+            // Apply trim (remove leading/trailing empty columns only)
             const updatedCircuit = { qubitCount: newWireCount, columns: newColumns };
-            return compactCircuit(updatedCircuit);
+            return trimCircuit(updatedCircuit);
         });
     };
 
@@ -271,7 +304,13 @@ export function QuantumEditorComponent(): JSX.Element {
             // Mark new occupied rows as null
             for (let i = 1; i < clampedHeight; i++) {
                 if (row + i < newGates.length) {
-                    newGates[row + i] = null;
+                    newGates[row + i] = {
+                        type: 'OCCUPIED',
+                        id: `${gate.id}_occupied_${i}`,
+                        label: '',
+                        height: 1,
+                        width: 1
+                    };
                 }
             }
 
@@ -299,25 +338,18 @@ export function QuantumEditorComponent(): JSX.Element {
         const file = event.target.files?.[0];
         if (!file) return;
 
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const content = e.target?.result as string;
                 const importedData = JSON.parse(content);
 
-                // Basic validation (can be improved)
-                if (importedData.cols && Array.isArray(importedData.cols)) {
-                    // TODO: Implement full import logic to map Quirk JSON to our Circuit structure
-                    // For now, we'll just log it. 
-                    // We need a proper deserializer which is a separate task.
-                    console.log("Imported JSON:", importedData);
-                    alert("Import logic is coming in the next step! JSON loaded.");
-                } else {
-                    alert("Invalid circuit JSON format.");
-                }
+                const newCircuit = deserializeCircuit(importedData);
+                setCircuit(trimCircuit(newCircuit));
             } catch (error) {
                 console.error("Error parsing JSON:", error);
-                alert("Failed to parse JSON file.");
+                alert("Failed to parse JSON file or invalid format.");
             }
         };
         reader.readAsText(file);
@@ -325,12 +357,56 @@ export function QuantumEditorComponent(): JSX.Element {
         event.target.value = '';
     };
 
+    // Add keyboard shortcuts for Undo/Redo
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                if (e.shiftKey) {
+                    if (canRedo) redo();
+                } else {
+                    if (canUndo) undo();
+                }
+                e.preventDefault();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                if (canRedo) redo();
+                e.preventDefault();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [undo, redo, canUndo, canRedo]);
+
     return (
         <TooltipProvider>
             <DndProvider backend={HTML5Backend}>
                 <EditorContainer onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
                     <Toolbar>
                         <h3>Quantum Editor</h3>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button
+                                onClick={undo}
+                                disabled={!canUndo}
+                                style={{
+                                    padding: '5px 10px',
+                                    cursor: canUndo ? 'pointer' : 'not-allowed',
+                                    opacity: canUndo ? 1 : 0.5
+                                }}
+                            >
+                                Undo
+                            </button>
+                            <button
+                                onClick={redo}
+                                disabled={!canRedo}
+                                style={{
+                                    padding: '5px 10px',
+                                    cursor: canRedo ? 'pointer' : 'not-allowed',
+                                    opacity: canRedo ? 1 : 0.5
+                                }}
+                            >
+                                Redo
+                            </button>
+                        </div>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
                             <button
                                 onClick={handleExportJSON}
