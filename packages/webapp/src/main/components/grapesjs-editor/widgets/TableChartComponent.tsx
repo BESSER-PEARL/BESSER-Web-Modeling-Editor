@@ -15,6 +15,7 @@ interface TableChartComponentProps {
   rowsPerPage?: number;
   columns?: TableColumn[];
   actionButtons?: boolean;
+  dataBinding?: { entity?: string };
 }
 
 export const TableChartComponent: React.FC<TableChartComponentProps> = ({
@@ -27,6 +28,7 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
   rowsPerPage = 5,
   columns,
   actionButtons = true,
+  dataBinding,
 }) => {
   const headerColor = useMemo(() => {
     if (typeof color === 'string' && color.trim().length > 0) {
@@ -71,6 +73,10 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
     return showPagination ? sourceRows.slice(0, pageSize) : sourceRows;
   }, [sourceRows, pageSize, showPagination]);
 
+  // Get class/entity name for Add button
+  const entityName = typeof dataBinding?.entity === 'string' && dataBinding.entity ? dataBinding.entity : '';
+  const addButtonText = entityName ? `Add ${entityName}` : 'Add Register';
+
   return (
     <div
       className="table-chart-container"
@@ -104,33 +110,33 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
           <button
             style={{
-              padding: '10px 24px',
+              padding: '6px 14px',
               background: 'linear-gradient(90deg, #2563eb 0%, #1e40af 100%)',
               color: '#fff',
               border: 'none',
-              borderRadius: '6px',
-              fontWeight: 700,
+              borderRadius: '4px',
+              fontWeight: 600,
               cursor: 'pointer',
-              fontSize: '15px',
-              boxShadow: '0 2px 8px rgba(37,99,235,0.12)',
-              letterSpacing: '0.03em',
+              fontSize: '13px',
+              boxShadow: '0 1px 4px rgba(37,99,235,0.10)',
+              letterSpacing: '0.01em',
               transition: 'background 0.2s',
               marginRight: '0',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
             }}
             type="button"
-            title="Add Register"
+            title={addButtonText}
             onClick={() => {}}
           >
-            {/* Improved Add icon */}
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="10" cy="10" r="9" fill="#2563eb"/>
-              <rect x="9" y="5" width="2" height="10" rx="1" fill="white"/>
-              <rect x="5" y="9" width="10" height="2" rx="1" fill="white"/>
+            {/* Smaller Add icon */}
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="8" fill="#2563eb"/>
+              <rect x="9" y="5.5" width="2" height="9" rx="1" fill="white"/>
+              <rect x="5.5" y="9" width="9" height="2" rx="1" fill="white"/>
             </svg>
-            Add Register
+            {addButtonText}
           </button>
         </div>
       ) : null}
