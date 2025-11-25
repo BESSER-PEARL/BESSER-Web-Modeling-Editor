@@ -50,6 +50,7 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
     props.showHeader = toBool(attrs['show-header'], true);
     props.striped = toBool(attrs['striped-rows'], false);
     props.showPagination = toBool(attrs['show-pagination'], true);
+    props.actionButtons = toBool(attrs['action-buttons'], true);
     if (attrs['rows-per-page'] !== undefined) {
       const parsed = Number(attrs['rows-per-page']);
       props.rowsPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
@@ -80,11 +81,20 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
 export const registerChartComponent = (editor: any, config: ChartConfig) => {
   // Build trait values inside the attributes object
   const traitAttributes: Record<string, any> = { class: `${config.id}-component` };
-  if (Array.isArray(config.traits)) {
-    config.traits.forEach(trait => {
-      traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
+  let traitsList = Array.isArray(config.traits) ? [...config.traits] : [];
+  if (config.id === 'table-chart') {
+    // Add the new trait for action buttons
+    traitsList.push({
+      type: 'checkbox',
+      name: 'action-buttons',
+      label: 'Action buttons',
+      value: true,
+      changeProp: 1,
     });
   }
+  traitsList.forEach(trait => {
+    traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
+  });
   const baseDefaults = {
     tagName: 'div',
     draggable: true,
@@ -100,42 +110,35 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       defaults: baseDefaults,
       init(this: any) {
         const traits = this.get('traits');
-        traits.reset(config.traits);
+        traits.reset(traitsList);
         // Ensure all trait values are set in attributes if not already present
-        if (Array.isArray(config.traits)) {
-          const attrs = this.get('attributes') || {};
-          let changed = false;
-          config.traits.forEach(trait => {
-            if (attrs[trait.name] === undefined) {
-              attrs[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
-              changed = true;
-            }
-          });
-          if (changed) this.set('attributes', attrs);
-        }
+        const attrs = this.get('attributes') || {};
+        let changed = false;
+        traitsList.forEach(trait => {
+          if (attrs[trait.name] === undefined) {
+            attrs[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
+            changed = true;
+          }
+        });
+        if (changed) this.set('attributes', attrs);
 
         // On init, copy all values from attributes to top-level for traits (so sidebar shows correct values)
-        if (Array.isArray(config.traits)) {
-          const attrs = this.get('attributes') || {};
-          config.traits.forEach(trait => {
-            if (attrs[trait.name] !== undefined) {
-              this.set(trait.name, attrs[trait.name]);
-            }
-          });
-        }
+        traitsList.forEach(trait => {
+          if (attrs[trait.name] !== undefined) {
+            this.set(trait.name, attrs[trait.name]);
+          }
+        });
 
         // Synchronize trait property changes to attributes (do not remove top-level property)
-        if (Array.isArray(config.traits)) {
-          config.traits.forEach(trait => {
-            this.on(`change:${trait.name}`, () => {
-              const attrs = { ...(this.get('attributes') || {}) };
-              attrs[trait.name] = this.get(trait.name);
-              this.set('attributes', attrs);
-              // Re-render chart for any trait change
-              this.renderReactChart();
-            });
+        traitsList.forEach(trait => {
+          this.on(`change:${trait.name}`, () => {
+            const attrs = { ...(this.get('attributes') || {}) };
+            attrs[trait.name] = this.get(trait.name);
+            this.set('attributes', attrs);
+            // Re-render chart for any trait change
+            this.renderReactChart();
           });
-        }
+        });
 
         // Update data-source trait with fresh class options (called dynamically when component is initialized)
         const dataSourceTrait = traits.where({ name: 'data-source' })[0];
