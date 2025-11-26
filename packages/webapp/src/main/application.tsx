@@ -4,7 +4,6 @@ import { ApollonEditorComponent } from './components/apollon-editor-component/Ap
 import { ApollonEditor } from '@besser/wme';
 import { POSTHOG_HOST, POSTHOG_KEY, localStorageLatestProject } from './constant';
 import { ApollonEditorProvider } from './components/apollon-editor-component/apollon-editor-context';
-import { FirefoxIncompatibilityHint } from './components/incompatability-hints/firefox-incompatibility-hint';
 import { ErrorPanel } from './components/error-handling/error-panel';
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { ApplicationModal } from './components/modals/application-modal';
@@ -104,7 +103,7 @@ function AppContentInner() {
           }
         }}
       />
-      {/* {isFirefox && <FirefoxIncompatibilityHint />} */}
+
       <Routes>
         {/* Collaboration route with token */}
         {/* <Route 
