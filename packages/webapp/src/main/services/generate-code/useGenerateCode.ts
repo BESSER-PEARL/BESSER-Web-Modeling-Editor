@@ -67,6 +67,11 @@ export const useGenerateCode = () => {
         return await generateCodeFromProject(generatorType, config);
       }
 
+      // For Qiskit generator, send the entire project (needs QuantumCircuitDiagram)
+      if (generatorType === 'qiskit') {
+        return await generateCodeFromProject(generatorType, config);
+      }
+
       // Prepare body for single diagram generation
       const body: any = {
         title: diagramTitle,
