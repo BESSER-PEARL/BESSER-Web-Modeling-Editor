@@ -48,6 +48,17 @@ const CodeButton = styled(Button)`
   min-width: 60px;
 `;
 
+const MethodNameLabel = styled.span`
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: ${(props) => props.theme.color.primary || '#007bff'};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 const CodeEditorWrapper = styled.div`
   margin-top: 8px;
   border: 1px solid ${(props) => props.theme.color.gray};
@@ -103,7 +114,7 @@ type Props = {
 
 const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp, onDelete, element }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
-  const [codeEditorOpen, setCodeEditorOpen] = useState(false);
+  const [codeEditorOpen, setCodeEditorOpen] = useState(code ? true : false); // Auto-open if code exists
   const [localCode, setLocalCode] = useState(code || '');
 
   const toggleColor = () => {
@@ -114,9 +125,19 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
     if (!codeEditorOpen && !localCode) {
       // Initialize with a template when opening for the first time
       const methodName = parseMethod(value).name || 'method_name';
-      setLocalCode(`def ${methodName}(self):\n    # Add your implementation here\n    pass\n`);
+      // Extract just the method name without parameters for the template
+      const cleanMethodName = methodName.split('(')[0].trim();
+      setLocalCode(`def ${cleanMethodName}(self):\n    # Add your implementation here\n    pass\n`);
+      // Update the code in the backend
+      onChange(id, { code: `def ${cleanMethodName}(self):\n    # Add your implementation here\n    pass\n` });
     }
     setCodeEditorOpen(!codeEditorOpen);
+  };
+
+  const clearCode = () => {
+    setLocalCode('');
+    onChange(id, { code: '' });
+    setCodeEditorOpen(false);
   };
 
   // Parse the method string: visibility name(params): returnType
@@ -167,20 +188,31 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
   return (
     <MethodRow>
       <ControlsRow>
-        <VisibilityDropdown value={visibilityValue} onChange={handleVisibilityChange}>
-          {VISIBILITY_OPTIONS.map(vis => (
-            <Dropdown.Item key={vis.value} value={vis.value}>
-              {vis.label}
-            </Dropdown.Item>
-          ))}
-        </VisibilityDropdown>
-        <NameField 
-          ref={onRefChange} 
-          value={name} 
-          onChange={handleNameChange} 
-          onSubmitKeyUp={onSubmitKeyUp}
-          placeholder="method(param: type): returnType"
-        />
+        {/* Show signature fields only when NOT in code mode */}
+        {!hasCode && (
+          <>
+            <VisibilityDropdown value={visibilityValue} onChange={handleVisibilityChange}>
+              {VISIBILITY_OPTIONS.map(vis => (
+                <Dropdown.Item key={vis.value} value={vis.value}>
+                  {vis.label}
+                </Dropdown.Item>
+              ))}
+            </VisibilityDropdown>
+            <NameField 
+              ref={onRefChange} 
+              value={name} 
+              onChange={handleNameChange} 
+              onSubmitKeyUp={onSubmitKeyUp}
+              placeholder="method(param: type): returnType"
+            />
+          </>
+        )}
+        {/* Show method name label when in code mode */}
+        {hasCode && (
+          <MethodNameLabel title="Method defined in code below">
+            📝 {name.split('(')[0] || 'method'} (Python code)
+          </MethodNameLabel>
+        )}
         <CodeButton 
           color={hasCode ? "primary" : "link"} 
           onClick={toggleCodeEditor}
@@ -197,10 +229,17 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
       {codeEditorOpen && (
         <CodeEditorWrapper>
           <CodeEditorHeader>
-            <CodeEditorTitle>Python Implementation</CodeEditorTitle>
-            <Button color="link" onClick={toggleCodeEditor} style={{ padding: '2px 6px', fontSize: '10px' }}>
-              Close
-            </Button>
+            <CodeEditorTitle>Python Implementation (full method definition)</CodeEditorTitle>
+            <div>
+              {hasCode && (
+                <Button color="link" onClick={clearCode} style={{ padding: '2px 6px', fontSize: '10px', marginRight: '4px' }}>
+                  Clear Code
+                </Button>
+              )}
+              <Button color="link" onClick={toggleCodeEditor} style={{ padding: '2px 6px', fontSize: '10px' }}>
+                Close
+              </Button>
+            </div>
           </CodeEditorHeader>
           <ResizableCodeMirrorWrapper>
             <CodeMirror
