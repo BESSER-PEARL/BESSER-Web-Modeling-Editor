@@ -36,6 +36,8 @@ export const FileMenu: React.FC = () => {
   // Modal state for feedback and input
   const [importModalType, setImportModalType] = React.useState<'image' | 'kg' | null>(null);
   const [apiKey, setApiKey] = React.useState('');
+  const [isKeyVisible, setIsKeyVisible] = React.useState(false);
+  const maskedKey = apiKey ? '•'.repeat(Math.min(apiKey.length, 24)) : '';
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [fileError, setFileError] = React.useState('');
   const [isImporting, setIsImporting] = React.useState(false);
@@ -137,15 +139,15 @@ export const FileMenu: React.FC = () => {
     }
   };
 
-  // KG File input change handler (TTL/JSON only)
+  // KG File input change handler (TTL/RDF/JSON only)
   const handleKGFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
       const allowedTypes = ['application/json', 'text/turtle', 'application/x-turtle'];
-      const allowedExtensions = ['.json', '.ttl'];
+      const allowedExtensions = ['.json', '.ttl', '.rdf'];
        const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
       if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
-        setFileError('Only TTL or JSON files are allowed.');
+        setFileError('Only TTL, RDF, or JSON files are allowed.');
         setSelectedFile(null);
       } else {
         setFileError('');
@@ -173,7 +175,7 @@ export const FileMenu: React.FC = () => {
     }
   };
 
-  // Handler for Import KG button in modal
+  // Update the handleImportDiagramFromKG function to:
   const handleImportDiagramFromKG = async () => {
     if (!selectedFile || !apiKey || fileError) return;
     setIsImporting(true);
@@ -182,8 +184,12 @@ export const FileMenu: React.FC = () => {
       toast.success(result.message);
       toast.info(`Imported diagram type: ${result.diagramType}`);
       setImportModalType(null);
+      // Clear the form
+      setApiKey('');
+      setSelectedFile(null);
     } catch (error) {
-      setImportModalType(null);
+      // Error is already handled in the hook with toast
+      console.error('KG Import failed:', error);
     } finally {
       setIsImporting(false);
     }
@@ -283,7 +289,7 @@ export const FileMenu: React.FC = () => {
                   <div className="mb-3">
                     <label htmlFor="openai-api-key" className="form-label">OpenAI API Key</label>
                     <input
-                      type="text"
+                      type={isKeyVisible ? 'text' : 'password'}
                       className="form-control"
                       id="openai-api-key"
                       value={apiKey}
@@ -344,7 +350,7 @@ export const FileMenu: React.FC = () => {
                   <div className="mb-3">
                     <label htmlFor="openai-api-key" className="form-label">OpenAI API Key</label>
                     <input
-                      type="text"
+                      type={isKeyVisible ? 'text' : 'password'}
                       className="form-control"
                       id="openai-api-key"
                       value={apiKey}
@@ -354,12 +360,12 @@ export const FileMenu: React.FC = () => {
                     />
                   </div>
                   <div className="mb-3">
-                    <label htmlFor="diagram-kg-file" className="form-label">Upload Knowledge Graph (TTL or JSON)</label>
+                    <label htmlFor="diagram-kg-file" className="form-label">Upload Knowledge Graph (TTL, RDF, or JSON)</label>
                     <input
                       type="file"
                       className="form-control"
                       id="diagram-kg-file"
-                      accept=".ttl,.json"
+                      accept=".ttl,.json,.rdf"
                       onChange={handleKGFileChange}
                     />
                     {fileError && <div className="text-danger mt-1">{fileError}</div>}

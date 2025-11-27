@@ -1,10 +1,10 @@
-// Import diagram from kg using backend API
+// Import diagram from KG using backend API
 import { toast } from 'react-toastify';
 import { useCallback } from 'react';
 import { BACKEND_URL } from '../../constant';
 import { useAppDispatch } from '../../components/store/hooks';
 import { uuid } from '../../utils/uuid';
-import { Diagram, loadImportedDiagram } from '../diagram/diagramSlice';
+import { loadImportedDiagram } from '../diagram/diagramSlice';
 import { displayError } from '../error-management/errorManagementSlice';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { toSupportedDiagramType } from '../../types/project';
@@ -55,7 +55,7 @@ export const useImportDiagramFromKG = () => {
         id: newId,
         title: data.title || file.name,
         lastUpdate: new Date().toISOString(),
-        description: data.description || `Imported ${diagramType} diagram from kg`,
+        description: data.description || `Imported ${diagramType} diagram from Knowledge Graph`,
       };
       const updatedProject = {
         ...currentProject,
@@ -78,11 +78,11 @@ export const useImportDiagramFromKG = () => {
         success: true,
         diagramType,
         diagramTitle: importedDiagram.title,
-        message: `${diagramType} diagram imported successfully from kg and added to project "${currentProject.name}".`
+        message: `${diagramType} diagram imported successfully from Knowledge Graph and added to project "${currentProject.name}".`
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during import';
-      dispatch(displayError('Import failed', `Could not import diagram from kg: ${errorMessage}`));
+      dispatch(displayError('Import failed', `Could not import diagram from Knowledge Graph: ${errorMessage}`));
       throw error;
     }
   }, [dispatch, convertBumlToDiagram]);
