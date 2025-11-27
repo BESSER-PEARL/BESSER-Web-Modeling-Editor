@@ -6,8 +6,13 @@ import { UMLElementFeatures } from '../../../services/uml-element/uml-element-fe
 import { assign } from '../../../utils/fx/assign';
 import { IBoundary, computeDimension } from '../../../utils/geometry/boundary';
 import { Text } from '../../../utils/svg/text';
+import * as Apollon from '../../../typings';
 
-export abstract class UMLClassifierMember extends UMLElement {
+export interface IUMLClassifierMember extends IUMLElement {
+  code?: string;
+}
+
+export abstract class UMLClassifierMember extends UMLElement implements IUMLClassifierMember {
   static features: UMLElementFeatures = {
     ...UMLElement.features,
     hoverable: false,
@@ -20,10 +25,26 @@ export abstract class UMLClassifierMember extends UMLElement {
   };
 
   bounds: IBoundary = { ...this.bounds, height: computeDimension(1.0, 30) };
+  code: string = '';
 
-  constructor(values?: DeepPartial<IUMLElement>) {
+  constructor(values?: DeepPartial<IUMLClassifierMember>) {
     super(values);
-    assign<IUMLElement>(this, values);
+    assign<IUMLClassifierMember>(this, values);
+  }
+
+  /** Serializes an `UMLClassifierMember` to an `Apollon.UMLModelElement` */
+  serialize(children?: UMLElement[]): Apollon.UMLModelElement {
+    return {
+      ...super.serialize(children),
+      code: this.code,
+    } as Apollon.UMLModelElement;
+  }
+
+  /** Deserializes an `Apollon.UMLModelElement` to an `UMLClassifierMember` */
+  deserialize<T extends Apollon.UMLModelElement>(values: T, children?: Apollon.UMLModelElement[]) {
+    super.deserialize(values, children);
+    const valuesWithCode = values as T & { code?: string };
+    this.code = valuesWithCode.code || '';
   }
 
   render(layer: ILayer): ILayoutable[] {

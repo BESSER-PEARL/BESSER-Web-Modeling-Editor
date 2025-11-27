@@ -24,6 +24,8 @@ import { UMLElementType } from '../../uml-element-type';
 import { UMLElements } from '../../uml-elements';
 import { UMLClassifier } from './uml-classifier';
 import UmlAttributeUpdate from './uml-classifier-attribute-update';
+import UmlMethodUpdate from './uml-classifier-method-update';
+import { UMLClassifierMember } from './uml-classifier-member';
 
 const Flex = styled.div`
   display: flex;
@@ -216,24 +218,28 @@ class ClassifierUpdate extends Component<Props, State> {
           <section>
             <Divider />
             <Header>{this.props.translate('popup.methods')}</Header>
-            {methods.map((method, index) => (
-              <UmlAttributeUpdate
-                id={method.id}
-                key={method.id}
-                value={method.name}
-                onChange={this.props.update}
-                onSubmitKeyUp={() =>
-                  index === methods.length - 1
-                    ? this.newMethodField.current?.focus()
-                    : this.setState({
-                        fieldToFocus: methodRefs[index + 1],
-                      })
-                }
-                onDelete={this.delete}
-                onRefChange={(ref) => (methodRefs[index] = ref)}
-                element={method}
-              />
-            ))}
+            {methods.map((method, index) => {
+              const methodMember = method as UMLClassifierMember;
+              return (
+                <UmlMethodUpdate
+                  id={method.id}
+                  key={method.id}
+                  value={method.name}
+                  code={methodMember.code || ''}
+                  onChange={this.props.update}
+                  onSubmitKeyUp={() =>
+                    index === methods.length - 1
+                      ? this.newMethodField.current?.focus()
+                      : this.setState({
+                          fieldToFocus: methodRefs[index + 1],
+                        })
+                  }
+                  onDelete={this.delete}
+                  onRefChange={(ref) => (methodRefs[index] = ref)}
+                  element={method}
+                />
+              );
+            })}
             <Textfield
               ref={this.newMethodField}
               outline

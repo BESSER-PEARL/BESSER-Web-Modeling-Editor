@@ -5,6 +5,25 @@
 
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 
+// Type alias mapping for normalizing types from agent responses
+const TYPE_ALIASES: Record<string, string> = {
+  'string': 'str', 'String': 'str', 'STRING': 'str',
+  'integer': 'int', 'Integer': 'int', 'INTEGER': 'int', 'long': 'int', 'Long': 'int',
+  'double': 'float', 'Double': 'float', 'DOUBLE': 'float', 'Float': 'float', 'FLOAT': 'float',
+  'number': 'float', 'Number': 'float', 'decimal': 'float', 'Decimal': 'float',
+  'boolean': 'bool', 'Boolean': 'bool', 'BOOLEAN': 'bool',
+  'Date': 'date', 'DATE': 'date',
+  'DateTime': 'datetime', 'DATETIME': 'datetime', 'Timestamp': 'datetime', 'timestamp': 'datetime',
+  'Time': 'time', 'TIME': 'time',
+  'object': 'any', 'Object': 'any', 'void': 'any', 'Void': 'any',
+};
+
+const normalizeType = (type: string): string => {
+  if (!type) return 'str';
+  const trimmed = type.trim();
+  return TYPE_ALIASES[trimmed] || trimmed;
+};
+
 export class ClassDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
 
@@ -112,10 +131,11 @@ export class ClassDiagramConverter implements DiagramConverter {
       const attrId = generateUniqueId('attr');
       const visibilitySymbol = attr.visibility === 'public' ? '+' : 
                              attr.visibility === 'private' ? '-' : '#';
+      const normalizedType = normalizeType(attr.type);
       
       attributes[attrId] = {
         id: attrId,
-        name: `${visibilitySymbol} ${attr.name}: ${attr.type}`,
+        name: `${visibilitySymbol} ${attr.name}: ${normalizedType}`,
         type: "ClassAttribute",
         owner: classId,
         bounds: { x: startX + 1, y: currentY, width: 218, height: 25 }
@@ -136,8 +156,9 @@ export class ClassDiagramConverter implements DiagramConverter {
       const visibilitySymbol = method.visibility === 'public' ? '+' : 
                              method.visibility === 'private' ? '-' : '#';
       
-      const paramStr = method.parameters?.map((p: any) => `${p.name}: ${p.type}`).join(', ') || '';
-      const methodName = `${visibilitySymbol} ${method.name}(${paramStr}): ${method.returnType}`;
+      const paramStr = method.parameters?.map((p: any) => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+      const normalizedReturnType = normalizeType(method.returnType);
+      const methodName = `${visibilitySymbol} ${method.name}(${paramStr}): ${normalizedReturnType}`;
       
       methods[methodId] = {
         id: methodId,

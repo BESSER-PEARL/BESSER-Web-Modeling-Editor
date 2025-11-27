@@ -92,6 +92,10 @@ export type UMLClassifier = UMLElement & {
   methods: string[];
 };
 
+export type UMLClassifierMember = UMLElement & {
+  code?: string;
+};
+
 export interface IUMLObjectName extends UMLClassifier {
   classId?: string; // ID of the class from the library this object is based on
 }
