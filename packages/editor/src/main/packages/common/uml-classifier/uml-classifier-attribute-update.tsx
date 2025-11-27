@@ -55,6 +55,57 @@ const PRIMITIVE_TYPES = [
   { value: 'any', label: 'any' },
 ];
 
+// Type alias mapping for normalizing types from various sources (agent responses, imports, etc.)
+const TYPE_ALIASES: Record<string, string> = {
+  // String variants
+  'string': 'str',
+  'String': 'str',
+  'STRING': 'str',
+  // Integer variants
+  'integer': 'int',
+  'Integer': 'int',
+  'INTEGER': 'int',
+  'long': 'int',
+  'Long': 'int',
+  // Float/Double variants
+  'double': 'float',
+  'Double': 'float',
+  'DOUBLE': 'float',
+  'Float': 'float',
+  'FLOAT': 'float',
+  'number': 'float',
+  'Number': 'float',
+  'decimal': 'float',
+  'Decimal': 'float',
+  // Boolean variants
+  'boolean': 'bool',
+  'Boolean': 'bool',
+  'BOOLEAN': 'bool',
+  // Date variants
+  'Date': 'date',
+  'DATE': 'date',
+  // DateTime variants
+  'DateTime': 'datetime',
+  'DATETIME': 'datetime',
+  'Timestamp': 'datetime',
+  'timestamp': 'datetime',
+  // Time variants
+  'Time': 'time',
+  'TIME': 'time',
+  // Any variants
+  'object': 'any',
+  'Object': 'any',
+  'void': 'any',
+  'Void': 'any',
+};
+
+// Normalize a type string to the canonical Python-style type
+const normalizeType = (type: string): string => {
+  if (!type) return 'str';
+  const trimmed = type.trim();
+  return TYPE_ALIASES[trimmed] || trimmed;
+};
+
 const VISIBILITY_OPTIONS = [
   { symbol: '+', value: 'public', label: '+' },
   { symbol: '-', value: 'private', label: '-' },
@@ -129,7 +180,7 @@ const UmlAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, o
       const typeMatch = afterVisibility.match(/^([^:]+):\s*(.+)$/);
       if (typeMatch) {
         name = typeMatch[1].trim();
-        type = typeMatch[2].trim();
+        type = normalizeType(typeMatch[2].trim());
       } else {
         name = afterVisibility.trim();
       }
@@ -138,7 +189,7 @@ const UmlAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, o
       const typeMatch = trimmed.match(/^([^:]+):\s*(.+)$/);
       if (typeMatch) {
         name = typeMatch[1].trim();
-        type = typeMatch[2].trim();
+        type = normalizeType(typeMatch[2].trim());
       } else {
         name = trimmed;
       }
