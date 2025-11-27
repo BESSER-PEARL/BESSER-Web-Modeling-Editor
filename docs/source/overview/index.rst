@@ -21,4 +21,9 @@ another product, run the web application as a standalone site, or deploy both
 behind the same server for a complete experience.
 
 Use the remainder of the overview section to get your local environment ready
-and to familiarise yourself with each package in the workspace.
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   getting-started
+   project-structure

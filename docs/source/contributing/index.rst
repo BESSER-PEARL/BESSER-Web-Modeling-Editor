@@ -26,4 +26,6 @@ Next steps
 
 * :doc:`development-workflow` lists the scripts and checks you should run before
   opening a pull request.
+* :doc:`new-diagram-guide/index` provides a comprehensive guide on extending the
+  editor with new diagram types.
 * Review ``GOVERNANCE.md`` for the project's decision-making process.
