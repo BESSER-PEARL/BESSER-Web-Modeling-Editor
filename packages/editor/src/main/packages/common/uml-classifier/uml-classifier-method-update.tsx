@@ -122,14 +122,17 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
   };
 
   const toggleCodeEditor = () => {
-    if (!codeEditorOpen && !localCode) {
-      // Initialize with a template when opening for the first time
-      const methodName = parseMethod(value).name || 'method_name';
-      // Extract just the method name without parameters for the template
-      const cleanMethodName = methodName.split('(')[0].trim();
-      setLocalCode(`def ${cleanMethodName}(self):\n    # Add your implementation here\n    pass\n`);
-      // Update the code in the backend
-      onChange(id, { code: `def ${cleanMethodName}(self):\n    # Add your implementation here\n    pass\n` });
+    if (!codeEditorOpen) {
+      // Opening the code editor
+      if (!localCode) {
+        // Initialize with a template when opening for the first time
+        const methodName = parseMethod(value).name || 'method_name';
+        // Extract just the method name without parameters for the template
+        const cleanMethodName = methodName.split('(')[0].trim() || 'new_method';
+        const template = `def ${cleanMethodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+        setLocalCode(template);
+        onChange(id, { code: template });
+      }
     }
     setCodeEditorOpen(!codeEditorOpen);
   };
@@ -175,7 +178,44 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
 
   const handleCodeChange = (editor: any, data: any, newCode: string) => {
     setLocalCode(newCode);
-    onChange(id, { code: newCode });
+    
+    // Extract method name from Python code
+    const methodMatch = newCode.match(/def\s+(\w+)\s*\([^)]*\)/);
+    if (methodMatch && methodMatch[1]) {
+      const extractedMethodName = methodMatch[1];
+      // Extract return type if exists
+      const returnTypeMatch = newCode.match(/def\s+\w+\s*\([^)]*\)\s*->\s*([^:]+):/);
+      const returnType = returnTypeMatch ? returnTypeMatch[1].trim() : '';
+      
+      // Extract parameters
+      const paramsMatch = newCode.match(/def\s+\w+\s*\(([^)]*)\)/);
+      let params = '';
+      if (paramsMatch && paramsMatch[1]) {
+        // Remove 'self' and clean up parameters
+        const paramList = paramsMatch[1].split(',')
+          .map(p => p.trim())
+          .filter(p => p && p !== 'self');
+        params = paramList.length > 0 ? paramList.join(', ') : '';
+      }
+      
+      // Build the method signature for display
+      const visSymbol = VISIBILITY_OPTIONS.find(v => v.value === visibility)?.symbol || '+';
+      let signature = `${visSymbol} ${extractedMethodName}`;
+      if (params || returnType) {
+        signature += `(${params})`;
+        if (returnType) {
+          signature += `: ${returnType}`;
+        }
+      } else {
+        signature += '()';
+      }
+      
+      // Update both code and name
+      onChange(id, { code: newCode, name: signature });
+    } else {
+      // No valid method found, just update code
+      onChange(id, { code: newCode });
+    }
   };
 
   const handleDelete = () => {
@@ -203,7 +243,7 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
               value={name} 
               onChange={handleNameChange} 
               onSubmitKeyUp={onSubmitKeyUp}
-              placeholder="method(param: type): returnType"
+              placeholder="method(param: type): returnType or click Code →"
             />
           </>
         )}
@@ -216,7 +256,7 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
         <CodeButton 
           color={hasCode ? "primary" : "link"} 
           onClick={toggleCodeEditor}
-          title={hasCode ? "Edit Python code" : "Add Python code"}
+          title={hasCode ? "Edit Python code" : "Write Python implementation"}
         >
           {codeEditorOpen ? '▼ Code' : '▶ Code'}
         </CodeButton>
