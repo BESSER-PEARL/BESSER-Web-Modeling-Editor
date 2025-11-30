@@ -32,11 +32,28 @@ const buildTableProps = (attrs: Record<string, any>, config: TableConfig): any =
   const classId = attrs['data-source'];
   const classMetadata = typeof classId === 'string' && classId ? getClassMetadata(classId) : undefined;
   
-  if (classMetadata?.attributes?.length) {
-    props.columns = classMetadata.attributes.map(attr => ({
+  // Priority 1: Use columns from the columns trait if available
+  let columns: Array<{ field: string; label: string; type?: string }> = [];
+  const columnsAttr = attrs['columns'];
+  if (typeof columnsAttr === 'string' && columnsAttr.trim().startsWith('[')) {
+    try {
+      columns = JSON.parse(columnsAttr);
+    } catch (e) {
+      console.error('Failed to parse columns:', e);
+    }
+  }
+  
+  // Priority 2: If no columns defined in trait, auto-generate from class metadata
+  if (columns.length === 0 && classMetadata?.attributes?.length) {
+    columns = classMetadata.attributes.map(attr => ({
       field: attr.name,
       label: attr.name.replace(/_/g, ' ') || attr.name,
+      type: attr.type || 'string',
     }));
+  }
+  
+  if (columns.length > 0) {
+    props.columns = columns;
   }
   
   props.dataBinding = {
@@ -132,15 +149,79 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
           dataSourceTrait.set('options', classOptions);
         }
 
-        // On init, if a class is already selected, set the options
-        const selectedClass = this.get('attributes')?.['data-source'];
-        if (selectedClass) {
-          // No need to update field options for table as it uses all attributes automatically
-        }
-
-        // Listen for changes to data-source (class selection)
-        this.on('change:attributes', () => {
-          // Table automatically handles all attributes from the selected class
+        // Listen for changes to data-source (class selection) to auto-generate columns
+        this.on('change:data-source', () => {
+          const newClassId = this.get('data-source');
+          if (!newClassId) return;
+          
+          const classMetadata = getClassMetadata(newClassId);
+          const classEnds = getEndsByClassId(newClassId);
+          
+          const autoColumns: any[] = [];
+          
+          // Add Field columns from class attributes
+          if (classMetadata?.attributes?.length) {
+            classMetadata.attributes.forEach(attr => {
+              autoColumns.push({
+                field: attr.name,
+                label: attr.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                columnType: 'field',
+                _expanded: false,
+              });
+            });
+          }
+          
+          // Add Lookup columns from class relationship ends
+          if (classEnds?.length) {
+            classEnds.forEach(end => {
+              // Get the target class metadata to find the first attribute
+              const targetClassMetadata = getClassMetadata(end.value);
+              const firstAttribute = targetClassMetadata?.attributes?.[0];
+              
+              autoColumns.push({
+                field: end.label || end.value,
+                label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                columnType: 'lookup',
+                lookupEntity: end.value,
+                lookupField: firstAttribute?.name || '',
+                _expanded: false,
+              });
+            });
+          }
+          
+          // Update the columns attribute
+          this.addAttributes({ columns: JSON.stringify(autoColumns) });
+          this.set('columns', JSON.stringify(autoColumns));
+          
+          // Force the trait to re-render by removing and re-adding it at the same position
+          const columnsTrait = traits.where({ name: 'columns' })[0];
+          if (columnsTrait) {
+            // Get the current index before removing
+            const traitIndex = traits.indexOf(columnsTrait);
+            
+            const traitConfig = {
+              type: 'columns-manager',
+              label: 'Columns',
+              name: 'columns',
+              value: JSON.stringify(autoColumns),
+              changeProp: 1
+            };
+            
+            // Remove the trait
+            traits.remove(columnsTrait);
+            
+            // Re-add at the same position
+            traits.add(traitConfig, { at: traitIndex });
+            
+            // Force the component to trigger a re-selection to refresh the UI
+            setTimeout(() => {
+              this.trigger('change:traits');
+              this.em.trigger('component:toggled');
+            }, 0);
+          }
+          
+          const totalColumns = (classMetadata?.attributes?.length || 0) + (classEnds?.length || 0);
+          console.log(`[Table] Auto-generated ${totalColumns} columns (${classMetadata?.attributes?.length || 0} fields, ${classEnds?.length || 0} lookups) for class: ${classMetadata?.name || newClassId}`);
         });
       },
       renderReactTable(this: any) {
