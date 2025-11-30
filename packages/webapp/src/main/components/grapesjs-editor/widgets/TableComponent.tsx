@@ -5,7 +5,7 @@ interface TableColumn {
   label?: string;
 }
 
-interface TableChartComponentProps {
+interface TableComponentProps {
   color?: string;
   title?: string;
   data?: Array<Record<string, any>>;
@@ -19,9 +19,9 @@ interface TableChartComponentProps {
   filter?: string;
 }
 
-export const TableChartComponent: React.FC<TableChartComponentProps> = ({
+export const TableComponent: React.FC<TableComponentProps> = ({
   color = '#2c3e50',
-  title = 'Table Chart Title',
+  title = 'Table Title',
   data = [],
   showHeader = true,
   striped = false,
@@ -80,7 +80,7 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
 
   return (
     <div
-      className="table-chart-container"
+      className="table-container"
       style={{
         padding: '20px',
         background: 'white',

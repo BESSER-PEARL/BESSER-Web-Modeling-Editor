@@ -10,9 +10,11 @@ import gjsPluginForms from 'grapesjs-plugin-forms';
 import './grapesjs-styles.css';
 import { getClassOptions } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
+import { tableConfig } from './configs/tableConfig';
 import { metricCardConfig } from './configs/metricCardConfigs';
 import { mapConfig } from './configs/mapConfig';
 import { registerChartComponent } from './component-registrars/registerChartComponent';
+import { registerTableComponent } from './component-registrars/registerTableComponent';
 import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
 import { registerMapComponent } from './component-registrars/registerMapComponent';
 import { registerButtonComponent } from './component-registrars/registerButtonComponent';
@@ -217,6 +219,9 @@ function registerCustomComponents(editor: Editor) {
   chartConfigs.forEach((config) => {
     registerChartComponent(editor, config);
   });
+
+  // Register table
+  registerTableComponent(editor, tableConfig);
 
   // Register metric card
   registerMetricCardComponent(editor, metricCardConfig);
