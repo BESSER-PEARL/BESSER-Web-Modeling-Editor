@@ -2,6 +2,17 @@ import { ProjectStorageRepository } from '../../services/storage/ProjectStorageR
 import { isUMLModel } from '../../types/project';
 import { ClassMetadata, AttributeMetadata, isNumericType, isStringType } from './utils/classBindingHelpers';
 
+/**
+ * Remove UML visibility characters (+, -, #, ~) from the beginning of a string
+ * @param name - The name that may contain visibility prefix
+ * @returns The name without visibility prefix
+ */
+function stripVisibility(name: string): string {
+  if (!name) return name;
+  // Remove leading visibility characters (+, -, #, ~) followed by optional space
+  return name.replace(/^[+\-#~]\s*/, '');
+}
+
 function getClassDiagramModel() {
   const project = ProjectStorageRepository.getCurrentProject();
   return project?.diagrams?.ClassDiagram?.model;
@@ -34,7 +45,7 @@ export function getAttributeOptionsByClassId(classId: string): { value: string; 
 
   return Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => ({ value: attr.id, label: attr.name }));
+    .map((attr: any) => ({ value: attr.id, label: stripVisibility(attr.name) }));
 }
 
 /**
@@ -49,11 +60,14 @@ export function getAttributeOptionsByType(classId: string, requireNumeric: boole
 
   const attributes = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => ({
-      value: attr.id,
-      label: attr.name,
-      type: attr.name?.split(':')[1]?.trim() || 'str'
-    }));
+    .map((attr: any) => {
+      const cleanName = stripVisibility(attr.name);
+      return {
+        value: attr.id,
+        label: cleanName,
+        type: cleanName?.split(':')[1]?.trim() || 'str'
+      };
+    });
 
   if (requireNumeric) {
     return attributes.filter(attr => isNumericType(attr.type));
@@ -83,10 +97,11 @@ export function getClassMetadata(classId: string): ClassMetadata | undefined {
   const attributes: AttributeMetadata[] = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
     .map((attr: any) => {
-      const type = attr.name?.split(':')[1]?.trim() || 'str';
+      const cleanName = stripVisibility(attr.name);
+      const type = cleanName?.split(':')[1]?.trim() || 'str';
       return {
         id: attr.id,
-        name: attr.name?.split(':')[0]?.trim() || attr.name,
+        name: cleanName?.split(':')[0]?.trim() || cleanName,
         type: type,
         isNumeric: isNumericType(type),
         isString: isStringType(type)
@@ -164,7 +179,7 @@ export function getInheritedAttributeOptionsByClassId(classId: string): { value:
   // Collect attributes from all parent classes
   const inheritedAttributes = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && parentIds.includes(element.owner))
-    .map((attr: any) => ({ value: attr.id, label: attr.name }));
+    .map((attr: any) => ({ value: attr.id, label: stripVisibility(attr.name) }));
 
   return inheritedAttributes;
 }

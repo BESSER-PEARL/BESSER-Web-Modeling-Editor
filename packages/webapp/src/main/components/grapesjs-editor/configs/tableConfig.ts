@@ -35,7 +35,7 @@ export const tableConfig: TableConfig = {
     { type: 'color', label: 'Header Color', name: 'chart-color', value: '#2c3e50', changeProp: 1 },
     { type: 'text', label: 'Title', name: 'chart-title', value: 'Table Title', changeProp: 1 },
     { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
-    { type: 'columns-manager', label: 'Columns', name: 'columns', value: '[]', changeProp: 1 },
+    { type: 'columns-manager', label: 'Columns', name: 'columns', value: [], changeProp: 1 },
     { type: 'checkbox', label: 'Show Header', name: 'show-header', value: true, changeProp: 1 },
     { type: 'checkbox', label: 'Striped Rows', name: 'striped-rows', value: false, changeProp: 1 },
     { type: 'checkbox', label: 'Show Pagination', name: 'show-pagination', value: true, changeProp: 1 },

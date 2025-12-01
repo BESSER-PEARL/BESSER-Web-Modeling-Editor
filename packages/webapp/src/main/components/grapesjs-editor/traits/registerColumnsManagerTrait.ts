@@ -13,10 +13,10 @@ type GrapesJSComponent = {
 interface ColumnItem {
   field: string;
   label: string;
-  columnType: 'field' | 'lookup' | 'formula';
+  columnType: 'field' | 'lookup' | 'expression';
   lookupEntity?: string; // For lookup columns
   lookupField?: string; // For lookup columns
-  formula?: string; // For formula columns
+  expression?: string; // For expression columns
   _expanded?: boolean;
 }
 
@@ -29,14 +29,16 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
       // Parse current columns from attributes or default
       let columns: ColumnItem[] = [];
       const attrVal = component.getAttributes()['columns'];
-      if (typeof attrVal === 'string' && attrVal.trim().startsWith('[')) {
+      if (Array.isArray(attrVal)) {
+        // Already an array (new format)
+        columns = attrVal;
+      } else if (typeof attrVal === 'string' && attrVal.trim().startsWith('[')) {
+        // String format (legacy - for backward compatibility)
         try {
           columns = JSON.parse(attrVal);
         } catch (e) {
           columns = [];
         }
-      } else if (Array.isArray(attrVal)) {
-        columns = attrVal;
       } else {
         columns = [];
       }
@@ -138,7 +140,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           const columnTypeOptions = [
             { value: 'field', label: 'Field' },
             { value: 'lookup', label: 'Lookup' },
-            { value: 'formula', label: 'Formula' },
+            { value: 'expression', label: 'Expression' },
           ];
           columnTypeOptions.forEach(opt => {
             const option = document.createElement('option');
@@ -270,18 +272,18 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
             details.appendChild(lookupPathSelect);
             details.appendChild(lookupFieldLabel);
             details.appendChild(lookupFieldSelect);
-          } else if (currentColumnType === 'formula') {
-            // Formula
-            const formulaLabel = document.createElement('label');
-            formulaLabel.textContent = 'Formula';
-            const formulaInput = document.createElement('input');
-            formulaInput.type = 'text';
-            formulaInput.value = col.formula || '';
-            formulaInput.placeholder = 'e.g., price * quantity';
-            formulaInput.setAttribute('data-formula-idx', idx.toString());
+          } else if (currentColumnType === 'expression') {
+            // Expression
+            const expressionLabel = document.createElement('label');
+            expressionLabel.textContent = 'Expression';
+            const expressionInput = document.createElement('input');
+            expressionInput.type = 'text';
+            expressionInput.value = col.expression || '';
+            expressionInput.placeholder = 'e.g., price * quantity';
+            expressionInput.setAttribute('data-expression-idx', idx.toString());
 
-            details.appendChild(formulaLabel);
-            details.appendChild(formulaInput);
+            details.appendChild(expressionLabel);
+            details.appendChild(expressionInput);
           }
 
           row.appendChild(details);
@@ -327,12 +329,12 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
 
       // Update component attribute when changed
       const update = () => {
-        // Keep the _expanded property for persistence
-        const columnsStr = JSON.stringify(columns);
-        component.addAttributes({ columns: columnsStr });
+        // Store columns as a real array (not stringified)
+        // Keep the _expanded property for UI state persistence
+        component.addAttributes({ columns: columns });
         // Also update the trait value directly for GrapesJS persistence
         if (typeof component.set === 'function') {
-          component.set('columns', columnsStr);
+          component.set('columns', columns);
         }
         if (typeof component.trigger === 'function') {
           component.trigger('change:columns');
@@ -356,15 +358,15 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
         // Column Type
         if (target.tagName === 'SELECT' && target.dataset.columntypeIdx !== undefined) {
           const idx = Number(target.dataset.columntypeIdx);
-          columns[idx].columnType = target.value as 'field' | 'lookup' | 'formula';
+          columns[idx].columnType = target.value as 'field' | 'lookup' | 'expression';
           // Clear type-specific fields when changing column type
           if (columns[idx].columnType === 'field') {
             delete columns[idx].lookupEntity;
             delete columns[idx].lookupField;
-            delete columns[idx].formula;
+            delete columns[idx].expression;
           } else if (columns[idx].columnType === 'lookup') {
-            delete columns[idx].formula;
-          } else if (columns[idx].columnType === 'formula') {
+            delete columns[idx].expression;
+          } else if (columns[idx].columnType === 'expression') {
             delete columns[idx].lookupEntity;
             delete columns[idx].lookupField;
           }
@@ -396,10 +398,10 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           update();
         }
 
-        // Formula
-        if (target.tagName === 'INPUT' && target.dataset.formulaIdx !== undefined) {
-          const idx = Number(target.dataset.formulaIdx);
-          columns[idx].formula = target.value;
+        // Expression
+        if (target.tagName === 'INPUT' && target.dataset.expressionIdx !== undefined) {
+          const idx = Number(target.dataset.expressionIdx);
+          columns[idx].expression = target.value;
           update();
         }
       });

@@ -35,7 +35,11 @@ const buildTableProps = (attrs: Record<string, any>, config: TableConfig): any =
   // Priority 1: Use columns from the columns trait if available
   let columns: Array<{ field: string; label: string; type?: string }> = [];
   const columnsAttr = attrs['columns'];
-  if (typeof columnsAttr === 'string' && columnsAttr.trim().startsWith('[')) {
+  
+  // Handle both array (new format) and string (legacy format)
+  if (Array.isArray(columnsAttr)) {
+    columns = columnsAttr;
+  } else if (typeof columnsAttr === 'string' && columnsAttr.trim().startsWith('[')) {
     try {
       columns = JSON.parse(columnsAttr);
     } catch (e) {
@@ -189,9 +193,9 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
             });
           }
           
-          // Update the columns attribute
-          this.addAttributes({ columns: JSON.stringify(autoColumns) });
-          this.set('columns', JSON.stringify(autoColumns));
+          // Update the columns attribute (store as array, not string)
+          this.addAttributes({ columns: autoColumns });
+          this.set('columns', autoColumns);
           
           // Force the trait to re-render by removing and re-adding it at the same position
           const columnsTrait = traits.where({ name: 'columns' })[0];
@@ -203,7 +207,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
               type: 'columns-manager',
               label: 'Columns',
               name: 'columns',
-              value: JSON.stringify(autoColumns),
+              value: autoColumns,
               changeProp: 1
             };
             
