@@ -338,7 +338,12 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
         }
         if (typeof component.trigger === 'function') {
           component.trigger('change:columns');
+          component.trigger('change:attributes'); // Mark component as changed for autosave
         }
+        
+        // Trigger editor storage to save changes immediately
+        editor.trigger('component:update', component);
+        
         render();
       };
 
