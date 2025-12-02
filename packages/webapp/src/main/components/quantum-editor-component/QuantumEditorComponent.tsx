@@ -1,7 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { GATES } from './constants';
+import { Circuit } from './types';
 import { GatePalette, CircuitGrid, Gate, TooltipProvider, EditorToolbar } from './components';
 import {
     useUndoRedo,
@@ -86,11 +87,16 @@ export function QuantumEditorComponent(): JSX.Element {
         saveCircuit(circuit);
     };
 
+    // Load example circuit handler
+    const handleLoadCircuit = useCallback((newCircuit: Circuit) => {
+        setCircuit(() => newCircuit);
+    }, [setCircuit]);
+
     return (
         <TooltipProvider>
             <DndProvider backend={HTML5Backend}>
                 <EditorContainer onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
-                    {/* <EditorToolbar
+                    <EditorToolbar
                         saveStatus={saveStatus}
                         canUndo={canUndo}
                         canRedo={canRedo}
@@ -99,6 +105,7 @@ export function QuantumEditorComponent(): JSX.Element {
                         onSave={handleManualSave}
                         onExport={handleExportJSON}
                         onImport={handleImportJSON}
+                        onLoadCircuit={handleLoadCircuit}
                     />
                     <input
                         type="file"
@@ -106,7 +113,7 @@ export function QuantumEditorComponent(): JSX.Element {
                         ref={fileInputRef}
                         style={{ display: 'none' }}
                         onChange={handleFileChange}
-                    /> */}
+                    />
                     <Workspace>
                         <PaletteContainer>
                             <GatePalette onDragStart={handleDragStart} />
