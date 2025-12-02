@@ -1,11 +1,11 @@
 import { Gate } from '../types';
 
 export const SGate: Gate = {
-    type: 'S',
+    type: 'Z^½',
     id: 's',
     label: 'S',
-    symbol: 'Z^½',
-    description: 'Sqrt Z Gate',
+    symbol: 'S',
+    description: 'S Gate (√Z): Rotates 90° around Z-axis. Adds a phase of i to |1⟩. Two S gates = one Z gate.',
     isControl: false
 };
 
@@ -14,16 +14,16 @@ export const SDaggerGate: Gate = {
     id: 's-dag',
     label: 'S†',
     symbol: 'Z^-½',
-    description: 'Inverse Sqrt Z Gate',
+    description: 'S-Dagger Gate (inverse √Z): Rotates -90° around Z-axis. Adds a phase of -i to |1⟩. Undoes S gate.',
     isControl: false
 };
 
 export const VGate: Gate = {
-    type: 'V',
+    type: 'X^½',
     id: 'v',
     label: 'V',
-    symbol: 'X^½',
-    description: 'Sqrt X Gate',
+    symbol: '√X',
+    description: 'V Gate (√X): Rotates 90° around X-axis. Two V gates = one X (NOT) gate.',
     isControl: false
 };
 
@@ -32,7 +32,7 @@ export const VDaggerGate: Gate = {
     id: 'v-dag',
     label: 'V†',
     symbol: 'X^-½',
-    description: 'Inverse Sqrt X Gate',
+    description: 'V-Dagger Gate (inverse √X): Rotates -90° around X-axis. Undoes V gate.',
     isControl: false
 };
 
@@ -41,7 +41,7 @@ export const SqrtYGate: Gate = {
     id: 'sqrt-y',
     label: '√Y',
     symbol: 'Y^½',
-    description: 'Sqrt Y Gate',
+    description: '√Y Gate: Rotates 90° around Y-axis. Two √Y gates = one Y gate.',
     isControl: false
 };
 
@@ -50,6 +50,6 @@ export const SqrtYDaggerGate: Gate = {
     id: 'sqrt-y-dag',
     label: '√Y†',
     symbol: 'Y^-½',
-    description: 'Inverse Sqrt Y Gate',
+    description: '√Y-Dagger Gate (inverse √Y): Rotates -90° around Y-axis. Undoes √Y gate.',
     isControl: false
 };

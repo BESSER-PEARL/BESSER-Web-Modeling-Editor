@@ -22,7 +22,7 @@ export const HGate: Gate = {
     id: 'h',
     label: 'H',
     symbol: 'H',
-    description: 'Hadamard Gate',
+    description: 'Hadamard Gate: Creates superposition by rotating the qubit state 180° around the X+Z axis. Transforms |0⟩ to |+⟩ and |1⟩ to |−⟩.',
     isControl: false
 };
 
@@ -31,7 +31,7 @@ export const XGate: Gate = {
     id: 'x',
     label: 'X',
     symbol: '⊕',
-    description: 'Pauli X Gate',
+    description: 'Pauli-X Gate (NOT): Flips the qubit state. Rotates 180° around the X-axis. Transforms |0⟩ ↔ |1⟩.',
     isControl: false,
     noBorder: true,
     drawer: (params) => <PauliXDrawer {...params} />
@@ -42,7 +42,7 @@ export const YGate: Gate = {
     id: 'y',
     label: 'Y',
     symbol: 'Y',
-    description: 'Pauli Y Gate',
+    description: 'Pauli-Y Gate: Rotates 180° around the Y-axis. Transforms |0⟩ to i|1⟩ and |1⟩ to -i|0⟩.',
     isControl: false
 };
 
@@ -51,6 +51,6 @@ export const ZGate: Gate = {
     id: 'z',
     label: 'Z',
     symbol: 'Z',
-    description: 'Pauli Z Gate',
+    description: 'Pauli-Z Gate (Phase Flip): Rotates 180° around the Z-axis. Leaves |0⟩ unchanged, transforms |1⟩ to -|1⟩.',
     isControl: false
 };

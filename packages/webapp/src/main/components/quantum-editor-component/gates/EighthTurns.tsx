@@ -5,7 +5,7 @@ export const TGate: Gate = {
     id: 't',
     label: 'T',
     symbol: 'Z^¼',
-    description: 'Z^1/4 Gate',
+    description: 'T Gate (⁴√Z): Rotates 45° around Z-axis. Adds π/4 phase to |1⟩. Essential for universal quantum computing.',
     isControl: false
 };
 
@@ -14,7 +14,7 @@ export const TDaggerGate: Gate = {
     id: 't-dag',
     label: 'T†',
     symbol: 'Z^-¼',
-    description: 'Inverse Z^1/4 Gate',
+    description: 'T-Dagger Gate (inverse ⁴√Z): Rotates -45° around Z-axis. Removes π/4 phase. Undoes T gate.',
     isControl: false
 };
 
@@ -23,7 +23,7 @@ export const SqrtSqrtXGate: Gate = {
     id: 'sqrt-sqrt-x',
     label: 'X^¼',
     symbol: 'X^¼',
-    description: 'X^1/4 Gate',
+    description: '⁴√X Gate: Rotates 45° around X-axis. Four applications = one X (NOT) gate.',
     isControl: false
 };
 
@@ -32,7 +32,7 @@ export const SqrtSqrtXDaggerGate: Gate = {
     id: 'sqrt-sqrt-x-dag',
     label: 'X^-¼',
     symbol: 'X^-¼',
-    description: 'Inverse X^1/4 Gate',
+    description: '⁴√X-Dagger Gate: Rotates -45° around X-axis. Undoes X^¼ gate.',
     isControl: false
 };
 
@@ -41,7 +41,7 @@ export const SqrtSqrtYGate: Gate = {
     id: 'sqrt-sqrt-y',
     label: 'Y^¼',
     symbol: 'Y^¼',
-    description: 'Y^1/4 Gate',
+    description: '⁴√Y Gate: Rotates 45° around Y-axis. Four applications = one Y gate.',
     isControl: false
 };
 
@@ -50,6 +50,6 @@ export const SqrtSqrtYDaggerGate: Gate = {
     id: 'sqrt-sqrt-y-dag',
     label: 'Y^-¼',
     symbol: 'Y^-¼',
-    description: 'Inverse Y^1/4 Gate',
+    description: '⁴√Y-Dagger Gate: Rotates -45° around Y-axis. Undoes Y^¼ gate.',
     isControl: false
 };

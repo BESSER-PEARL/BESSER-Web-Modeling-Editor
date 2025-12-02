@@ -27,7 +27,7 @@ export const MysteryGate: GateDefinition = {
     type: 'MYSTERY',
     label: '?',
     symbol: '?',
-    description: 'Mystery Gate',
+    description: 'Mystery Gate: A random unitary gate. Different each time - useful for testing and games.',
     width: 1,
     height: 1,
     drawer: (params) => <ObscureDrawer {...params} label="?" />
@@ -37,7 +37,7 @@ export const ZeroGate: GateDefinition = {
     type: 'ZERO',
     label: '0',
     symbol: '0',
-    description: 'Project to |0>',
+    description: 'Zero Projection: Projects onto |0⟩ state. Non-unitary operation that destroys information.',
     width: 1,
     height: 1,
     drawer: (params) => <ObscureDrawer {...params} label="0" />
@@ -47,7 +47,7 @@ export const UniversalNotGate: GateDefinition = {
     type: 'UNIVERSAL_NOT',
     label: 'Not',
     symbol: '⊕',
-    description: 'Universal Not',
+    description: 'Universal NOT: Anti-unitary operation that flips any qubit state to its orthogonal. Impossible to build physically.',
     width: 1,
     height: 1,
     drawer: (params) => <ObscureDrawer {...params} label="⊕" />

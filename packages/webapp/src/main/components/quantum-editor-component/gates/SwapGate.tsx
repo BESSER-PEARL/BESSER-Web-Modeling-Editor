@@ -37,7 +37,7 @@ export const SwapGate: GateDefinition = {
     type: 'SWAP',
     label: 'Swap',
     symbol: '×',
-    description: 'Swap two qubits',
+    description: 'SWAP Gate: Exchanges the states of two qubits. |01⟩ ↔ |10⟩, while |00⟩ and |11⟩ unchanged.',
     width: 1,
     height: 2,
     drawer: (params) => <SwapDrawer {...params} />

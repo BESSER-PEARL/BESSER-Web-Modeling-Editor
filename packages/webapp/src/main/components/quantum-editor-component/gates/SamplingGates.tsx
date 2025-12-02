@@ -26,7 +26,7 @@ export const SampleGate: GateDefinition = {
     type: 'SAMPLE',
     label: 'Sample',
     symbol: 'Sample',
-    description: 'Sample the qubit state',
+    description: 'Sample: Takes a probabilistic sample of qubit state without full collapse. For statistical analysis.',
     width: 1,
     height: 1,
     drawer: (params) => <SamplingDrawer {...params} label="Sample" />
@@ -36,7 +36,7 @@ export const DetectGate: GateDefinition = {
     type: 'DETECT',
     label: 'Detect',
     symbol: 'Detect',
-    description: 'Detect the qubit state',
+    description: 'Detect: Simulates physical detector response. Models realistic measurement imperfections.',
     width: 1,
     height: 1,
     drawer: (params) => <SamplingDrawer {...params} label="Detect" />
@@ -46,7 +46,7 @@ export const AxisSampleGate: GateDefinition = {
     type: 'AXIS_SAMPLE',
     label: 'XYZ',
     symbol: 'XYZ',
-    description: '3-Axis Sampler',
+    description: '3-Axis Sample: Samples qubit in X, Y, and Z bases simultaneously. For tomographic reconstruction.',
     width: 1,
     height: 1,
     drawer: (params) => <SamplingDrawer {...params} label="XYZ" />

@@ -26,7 +26,7 @@ export const OneGate: GateDefinition = {
     type: 'ONE',
     label: '1',
     symbol: '1',
-    description: 'Identity (1)',
+    description: 'Identity Gate: Does nothing to the qubit. Useful as placeholder or for circuit clarity.',
     width: 1,
     height: 1,
     drawer: (params) => <ScalarDrawer {...params} label="1" />
@@ -36,7 +36,7 @@ export const MinusOneGate: GateDefinition = {
     type: 'MINUS_ONE',
     label: '-1',
     symbol: '-1',
-    description: 'Global Phase -1',
+    description: 'Global Phase (-1): Multiplies entire state by -1. Unobservable but matters in interference.',
     width: 1,
     height: 1,
     drawer: (params) => <ScalarDrawer {...params} label="-1" />
@@ -46,7 +46,7 @@ export const PhaseIGate: GateDefinition = {
     type: 'PHASE_I',
     label: 'i',
     symbol: 'i',
-    description: 'Multiply by i (Phase 90°)',
+    description: 'Global Phase (i): Rotates global phase by 90°. Multiplies state by imaginary unit i.',
     width: 1,
     height: 1,
     drawer: (params) => <ScalarDrawer {...params} label="i" />
@@ -56,7 +56,7 @@ export const PhaseMinusIGate: GateDefinition = {
     type: 'PHASE_MINUS_I',
     label: '-i',
     symbol: '-i',
-    description: 'Multiply by -i (Phase -90°)',
+    description: 'Global Phase (-i): Rotates global phase by -90°. Multiplies state by -i.',
     width: 1,
     height: 1,
     drawer: (params) => <ScalarDrawer {...params} label="-i" />
@@ -66,7 +66,7 @@ export const PhaseSqrtIGate: GateDefinition = {
     type: 'PHASE_SQRT_I',
     label: '√i',
     symbol: '√i',
-    description: 'Multiply by sqrt(i) (Phase 45°)',
+    description: 'Global Phase (√i): Rotates global phase by 45°. Two applications give phase i.',
     width: 1,
     height: 1,
     drawer: (params) => <ScalarDrawer {...params} label="√i" />
@@ -76,7 +76,7 @@ export const PhaseSqrtMinusIGate: GateDefinition = {
     type: 'PHASE_SQRT_MINUS_I',
     label: '√-i',
     symbol: '√-i',
-    description: 'Multiply by sqrt(-i) (Phase -45°)',
+    description: 'Global Phase (√-i): Rotates global phase by -45°. Two applications give phase -i.',
     width: 1,
     height: 1,
     drawer: (params) => <ScalarDrawer {...params} label="√-i" />

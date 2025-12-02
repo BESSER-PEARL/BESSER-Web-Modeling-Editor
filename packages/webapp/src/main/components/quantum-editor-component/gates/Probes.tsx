@@ -17,7 +17,7 @@ export const MeasureGate: Gate = {
     type: 'MEASURE',
     id: 'measure',
     label: 'Measure',
-    description: 'Measures the qubit in the Z basis.',
+    description: 'Measurement (Z-basis): Collapses qubit superposition to |0⟩ or |1⟩. Result is probabilistic based on qubit amplitudes.',
     isControl: false,
     drawer: MeasureDrawer
 };
@@ -35,7 +35,7 @@ export const MeasureXGate: Gate = {
     type: 'MEASURE_X',
     id: 'measure-x',
     label: 'Measure X',
-    description: 'Measures the qubit in the X basis.',
+    description: 'Measurement (X-basis): Collapses qubit to |+⟩ or |−⟩. Equivalent to H then Z-measurement then H.',
     isControl: false,
     drawer: MeasureXDrawer
 };
@@ -53,7 +53,7 @@ export const MeasureYGate: Gate = {
     type: 'MEASURE_Y',
     id: 'measure-y',
     label: 'Measure Y',
-    description: 'Measures the qubit in the Y basis.',
+    description: 'Measurement (Y-basis): Collapses qubit to |i⟩ or |−i⟩. Measures phase relative to Y-axis.',
     isControl: false,
     drawer: MeasureYDrawer
 };
@@ -63,7 +63,7 @@ export const ControlGate: Gate = {
     id: 'control',
     label: '•',
     symbol: '•',
-    description: 'Control',
+    description: 'Control: Conditions other gates on this qubit being |1⟩. Creates CNOT, Toffoli, and other controlled gates.',
     isControl: true
 };
 
@@ -72,7 +72,7 @@ export const AntiControlGate: Gate = {
     id: 'anti-control',
     label: '◦',
     symbol: '◦',
-    description: 'Anti-Control',
+    description: 'Anti-Control: Conditions other gates on this qubit being |0⟩. Opposite of regular control.',
     isControl: true
 };
 
@@ -88,7 +88,7 @@ export const PostSelectOffGate: Gate = {
     type: 'POST_SELECT_OFF',
     id: 'post-off',
     label: '|0⟩',
-    description: 'Post-select Off',
+    description: 'Post-Select |0⟩: Forces qubit to |0⟩. Discards branches where qubit would be |1⟩.',
     isControl: false,
     drawer: PostSelectOffDrawer
 };
@@ -105,7 +105,7 @@ export const PostSelectOnGate: Gate = {
     type: 'POST_SELECT_ON',
     id: 'post-on',
     label: '|1⟩',
-    description: 'Post-select On',
+    description: 'Post-Select |1⟩: Forces qubit to |1⟩. Discards branches where qubit would be |0⟩.',
     isControl: false,
     drawer: PostSelectOnDrawer
 };
@@ -122,7 +122,7 @@ export const PostSelectXOffGate: Gate = {
     type: 'POST_SELECT_X_OFF',
     id: 'post-x-off',
     label: '|+⟩',
-    description: 'Post-select |+⟩',
+    description: 'Post-Select |+⟩: Forces qubit to superposition (|0⟩+|1⟩)/√2.',
     isControl: false,
     drawer: PostSelectXOffDrawer
 };
@@ -139,7 +139,7 @@ export const PostSelectXOnGate: Gate = {
     type: 'POST_SELECT_X_ON',
     id: 'post-x-on',
     label: '|−⟩',
-    description: 'Post-select |−⟩',
+    description: 'Post-Select |−⟩: Forces qubit to superposition (|0⟩−|1⟩)/√2.',
     isControl: false,
     drawer: PostSelectXOnDrawer
 };
@@ -156,7 +156,7 @@ export const PostSelectYOffGate: Gate = {
     type: 'POST_SELECT_Y_OFF',
     id: 'post-y-off',
     label: '|i⟩',
-    description: 'Post-select |i⟩',
+    description: 'Post-Select |i⟩: Forces qubit to Y+ eigenstate (|0⟩+i|1⟩)/√2.',
     isControl: false,
     drawer: PostSelectYOffDrawer
 };
@@ -173,7 +173,7 @@ export const PostSelectYOnGate: Gate = {
     type: 'POST_SELECT_Y_ON',
     id: 'post-y-on',
     label: '|-i⟩',
-    description: 'Post-select |-i⟩',
+    description: 'Post-Select |−i⟩: Forces qubit to Y− eigenstate (|0⟩−i|1⟩)/√2.',
     isControl: false,
     drawer: PostSelectYOnDrawer
 };
@@ -195,9 +195,9 @@ const ControlXDrawer = ({ rect }: { rect: { x: number, y: number, width: number,
 export const ControlXGate: Gate = {
     type: 'CONTROL_X',
     id: 'control-x',
-    label: '⊕',
-    symbol: '⊕',
-    description: 'Control (X-Axis)',
+    label: '⨁',
+    symbol: '⨁',
+    description: 'X-Axis Control: Conditions on X-basis (|+⟩/|−⟩) instead of Z-basis (|0⟩/|1⟩).',
     isControl: true,
     noBorder: true,
     drawer: ControlXDrawer
@@ -224,7 +224,7 @@ export const ControlYGate: Gate = {
     id: 'control-y',
     label: '⊗',
     symbol: '⊗',
-    description: 'Control (Y-Axis)',
+    description: 'Y-Axis Control: Conditions on Y-basis (|i⟩/|−i⟩) instead of Z-basis.',
     isControl: true,
     noBorder: true,
     drawer: ControlYDrawer
