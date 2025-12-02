@@ -51,15 +51,21 @@ export function useCircuitDragDrop({
     // Calculate preview position when dragging
     const calculatePreviewPosition = useCallback(
         (clientX: number, clientY: number, gateType: GateType): PreviewPosition | null => {
-            if (!circuitGridRef.current) return null;
+            if (!circuitGridRef.current || !draggedGate) return null;
 
             const rect = circuitGridRef.current.getBoundingClientRect();
-            const x = clientX - rect.left - LEFT_MARGIN;
-            const y = clientY - rect.top - TOP_MARGIN;
+            
+            // Adjust for drag offset to get the center of the gate
+            // The gate center is at mouse position minus offset plus half gate size
+            const gateCenterX = clientX - draggedGate.offset.x + GATE_SIZE / 2;
+            const gateCenterY = clientY - draggedGate.offset.y + GATE_SIZE / 2;
+            
+            const x = gateCenterX - rect.left - LEFT_MARGIN;
+            const y = gateCenterY - rect.top - TOP_MARGIN;
 
-            // Calculate snapped grid position
-            const col = Math.floor((x + WIRE_SPACING / 2) / WIRE_SPACING);
-            const row = Math.floor((y + WIRE_SPACING / 2) / WIRE_SPACING);
+            // Calculate snapped grid position based on gate center
+            const col = Math.floor(x / WIRE_SPACING);
+            const row = Math.floor(y / WIRE_SPACING);
 
             // Get gate height
             const gateDefinition = GATES.find((g) => g.type === gateType);
@@ -279,12 +285,17 @@ export function useCircuitDragDrop({
                 let droppedOnGrid = false;
                 if (circuitGridRef.current) {
                     const rect = circuitGridRef.current.getBoundingClientRect();
-                    const x = e.clientX - rect.left - LEFT_MARGIN;
-                    const y = e.clientY - rect.top - TOP_MARGIN;
+                    
+                    // Use gate center for drop calculation (same as preview)
+                    const gateCenterX = e.clientX - draggedGate.offset.x + GATE_SIZE / 2;
+                    const gateCenterY = e.clientY - draggedGate.offset.y + GATE_SIZE / 2;
+                    
+                    const x = gateCenterX - rect.left - LEFT_MARGIN;
+                    const y = gateCenterY - rect.top - TOP_MARGIN;
 
                     if (x >= -GATE_SIZE && y >= -GATE_SIZE && x <= rect.width && y <= rect.height) {
-                        const col = Math.floor((x + WIRE_SPACING / 2) / WIRE_SPACING);
-                        const row = Math.floor((y + WIRE_SPACING / 2) / WIRE_SPACING);
+                        const col = Math.floor(x / WIRE_SPACING);
+                        const row = Math.floor(y / WIRE_SPACING);
 
                         const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
                         const gateHeight = gateDefinition?.height || 1;
