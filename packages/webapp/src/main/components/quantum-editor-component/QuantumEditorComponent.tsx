@@ -1,8 +1,9 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { GATES } from './constants';
 import { Circuit } from './types';
+import { trimCircuit } from './utils';
 import { GatePalette, CircuitGrid, Gate, TooltipProvider, EditorToolbar } from './components';
 import {
     useUndoRedo,
@@ -81,6 +82,58 @@ export function QuantumEditorComponent(): JSX.Element {
     // Keyboard shortcuts
     useKeyboardShortcuts(undo, redo, canUndo, canRedo);
 
+    // Selected gate state
+    const [selectedGate, setSelectedGate] = useState<{ col: number; row: number } | null>(null);
+
+    // Handle gate selection
+    const handleGateSelect = useCallback((col: number, row: number) => {
+        if (col === -1 && row === -1) {
+            setSelectedGate(null); // Deselect
+        } else {
+            setSelectedGate({ col, row });
+        }
+    }, []);
+
+    // Handle Delete/Backspace key to delete selected gate
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.key === 'Delete' || e.key === 'Backspace') && selectedGate) {
+                // Don't delete if focus is on an input field
+                if ((e.target as HTMLElement).tagName === 'INPUT' || 
+                    (e.target as HTMLElement).tagName === 'TEXTAREA') {
+                    return;
+                }
+                
+                e.preventDefault();
+                
+                // Delete the selected gate
+                setCircuit((prev) => {
+                    const newColumns = [...prev.columns];
+                    if (newColumns[selectedGate.col]) {
+                        const newGates = [...newColumns[selectedGate.col].gates];
+                        const gate = newGates[selectedGate.row];
+                        if (gate) {
+                            const gateHeight = gate.height || 1;
+                            // Remove the gate and any OCCUPIED cells
+                            for (let i = 0; i < gateHeight; i++) {
+                                if (selectedGate.row + i < newGates.length) {
+                                    newGates[selectedGate.row + i] = null;
+                                }
+                            }
+                            newColumns[selectedGate.col] = { ...newColumns[selectedGate.col], gates: newGates };
+                        }
+                    }
+                    return trimCircuit({ ...prev, columns: newColumns });
+                });
+                
+                setSelectedGate(null);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedGate, setCircuit]);
+
     // Manual save handler
     const handleManualSave = () => {
         console.log('[QuantumEditor] Manual save triggered');
@@ -131,6 +184,8 @@ export function QuantumEditorComponent(): JSX.Element {
                                 onDragStart={handleDragStart}
                                 onGateResize={handleGateResize}
                                 previewPosition={previewPosition}
+                                selectedGate={selectedGate}
+                                onGateSelect={handleGateSelect}
                             />
                         </CircuitContainer>
                     </Workspace>

@@ -48,11 +48,25 @@ const ControlWire = styled.div<{ $col: number, $startRow: number, $endRow: numbe
   z-index: 0;
 `;
 
-const GateWrapper = styled.div<{ $col: number, $row: number }>`
+const GateWrapper = styled.div<{ $col: number, $row: number, $isSelected?: boolean }>`
   position: absolute;
   left: ${props => LEFT_MARGIN + props.$col * WIRE_SPACING}px;
   top: ${props => TOP_MARGIN + props.$row * WIRE_SPACING}px;
-  z-index: 1;
+  z-index: ${props => props.$isSelected ? 2 : 1};
+  ${props => props.$isSelected && `
+    &::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+      border: 2px solid #2196F3;
+      border-radius: 4px;
+      pointer-events: none;
+      box-shadow: 0 0 8px rgba(33, 150, 243, 0.5);
+    }
+  `}
 `;
 
 const DropPreview = styled.div<{ $col: number, $row: number, $height: number, $isValid: boolean }>`
@@ -97,9 +111,11 @@ interface CircuitGridProps {
     onDragStart?: (gate: GateType, e: React.MouseEvent, originalPos?: { col: number, row: number }) => void;
     onGateResize?: (col: number, row: number, newHeight: number) => void;
     previewPosition?: DropPreviewPosition | null;
+    selectedGate?: { col: number, row: number } | null;
+    onGateSelect?: (col: number, row: number) => void;
 }
 
-export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, previewPosition }, ref) => {
+export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, previewPosition, selectedGate, onGateSelect }, ref) => {
     const wires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
     
     // Get gate height for preview
@@ -136,8 +152,13 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
         return controlWires;
     };
 
+    // Clear selection when clicking on empty grid area
+    const handleGridClick = () => {
+        onGateSelect?.(-1, -1); // -1, -1 means deselect
+    };
+
     return (
-        <GridContainer ref={ref}>
+        <GridContainer ref={ref} onClick={handleGridClick}>
             {/* Wire labels */}
             {wires.map(row => (
                 <WireLabel key={`label-${row}`} $row={row}>
@@ -168,8 +189,18 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                 <React.Fragment key={colIndex}>
                     {column.gates.map((gate, rowIndex) => {
                         if (!gate || gate.type === 'OCCUPIED') return null;
+                        const isSelected = selectedGate?.col === colIndex && selectedGate?.row === rowIndex;
                         return (
-                            <GateWrapper key={`${colIndex}-${rowIndex}`} $col={colIndex} $row={rowIndex}>
+                            <GateWrapper 
+                                key={`${colIndex}-${rowIndex}`} 
+                                $col={colIndex} 
+                                $row={rowIndex}
+                                $isSelected={isSelected}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onGateSelect?.(colIndex, rowIndex);
+                                }}
+                            >
                                 <Gate
                                     gate={gate}
                                     onMouseDown={(e) => onDragStart && onDragStart(gate.type, e, { col: colIndex, row: rowIndex })}
