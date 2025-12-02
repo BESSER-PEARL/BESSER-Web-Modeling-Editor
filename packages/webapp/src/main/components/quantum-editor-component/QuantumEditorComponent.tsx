@@ -1,630 +1,112 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
+import React, { useRef } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Circuit, GateType } from './types';
 import { GATES } from './constants';
-import { GatePalette } from './GatePalette';
-import { CircuitGrid } from './CircuitGrid';
-import { Gate } from './Gate';
-import { trimCircuit, downloadCircuitAsJSON, deserializeCircuit, serializeCircuit } from './utils';
-import { TooltipProvider } from './Tooltip';
+import { GatePalette, CircuitGrid, Gate, TooltipProvider, EditorToolbar } from './components';
 import {
-    GATE_SIZE,
-    WIRE_SPACING,
-    TOP_MARGIN,
-    LEFT_MARGIN,
-    COLORS
-} from './layout-constants';
-import { useUndoRedo } from './useUndoRedo';
-import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { QuantumCircuitData, isQuantumCircuitData } from '../../types/project';
+    useUndoRedo,
+    useCircuitPersistence,
+    useAutoSave,
+    useCircuitDragDrop,
+    useGateResize,
+    useCircuitIO,
+    useKeyboardShortcuts,
+} from './hooks';
+import {
+    EditorContainer,
+    Workspace,
+    PaletteContainer,
+    CircuitContainer,
+    DragGhost,
+} from './styles';
 
-const EditorContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  background-color: ${COLORS.BACKGROUND};
-  font-family: sans-serif;
-`;
-
-const Toolbar = styled.div`
-  padding: 10px;
-  background-color: ${COLORS.TOOLBOX_BACKGROUND};
-  border-bottom: 1px solid #aaa;
-  display: flex;
-  gap: 10px;
-`;
-
-const Workspace = styled.div`
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-`;
-
-const PaletteContainer = styled.div`
-  width: 250px;
-  background-color: ${COLORS.TOOLBOX_BACKGROUND};
-  border-right: 1px solid #aaa;
-  overflow-y: auto;
-  padding: 10px;
-`;
-
-const CircuitContainer = styled.div`
-  flex: 1;
-  overflow: auto;
-  padding: 20px;
-  position: relative;
-`;
-
-const SaveStatus = styled.div<{ $status: 'saved' | 'saving' | 'error' }>`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: ${props => {
-    switch (props.$status) {
-      case 'saved': return '#27ae60';
-      case 'saving': return '#3498db';
-      case 'error': return '#e74c3c';
-    }
-  }};
-`;
-
+/**
+ * Main Quantum Circuit Editor Component
+ * 
+ * This component provides a visual drag-and-drop interface for building
+ * quantum circuits. It uses several custom hooks to separate concerns:
+ * 
+ * - useCircuitPersistence: Handles loading/saving to project storage
+ * - useAutoSave: Manages debounced and periodic auto-saving
+ * - useCircuitDragDrop: Handles all drag and drop interactions
+ * - useGateResize: Handles resizable gate operations
+ * - useCircuitIO: Handles import/export to JSON files
+ * - useUndoRedo: Provides undo/redo functionality
+ */
 export function QuantumEditorComponent(): JSX.Element {
-    const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
-    const [isInitialized, setIsInitialized] = useState(false);
-    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    
-    // Load initial circuit from storage
-    const loadInitialCircuit = (): Circuit => {
-        try {
-            const project = ProjectStorageRepository.getCurrentProject();
-            const model = project?.diagrams?.QuantumCircuitDiagram?.model;
-            
-            if (isQuantumCircuitData(model) && model.cols.length > 0) {
-                console.log('[QuantumEditor] Loading circuit from project storage (Quirk format)');
-                // Deserialize from Quirk format to internal Circuit format
-                return deserializeCircuit(model);
-            }
-        } catch (error) {
-            console.error('[QuantumEditor] Error loading circuit:', error);
-        }
-        
-        // Return default empty circuit
-        return {
-            columns: [],
-            qubitCount: 5,
-        };
-    };
-    
+    const circuitGridRef = useRef<HTMLDivElement>(null);
+
+    // Persistence
+    const { saveStatus, saveCircuit, loadCircuit } = useCircuitPersistence();
+
+    // Circuit state with undo/redo
     const {
         state: circuit,
         setState: setCircuit,
         undo,
         redo,
         canUndo,
-        canRedo
-    } = useUndoRedo<Circuit>(loadInitialCircuit());
-    
-    // Save circuit to project storage
-    const saveCircuit = useCallback((circuitData: Circuit) => {
-        try {
-            setSaveStatus('saving');
-            const project = ProjectStorageRepository.getCurrentProject();
-            
-            if (!project) {
-                console.warn('[QuantumEditor] No active project found');
-                setSaveStatus('error');
-                return;
-            }
-            
-            // Serialize to Quirk format for compact storage
-            const quirkData = serializeCircuit(circuitData);
-            const quantumData: QuantumCircuitData = {
-                ...quirkData,
-                version: '1.0.0'
-            };
-            
-            // Check if there are actual changes before saving
-            const currentModel = project.diagrams.QuantumCircuitDiagram?.model;
-            const hasChanges = JSON.stringify(currentModel) !== JSON.stringify(quantumData);
-            
-            if (!hasChanges) {
-                console.log('[QuantumEditor] No changes detected, skipping save');
-                setSaveStatus('saved');
-                return;
-            }
-            
-            const updated = ProjectStorageRepository.updateDiagram(
-                project.id,
-                'QuantumCircuitDiagram',
-                {
-                    ...project.diagrams.QuantumCircuitDiagram,
-                    model: quantumData,
-                    lastUpdate: new Date().toISOString(),
-                }
-            );
-            
-            if (updated) {
-                console.log('[QuantumEditor] Circuit saved successfully (Quirk format):', quirkData);
-                setSaveStatus('saved');
-            } else {
-                console.error('[QuantumEditor] Failed to save circuit');
-                setSaveStatus('error');
-            }
-        } catch (error) {
-            console.error('[QuantumEditor] Error saving circuit:', error);
-            setSaveStatus('error');
-        }
-    }, []);
-    
-    // Debounced save on circuit changes
-    useEffect(() => {
-        if (!isInitialized) {
-            setIsInitialized(true);
-            return;
-        }
-        
-        // Clear previous timeout
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
-        
-        // Debounce save by 1 second
-        saveTimeoutRef.current = setTimeout(() => {
-            console.log('[QuantumEditor] Auto-saving circuit (debounced)...');
-            saveCircuit(circuit);
-        }, 1000);
-        
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-    }, [circuit, saveCircuit, isInitialized]);
-    
-    // Auto-save every 30 seconds
-    useEffect(() => {
-        autoSaveIntervalRef.current = setInterval(() => {
-            if (isInitialized) {
-                console.log('[QuantumEditor] Auto-saving circuit (periodic)...');
-                saveCircuit(circuit);
-            }
-        }, 30000);
-        
-        return () => {
-            if (autoSaveIntervalRef.current) {
-                clearInterval(autoSaveIntervalRef.current);
-            }
-        };
-    }, [circuit, saveCircuit, isInitialized]);
-    
-    // Save before unload
-    useEffect(() => {
-        const handleBeforeUnload = () => {
-            if (isInitialized) {
-                console.log('[QuantumEditor] Saving circuit before unload...');
-                saveCircuit(circuit);
-            }
-        };
-        
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            // Final save on unmount
-            if (isInitialized) {
-                saveCircuit(circuit);
-            }
-        };
-    }, [circuit, saveCircuit, isInitialized]);
+        canRedo,
+    } = useUndoRedo(loadCircuit());
 
-    const [draggedGate, setDraggedGate] = useState<{ gate: GateType, offset: { x: number, y: number }, originalPos?: { col: number, row: number } } | null>(null);
-    const [mousePos, setMousePos] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
-    const circuitGridRef = useRef<HTMLDivElement>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    // Auto-save
+    useAutoSave(circuit, saveCircuit);
 
-    const handleDragStart = (gate: GateType, e: React.MouseEvent, originalPos?: { col: number, row: number }) => {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        setDraggedGate({
-            gate,
-            offset: {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            },
-            originalPos
-        });
-        setMousePos({ x: e.clientX, y: e.clientY });
-        e.stopPropagation();
-    };
+    // Drag and drop
+    const {
+        draggedGate,
+        mousePos,
+        previewPosition,
+        handleDragStart,
+        handleMouseMove,
+        handleMouseUp,
+    } = useCircuitDragDrop({
+        circuit,
+        setCircuit,
+        circuitGridRef,
+    });
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (draggedGate) {
-            setMousePos({ x: e.clientX, y: e.clientY });
-        }
-    };
+    // Gate resize
+    const { handleGateResize } = useGateResize({ setCircuit });
 
-    const handleMouseUp = (e: React.MouseEvent) => {
-        if (draggedGate) {
-            let droppedOnGrid = false;
-            if (circuitGridRef.current) {
-                const rect = circuitGridRef.current.getBoundingClientRect();
-                const x = e.clientX - rect.left - LEFT_MARGIN;
-                const y = e.clientY - rect.top - TOP_MARGIN;
+    // Import/Export
+    const {
+        fileInputRef,
+        handleExportJSON,
+        handleImportJSON,
+        handleFileChange,
+    } = useCircuitIO(circuit, { setCircuit });
 
-                // Simple bounds check to see if we are roughly within the grid area
-                // We allow dropping a bit outside the exact wires, but generally in the container
-                if (x >= -GATE_SIZE && y >= -GATE_SIZE && x <= rect.width && y <= rect.height) {
-                    const col = Math.floor((x + WIRE_SPACING / 2) / WIRE_SPACING);
-                    const row = Math.floor((y + WIRE_SPACING / 2) / WIRE_SPACING);
+    // Keyboard shortcuts
+    useKeyboardShortcuts(undo, redo, canUndo, canRedo);
 
-                    // Allow dropping up to row 15 (16 wires total, 0-indexed)
-                    if (col >= 0 && row >= 0 && row < 16) {
-                        handleGateDrop(draggedGate.gate, col, row, draggedGate.originalPos);
-                        droppedOnGrid = true;
-                    }
-                }
-            }
-
-            if (!droppedOnGrid && draggedGate.originalPos) {
-                // Dropped outside grid and was an existing gate -> Delete
-                handleGateDelete(draggedGate.originalPos);
-            }
-
-            setDraggedGate(null);
-        }
-    };
-
-    const handleGateDelete = (pos: { col: number, row: number }) => {
-        setCircuit(prev => {
-            const newColumns = [...prev.columns];
-            if (newColumns[pos.col]) {
-                const newGates = [...newColumns[pos.col].gates];
-                newGates[pos.row] = null;
-                newColumns[pos.col] = { ...newColumns[pos.col], gates: newGates };
-            }
-            return trimCircuit({ ...prev, columns: newColumns });
-        });
-    };
-
-    const handleGateDrop = (gateType: GateType, col: number, row: number, originalPos?: { col: number, row: number }) => {
-        setCircuit(prev => {
-            // Find the full gate definition from GATES
-            const gateDefinition = GATES.find(g => g.type === gateType);
-            if (!gateDefinition) {
-                console.error('Gate definition not found for type:', gateType);
-                return prev;
-            }
-
-            const gateHeight = gateDefinition.height || 1;
-
-            // Calculate required wire count (ensure gate fits + expand up to 16)
-            const requiredWires = Math.max(prev.qubitCount, row + gateHeight);
-            const newWireCount = Math.min(16, Math.max(prev.qubitCount, requiredWires));
-
-            const newColumns = [...prev.columns];
-
-            // If moving, remove from old position first
-            if (originalPos) {
-                if (newColumns[originalPos.col]) {
-                    const oldGates = [...newColumns[originalPos.col].gates];
-                    // Clear all rows occupied by the gate
-                    const oldGate = oldGates[originalPos.row];
-                    const oldHeight = oldGate?.height || 1;
-                    for (let i = 0; i < oldHeight; i++) {
-                        oldGates[originalPos.row + i] = null;
-                    }
-                    newColumns[originalPos.col] = { ...newColumns[originalPos.col], gates: oldGates };
-                }
-            }
-
-            // Ensure columns exist up to the dropped position
-            while (newColumns.length <= col) {
-                newColumns.push({ gates: Array(newWireCount).fill(null) });
-            }
-
-            // Expand all existing columns to new wire count if needed
-            if (newWireCount > prev.qubitCount) {
-                for (let i = 0; i < newColumns.length; i++) {
-                    const currentGates = newColumns[i].gates;
-                    if (currentGates.length < newWireCount) {
-                        newColumns[i] = {
-                            gates: [
-                                ...currentGates,
-                                ...Array(newWireCount - currentGates.length).fill(null)
-                            ]
-                        };
-                    }
-                }
-            }
-
-            // Helper function to check if a position range is available
-            const isPositionAvailable = (targetCol: number, targetRow: number, height: number): boolean => {
-                if (targetCol >= newColumns.length) return true; // Column doesn't exist yet
-
-                for (let i = 0; i < height; i++) {
-                    if (targetRow + i >= newWireCount) return false; // Out of bounds
-                    if (newColumns[targetCol].gates[targetRow + i] !== null) {
-                        return false; // Position occupied
-                    }
-                }
-                return true;
-            };
-
-            // Calculate the last non-empty column index to implement clamping
-            // This prevents creating large gaps by dropping gates far to the right
-            let lastNonEmptyCol = -1;
-            for (let i = newColumns.length - 1; i >= 0; i--) {
-                if (!newColumns[i].gates.every(g => g === null)) {
-                    lastNonEmptyCol = i;
-                    break;
-                }
-            }
-
-            // Clamp the target column to be at most one past the last non-empty column
-            // We start at the requested 'col', but limit it.
-            let targetCol = Math.min(col, lastNonEmptyCol + 1);
-
-            // Ensure columns exist up to the target position
-            while (newColumns.length <= targetCol) {
-                newColumns.push({ gates: Array(newWireCount).fill(null) });
-            }
-
-            // Find the first available column for this gate starting from the clamped column
-            // If the position is occupied, we push to the right (standard collision handling).
-            while (!isPositionAvailable(targetCol, row, gateHeight)) {
-                targetCol++; // Push to next column
-                // Ensure the column exists
-                while (newColumns.length <= targetCol) {
-                    newColumns.push({ gates: Array(newWireCount).fill(null) });
-                }
-            }
-
-            // Place the gate with full definition
-            const newGates = [...newColumns[targetCol].gates];
-            const newGate = {
-                ...gateDefinition,
-                id: Date.now().toString() // Unique ID for React keys
-            };
-
-            // For multi-wire gates, only place the gate at the top row
-            // The Gate component will handle rendering across multiple rows
-            newGates[row] = newGate;
-
-            // Mark occupied rows as null (they're covered by the gate above)
-            for (let i = 1; i < gateHeight; i++) {
-                if (row + i < newWireCount) {
-                    newGates[row + i] = {
-                        type: 'OCCUPIED',
-                        id: `${newGate.id}_occupied_${i}`,
-                        label: '',
-                        height: 1,
-                        width: 1
-                    };
-                }
-            }
-
-            newColumns[targetCol] = { ...newColumns[targetCol], gates: newGates };
-
-            // Apply trim (remove leading/trailing empty columns only)
-            const updatedCircuit = { qubitCount: newWireCount, columns: newColumns };
-            return trimCircuit(updatedCircuit);
-        });
-    };
-
-    const handleGateResize = (col: number, row: number, newHeight: number) => {
-        setCircuit(prev => {
-            const newColumns = [...prev.columns];
-            const gate = newColumns[col]?.gates[row];
-
-            if (!gate || !gate.canResize) return prev;
-
-            const oldHeight = gate.height || 1;
-            const minHeight = gate.minHeight || 2;
-            const maxHeight = gate.maxHeight || 16;
-
-            // Clamp height to valid range
-            const clampedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-
-            if (clampedHeight === oldHeight) return prev;
-
-            // Ensure we have enough wires
-            const requiredWires = row + clampedHeight;
-            const newWireCount = Math.min(16, Math.max(prev.qubitCount, requiredWires));
-
-            // Expand all columns if needed
-            const expandedColumns = newColumns.map(col => ({
-                gates: [
-                    ...col.gates,
-                    ...Array(Math.max(0, newWireCount - col.gates.length)).fill(null)
-                ]
-            }));
-
-            // Update the gate with new height
-            const newGates = [...expandedColumns[col].gates];
-
-            // Clear old occupied rows
-            for (let i = 0; i < oldHeight; i++) {
-                newGates[row + i] = null;
-            }
-
-            // Place resized gate
-            newGates[row] = { ...gate, height: clampedHeight };
-
-            // Mark new occupied rows as null
-            for (let i = 1; i < clampedHeight; i++) {
-                if (row + i < newGates.length) {
-                    newGates[row + i] = {
-                        type: 'OCCUPIED',
-                        id: `${gate.id}_occupied_${i}`,
-                        label: '',
-                        height: 1,
-                        width: 1
-                    };
-                }
-            }
-
-            expandedColumns[col] = { gates: newGates };
-
-            return {
-                ...prev,
-                qubitCount: newWireCount,
-                columns: expandedColumns
-            };
-        });
-    };
-
-    const handleExportJSON = () => {
-        downloadCircuitAsJSON(circuit);
-    };
-    
+    // Manual save handler
     const handleManualSave = () => {
         console.log('[QuantumEditor] Manual save triggered');
         saveCircuit(circuit);
     };
 
-    const handleImportJSON = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-        }
-    };
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const content = e.target?.result as string;
-                const importedData = JSON.parse(content);
-
-                const newCircuit = deserializeCircuit(importedData);
-                setCircuit(trimCircuit(newCircuit));
-            } catch (error) {
-                console.error("Error parsing JSON:", error);
-                alert("Failed to parse JSON file or invalid format.");
-            }
-        };
-        reader.readAsText(file);
-        // Reset input
-        event.target.value = '';
-    };
-
-    // Add keyboard shortcuts for Undo/Redo
-    React.useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-                if (e.shiftKey) {
-                    if (canRedo) redo();
-                } else {
-                    if (canUndo) undo();
-                }
-                e.preventDefault();
-            } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
-                if (canRedo) redo();
-                e.preventDefault();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [undo, redo, canUndo, canRedo]);
-
     return (
         <TooltipProvider>
             <DndProvider backend={HTML5Backend}>
                 <EditorContainer onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
-                    <Toolbar>
-                        <h3>Quantum Editor</h3>
-                        <SaveStatus $status={saveStatus}>
-                            {saveStatus === 'saved' && '✓ Saved'}
-                            {saveStatus === 'saving' && '⟳ Saving...'}
-                            {saveStatus === 'error' && '⚠ Error'}
-                        </SaveStatus>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <button
-                                onClick={undo}
-                                disabled={!canUndo}
-                                style={{
-                                    padding: '5px 10px',
-                                    cursor: canUndo ? 'pointer' : 'not-allowed',
-                                    opacity: canUndo ? 1 : 0.5
-                                }}
-                            >
-                                Undo
-                            </button>
-                            <button
-                                onClick={redo}
-                                disabled={!canRedo}
-                                style={{
-                                    padding: '5px 10px',
-                                    cursor: canRedo ? 'pointer' : 'not-allowed',
-                                    opacity: canRedo ? 1 : 0.5
-                                }}
-                            >
-                                Redo
-                            </button>
-                        </div>
-                        <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px' }}>
-                            <button
-                                onClick={handleManualSave}
-                                style={{
-                                    padding: '8px 16px',
-                                    backgroundColor: saveStatus === 'saved' ? '#28a745' : '#ffc107',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                                title="Manually save circuit to project"
-                            >
-                                💾 Save Now
-                            </button>
-                            <button
-                                onClick={handleExportJSON}
-                                style={{
-                                    padding: '8px 16px',
-                                    backgroundColor: '#4CAF50',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                Export JSON
-                            </button>
-                            <button
-                                onClick={handleImportJSON}
-                                style={{
-                                    padding: '8px 16px',
-                                    backgroundColor: '#2196F3',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                Import JSON
-                            </button>
-                            <input
-                                type="file"
-                                accept=".json"
-                                ref={fileInputRef}
-                                style={{ display: 'none' }}
-                                onChange={handleFileChange}
-                            />
-                        </div>
-                    </Toolbar>
+                    {/* <EditorToolbar
+                        saveStatus={saveStatus}
+                        canUndo={canUndo}
+                        canRedo={canRedo}
+                        onUndo={undo}
+                        onRedo={redo}
+                        onSave={handleManualSave}
+                        onExport={handleExportJSON}
+                        onImport={handleImportJSON}
+                    />
+                    <input
+                        type="file"
+                        accept=".json"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        onChange={handleFileChange}
+                    /> */}
                     <Workspace>
                         <PaletteContainer>
                             <GatePalette onDragStart={handleDragStart} />
@@ -633,23 +115,27 @@ export function QuantumEditorComponent(): JSX.Element {
                             <CircuitGrid
                                 ref={circuitGridRef}
                                 circuit={circuit}
-                                onGateDrop={() => { }} // Handled by global mouse up
-                                draggedGate={draggedGate ? { ...draggedGate, x: mousePos.x, y: mousePos.y } : null}
+                                onGateDrop={() => {}} // Handled by global mouse up
+                                draggedGate={
+                                    draggedGate
+                                        ? { ...draggedGate, x: mousePos.x, y: mousePos.y }
+                                        : null
+                                }
                                 onDragStart={handleDragStart}
                                 onGateResize={handleGateResize}
+                                previewPosition={previewPosition}
                             />
                         </CircuitContainer>
                     </Workspace>
                     {draggedGate && (
-                        <div style={{
-                            position: 'fixed',
-                            left: mousePos.x - draggedGate.offset.x,
-                            top: mousePos.y - draggedGate.offset.y,
-                            pointerEvents: 'none',
-                            zIndex: 1000
-                        }}>
-                            <Gate gate={GATES.find(g => g.type === draggedGate.gate)!} isDragging />
-                        </div>
+                        <DragGhost
+                            $x={mousePos.x}
+                            $y={mousePos.y}
+                            $offsetX={draggedGate.offset.x}
+                            $offsetY={draggedGate.offset.y}
+                        >
+                            <Gate gate={GATES.find((g) => g.type === draggedGate.gate)!} isDragging />
+                        </DragGhost>
                     )}
                 </EditorContainer>
             </DndProvider>

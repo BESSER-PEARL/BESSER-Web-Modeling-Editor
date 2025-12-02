@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { COLORS } from './layout-constants';
+import { COLORS } from '../layout-constants';
 
 interface TooltipData {
     visible: boolean;

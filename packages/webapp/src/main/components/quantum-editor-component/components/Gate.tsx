@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Gate as GateType } from './types';
-import { GATE_SIZE, WIRE_SPACING, COLORS } from './layout-constants';
+import { Gate as GateType } from '../types';
+import { GATE_SIZE, WIRE_SPACING, COLORS } from '../layout-constants';
 import { useTooltip } from './Tooltip';
 
 const GateContainer = styled.div<{ $width: number, $height: number, $isControl: boolean, $backgroundColor?: string, $noBorder?: boolean }>`

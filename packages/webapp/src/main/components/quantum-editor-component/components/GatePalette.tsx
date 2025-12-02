@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Gate } from './Gate';
-import { TOOLBOX_GROUPS, GATES } from './constants';
-import { GateType } from './types';
+import { TOOLBOX_GROUPS, GATES } from '../constants';
+import { GateType } from '../types';
 
 const GroupContainer = styled.div`
   margin-bottom: 20px;
