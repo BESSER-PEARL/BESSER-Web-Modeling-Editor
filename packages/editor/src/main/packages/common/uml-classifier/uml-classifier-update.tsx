@@ -167,26 +167,31 @@ class ClassifierUpdate extends Component<Props, State> {
               ? this.props.translate('popup.literals') 
               : this.props.translate('popup.attributes')}
           </Header>
-          {attributes.map((attribute, index) => (
-            <UmlAttributeUpdate
-              id={attribute.id}
-              key={attribute.id}
-              value={attribute.name}
-              onChange={this.props.update}
-              onSubmitKeyUp={() =>
-                index === attributes.length - 1
-                  ? this.newAttributeField.current?.focus()
-                  : this.setState({
-                      fieldToFocus: attributeRefs[index + 1],
-                    })
-              }
-              onDelete={this.delete}
-              onRefChange={(ref) => (attributeRefs[index] = ref)}
-              element={attribute}
-              isEnumeration={isEnumeration}
-              availableEnumerations={availableEnumerations}
-            />
-          ))}
+          {attributes.map((attribute, index) => {
+            const attrMember = attribute as UMLClassifierMember;
+            return (
+              <UmlAttributeUpdate
+                id={attribute.id}
+                key={attribute.id}
+                value={attribute.name}
+                visibility={attrMember.visibility}
+                attributeType={attrMember.attributeType}
+                onChange={this.props.update}
+                onSubmitKeyUp={() =>
+                  index === attributes.length - 1
+                    ? this.newAttributeField.current?.focus()
+                    : this.setState({
+                        fieldToFocus: attributeRefs[index + 1],
+                      })
+                }
+                onDelete={this.delete}
+                onRefChange={(ref) => (attributeRefs[index] = ref)}
+                element={attribute}
+                isEnumeration={isEnumeration}
+                availableEnumerations={availableEnumerations}
+              />
+            );
+          })}
           <Textfield
             ref={this.newAttributeField}
             outline
@@ -296,7 +301,18 @@ class ClassifierUpdate extends Component<Props, State> {
       return;
     }
     const member = new Clazz();
-    member.name = value;
+    
+    // For attributes, parse the input value and set separate properties
+    if (Clazz === UMLClassAttribute) {
+      const parsed = UMLClassifierMember.parseNameFormat(value);
+      // Use the parsed name (without visibility symbol and type)
+      member.name = parsed.name;
+      (member as UMLClassifierMember).visibility = parsed.visibility;
+      (member as UMLClassifierMember).attributeType = parsed.attributeType;
+    } else {
+      member.name = value;
+    }
+    
     create(member, element.id);
   };
 

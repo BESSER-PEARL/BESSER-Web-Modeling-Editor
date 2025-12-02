@@ -92,8 +92,12 @@ export type UMLClassifier = UMLElement & {
   methods: string[];
 };
 
+export type Visibility = 'public' | 'private' | 'protected' | 'package';
+
 export type UMLClassifierMember = UMLElement & {
   code?: string;
+  visibility?: Visibility;
+  attributeType?: string;
 };
 
 export interface IUMLObjectName extends UMLClassifier {
