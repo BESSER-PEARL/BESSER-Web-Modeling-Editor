@@ -86,3 +86,38 @@ export const FieldRow = styled.div`
     font-size: 0.9em;
   }
 `;
+
+export const MultiplicityRow = styled.div`
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: ${(props) => props.theme.color.background};
+  color: ${(props) => props.theme.color.primaryContrast};
+  
+  label {
+    font-weight: bold;
+    font-size: 0.9em;
+  }
+`;
+
+export const MultiplicityInputGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  
+  input {
+    width: 40px;
+    text-align: center;
+    padding: 4px 6px;
+    border: 1px solid ${(props) => props.theme.color.gray};
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  
+  span {
+    color: ${(props) => props.theme.color.primaryContrast};
+    font-size: 12px;
+  }
+`;

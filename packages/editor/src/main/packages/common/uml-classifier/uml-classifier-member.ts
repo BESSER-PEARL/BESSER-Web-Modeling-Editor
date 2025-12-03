@@ -39,6 +39,24 @@ const normalizeType = (type: string): string => {
 // Visibility type
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
+// Default multiplicity (1..1)
+export const DEFAULT_MULTIPLICITY: Apollon.Multiplicity = { min: 1, max: 1 };
+
+// Check if multiplicity is the default (1..1)
+export const isDefaultMultiplicity = (mult: Apollon.Multiplicity | undefined): boolean => {
+  if (!mult) return true;
+  return (mult.min === 1 || mult.min === '1') && (mult.max === 1 || mult.max === '1');
+};
+
+// Format multiplicity for display
+export const formatMultiplicity = (mult: Apollon.Multiplicity | undefined): string => {
+  if (!mult || isDefaultMultiplicity(mult)) return '';
+  const minStr = String(mult.min);
+  const maxStr = mult.max === '*' || mult.max === -1 || mult.max === 9999 ? '*' : String(mult.max);
+  if (minStr === maxStr) return `[${minStr}]`;
+  return `[${minStr}..${maxStr}]`;
+};
+
 // Visibility symbol mapping
 const VISIBILITY_SYMBOLS: Record<Visibility, string> = {
   'public': '+',
@@ -58,6 +76,7 @@ export interface IUMLClassifierMember extends IUMLElement {
   code?: string;
   visibility?: Visibility;
   attributeType?: string;
+  multiplicity?: Apollon.Multiplicity;
 }
 
 export abstract class UMLClassifierMember extends UMLElement implements IUMLClassifierMember {
@@ -76,6 +95,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   code: string = '';
   visibility: Visibility = 'public';
   attributeType: string = 'str';
+  multiplicity: Apollon.Multiplicity = { ...DEFAULT_MULTIPLICITY };
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
     super(values);
@@ -83,7 +103,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   }
 
   /**
-   * Get the display name for rendering (combines visibility symbol, name, and type)
+   * Get the display name for rendering (combines visibility symbol, name, type, and multiplicity)
    */
   get displayName(): string {
     const visSymbol = VISIBILITY_SYMBOLS[this.visibility] || '+';
@@ -92,7 +112,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       if (/^[+\-#~]\s/.test(this.name)) {
         return this.name;
       }
-      return `${visSymbol} ${this.name}: ${this.attributeType}`;
+      const multStr = formatMultiplicity(this.multiplicity);
+      return `${visSymbol} ${this.name}: ${this.attributeType}${multStr}`;
     }
     // Fallback to name for backward compatibility or simple display
     return this.name;
@@ -138,12 +159,20 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
 
   /** Serializes an `UMLClassifierMember` to an `Apollon.UMLModelElement` */
   serialize(children?: UMLElement[]): Apollon.UMLModelElement {
-    return {
-      ...super.serialize(children),
+    const base = super.serialize(children);
+    const result = {
+      ...base,
       code: this.code,
       visibility: this.visibility,
       attributeType: this.attributeType,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
+    
+    // Only include multiplicity if it's not the default (1..1)
+    if (!isDefaultMultiplicity(this.multiplicity)) {
+      result.multiplicity = this.multiplicity;
+    }
+    
+    return result;
   }
 
   /** Deserializes an `Apollon.UMLModelElement` to an `UMLClassifierMember` */
@@ -164,6 +193,16 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.attributeType = parsed.attributeType;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
+    }
+    
+    // Deserialize multiplicity if present, otherwise use default
+    if (memberValues.multiplicity) {
+      this.multiplicity = {
+        min: memberValues.multiplicity.min ?? 1,
+        max: memberValues.multiplicity.max ?? 1
+      };
+    } else {
+      this.multiplicity = { ...DEFAULT_MULTIPLICITY };
     }
   }
 

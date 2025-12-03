@@ -94,10 +94,16 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
+export type Multiplicity = {
+  min: number | string;
+  max: number | string;
+};
+
 export type UMLClassifierMember = UMLElement & {
   code?: string;
   visibility?: Visibility;
   attributeType?: string;
+  multiplicity?: Multiplicity;
 };
 
 export interface IUMLObjectName extends UMLClassifier {

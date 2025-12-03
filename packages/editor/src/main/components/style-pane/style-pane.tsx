@@ -10,19 +10,26 @@ import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
 import { Textfield } from '../controls/textfield/textfield';
 import { ColorSelector } from './color-selector';
-import { Color, Container, Divider, Row, FieldRow } from './style-pane-styles';
+import { Color, Container, Divider, Row, FieldRow, MultiplicityRow, MultiplicityInputGroup } from './style-pane-styles';
+
+type Multiplicity = {
+  min: number | string;
+  max: number | string;
+};
 
 type OwnProps = {
   open: boolean;
   element: IUMLElement;
   onColorChange: (id: string, values: { fillColor?: string; textColor?: string; strokeColor?: string }) => void;
-  onFieldChange?: (id: string, values: { description?: string; uri?: string; icon?: string }) => void;
+  onFieldChange?: (id: string, values: { description?: string; uri?: string; icon?: string; multiplicity?: Multiplicity }) => void;
   fillColor?: boolean;
   lineColor?: boolean;
   textColor?: boolean;
   showDescription?: boolean;
   showUri?: boolean;
   showIcon?: boolean;
+  showMultiplicity?: boolean;
+  multiplicity?: Multiplicity;
 };
 
 type StateProps = {};
@@ -97,6 +104,86 @@ class StylePaneComponent extends Component<Props, State> {
     }
   };
 
+  handleMultiplicityMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { element, onFieldChange, multiplicity } = this.props;
+    if (onFieldChange) {
+      const minStr = e.target.value.trim();
+      // Allow empty string while typing, will default to 1 on blur if empty
+      let newMin: number | string = minStr;
+      if (minStr === '*') {
+        newMin = '*';
+      } else if (minStr !== '') {
+        newMin = parseInt(minStr, 10) || 0;
+      }
+      onFieldChange(element.id, { 
+        multiplicity: { 
+          min: newMin === '' ? '' : newMin, 
+          max: multiplicity?.max ?? 1 
+        } 
+      });
+    }
+  };
+
+  handleMultiplicityMinBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { element, onFieldChange, multiplicity } = this.props;
+    if (onFieldChange) {
+      const minStr = e.target.value.trim();
+      // Default to 1 if empty on blur
+      let newMin: number | string = 1;
+      if (minStr === '*') {
+        newMin = '*';
+      } else if (minStr !== '') {
+        newMin = parseInt(minStr, 10) || 0;
+      }
+      onFieldChange(element.id, { 
+        multiplicity: { 
+          min: newMin, 
+          max: multiplicity?.max ?? 1 
+        } 
+      });
+    }
+  };
+
+  handleMultiplicityMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { element, onFieldChange, multiplicity } = this.props;
+    if (onFieldChange) {
+      const maxStr = e.target.value.trim();
+      // Allow empty string while typing, will default to 1 on blur if empty
+      let newMax: number | string = maxStr;
+      if (maxStr === '*') {
+        newMax = '*';
+      } else if (maxStr !== '') {
+        newMax = parseInt(maxStr, 10) || 1;
+      }
+      onFieldChange(element.id, { 
+        multiplicity: { 
+          min: multiplicity?.min ?? 1, 
+          max: newMax === '' ? '' : newMax 
+        } 
+      });
+    }
+  };
+
+  handleMultiplicityMaxBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { element, onFieldChange, multiplicity } = this.props;
+    if (onFieldChange) {
+      const maxStr = e.target.value.trim();
+      // Default to 1 if empty on blur
+      let newMax: number | string = 1;
+      if (maxStr === '*') {
+        newMax = '*';
+      } else if (maxStr !== '') {
+        newMax = parseInt(maxStr, 10) || 1;
+      }
+      onFieldChange(element.id, { 
+        multiplicity: { 
+          min: multiplicity?.min ?? 1, 
+          max: newMax 
+        } 
+      });
+    }
+  };
+
   toggleFillSelect = () => {
     this.setState((prevState) => ({
       fillSelectOpen: !prevState.fillSelectOpen,
@@ -123,7 +210,7 @@ class StylePaneComponent extends Component<Props, State> {
 
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, showMultiplicity, multiplicity } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
@@ -169,6 +256,31 @@ class StylePaneComponent extends Component<Props, State> {
                 size="sm"
               />
             </FieldRow>
+            <Divider />
+          </>
+        )}
+        {showMultiplicity && (
+          <>
+            <MultiplicityRow>
+              <label>Multiplicity</label>
+              <MultiplicityInputGroup>
+                <input
+                  type="text"
+                  value={multiplicity?.min === '' ? '' : String(multiplicity?.min ?? 1)}
+                  onChange={this.handleMultiplicityMinChange}
+                  onBlur={this.handleMultiplicityMinBlur}
+                  placeholder="1"
+                />
+                <span>..</span>
+                <input
+                  type="text"
+                  value={multiplicity?.max === '' ? '' : String(multiplicity?.max ?? 1)}
+                  onChange={this.handleMultiplicityMaxChange}
+                  onBlur={this.handleMultiplicityMaxBlur}
+                  placeholder="1"
+                />
+              </MultiplicityInputGroup>
+            </MultiplicityRow>
             <Divider />
           </>
         )}

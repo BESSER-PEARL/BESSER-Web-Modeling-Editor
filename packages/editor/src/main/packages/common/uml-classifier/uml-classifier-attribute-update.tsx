@@ -7,7 +7,8 @@ import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
-import { Visibility } from './uml-classifier-member';
+import { Visibility, DEFAULT_MULTIPLICITY } from './uml-classifier-member';
+import { Multiplicity } from '../../../typings';
 
 const Flex = styled.div`
   display: flex;
@@ -118,6 +119,7 @@ type AttributeValues = {
   name?: string;
   visibility?: Visibility;
   attributeType?: string;
+  multiplicity?: Multiplicity;
   fillColor?: string;
   textColor?: string;
   lineColor?: string;
@@ -129,6 +131,7 @@ type Props = {
   value: string;
   visibility?: Visibility;
   attributeType?: string;
+  multiplicity?: Multiplicity;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
@@ -176,6 +179,7 @@ const UmlAttributeUpdate = ({
   value,
   visibility: propVisibility,
   attributeType: propAttributeType,
+  multiplicity: propMultiplicity,
   onChange,
   onSubmitKeyUp,
   onDelete,
@@ -224,18 +228,21 @@ const UmlAttributeUpdate = ({
   let visibility: Visibility;
   let attrName: string;
   let attributeType: string;
+  let multiplicity: Multiplicity;
 
   if (propVisibility !== undefined && propAttributeType !== undefined) {
     // New format - use separate properties, value is the actual name
     visibility = propVisibility;
     attrName = value;
     attributeType = propAttributeType;
+    multiplicity = propMultiplicity || DEFAULT_MULTIPLICITY;
   } else {
     // Legacy format - parse from value
     const parsed = parseLegacyName(value);
     visibility = parsed.visibility;
     attrName = parsed.name;
     attributeType = parsed.attributeType;
+    multiplicity = DEFAULT_MULTIPLICITY;
   }
 
   // Get available enumerations from the model
@@ -247,7 +254,8 @@ const UmlAttributeUpdate = ({
     onChange(id, { 
       name: attrName,
       visibility: vis,
-      attributeType
+      attributeType,
+      multiplicity
     });
   };
 
@@ -256,7 +264,8 @@ const UmlAttributeUpdate = ({
     onChange(id, { 
       name: nameStr,
       visibility,
-      attributeType
+      attributeType,
+      multiplicity
     });
   };
 
@@ -265,8 +274,20 @@ const UmlAttributeUpdate = ({
     onChange(id, { 
       name: attrName,
       visibility,
-      attributeType: typeStr
+      attributeType: typeStr,
+      multiplicity
     });
+  };
+
+  const handleMultiplicityChange = (elementId: string, values: { multiplicity?: Multiplicity }) => {
+    if (values.multiplicity) {
+      onChange(id, { 
+        name: attrName,
+        visibility,
+        attributeType,
+        multiplicity: values.multiplicity
+      });
+    }
   };
 
   const handleDelete = () => {
@@ -302,9 +323,18 @@ const UmlAttributeUpdate = ({
           <TrashIcon />
         </Button>
       </ControlsRow>
-      <StylePane open={colorOpen} element={element} onColorChange={onChange} fillColor textColor />
+      <StylePane 
+        open={colorOpen} 
+        element={element} 
+        onColorChange={onChange} 
+        onFieldChange={handleMultiplicityChange}
+        fillColor 
+        textColor
+        showMultiplicity
+        multiplicity={multiplicity}
+      />
     </AttributeRow>
   );
-};;
+};
 
 export default UmlAttributeUpdate;

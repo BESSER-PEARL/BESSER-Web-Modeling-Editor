@@ -132,7 +132,7 @@ export class ClassDiagramConverter implements DiagramConverter {
       const visibility = attr.visibility || 'public';
       const normalizedType = normalizeType(attr.type);
       
-      attributes[attrId] = {
+      const attrElement: Record<string, any> = {
         id: attrId,
         name: attr.name,  // Just the attribute name
         type: "ClassAttribute",
@@ -143,6 +143,16 @@ export class ClassDiagramConverter implements DiagramConverter {
         attributeType: normalizedType,
       };
       
+      // Add multiplicity if specified and not default (1..1)
+      if (attr.multiplicity) {
+        const min = attr.multiplicity.min ?? 1;
+        const max = attr.multiplicity.max ?? 1;
+        if (min !== 1 || max !== 1) {
+          attrElement.multiplicity = { min, max };
+        }
+      }
+      
+      attributes[attrId] = attrElement;
       currentY += 25;
     });
     
