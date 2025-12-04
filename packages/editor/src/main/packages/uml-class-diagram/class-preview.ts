@@ -37,6 +37,8 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   const umlClass1Attribute = new UMLClassAttribute({
     name: translate('sidebar.classAttribute'),
     owner: umlClass1.id,
+    visibility: 'public',
+    attributeType: 'str',
     bounds: {
       x: 0,
       y: 0,
@@ -58,6 +60,8 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   const umlClassAttribute = new UMLClassAttribute({
     name: translate('sidebar.classAttribute'),
     owner: umlClass.id,
+    visibility: 'public',
+    attributeType: 'str',
     bounds: {
       x: 0,
       y: 0,
