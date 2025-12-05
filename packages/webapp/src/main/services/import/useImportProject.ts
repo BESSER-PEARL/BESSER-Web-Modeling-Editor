@@ -1,7 +1,8 @@
-import { BesserProject } from '../../types/project';
+import { BesserProject, createEmptyDiagram, SupportedDiagramType } from '../../types/project';
 import { Diagram } from '../diagram/diagramSlice';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { BACKEND_URL } from '../../constant';
+import { UMLDiagramType } from '@besser/wme';
 
 // Interface for V2 JSON export format
 interface V2ExportData {
@@ -24,7 +25,7 @@ async function loadJSZip() {
   return JSZip;
 }
 
-// Validate V2 export format
+// Validate V2 export format (now allows partial diagrams)
 function validateV2ExportData(data: any): data is V2ExportData {
   return (
     data &&
@@ -35,6 +36,44 @@ function validateV2ExportData(data: any): data is V2ExportData {
     typeof data.project.diagrams === 'object' &&
     data.project.diagrams !== null
   );
+}
+
+// Fill missing diagrams with empty ones
+function fillMissingDiagrams(project: BesserProject): BesserProject {
+  const allDiagramTypes: SupportedDiagramType[] = [
+    'ClassDiagram',
+    'ObjectDiagram',
+    'StateMachineDiagram',
+    'AgentDiagram',
+    'GUINoCodeDiagram'
+  ];
+  
+  const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
+    ClassDiagram: UMLDiagramType.ClassDiagram,
+    ObjectDiagram: UMLDiagramType.ObjectDiagram,
+    StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
+    AgentDiagram: UMLDiagramType.AgentDiagram,
+    GUINoCodeDiagram: null,
+  };
+  
+  const diagramTitles: Record<SupportedDiagramType, string> = {
+    ClassDiagram: 'Class Diagram',
+    ObjectDiagram: 'Object Diagram',
+    StateMachineDiagram: 'State Machine Diagram',
+    AgentDiagram: 'Agent Diagram',
+    GUINoCodeDiagram: 'GUI Diagram',
+  };
+  
+  // Ensure all diagram types exist
+  allDiagramTypes.forEach(diagramType => {
+    if (!project.diagrams[diagramType]) {
+      const umlType = diagramTypeToUMLType[diagramType];
+      const title = diagramTitles[diagramType];
+      project.diagrams[diagramType] = createEmptyDiagram(title, umlType);
+    }
+  });
+  
+  return project;
 }
 
 // Validate legacy import data structure (V1 format)
@@ -65,30 +104,42 @@ function isGUIModelEmpty(guiModel: any): boolean {
   if (!guiModel) return true;
   
   // Check if it's a GrapesJS model structure
-  if (guiModel.pages) {
+  if (guiModel.pages !== undefined) {
     // Empty if no pages
-    if (!guiModel.pages || guiModel.pages.length === 0) {
+    if (!guiModel.pages) {
       return true;
     }
     
-    // Check if all pages are empty (have no frames or only empty frames)
-    for (const page of guiModel.pages) {
-      if (!page.frames || page.frames.length === 0) {
-        continue; // This page is empty, check next
+    // Handle pages as array (expected format)
+    if (Array.isArray(guiModel.pages)) {
+      if (guiModel.pages.length === 0) {
+        return true;
       }
       
-      // Check if any frame has components
-      for (const frame of page.frames) {
-        if (frame.component && 
-            frame.component.components && 
-            frame.component.components.length > 0) {
-          return false; // Found a frame with components, not empty
+      // Check if all pages are empty (have no frames or only empty frames)
+      for (const page of guiModel.pages) {
+        if (!page.frames || page.frames.length === 0) {
+          continue; // This page is empty, check next
+        }
+        
+        // Check if any frame has components
+        for (const frame of page.frames) {
+          if (frame.component && 
+              frame.component.components && 
+              frame.component.components.length > 0) {
+            return false; // Found a frame with components, not empty
+          }
         }
       }
+      
+      // All pages checked and none have components
+      return true;
     }
     
-    // All pages checked and none have components
-    return true;
+    // Handle pages as object (legacy/invalid format) - check if empty object
+    if (typeof guiModel.pages === 'object') {
+      return Object.keys(guiModel.pages).length === 0;
+    }
   }
   
   return false;
@@ -138,17 +189,17 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
   const jsonData = await response.json();
 
   if (validateV2ExportData(jsonData)) {
-    const project = {
+    const project = fillMissingDiagrams({
       ...jsonData.project,
       id: `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: `${jsonData.project.name}`,
       createdAt: new Date().toISOString(),
-    };
+    });
     storeImportedProject(project);
     return project;
 
   } else if (validateLegacyImportData(jsonData)) {
-    const convertedProject = convertLegacyToProject(jsonData);
+    const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
     storeImportedProject(convertedProject);
     return convertedProject;
 
@@ -173,12 +224,12 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           
           // Generate new ID for the project to avoid conflicts
           const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const importedProject: BesserProject = {
+          const importedProject: BesserProject = fillMissingDiagrams({
             ...project,
             id: newProjectId,
             name: `${project.name}`,
             createdAt: new Date().toISOString()
-          };
+          });
           
           // Store using project storage
           storeImportedProject(importedProject);
@@ -188,7 +239,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           
         } else if (validateLegacyImportData(jsonData)) {
           // Legacy V1 format - convert to new format and store
-          const convertedProject = convertLegacyToProject(jsonData);
+          const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
           storeImportedProject(convertedProject);
           
           console.log(`Project "${convertedProject.name}" imported successfully (Legacy format converted)`);

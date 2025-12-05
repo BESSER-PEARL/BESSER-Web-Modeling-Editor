@@ -3,8 +3,6 @@ import styled from 'styled-components';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { useLocation } from 'react-router-dom';
-
-// Import our new services
 import { UMLModelingService, ClassSpec, SystemSpec, ModelModification, BESSERModel, ModelUpdate } from './services/UMLModelingService';
 import { WebSocketService, ChatMessage, InjectionCommand, SendStatus } from './services/WebSocketService';
 import { UIService } from './services/UIService';
@@ -189,17 +187,17 @@ const CircleButton = styled.button<{ $isOpen: boolean }>`
   justify-content: center;
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.35);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: ${props => props.$isOpen ? 'rotate(45deg)' : 'rotate(0deg)'};
+  transform: rotate(0deg);
   color: white;
-  font-size: 22px;
+  font-size: 35px;
   
   &:hover {
-    transform: ${props => props.$isOpen ? 'rotate(45deg) scale(1.05)' : 'rotate(0deg) scale(1.05)'};
+    transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(102, 126, 234, 0.45);
   }
   
   &:active {
-    transform: ${props => props.$isOpen ? 'rotate(45deg) scale(0.95)' : 'rotate(0deg) scale(0.95)'};
+    transform: scale(0.95);
   }
 `;
 
@@ -601,6 +599,7 @@ export const UMLAgentModeling: React.FC = () => {
 
   // Refs and hooks
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const { editor } = useContext(ApollonEditorContext);
   const dispatch = useAppDispatch();
   const currentDiagram = useAppSelector(state => state.diagram);
@@ -791,10 +790,10 @@ export const UMLAgentModeling: React.FC = () => {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (messagesEndRef.current) {
-      uiService.scrollToBottom(messagesEndRef.current);
+    if (messagesContainerRef.current) {
+      uiService.scrollToBottom(messagesContainerRef.current);
     }
-  }, [messages, uiService]);
+  }, [messages, isTyping, uiService]);
 
   // Handle sending messages
   const sendMessage = async () => {
@@ -1010,7 +1009,7 @@ export const UMLAgentModeling: React.FC = () => {
           <div className="header-content">
             <div className="agent-logo"><img src="/img/agent_back.png" alt="Agent" style={{ width: 25, height: 25, borderRadius: '50%' }}></img></div>
             <div className="header-info">
-              <div className="title">UML Assistant</div>
+              <div className="title">BESSER UML Assistant</div>
               <div className="subtitle">Enhanced with AI</div>
             </div>
           </div>
@@ -1028,7 +1027,7 @@ export const UMLAgentModeling: React.FC = () => {
           </div>
         </ChatHeader>
         
-        <ChatMessages>
+        <ChatMessages ref={messagesContainerRef}>
           {messages.map(renderMessage)}
           
           {isTyping && (

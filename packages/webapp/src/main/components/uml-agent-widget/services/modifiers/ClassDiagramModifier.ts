@@ -6,6 +6,25 @@
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 
+// Type alias mapping for normalizing types from agent responses
+const TYPE_ALIASES: Record<string, string> = {
+  'string': 'str', 'String': 'str', 'STRING': 'str',
+  'integer': 'int', 'Integer': 'int', 'INTEGER': 'int', 'long': 'int', 'Long': 'int',
+  'double': 'float', 'Double': 'float', 'DOUBLE': 'float', 'Float': 'float', 'FLOAT': 'float',
+  'number': 'float', 'Number': 'float', 'decimal': 'float', 'Decimal': 'float',
+  'boolean': 'bool', 'Boolean': 'bool', 'BOOLEAN': 'bool',
+  'Date': 'date', 'DATE': 'date',
+  'DateTime': 'datetime', 'DATETIME': 'datetime', 'Timestamp': 'datetime', 'timestamp': 'datetime',
+  'Time': 'time', 'TIME': 'time',
+  'object': 'any', 'Object': 'any', 'void': 'any', 'Void': 'any',
+};
+
+const normalizeType = (type: string): string => {
+  if (!type) return 'str';
+  const trimmed = type.trim();
+  return TYPE_ALIASES[trimmed] || trimmed;
+};
+
 export class ClassDiagramModifier implements DiagramModifier {
   getDiagramType() {
     return 'ClassDiagram' as const;
@@ -96,7 +115,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       const visibilitySymbol =
         this.visibilityToSymbol(modification.changes.visibility) || parsed.visibilitySymbol || '+';
       const name = modification.changes.name || parsed.name || this.normalizeAttributeName(element.name || '');
-      const type = modification.changes.type || parsed.type || 'String';
+      const type = normalizeType(modification.changes.type || parsed.type || 'str');
 
       element.name = `${visibilitySymbol} ${name}: ${type}`;
     }
@@ -147,9 +166,9 @@ export class ClassDiagramModifier implements DiagramModifier {
       const visibilitySymbol =
         this.visibilityToSymbol(modification.changes.visibility) || parsed.visibilitySymbol || '+';
       const name = modification.changes.name || parsed.name || this.normalizeMethodName(element.name || '');
-      const returnType = modification.changes.returnType || parsed.returnType || 'void';
+      const returnType = normalizeType(modification.changes.returnType || parsed.returnType || 'any');
       const parameters =
-        modification.changes.parameters?.map(p => `${p.name}: ${p.type}`) || parsed.parameters;
+        modification.changes.parameters?.map(p => `${p.name}: ${normalizeType(p.type)}`) || parsed.parameters;
       const paramStr = parameters.join(', ');
 
       element.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;

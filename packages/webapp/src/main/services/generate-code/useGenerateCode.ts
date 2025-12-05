@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { ApollonEditor } from '@besser/wme';
 import { useFileDownload } from '../file-download/useFileDownload';
 import { toast } from 'react-toastify';
-import { validateDiagram } from '../validation/diagramValidation';
+import { validateDiagram } from '../validation/validateDiagram';
 import { BACKEND_URL } from '../../constant';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { isGrapesJSProjectData } from '../../types/project';
@@ -15,11 +15,11 @@ export interface DjangoConfig {
 }
 
 export interface SQLConfig {
-  dialect: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb';
+  dialect: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
 }
 
 export interface SQLAlchemyConfig {
-  dbms: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb';
+  dbms: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
 }
 
 export interface JSONSchemaConfig {
@@ -50,9 +50,9 @@ export const useGenerateCode = () => {
       console.log('Starting code generation...'); 
       
       // Validate diagram before generation
-      const validationResult = validateDiagram(editor);
+      const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message);
+        toast.error(validationResult.message || 'Validation failed');
         return;
       }
 

@@ -18,10 +18,11 @@ import { registerMapComponent } from './component-registrars/registerMapComponen
 import { registerButtonComponent } from './component-registrars/registerButtonComponent';
 import { registerFormComponents } from './component-registrars/registerFormComponents';
 import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
+import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData } from '../../types/project';
+import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate } from '../../types/project';
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
@@ -225,6 +226,7 @@ function registerCustomComponents(editor: Editor) {
   registerButtonComponent(editor);
   // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);
+  registerAgentComponent(editor);
   
   // console.log('[GraphicalUIEditor] All custom components registered');
 }
@@ -239,7 +241,7 @@ function removeUnwantedBlocks(editor: Editor) {
   const blocksToRemove = [
     'link-block',      // Link Block
     'quote',           // Quote
-    'link',            // Link
+    // 'link',            // Link
     'video',           // Video
     'map',             // Map (we have custom map in Charts category)
     'sect100',         // Section blocks
@@ -292,14 +294,36 @@ function setupProjectStorageIntegration(
         const project = ProjectStorageRepository.getCurrentProject();
         const model = project?.diagrams?.GUINoCodeDiagram?.model;
 
+        // If model exists and has valid GrapesJS data with pages, load it
         if (isGrapesJSProjectData(model)) {
-          // console.log('[Storage] Loading GrapesJS data from project storage');
           if (Array.isArray(model.pages) && model.pages.length > 0) {
+            // console.log('[Storage] Loading GrapesJS data from project storage');
             return model;
           }
+          
+          // Model exists but has no pages - this is a new/empty diagram (first visit)
+          if (project && Array.isArray(model.pages) && model.pages.length === 0) {
+            console.log('[Storage] First visit to GUI editor - initializing with default template');
+            const defaultTemplate = createDefaultGUITemplate();
+            
+            // Save the template to the project
+            ProjectStorageRepository.updateDiagram(
+              project.id,
+              'GUINoCodeDiagram',
+              {
+                ...project.diagrams.GUINoCodeDiagram,
+                model: defaultTemplate,
+                lastUpdate: new Date().toISOString(),
+              }
+            );
+            
+            return defaultTemplate;
+          }
+          
           // console.log('[Storage] Stored data has no pages, keeping defaults');
           return {};
         }
+        
         // console.log('[Storage] No GrapesJS data found, starting fresh');
         return {};
       } catch (error) {
