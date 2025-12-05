@@ -69,18 +69,6 @@
       ],
       "methods": []
     },
-    "d9542708-d9c0-4325-92f0-90d0e426c441": {
-      "id": "d9542708-d9c0-4325-92f0-90d0e426c441",
-      "name": "+ pages: int",
-      "type": "ClassAttribute",
-      "owner": "2997ca04-d773-4288-b4a0-3ea2f2ba0ac8",
-      "bounds": {
-        "x": -199.5,
-        "y": -259.5,
-        "width": 159,
-        "height": 30
-      }
-    },
     "dc75094a-7f91-45ff-ab74-a14900df8084": {
       "id": "dc75094a-7f91-45ff-ab74-a14900df8084",
       "name": "+ title: str",
@@ -89,6 +77,18 @@
       "bounds": {
         "x": -199.5,
         "y": -229.5,
+        "width": 159,
+        "height": 30
+      }
+    },
+    "d9542708-d9c0-4325-92f0-90d0e426c441": {
+      "id": "d9542708-d9c0-4325-92f0-90d0e426c441",
+      "name": "+ pages: int",
+      "type": "ClassAttribute",
+      "owner": "2997ca04-d773-4288-b4a0-3ea2f2ba0ac8",
+      "bounds": {
+        "x": -199.5,
+        "y": -259.5,
         "width": 159,
         "height": 30
       }
