@@ -248,7 +248,7 @@ function removeUnwantedBlocks(editor: Editor) {
   const blocksToRemove = [
     'link-block',      // Link Block
     'quote',           // Quote
-    'link',            // Link
+    // 'link',            // Link
     'video',           // Video
     'map',             // Map (we have custom map in Charts category)
     'sect100',         // Section blocks
