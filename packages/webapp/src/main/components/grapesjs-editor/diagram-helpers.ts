@@ -45,7 +45,12 @@ export function getAttributeOptionsByClassId(classId: string): { value: string; 
 
   return Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => ({ value: attr.id, label: stripVisibility(attr.name) }));
+    .map((attr: any) => {
+      const cleanName = stripVisibility(attr.name);
+      // Extract just the attribute name (without type suffix if present in legacy format)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+      return { value: attr.id, label: justName };
+    });
 }
 
 /**
@@ -62,10 +67,14 @@ export function getAttributeOptionsByType(classId: string, requireNumeric: boole
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
     .map((attr: any) => {
       const cleanName = stripVisibility(attr.name);
+      // Use attributeType property if available (new format), otherwise parse from name (legacy)
+      const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+      // Extract just the attribute name (without type suffix)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
       return {
         value: attr.id,
-        label: cleanName,
-        type: cleanName?.split(':')[1]?.trim() || 'str'
+        label: justName,
+        type: type
       };
     });
 
@@ -98,10 +107,13 @@ export function getClassMetadata(classId: string): ClassMetadata | undefined {
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
     .map((attr: any) => {
       const cleanName = stripVisibility(attr.name);
-      const type = cleanName?.split(':')[1]?.trim() || 'str';
+      // Use attributeType property if available (new format), otherwise parse from name (legacy)
+      const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+      // Extract just the attribute name (without type suffix)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
       return {
         id: attr.id,
-        name: cleanName?.split(':')[0]?.trim() || cleanName,
+        name: justName,
         type: type,
         isNumeric: isNumericType(type),
         isString: isStringType(type)
@@ -179,7 +191,12 @@ export function getInheritedAttributeOptionsByClassId(classId: string): { value:
   // Collect attributes from all parent classes
   const inheritedAttributes = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && parentIds.includes(element.owner))
-    .map((attr: any) => ({ value: attr.id, label: stripVisibility(attr.name) }));
+    .map((attr: any) => {
+      const cleanName = stripVisibility(attr.name);
+      // Extract just the attribute name (without type suffix if present in legacy format)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+      return { value: attr.id, label: justName };
+    });
 
   return inheritedAttributes;
 }
