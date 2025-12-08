@@ -45,7 +45,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
-    'GUINoCodeDiagram'
+    'GUINoCodeDiagram',
+    'QuantumCircuitDiagram'
   ];
   
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -54,6 +55,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
     GUINoCodeDiagram: null,
+    QuantumCircuitDiagram: null,
   };
   
   const diagramTitles: Record<SupportedDiagramType, string> = {
@@ -62,6 +64,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
+    QuantumCircuitDiagram: 'Quantum Circuit',
   };
   
   // Ensure all diagram types exist
@@ -69,7 +72,10 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     if (!project.diagrams[diagramType]) {
       const umlType = diagramTypeToUMLType[diagramType];
       const title = diagramTitles[diagramType];
-      project.diagrams[diagramType] = createEmptyDiagram(title, umlType);
+      // Pass 'quantum' for QuantumCircuitDiagram, 'gui' for GUINoCodeDiagram
+      const diagramKind = diagramType === 'QuantumCircuitDiagram' ? 'quantum' : 
+                          diagramType === 'GUINoCodeDiagram' ? 'gui' : undefined;
+      project.diagrams[diagramType] = createEmptyDiagram(title, umlType, diagramKind);
     }
   });
   

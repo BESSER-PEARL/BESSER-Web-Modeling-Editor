@@ -18,6 +18,7 @@ import { ProjectSettingsScreen } from './components/project/ProjectSettingsScree
 import { useProject } from './hooks/useProject';
 import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
+import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -31,10 +32,13 @@ function AppContentInner() {
   const location = useLocation();
 
   // Check if current path contains a token (collaboration route)
-  const hasTokenInUrl = location.pathname !== '/' &&
-    location.pathname !== '/project-settings' &&
-    location.pathname !== '/graphical-ui-editor';
-
+  const hasTokenInUrl = location.pathname !== '/' && 
+                       location.pathname !== '/project-settings' && 
+                       location.pathname !== '/teampage' &&
+                       location.pathname !== '/graphical-ui-editor' &&
+                       location.pathname !== '/quantum-editor' &&
+                       !location.pathname.startsWith('/quantum');
+  
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
   };
@@ -134,6 +138,16 @@ function AppContentInner() {
               <GraphicalUIEditor />
             </SidebarLayout>
           }
+        />
+
+        {/* Quantum Editor route - Quirk-based quantum circuit editor */}
+        <Route 
+          path="/quantum-editor"
+          element={
+            <SidebarLayout>
+              <QuantumEditorComponent />
+            </SidebarLayout>
+          } 
         />
 
 

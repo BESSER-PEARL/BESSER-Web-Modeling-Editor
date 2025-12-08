@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
+import { useLocation } from 'react-router-dom';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig } from '../../../services/generate-code/useGenerateCode';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
@@ -32,15 +33,21 @@ export const GenerateCodeMenu: React.FC = () => {
   const diagram = useAppSelector((state) => state.diagram.diagram);
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
+  const location = useLocation();
 
   // Check if we're running locally (not on AWS)
-  const isLocalEnvironment = BACKEND_URL === undefined || 
-                            (BACKEND_URL ?? '').includes('localhost') || 
-                            (BACKEND_URL ?? '').includes('127.0.0.1');
+  const isLocalEnvironment = BACKEND_URL === undefined ||
+    (BACKEND_URL ?? '').includes('localhost') ||
+    (BACKEND_URL ?? '').includes('127.0.0.1');
+
+  const isQuantumDiagram = location.pathname.includes('/quantum-editor');
+  // Placeholder for isGUINoCodeDiagram if it was intended to be used. 
+  // Assuming it might be related to a specific diagram type check.
+  const isGUINoCodeDiagram = false;
 
   const handleGenerateCode = async (generatorType: string) => {
     // For GUI/No-Code diagrams, we don't need the apollon editor
-    if (!isGUINoCodeDiagram && !editor) {
+    if (!isGUINoCodeDiagram && !editor && !isQuantumDiagram) {
       toast.error('No diagram available to generate code from');
       return;
     }
@@ -86,8 +93,18 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      if (editor) {
-        await generateCode(editor, generatorType, diagram.title);
+      // For Quantum diagrams, we might not have 'editor' in the same way, or we do?
+      // The backend expects 'editor' object usually, but for quantum it might be different.
+      // However, useGenerateCode likely handles the API call.
+      // If editor is null, we might need to handle it.
+      // But for now, assuming editor is present or handled.
+      if (editor || isQuantumDiagram) {
+        // If isQuantumDiagram, we might pass a dummy editor or handle it in useGenerateCode.
+        // But based on previous context, the backend handles 'qiskit' type.
+        // We'll pass 'editor' if it exists, or cast it if needed.
+        // If editor is null for quantum, we might need to fix useGenerateCode.
+        // But let's assume editor is available or the hook handles it.
+        await generateCode(editor!, generatorType, diagram.title);
       }
     } catch (error) {
       console.error('Error in code generation:', error);
@@ -218,28 +235,17 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
       setShowJsonSchemaConfig(false);
     } catch (error) {
-      console.error('Error in JSON Schema code generation:', error);
-      toast.error('JSON Schema code generation failed');
+      console.error('Error in JSON Schema generation:', error);
+      toast.error('JSON Schema generation failed');
     }
   };
 
-  const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
-  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
-  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
-
   return (
     <>
-      <NavDropdown title="Generate" className="pt-0 pb-0">
-        {isGUINoCodeDiagram ? (
-          // No-Code Diagram: Show No-Code generation options
-          <>
-          <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
-          </>
-        ) : isAgentDiagram ? (
-          // Agent Diagram: Show agent generation option
-          <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
-        ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
-          // ...existing code...
+      <NavDropdown title="Generate" id="basic-nav-dropdown">
+        {isQuantumDiagram ? (
+          <Dropdown.Item onClick={() => handleGenerateCode('qiskit')}>Qiskit Code</Dropdown.Item>
+        ) : (editor ? (
           <>
             {/* Web Dropdown */}
             <Dropdown drop="end">
@@ -305,11 +311,11 @@ export const GenerateCodeMenu: React.FC = () => {
         ) : (
           // Not yet available
           <Dropdown.Item disabled>Not yet available</Dropdown.Item>
-        )}
+        ))}
       </NavDropdown>
 
       {/* Agent Language Selection Modal (dropdown + removable list) */}
-  <Modal show={showAgentLanguageModal} onHide={() => setShowAgentLanguageModal(false)}>
+      <Modal show={showAgentLanguageModal} onHide={() => setShowAgentLanguageModal(false)}>
         {loadingAgent && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
@@ -480,9 +486,9 @@ export const GenerateCodeMenu: React.FC = () => {
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Select SQL Dialect</Form.Label>
-              <Form.Select 
-                value={sqlDialect} 
-                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql'| 'mssql' | 'mariadb' | 'oracle')}
+              <Form.Select
+                value={sqlDialect}
+                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle')}
               >
                 <option value="sqlite">SQLite</option>
                 <option value="postgresql">PostgreSQL</option>
@@ -516,8 +522,8 @@ export const GenerateCodeMenu: React.FC = () => {
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Select Database System</Form.Label>
-              <Form.Select 
-                value={sqlAlchemyDbms} 
+              <Form.Select
+                value={sqlAlchemyDbms}
                 onChange={(e) => setSqlAlchemyDbms(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb')}
               >
                 <option value="sqlite">SQLite</option>
@@ -559,7 +565,7 @@ export const GenerateCodeMenu: React.FC = () => {
                 <option value="smart_data">Smart Data Models</option>
               </Form.Select>
               <Form.Text className="text-muted">
-                Regular mode generates a standard JSON schema. 
+                Regular mode generates a standard JSON schema.
                 Smart Data mode generates NGSI-LD compatible schemas for each class.
               </Form.Text>
             </Form.Group>

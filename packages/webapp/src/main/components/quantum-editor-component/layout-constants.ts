@@ -1,0 +1,23 @@
+export const GATE_RADIUS = 20;
+export const GATE_SIZE = 40; // 2 * GATE_RADIUS
+export const WIRE_SPACING = 40;
+export const TOP_MARGIN = 50;
+export const LEFT_MARGIN = 50;
+
+export const COLORS = {
+    GATE_FILL: 'white',
+    HIGHLIGHTED_GATE_FILL: '#FB7',
+    TIME_DEPENDENT_HIGHLIGHT: '#FFC',
+    DISPLAY_GATE_IN_TOOLBOX_FILL: '#4F4',
+    DISPLAY_GATE_BACK: '#EFE',
+    DISPLAY_GATE_FORE: '#3F3',
+    OPERATION_BACK: '#FFE',
+    OPERATION_FORE: '#FF0',
+    SUPERPOSITION_BACK: '#EFF',
+    SUPERPOSITION_MID: '#8FF',
+    SUPERPOSITION_FORE: '#0BB',
+    BACKGROUND: 'white',
+    TOOLBOX_BACKGROUND: '#F0F0F0',
+    STROKE: 'black',
+    TEXT: 'black',
+};
