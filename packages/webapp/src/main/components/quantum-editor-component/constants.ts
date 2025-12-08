@@ -39,11 +39,11 @@ export const GATES: Gate[] = [
     { ...ControlXGate, id: 'control-x' },
     { ...ControlYGate, id: 'control-y' },
 
-    // Displays
-    { ...BlochSphereGate, id: 'bloch', isControl: false },
-    { ...DensityMatrixGate, id: 'density', isControl: false },
-    { ...AmplitudeGate, id: 'amp', isControl: false },
-    { ...ChanceGate, id: 'chance', isControl: false },
+    // // Displays
+    // { ...BlochSphereGate, id: 'bloch', isControl: false },
+    // { ...DensityMatrixGate, id: 'density', isControl: false },
+    // { ...AmplitudeGate, id: 'amp', isControl: false },
+    // { ...ChanceGate, id: 'chance', isControl: false },
 
     // Half Turns
     { ...HGate, id: 'h' },
@@ -96,9 +96,9 @@ export const GATES: Gate[] = [
     { ...ExpZGate, id: 'exp-z', isControl: false },
 
     // Sampling
-    { ...SampleGate, id: 'sample', isControl: false },
-    { ...DetectGate, id: 'detect', isControl: false },
-    { ...AxisSampleGate, id: 'axis-sample', isControl: false },
+    // { ...SampleGate, id: 'sample', isControl: false },
+    // { ...DetectGate, id: 'detect', isControl: false },
+    // { ...AxisSampleGate, id: 'axis-sample', isControl: false },
 
     // Frequency
     { ...QFTGate, id: 'qft', isControl: false },

@@ -36,6 +36,19 @@ const WireLabel = styled.div<{ $row: number }>`
   font-family: sans-serif;
   color: black;
   z-index: 2;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.15s ease;
+  
+  &:hover {
+    background-color: rgba(33, 150, 243, 0.1);
+  }
+  
+  &:active {
+    background-color: rgba(33, 150, 243, 0.2);
+  }
 `;
 
 const ControlWire = styled.div<{ $col: number, $startRow: number, $endRow: number }>`
@@ -113,10 +126,16 @@ interface CircuitGridProps {
     previewPosition?: DropPreviewPosition | null;
     selectedGate?: { col: number, row: number } | null;
     onGateSelect?: (col: number, row: number) => void;
+    onInitialStateChange?: (row: number) => void;
 }
 
-export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, previewPosition, selectedGate, onGateSelect }, ref) => {
+export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, previewPosition, selectedGate, onGateSelect, onInitialStateChange }, ref) => {
     const wires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
+    
+    // Get initial state for a wire (defaults to |0⟩)
+    const getInitialState = (row: number): string => {
+        return circuit.initialStates?.[row] || '|0⟩';
+    };
     
     // Get gate height for preview
     const getGateHeight = (gateType: GateType): number => {
@@ -161,8 +180,16 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
         <GridContainer ref={ref} onClick={handleGridClick}>
             {/* Wire labels */}
             {wires.map(row => (
-                <WireLabel key={`label-${row}`} $row={row}>
-                    |0⟩
+                <WireLabel 
+                    key={`label-${row}`} 
+                    $row={row}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onInitialStateChange?.(row);
+                    }}
+                    title="Click to cycle through initial states: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩"
+                >
+                    {getInitialState(row)}
                 </WireLabel>
             ))}
 

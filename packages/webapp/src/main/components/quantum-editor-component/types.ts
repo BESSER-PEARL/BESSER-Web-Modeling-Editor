@@ -23,9 +23,12 @@ export interface CircuitColumn {
     gates: (Gate | null)[]; // null represents an empty wire at this column
 }
 
+export type InitialState = '|0⟩' | '|1⟩' | '|+⟩' | '|−⟩' | '|i⟩' | '|−i⟩';
+
 export interface Circuit {
     columns: CircuitColumn[];
     qubitCount: number;
+    initialStates?: InitialState[]; // Initial state for each qubit (defaults to |0⟩)
 }
 
 export interface Point {

@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { GATES } from './constants';
-import { Circuit } from './types';
+import { Circuit, InitialState } from './types';
 import { trimCircuit } from './utils';
 import { GatePalette, CircuitGrid, Gate, TooltipProvider, EditorToolbar } from './components';
 import {
@@ -93,6 +93,31 @@ export function QuantumEditorComponent(): JSX.Element {
             setSelectedGate({ col, row });
         }
     }, []);
+
+    // Initial state cycling
+    const INITIAL_STATES: InitialState[] = ['|0⟩', '|1⟩', '|+⟩', '|−⟩', '|i⟩', '|−i⟩'];
+    
+    const handleInitialStateChange = useCallback((row: number) => {
+        setCircuit((prev) => {
+            // Initialize initialStates array if it doesn't exist
+            const currentStates = prev.initialStates || Array(prev.qubitCount).fill('|0⟩');
+            const currentState = currentStates[row] || '|0⟩';
+            
+            // Find current state index and cycle to next
+            const currentIndex = INITIAL_STATES.indexOf(currentState as InitialState);
+            const nextIndex = (currentIndex + 1) % INITIAL_STATES.length;
+            const newState = INITIAL_STATES[nextIndex];
+            
+            // Create new array with updated state
+            const newStates = [...currentStates];
+            newStates[row] = newState;
+            
+            return {
+                ...prev,
+                initialStates: newStates,
+            };
+        });
+    }, [setCircuit]);
 
     // Handle Delete/Backspace key to delete selected gate
     useEffect(() => {
@@ -186,6 +211,7 @@ export function QuantumEditorComponent(): JSX.Element {
                                 previewPosition={previewPosition}
                                 selectedGate={selectedGate}
                                 onGateSelect={handleGateSelect}
+                                onInitialStateChange={handleInitialStateChange}
                             />
                         </CircuitContainer>
                     </Workspace>
