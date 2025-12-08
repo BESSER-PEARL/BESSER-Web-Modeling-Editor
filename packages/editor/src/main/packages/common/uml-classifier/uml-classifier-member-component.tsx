@@ -30,11 +30,14 @@ const UMLClassifierMemberComponentUnconnected: FunctionComponent<Props> = ({ ele
     return null;
   }
 
+  // Use displayName for class attributes/methods, fallback to name for others
+  const displayText = element.displayName || element.name;
+
   return (
     <g>
       <ThemedRect fillColor={fillColor || element.fillColor} strokeColor="none" width="100%" height="100%" />
       <Text x={10} fill={element.textColor} fontWeight="normal" textAnchor="start">
-        {element.name}
+        {displayText}
       </Text>
     </g>
   );
