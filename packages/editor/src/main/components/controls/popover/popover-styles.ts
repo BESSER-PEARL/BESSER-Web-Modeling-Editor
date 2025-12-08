@@ -73,7 +73,9 @@ export const PopoverBody = styled.div<Pick<Props, 'maxHeight'>>`
   ${(props) =>
     props.maxHeight &&
     css`
-      overflow: auto;
+      max-height: ${props.maxHeight}px;
+      overflow-y: auto;
+      overflow-x: hidden;
     `}
 `;
 
