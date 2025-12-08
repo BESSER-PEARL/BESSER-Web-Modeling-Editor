@@ -87,8 +87,10 @@ export function getAttributeOptionsByType(classId: string, requireNumeric: boole
 
 /**
  * Get full class metadata including attributes with types
+ * @param classId - The ID of the class
+ * @param includeInherited - Whether to include inherited attributes from parent classes (default: true)
  */
-export function getClassMetadata(classId: string): ClassMetadata | undefined {
+export function getClassMetadata(classId: string, includeInherited: boolean = true): ClassMetadata | undefined {
   const classDiagram = getClassDiagramModel();
 
   if (!isUMLModel(classDiagram) || !classDiagram.elements) {
@@ -103,6 +105,7 @@ export function getClassMetadata(classId: string): ClassMetadata | undefined {
     return undefined;
   }
 
+  // Get direct attributes
   const attributes: AttributeMetadata[] = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
     .map((attr: any) => {
@@ -120,6 +123,27 @@ export function getClassMetadata(classId: string): ClassMetadata | undefined {
       };
     });
 
+  // Add inherited attributes if requested
+  if (includeInherited && classDiagram.relationships) {
+    const inheritedAttributeIds = getInheritedAttributeOptionsByClassId(classId).map(a => a.value);
+    const inheritedAttributes = Object.values(classDiagram.elements)
+      .filter((element: any) => element?.type === 'ClassAttribute' && inheritedAttributeIds.includes(element.id))
+      .map((attr: any) => {
+        const cleanName = stripVisibility(attr.name);
+        const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+        const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+        return {
+          id: attr.id,
+          name: justName,
+          type: type,
+          isNumeric: isNumericType(type),
+          isString: isStringType(type)
+        };
+      });
+    
+    attributes.push(...inheritedAttributes);
+  }
+
   return {
     id: classElement.id,
     name: classElement.name,
@@ -127,14 +151,15 @@ export function getClassMetadata(classId: string): ClassMetadata | undefined {
   };
 }
 
-export function getEndsByClassId(classId: string): { value: string; label: string }[] {
+export function getEndsByClassId(classId: string, includeInherited: boolean = true): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
   if (!isUMLModel(classDiagram) || !classDiagram.relationships) {
     return [];
   }
 
-  return Object.values(classDiagram.relationships)
+  // Get direct association ends
+  const directEnds = Object.values(classDiagram.relationships)
     .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
     .map((relationship: any) => {
       if (relationship?.source?.element === classId) {
@@ -148,6 +173,14 @@ export function getEndsByClassId(classId: string): { value: string; label: strin
       return null;
     })
     .filter((end): end is { value: string; label: string } => end !== null);
+
+  // Add inherited association ends if requested
+  if (includeInherited) {
+    const inheritedEnds = getInheritedEndsByClassId(classId);
+    return [...directEnds, ...inheritedEnds];
+  }
+
+  return directEnds;
 }
 
 export function getElementNameById(elementId: string): string | null {
