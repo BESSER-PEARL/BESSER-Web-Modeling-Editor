@@ -38,7 +38,8 @@ const buildTableProps = (attrs: Record<string, any>, config: TableConfig): any =
   
   // Handle both array (new format) and string (legacy format)
   if (Array.isArray(columnsAttr)) {
-    columns = columnsAttr;
+    // Create a deep copy to ensure React detects the change
+    columns = JSON.parse(JSON.stringify(columnsAttr));
   } else if (typeof columnsAttr === 'string' && columnsAttr.trim().startsWith('[')) {
     try {
       columns = JSON.parse(columnsAttr);
@@ -146,6 +147,20 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
           });
         });
 
+        // Listen for columns changes (from columns-manager trait)
+        this.on('change:columns', () => {
+          const newColumns = this.get('columns');
+          const attrs = { ...(this.get('attributes') || {}) };
+          attrs['columns'] = newColumns;
+          this.set('attributes', attrs, { silent: true });
+          this.renderReactTable();
+        });
+
+        // Listen for attribute changes (catch-all for when attributes object is updated)
+        this.on('change:attributes', () => {
+          this.renderReactTable();
+        });
+
         // Update data-source trait with fresh class options (called dynamically when component is initialized)
         const dataSourceTrait = traits.where({ name: 'data-source' })[0];
         if (dataSourceTrait) {
@@ -233,19 +248,29 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
         const view = this.getView();
         if (view && view.el) {
           const container = view.el;
-          container.innerHTML = '';
-          const root = ReactDOM.createRoot(container);
+          
+          // Don't clear innerHTML if we're reusing the root
+          if (!view.__reactRoot) {
+            container.innerHTML = '';
+            view.__reactRoot = ReactDOM.createRoot(container);
+          }
+          
           const props = buildTableProps(attrs, config);
-          root.render(React.createElement(config.component, props));
+          view.__reactRoot.render(React.createElement(config.component, props));
         }
       },
     },
     view: {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
-        const root = ReactDOM.createRoot(el);
+        
+        // Store root on the view instance to reuse it
+        if (!(this as any).__reactRoot) {
+          (this as any).__reactRoot = ReactDOM.createRoot(el);
+        }
+        
         const props = buildTableProps(attrs, config);
-        root.render(React.createElement(config.component, props));
+        (this as any).__reactRoot.render(React.createElement(config.component, props));
       },
     },
     isComponent: (el: any) => {

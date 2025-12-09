@@ -59,12 +59,53 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           const header = document.createElement('div');
           header.className = 'column-row-header';
 
-          // Chevron icon
-          const chevron = document.createElement('span');
-          chevron.innerHTML = expanded ? '&#9660;' : '&#9654;';
-          chevron.style.fontSize = '14px';
-          chevron.style.marginRight = '8px';
-          chevron.style.transition = 'transform 0.2s';
+          // Drag handle icon (replaces chevron for dual purpose)
+          const dragHandle = document.createElement('span');
+          dragHandle.innerHTML = '&#8942;&#8942;'; // Double vertical dots
+          dragHandle.className = 'drag-handle';
+          dragHandle.style.fontSize = '14px';
+          dragHandle.style.marginRight = '8px';
+          dragHandle.style.cursor = 'grab';
+          dragHandle.style.color = '#999';
+          dragHandle.style.userSelect = 'none';
+          dragHandle.draggable = true;
+          
+          // Drag and drop functionality
+          dragHandle.addEventListener('dragstart', (e: DragEvent) => {
+            if (e.dataTransfer) {
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', idx.toString());
+              dragHandle.style.cursor = 'grabbing';
+            }
+            row.style.opacity = '0.5';
+          });
+          
+          dragHandle.addEventListener('dragend', () => {
+            dragHandle.style.cursor = 'grab';
+            row.style.opacity = '1';
+          });
+          
+          row.addEventListener('dragover', (e: DragEvent) => {
+            e.preventDefault();
+            if (e.dataTransfer) {
+              e.dataTransfer.dropEffect = 'move';
+            }
+          });
+          
+          row.addEventListener('drop', (e: DragEvent) => {
+            e.preventDefault();
+            if (e.dataTransfer) {
+              const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+              const toIdx = idx;
+              
+              if (fromIdx !== toIdx) {
+                // Reorder array
+                const [movedItem] = columns.splice(fromIdx, 1);
+                columns.splice(toIdx, 0, movedItem);
+                update();
+              }
+            }
+          });
 
           // Column label (inline editable)
           let editingLabel = false;
@@ -115,6 +156,33 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
             input.select();
           });
 
+          // Expand/collapse indicator (small chevron after label)
+          const chevronIndicator = document.createElement('span');
+          chevronIndicator.innerHTML = expanded ? '&#9660;' : '&#9654;';
+          chevronIndicator.className = 'chevron-indicator';
+          chevronIndicator.style.fontSize = '10px';
+          chevronIndicator.style.marginLeft = '6px';
+          chevronIndicator.style.color = '#999';
+          chevronIndicator.style.transition = 'transform 0.2s';
+
+          // Move up button
+          const moveUpBtn = document.createElement('button');
+          moveUpBtn.innerHTML = '&#9650;'; // Up triangle
+          moveUpBtn.setAttribute('data-move-up', idx.toString());
+          moveUpBtn.type = 'button';
+          moveUpBtn.className = 'move-btn move-btn-up';
+          moveUpBtn.title = 'Move up';
+          moveUpBtn.disabled = idx === 0; // Disable if first item
+          
+          // Move down button
+          const moveDownBtn = document.createElement('button');
+          moveDownBtn.innerHTML = '&#9660;'; // Down triangle
+          moveDownBtn.setAttribute('data-move-down', idx.toString());
+          moveDownBtn.type = 'button';
+          moveDownBtn.className = 'move-btn move-btn-down';
+          moveDownBtn.title = 'Move down';
+          moveDownBtn.disabled = idx === columns.length - 1; // Disable if last item
+
           // Remove button (in header)
           const removeBtn = document.createElement('button');
           removeBtn.innerHTML = '&times;';
@@ -122,8 +190,9 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           removeBtn.type = 'button';
           removeBtn.className = 'remove-btn remove-btn-x';
 
-          header.appendChild(chevron);
+          header.appendChild(dragHandle);
           header.appendChild(labelSpan);
+          header.appendChild(chevronIndicator);
           header.appendChild(removeBtn);
           row.appendChild(header);
 
@@ -291,12 +360,15 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           // Toggle expand/collapse
           header.addEventListener('click', (e) => {
             const target = e.target as HTMLElement;
-            // Only toggle if not clicking the remove button or the label span/input
-            if (target.classList.contains('remove-btn') || target === labelSpan || target.tagName === 'INPUT') return;
+            // Only toggle if not clicking the remove button, label span/input, or drag handle
+            if (target.classList.contains('remove-btn') || 
+                target.classList.contains('drag-handle') ||
+                target === labelSpan || 
+                target.tagName === 'INPUT') return;
             expanded = !expanded;
             col._expanded = expanded;
             details.style.display = expanded ? 'block' : 'none';
-            chevron.innerHTML = expanded ? '&#9660;' : '&#9654;';
+            chevronIndicator.innerHTML = expanded ? '&#9660;' : '&#9654;';
             header.style.marginBottom = expanded ? '10px' : '0';
             if (expanded) {
               row.classList.remove('collapsed');
@@ -347,12 +419,15 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
         render();
       };
 
-      // Listen for remove and input changes
+      // Listen for remove button clicks
       el.addEventListener('click', (e: Event) => {
         const target = e.target as HTMLElement | null;
-        if (target && target instanceof HTMLElement && target.dataset.remove !== undefined) {
-          columns.splice(Number(target.dataset.remove), 1);
-          update();
+        if (target && target instanceof HTMLElement) {
+          // Remove column
+          if (target.dataset.remove !== undefined) {
+            columns.splice(Number(target.dataset.remove), 1);
+            update();
+          }
         }
       });
 
