@@ -129,16 +129,18 @@ export class ClassDiagramConverter implements DiagramConverter {
     
     spec.attributes?.forEach((attr: any) => {
       const attrId = generateUniqueId('attr');
-      const visibilitySymbol = attr.visibility === 'public' ? '+' : 
-                             attr.visibility === 'private' ? '-' : '#';
+      const visibility = attr.visibility || 'public';
       const normalizedType = normalizeType(attr.type);
       
       attributes[attrId] = {
         id: attrId,
-        name: `${visibilitySymbol} ${attr.name}: ${normalizedType}`,
+        name: attr.name,  // Just the attribute name
         type: "ClassAttribute",
         owner: classId,
-        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 }
+        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 },
+        // Separate properties for structured attribute data
+        visibility: visibility,
+        attributeType: normalizedType,
       };
       
       currentY += 25;

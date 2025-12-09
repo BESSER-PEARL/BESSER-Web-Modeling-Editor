@@ -33,6 +33,18 @@ const Flex = styled.div`
   justify-content: space-between;
 `;
 
+const InputRow = styled.div`
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+`;
+
+const QuickCodeButton = styled(Button)`
+  white-space: nowrap;
+  padding: 4px 12px;
+  font-size: 12px;
+`;
+
 interface OwnProps {
   element: UMLClassifier;
 }
@@ -155,26 +167,31 @@ class ClassifierUpdate extends Component<Props, State> {
               ? this.props.translate('popup.literals') 
               : this.props.translate('popup.attributes')}
           </Header>
-          {attributes.map((attribute, index) => (
-            <UmlAttributeUpdate
-              id={attribute.id}
-              key={attribute.id}
-              value={attribute.name}
-              onChange={this.props.update}
-              onSubmitKeyUp={() =>
-                index === attributes.length - 1
-                  ? this.newAttributeField.current?.focus()
-                  : this.setState({
-                      fieldToFocus: attributeRefs[index + 1],
-                    })
-              }
-              onDelete={this.delete}
-              onRefChange={(ref) => (attributeRefs[index] = ref)}
-              element={attribute}
-              isEnumeration={isEnumeration}
-              availableEnumerations={availableEnumerations}
-            />
-          ))}
+          {attributes.map((attribute, index) => {
+            const attrMember = attribute as UMLClassifierMember;
+            return (
+              <UmlAttributeUpdate
+                id={attribute.id}
+                key={attribute.id}
+                value={attribute.name}
+                visibility={attrMember.visibility}
+                attributeType={attrMember.attributeType}
+                onChange={this.props.update}
+                onSubmitKeyUp={() =>
+                  index === attributes.length - 1
+                    ? this.newAttributeField.current?.focus()
+                    : this.setState({
+                        fieldToFocus: attributeRefs[index + 1],
+                      })
+                }
+                onDelete={this.delete}
+                onRefChange={(ref) => (attributeRefs[index] = ref)}
+                element={attribute}
+                isEnumeration={isEnumeration}
+                availableEnumerations={availableEnumerations}
+              />
+            );
+          })}
           <Textfield
             ref={this.newAttributeField}
             outline
@@ -240,27 +257,37 @@ class ClassifierUpdate extends Component<Props, State> {
                 />
               );
             })}
-            <Textfield
-              ref={this.newMethodField}
-              outline
-              value=""
-              placeholder={`+ method(param: str): str`}
-              onSubmit={this.create(UMLClassMethod)}
-              onSubmitKeyUp={() =>
-                this.setState({
-                  fieldToFocus: this.newMethodField.current,
-                })
-              }
-              onKeyDown={(event) => {
-                if (event.key === 'Tab' && event.currentTarget.value) {
-                  event.preventDefault();
-                  event.currentTarget.blur();
+            <InputRow>
+              <Textfield
+                ref={this.newMethodField}
+                outline
+                value=""
+                placeholder={`+ method(param: str): str or →`}
+                onSubmit={this.create(UMLClassMethod)}
+                onSubmitKeyUp={() =>
                   this.setState({
                     fieldToFocus: this.newMethodField.current,
-                  });
+                  })
                 }
-              }}
-            />
+                onKeyDown={(event) => {
+                  if (event.key === 'Tab' && event.currentTarget.value) {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                    this.setState({
+                      fieldToFocus: this.newMethodField.current,
+                    });
+                  }
+                }}
+                style={{ flex: 1 }}
+              />
+              <QuickCodeButton
+                color="primary"
+                onClick={this.createMethodWithCode}
+                title="Create method with Python code editor"
+              >
+                📝 Code
+              </QuickCodeButton>
+            </InputRow>
           </section>
         )}
       </div>
@@ -274,8 +301,32 @@ class ClassifierUpdate extends Component<Props, State> {
       return;
     }
     const member = new Clazz();
-    member.name = value;
+    
+    // For attributes, parse the input value and set separate properties
+    if (Clazz === UMLClassAttribute) {
+      const parsed = UMLClassifierMember.parseNameFormat(value);
+      // Use the parsed name (without visibility symbol and type)
+      member.name = parsed.name;
+      (member as UMLClassifierMember).visibility = parsed.visibility;
+      (member as UMLClassifierMember).attributeType = parsed.attributeType;
+    } else {
+      member.name = value;
+    }
+    
     create(member, element.id);
+  };
+
+  private createMethodWithCode = () => {
+    const { element, create } = this.props;
+    const method = new UMLClassMethod();
+    const methodName = this.newMethodField.current?.props.value || 'new_method';
+    method.name = methodName.trim() || '+ new_method()';
+    // Add initial code template
+    const cleanName = method.name.split('(')[0].replace(/^[+\-#~]\s*/, '').trim() || 'new_method';
+    (method as any).code = `def ${cleanName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+    create(method, element.id);
+    // Reset the component state by updating the key
+    this.setState({ fieldToFocus: this.newMethodField.current });
   };
 
   private rename = (id: string) => (value: string) => {

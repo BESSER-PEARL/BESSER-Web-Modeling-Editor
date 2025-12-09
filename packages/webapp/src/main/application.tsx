@@ -33,6 +33,7 @@ function AppContentInner() {
   // Check if current path contains a token (collaboration route)
   const hasTokenInUrl = location.pathname !== '/' &&
     location.pathname !== '/project-settings' &&
+    location.pathname !== '/teampage' &&
     location.pathname !== '/graphical-ui-editor';
 
   const handleSetEditor = (newEditor: ApollonEditor) => {
@@ -135,7 +136,6 @@ function AppContentInner() {
             </SidebarLayout>
           }
         />
-
 
         {/* Project settings route */}
         <Route

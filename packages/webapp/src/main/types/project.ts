@@ -81,9 +81,9 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
 };
 
 // Default diagram factory
-export const createEmptyDiagram = (title: string, type: UMLDiagramType | null): ProjectDiagram => {
+export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui'): ProjectDiagram => {
   // For GUI/No-Code diagram
-  if (type === null) {
+  if (type === null || diagramKind === 'gui') {
     // ========================================
     // 🎨 EMPTY GUI DIAGRAM
     // ========================================
@@ -102,7 +102,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null): 
       lastUpdate: new Date().toISOString(),
     };
   }
-  
+
   // For UML diagrams
   return {
     id: crypto.randomUUID(),
@@ -127,12 +127,12 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 
 // Default project factory
 export const createDefaultProject = (
-  name: string, 
-  description: string, 
+  name: string,
+  description: string,
   owner: string
 ): BesserProject => {
   const projectId = crypto.randomUUID();
-  
+
   return {
     id: projectId,
     type: 'Project',
@@ -146,7 +146,7 @@ export const createDefaultProject = (
       ObjectDiagram: createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram),
       StateMachineDiagram: createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram),
       AgentDiagram: createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram),
-      GUINoCodeDiagram: createEmptyDiagram('GUI Diagram', null),
+      GUINoCodeDiagram: createEmptyDiagram('GUI Diagram', null, 'gui'),
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -158,17 +158,27 @@ export const createDefaultProject = (
 
 // Type guards
 export const isProject = (obj: any): obj is BesserProject => {
-  return obj && 
-         typeof obj === 'object' && 
-         obj.type === 'Project' && 
-         obj.diagrams && 
-         typeof obj.diagrams === 'object' &&
-         obj.currentDiagramType &&
-         obj.diagrams.ClassDiagram &&
-         obj.diagrams.ObjectDiagram &&
-         obj.diagrams.StateMachineDiagram &&
-         obj.diagrams.AgentDiagram &&
-         obj.diagrams.GUINoCodeDiagram;
+  if (!obj || typeof obj !== 'object' || obj.type !== 'Project') {
+    return false;
+  }
+
+  if (!obj.diagrams || typeof obj.diagrams !== 'object' || !obj.currentDiagramType) {
+    return false;
+  }
+
+  // Check for required diagram types
+  const hasRequiredDiagrams =
+    obj.diagrams.ClassDiagram &&
+    obj.diagrams.ObjectDiagram &&
+    obj.diagrams.StateMachineDiagram &&
+    obj.diagrams.AgentDiagram &&
+    obj.diagrams.GUINoCodeDiagram;
+
+  if (!hasRequiredDiagrams) {
+    return false;
+  }
+
+  return true;
 };
 
 export const isUMLModel = (model: unknown): model is UMLModel => {
@@ -197,14 +207,15 @@ export const isGrapesJSProjectData = (model: unknown): model is GrapesJSProjectD
     candidate.styles !== undefined ||
     candidate.assets !== undefined ||
     candidate.symbols !== undefined ||
-    candidate.version !== undefined
+    (candidate.version !== undefined && !candidate.qubitCount)
   );
 };
+
 
 // Normalize any data to valid GrapesJS format
 export const normalizeToGrapesJSProjectData = (data: unknown): GrapesJSProjectData => {
   const candidate = (data && typeof data === 'object') ? data as any : {};
-  
+
   return {
     pages: Array.isArray(candidate.pages) ? candidate.pages : [],
     styles: Array.isArray(candidate.styles) ? candidate.styles : [],

@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { 
-  Diagram3, 
-  Diagram2, 
-  Robot, 
-  ArrowRepeat, 
+import {
+  Diagram3,
+  Diagram2,
+  Robot,
+  ArrowRepeat,
   Gear,
   PencilSquare,
   House
@@ -32,7 +32,7 @@ const SidebarContainer = styled.div`
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
 `;
 
-const SidebarButton = styled(Button)<{ $isActive: boolean }>`
+const SidebarButton = styled(Button) <{ $isActive: boolean }>`
   margin-bottom: 8px;
   border: none;
   border-radius: 12px;
@@ -44,24 +44,24 @@ const SidebarButton = styled(Button)<{ $isActive: boolean }>`
   padding: 0;
   transition: all 0.2s ease;
   
-  background-color: ${props => props.$isActive 
-    ? 'var(--apollon-primary)' 
+  background-color: ${props => props.$isActive
+    ? 'var(--apollon-primary)'
     : 'transparent'};
   color: ${props => props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-secondary)'};
   
   &:hover {
-    background-color: ${props => props.$isActive 
-      ? 'var(--apollon-primary)' 
-      : 'var(--apollon-background-variant)'};
+    background-color: ${props => props.$isActive
+    ? 'var(--apollon-primary)'
+    : 'var(--apollon-background-variant)'};
     color: ${props => props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-primary-contrast)'};
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
   
   &:active, &:focus {
-    background-color: ${props => props.$isActive 
-      ? 'var(--apollon-primary)' 
-      : 'var(--apollon-background-variant)'};
+    background-color: ${props => props.$isActive
+    ? 'var(--apollon-primary)'
+    : 'var(--apollon-background-variant)'};
     border: none;
     box-shadow: none;
   }
@@ -102,7 +102,7 @@ const sidebarItems: SidebarItem[] = [
 export const DiagramTypeSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Use the new project-based state management
   const {
     currentProject,
@@ -112,7 +112,7 @@ export const DiagramTypeSidebar: React.FC = () => {
   } = useProject();
 
   const handleItemClick = (item: SidebarItem) => {
-    // Handle navigation items (home, settings, graphical-ui-editor
+    // Handle navigation items (home, settings, graphical-ui-editor, quantum-editor)
     if (item.path) {
       navigate(item.path);
       return;
@@ -124,7 +124,7 @@ export const DiagramTypeSidebar: React.FC = () => {
     }
 
     const diagramType = item.type as UMLDiagramType;
-    
+
     // If we're not on the editor page, navigate there first
     if (location.pathname !== '/') {
       navigate('/');
@@ -147,15 +147,15 @@ export const DiagramTypeSidebar: React.FC = () => {
     if (item.path) {
       return location.pathname === item.path;
     }
-    
+
     if (item.type === 'home') {
       return location.pathname === '/';
     }
-    
+
     if (location.pathname === '/' && item.type === toUMLDiagramType(currentDiagramType)) {
       return true;
     }
-    
+
     return false;
   };
 
@@ -164,7 +164,7 @@ export const DiagramTypeSidebar: React.FC = () => {
       {sidebarItems.map((item, index) => {
         const isActive = isItemActive(item);
         const isDividerAfter = index === sidebarItems.length - 2; // Only before settings
-        
+
         return (
           <React.Fragment key={item.type}>
             <OverlayTrigger
