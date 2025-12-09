@@ -292,3 +292,90 @@ export function getAgentOptions(): { value: string; label: string }[] {
   console.warn('[diagram-helpers] No Agent diagram data available');
   return [];
 }
+
+/**
+ * Get methods for a specific class
+ */
+export interface MethodMetadata {
+  id: string;
+  name: string;
+  isStatic: boolean;
+  parameters: MethodParameter[];
+}
+
+export interface MethodParameter {
+  name: string;
+  type: string;
+  hasDefault: boolean;
+  defaultValue?: any;
+}
+
+export function getMethodsByClassId(classId: string): MethodMetadata[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+    return [];
+  }
+
+  return Object.values(classDiagram.elements)
+    .filter((element: any) => element?.type === 'ClassMethod' && element?.owner === classId)
+    .map((method: any) => {
+      // Parse method signature to extract parameters
+      const methodName = method.name || '';
+      const isStatic = methodName.includes('(self') === false && methodName.includes('(session') === false;
+      
+      // Extract method name (before parentheses)
+      const nameMatch = methodName.match(/^([^(]+)/);
+      const cleanName = nameMatch ? nameMatch[1].trim() : methodName;
+      
+      // Extract parameters from signature like "method_name(param1: type1 = default1, param2: type2)"
+      const paramsMatch = methodName.match(/\(([^)]*)\)/);
+      const parameters: MethodParameter[] = [];
+      
+      if (paramsMatch && paramsMatch[1]) {
+        const paramString = paramsMatch[1];
+        const paramParts = paramString.split(',').map((p: string) => p.trim());
+        
+        for (const part of paramParts) {
+          // Skip 'self' and 'session' parameters
+          if (part.startsWith('self') || part.startsWith('session')) {
+            continue;
+          }
+          
+          // Parse "param_name: type = default" or "param_name: type" or "param_name"
+          const paramMatch = part.match(/^([^:=]+)(?::\s*([^=]+))?(?:=\s*(.+))?$/);
+          if (paramMatch) {
+            const paramName = paramMatch[1].trim();
+            const paramType = paramMatch[2]?.trim() || 'str';
+            const defaultValue = paramMatch[3]?.trim();
+            
+            parameters.push({
+              name: paramName,
+              type: paramType,
+              hasDefault: !!defaultValue,
+              defaultValue: defaultValue
+            });
+          }
+        }
+      }
+      
+      return {
+        id: method.id,
+        name: cleanName,
+        isStatic: isStatic,
+        parameters: parameters
+      };
+    });
+}
+
+/**
+ * Get method options for dropdown (formatted as value: label)
+ */
+export function getMethodOptions(classId: string): { value: string; label: string; isStatic: boolean }[] {
+  const methods = getMethodsByClassId(classId);
+  return methods.map(method => ({
+    value: method.name,
+    label: `${method.name}${method.isStatic ? ' (static)' : ''}`,
+    isStatic: method.isStatic
+  }));
+}

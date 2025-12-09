@@ -1,5 +1,5 @@
 import { getPageOptions } from '../utils/pageUtils';
-import { getClassOptions } from '../diagram-helpers';
+import { getClassOptions, getMethodOptions, getMethodsByClassId } from '../diagram-helpers';
 
 /**
  * Register enhanced button component with actions (navigation, CRUD operations)
@@ -56,8 +56,10 @@ export const registerButtonComponent = (editor: any) => {
         
         // Dynamic trait visibility
         this.on('change:action-type', this.updateTraitVisibility);
+        this.on('change:method-entity', this.updateMethodOptions);
         this.on('change:button-label change:button-style change:action-type', this.updateButton);
         this.updateTraitVisibility();
+        this.updateMethodOptions();
       },
       refreshTraits(this: any) {
         const traits = this.get('traits');
@@ -81,6 +83,7 @@ export const registerButtonComponent = (editor: any) => {
             options: [
               { value: 'navigate', label: 'Navigate to Screen' },
               { value: 'submit-form', label: 'Submit Form' },
+              { value: 'execute-method', label: 'Execute Method' },
               { value: 'create', label: 'Create Entity' },
               { value: 'update', label: 'Update Entity' },
               { value: 'delete', label: 'Delete Entity' },
@@ -125,6 +128,38 @@ export const registerButtonComponent = (editor: any) => {
             value: '',
             changeProp: 1,
             options: classOptions,
+          },
+          {
+            type: 'select',
+            label: 'Method Entity',
+            name: 'method-entity',
+            value: '',
+            changeProp: 1,
+            options: classOptions,
+          },
+          {
+            type: 'select',
+            label: 'Method Name',
+            name: 'method-name',
+            value: '',
+            changeProp: 1,
+            options: [],
+          },
+          {
+            type: 'text',
+            label: 'Entity ID (for instance methods)',
+            name: 'method-entity-id',
+            value: '',
+            changeProp: 1,
+            placeholder: 'Leave empty for static methods',
+          },
+          {
+            type: 'text',
+            label: 'Method Parameters (JSON)',
+            name: 'method-parameters',
+            value: '',
+            changeProp: 1,
+            placeholder: '{"param1": "value1"}',
           },
           {
             type: 'checkbox',
@@ -174,6 +209,10 @@ export const registerButtonComponent = (editor: any) => {
         const targetScreenTrait = traits.where({ name: 'target-screen' })[0];
         const targetFormTrait = traits.where({ name: 'target-form' })[0];
         const crudEntityTrait = traits.where({ name: 'crud-entity' })[0];
+        const methodEntityTrait = traits.where({ name: 'method-entity' })[0];
+        const methodNameTrait = traits.where({ name: 'method-name' })[0];
+        const methodEntityIdTrait = traits.where({ name: 'method-entity-id' })[0];
+        const methodParametersTrait = traits.where({ name: 'method-parameters' })[0];
         
         // Show/hide traits based on action type
         if (targetScreenTrait) {
@@ -185,6 +224,35 @@ export const registerButtonComponent = (editor: any) => {
         if (crudEntityTrait) {
           crudEntityTrait.set('visible', ['create', 'update', 'delete'].includes(actionType));
         }
+        if (methodEntityTrait) {
+          methodEntityTrait.set('visible', actionType === 'execute-method');
+        }
+        if (methodNameTrait) {
+          methodNameTrait.set('visible', actionType === 'execute-method');
+        }
+        if (methodEntityIdTrait) {
+          methodEntityIdTrait.set('visible', actionType === 'execute-method');
+        }
+        if (methodParametersTrait) {
+          methodParametersTrait.set('visible', actionType === 'execute-method');
+        }
+      },
+      updateMethodOptions(this: any) {
+        const methodEntity = this.get('method-entity');
+        const traits = this.get('traits');
+        const methodNameTrait = traits.where({ name: 'method-name' })[0];
+        
+        if (methodNameTrait && methodEntity) {
+          const methodOptions = getMethodOptions(methodEntity);
+          methodNameTrait.set('options', methodOptions);
+          
+          // Clear method name if it's not in the new options
+          const currentMethod = this.get('method-name');
+          const isValid = methodOptions.some(opt => opt.value === currentMethod);
+          if (!isValid) {
+            this.set('method-name', '');
+          }
+        }
       },
       updateButton(this: any) {
         const label = this.get('button-label') || 'Button';
@@ -193,6 +261,10 @@ export const registerButtonComponent = (editor: any) => {
         const targetScreen = this.get('target-screen') || '';
         const targetForm = this.get('target-form') || '';
         const crudEntity = this.get('crud-entity') || '';
+        const methodEntity = this.get('method-entity') || '';
+        const methodName = this.get('method-name') || '';
+        const methodEntityId = this.get('method-entity-id') || '';
+        const methodParameters = this.get('method-parameters') || '';
         const confirmRequired = this.get('confirmation-required') || false;
         const confirmMessage = this.get('confirmation-message') || 'Are you sure?';
         
@@ -230,6 +302,21 @@ export const registerButtonComponent = (editor: any) => {
           attrs['data-target-form'] = targetForm;
         } else if (['create', 'update', 'delete'].includes(actionType) && crudEntity) {
           attrs['data-crud-entity'] = crudEntity;
+        } else if (actionType === 'execute-method' && methodEntity && methodName) {
+          attrs['data-method-entity'] = methodEntity;
+          attrs['data-method-name'] = methodName;
+          if (methodEntityId) {
+            attrs['data-method-entity-id'] = methodEntityId;
+          }
+          if (methodParameters) {
+            attrs['data-method-parameters'] = methodParameters;
+          }
+          
+          // Get method metadata to determine if it's static
+          const methodMetadata = getMethodsByClassId(methodEntity).find(m => m.name === methodName);
+          if (methodMetadata) {
+            attrs['data-method-is-static'] = methodMetadata.isStatic ? 'true' : 'false';
+          }
         }
         
         this.addAttributes(attrs);
