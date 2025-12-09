@@ -35,19 +35,16 @@ export const GenerateCodeMenu: React.FC = () => {
   const editor = apollonEditor?.editor;
   const location = useLocation();
 
-  // Check if we're running locally (not on AWS)
   const isLocalEnvironment = BACKEND_URL === undefined ||
     (BACKEND_URL ?? '').includes('localhost') ||
     (BACKEND_URL ?? '').includes('127.0.0.1');
 
-  const isQuantumDiagram = location.pathname.includes('/quantum-editor');
-  // Placeholder for isGUINoCodeDiagram if it was intended to be used. 
-  // Assuming it might be related to a specific diagram type check.
+
   const isGUINoCodeDiagram = false;
 
   const handleGenerateCode = async (generatorType: string) => {
     // For GUI/No-Code diagrams, we don't need the apollon editor
-    if (!isGUINoCodeDiagram && !editor && !isQuantumDiagram) {
+    if (!isGUINoCodeDiagram && !editor) {
       toast.error('No diagram available to generate code from');
       return;
     }
@@ -93,17 +90,7 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      // For Quantum diagrams, we might not have 'editor' in the same way, or we do?
-      // The backend expects 'editor' object usually, but for quantum it might be different.
-      // However, useGenerateCode likely handles the API call.
-      // If editor is null, we might need to handle it.
-      // But for now, assuming editor is present or handled.
-      if (editor || isQuantumDiagram) {
-        // If isQuantumDiagram, we might pass a dummy editor or handle it in useGenerateCode.
-        // But based on previous context, the backend handles 'qiskit' type.
-        // We'll pass 'editor' if it exists, or cast it if needed.
-        // If editor is null for quantum, we might need to fix useGenerateCode.
-        // But let's assume editor is available or the hook handles it.
+      if (editor) {
         await generateCode(editor!, generatorType, diagram.title);
       }
     } catch (error) {
@@ -243,9 +230,7 @@ export const GenerateCodeMenu: React.FC = () => {
   return (
     <>
       <NavDropdown title="Generate" id="basic-nav-dropdown">
-        {isQuantumDiagram ? (
-          <Dropdown.Item onClick={() => handleGenerateCode('qiskit')}>Qiskit Code</Dropdown.Item>
-        ) : (editor ? (
+        {editor ? (
           <>
             {/* Web Dropdown */}
             <Dropdown drop="end">
@@ -311,7 +296,7 @@ export const GenerateCodeMenu: React.FC = () => {
         ) : (
           // Not yet available
           <Dropdown.Item disabled>Not yet available</Dropdown.Item>
-        ))}
+        )}
       </NavDropdown>
 
       {/* Agent Language Selection Modal (dropdown + removable list) */}
