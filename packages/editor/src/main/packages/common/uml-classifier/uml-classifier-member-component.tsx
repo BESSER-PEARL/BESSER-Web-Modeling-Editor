@@ -24,14 +24,18 @@ const UMLClassifierMemberComponentUnconnected: FunctionComponent<Props> = ({ ele
   const isObjectAttribute = element.type === ObjectElementType.ObjectAttribute;
   const isObjectMethod = element.type === ObjectElementType.ObjectMethod;
   const shouldShowIconView = settingsService.shouldShowIconView();
-  
+
   // Hide attributes and methods in icon view for object diagrams
   if ((isObjectAttribute || isObjectMethod) && shouldShowIconView) {
     return null;
   }
 
+  // Check if owner is enumeration
+  const isEnumeration = owner && 'stereotype' in owner && (owner as any).stereotype === 'enumeration';
+
   // Use displayName for class attributes/methods, fallback to name for others
-  const displayText = element.displayName || element.name;
+  // For enumerations, only show the name (no visibility or type)
+  const displayText = isEnumeration ? element.name : (element.displayName || element.name);
 
   return (
     <g>

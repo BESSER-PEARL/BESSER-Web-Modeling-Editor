@@ -47,8 +47,8 @@ export const useGenerateCode = () => {
 
   const generateCode = useCallback(
     async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]) => {
-      console.log('Starting code generation...'); 
-      
+      console.log('Starting code generation...');
+
       // Validate diagram before generation
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
@@ -66,6 +66,7 @@ export const useGenerateCode = () => {
       if (generatorType === 'web_app') {
         return await generateCodeFromProject(generatorType, config);
       }
+
 
       // Prepare body for single diagram generation
       const body: any = {
@@ -88,12 +89,12 @@ export const useGenerateCode = () => {
         if (!response.ok) {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
           console.error('Response not OK:', response.status, errorData); // Debug log
-          
+
           if (response.status === 400 && errorData.detail) {
             toast.error(`${errorData.detail}`);
             return;
           }
-          
+
 
           if (response.status === 500 && errorData.detail) {
             toast.error(`${errorData.detail}`);
@@ -104,19 +105,19 @@ export const useGenerateCode = () => {
         }
 
         const blob = await response.blob();
-        
+
         // Get the filename from the response headers
         const contentDisposition = response.headers.get('Content-Disposition');
         let filename = 'generated_code.txt'; // Default filename
-        
+
         if (contentDisposition) {
           // Try multiple patterns to extract filename
           const patterns = [
             /filename="([^"]+)"/,
-            /filename=([^;\s]+)/, 
-            /filename="?([^";\s]+)"?/ 
+            /filename=([^;\s]+)/,
+            /filename="?([^";\s]+)"?/
           ];
-          
+
           for (const pattern of patterns) {
             const match = contentDisposition.match(pattern);
             if (match) {
@@ -134,7 +135,7 @@ export const useGenerateCode = () => {
         if (error instanceof Error) {
           errorMessage = error.message;
         }
-      
+
         toast.error(`${errorMessage}`);
       }
     },
@@ -144,10 +145,10 @@ export const useGenerateCode = () => {
   const generateCodeFromProject = useCallback(
     async (generatorType: string, config?: GeneratorConfig[keyof GeneratorConfig]) => {
       console.log('Starting code generation from project...');
-      
+
       // Get the current project
       const currentProject = ProjectStorageRepository.getCurrentProject();
-      
+
       if (!currentProject) {
         toast.error('No project available for code generation');
         return;
@@ -176,7 +177,7 @@ export const useGenerateCode = () => {
         if (!response.ok) {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
           console.error('Response not OK:', response.status, errorData);
-          
+
           if (response.status === 400 && errorData.detail) {
             toast.error(`${errorData.detail}`);
             return;
@@ -191,18 +192,18 @@ export const useGenerateCode = () => {
         }
 
         const blob = await response.blob();
-        
+
         // Get the filename from the response headers
         const contentDisposition = response.headers.get('Content-Disposition');
         let filename = 'generated_code.txt'; // Default filename
-        
+
         if (contentDisposition) {
           const patterns = [
             /filename="([^"]+)"/,
-            /filename=([^;\s]+)/, 
-            /filename="?([^";\s]+)"?/ 
+            /filename=([^;\s]+)/,
+            /filename="?([^";\s]+)"?/
           ];
-          
+
           for (const pattern of patterns) {
             const match = contentDisposition.match(pattern);
             if (match) {
