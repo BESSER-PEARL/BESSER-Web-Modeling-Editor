@@ -44,7 +44,7 @@ export function QuantumEditorComponent(): JSX.Element {
     // Load initial circuit only once using useMemo
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const initialCircuit = useMemo(() => {
-        console.log('[QuantumEditor] Loading initial circuit (only once)');
+        //console.log('[QuantumEditor] Loading initial circuit (only once)');
         return loadCircuit();
     }, []); // Empty deps - only run once on mount
 
@@ -106,22 +106,22 @@ export function QuantumEditorComponent(): JSX.Element {
 
     // Handle gate double-click to open nested circuit editor
     const handleGateDoubleClick = useCallback((col: number, row: number) => {
-        console.log('[QuantumEditor] Double-clicked gate at col:', col, 'row:', row);
-        
+        //console.log('[QuantumEditor] Double-clicked gate at col:', col, 'row:', row);
+
         // ALWAYS reload from storage to get the latest saved data
-        console.log('[QuantumEditor] Reloading circuit from storage to ensure we have latest data...');
+        //console.log('[QuantumEditor] Reloading circuit from storage to ensure we have latest data...');
         const reloadedCircuit = loadCircuit();
-        console.log('[QuantumEditor] Reloaded circuit:', reloadedCircuit);
-        
+        //console.log('[QuantumEditor] Reloaded circuit:', reloadedCircuit);
+
         // Update the circuit state with reloaded data
         setCircuit(() => reloadedCircuit);
-        
+
         // Get the gate from reloaded circuit
         const gate = reloadedCircuit.columns[col]?.gates[row];
-        console.log('[QuantumEditor] Gate from reloaded circuit:', gate);
-        console.log('[QuantumEditor] Gate nestedCircuit:', gate?.nestedCircuit);
-        console.log('[QuantumEditor] Gate label:', gate?.label);
-        
+        //console.log('[QuantumEditor] Gate from reloaded circuit:', gate);
+        //console.log('[QuantumEditor] Gate nestedCircuit:', gate?.nestedCircuit);
+        //console.log('[QuantumEditor] Gate label:', gate?.label);
+
         if (gate?.isFunctionGate) {
             setNestedCircuitModal({ col, row });
         }
@@ -129,39 +129,39 @@ export function QuantumEditorComponent(): JSX.Element {
 
     // Handle saving nested circuit
     const handleSaveNestedCircuit = useCallback((col: number, row: number, nestedCircuit: Circuit, name?: string) => {
-        console.log('[QuantumEditor] handleSaveNestedCircuit called!');
-        console.log('[QuantumEditor] Saving nested circuit at col:', col, 'row:', row);
-        console.log('[QuantumEditor] Nested circuit to save:', JSON.stringify(nestedCircuit));
-        console.log('[QuantumEditor] Gate name:', name);
-        
+        //console.log('[QuantumEditor] handleSaveNestedCircuit called!');
+        //console.log('[QuantumEditor] Saving nested circuit at col:', col, 'row:', row);
+        //console.log('[QuantumEditor] Nested circuit to save:', JSON.stringify(nestedCircuit));
+        //console.log('[QuantumEditor] Gate name:', name);
+
         setCircuit((prev) => {
-            console.log('[QuantumEditor] Previous circuit columns:', prev.columns);
+            //console.log('[QuantumEditor] Previous circuit columns:', prev.columns);
             const newColumns = [...prev.columns];
             const gate = newColumns[col]?.gates[row];
-            console.log('[QuantumEditor] Current gate before update:', gate);
-            console.log('[QuantumEditor] Gate isFunctionGate:', gate?.isFunctionGate);
-            
+            //console.log('[QuantumEditor] Current gate before update:', gate);
+            //console.log('[QuantumEditor] Gate isFunctionGate:', gate?.isFunctionGate);
+
             if (gate && gate.isFunctionGate) {
                 const newGates = [...newColumns[col].gates];
-                const updatedGate = { 
-                    ...gate, 
+                const updatedGate = {
+                    ...gate,
                     nestedCircuit,
                     label: name || gate.label // Update label if name provided
                 };
                 newGates[row] = updatedGate;
                 newColumns[col] = { ...newColumns[col], gates: newGates };
-                console.log('[QuantumEditor] Updated gate with nestedCircuit:', updatedGate);
-                console.log('[QuantumEditor] Updated gate nestedCircuit defined?', !!updatedGate.nestedCircuit);
+                //console.log('[QuantumEditor] Updated gate with nestedCircuit:', updatedGate);
+                //console.log('[QuantumEditor] Updated gate nestedCircuit defined?', !!updatedGate.nestedCircuit);
                 const updated = { ...prev, columns: newColumns };
-                console.log('[QuantumEditor] Updated circuit to return:', updated);
-                
+                //console.log('[QuantumEditor] Updated circuit to return:', updated);
+
                 // Use setTimeout to ensure React has flushed the state update before saving
                 // We pass the updated circuit directly, not relying on closure
                 setTimeout(() => {
-                    console.log('[QuantumEditor] Force saving updated circuit with nested circuit');
+                    //console.log('[QuantumEditor] Force saving updated circuit with nested circuit');
                     saveCircuit(updated);
                 }, 100); // Small delay to ensure state is flushed
-                
+
                 return updated;
             }
             console.warn('[QuantumEditor] Gate not found or not a function gate');
@@ -173,22 +173,22 @@ export function QuantumEditorComponent(): JSX.Element {
 
     // Initial state cycling
     const INITIAL_STATES: InitialState[] = ['|0⟩', '|1⟩', '|+⟩', '|−⟩', '|i⟩', '|−i⟩'];
-    
+
     const handleInitialStateChange = useCallback((row: number) => {
         setCircuit((prev) => {
             // Initialize initialStates array if it doesn't exist
             const currentStates = prev.initialStates || Array(prev.qubitCount).fill('|0⟩');
             const currentState = currentStates[row] || '|0⟩';
-            
+
             // Find current state index and cycle to next
             const currentIndex = INITIAL_STATES.indexOf(currentState as InitialState);
             const nextIndex = (currentIndex + 1) % INITIAL_STATES.length;
             const newState = INITIAL_STATES[nextIndex];
-            
+
             // Create new array with updated state
             const newStates = [...currentStates];
             newStates[row] = newState;
-            
+
             return {
                 ...prev,
                 initialStates: newStates,
@@ -201,13 +201,13 @@ export function QuantumEditorComponent(): JSX.Element {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.key === 'Delete' || e.key === 'Backspace') && selectedGate) {
                 // Don't delete if focus is on an input field
-                if ((e.target as HTMLElement).tagName === 'INPUT' || 
+                if ((e.target as HTMLElement).tagName === 'INPUT' ||
                     (e.target as HTMLElement).tagName === 'TEXTAREA') {
                     return;
                 }
-                
+
                 e.preventDefault();
-                
+
                 // Delete the selected gate
                 setCircuit((prev) => {
                     const newColumns = [...prev.columns];
@@ -227,7 +227,7 @@ export function QuantumEditorComponent(): JSX.Element {
                     }
                     return trimCircuit({ ...prev, columns: newColumns });
                 });
-                
+
                 setSelectedGate(null);
             }
         };
@@ -238,7 +238,7 @@ export function QuantumEditorComponent(): JSX.Element {
 
     // Manual save handler
     const handleManualSave = () => {
-        console.log('[QuantumEditor] Manual save triggered');
+        //console.log('[QuantumEditor] Manual save triggered');
         saveCircuit(circuit);
     };
 
@@ -251,7 +251,7 @@ export function QuantumEditorComponent(): JSX.Element {
         <TooltipProvider>
             <DndProvider backend={HTML5Backend}>
                 <EditorContainer onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
-                    <EditorToolbar
+                    {/* <EditorToolbar
                         saveStatus={saveStatus}
                         canUndo={canUndo}
                         canRedo={canRedo}
@@ -261,7 +261,7 @@ export function QuantumEditorComponent(): JSX.Element {
                         onExport={handleExportJSON}
                         onImport={handleImportJSON}
                         onLoadCircuit={handleLoadCircuit}
-                    />
+                    /> */}
                     <input
                         type="file"
                         accept=".json"
@@ -277,7 +277,7 @@ export function QuantumEditorComponent(): JSX.Element {
                             <CircuitGrid
                                 ref={circuitGridRef}
                                 circuit={circuit}
-                                onGateDrop={() => {}} // Handled by global mouse up
+                                onGateDrop={() => { }} // Handled by global mouse up
                                 draggedGate={
                                     draggedGate
                                         ? { ...draggedGate, x: mousePos.x, y: mousePos.y }

@@ -41,18 +41,18 @@ export function useCircuitPersistence(
                 return;
             }
 
-            console.log('[QuantumEditor] Saving circuit, input data:', circuitData);
+            //console.log('[QuantumEditor] Saving circuit, input data:', circuitData);
             
             // Serialize to Quirk format for compact storage
             const quirkData = serializeCircuit(circuitData);
-            console.log('[QuantumEditor] Serialized quirkData:', quirkData);
-            console.log('[QuantumEditor] quirkData.gateMetadata:', quirkData.gateMetadata);
+            //console.log('[QuantumEditor] Serialized quirkData:', quirkData);
+            //console.log('[QuantumEditor] quirkData.gateMetadata:', quirkData.gateMetadata);
             
             const quantumData: QuantumCircuitData = {
                 ...quirkData,
                 version: '1.0.0'
             };
-            console.log('[QuantumEditor] Final quantumData to save:', quantumData);
+            //console.log('[QuantumEditor] Final quantumData to save:', quantumData);
 
             // Check if there are actual changes before saving
             const currentModel = project.diagrams.QuantumCircuitDiagram?.model;
@@ -60,27 +60,9 @@ export function useCircuitPersistence(
             const newModelStr = JSON.stringify(quantumData);
             
             if (currentModelStr === newModelStr) {
-                console.log('[QuantumEditor] No changes detected, skipping save');
+                //console.log('[QuantumEditor] No changes detected, skipping save');
                 setSaveStatus('saved');
                 return;
-            }
-
-            // Prevent saving if we're losing nested circuit data
-            // Check if current model has nested circuits but new model doesn't
-            const currentMetadata = (currentModel as any)?.gateMetadata || {};
-            const newMetadata = quantumData.gateMetadata || {};
-            
-            for (const key in currentMetadata) {
-                const currentGate = currentMetadata[key];
-                const newGate = newMetadata[key];
-                
-                if (currentGate?.nestedCircuit && !newGate?.nestedCircuit) {
-                    console.warn('[QuantumEditor] Blocking save: would lose nested circuit data at', key);
-                    console.warn('[QuantumEditor] Current:', currentGate);
-                    console.warn('[QuantumEditor] New:', newGate);
-                    setSaveStatus('error');
-                    return;
-                }
             }
 
             const updated = ProjectStorageRepository.updateDiagram(
@@ -94,7 +76,7 @@ export function useCircuitPersistence(
             );
 
             if (updated) {
-                console.log('[QuantumEditor] Circuit saved successfully');
+                //console.log('[QuantumEditor] Circuit saved successfully');
                 setSaveStatus('saved');
             } else {
                 console.error('[QuantumEditor] Failed to save circuit');
@@ -111,13 +93,13 @@ export function useCircuitPersistence(
             const project = ProjectStorageRepository.getCurrentProject();
             const model = project?.diagrams?.QuantumCircuitDiagram?.model;
 
-            console.log('[QuantumEditor] Loading, raw model from storage:', model);
+            //console.log('[QuantumEditor] Loading, raw model from storage:', model);
 
             if (isQuantumCircuitData(model) && model.cols.length > 0) {
-                console.log('[QuantumEditor] Loading, model.gateMetadata:', model.gateMetadata);
-                console.log('[QuantumEditor] Loading circuit from project storage');
+                //console.log('[QuantumEditor] Loading, model.gateMetadata:', model.gateMetadata);
+                //console.log('[QuantumEditor] Loading circuit from project storage');
                 const circuit = deserializeCircuit(model);
-                console.log('[QuantumEditor] Loaded circuit:', circuit);
+                //console.log('[QuantumEditor] Loaded circuit:', circuit);
                 return circuit;
             }
         } catch (error) {
@@ -163,7 +145,7 @@ export function useAutoSave(
         }
 
         saveTimeoutRef.current = setTimeout(() => {
-            console.log('[QuantumEditor] Auto-saving circuit (debounced)...');
+            //console.log('[QuantumEditor] Auto-saving circuit (debounced)...');
             saveCircuit(circuit);
         }, debounceMs);
 
@@ -178,7 +160,7 @@ export function useAutoSave(
     useEffect(() => {
         autoSaveIntervalRef.current = setInterval(() => {
             if (isInitialized) {
-                console.log('[QuantumEditor] Auto-saving circuit (periodic)...');
+                //console.log('[QuantumEditor] Auto-saving circuit (periodic)...');
                 saveCircuit(circuit);
             }
         }, intervalMs);
@@ -194,7 +176,7 @@ export function useAutoSave(
     useEffect(() => {
         const handleBeforeUnload = () => {
             if (isInitialized) {
-                console.log('[QuantumEditor] Saving circuit before unload...');
+                //console.log('[QuantumEditor] Saving circuit before unload...');
                 saveCircuit(circuit);
             }
         };

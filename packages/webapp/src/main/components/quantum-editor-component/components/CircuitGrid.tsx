@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Circuit, GateType } from '../types';
+import { Circuit, Gate as GateInterface, GateType } from '../types';
 import { COLORS, GATE_SIZE, WIRE_SPACING, TOP_MARGIN, LEFT_MARGIN } from '../layout-constants';
 import { Gate } from './Gate';
 import { GATES } from '../constants';
@@ -121,7 +121,7 @@ interface CircuitGridProps {
     circuit: Circuit;
     onGateDrop: (gateType: GateType, col: number, row: number) => void;
     draggedGate: { gate: GateType, x: number, y: number } | null;
-    onDragStart?: (gate: GateType, e: React.MouseEvent, originalPos?: { col: number, row: number }) => void;
+    onDragStart?: (gate: GateType, e: React.MouseEvent, originalPos?: { col: number, row: number }, originalGate?: GateInterface) => void;
     onGateResize?: (col: number, row: number, newHeight: number) => void;
     onGateDoubleClick?: (col: number, row: number) => void;
     previewPosition?: DropPreviewPosition | null;
@@ -231,7 +231,7 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                             >
                                 <Gate
                                     gate={gate}
-                                    onMouseDown={(e) => onDragStart && onDragStart(gate.type, e, { col: colIndex, row: rowIndex })}
+                                    onMouseDown={(e) => onDragStart && onDragStart(gate.type, e, { col: colIndex, row: rowIndex }, gate)}
                                     onResize={(newHeight) => onGateResize && onGateResize(colIndex, rowIndex, newHeight)}
                                     onDoubleClick={(e) => {
                                         e.stopPropagation();

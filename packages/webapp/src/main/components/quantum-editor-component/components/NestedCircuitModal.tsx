@@ -187,8 +187,8 @@ interface NestedCircuitModalProps {
 export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModalProps): JSX.Element {
   const [gateName, setGateName] = useState<string>(gate.label || '');
   const [circuit, setCircuit] = useState<Circuit>(() => {
-    console.log('[NestedCircuitModal] Initial gate:', gate);
-    console.log('[NestedCircuitModal] Initial nested circuit:', gate.nestedCircuit);
+    //console.log('[NestedCircuitModal] Initial gate:', gate);
+    //console.log('[NestedCircuitModal] Initial nested circuit:', gate.nestedCircuit);
     return gate.nestedCircuit || {
       columns: [],
       qubitCount: gate.height || 2,
@@ -198,17 +198,17 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
 
   // Sync with gate prop changes (when reopening modal with updated gate)
   useEffect(() => {
-    console.log('[NestedCircuitModal] useEffect - Gate changed:', gate);
-    console.log('[NestedCircuitModal] useEffect - Gate nestedCircuit:', gate.nestedCircuit);
-    console.log('[NestedCircuitModal] useEffect - Gate label:', gate.label);
+    //console.log('[NestedCircuitModal] useEffect - Gate changed:', gate);
+    //console.log('[NestedCircuitModal] useEffect - Gate nestedCircuit:', gate.nestedCircuit);
+    //console.log('[NestedCircuitModal] useEffect - Gate label:', gate.label);
     
     setGateName(gate.label || '');
     
     if (gate.nestedCircuit) {
-      console.log('[NestedCircuitModal] useEffect - Setting circuit from gate.nestedCircuit');
+      //console.log('[NestedCircuitModal] useEffect - Setting circuit from gate.nestedCircuit');
       setCircuit(gate.nestedCircuit);
     } else {
-      console.log('[NestedCircuitModal] useEffect - No nestedCircuit, creating empty circuit');
+      //console.log('[NestedCircuitModal] useEffect - No nestedCircuit, creating empty circuit');
       setCircuit({
         columns: [],
         qubitCount: gate.height || 2,
@@ -339,10 +339,10 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
   }, [draggedGate, previewPosition]);
 
   const handleSave = useCallback(() => {
-    console.log('[NestedCircuitModal] handleSave called!');
-    console.log('[NestedCircuitModal] Saving circuit:', circuit);
-    console.log('[NestedCircuitModal] Circuit columns:', circuit.columns);
-    console.log('[NestedCircuitModal] Gate name:', gateName);
+    //console.log('[NestedCircuitModal] handleSave called!');
+    //console.log('[NestedCircuitModal] Saving circuit:', circuit);
+    //console.log('[NestedCircuitModal] Circuit columns:', circuit.columns);
+    //console.log('[NestedCircuitModal] Gate name:', gateName);
     onSave(circuit, gateName);
     // Don't call onClose here - onSave already handles closing
   }, [circuit, gateName, onSave]);

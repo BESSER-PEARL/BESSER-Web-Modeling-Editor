@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Circuit, GateType } from '../types';
+import { Circuit, Gate, GateType } from '../types';
 import { GATES } from '../constants';
 import { trimCircuit } from '../utils';
 import {
@@ -13,6 +13,7 @@ export interface DragState {
     gate: GateType;
     offset: { x: number; y: number };
     originalPos?: { col: number; row: number };
+    originalGate?: Gate; // Full gate object to preserve nestedCircuit and other properties
 }
 
 export interface PreviewPosition {
@@ -31,7 +32,7 @@ interface UseCircuitDragDropReturn {
     draggedGate: DragState | null;
     mousePos: { x: number; y: number };
     previewPosition: PreviewPosition | null;
-    handleDragStart: (gate: GateType, e: React.MouseEvent, originalPos?: { col: number; row: number }) => void;
+    handleDragStart: (gate: GateType, e: React.MouseEvent, originalPos?: { col: number; row: number }, originalGate?: Gate) => void;
     handleMouseMove: (e: React.MouseEvent) => void;
     handleMouseUp: (e: React.MouseEvent) => void;
 }
@@ -102,7 +103,7 @@ export function useCircuitDragDrop({
     );
 
     const handleDragStart = useCallback(
-        (gate: GateType, e: React.MouseEvent, originalPos?: { col: number; row: number }) => {
+        (gate: GateType, e: React.MouseEvent, originalPos?: { col: number; row: number }, originalGate?: Gate) => {
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
             setDraggedGate({
                 gate,
@@ -111,6 +112,7 @@ export function useCircuitDragDrop({
                     y: e.clientY - rect.top,
                 },
                 originalPos,
+                originalGate,
             });
             setMousePos({ x: e.clientX, y: e.clientY });
             e.stopPropagation();
@@ -147,7 +149,7 @@ export function useCircuitDragDrop({
     );
 
     const handleGateDrop = useCallback(
-        (gateType: GateType, col: number, row: number, originalPos?: { col: number; row: number }) => {
+        (gateType: GateType, col: number, row: number, originalPos?: { col: number; row: number }, originalGate?: Gate) => {
             setCircuit((prev) => {
                 // Find the full gate definition from GATES
                 const gateDefinition = GATES.find((g) => g.type === gateType);
@@ -251,7 +253,12 @@ export function useCircuitDragDrop({
 
                 // Place the gate
                 const newGates = [...newColumns[targetCol].gates];
-                const newGate = {
+                // Preserve original gate properties (including nestedCircuit) when moving
+                const newGate = originalGate ? {
+                    ...gateDefinition,
+                    ...originalGate,
+                    id: Date.now().toString(),
+                } : {
                     ...gateDefinition,
                     id: Date.now().toString(),
                 };
@@ -301,7 +308,7 @@ export function useCircuitDragDrop({
                         const gateHeight = gateDefinition?.height || 1;
 
                         if (col >= 0 && row >= 0 && row < 16 && row + gateHeight <= 16) {
-                            handleGateDrop(draggedGate.gate, col, row, draggedGate.originalPos);
+                            handleGateDrop(draggedGate.gate, col, row, draggedGate.originalPos, draggedGate.originalGate);
                             droppedOnGrid = true;
                         }
                     }
