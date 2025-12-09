@@ -1,6 +1,5 @@
 import React, { useContext, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
-import { useLocation } from 'react-router-dom';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig } from '../../../services/generate-code/useGenerateCode';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
@@ -33,14 +32,11 @@ export const GenerateCodeMenu: React.FC = () => {
   const diagram = useAppSelector((state) => state.diagram.diagram);
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
-  const location = useLocation();
 
+  // Check if we're running locally (not on AWS)
   const isLocalEnvironment = BACKEND_URL === undefined ||
     (BACKEND_URL ?? '').includes('localhost') ||
     (BACKEND_URL ?? '').includes('127.0.0.1');
-
-
-  const isGUINoCodeDiagram = false;
 
   const handleGenerateCode = async (generatorType: string) => {
     // For GUI/No-Code diagrams, we don't need the apollon editor
@@ -91,7 +87,7 @@ export const GenerateCodeMenu: React.FC = () => {
 
     try {
       if (editor) {
-        await generateCode(editor!, generatorType, diagram.title);
+        await generateCode(editor, generatorType, diagram.title);
       }
     } catch (error) {
       console.error('Error in code generation:', error);
@@ -222,15 +218,28 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
       setShowJsonSchemaConfig(false);
     } catch (error) {
-      console.error('Error in JSON Schema generation:', error);
-      toast.error('JSON Schema generation failed');
+      console.error('Error in JSON Schema code generation:', error);
+      toast.error('JSON Schema code generation failed');
     }
   };
 
+  const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
+  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+
   return (
     <>
-      <NavDropdown title="Generate" id="basic-nav-dropdown">
-        {editor ? (
+      <NavDropdown title="Generate" className="pt-0 pb-0">
+        {isGUINoCodeDiagram ? (
+          // No-Code Diagram: Show No-Code generation options
+          <>
+            <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
+          </>
+        ) : isAgentDiagram ? (
+          // Agent Diagram: Show agent generation option
+          <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
+        ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
+          // ...existing code...
           <>
             {/* Web Dropdown */}
             <Dropdown drop="end">
