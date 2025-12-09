@@ -123,13 +123,14 @@ interface CircuitGridProps {
     draggedGate: { gate: GateType, x: number, y: number } | null;
     onDragStart?: (gate: GateType, e: React.MouseEvent, originalPos?: { col: number, row: number }) => void;
     onGateResize?: (col: number, row: number, newHeight: number) => void;
+    onGateDoubleClick?: (col: number, row: number) => void;
     previewPosition?: DropPreviewPosition | null;
     selectedGate?: { col: number, row: number } | null;
     onGateSelect?: (col: number, row: number) => void;
     onInitialStateChange?: (row: number) => void;
 }
 
-export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, previewPosition, selectedGate, onGateSelect, onInitialStateChange }, ref) => {
+export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, onGateDoubleClick, previewPosition, selectedGate, onGateSelect, onInitialStateChange }, ref) => {
     const wires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
     
     // Get initial state for a wire (defaults to |0⟩)
@@ -232,6 +233,12 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                                     gate={gate}
                                     onMouseDown={(e) => onDragStart && onDragStart(gate.type, e, { col: colIndex, row: rowIndex })}
                                     onResize={(newHeight) => onGateResize && onGateResize(colIndex, rowIndex, newHeight)}
+                                    onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        if (gate.isFunctionGate) {
+                                            onGateDoubleClick?.(colIndex, rowIndex);
+                                        }
+                                    }}
                                 />
                             </GateWrapper>
                         );

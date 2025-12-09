@@ -16,6 +16,8 @@ export interface GrapesJSProjectData {
 export interface QuantumCircuitData {
   cols: any[][]; // Each column is an array where 1 = empty, strings = gate symbols
   gates: any[]; // Custom gates (optional)
+  gateMetadata?: Record<string, any>; // Metadata for gates with nested circuits, custom labels, etc.
+  initialStates?: string[]; // Initial qubit states
   version?: string;
 }
 

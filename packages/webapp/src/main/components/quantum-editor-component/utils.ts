@@ -1,6 +1,59 @@
 import { Circuit, CircuitColumn, Gate } from './types';
 import { GATES } from './constants';
 
+/**
+ * Restores gate definitions from GATES constant to ensure drawer functions and other
+ * properties are present after deserialization from JSON
+ */
+function restoreGateDefinition(gate: any): Gate {
+    // Find the full gate definition from GATES
+    const gateDefinition = GATES.find(g => g.type === gate.type);
+    
+    if (gateDefinition) {
+        // Merge the serialized properties with the full definition
+        return {
+            ...gateDefinition,
+            ...gate,
+            // Ensure drawer comes from definition (can't be serialized)
+            drawer: gateDefinition.drawer,
+            // Preserve these from serialized gate if they exist
+            id: gate.id,
+            label: gate.label || gateDefinition.label,
+            height: gate.height || gateDefinition.height,
+            nestedCircuit: gate.nestedCircuit, // Will be restored recursively if needed
+        };
+    }
+    
+    // Fallback if gate type not found in GATES
+    return gate;
+}
+
+/**
+ * Recursively restores gate definitions in a circuit's nested circuits
+ */
+function restoreCircuitGateDefinitions(circuit: Circuit): Circuit {
+    const restoredColumns = circuit.columns.map(column => ({
+        gates: column.gates.map(gate => {
+            if (!gate) return null;
+            
+            // Restore the gate definition
+            const restoredGate = restoreGateDefinition(gate);
+            
+            // If gate has nested circuit, restore it recursively
+            if (restoredGate.nestedCircuit) {
+                restoredGate.nestedCircuit = restoreCircuitGateDefinitions(restoredGate.nestedCircuit);
+            }
+            
+            return restoredGate;
+        })
+    }));
+    
+    return {
+        ...circuit,
+        columns: restoredColumns
+    };
+}
+
 export function trimCircuit(circuit: Circuit): Circuit {
     const columns = circuit.columns;
 
@@ -45,9 +98,12 @@ function isColumnEmpty(column: CircuitColumn): boolean {
  * @returns Quirk-compatible JSON object
  */
 export function serializeCircuit(circuit: Circuit): any {
+    console.log('[serializeCircuit] Starting serialization, circuit:', circuit);
     const cols: any[] = [];
+    const gateMetadata: Record<string, any> = {}; // Store additional gate data
 
-    for (const column of circuit.columns) {
+    for (let colIndex = 0; colIndex < circuit.columns.length; colIndex++) {
+        const column = circuit.columns[colIndex];
         const col: any[] = [];
         let row = 0;
 
@@ -59,6 +115,25 @@ export function serializeCircuit(circuit: Circuit): any {
                 col.push(1);
                 row++;
                 continue;
+            }
+
+            // Store metadata for ALL function gates, including nested circuits and custom labels
+            if (gate.isFunctionGate || gate.nestedCircuit) {
+                const metadataKey = `${colIndex}_${row}`;
+                console.log(`[serializeCircuit] Storing metadata for gate at ${metadataKey}:`, {
+                    type: gate.type,
+                    label: gate.label,
+                    isFunctionGate: gate.isFunctionGate,
+                    hasNestedCircuit: !!gate.nestedCircuit,
+                    nestedCircuit: gate.nestedCircuit,
+                });
+                gateMetadata[metadataKey] = {
+                    nestedCircuit: gate.nestedCircuit,
+                    label: gate.label,
+                    type: gate.type,
+                    isFunctionGate: gate.isFunctionGate,
+                    height: gate.height,
+                };
             }
 
             // Map gate type to symbol
@@ -78,10 +153,15 @@ export function serializeCircuit(circuit: Circuit): any {
         cols.push(col);
     }
 
-    return {
+    const result = {
         cols,
-        gates: [] // Custom gates would go here
+        gates: [], // Custom gates would go here
+        gateMetadata, // Store our additional metadata
+        initialStates: circuit.initialStates, // Preserve initial states
     };
+    console.log('[serializeCircuit] Serialization complete, result:', result);
+    console.log('[serializeCircuit] gateMetadata:', gateMetadata);
+    return result;
 }
 
 /**
@@ -91,6 +171,11 @@ function mapGateToQuirkSymbol(gate: any): string | number {
     // Control gates
     if (gate.isControl) {
         return gate.type === 'ANTI_CONTROL' ? '◦' : '•';
+    }
+
+    // Function gates - use a special prefix to ensure proper deserialization
+    if (gate.isFunctionGate || gate.type === 'FUNCTION' || gate.type === 'ORACLE' || gate.type === 'UNITARY') {
+        return `__FUNC__${gate.type}`;
     }
 
     // Interleave/Deinterleave gates use <<N notation where N is the height
@@ -165,11 +250,15 @@ export function downloadCircuitAsJSON(circuit: Circuit, filename: string = 'quan
  * @returns Reconstructed Circuit object
  */
 export function deserializeCircuit(data: any): Circuit {
+    console.log('[deserializeCircuit] Starting deserialization, data:', data);
     if (!data || !data.cols || !Array.isArray(data.cols)) {
         throw new Error("Invalid Quirk JSON format: missing 'cols' array");
     }
 
     const cols = data.cols;
+    const gateMetadata = data.gateMetadata || {};
+    console.log('[deserializeCircuit] gateMetadata:', gateMetadata);
+    const initialStates = data.initialStates;
     const columns: CircuitColumn[] = [];
     let maxWires = 0;
 
@@ -184,7 +273,7 @@ export function deserializeCircuit(data: any): Circuit {
     const qubitCount = Math.max(5, maxWires);
 
     // Second pass: reconstruct columns and gates
-    cols.forEach((colData: any[]) => {
+    cols.forEach((colData: any[], colIndex: number) => {
         const gates: (Gate | null)[] = Array(qubitCount).fill(null);
 
         if (Array.isArray(colData)) {
@@ -198,6 +287,28 @@ export function deserializeCircuit(data: any): Circuit {
                 if (gate) {
                     // Assign a unique ID for React
                     gate.id = `${gate.type}-${Date.now()}-${Math.random()}`;
+
+                    // Restore metadata (nested circuits, custom labels, function gate flags)
+                    const metadataKey = `${colIndex}_${row}`;
+                    console.log(`[deserializeCircuit] Looking for metadata at ${metadataKey}`);
+                    if (gateMetadata[metadataKey]) {
+                        const metadata = gateMetadata[metadataKey];
+                        console.log(`[deserializeCircuit] Found metadata:`, metadata);
+                        if (metadata.nestedCircuit) {
+                            // Restore gate definitions in nested circuit (including drawer functions)
+                            gate.nestedCircuit = restoreCircuitGateDefinitions(metadata.nestedCircuit);
+                            console.log(`[deserializeCircuit] Restored nestedCircuit for gate`);
+                        }
+                        if (metadata.label) {
+                            gate.label = metadata.label;
+                        }
+                        if (metadata.isFunctionGate) {
+                            gate.isFunctionGate = true;
+                        }
+                        if (metadata.height) {
+                            gate.height = metadata.height;
+                        }
+                    }
 
                     gates[row] = gate;
 
@@ -224,7 +335,8 @@ export function deserializeCircuit(data: any): Circuit {
 
     return {
         columns,
-        qubitCount
+        qubitCount,
+        initialStates: initialStates || Array(qubitCount).fill('|0⟩'),
     };
 }
 
@@ -242,6 +354,16 @@ function mapQuirkSymbolToGate(symbol: string | number): Gate | null {
     if (symbol === '◦') {
         const antiControlGate = GATES.find(g => g.type === 'ANTI_CONTROL');
         return antiControlGate ? { ...antiControlGate } : null;
+    }
+
+    // Handle Function Gates (with our special prefix)
+    if (typeof symbol === 'string' && symbol.startsWith('__FUNC__')) {
+        const gateType = symbol.substring(8); // Remove '__FUNC__' prefix
+        console.log(`[mapQuirkSymbolToGate] Found function gate, type: ${gateType}`);
+        const functionGate = GATES.find(g => g.type === gateType);
+        if (functionGate) {
+            return { ...functionGate, isFunctionGate: true };
+        }
     }
 
     // Handle Multi-wire gates (<<N)

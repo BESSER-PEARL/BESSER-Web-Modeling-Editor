@@ -61,14 +61,27 @@ const ResizeTab = styled.div<{ $show: boolean }>`
   }
 `;
 
+const NestedIndicator = styled.div`
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  border: 1px solid white;
+  z-index: 10;
+`;
+
 interface GateProps {
   gate: GateType;
   onMouseDown?: (e: React.MouseEvent) => void;
   onResize?: (newHeight: number) => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
   isDragging?: boolean;
 }
 
-export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GateProps): JSX.Element {
+export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = false }: GateProps): JSX.Element {
   const [showResizeTab, setShowResizeTab] = useState(false);
   const { showTooltip, hideTooltip } = useTooltip();
   const width = (gate.width || 1) * GATE_SIZE;
@@ -76,12 +89,17 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
   const isControl = gate.isControl || false;
   const isAntiControl = gate.type === 'ANTI_CONTROL';
   const canResize = gate.canResize || false;
+  const isFunctionGate = gate.isFunctionGate || false;
+  const hasNestedCircuit = isFunctionGate && gate.nestedCircuit && gate.nestedCircuit.columns.length > 0;
 
   const handleMouseEnter = (e: React.MouseEvent) => {
     if (isDragging) return;
     setShowResizeTab(true);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    showTooltip(rect.right + 5, rect.top, gate.label || gate.type, gate.description || '');
+    const tooltip = isFunctionGate 
+      ? `${gate.label} - Double-click to edit nested circuit${hasNestedCircuit ? ' (configured)' : ' (empty)'}` 
+      : (gate.description || '');
+    showTooltip(rect.right + 5, rect.top, gate.label || gate.type, tooltip);
   };
 
   const handleMouseLeave = () => {
@@ -126,11 +144,13 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
         $isControl={isControl}
         $noBorder={gate.noBorder}
         onMouseDown={onMouseDown}
+        onDoubleClick={isFunctionGate ? onDoubleClick : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        style={{ opacity: isDragging ? 0.5 : 1 }}
+        style={{ opacity: isDragging ? 0.5 : 1, cursor: isFunctionGate ? 'pointer' : 'grab' }}
       >
         {gate.drawer({ rect: { x: 0, y: 0, width, height } })}
+        {hasNestedCircuit && <NestedIndicator title="Nested circuit configured" />}
         {canResize && (
           <ResizeTab
             $show={showResizeTab}
@@ -166,11 +186,13 @@ export function Gate({ gate, onMouseDown, onResize, isDragging = false }: GatePr
       $isControl={false}
       $backgroundColor={gate.backgroundColor}
       onMouseDown={onMouseDown}
+      onDoubleClick={isFunctionGate ? onDoubleClick : undefined}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      style={{ opacity: isDragging ? 0.5 : 1 }}
+      style={{ opacity: isDragging ? 0.5 : 1, cursor: isFunctionGate ? 'pointer' : 'grab' }}
     >
       {gate.symbol || gate.label}
+      {hasNestedCircuit && <NestedIndicator title="Nested circuit configured" />}
       {canResize && (
         <ResizeTab
           $show={showResizeTab}

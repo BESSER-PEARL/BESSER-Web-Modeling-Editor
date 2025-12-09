@@ -18,7 +18,8 @@ import {
     PhaseIGate, PhaseMinusIGate, PhaseSqrtIGate, PhaseSqrtMinusIGate, OneGate, MinusOneGate,
     ZPowTGate, ZPowNegTGate, YPowTGate, YPowNegTGate, XPowTGate, XPowNegTGate,
     ZFuncTGate, RzFuncTGate, YFuncTGate, RyFuncTGate, XFuncTGate, RxFuncTGate, TimeShiftGate, TimeShiftInverseGate,
-    SampleGate, DetectGate, AxisSampleGate
+    SampleGate, DetectGate, AxisSampleGate,
+    FunctionGate, OracleGate, UnitaryGate
 } from './gates';
 
 export * from './layout-constants';
@@ -168,6 +169,11 @@ export const GATES: Gate[] = [
     { ...OneGate, id: 'one', isControl: false },
     { ...MinusOneGate, id: 'minus-one', isControl: false },
 
+    // Function Gates
+    { ...FunctionGate, id: 'function', isControl: false, isFunctionGate: true },
+    { ...OracleGate, id: 'oracle', isControl: false, isFunctionGate: true },
+    { ...UnitaryGate, id: 'unitary', isControl: false, isFunctionGate: true },
+
     // Others
     { type: 'SPACER', id: 'spacer', label: '…', symbol: '…', description: 'Spacer', isControl: false },
 ];
@@ -250,15 +256,15 @@ export const TOOLBOX_GROUPS = [
         gates: ['Z_FUNC_T', 'RZ_FUNC_T', 'Y_FUNC_T', 'RY_FUNC_T', 'X_FUNC_T', 'RX_FUNC_T']
     },
     {
-        name: 'Modular',
-        toolbox: 'Toolbox2',
-        gates: ['MOD_INC', 'MOD_DEC', 'MOD_ADD', 'MOD_SUB', 'MOD_MUL', 'MOD_INV_MUL', 'MOD_MUL_B', 'MOD_MUL_B_INV']
-    },
-    {
         name: 'Scalar',
         toolbox: 'Toolbox2',
         gates: ['ONE', 'MINUS_ONE', 'PHASE_I', 'PHASE_MINUS_I', 'PHASE_SQRT_I', 'PHASE_SQRT_MINUS_I']
     },
+    {
+        name: 'Functions',
+        toolbox: 'Toolbox2',
+        gates: ['FUNCTION', 'ORACLE', 'UNITARY']
+    }
     // {
     //     name: 'Custom',
     //     toolbox: 'Toolbox2',

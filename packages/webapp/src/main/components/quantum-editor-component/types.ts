@@ -17,6 +17,8 @@ export interface Gate {
     maxHeight?: number; // Maximum height for resizable gates (default 16)
     backgroundColor?: string; // Optional override for gate background color
     noBorder?: boolean; // If true, removes the standard gate border and background
+    nestedCircuit?: Circuit; // Nested circuit for function gates
+    isFunctionGate?: boolean; // Whether this is a function gate (supports nested circuits)
 }
 
 export interface CircuitColumn {

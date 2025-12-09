@@ -15,3 +15,4 @@ export * from './ObscureGates';
 export * from './ScalarGates';
 export * from './TimeDependentGates';
 export * from './SamplingGates';
+export * from './FunctionGates';
