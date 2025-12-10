@@ -93,18 +93,16 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      // For Quantum diagrams, we might not have 'editor' in the same way, or we do?
-      // The backend expects 'editor' object usually, but for quantum it might be different.
-      // However, useGenerateCode likely handles the API call.
-      // If editor is null, we might need to handle it.
-      // But for now, assuming editor is present or handled.
-      if (editor || isQuantumDiagram) {
-        // If isQuantumDiagram, we might pass a dummy editor or handle it in useGenerateCode.
-        // But based on previous context, the backend handles 'qiskit' type.
-        // We'll pass 'editor' if it exists, or cast it if needed.
-        // If editor is null for quantum, we might need to fix useGenerateCode.
-        // But let's assume editor is available or the hook handles it.
-        await generateCode(editor!, generatorType, diagram.title);
+      // For quantum diagrams generating qiskit code, editor is not needed (uses project data)
+      // For other generators, editor is required
+      if (isQuantumDiagram && generatorType === 'qiskit') {
+        // Pass null for editor since qiskit generator uses project data
+        await generateCode(null, generatorType, diagram.title);
+      } else if (editor) {
+        // Regular UML diagrams use editor
+        await generateCode(editor, generatorType, diagram.title);
+      } else {
+        toast.error('No diagram available to generate code from');
       }
     } catch (error) {
       console.error('Error in code generation:', error);

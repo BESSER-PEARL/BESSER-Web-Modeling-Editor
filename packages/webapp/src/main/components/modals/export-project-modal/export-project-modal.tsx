@@ -374,15 +374,19 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
   };
 
   const handleExport = async (format: string) => {
-    if (!editor) {
+    // For image exports (SVG, PNG), we need the Apollon editor
+    const isImageExport = ['SVG', 'PNG_WHITE', 'PNG'].includes(format);
+    if (isImageExport && !editor) {
       toast.error('No diagram available to export');
       return;
     }
     
+    // For JSON/BUML exports, we need the project data
     if (!currentProject) {
       toast.error('No project available to export');
       return;
     }
+    
     const requiresSelection = formatsRequiringSelection.has(format);
     if (requiresSelection && selectedDiagrams.length === 0) {
       toast.error('Select at least one diagram to export.');
@@ -392,13 +396,13 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
     try {
       switch (format) {
         case 'SVG':
-          await exportAsSVG(editor, diagram.title);
+          await exportAsSVG(editor!, diagram.title);
           break;
         case 'PNG_WHITE':
-          await exportAsPNG(editor, diagram.title, true);
+          await exportAsPNG(editor!, diagram.title, true);
           break;
         case 'PNG':
-          await exportAsPNG(editor, diagram.title, false);
+          await exportAsPNG(editor!, diagram.title, false);
           break;
         case 'JSON':
           await exportProjectById(currentProject, selectedDiagrams);

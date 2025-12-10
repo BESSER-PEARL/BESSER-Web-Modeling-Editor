@@ -46,22 +46,9 @@ export const useGenerateCode = () => {
   const downloadFile = useFileDownload();
 
   const generateCode = useCallback(
-    async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]) => {
+    async (editor: ApollonEditor | null | undefined, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]) => {
       console.log('Starting code generation...'); 
       
-      // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
-      if (!validationResult.isValid) {
-        toast.error(validationResult.message || 'Validation failed');
-        return;
-      }
-
-      if (!editor || !editor.model) {
-        console.error('No editor or model available');
-        toast.error('No diagram to generate code from');
-        return;
-      }
-
       // For Web App generator, send the entire project
       if (generatorType === 'web_app') {
         return await generateCodeFromProject(generatorType, config);
@@ -70,6 +57,20 @@ export const useGenerateCode = () => {
       // For Qiskit generator, send the entire project (needs QuantumCircuitDiagram)
       if (generatorType === 'qiskit') {
         return await generateCodeFromProject(generatorType, config);
+      }
+
+      // For other generators, we need the editor and model
+      if (!editor || !editor.model) {
+        console.error('No editor or model available');
+        toast.error('No diagram to generate code from');
+        return;
+      }
+
+      // Validate diagram before generation
+      const validationResult = await validateDiagram(editor, diagramTitle);
+      if (!validationResult.isValid) {
+        toast.error(validationResult.message || 'Validation failed');
+        return;
       }
 
       // Prepare body for single diagram generation
