@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Circuit } from '../types';
 import { serializeCircuit, deserializeCircuit } from '../utils';
 import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
-import { QuantumCircuitData, isQuantumCircuitData } from '../../../types/project';
+import { QuantumCircuitData, isQuantumCircuitData, BesserProject } from '../../../types/project';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
 
@@ -21,6 +21,7 @@ interface UseCircuitPersistenceReturn {
  * Custom hook to handle circuit persistence (load/save to project storage)
  */
 export function useCircuitPersistence(
+    currentProject?: BesserProject | null,
     options: UseCircuitPersistenceOptions = {}
 ): UseCircuitPersistenceReturn {
     const {
@@ -33,7 +34,9 @@ export function useCircuitPersistence(
     const saveCircuit = useCallback((circuitData: Circuit) => {
         try {
             setSaveStatus('saving');
-            const project = ProjectStorageRepository.getCurrentProject();
+            const project = currentProject?.id
+                ? ProjectStorageRepository.loadProject(currentProject.id)
+                : ProjectStorageRepository.getCurrentProject();
 
             if (!project) {
                 console.error('[saveCircuit] No project found');
@@ -73,11 +76,13 @@ export function useCircuitPersistence(
             console.error('[useCircuitPersistence] Error saving circuit:', error);
             setSaveStatus('error');
         }
-    }, []);
+    }, [currentProject?.id]);
 
     const loadCircuit = useCallback((): Circuit => {
         try {
-            const project = ProjectStorageRepository.getCurrentProject();
+            const project = currentProject?.id
+                ? ProjectStorageRepository.loadProject(currentProject.id)
+                : ProjectStorageRepository.getCurrentProject();
             const model = project?.diagrams?.QuantumCircuitDiagram?.model;
 
             if (isQuantumCircuitData(model) && model.cols.length > 0) {
@@ -92,7 +97,7 @@ export function useCircuitPersistence(
             columns: [],
             qubitCount: 5,
         };
-    }, []);
+    }, [currentProject?.id]);
 
     return {
         saveStatus,

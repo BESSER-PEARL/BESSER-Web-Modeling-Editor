@@ -164,12 +164,14 @@ export function serializeCircuit(circuit: Circuit): any {
         while (row < column.gates.length) {
             const gate = column.gates[row];
 
-            if (!gate) {
-                // Empty cell - use 1 (identity) in format
+            // Empty or occupied cells are encoded as identity (1)
+            if (!gate || gate.type === 'OCCUPIED') {
                 col.push(1);
                 row++;
                 continue;
             }
+
+            const gateHeight = gate.height || 1;
 
             // Store metadata for ALL function gates, including nested circuits and custom labels
             if (gate.isFunctionGate || gate.nestedCircuit) {
@@ -181,7 +183,7 @@ export function serializeCircuit(circuit: Circuit): any {
                     label: gate.label,
                     type: gate.type,
                     isFunctionGate: gate.isFunctionGate,
-                    height: gate.height,
+                    height: gateHeight,
                     backgroundColor: gate.backgroundColor,
                 };
             }
@@ -190,14 +192,12 @@ export function serializeCircuit(circuit: Circuit): any {
             let symbol: string | number = mapGateToQuirkSymbol(gate);
             col.push(symbol);
 
-            // For multi-wire gates, skip the occupied rows (they're null in our format)
-            const gateHeight = gate.height || 1;
-            row++; // Move past the gate itself
-
-            // Skip the null entries that mark occupied rows
-            for (let i = 1; i < gateHeight; i++) {
-                row++; // Skip occupied row
+            // For multi-wire gates, add placeholders for occupied rows to preserve alignment
+            for (let i = 1; i < gateHeight && (row + i) < column.gates.length; i++) {
+                col.push(1);
             }
+
+            row += gateHeight;
         }
 
         cols.push(col);
@@ -348,9 +348,14 @@ export function deserializeCircuit(data: any): Circuit {
                         const metadata = gateMetadata[metadataKey];
                         //console.log(`[deserializeCircuit] Found metadata:`, metadata);
                         if (metadata.nestedCircuit) {
-                            // Restore gate definitions in nested circuit (including drawer functions)
-                            gate.nestedCircuit = restoreCircuitGateDefinitions(metadata.nestedCircuit);
-                            //console.log(`[deserializeCircuit] Restored nestedCircuit for gate`);
+                            try {
+                                const nestedCircuit = deserializeCircuit(metadata.nestedCircuit);
+                                // Restore gate definitions in nested circuit (including drawer functions)
+                                gate.nestedCircuit = restoreCircuitGateDefinitions(nestedCircuit);
+                                //console.log(`[deserializeCircuit] Restored nestedCircuit for gate`);
+                            } catch (err) {
+                                console.error('[deserializeCircuit] Failed to restore nested circuit metadata', err);
+                            }
                         }
                         if (metadata.label) {
                             gate.label = metadata.label;

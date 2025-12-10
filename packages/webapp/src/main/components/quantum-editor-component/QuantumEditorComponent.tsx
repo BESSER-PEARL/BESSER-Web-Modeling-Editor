@@ -43,7 +43,7 @@ export function QuantumEditorComponent(): JSX.Element {
     const { currentProject } = useProject();
     
     // Persistence
-    const { saveStatus, saveCircuit, loadCircuit } = useCircuitPersistence();
+    const { saveStatus, saveCircuit, loadCircuit } = useCircuitPersistence(currentProject);
 
     // Load initial circuit - reload when project changes
     const initialCircuit = useMemo(() => {
@@ -147,17 +147,9 @@ export function QuantumEditorComponent(): JSX.Element {
                 newGates[row] = updatedGate;
                 newColumns[col] = { ...newColumns[col], gates: newGates };
                 //console.log('[QuantumEditor] Updated gate with nestedCircuit:', updatedGate);
-                //console.log('[QuantumEditor] Updated gate nestedCircuit defined?', !!updatedGate.nestedCircuit);
                 const updated = { ...prev, columns: newColumns };
-                //console.log('[QuantumEditor] Updated circuit to return:', updated);
-
-                // Use setTimeout to ensure React has flushed the state update before saving
-                // We pass the updated circuit directly, not relying on closure
-                setTimeout(() => {
-                    //console.log('[QuantumEditor] Force saving updated circuit with nested circuit');
-                    saveCircuit(updated);
-                }, 100); // Small delay to ensure state is flushed
-
+                // Save immediately with the updated snapshot to persist nested edits
+                saveCircuit(updated);
                 return updated;
             }
             console.warn('[QuantumEditor] Gate not found or not a function gate');
