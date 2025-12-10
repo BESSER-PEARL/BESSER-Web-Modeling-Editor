@@ -36,7 +36,6 @@ export function useCircuitPersistence(
             const project = ProjectStorageRepository.getCurrentProject();
 
             if (!project) {
-                console.warn('[useCircuitPersistence] No active project found');
                 setSaveStatus('error');
                 return;
             }
@@ -48,11 +47,9 @@ export function useCircuitPersistence(
                 const currentColCount = currentModel.cols?.length || 0;
                 const newColCount = circuitData.columns?.length || 0;
                 
-                // If the new circuit has significantly fewer columns and both have content,
+                // If the new circuit has fewer columns and both have content,
                 // this might be stale data from a project switch - skip saving
                 if (currentColCount > 0 && newColCount < currentColCount) {
-                    console.warn('[useCircuitPersistence] Skipping save - new circuit has fewer columns than stored:', 
-                        newColCount, 'vs', currentColCount, '(possible stale data during project switch)');
                     setSaveStatus('saved');
                     return;
                 }
@@ -75,8 +72,6 @@ export function useCircuitPersistence(
                 return;
             }
 
-            console.log('[useCircuitPersistence] Saving circuit with', circuitData.columns?.length, 'columns');
-
             const updated = ProjectStorageRepository.updateDiagram(
                 project.id,
                 'QuantumCircuitDiagram',
@@ -88,10 +83,8 @@ export function useCircuitPersistence(
             );
 
             if (updated) {
-                console.log('[useCircuitPersistence] Circuit saved successfully');
                 setSaveStatus('saved');
             } else {
-                console.error('[useCircuitPersistence] Failed to save circuit');
                 setSaveStatus('error');
             }
         } catch (error) {
@@ -101,28 +94,17 @@ export function useCircuitPersistence(
     }, []);
 
     const loadCircuit = useCallback((): Circuit => {
-        console.log('[useCircuitPersistence] loadCircuit called');
         try {
             const project = ProjectStorageRepository.getCurrentProject();
-            console.log('[useCircuitPersistence] Current project from storage:', project?.id, project?.name);
-            
             const model = project?.diagrams?.QuantumCircuitDiagram?.model;
-            console.log('[useCircuitPersistence] Raw model from storage:', model);
 
             if (isQuantumCircuitData(model) && model.cols.length > 0) {
-                console.log('[useCircuitPersistence] Valid quantum data found, cols:', model.cols.length);
-                console.log('[useCircuitPersistence] gateMetadata:', model.gateMetadata);
-                const circuit = deserializeCircuit(model);
-                console.log('[useCircuitPersistence] Deserialized circuit:', circuit);
-                return circuit;
-            } else {
-                console.log('[useCircuitPersistence] No valid quantum data, isQuantumCircuitData:', isQuantumCircuitData(model), 'model type:', typeof model, 'model:', model);
+                return deserializeCircuit(model);
             }
         } catch (error) {
             console.error('[useCircuitPersistence] Error loading circuit:', error);
         }
 
-        console.log('[useCircuitPersistence] Returning default empty circuit');
         // Return default empty circuit
         return {
             columns: [],
@@ -156,7 +138,6 @@ export function useAutoSave(
     // Track project changes to prevent saving stale data
     useEffect(() => {
         if (lastProjectIdRef.current !== projectId) {
-            console.log('[useAutoSave] Project changed from', lastProjectIdRef.current, 'to', projectId, '- blocking auto-save temporarily');
             isProjectSwitchingRef.current = true;
             lastProjectIdRef.current = projectId;
             
@@ -166,12 +147,10 @@ export function useAutoSave(
                 saveTimeoutRef.current = null;
             }
             
-            // Re-enable auto-save after a longer delay to let the circuit state fully update
-            // This needs to be longer than React's state update cycle
+            // Re-enable auto-save after a delay to let the circuit state fully update
             setTimeout(() => {
-                console.log('[useAutoSave] Re-enabling auto-save for project:', projectId);
                 isProjectSwitchingRef.current = false;
-            }, 2000); // Increased from 500ms to 2000ms
+            }, 2000);
         }
     }, [projectId]);
 
@@ -184,7 +163,6 @@ export function useAutoSave(
 
         // Don't save during project switch
         if (isProjectSwitchingRef.current) {
-            console.log('[useAutoSave] Skipping auto-save - project is switching');
             return;
         }
 
@@ -195,7 +173,6 @@ export function useAutoSave(
         saveTimeoutRef.current = setTimeout(() => {
             // Double-check we're not in a project switch
             if (!isProjectSwitchingRef.current) {
-                console.log('[useAutoSave] Auto-saving circuit (debounced) for project:', projectId);
                 saveCircuit(circuit);
             }
         }, debounceMs);
@@ -211,7 +188,6 @@ export function useAutoSave(
     useEffect(() => {
         autoSaveIntervalRef.current = setInterval(() => {
             if (isInitialized && !isProjectSwitchingRef.current) {
-                console.log('[useAutoSave] Auto-saving circuit (periodic) for project:', projectId);
                 saveCircuit(circuit);
             }
         }, intervalMs);
@@ -227,7 +203,6 @@ export function useAutoSave(
     useEffect(() => {
         const handleBeforeUnload = () => {
             if (isInitialized && !isProjectSwitchingRef.current) {
-                console.log('[useAutoSave] Saving circuit before unload...');
                 saveCircuit(circuit);
             }
         };

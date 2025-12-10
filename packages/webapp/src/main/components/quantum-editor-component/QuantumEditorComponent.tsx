@@ -42,17 +42,12 @@ export function QuantumEditorComponent(): JSX.Element {
     // Project context
     const { currentProject } = useProject();
     
-    console.log('[QuantumEditor] Component render, currentProject:', currentProject?.id, currentProject?.name);
-
     // Persistence
     const { saveStatus, saveCircuit, loadCircuit } = useCircuitPersistence();
 
     // Load initial circuit - reload when project changes
     const initialCircuit = useMemo(() => {
-        console.log('[QuantumEditor] useMemo triggered - loading circuit for project:', currentProject?.id);
-        const circuit = loadCircuit();
-        console.log('[QuantumEditor] Loaded circuit:', circuit);
-        return circuit;
+        return loadCircuit();
     }, [currentProject?.id, loadCircuit]);
 
     // Circuit state with undo/redo
@@ -64,8 +59,6 @@ export function QuantumEditorComponent(): JSX.Element {
         canUndo,
         canRedo,
     } = useUndoRedo(initialCircuit);
-    
-    console.log('[QuantumEditor] Current circuit state:', circuit);
 
     // Auto-save - pass project ID to prevent saving stale data during project switch
     useAutoSave(circuit, saveCircuit, currentProject?.id);

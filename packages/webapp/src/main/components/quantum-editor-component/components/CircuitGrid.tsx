@@ -131,7 +131,6 @@ interface CircuitGridProps {
 }
 
 export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, onGateDoubleClick, previewPosition, selectedGate, onGateSelect, onInitialStateChange }, ref) => {
-    console.log('[CircuitGrid] Rendering with circuit:', circuit);
     const wires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
     
     // Get initial state for a wire (defaults to |0⟩)
