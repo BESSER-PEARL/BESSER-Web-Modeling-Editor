@@ -5,6 +5,7 @@ import { GATES } from './constants';
 import { Circuit, InitialState } from './types';
 import { trimCircuit } from './utils';
 import { GatePalette, CircuitGrid, Gate, TooltipProvider, EditorToolbar, NestedCircuitModal } from './components';
+import { useProject } from '../../hooks/useProject';
 import {
     useUndoRedo,
     useCircuitPersistence,
@@ -38,15 +39,21 @@ import {
 export function QuantumEditorComponent(): JSX.Element {
     const circuitGridRef = useRef<HTMLDivElement>(null);
 
+    // Project context
+    const { currentProject } = useProject();
+    
+    console.log('[QuantumEditor] Component render, currentProject:', currentProject?.id, currentProject?.name);
+
     // Persistence
     const { saveStatus, saveCircuit, loadCircuit } = useCircuitPersistence();
 
-    // Load initial circuit only once using useMemo
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Load initial circuit - reload when project changes
     const initialCircuit = useMemo(() => {
-        //console.log('[QuantumEditor] Loading initial circuit (only once)');
-        return loadCircuit();
-    }, []); // Empty deps - only run once on mount
+        console.log('[QuantumEditor] useMemo triggered - loading circuit for project:', currentProject?.id);
+        const circuit = loadCircuit();
+        console.log('[QuantumEditor] Loaded circuit:', circuit);
+        return circuit;
+    }, [currentProject?.id, loadCircuit]);
 
     // Circuit state with undo/redo
     const {
@@ -57,9 +64,11 @@ export function QuantumEditorComponent(): JSX.Element {
         canUndo,
         canRedo,
     } = useUndoRedo(initialCircuit);
+    
+    console.log('[QuantumEditor] Current circuit state:', circuit);
 
-    // Auto-save
-    useAutoSave(circuit, saveCircuit);
+    // Auto-save - pass project ID to prevent saving stale data during project switch
+    useAutoSave(circuit, saveCircuit, currentProject?.id);
 
     // Drag and drop
     const {

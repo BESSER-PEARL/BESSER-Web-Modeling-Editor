@@ -9,8 +9,8 @@ import { Circuit } from '../types';
  */
 export const FunctionGate: GateDefinition = {
     type: 'FUNCTION',
-    label: 'f(x)',
-    symbol: 'f(x)',
+    label: 'f',
+    symbol: 'f',
     description: 'Function gate - double click to edit nested circuit',
     width: 1,
     height: 2,
@@ -18,6 +18,7 @@ export const FunctionGate: GateDefinition = {
     minHeight: 2,
     maxHeight: 16,
     backgroundColor: '#FFE8CC',
+    isFunctionGate: true,
     // No drawer - let the Gate component render using the label property
     // This allows the custom name to be displayed properly
 };
@@ -27,7 +28,7 @@ export const FunctionGate: GateDefinition = {
  */
 export const CustomFunctionGate = (label: string = 'g'): GateDefinition => ({
     type: 'CUSTOM_FUNCTION',
-    label: `${label}(x)`,
+    label: label,
     symbol: label,
     description: `Custom function ${label} - double click to edit nested circuit`,
     width: 1,
@@ -35,6 +36,7 @@ export const CustomFunctionGate = (label: string = 'g'): GateDefinition => ({
     canResize: true,
     minHeight: 2,
     maxHeight: 16,
+    isFunctionGate: true,
     drawer: ({ rect }) => (
         <svg width={rect.width} height={rect.height} style={{ overflow: 'visible' }}>
             <rect
@@ -56,7 +58,7 @@ export const CustomFunctionGate = (label: string = 'g'): GateDefinition => ({
                 fontWeight="bold"
                 fill="#333"
             >
-                {label}(x)
+                {label}
             </text>
             <text
                 x={rect.width / 2}
@@ -84,6 +86,7 @@ export const OracleGate: GateDefinition = {
     canResize: true,
     minHeight: 2,
     maxHeight: 16,
+    isFunctionGate: true,
     drawer: ({ rect }) => (
         <svg width={rect.width} height={rect.height} style={{ overflow: 'visible' }}>
             <rect
@@ -142,6 +145,7 @@ export const UnitaryGate: GateDefinition = {
     canResize: true,
     minHeight: 2,
     maxHeight: 16,
+    isFunctionGate: true,
     drawer: ({ rect }) => (
         <svg width={rect.width} height={rect.height} style={{ overflow: 'visible' }}>
             <rect

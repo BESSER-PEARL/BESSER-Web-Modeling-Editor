@@ -36,34 +36,46 @@ export function useCircuitPersistence(
             const project = ProjectStorageRepository.getCurrentProject();
 
             if (!project) {
-                console.warn('[QuantumEditor] No active project found');
+                console.warn('[useCircuitPersistence] No active project found');
                 setSaveStatus('error');
                 return;
             }
 
-            //console.log('[QuantumEditor] Saving circuit, input data:', circuitData);
+            // Check if we're about to overwrite a larger circuit with a smaller one
+            // This can happen during project switching when stale data is saved
+            const currentModel = project.diagrams.QuantumCircuitDiagram?.model;
+            if (isQuantumCircuitData(currentModel)) {
+                const currentColCount = currentModel.cols?.length || 0;
+                const newColCount = circuitData.columns?.length || 0;
+                
+                // If the new circuit has significantly fewer columns and both have content,
+                // this might be stale data from a project switch - skip saving
+                if (currentColCount > 0 && newColCount < currentColCount) {
+                    console.warn('[useCircuitPersistence] Skipping save - new circuit has fewer columns than stored:', 
+                        newColCount, 'vs', currentColCount, '(possible stale data during project switch)');
+                    setSaveStatus('saved');
+                    return;
+                }
+            }
             
             // Serialize to Quirk format for compact storage
             const quirkData = serializeCircuit(circuitData);
-            //console.log('[QuantumEditor] Serialized quirkData:', quirkData);
-            //console.log('[QuantumEditor] quirkData.gateMetadata:', quirkData.gateMetadata);
             
             const quantumData: QuantumCircuitData = {
                 ...quirkData,
                 version: '1.0.0'
             };
-            //console.log('[QuantumEditor] Final quantumData to save:', quantumData);
 
             // Check if there are actual changes before saving
-            const currentModel = project.diagrams.QuantumCircuitDiagram?.model;
             const currentModelStr = JSON.stringify(currentModel);
             const newModelStr = JSON.stringify(quantumData);
             
             if (currentModelStr === newModelStr) {
-                //console.log('[QuantumEditor] No changes detected, skipping save');
                 setSaveStatus('saved');
                 return;
             }
+
+            console.log('[useCircuitPersistence] Saving circuit with', circuitData.columns?.length, 'columns');
 
             const updated = ProjectStorageRepository.updateDiagram(
                 project.id,
@@ -76,36 +88,41 @@ export function useCircuitPersistence(
             );
 
             if (updated) {
-                //console.log('[QuantumEditor] Circuit saved successfully');
+                console.log('[useCircuitPersistence] Circuit saved successfully');
                 setSaveStatus('saved');
             } else {
-                console.error('[QuantumEditor] Failed to save circuit');
+                console.error('[useCircuitPersistence] Failed to save circuit');
                 setSaveStatus('error');
             }
         } catch (error) {
-            console.error('[QuantumEditor] Error saving circuit:', error);
+            console.error('[useCircuitPersistence] Error saving circuit:', error);
             setSaveStatus('error');
         }
     }, []);
 
     const loadCircuit = useCallback((): Circuit => {
+        console.log('[useCircuitPersistence] loadCircuit called');
         try {
             const project = ProjectStorageRepository.getCurrentProject();
+            console.log('[useCircuitPersistence] Current project from storage:', project?.id, project?.name);
+            
             const model = project?.diagrams?.QuantumCircuitDiagram?.model;
-
-            //console.log('[QuantumEditor] Loading, raw model from storage:', model);
+            console.log('[useCircuitPersistence] Raw model from storage:', model);
 
             if (isQuantumCircuitData(model) && model.cols.length > 0) {
-                //console.log('[QuantumEditor] Loading, model.gateMetadata:', model.gateMetadata);
-                //console.log('[QuantumEditor] Loading circuit from project storage');
+                console.log('[useCircuitPersistence] Valid quantum data found, cols:', model.cols.length);
+                console.log('[useCircuitPersistence] gateMetadata:', model.gateMetadata);
                 const circuit = deserializeCircuit(model);
-                //console.log('[QuantumEditor] Loaded circuit:', circuit);
+                console.log('[useCircuitPersistence] Deserialized circuit:', circuit);
                 return circuit;
+            } else {
+                console.log('[useCircuitPersistence] No valid quantum data, isQuantumCircuitData:', isQuantumCircuitData(model), 'model type:', typeof model, 'model:', model);
             }
         } catch (error) {
-            console.error('[QuantumEditor] Error loading circuit:', error);
+            console.error('[useCircuitPersistence] Error loading circuit:', error);
         }
 
+        console.log('[useCircuitPersistence] Returning default empty circuit');
         // Return default empty circuit
         return {
             columns: [],
@@ -126,12 +143,37 @@ export function useCircuitPersistence(
 export function useAutoSave(
     circuit: Circuit,
     saveCircuit: (circuit: Circuit) => void,
+    projectId: string | undefined,
     options: { debounceMs?: number; intervalMs?: number } = {}
 ) {
     const { debounceMs = 1000, intervalMs = 30000 } = options;
     const [isInitialized, setIsInitialized] = useState(false);
     const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const lastProjectIdRef = useRef<string | undefined>(projectId);
+    const isProjectSwitchingRef = useRef(false);
+
+    // Track project changes to prevent saving stale data
+    useEffect(() => {
+        if (lastProjectIdRef.current !== projectId) {
+            console.log('[useAutoSave] Project changed from', lastProjectIdRef.current, 'to', projectId, '- blocking auto-save temporarily');
+            isProjectSwitchingRef.current = true;
+            lastProjectIdRef.current = projectId;
+            
+            // Clear any pending save
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = null;
+            }
+            
+            // Re-enable auto-save after a longer delay to let the circuit state fully update
+            // This needs to be longer than React's state update cycle
+            setTimeout(() => {
+                console.log('[useAutoSave] Re-enabling auto-save for project:', projectId);
+                isProjectSwitchingRef.current = false;
+            }, 2000); // Increased from 500ms to 2000ms
+        }
+    }, [projectId]);
 
     // Debounced save on circuit changes
     useEffect(() => {
@@ -140,13 +182,22 @@ export function useAutoSave(
             return;
         }
 
+        // Don't save during project switch
+        if (isProjectSwitchingRef.current) {
+            console.log('[useAutoSave] Skipping auto-save - project is switching');
+            return;
+        }
+
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current);
         }
 
         saveTimeoutRef.current = setTimeout(() => {
-            //console.log('[QuantumEditor] Auto-saving circuit (debounced)...');
-            saveCircuit(circuit);
+            // Double-check we're not in a project switch
+            if (!isProjectSwitchingRef.current) {
+                console.log('[useAutoSave] Auto-saving circuit (debounced) for project:', projectId);
+                saveCircuit(circuit);
+            }
         }, debounceMs);
 
         return () => {
@@ -154,13 +205,13 @@ export function useAutoSave(
                 clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [circuit, saveCircuit, isInitialized, debounceMs]);
+    }, [circuit, saveCircuit, isInitialized, debounceMs, projectId]);
 
     // Periodic auto-save
     useEffect(() => {
         autoSaveIntervalRef.current = setInterval(() => {
-            if (isInitialized) {
-                //console.log('[QuantumEditor] Auto-saving circuit (periodic)...');
+            if (isInitialized && !isProjectSwitchingRef.current) {
+                console.log('[useAutoSave] Auto-saving circuit (periodic) for project:', projectId);
                 saveCircuit(circuit);
             }
         }, intervalMs);
@@ -170,13 +221,13 @@ export function useAutoSave(
                 clearInterval(autoSaveIntervalRef.current);
             }
         };
-    }, [circuit, saveCircuit, isInitialized, intervalMs]);
+    }, [circuit, saveCircuit, isInitialized, intervalMs, projectId]);
 
     // Save before unload
     useEffect(() => {
         const handleBeforeUnload = () => {
-            if (isInitialized) {
-                //console.log('[QuantumEditor] Saving circuit before unload...');
+            if (isInitialized && !isProjectSwitchingRef.current) {
+                console.log('[useAutoSave] Saving circuit before unload...');
                 saveCircuit(circuit);
             }
         };
@@ -184,9 +235,8 @@ export function useAutoSave(
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
-            if (isInitialized) {
-                saveCircuit(circuit);
-            }
+            // Don't save on cleanup - this causes issues during project switch
+            // The circuit is already auto-saved periodically
         };
     }, [circuit, saveCircuit, isInitialized]);
 

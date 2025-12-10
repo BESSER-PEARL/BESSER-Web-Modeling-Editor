@@ -18,4 +18,7 @@ export interface GateDefinition {
     canResize?: boolean; // Whether this gate can be resized
     minHeight?: number; // Minimum height for resizable gates (default 2)
     maxHeight?: number; // Maximum height for resizable gates (default 16)
+
+    // Function gate flag - marks gates that contain nested circuits
+    isFunctionGate?: boolean; // True for FUNCTION, ORACLE, UNITARY gates
 }

@@ -84,14 +84,58 @@ export function trimCircuit(circuit: Circuit): Circuit {
     // But preserves internal empty columns (gaps)
     const newColumns = columns.slice(firstNonEmpty, lastNonEmpty + 1);
 
-    return {
+    // Trim unused qubits (rows)
+    const { columns: trimmedColumns, qubitCount: trimmedQubitCount } = trimUnusedQubits({
         ...circuit,
         columns: newColumns
+    });
+
+    return {
+        ...circuit,
+        columns: trimmedColumns,
+        qubitCount: trimmedQubitCount,
+        initialStates: circuit.initialStates?.slice(0, trimmedQubitCount) || Array(trimmedQubitCount).fill('|0⟩')
     };
 }
 
 function isColumnEmpty(column: CircuitColumn): boolean {
     return column.gates.every(g => g === null);
+}
+
+/**
+ * Trims trailing empty qubit rows from the circuit
+ */
+function trimUnusedQubits(circuit: Circuit): { columns: CircuitColumn[]; qubitCount: number } {
+    if (circuit.columns.length === 0) {
+        return { columns: [], qubitCount: Math.max(3, circuit.qubitCount) }; // Keep minimum 3 qubits
+    }
+
+    // Find the last used qubit row across all columns
+    let lastUsedQubit = 0;
+    for (const column of circuit.columns) {
+        for (let row = column.gates.length - 1; row >= 0; row--) {
+            const gate = column.gates[row];
+            if (gate && gate.type !== 'OCCUPIED') {
+                lastUsedQubit = Math.max(lastUsedQubit, row);
+                break;
+            }
+        }
+    }
+
+    // Keep at least 3 qubits, or up to the last used qubit + 1
+    const newQubitCount = Math.max(3, lastUsedQubit + 1);
+
+    // If no trimming needed, return as-is
+    if (newQubitCount >= circuit.qubitCount) {
+        return { columns: circuit.columns, qubitCount: circuit.qubitCount };
+    }
+
+    // Trim each column to the new qubit count
+    const trimmedColumns = circuit.columns.map(column => ({
+        gates: column.gates.slice(0, newQubitCount)
+    }));
+
+    return { columns: trimmedColumns, qubitCount: newQubitCount };
 }
 
 /**
@@ -122,8 +166,10 @@ export function serializeCircuit(circuit: Circuit): any {
             // Store metadata for ALL function gates, including nested circuits and custom labels
             if (gate.isFunctionGate || gate.nestedCircuit) {
                 const metadataKey = `${colIndex}_${row}`;
+                // Serialize nested circuit recursively to Quirk format
+                const serializedNested = gate.nestedCircuit ? serializeCircuit(gate.nestedCircuit) : undefined;
                 gateMetadata[metadataKey] = {
-                    nestedCircuit: gate.nestedCircuit,
+                    nestedCircuit: serializedNested,
                     label: gate.label,
                     type: gate.type,
                     isFunctionGate: gate.isFunctionGate,
@@ -169,9 +215,12 @@ function mapGateToQuirkSymbol(gate: any): string | number {
         return gate.type === 'ANTI_CONTROL' ? '◦' : '•';
     }
 
-    // Function gates - use a special prefix to ensure proper deserialization
+    // Function gates - prefix with __FUNC__ to avoid conflicts with standard gates
     if (gate.isFunctionGate || gate.type === 'FUNCTION' || gate.type === 'ORACLE' || gate.type === 'UNITARY') {
-        return `__FUNC__${gate.type}`;
+        // Use __FUNC__ prefix with the gate's label (e.g., __FUNC__Uf, __FUNC__V)
+        // This prevents conflicts if user names a function "Measure", "H", etc.
+        const label = gate.label || gate.type;
+        return `__FUNC__${label}`;
     }
 
     // Interleave/Deinterleave gates use <<N notation where N is the height
@@ -355,14 +404,22 @@ function mapQuirkSymbolToGate(symbol: string | number): Gate | null {
         return antiControlGate ? { ...antiControlGate } : null;
     }
 
-    // Handle Function Gates (with our special prefix)
-    if (typeof symbol === 'string' && symbol.startsWith('__FUNC__')) {
-        const gateType = symbol.substring(8); // Remove '__FUNC__' prefix
-        //console.log(`[mapQuirkSymbolToGate] Found function gate, type: ${gateType}`);
-        const functionGate = GATES.find(g => g.type === gateType);
-        if (functionGate) {
-            return { ...functionGate, isFunctionGate: true };
+    // Handle Function Gates
+    // Check for old format (__FUNC__TYPE) or new format (custom label)
+    if (typeof symbol === 'string') {
+        if (symbol.startsWith('__FUNC__')) {
+            // Old format with prefix
+            const gateType = symbol.substring(8); // Remove '__FUNC__' prefix
+            //console.log(`[mapQuirkSymbolToGate] Found function gate, type: ${gateType}`);
+            const functionGate = GATES.find(g => g.type === gateType);
+            if (functionGate) {
+                return { ...functionGate, isFunctionGate: true };
+            }
         }
+        // If we reach here and the symbol doesn't match any standard gate,
+        // it might be a custom function gate label (like "Uf", "V")
+        // These will be restored from metadata, so return a placeholder
+        // that will be populated with metadata later
     }
 
     // Handle Multi-wire gates (<<N)
@@ -420,9 +477,23 @@ function mapQuirkSymbolToGate(symbol: string | number): Gate | null {
         if (match) return { ...match };
     }
 
-    // Fallback: Create a generic gate with the symbol
+    // Fallback: If symbol doesn't match any standard gate, assume it's a function gate label
+    // (like "Uf", "V", "Oracle", etc.)
+    // These will be fully restored from gateMetadata, but we create a placeholder here
+    const functionGateTemplate = GATES.find(g => g.type === 'FUNCTION');
+    if (functionGateTemplate && typeof symbol === 'string' && symbol.length <= 20) {
+        // Likely a custom function gate label
+        return {
+            ...functionGateTemplate,
+            label: symbol,
+            isFunctionGate: true,
+            height: 1, // Will be overridden by metadata
+        };
+    }
+    
+    // Final fallback: Create a mystery gate for truly unknown symbols
     return {
-        type: 'MYSTERY', // Use Mystery gate for unknown symbols
+        type: 'MYSTERY',
         id: 'unknown',
         label: symbol.toString(),
         symbol: symbol.toString(),
