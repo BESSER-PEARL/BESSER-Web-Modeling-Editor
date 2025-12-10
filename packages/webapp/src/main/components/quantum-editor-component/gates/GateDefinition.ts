@@ -7,6 +7,7 @@ export interface GateDefinition {
     description?: string;
     width?: number; // Columns spanned (default 1)
     height?: number; // Wires spanned (default 1)
+    backgroundColor?: string; // Optional override for gate background color
 
     // Custom drawer function. 
     // If present, it overrides the default box rendering.

@@ -16,6 +16,8 @@ function restoreGateDefinition(gate: any): Gate {
             ...gate,
             // Ensure drawer comes from definition (can't be serialized)
             drawer: gateDefinition.drawer,
+            // Ensure isControl comes from definition (critical for control/anti-control rendering)
+            isControl: gateDefinition.isControl,
             // Preserve these from serialized gate if they exist
             id: gate.id,
             label: gate.label || gateDefinition.label,
@@ -126,6 +128,7 @@ export function serializeCircuit(circuit: Circuit): any {
                     type: gate.type,
                     isFunctionGate: gate.isFunctionGate,
                     height: gate.height,
+                    backgroundColor: gate.backgroundColor,
                 };
             }
 
@@ -300,6 +303,9 @@ export function deserializeCircuit(data: any): Circuit {
                         }
                         if (metadata.height) {
                             gate.height = metadata.height;
+                        }
+                        if (metadata.backgroundColor) {
+                            gate.backgroundColor = metadata.backgroundColor;
                         }
                     }
 

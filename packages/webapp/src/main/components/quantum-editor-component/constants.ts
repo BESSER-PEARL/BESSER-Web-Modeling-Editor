@@ -19,7 +19,7 @@ import {
     ZPowTGate, ZPowNegTGate, YPowTGate, YPowNegTGate, XPowTGate, XPowNegTGate,
     ZFuncTGate, RzFuncTGate, YFuncTGate, RyFuncTGate, XFuncTGate, RxFuncTGate, TimeShiftGate, TimeShiftInverseGate,
     SampleGate, DetectGate, AxisSampleGate,
-    FunctionGate, OracleGate, UnitaryGate
+    FunctionGate
 } from './gates';
 
 export * from './layout-constants';
@@ -171,8 +171,6 @@ export const GATES: Gate[] = [
 
     // Function Gates
     { ...FunctionGate, id: 'function', isControl: false, isFunctionGate: true },
-    { ...OracleGate, id: 'oracle', isControl: false, isFunctionGate: true },
-    { ...UnitaryGate, id: 'unitary', isControl: false, isFunctionGate: true },
 
     // Others
     { type: 'SPACER', id: 'spacer', label: '…', symbol: '…', description: 'Spacer', isControl: false },
@@ -263,7 +261,7 @@ export const TOOLBOX_GROUPS = [
     {
         name: 'Functions',
         toolbox: 'Toolbox2',
-        gates: ['FUNCTION', 'ORACLE', 'UNITARY']
+        gates: ['FUNCTION']
     }
     // {
     //     name: 'Custom',

@@ -128,11 +128,12 @@ export function QuantumEditorComponent(): JSX.Element {
     }, [loadCircuit, setCircuit]);
 
     // Handle saving nested circuit
-    const handleSaveNestedCircuit = useCallback((col: number, row: number, nestedCircuit: Circuit, name?: string) => {
+    const handleSaveNestedCircuit = useCallback((col: number, row: number, nestedCircuit: Circuit, name?: string, color?: string) => {
         //console.log('[QuantumEditor] handleSaveNestedCircuit called!');
         //console.log('[QuantumEditor] Saving nested circuit at col:', col, 'row:', row);
         //console.log('[QuantumEditor] Nested circuit to save:', JSON.stringify(nestedCircuit));
         //console.log('[QuantumEditor] Gate name:', name);
+        //console.log('[QuantumEditor] Gate color:', color);
 
         setCircuit((prev) => {
             //console.log('[QuantumEditor] Previous circuit columns:', prev.columns);
@@ -146,7 +147,8 @@ export function QuantumEditorComponent(): JSX.Element {
                 const updatedGate = {
                     ...gate,
                     nestedCircuit,
-                    label: name || gate.label // Update label if name provided
+                    label: name || gate.label, // Update label if name provided
+                    backgroundColor: color || gate.backgroundColor // Update color if provided
                 };
                 newGates[row] = updatedGate;
                 newColumns[col] = { ...newColumns[col], gates: newGates };
@@ -308,8 +310,8 @@ export function QuantumEditorComponent(): JSX.Element {
                             key={`${nestedCircuitModal.col}-${nestedCircuitModal.row}`}
                             gate={circuit.columns[nestedCircuitModal.col]?.gates[nestedCircuitModal.row]!}
                             onClose={() => setNestedCircuitModal(null)}
-                            onSave={(nestedCircuit: Circuit, name?: string) => {
-                                handleSaveNestedCircuit(nestedCircuitModal.col, nestedCircuitModal.row, nestedCircuit, name);
+                            onSave={(nestedCircuit: Circuit, name?: string, color?: string) => {
+                                handleSaveNestedCircuit(nestedCircuitModal.col, nestedCircuitModal.row, nestedCircuit, name, color);
                                 setNestedCircuitModal(null);
                             }}
                         />

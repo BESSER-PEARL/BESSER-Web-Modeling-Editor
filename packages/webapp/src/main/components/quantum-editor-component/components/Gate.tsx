@@ -191,7 +191,7 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
       onMouseLeave={handleMouseLeave}
       style={{ opacity: isDragging ? 0.5 : 1, cursor: isFunctionGate ? 'pointer' : 'grab' }}
     >
-      {gate.symbol || gate.label}
+      {isFunctionGate ? gate.label : (gate.symbol || gate.label)}
       {hasNestedCircuit && <NestedIndicator title="Nested circuit configured" />}
       {canResize && (
         <ResizeTab

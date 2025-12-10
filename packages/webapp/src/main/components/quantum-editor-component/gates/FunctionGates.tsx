@@ -5,51 +5,21 @@ import { Circuit } from '../types';
 /**
  * Function Gate - A gate that contains a nested circuit
  * Double-click to open and edit the nested circuit
+ * The gate label is shown dynamically based on the user-defined name
  */
 export const FunctionGate: GateDefinition = {
     type: 'FUNCTION',
     label: 'f(x)',
-    symbol: 'f',
+    symbol: 'f(x)',
     description: 'Function gate - double click to edit nested circuit',
     width: 1,
     height: 2,
     canResize: true,
     minHeight: 2,
     maxHeight: 16,
-    drawer: ({ rect }) => (
-        <svg width={rect.width} height={rect.height} style={{ overflow: 'visible' }}>
-            <rect
-                x={0}
-                y={0}
-                width={rect.width}
-                height={rect.height}
-                fill="#FFE8CC"
-                stroke="#333"
-                strokeWidth={1.5}
-                rx={3}
-            />
-            <text
-                x={rect.width / 2}
-                y={rect.height / 2}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={14}
-                fontWeight="bold"
-                fill="#333"
-            >
-                f(x)
-            </text>
-            <text
-                x={rect.width / 2}
-                y={rect.height - 8}
-                textAnchor="middle"
-                fontSize={9}
-                fill="#666"
-            >
-                ⇆ double-click
-            </text>
-        </svg>
-    ),
+    backgroundColor: '#FFE8CC',
+    // No drawer - let the Gate component render using the label property
+    // This allows the custom name to be displayed properly
 };
 
 /**

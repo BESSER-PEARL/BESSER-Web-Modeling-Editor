@@ -181,11 +181,12 @@ const CircuitContainer = styled.div`
 interface NestedCircuitModalProps {
   gate: Gate;
   onClose: () => void;
-  onSave: (circuit: Circuit, name?: string) => void;
+  onSave: (circuit: Circuit, name?: string, color?: string) => void;
 }
 
 export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModalProps): JSX.Element {
   const [gateName, setGateName] = useState<string>(gate.label || '');
+  const [gateColor, setGateColor] = useState<string>(gate.backgroundColor || '#FFE8CC');
   const [circuit, setCircuit] = useState<Circuit>(() => {
     //console.log('[NestedCircuitModal] Initial gate:', gate);
     //console.log('[NestedCircuitModal] Initial nested circuit:', gate.nestedCircuit);
@@ -203,6 +204,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
     //console.log('[NestedCircuitModal] useEffect - Gate label:', gate.label);
     
     setGateName(gate.label || '');
+    setGateColor(gate.backgroundColor || '#FFE8CC');
     
     if (gate.nestedCircuit) {
       //console.log('[NestedCircuitModal] useEffect - Setting circuit from gate.nestedCircuit');
@@ -309,12 +311,11 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
         }
       }
       
+      // Create new gate by spreading the full gate definition to preserve all properties
+      // including isControl, drawer, symbol, etc.
       const newGate: Gate = {
+        ...gateDefinition,
         id: `${draggedGate.gate}-${Date.now()}`,
-        type: draggedGate.gate,
-        label: gateDefinition.label,
-        height: gateHeight,
-        canResize: gateDefinition.canResize || false,
       };
       
       newGates[previewPosition.row] = newGate;
@@ -343,9 +344,10 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
     //console.log('[NestedCircuitModal] Saving circuit:', circuit);
     //console.log('[NestedCircuitModal] Circuit columns:', circuit.columns);
     //console.log('[NestedCircuitModal] Gate name:', gateName);
-    onSave(circuit, gateName);
+    //console.log('[NestedCircuitModal] Gate color:', gateColor);
+    onSave(circuit, gateName, gateColor);
     // Don't call onClose here - onSave already handles closing
-  }, [circuit, gateName, onSave]);
+  }, [circuit, gateName, gateColor, onSave]);
 
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -406,6 +408,41 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
             onChange={(e) => setGateName(e.target.value)}
             autoFocus
           />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '14px', color: '#666' }}>Gate Color:</span>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {['#FFE8CC', '#E8F4FF', '#E8FFE8', '#FFE8E8', '#F0E8FF', '#FFF8E8', '#E8FFFF', '#FFE8F4'].map((color) => (
+                <button
+                  key={color}
+                  onClick={() => setGateColor(color)}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    border: gateColor === color ? '2px solid #333' : '1px solid #ccc',
+                    backgroundColor: color,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                  title={color}
+                />
+              ))}
+              <input
+                type="color"
+                value={gateColor}
+                onChange={(e) => setGateColor(e.target.value)}
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  padding: 0,
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+                title="Custom color"
+              />
+            </div>
+          </div>
         </ModalHeader>
         
         <ModalBody>
