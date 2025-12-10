@@ -1,12 +1,12 @@
 ﻿import { Editor } from 'grapesjs';
 
-// Guard to prevent duplicate initialization
-let pageSystemInitialized = false;
+// Track initialization per editor instance
 let pagesListRaf: number | null = null;
 
 export function setupPageSystem(editor: Editor) {
-  if (pageSystemInitialized) return;
-  pageSystemInitialized = true;
+  // Check if this specific editor already has the page system initialized
+  if ((editor as any).__pageSystemInitialized) return;
+  (editor as any).__pageSystemInitialized = true;
   
   console.log('[Page System] Initializing');
   initializePagesPanel(editor);
@@ -294,14 +294,26 @@ function updatePagesList(editor: Editor) {
 function setupPageCommands(editor: Editor) {
   editor.Commands.add('show-pages', {
     run() {
-      const panel = document.querySelector('.pages-panel-container') as HTMLElement;
+      // Look for panel in the editor's container specifically
+      const editorContainer = editor.getContainer();
+      const panel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
       if (panel) {
         panel.style.display = 'flex';
         updatePagesList(editor);
+      } else {
+        console.warn('[Pages] Panel not found, re-initializing...');
+        // Re-create the panel if it doesn't exist
+        initializePagesPanel(editor);
+        const newPanel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
+        if (newPanel) {
+          newPanel.style.display = 'flex';
+          updatePagesList(editor);
+        }
       }
     },
     stop() {
-      const panel = document.querySelector('.pages-panel-container') as HTMLElement;
+      const editorContainer = editor.getContainer();
+      const panel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
       if (panel) panel.style.display = 'none';
     }
   });
