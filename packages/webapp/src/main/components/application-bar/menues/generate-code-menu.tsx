@@ -2,7 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
 import { useLocation } from 'react-router-dom';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
-import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig } from '../../../services/generate-code/useGenerateCode';
+import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
@@ -26,6 +26,9 @@ export const GenerateCodeMenu: React.FC = () => {
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<'regular' | 'smart_data'>('regular');
   const [loadingAgent, setLoadingAgent] = useState(false);
+  const [showQiskitConfig, setShowQiskitConfig] = useState(false);
+  const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
+  const [qiskitShots, setQiskitShots] = useState<number>(1024);
 
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
@@ -93,11 +96,10 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      // For quantum diagrams generating qiskit code, editor is not needed (uses project data)
-      // For other generators, editor is required
+      // For quantum diagrams generating qiskit code, show config modal
       if (isQuantumDiagram && generatorType === 'qiskit') {
-        // Pass null for editor since qiskit generator uses project data
-        await generateCode(null, generatorType, diagram.title);
+        setShowQiskitConfig(true);
+        return;
       } else if (editor) {
         // Regular UML diagrams use editor
         await generateCode(editor, generatorType, diagram.title);
@@ -235,6 +237,21 @@ export const GenerateCodeMenu: React.FC = () => {
     } catch (error) {
       console.error('Error in JSON Schema generation:', error);
       toast.error('JSON Schema generation failed');
+    }
+  };
+
+  const handleQiskitGenerate = async () => {
+    try {
+      const qiskitConfig: QiskitConfig = {
+        backend: qiskitBackend,
+        shots: qiskitShots
+      };
+      // Pass null for editor since qiskit generator uses project data
+      await generateCode(null, 'qiskit', diagram.title, qiskitConfig);
+      setShowQiskitConfig(false);
+    } catch (error) {
+      console.error('Error in Qiskit code generation:', error);
+      toast.error('Qiskit code generation failed');
     }
   };
 
@@ -574,6 +591,54 @@ export const GenerateCodeMenu: React.FC = () => {
             Cancel
           </Button>
           <Button variant="primary" onClick={handleJsonSchemaGenerate}>
+            Generate
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Qiskit Configuration Modal */}
+      <Modal show={showQiskitConfig} onHide={() => setShowQiskitConfig(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Qiskit Backend Configuration</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Execution Backend</Form.Label>
+              <Form.Select
+                value={qiskitBackend}
+                onChange={(e) => setQiskitBackend(e.target.value as 'aer_simulator' | 'fake_backend' | 'ibm_quantum')}
+              >
+                <option value="aer_simulator">Aer Simulator (Local)</option>
+                <option value="fake_backend">Moke Simulation (Noise Simulation)</option>
+                <option value="ibm_quantum">IBM Quantum (Real Hardware)</option>
+              </Form.Select>
+              <Form.Text className="text-muted">
+                {qiskitBackend === 'aer_simulator' && 'Fast local simulation without noise characteristics.'}
+                {qiskitBackend === 'fake_backend' && 'Simulates noise characteristics of real IBM quantum hardware.'}
+                {qiskitBackend === 'ibm_quantum' && 'Run on real IBM Quantum hardware. Requires IBM Quantum account.'}
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Number of Shots</Form.Label>
+              <Form.Control
+                type="number"
+                value={qiskitShots}
+                onChange={(e) => setQiskitShots(Math.max(1, parseInt(e.target.value) || 1024))}
+                min={1}
+                max={100000}
+              />
+              <Form.Text className="text-muted">
+                Number of times to execute the circuit (1 - 100,000)
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowQiskitConfig(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleQiskitGenerate}>
             Generate
           </Button>
         </Modal.Footer>

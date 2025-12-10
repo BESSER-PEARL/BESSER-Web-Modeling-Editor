@@ -26,6 +26,11 @@ export interface JSONSchemaConfig {
   mode: 'regular' | 'smart_data';
 }
 
+export interface QiskitConfig {
+  backend: 'aer_simulator' | 'fake_backend' | 'ibm_quantum';
+  shots: number;
+}
+
 export interface AgentConfig {
   languages?: {
     source: string;
@@ -38,6 +43,7 @@ export type GeneratorConfig = {
   sql: SQLConfig;
   sqlalchemy: SQLAlchemyConfig;
   jsonschema: JSONSchemaConfig;
+  qiskit: QiskitConfig;
   agent: AgentConfig;
   [key: string]: any;
 };

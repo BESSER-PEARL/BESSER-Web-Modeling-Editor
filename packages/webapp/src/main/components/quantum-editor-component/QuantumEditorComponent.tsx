@@ -88,11 +88,16 @@ export function QuantumEditorComponent(): JSX.Element {
         handleFileChange,
     } = useCircuitIO(circuit, { setCircuit });
 
-    // Keyboard shortcuts
-    useKeyboardShortcuts(undo, redo, canUndo, canRedo);
-
-    // Selected gate state
+    // Selected gate state (moved before keyboard shortcuts for copy/paste support)
     const [selectedGate, setSelectedGate] = useState<{ col: number; row: number } | null>(null);
+
+    // Keyboard shortcuts (undo/redo, copy/paste, delete)
+    useKeyboardShortcuts(undo, redo, canUndo, canRedo, {
+        circuit,
+        setCircuit,
+        selectedGate,
+        setSelectedGate,
+    });
 
     // Modal state for editing nested circuits
     const [nestedCircuitModal, setNestedCircuitModal] = useState<{ col: number; row: number } | null>(null);
@@ -108,26 +113,13 @@ export function QuantumEditorComponent(): JSX.Element {
 
     // Handle gate double-click to open nested circuit editor
     const handleGateDoubleClick = useCallback((col: number, row: number) => {
-        //console.log('[QuantumEditor] Double-clicked gate at col:', col, 'row:', row);
-
-        // ALWAYS reload from storage to get the latest saved data
-        //console.log('[QuantumEditor] Reloading circuit from storage to ensure we have latest data...');
-        const reloadedCircuit = loadCircuit();
-        //console.log('[QuantumEditor] Reloaded circuit:', reloadedCircuit);
-
-        // Update the circuit state with reloaded data
-        setCircuit(() => reloadedCircuit);
-
-        // Get the gate from reloaded circuit
-        const gate = reloadedCircuit.columns[col]?.gates[row];
-        //console.log('[QuantumEditor] Gate from reloaded circuit:', gate);
-        //console.log('[QuantumEditor] Gate nestedCircuit:', gate?.nestedCircuit);
-        //console.log('[QuantumEditor] Gate label:', gate?.label);
+        // Use current circuit state (already in memory and auto-saved)
+        const gate = circuit.columns[col]?.gates[row];
 
         if (gate?.isFunctionGate) {
             setNestedCircuitModal({ col, row });
         }
-    }, [loadCircuit, setCircuit]);
+    }, [circuit]);
 
     // Handle saving nested circuit
     const handleSaveNestedCircuit = useCallback((col: number, row: number, nestedCircuit: Circuit, name?: string, color?: string) => {

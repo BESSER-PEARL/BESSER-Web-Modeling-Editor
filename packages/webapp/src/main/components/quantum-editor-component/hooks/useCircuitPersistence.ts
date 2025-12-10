@@ -36,41 +36,21 @@ export function useCircuitPersistence(
             const project = ProjectStorageRepository.getCurrentProject();
 
             if (!project) {
+                console.error('[saveCircuit] No project found');
                 setSaveStatus('error');
                 return;
-            }
-
-            // Check if we're about to overwrite a larger circuit with a smaller one
-            // This can happen during project switching when stale data is saved
-            const currentModel = project.diagrams.QuantumCircuitDiagram?.model;
-            if (isQuantumCircuitData(currentModel)) {
-                const currentColCount = currentModel.cols?.length || 0;
-                const newColCount = circuitData.columns?.length || 0;
-                
-                // If the new circuit has fewer columns and both have content,
-                // this might be stale data from a project switch - skip saving
-                if (currentColCount > 0 && newColCount < currentColCount) {
-                    setSaveStatus('saved');
-                    return;
-                }
             }
             
             // Serialize to Quirk format for compact storage
             const quirkData = serializeCircuit(circuitData);
             
+            console.log('[saveCircuit] Saving circuit with', circuitData.columns.length, 'columns');
+            console.log('[saveCircuit] gateMetadata keys:', Object.keys(quirkData.gateMetadata || {}));
+            
             const quantumData: QuantumCircuitData = {
                 ...quirkData,
                 version: '1.0.0'
             };
-
-            // Check if there are actual changes before saving
-            const currentModelStr = JSON.stringify(currentModel);
-            const newModelStr = JSON.stringify(quantumData);
-            
-            if (currentModelStr === newModelStr) {
-                setSaveStatus('saved');
-                return;
-            }
 
             const updated = ProjectStorageRepository.updateDiagram(
                 project.id,
@@ -83,8 +63,10 @@ export function useCircuitPersistence(
             );
 
             if (updated) {
+                console.log('[saveCircuit] Save successful');
                 setSaveStatus('saved');
             } else {
+                console.error('[saveCircuit] updateDiagram returned false');
                 setSaveStatus('error');
             }
         } catch (error) {

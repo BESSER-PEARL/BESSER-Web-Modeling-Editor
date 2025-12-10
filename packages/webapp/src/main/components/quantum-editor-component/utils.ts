@@ -34,8 +34,16 @@ function restoreGateDefinition(gate: any): Gate {
  * Recursively restores gate definitions in a circuit's nested circuits
  */
 function restoreCircuitGateDefinitions(circuit: Circuit): Circuit {
+    // Guard against undefined or invalid circuit structure
+    if (!circuit || !circuit.columns || !Array.isArray(circuit.columns)) {
+        return {
+            columns: [],
+            qubitCount: circuit?.qubitCount || 5
+        };
+    }
+
     const restoredColumns = circuit.columns.map(column => ({
-        gates: column.gates.map(gate => {
+        gates: (column?.gates || []).map(gate => {
             if (!gate) return null;
             
             // Restore the gate definition
