@@ -99,7 +99,7 @@ export const FileMenu: React.FC = () => {
   };
 
   // Placeholder handlers for project actions
-  const handleNewProject = () => dispatch(showModal({ type: ModalContentType.CreateProjectModal }));
+  const handleNewProject = () => dispatch(showModal({ type: ModalContentType.StartProjectModal }));
   const handleImportProject = () => dispatch(showModal({ type: ModalContentType.ImportProjectModal }));
   // const handleLoadProject = () => {
   //   // Open the Home modal to let users select from existing projects
