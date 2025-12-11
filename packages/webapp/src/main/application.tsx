@@ -18,6 +18,8 @@ import { ProjectSettingsScreen } from './components/project/ProjectSettingsScree
 import { useProject } from './hooks/useProject';
 import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
+import { AgentConfigScreen } from './components/agent/AgentConfigScreen';
+import { AgentPersonalizationConfigScreen } from './components/agent/AgentPersonalizationConfigScreen';
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -34,7 +36,9 @@ function AppContentInner() {
   const hasTokenInUrl = location.pathname !== '/' &&
     location.pathname !== '/project-settings' &&
     location.pathname !== '/teampage' &&
-    location.pathname !== '/graphical-ui-editor';
+    location.pathname !== '/graphical-ui-editor' &&
+    location.pathname !== '/agent-config' &&
+    location.pathname !== '/agent-personalization'; 
 
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
@@ -114,7 +118,7 @@ function AppContentInner() {
               <ApollonEditorComponentWithConnection />
             // </SidebarLayout>
           } 
-        /> */}
+        />  */}
 
         {/* Main editor route */}
         <Route
@@ -136,7 +140,6 @@ function AppContentInner() {
             </SidebarLayout>
           }
         />
-
         {/* Project settings route */}
         <Route
           path="/project-settings"
@@ -145,6 +148,26 @@ function AppContentInner() {
               <ProjectSettingsScreen />
             </SidebarLayout>
           }
+        />
+
+        {/* Agent configuration route */}
+        <Route 
+          path="/agent-config" 
+          element={
+            <SidebarLayout>
+              <AgentConfigScreen />
+            </SidebarLayout>
+          } 
+        />
+
+        {/* Agent personalization route */}
+        <Route 
+          path="/agent-personalization" 
+          element={
+            <SidebarLayout>
+              <AgentPersonalizationConfigScreen />
+            </SidebarLayout>
+          } 
         />
 
       </Routes>

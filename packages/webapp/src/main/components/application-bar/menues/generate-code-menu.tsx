@@ -25,6 +25,7 @@ export const GenerateCodeMenu: React.FC = () => {
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<'regular' | 'smart_data'>('regular');
   const [loadingAgent, setLoadingAgent] = useState(false);
+  const [agentMode, setAgentMode] = useState<'configuration' | 'personalization'>('configuration');
 
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
@@ -106,14 +107,37 @@ export const GenerateCodeMenu: React.FC = () => {
   const handleAgentGenerate = async () => {
     setLoadingAgent(true);
     try {
-      let agentConfig: AgentConfig = {};
-      if (selectedAgentLanguages.length > 0) {
-        agentConfig.languages = {
-          source: sourceLanguage,
-          target: selectedAgentLanguages
-        };
+      // Build base agent config (from localStorage or languages selection)
+      let baseConfig: AgentConfig;
+      if (selectedAgentLanguages.length === 0) {
+        const stored = localStorage.getItem('agentConfig');
+        baseConfig = stored ? { ...JSON.parse(stored) } : {};
+      } else {
+        baseConfig = {
+          languages: {
+            source: sourceLanguage,
+            target: selectedAgentLanguages
+          }
+        } as any;
       }
-      await generateCode(editor!, 'agent', diagram.title, agentConfig);
+
+      // If mode is personalization, load mapping and send it under personalizationrules
+      if (agentMode === 'personalization') {
+        const mappingRaw = localStorage.getItem('agentPersonalization');
+        let mapping = null;
+        try {
+          mapping = mappingRaw ? JSON.parse(mappingRaw) : null;
+        } catch {
+          mapping = null;
+        }
+        const agentConfig: AgentConfig = {
+          personalizationrules: mapping || {}
+        } as any;
+        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+      } else {
+        // configuration mode: send the base config
+        await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+      }
       setShowAgentLanguageModal(false);
     } catch (error) {
       console.error('Error in Agent code generation:', error);
@@ -369,6 +393,13 @@ export const GenerateCodeMenu: React.FC = () => {
               </Form.Text>
               <div className="text-warning small mt-1">
                 <span role="img" aria-label="warning">⚠️</span> Adding more languages will increase the generation time.
+              </div>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mode</Form.Label>
+              <div>
+                <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
+                <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
               </div>
             </Form.Group>
             {/* List of selected languages with remove option */}

@@ -373,7 +373,7 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
   };
 
   const handleExport = async (format: string) => {
-    if (!editor) {
+    if (!editor || !diagram?.title) {
       toast.error('No diagram available to export');
       return;
     }
