@@ -1,6 +1,6 @@
-# BESSER WME Standalone
+# BESSER Web Modeling Editor
 
-BESSER WME Standalone is the Standalone version of the BESSER WME Editor for creating and editing diagrams. It can be used as graphical front-end for the [BESSER low-code platform](https://github.com/BESSER-PEARL/BESSER).
+BESSER Web Modeling Editor is the  version of the BESSER WME Editor for creating and editing diagrams. It can be used as graphical front-end for the [BESSER low-code platform](https://github.com/BESSER-PEARL/BESSER).
 
 There are two variants how you can use this editor:
 
@@ -13,7 +13,7 @@ It consists of following features:
 
 ### No account needed to use
 
-Users can use all the features of Standalone without the necessity of creating an account.
+Users can use all the features of  without the necessity of creating an account.
 All you have to do is open the application and start drawing.
 
 ### Easy to use editor
@@ -36,31 +36,23 @@ Users can easily import existing BESSER WME diagrams to any editor that uses the
 
 Exporting the diagrams is as easy as importing them.
 Click on `File > Export` and select the format of the diagram to be exported as.
-Currently, BESSER WME standalone supports five different formats: `SVG`, `PNG (White Background)`, `PNG (Transparent Background)`, `JSON`, and `PDF`.
+Currently, BESSER WME supports five different formats: `SVG`, `PNG (White Background)`, `PNG (Transparent Background)`, `JSON`, and `PDF`.
 
 <!-- ![Export Diagram](/docs/images/Export.png 'Export Diagram') -->
 
 ### Create diagram from template
 
-Users in BESSER WME Standalone can also create a diagram from a template if they do not want to draw a diagram from scratch.
+Users in BESSER WME  can also create a diagram from a template if they do not want to draw a diagram from scratch.
 To do that, all they have to do is click on `File > Start from Template` and select one of the templates from the list of available templates.
 
 <!-- ![Start from Template](/docs/images/StartFromTemplate.gif 'Start from Template') -->
 
-### Share your diagram with others
-
-Users can share the diagram in BESSER WME Standalone in four different types.
-
-- `Edit`: In this mode of sharing, the user will be able to make changes to the shared diagram.
-- `Embed`: In this mode of sharing, the user embeds the diagram in a Git issue/pull request. The embedding displays the latest version of the diagram.
-- `Give Feedback`: In this mode of sharing, the user will not be able to make changes to the shared diagram, but can only provide feedback to it.
-- `See Feedback`: In this mode of sharing, the user can view feedback provided to the shared diagram.
 
 ## Under the Hood: Diagram Engine as an npm Package
 
-BESSER WME Standalone uses the core diagramming functionality provided by the [BESSER Web Modeling Editor (BESSER-WME)](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor), which is integrated as an [**npm package**](https://www.npmjs.com/package/@besser/wme) .
+BESSER WME  uses the core diagramming functionality provided by the [BESSER Web Modeling Editor (BESSER-WME)](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor), which is integrated as an [**npm package**](https://www.npmjs.com/package/@besser/wme) .
 
-This separation allows the standalone application to focus on delivering additional capabilities such as:
+This separation allows the  application to focus on delivering additional capabilities such as:
 
 - Diagram sharing modes
 - Template management
@@ -96,7 +88,7 @@ You can reach us at: [info@besser-pearl.org](mailto:info@besser-pearl-org)
 
 ```
 # clone the repository
-git clone https://github.com/yourusername/BESSER_WME_standalone
+git clone https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-
 
 # install the dependencies
 npm install
@@ -132,14 +124,14 @@ There are two variants to set this up:
 
 ```
 # clone the repository
-git clone https://github.com/yourusername/BESSER_WME_standalone
+git clone https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-
 
 # install the dependencies
 npm install
 
 # set environment variable
 export APPLICATION_SERVER_VERSION=1
-export DEPLOYMENT_URL=https://BESSER_WME_standalone.de
+export DEPLOYMENT_URL=https://editor.besser-pearl.org
 
 # build the web application and the application server
 npm run build
@@ -150,10 +142,10 @@ npm run build
 Add a user for the application:
 
 ```
-sudo useradd -r -s /bin/false besser_wme_standalone
+sudo useradd -r -s /bin/false besser_wme
 
 # give ownage of files to application user
-chown -R besser_wme_standalone path/to/application
+chown -R besser_wme path/to/application
 ```
 
 Make a directory for the shared diagrams to be stored
@@ -163,7 +155,7 @@ Make a directory for the shared diagrams to be stored
 mkdir path/to/diagrams
 
 # give ownage to application user
-chown besser_wme_standalone path/to/diagrams
+chown besser_wme path/to/diagrams
 ```
 
 Add the path to the created directory to:
@@ -173,28 +165,28 @@ Add the path to the created directory to:
 
 #### Install as a service
 
-Configure the besser_wme_standalone.service file so that the paths
+Configure the besser_wme.service file so that the paths
 match the paths to your installation folder
 
 ```
-# After adjusting the service file, copy the service file besser_wme_standalone.service
-# into the /etc/systemd/system directory service besser_wme_standalone start
-cp besser_wme_standalone.service /etc/systemd/system/
+# After adjusting the service file, copy the service file besser_wme.service
+# into the /etc/systemd/system directory service besser_wme start
+cp besser_wme.service /etc/systemd/system/
 
 # make sure the server.js file is executable by application user
 cd path/to/application/build/server
 chmod +x server.js
 
 # Start the service
-sudo service besser_wme_standalone start
+sudo service besser_wme_ start
 
 # Status of the service
-service besser_wme_standalone status
+service besser_wme status
 ```
 
 Error codes on server start:
 
-- (code=exited, status=217/USER) -> besser_wme_standalone user does not exist
+- (code=exited, status=217/USER) -> besser_wme user does not exist
 - (code=exited, status=203/USER) -> script not executable
 
 #### Install the cronjob for deleting stale diagrams
@@ -211,12 +203,12 @@ chmod 622 /var/log/cron.log
 # default: delete stale diagrams after 12 weeks
 
 # installs cronjob with application user
-crontab -u besser_wme_standalone delete-stale-diagrams.cronjob.txt
+crontab -u besser_wme_ delete-stale-diagrams.cronjob.txt
 ```
 
 Remove cronjob
 
-`crontab -r -u besser_wme_standalone`
+`crontab -r -u besser_wme_`
 
 ### Docker Container
 
@@ -224,13 +216,13 @@ Caveat: cronjob to clean the diagrams after 12 weeks is currently not running in
 
 ```
 # clone the repository
-git clone https://github.com/yourusername/BESSER_WME_standalone
+git clone https://github.com/yourusername/BESSER_WME_
 
 # build docker container
-docker build -t besser_wme_standalone .
+docker build -t besser_wme_ .
 
 run docker container
-docker run -d --name besser_wme_standalone -p 8080:8080 besser_wme_standalone
+docker run -d --name besser_wme_ -p 8080:8080 besser_wme_
 
 # build the web application and the application server
 npm run build
@@ -242,7 +234,7 @@ useful command to debug:
 
 ```
 # start bash in running docker container to look at internal files
-docker run -it --entrypoint /bin/bash besser_wme_standalone
+docker run -it --entrypoint /bin/bash besser_wme_
 ```
 
 ## Redis Storage
@@ -251,7 +243,7 @@ Alternative to a filesystem, the application server can use a Redis database to 
 To use Redis, set the environment variable `APOLLON_REDIS_URL` to the URL of the Redis database.
 
 > [!IMPORTANT]
-> BESSER WME Standalone requires the Redis JSON module to be enabled. [Read the documents](https://redis.io/docs/latest/develop/data-types/json/) to learn how to enable the JSON module.
+> BESSER WME  requires the Redis JSON module to be enabled. [Read the documents](https://redis.io/docs/latest/develop/data-types/json/) to learn how to enable the JSON module.
 
 ```bash
 APOLLON_REDIS_URL=redis://[[username]:[password]@][host][:port]
@@ -277,12 +269,12 @@ export APOLLON_REDIS_DIAGRAM_TTL="30d"
 
 ### Deploying with Redis and Docker
 
-BESSER WME Standalone, using Redis as its storage, can be deployed using Docker. To do that, follow these steps:
+BESSER WME , using Redis as its storage, can be deployed using Docker. To do that, follow these steps:
 
 #### STEP 1: Clone the code
 
 ```bash
-git clone https://github.com/yourusername/BESSER_WME_standalone.git
+git clone https://github.com/yourusername/BESSER_WME_.git
 ```
 
 #### STEP 2: Configure the environment
@@ -294,7 +286,7 @@ Add a `.env` file in the root folder of the code. Add the following variables:
 
 ```toml
 # The URL of the server, e.g. the address at which
-# BESSER WME Standalone would be accessible after deployment.
+# BESSER WME  would be accessible after deployment.
 DEPLOYMENT_URL=https://my.server/apollon/
 
 # The duration for which shared diagrams will be stored
@@ -308,7 +300,7 @@ APOLLON_REDIS_DIAGRAM_TTL=30d
 docker compose up -d
 ```
 
-BESSER WME Standalone will be running on `localhost:8080`, using a private network bridge to connect to Redis, and storing shared images on a specific Docker volume.
+BESSER WME  will be running on `localhost:8080`, using a private network bridge to connect to Redis, and storing shared images on a specific Docker volume.
 
 ## Developer Setup
 
@@ -338,18 +330,18 @@ npm run update
 
 ### Link local project of BESSER WME
 
-While developing the Standalone project, it is often required to make changes in the BESSER WME project.
+While developing the  project, it is often required to make changes in the BESSER WME project.
 This can be achieved by executing the following workflow.
 
 1.  In the _BESSER WME_ project: Generate a symlink by executing `npm link` command.
-2.  In the _Standalone_ project: Link the generated symlink of BESSER WME _(from step 1)_ by executing `npm link "@yourusername/besser-wme"` command.
+2.  In the __ project: Link the generated symlink of BESSER WME _(from step 1)_ by executing `npm link "@yourusername/besser-wme"` command.
 
 For more information please refer to the [documentation](https://docs.npmjs.com/cli/v9/commands/npm-link) of npm.
 
-> **_Note_**: While making changes in the _BESSER WME_ project, for the changes to get reflected in _Standalone_, execute the following workflow:
+> **_Note_**: While making changes in the _BESSER WME_ project, for the changes to get reflected in __, execute the following workflow:
 >
 > - Recompile the BESSER WME project by executing `npm run prepare`
-> - Rebuild the Standalone project by executing `npm run build`
+> - Rebuild the  project by executing `npm run build`
 
 ### Using Redis in Development
 
@@ -360,7 +352,7 @@ docker run -p 6379:6379 -it redis/redis-stack-server:latest
 ```
 
 This runs the Redis stack, which also includes the Redis JSON module. You can now instruct
-BESSER WME Standalone to use Redis by setting the `APOLLON_REDIS_URL` environment variable.
+BESSER WME  to use Redis by setting the `APOLLON_REDIS_URL` environment variable.
 
 ```bash
 APOLLON_REDIS_URL="" npm start

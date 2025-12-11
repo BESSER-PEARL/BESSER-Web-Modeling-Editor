@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useImportDiagramPictureFromImage } from '../../../services/import/useImportDiagramPicture';
 import { Dropdown, NavDropdown, Modal, Spinner } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
@@ -12,10 +12,15 @@ import { useExportPDF } from '../../../services/export/useExportPdf';
 import { useExportPNG } from '../../../services/export/useExportPng';
 import { useExportSVG } from '../../../services/export/useExportSvg';
 import { useExportBUML } from '../../../services/export/useExportBuml';
+import { useProjectBumlPreview } from '../../../services/export/useProjectBumlPreview';
 import { toast } from 'react-toastify';
 import { importProject } from '../../../services/import/useImportProject';
 import { useImportDiagramToProjectWorkflow } from '../../../services/import/useImportDiagram';
 import { useProject } from '../../../hooks/useProject';
+import { JsonViewerModal } from '../../modals/json-viewer-modal/json-viewer-modal';
+import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
+import { useProjectPreviewModal } from './hooks/useProjectPreviewModal';
+import { ExportProjectModal } from '../../modals/export-project-modal/export-project-modal';
 
 export const FileMenu: React.FC = () => {
   const apollonEditor = useContext(ApollonEditorContext);
@@ -28,18 +33,38 @@ export const FileMenu: React.FC = () => {
   const exportAsPDF = useExportPDF();
   const exportAsJSON = useExportJSON();
   const exportAsBUML = useExportBUML();
+  const generateProjectBumlPreview = useProjectBumlPreview();
   const handleImportDiagramToProject = useImportDiagramToProjectWorkflow();
   const importDiagramPictureFromImage = useImportDiagramPictureFromImage();
 
   // Modal state for feedback and input
   const [showImportModal, setShowImportModal] = React.useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [apiKey, setApiKey] = React.useState('');
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [fileError, setFileError] = React.useState('');
   const [isImporting, setIsImporting] = React.useState(false);
 
+  const {
+    showJsonViewer,
+    jsonToView,
+    jsonDiagramType,
+    bumlPreview,
+    bumlPreviewError,
+    isBumlPreviewLoading,
+    canPreviewBuml,
+    bumlPreviewLabel,
+    openPreviewModal,
+    closePreviewModal,
+    handleCopyJson,
+    handleDownloadJson,
+    handleRequestBumlPreview,
+    handleCopyBumlPreview,
+    handleDownloadBumlPreview,
+  } = useProjectPreviewModal(generateProjectBumlPreview);
+
   const exportDiagram = async (exportType: 'PNG' | 'PNG_WHITE' | 'SVG' | 'JSON' | 'PDF' | 'BUML'): Promise<void> => {
-    if (!editor || !diagram?.title) {
+    if (!editor) {
       toast.error('No diagram available to export');
       return;
     }
@@ -74,7 +99,7 @@ export const FileMenu: React.FC = () => {
   };
 
   // Placeholder handlers for project actions
-  const handleNewProject = () => dispatch(showModal({ type: ModalContentType.CreateProjectModal }));
+  const handleNewProject = () => dispatch(showModal({ type: ModalContentType.StartProjectModal }));
   const handleImportProject = () => dispatch(showModal({ type: ModalContentType.ImportProjectModal }));
   // const handleLoadProject = () => {
   //   // Open the Home modal to let users select from existing projects
@@ -83,8 +108,59 @@ export const FileMenu: React.FC = () => {
   //   }
   // };
   const handleLoadTemplate = () => dispatch(showModal({ type: ModalContentType.CreateDiagramFromTemplateModal }));
-  const handleExportProject = () => dispatch(showModal({ type: ModalContentType.ExportProjectModal }));
+  const handleExportProject = () => setShowExportModal(true);
 
+  // Handler for previewing project JSON
+  const handlePreviewProjectJSON = async () => {
+    if (!currentProject) {
+      toast.error('No project is open. Please create or open a project first.');
+      return;
+    }
+
+    try {
+      // Force GrapesJS to save before previewing (if editor is active)
+      const GraphicalUIEditor = (window as any).editor;
+      if (GraphicalUIEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
+        console.log('[Preview] Forcing GrapesJS save before preview...');
+        
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('GrapesJS save timeout'));
+          }, 5000);
+          
+          GraphicalUIEditor.store((result: any) => {
+            clearTimeout(timeout);
+            console.log('[Preview] GrapesJS save completed');
+            setTimeout(() => resolve(), 300);
+          });
+        });
+      }
+
+      // Reload the project from storage to get the latest data
+      const freshProject = ProjectStorageRepository.loadProject(currentProject.id);
+      if (!freshProject) {
+        toast.error('Failed to load project data');
+        return;
+      }
+
+      // Format the JSON with the same structure as export (V2.0.0 format)
+      const exportData = {
+        project: freshProject,
+        exportedAt: new Date().toISOString(),
+        version: '2.0.0'
+      };
+      
+      const jsonString = JSON.stringify(exportData, null, 2);
+      openPreviewModal({
+        project: freshProject,
+        jsonContent: jsonString,
+        diagramLabel: 'Project (V2.0.0)',
+      });
+    } catch (error) {
+      console.error('Error previewing project JSON:', error);
+      toast.error(`Failed to preview project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
   // Handler for importing single diagram to project
   const handleImportDiagramToCurrentProject = async () => {
     if (!currentProject) {
@@ -202,6 +278,13 @@ export const FileMenu: React.FC = () => {
           Export Project
         </NavDropdown.Item>
 
+        {/* Preview Project JSON - only show when a project is active */}
+        {currentProject && (
+          <NavDropdown.Item onClick={handlePreviewProjectJSON}>
+            Preview Project
+          </NavDropdown.Item>
+        )}
+
       </NavDropdown>
 
       {/* Modal for API key and file upload */}
@@ -264,6 +347,30 @@ export const FileMenu: React.FC = () => {
           </button>
         </Modal.Footer>
       </Modal>
+
+      {/* JSON Viewer Modal */}
+      <JsonViewerModal
+        isVisible={showJsonViewer}
+        jsonData={jsonToView}
+        diagramType={jsonDiagramType}
+        onClose={closePreviewModal}
+        onCopy={handleCopyJson}
+        onDownload={handleDownloadJson}
+        enableBumlView={canPreviewBuml}
+        bumlData={bumlPreview}
+        bumlLabel={bumlPreviewLabel}
+        isBumlLoading={isBumlPreviewLoading}
+        bumlError={bumlPreviewError}
+        onRequestBuml={handleRequestBumlPreview}
+        onCopyBuml={handleCopyBumlPreview}
+        onDownloadBuml={handleDownloadBumlPreview}
+      />
+
+      {/* Export Project Modal */}
+      <ExportProjectModal 
+        show={showExportModal} 
+        onHide={() => setShowExportModal(false)} 
+      />
     </>
   );
 };

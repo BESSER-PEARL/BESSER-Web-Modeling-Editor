@@ -37,6 +37,8 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   const umlClass1Attribute = new UMLClassAttribute({
     name: translate('sidebar.classAttribute'),
     owner: umlClass1.id,
+    visibility: 'public',
+    attributeType: 'str',
     bounds: {
       x: 0,
       y: 0,
@@ -58,6 +60,8 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   const umlClassAttribute = new UMLClassAttribute({
     name: translate('sidebar.classAttribute'),
     owner: umlClass.id,
+    visibility: 'public',
+    attributeType: 'str',
     bounds: {
       x: 0,
       y: 0,
@@ -154,7 +158,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
     height: umlEnumeration.bounds.height,
   };
   const umlEnumerationCase1 = new UMLClassAttribute({
-    name: translate('sidebar.enumAttribute') + '_11',
+    name: translate('sidebar.enumAttribute') + '_1',
     owner: umlEnumeration.id,
     bounds: {
       x: 0,

@@ -90,13 +90,22 @@ export const useProject = () => {
     }
   }, [currentProject?.id, loadProject, createProject]);
   
-  const exportProject = useCallback(async (projectId?: string) => {
-    const project = projectId ? 
+  const exportProject = useCallback(async (projectId?: string, forceRefresh: boolean = false) => {
+    let project = projectId ? 
       ProjectStorageRepository.loadProject(projectId) : 
       currentProject;
     
     if (!project) {
       throw new Error('No project to export');
+    }
+    
+    // If forceRefresh is true, reload the project from storage to get the latest data
+    if (forceRefresh) {
+      console.log('[Export] Force refreshing project data from storage');
+      project = ProjectStorageRepository.loadProject(project.id);
+      if (!project) {
+        throw new Error('Failed to reload project data');
+      }
     }
     
     // Use the simple JSON export function instead of ZIP export

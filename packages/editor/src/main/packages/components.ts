@@ -50,6 +50,9 @@ import { FlowchartDecisionComponent } from './flowchart/flowchart-decision/flowc
 import { FlowchartFunctionCallComponent } from './flowchart/flowchart-function-call/flowchart-function-call-component';
 import { FlowchartInputOutputComponent } from './flowchart/flowchart-input-output/flowchart-input-output-component';
 import { ColorLegendComponent } from './common/color-legend/color-legend-component';
+import { CommentsComponent } from './common/comments/comments-component';
+
+
 import { BPMNFlowComponent } from './bpmn/bpmn-flow/bpmn-flow-component';
 import { BPMNTaskComponent } from './bpmn/bpmn-task/bpmn-task-component';
 import { BPMNSubprocessComponent } from './bpmn/bpmn-subprocess/bpmn-subprocess-component';
@@ -131,6 +134,8 @@ export const Components: {
   [UMLElementType.FlowchartInputOutput]: FlowchartInputOutputComponent,
   [UMLElementType.FlowchartFunctionCall]: FlowchartFunctionCallComponent,
   [UMLElementType.ColorLegend]: ColorLegendComponent,
+  [UMLElementType.Comments]: CommentsComponent,
+
   [UMLElementType.BPMNTask]: BPMNTaskComponent,
   [UMLElementType.BPMNSubprocess]: BPMNSubprocessComponent,
   [UMLElementType.BPMNTransaction]: BPMNTransactionComponent,
@@ -149,6 +154,7 @@ export const Components: {
   [UMLRelationshipType.ClassBidirectional]: UMLAssociationComponent,
   [UMLRelationshipType.ClassOCLLink]: UMLAssociationComponent,
   [UMLRelationshipType.ClassLinkRel]: UMLAssociationComponent,
+  [UMLRelationshipType.Link]: UMLAssociationComponent,
   [UMLRelationshipType.ClassComposition]: UMLAssociationComponent,
   [UMLRelationshipType.ClassDependency]: UMLAssociationComponent,
   [UMLRelationshipType.ClassInheritance]: UMLAssociationComponent,

@@ -21,8 +21,8 @@ export const GenerateCodeMenu: React.FC = () => {
   const [projectName, setProjectName] = useState('');
   const [appName, setAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
-  const [sqlDialect, setSqlDialect] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb'>('sqlite');
-  const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb'>('sqlite');
+  const [sqlDialect, setSqlDialect] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
+  const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<'regular' | 'smart_data'>('regular');
   const [loadingAgent, setLoadingAgent] = useState(false);
   const [agentMode, setAgentMode] = useState<'configuration' | 'personalization'>('configuration');
@@ -40,8 +40,8 @@ export const GenerateCodeMenu: React.FC = () => {
     (BACKEND_URL ?? '').includes('127.0.0.1');
 
   const handleGenerateCode = async (generatorType: string) => {
-
-    if (!editor || !diagram?.title) {
+    // For GUI/No-Code diagrams, we don't need the apollon editor
+    if (!isGUINoCodeDiagram && !editor) {
       toast.error('No diagram available to generate code from');
       return;
     }
@@ -71,8 +71,25 @@ export const GenerateCodeMenu: React.FC = () => {
       return;
     }
 
+    if (generatorType === 'smartdata') {
+      try {
+        const jsonSchemaConfig: JSONSchemaConfig = {
+          mode: 'smart_data'
+        };
+        if (editor) {
+          await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
+        }
+      } catch (error) {
+        console.error('Error in Smart Data Models generation:', error);
+        toast.error('Smart Data Models generation failed. Check console for details.');
+      }
+      return;
+    }
+
     try {
-      await generateCode(editor, generatorType, diagram.title);
+      if (editor) {
+        await generateCode(editor, generatorType, diagram.title);
+      }
     } catch (error) {
       console.error('Error in code generation:', error);
       toast.error('Code generation failed. Check console for details.');
@@ -231,11 +248,18 @@ export const GenerateCodeMenu: React.FC = () => {
   };
 
   const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
+  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
 
   return (
     <>
       <NavDropdown title="Generate" className="pt-0 pb-0">
-        {isAgentDiagram ? (
+        {isGUINoCodeDiagram ? (
+          // No-Code Diagram: Show No-Code generation options
+          <>
+            <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
+          </>
+        ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
           <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
@@ -298,6 +322,7 @@ export const GenerateCodeMenu: React.FC = () => {
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => handleGenerateCode('pydantic')}>Pydantic Models</Dropdown.Item>
                 <Dropdown.Item onClick={() => handleGenerateCode('jsonschema')}>JSON Schema</Dropdown.Item>
+                <Dropdown.Item onClick={() => handleGenerateCode('smartdata')}>Smart Data Models</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
           </>
@@ -321,7 +346,6 @@ export const GenerateCodeMenu: React.FC = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            
             <Form.Group className="mb-3">
               <Form.Label>Source language (optional)</Form.Label>
               <Form.Select
@@ -489,13 +513,14 @@ export const GenerateCodeMenu: React.FC = () => {
               <Form.Label>Select SQL Dialect</Form.Label>
               <Form.Select
                 value={sqlDialect}
-                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb')}
+                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle')}
               >
                 <option value="sqlite">SQLite</option>
                 <option value="postgresql">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
                 <option value="mssql">MS SQL Server</option>
                 <option value="mariadb">MariaDB</option>;
+                <option value="oracle">Oracle</option>
               </Form.Select>
               <Form.Text className="text-muted">
                 Choose the SQL dialect for your generated DDL statements

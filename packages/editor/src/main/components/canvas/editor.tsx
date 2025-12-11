@@ -16,7 +16,7 @@ const grid: number = 10;
 const subdivisions: number = 5;
 const borderWidth: number = 1;
 
-const StyledEditor = styled.div<{ scale: number }>`
+const StyledEditor = styled.div<{ $scale: number }>`
   display: block;
   overflow: auto;
 
@@ -24,8 +24,8 @@ const StyledEditor = styled.div<{ scale: number }>`
   min-height: inherit;
   max-height: inherit;
 
-  width: ${(props) => clamp(100 / props.scale, 100, 100 / minScale)}%;
-  height: ${(props) => clamp(100 / props.scale, 100, 100 / minScale)}%;
+  width: ${(props) => clamp(100 / props.$scale, 100, 100 / minScale)}%;
+  height: ${(props) => clamp(100 / props.$scale, 100, 100 / minScale)}%;
 
   -ms-overflow-style: -ms-autohiding-scrollbar;
   border: ${borderWidth}px solid ${(props) => props.theme.color.gray};
@@ -47,7 +47,7 @@ const StyledEditor = styled.div<{ scale: number }>`
     width 500ms,
     height 500ms;
   transform-origin: top left;
-  transform: scale(${(props) => props.scale ?? 1});
+  transform: scale(${(props) => props.$scale ?? 1});
 `;
 
 type OwnProps = { children: ReactNode };
@@ -125,7 +125,7 @@ class EditorComponent extends Component<Props, State> {
     if (this.state.isMobile) {
       return (
         <div ref={this.zoomContainer} style={{ width: '100%', overflow: scale > 1.0 ? 'auto' : 'hidden' }}>
-          <StyledEditor ref={this.editor} {...props} onTouchMove={this.customScrolling} scale={scale} />
+          <StyledEditor ref={this.editor} {...props} onTouchMove={this.customScrolling} $scale={scale} />
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
@@ -138,7 +138,7 @@ class EditorComponent extends Component<Props, State> {
     } else {
       return (
         <div ref={this.zoomContainer} style={{ width: '100%', overflow: scale > 1.0 ? 'auto' : 'hidden' }}>
-          <StyledEditor ref={this.editor} {...props} scale={scale} />
+          <StyledEditor ref={this.editor} {...props} $scale={scale} />
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}

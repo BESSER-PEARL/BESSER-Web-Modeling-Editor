@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useEffect, useState, useContext } from 'react';
+﻿import React, { ChangeEvent, useEffect, useState, useContext } from 'react';
 import { Nav, Navbar } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
@@ -15,7 +15,7 @@ import { LayoutTextSidebarReverse, Github, Share, House } from 'react-bootstrap-
 import { selectDisplaySidebar, toggleSidebar } from '../../services/version-management/versionManagementSlice';
 import { ClassDiagramImporter } from './menues/class-diagram-importer';
 import { GenerateCodeMenu } from './menues/generate-code-menu';
-import { checkOclConstraints } from '../../services/validation/checkOCL';
+import { validateDiagram } from '../../services/validation/validateDiagram';
 import { UMLDiagramType } from '@besser/wme';
 import { DiagramRepository } from '../../services/diagram/diagram-repository';
 import { displayError } from '../../services/error-management/errorManagementSlice';
@@ -25,6 +25,7 @@ import { toast } from 'react-toastify';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import { useProject } from '../../hooks/useProject';
+import { isUMLModel } from '../../types/project';
 
 const DiagramTitle = styled.input`
   font-size: 1rem;
@@ -113,9 +114,9 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const handleOpenModal = () => {
     dispatch(showModal({ type: ModalContentType.ShareModal, size: 'lg' }));
   };
-  const handleOclCheck = async () => {
+  const handleQualityCheck = async () => {
     if (editor) {
-      await checkOclConstraints(editor, diagram.title);
+      await validateDiagram(editor, diagram.title);
     }
   };
 
@@ -124,7 +125,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   };
 
   const handleQuickShare = async () => {
-    if (!diagram || !diagram.model || Object.keys(diagram.model.elements).length === 0) {
+    if (!diagram || !isUMLModel(diagram.model) || Object.keys(diagram.model.elements).length === 0) {
       dispatch(
         displayError(
           'Sharing diagram failed',
@@ -213,17 +214,17 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
               <GenerateCodeMenu />
               {APPLICATION_SERVER_VERSION && (
                 <Nav.Item>
-                  <Nav.Link onClick={handleOclCheck}>Quality Check</Nav.Link>
+                  <Nav.Link onClick={handleQualityCheck}>Quality Check</Nav.Link>
                 </Nav.Item>
               )}
             </>
-            {APPLICATION_SERVER_VERSION && (
+            {/* {APPLICATION_SERVER_VERSION && (
               <Nav.Item>
                 <Nav.Link onClick={handleQuickShare} title="Store and share your diagram into the database">
                   Save & Share
                 </Nav.Link>
               </Nav.Item>
-            )}
+            )} */}
             <HelpMenu />
             <DiagramTitle
               type="text"

@@ -1,4 +1,4 @@
-import { ObjectElementType } from '..';
+import { ObjectElementType, ObjectRelationshipType } from '..';
 import { UMLClassifier, IUMLClassifier } from '../../common/uml-classifier/uml-classifier';
 import { UMLElementType } from '../../uml-element-type';
 import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-element';
@@ -10,6 +10,7 @@ import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { Text } from '../../../utils/svg/text';
 import { settingsService } from '../../../services/settings/settings-service';
+import { GeneralRelationshipType } from '../../uml-relationship-type';
 
 export interface IUMLObjectName extends IUMLClassifier {
   classId?: string; // ID of the class from the library this object is based on
@@ -24,6 +25,10 @@ export class UMLObjectName extends UMLClassifier implements IUMLObjectName {
   className?: string;
   icon?: string; // Optional icon for the object
 
+  static supportedRelationships = [
+    ObjectRelationshipType.ObjectLink,
+    GeneralRelationshipType.Link,
+  ];
   constructor(values?: DeepPartial<IUMLObjectName>) {
     super(values);
     if (values?.classId) {

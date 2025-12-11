@@ -22,7 +22,12 @@
     /* Report error when not all code paths in function return a value. */ "noFallthroughCasesInSwitch": true,
     /* Report errors for fallthrough cases in switch statement. */ /* Module Resolution Options */
     "moduleResolution": "node",
-    /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */ "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
+    /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */ 
+    "baseUrl": ".",
+    "paths": {
+      "@besser/wme": ["../editor/src/main/index.ts"]
+    },
+    "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
     "allowSyntheticDefaultImports": true,
 
     "sourceMap": true,
