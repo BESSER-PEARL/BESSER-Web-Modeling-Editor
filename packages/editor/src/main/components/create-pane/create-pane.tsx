@@ -152,14 +152,30 @@ class CreatePaneComponent extends Component<Props, State> {
   }
 
   getElementArray = (previews: PreviewElement[]) => {
+    const STACK_GAP = 4;
+
     return Object.values(previews)
       .filter((preview) => !preview.owner)
       .map((preview, index) => {
         const { styles: previewStyles } = preview;
+
+        const sanitizedStyles: React.CSSProperties = {
+          ...previewStyles,
+          position: 'static',
+          top: 'auto',
+          left: 'auto',
+          transform: 'none',
+          margin: 0,
+        };
+
         return (
           <div
-            style={{ ...previewStyles, height: preview.bounds.height * (this.props?.previewScaleFactor ?? 0.8) + 8 }}
-            key={index}
+            style={{
+              ...sanitizedStyles,
+              height: preview.bounds.height,
+              marginTop: index === 0 ? 0 : STACK_GAP,
+            }}
+            key={preview.id ?? index}
           >
             <PreviewElementComponent element={preview} create={this.create} />
           </div>
