@@ -1,12 +1,12 @@
 ﻿import { Editor } from 'grapesjs';
 
-// Guard to prevent duplicate initialization
-let pageSystemInitialized = false;
+// Track initialization per editor instance
 let pagesListRaf: number | null = null;
 
 export function setupPageSystem(editor: Editor) {
-  if (pageSystemInitialized) return;
-  pageSystemInitialized = true;
+  // Check if this specific editor already has the page system initialized
+  if ((editor as any).__pageSystemInitialized) return;
+  (editor as any).__pageSystemInitialized = true;
   
   console.log('[Page System] Initializing');
   initializePagesPanel(editor);
@@ -82,7 +82,7 @@ function updatePagesList(editor: Editor) {
     editor.Pages.getAll().forEach((page: any) => {
       const item = document.createElement('div');
       item.className = 'page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
-      item.innerHTML = '<span class=\"page-name\">' + page.getName() + '</span><div class=\"page-actions\"><button class=\"rename-page-btn\"></button><button class=\"delete-page-btn\"></button></div>';
+      item.innerHTML = '<span class="page-name">' + page.getName() + '</span><div class="page-actions"><button class="rename-page-btn" title="Rename page"></button><button class="duplicate-page-btn" title="Duplicate page"></button><button class="delete-page-btn" title="Delete page"></button></div>';
       
       item.addEventListener('click', (e) => {
         if ((e.target as HTMLElement).tagName !== 'BUTTON') editor.Pages.select(page);
@@ -95,6 +95,166 @@ function updatePagesList(editor: Editor) {
           page.set('name', newName.trim());
           updatePagesList(editor);
         }
+      });
+      
+      item.querySelector('.duplicate-page-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        const originalName = page.getName();
+        const originalId = page.getId();
+        const newName = prompt('Enter name for duplicated page:', originalName + ' Copy');
+        if (!newName?.trim()) return;
+        
+        // Create new page with unique ID
+        const newId = newName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+        const newPage = editor.Pages.add({ id: newId, name: newName.trim() });
+        
+        if (!newPage) {
+          return;
+        }
+        
+        // Helper function to recursively remove IDs from components
+        const removeComponentIds = (componentArray: any[]): any[] => {
+          return componentArray.map((comp: any) => {
+            const newComp = { ...comp };
+            // Remove the component ID so GrapesJS generates new ones
+            delete newComp.id;
+            // Also remove ID from attributes if present
+            if (newComp.attributes && newComp.attributes.id) {
+              delete newComp.attributes.id;
+            }
+            // Recursively process children
+            if (newComp.components && Array.isArray(newComp.components)) {
+              newComp.components = removeComponentIds(newComp.components);
+            }
+            return newComp;
+          });
+        };
+        
+        // Helper function to update CSS selectors from old IDs to new IDs
+        const updateCssSelectors = (oldId: string, newId: string) => {
+          const cssRules = editor.Css.getAll();
+          cssRules.forEach((rule: any) => {
+            const ruleJSON = rule.toJSON();
+            // Check if this rule belongs to the new page and references the old component ID
+            if (ruleJSON.pageId === newPage.getId() && ruleJSON.selectors) {
+              const updated = ruleJSON.selectors.map((sel: any) => {
+                if (typeof sel === 'string' && sel === `#${oldId}`) {
+                  return `#${newId}`;
+                } else if (sel.name === oldId) {
+                  return { ...sel, name: newId };
+                }
+                return sel;
+              });
+              if (JSON.stringify(updated) !== JSON.stringify(ruleJSON.selectors)) {
+                rule.set('selectors', updated);
+              }
+            }
+          });
+        };
+        
+        // Deep copy components from original page, preserving IDs temporarily for CSS mapping
+        const originalComponents = page.getMainComponent()?.components();
+        const oldToNewIdMap = new Map<string, string>();
+        
+        if (originalComponents) {
+          const componentsJSON = JSON.parse(JSON.stringify(originalComponents.toJSON()));
+          
+          // Store old attribute IDs before removing them (these are used in CSS selectors)
+          const storeOldIds = (compArray: any[]) => {
+            compArray.forEach((comp: any) => {
+              if (comp.attributes?.id) {
+                oldToNewIdMap.set(comp.attributes.id, ''); // Will fill in new ID later
+              }
+              if (comp.components && Array.isArray(comp.components)) {
+                storeOldIds(comp.components);
+              }
+            });
+          };
+          storeOldIds(componentsJSON);
+          
+          const cleanedComponents = removeComponentIds(componentsJSON);
+          
+          // Clear any existing components and add fresh ones
+          const mainComponent = newPage.getMainComponent();
+          if (mainComponent) {
+            mainComponent.components().reset();
+            const addedComponents = mainComponent.components().add(cleanedComponents);
+            
+            // Map old attribute IDs to new component IDs by walking the component tree
+            const mapNewIds = (oldComps: any[], newComps: any) => {
+              const newCompsArray = Array.isArray(newComps) ? newComps : [newComps];
+              oldComps.forEach((oldComp, index) => {
+                const newComp = newCompsArray[index];
+                if (newComp && oldComp.attributes?.id) {
+                  const oldAttrId = oldComp.attributes.id;
+                  const newCompId = newComp.getId();
+                  // Set the new component's attribute ID to match its component ID
+                  newComp.addAttributes({ id: newCompId });
+                  oldToNewIdMap.set(oldAttrId, newCompId);
+                }
+                if (oldComp.components && newComp?.components) {
+                  mapNewIds(oldComp.components, newComp.components().models);
+                }
+              });
+            };
+            mapNewIds(componentsJSON, Array.isArray(addedComponents) ? addedComponents : [addedComponents]);
+          }
+        }
+        
+        // Copy styles by getting the CSS string from the original page and applying it to components on the new page
+        // This is simpler and more reliable than trying to copy CSS rules
+        const copyComponentStyles = (oldComp: any, newComp: any) => {
+          // Copy inline styles
+          const oldStyle = oldComp.getStyle();
+          if (oldStyle && Object.keys(oldStyle).length > 0) {
+            newComp.setStyle(oldStyle);
+          }
+          
+          // Copy classes
+          const oldClasses = oldComp.getClasses();
+          if (oldClasses && oldClasses.length > 0) {
+            newComp.setClass(oldClasses);
+          }
+          
+          // Recursively copy styles for children
+          const oldChildren = oldComp.components();
+          const newChildren = newComp.components();
+          if (oldChildren && newChildren && oldChildren.length === newChildren.length) {
+            oldChildren.forEach((oldChild: any, index: number) => {
+              const newChild = newChildren.at(index);
+              if (newChild) {
+                copyComponentStyles(oldChild, newChild);
+              }
+            });
+          }
+        };
+        
+        // Copy styles from original page components to new page components
+        const originalMainComp = page.getMainComponent();
+        const newMainComp = newPage.getMainComponent();
+        if (originalMainComp && newMainComp) {
+          const originalChildren = originalMainComp.components();
+          const newChildren = newMainComp.components();
+          
+          originalChildren.forEach((oldComp: any, index: number) => {
+            const newComp = newChildren.at(index);
+            if (newComp) {
+              copyComponentStyles(oldComp, newComp);
+            }
+          });
+        }
+        
+        // Only copy specific page attributes, not all
+        // Only copy route_path if it exists
+        const originalRoute = page.get('route_path');
+        if (originalRoute) {
+          newPage.set('route_path', originalRoute + '-copy');
+        }
+        
+        // Select the new page and update the list
+        editor.Pages.select(newPage);
+        updatePagesList(editor);
       });
       
       item.querySelector('.delete-page-btn')?.addEventListener('click', (e) => {
@@ -134,14 +294,26 @@ function updatePagesList(editor: Editor) {
 function setupPageCommands(editor: Editor) {
   editor.Commands.add('show-pages', {
     run() {
-      const panel = document.querySelector('.pages-panel-container') as HTMLElement;
+      // Look for panel in the editor's container specifically
+      const editorContainer = editor.getContainer();
+      const panel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
       if (panel) {
         panel.style.display = 'flex';
         updatePagesList(editor);
+      } else {
+        console.warn('[Pages] Panel not found, re-initializing...');
+        // Re-create the panel if it doesn't exist
+        initializePagesPanel(editor);
+        const newPanel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
+        if (newPanel) {
+          newPanel.style.display = 'flex';
+          updatePagesList(editor);
+        }
       }
     },
     stop() {
-      const panel = document.querySelector('.pages-panel-container') as HTMLElement;
+      const editorContainer = editor.getContainer();
+      const panel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
       if (panel) panel.style.display = 'none';
     }
   });
@@ -324,6 +496,9 @@ function addPagesPanelCSS() {
     }
     .rename-page-btn::before {
       content: '✏️';
+    }
+    .duplicate-page-btn::before {
+      content: '📄';
     }
     .delete-page-btn::before {
       content: '🗑️';
