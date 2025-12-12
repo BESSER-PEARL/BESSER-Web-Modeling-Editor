@@ -379,3 +379,44 @@ export function getMethodOptions(classId: string): { value: string; label: strin
     isStatic: method.isStatic
   }));
 }
+
+/**
+ * Get table options from the GrapesJS editor
+ * Returns an array of { value: tableId, label: "TableTitle (table)" }
+ */
+export function getTableOptions(editor: any): { value: string; label: string }[] {
+  const options: Array<{ value: string; label: string }> = [
+    { value: '', label: '-- Select Source --' }
+  ];
+  
+  if (!editor) return options;
+  
+  try {
+    const wrapper = editor.getWrapper?.();
+    if (!wrapper) return options;
+    
+    // Find all table components in the current page
+    const tables = wrapper.find('[class*="table-component"]');
+    
+    if (!tables) return options;
+    
+    tables.forEach((table: any) => {
+      try {
+        const attrs = table.getAttributes();
+        const title = attrs['chart-title'] || 'Untitled Table';
+        const componentId = table.getId();
+        
+        options.push({
+          value: componentId,  // Store the component ID as the value
+          label: `${title} (table)`  // Display the title with "(table)" suffix
+        });
+      } catch (err) {
+        console.warn('[getTableOptions] Error processing table:', err);
+      }
+    });
+  } catch (err) {
+    console.warn('[getTableOptions] Error getting wrapper:', err);
+  }
+  
+  return options;
+}
