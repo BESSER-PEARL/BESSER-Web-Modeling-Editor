@@ -317,8 +317,17 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
     return [];
   }
 
+  // Find class by name (classId might be a name now)
+  const classElement = Object.values(classDiagram.elements).find(
+    (element: any) => element?.type === 'Class' && (element?.id === classId || element?.name === classId)
+  );
+  
+  if (!classElement) {
+    return [];
+  }
+
   return Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'ClassMethod' && element?.owner === classId)
+    .filter((element: any) => element?.type === 'ClassMethod' && element?.owner === (classElement as any).id)
     .map((method: any) => {
       // Parse method signature to extract parameters
       const methodName = method.name || '';
@@ -373,11 +382,15 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
  */
 export function getMethodOptions(classId: string): { value: string; label: string; isStatic: boolean }[] {
   const methods = getMethodsByClassId(classId);
-  return methods.map(method => ({
-    value: method.name,
-    label: `${method.name}${method.isStatic ? ' (static)' : ''}`,
-    isStatic: method.isStatic
-  }));
+  return methods.map(method => {
+    // Remove visibility prefix (+ or -) from method name
+    const cleanName = method.name.replace(/^[+-]\s*/, '');
+    return {
+      value: method.id,  // Store the method ID
+      label: cleanName,  // Show only the clean method name without (static) suffix
+      isStatic: method.isStatic
+    };
+  });
 }
 
 /**

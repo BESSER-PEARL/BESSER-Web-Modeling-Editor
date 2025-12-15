@@ -157,8 +157,8 @@ export const registerButtonComponent = (editor: any) => {
             },
             {
               type: 'select',
-              label: 'Method Name',
-              name: 'method-name',
+              label: 'Method',
+              name: 'method',
               changeProp: 1,
               options: [],
             },
@@ -220,10 +220,10 @@ export const registerButtonComponent = (editor: any) => {
         if (actionType === 'run-method') {
           const methodClass = this.get('method-class');
           if (methodClass) {
-            const methodNameTrait = traits.where({ name: 'method-name' })[0];
-            if (methodNameTrait) {
+            const methodTrait = traits.where({ name: 'method' })[0];
+            if (methodTrait) {
               const methodOptions = getMethodOptions(methodClass);
-              methodNameTrait.set('options', methodOptions);
+              methodTrait.set('options', methodOptions);
             }
           }
         }
@@ -237,17 +237,17 @@ export const registerButtonComponent = (editor: any) => {
       updateMethodOptions(this: any) {
         const methodClass = this.get('method-class');
         const traits = this.get('traits');
-        const methodNameTrait = traits.where({ name: 'method-name' })[0];
+        const methodTrait = traits.where({ name: 'method' })[0];
         
-        if (methodNameTrait && methodClass) {
+        if (methodTrait && methodClass) {
           const methodOptions = getMethodOptions(methodClass);
-          methodNameTrait.set('options', methodOptions);
+          methodTrait.set('options', methodOptions);
           
-          // Clear method name if it's not in the new options
-          const currentMethod = this.get('method-name');
+          // Clear method if it's not in the new options
+          const currentMethod = this.get('method');
           const isValid = methodOptions.some(opt => opt.value === currentMethod);
           if (!isValid) {
-            this.set('method-name', '');
+            this.set('method', '');
           }
         }
       },
@@ -357,9 +357,25 @@ export const registerButtonComponent = (editor: any) => {
       },
     },
     view: {
+      init(this: any) {
+        // Listen for button label changes and update the view
+        this.listenTo(this.model, 'change:button-label', this.updateText);
+      },
+      updateText(this: any) {
+        // Update the button's text content in the canvas
+        const label = this.model.get('button-label') || 'Button';
+        if (this.el) {
+          this.el.textContent = label;
+        }
+      },
       onRender({ model, el }: any) {
         // Store editor globally
         (window as any).editor = editor;
+        // Set the initial button label text
+        const label = model.get('button-label') || 'Button';
+        if (el) {
+          el.textContent = label;
+        }
       },
     },
     isComponent: (el: any) => {
