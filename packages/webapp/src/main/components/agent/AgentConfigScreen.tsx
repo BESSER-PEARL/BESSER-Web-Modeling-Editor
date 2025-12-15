@@ -2,14 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { Card, Form, Button, Row, Col, Badge } from 'react-bootstrap';
 import styled from 'styled-components';
 
-const PageContainer = styled.div`
-  padding: 40px 20px;
-  min-height: calc(100vh - 60px);
-  background-color: var(--apollon-background);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-`;
+type InterfaceStyleSetting = {
+    size: number;
+    font: 'sans' | 'serif' | 'monospace' | 'neutral' | 'grotesque';
+    lineSpacing: number;
+    alignment: 'left' | 'center' | 'justify';
+    color: string;
+    contrast: 'low' | 'medium' | 'high';
+};
+
+const defaultInterfaceStyle: InterfaceStyleSetting = {
+    size: 16,
+    font: 'sans',
+    lineSpacing: 1.5,
+    alignment: 'left',
+    color: 'var(--apollon-primary-contrast)',
+    contrast: 'medium',
+};
+
+type VoiceStyleSetting = {
+    gender: 'male' | 'female' | 'ambiguous';
+    speed: number;
+};
+
+const defaultVoiceStyle: VoiceStyleSetting = {
+    gender: 'male',
+    speed: 1,
+};
+
+type IntentRecognitionTechnology = 'classical' | 'llm-based';
+
+const defaultIntentRecognitionTechnology: IntentRecognitionTechnology = 'classical';
 
 const AgentCard = styled(Card)`
   width: 100%;
@@ -41,17 +64,26 @@ const CardBody = styled(Card.Body)`
 `;
 
 const SectionTitle = styled.h5`
-  color: var(--apollon-primary-contrast);
-  margin-bottom: 20px;
-  font-weight: 600;
-  border-bottom: 2px solid var(--apollon-switch-box-border-color);
-  padding-bottom: 8px;
+    color: var(--apollon-primary-contrast);
+    margin-bottom: 20px;
+    font-weight: 600;
+    border-bottom: 2px solid var(--apollon-switch-box-border-color);
+    padding-bottom: 8px;
+`;
+
+const PageContainer = styled.div`
+    padding: 40px 20px;
+    min-height: calc(100vh - 60px);
+    background-color: var(--apollon-background);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
 `;
 
 
 
 export const AgentConfigScreen: React.FC = () => {
-    // Only keep language, input/output modalities, platform, and LLM
+    // Only keep language, input/output modalities, platform, LLM, and avatar
     const configKey = 'agentConfig';
     // Load from localStorage if available
     const getInitialConfig = () => {
@@ -65,6 +97,7 @@ export const AgentConfigScreen: React.FC = () => {
                     llmProvider = config.llm.provider || '';
                     llmModel = config.llm.model || '';
                 }
+                const intentRecognitionTechnology = config.intentRecognitionTechnology === 'llm-based' ? 'llm-based' as IntentRecognitionTechnology : defaultIntentRecognitionTechnology;
                 return {
                     agentLanguage: config.agentLanguage || 'original',
                     inputModalities: config.inputModalities || ['text'],
@@ -74,6 +107,12 @@ export const AgentConfigScreen: React.FC = () => {
                     agentStyle: config.agentStyle || 'original',
                     llmProvider,
                     llmModel,
+                    avatar: config.avatar || null,
+                    sentenceLength: config.sentenceLength || 'concise', // Default value
+                    interfaceStyle: config.interfaceStyle ? { ...defaultInterfaceStyle, ...config.interfaceStyle } : defaultInterfaceStyle,
+                    voiceStyle: config.voiceStyle ? { ...defaultVoiceStyle, ...config.voiceStyle } : defaultVoiceStyle,
+                    useAbbreviations: config.useAbbreviations ?? false,
+                    intentRecognitionTechnology,
                 };
             }
         } catch { }
@@ -86,6 +125,12 @@ export const AgentConfigScreen: React.FC = () => {
             agentStyle: 'original',
             llmProvider: '',
             llmModel: '',
+            avatar: null,
+            sentenceLength: 'concise',
+            interfaceStyle: defaultInterfaceStyle,
+            voiceStyle: defaultVoiceStyle,
+            useAbbreviations: false,
+            intentRecognitionTechnology: defaultIntentRecognitionTechnology,
         };
     };
 
@@ -99,6 +144,12 @@ export const AgentConfigScreen: React.FC = () => {
     const [llmModel, setLlmModel] = useState(getInitialConfig().llmModel);
     const [customModel, setCustomModel] = useState('');
     const [languageComplexity, setLanguageComplexity] = useState<'original' | 'simple' | 'medium' | 'complex'>('original');
+    const [sentenceLength, setSentenceLength] = useState<'concise' | 'verbose'>(getInitialConfig().sentenceLength || 'concise');
+    const [interfaceStyle, setInterfaceStyle] = useState<InterfaceStyleSetting>(getInitialConfig().interfaceStyle || defaultInterfaceStyle);
+    const [voiceStyle, setVoiceStyle] = useState<VoiceStyleSetting>(getInitialConfig().voiceStyle || defaultVoiceStyle);
+    const [avatarData, setAvatarData] = useState<string | null>(getInitialConfig().avatar || null);
+    const [useAbbreviations, setUseAbbreviations] = useState<boolean>(getInitialConfig().useAbbreviations ?? false);
+    const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(getInitialConfig().intentRecognitionTechnology || defaultIntentRecognitionTechnology);
 
     // Sync state with localStorage on mount
     useEffect(() => {
@@ -119,6 +170,12 @@ export const AgentConfigScreen: React.FC = () => {
                     setLlmProvider('');
                     setLlmModel('');
                 }
+                setSentenceLength(config.sentenceLength || 'concise'); // Apply sentence length from config
+                setInterfaceStyle(config.interfaceStyle ? { ...defaultInterfaceStyle, ...config.interfaceStyle } : defaultInterfaceStyle);
+                setVoiceStyle(config.voiceStyle ? { ...defaultVoiceStyle, ...config.voiceStyle } : defaultVoiceStyle);
+                setAvatarData(config.avatar || null);
+                setUseAbbreviations(config.useAbbreviations ?? false);
+                setIntentRecognitionTechnology(config.intentRecognitionTechnology === 'llm-based' ? 'llm-based' as IntentRecognitionTechnology : defaultIntentRecognitionTechnology);
             } catch { }
         }
     }, []);
@@ -140,6 +197,26 @@ export const AgentConfigScreen: React.FC = () => {
         );
     };
 
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            if (typeof result === 'string') {
+                setAvatarData(result);
+            }
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    const handleAvatarRemove = () => setAvatarData(null);
+
+    const updateInterfaceStyle = (field: keyof InterfaceStyleSetting, value: InterfaceStyleSetting[keyof InterfaceStyleSetting]) => {
+        setInterfaceStyle(prev => ({ ...prev, [field]: value }));
+    };
+
     const getConfigObject = () => ({
         agentLanguage,
         inputModalities,
@@ -149,6 +226,12 @@ export const AgentConfigScreen: React.FC = () => {
         agentStyle,
         llm: llmProvider && (llmModel || customModel) ? { provider: llmProvider, model: llmModel === 'other' ? customModel : llmModel } : {},
         languageComplexity,
+        sentenceLength,
+        interfaceStyle,
+        voiceStyle,
+        avatar: avatarData,
+        useAbbreviations,
+        intentRecognitionTechnology,
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -199,6 +282,16 @@ export const AgentConfigScreen: React.FC = () => {
                     setLlmModel('');
                     setCustomModel('');
                 }
+                setSentenceLength(config.sentenceLength || 'concise');
+                setInterfaceStyle(config.interfaceStyle ? { ...defaultInterfaceStyle, ...config.interfaceStyle } : defaultInterfaceStyle);
+                setVoiceStyle(config.voiceStyle ? { ...defaultVoiceStyle, ...config.voiceStyle } : defaultVoiceStyle);
+                setAvatarData(config.avatar || null);
+                setUseAbbreviations(config.useAbbreviations ?? false);
+                const intentRecognitionTechnology = config.intentRecognitionTechnology === 'llm-based'
+                    ? 'llm-based' as IntentRecognitionTechnology
+                    : defaultIntentRecognitionTechnology;
+                setIntentRecognitionTechnology(intentRecognitionTechnology);
+                config.intentRecognitionTechnology = intentRecognitionTechnology;
                 localStorage.setItem(configKey, JSON.stringify(config));
                 alert('Configuration loaded!');
             } catch {
@@ -310,6 +403,18 @@ export const AgentConfigScreen: React.FC = () => {
                                     </div>
                                 </Form.Group>
                             </Col>
+                            <Row></Row>
+                            <Col md={4}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Abbreviations</Form.Label>
+                                    <Form.Check
+                                        type="switch"
+                                        label="Use abbreviations"
+                                        checked={useAbbreviations}
+                                        onChange={e => setUseAbbreviations(e.target.checked)}
+                                    />
+                                </Form.Group>
+                            </Col>
                         </Row>
                         <Row>
                             <Col md={4}>
@@ -323,7 +428,7 @@ export const AgentConfigScreen: React.FC = () => {
                                             id="languageComplexityOriginal"
                                             value="original"
                                             checked={languageComplexity === 'original'}
-                                            onChange={e => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
                                         />
                                         <Form.Check
                                             type="radio"
@@ -332,7 +437,7 @@ export const AgentConfigScreen: React.FC = () => {
                                             id="languageComplexitySimple"
                                             value="simple"
                                             checked={languageComplexity === 'simple'}
-                                            onChange={e => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
                                         />
                                         <Form.Check
                                             type="radio"
@@ -341,7 +446,7 @@ export const AgentConfigScreen: React.FC = () => {
                                             id="languageComplexityMedium"
                                             value="medium"
                                             checked={languageComplexity === 'medium'}
-                                            onChange={e => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
                                         />
                                         <Form.Check
                                             type="radio"
@@ -350,13 +455,202 @@ export const AgentConfigScreen: React.FC = () => {
                                             id="languageComplexityComplex"
                                             value="complex"
                                             checked={languageComplexity === 'complex'}
-                                            onChange={e => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
                                         />
                                     </div>
                                 </Form.Group>
                             </Col>
                         </Row>
+                        <Row className="mb-2">
+                            <Col>
+                                <Form.Label className="fw-semibold">Style of text in interface</Form.Label>
+                            </Col>
+                        </Row>
+                        <Row className="mb-3">
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Size (px)</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min={10}
+                                        max={32}
+                                        value={interfaceStyle.size}
+                                        onChange={e => updateInterfaceStyle('size', Number(e.target.value))}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Font</Form.Label>
+                                    <Form.Select
+                                        value={interfaceStyle.font}
+                                        onChange={e => updateInterfaceStyle('font', e.target.value as InterfaceStyleSetting['font'])}
+                                    >
+                                        <option value="sans">Sans</option>
+                                        <option value="serif">Serif</option>
+                                        <option value="monospace">Monospace</option>
+                                        <option value="neutral">Neutral</option>
+                                        <option value="grotesque">Grotesque</option>
+                                        <option value="condensed">Condensed</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Line Spacing</Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min={1}
+                                        max={3}
+                                        step={0.1}
+                                        value={interfaceStyle.lineSpacing}
+                                        onChange={e => updateInterfaceStyle('lineSpacing', Number(e.target.value))}
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                        <Row className="mb-4">
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Alignment</Form.Label>
+                                    <Form.Select
+                                        value={interfaceStyle.alignment}
+                                        onChange={e => updateInterfaceStyle('alignment', e.target.value as InterfaceStyleSetting['alignment'])}
+                                    >
+                                        <option value="left">Left</option>
+                                        <option value="center">Center</option>
+                                        <option value="justify">Justify</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Color</Form.Label>
+                                    <Form.Select
+                                        value={interfaceStyle.color}
+                                        onChange={e => updateInterfaceStyle('color', e.target.value)}
+                                    >
+                                        <option value="var(--apollon-primary-contrast)">Default Contrast</option>
+                                        <option value="#000000">Black</option>
+                                        <option value="#ffffff">White</option>
+                                        <option value="#1a73e8">Blue</option>
+                                        <option value="#34a853">Green</option>
+                                        <option value="#fbbc05">Yellow</option>
+                                        <option value="#db4437">Red</option>
+                                        <option value="#6a1b9a">Purple</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                            <Col md={3}>
+                                <Form.Group>
+                                    <Form.Label>Contrast</Form.Label>
+                                    <Form.Select
+                                        value={interfaceStyle.contrast}
+                                        onChange={e => updateInterfaceStyle('contrast', e.target.value as InterfaceStyleSetting['contrast'])}
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Sentence Length</Form.Label>
+                                    <div className="d-flex gap-3">
+                                        <Form.Check
+                                            type="radio"
+                                            label="Concise"
+                                            name="sentenceLength"
+                                            id="sentenceLengthConcise"
+                                            value="concise"
+                                            checked={sentenceLength === 'concise'}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'concise' | 'verbose')}
+                                        />
+                                        <Form.Check
+                                            type="radio"
+                                            label="Verbose"
+                                            name="sentenceLength"
+                                            id="sentenceLengthVerbose"
+                                            value="verbose"
+                                            checked={sentenceLength === 'verbose'}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'concise' | 'verbose')}
+                                        />
+                                    </div>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        {outputModalities.includes('speech') && (
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Style of voice</Form.Label>
+                                        <div className="d-flex flex-column gap-2">
+                                            <Form.Select
+                                                value={voiceStyle.gender}
+                                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                                                    setVoiceStyle(prev => ({ ...prev, gender: e.target.value as VoiceStyleSetting['gender'] }))
+                                                }
+                                            >
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="ambiguous">Ambiguous</option>
+                                            </Form.Select>
+
+                                            <Form.Group>
+                                                <Form.Label>Voice speed ({voiceStyle.speed.toFixed(1)}x)</Form.Label>
+                                                <Form.Range
+                                                    min={0.5}
+                                                    max={2}
+                                                    step={0.05}
+                                                    value={voiceStyle.speed}
+                                                    onChange={e => setVoiceStyle(prev => ({ ...prev, speed: Number(e.target.value) }))}
+                                                />
+                                            </Form.Group>
+                                        </div>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        )}
+
+                        <Row>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label className="d-flex align-items-center gap-2">
+                                        2D Avatar
+                                    </Form.Label>
+                                    {avatarData && (
+                                        <div className="d-flex flex-column gap-2">
+                                            <img
+                                                src={avatarData}
+                                                alt="Agent avatar"
+                                                style={{ width: 128, height: 128, objectFit: 'cover', borderRadius: '50%', border: '1px solid var(--apollon-switch-box-border-color)' }}
+                                            />
+                                            <Button variant="outline-danger" size="sm" onClick={handleAvatarRemove}>
+                                                Remove avatar
+                                            </Button>
+                                        </div>
+                                    )}
+                                    <Form.Control
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleAvatarUpload}
+                                        className="mt-2"
+                                    />
+                                    <Form.Text className="text-muted">
+                                        Upload an image for your agent avatar; it will be stored as base64 when saving the configuration.
+                                    </Form.Text>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
                         <SectionTitle>Behavior</SectionTitle>
+
+
+
                         <Row>
                             <Col md={4}>
                                 <Form.Group className="mb-3">
@@ -379,6 +673,15 @@ export const AgentConfigScreen: React.FC = () => {
                                         <option value="telegram">Telegram</option>
                                     </Form.Select>
                                 </Form.Group>
+   
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Intent recognition</Form.Label>
+                                        <Form.Select value={intentRecognitionTechnology} onChange={e => setIntentRecognitionTechnology(e.target.value as IntentRecognitionTechnology)}>
+                                            <option value="classical">Classical</option>
+                                            <option value="llm-based">LLM-based</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                          
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
@@ -443,6 +746,7 @@ export const AgentConfigScreen: React.FC = () => {
                                 )}
                             </Col>
                         </Row>
+           
                         <div className="d-flex justify-content-end gap-3 mt-4">
                             <Button variant="primary" type="submit">
                                 Save Configuration
