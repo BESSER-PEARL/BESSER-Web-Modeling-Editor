@@ -71,7 +71,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
   render() {
     const { readonly, mode, view, diagramType, translate, changeView } = this.props;
     const { sidebarWidth, showIcon } = this.state;
-    const isObjectDiagram = diagramType.includes("Object")
+    const isObjectDiagram = diagramType.includes("Object") || diagramType.includes("User");
 
     if (readonly || mode === ApollonMode.Assessment) return null;
 
@@ -105,7 +105,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
         {view === ApollonView.Modelling ? (
           <>
 
-            {isObjectDiagram && (
+            {(isObjectDiagram) && (
               <label htmlFor="toggleIconMode" style={{ display: 'block', marginTop: 8 }}>
                 <input
                   id="toggleIconMode"

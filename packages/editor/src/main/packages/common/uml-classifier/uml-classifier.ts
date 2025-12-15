@@ -101,7 +101,6 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
       method.bounds.width = this.bounds.width - 1;
       y += method.bounds.height;
     }
-
     this.bounds.height = y;
     return [this, ...attributes, ...methods];
   }

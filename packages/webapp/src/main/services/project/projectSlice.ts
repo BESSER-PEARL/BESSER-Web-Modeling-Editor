@@ -4,6 +4,9 @@ import { BesserProject, ProjectDiagram, SupportedDiagramType, isUMLModel, toSupp
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../constant';
 
+import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
+
+
 // Project state interface
 export interface ProjectState {
   currentProject: BesserProject | null;
@@ -163,6 +166,7 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     const supportedType = toSupportedDiagramType(diagramType);
     const diagram = ProjectStorageRepository.switchDiagramType(currentProject.id, supportedType);
     
+    
     if (!diagram) {
       throw new Error('Failed to switch diagram type');
     }
@@ -181,6 +185,17 @@ export const switchDiagramTypeThunk = createAsyncThunk(
           console.warn('Could not set class diagram reference:', error);
         }
       }
+    } else if (diagramType === UMLDiagramType.UserDiagram) {
+      // UserDiagram specific setup can go here
+
+        try {
+          const { diagramBridge } = await import('@besser/wme');
+          // Set the class diagram data in the bridge so Object Diagram can reference it
+          diagramBridge.setClassDiagramData(userMetaModel);
+          console.log('Set class diagram reference for object diagram');
+        } catch (error) {
+          console.warn('Could not set class diagram reference:', error);
+        }
     }
     
     // Also sync to diagram slice to keep Apollo editor in sync
