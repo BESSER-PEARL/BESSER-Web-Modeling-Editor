@@ -299,7 +299,7 @@ export function getAgentOptions(): { value: string; label: string }[] {
 export interface MethodMetadata {
   id: string;
   name: string;
-  isStatic: boolean;
+  isInstanceMethod: boolean;
   parameters: MethodParameter[];
 }
 
@@ -331,7 +331,7 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
     .map((method: any) => {
       // Parse method signature to extract parameters
       const methodName = method.name || '';
-      const isStatic = methodName.includes('(self') === false && methodName.includes('(session') === false;
+      const isInstanceMethod = methodName.includes('(self') || methodName.includes('(session');
       
       // Extract method name (before parentheses)
       const nameMatch = methodName.match(/^([^(]+)/);
@@ -371,7 +371,7 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
       return {
         id: method.id,
         name: cleanName,
-        isStatic: isStatic,
+        isInstanceMethod: isInstanceMethod,
         parameters: parameters
       };
     });
@@ -380,7 +380,7 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
 /**
  * Get method options for dropdown (formatted as value: label)
  */
-export function getMethodOptions(classId: string): { value: string; label: string; isStatic: boolean }[] {
+export function getMethodOptions(classId: string): { value: string; label: string; isInstanceMethod: boolean }[] {
   const methods = getMethodsByClassId(classId);
   return methods.map(method => {
     // Remove visibility prefix (+ or -) from method name
@@ -388,7 +388,7 @@ export function getMethodOptions(classId: string): { value: string; label: strin
     return {
       value: method.id,  // Store the method ID
       label: cleanName,  // Show only the clean method name without (static) suffix
-      isStatic: method.isStatic
+      isInstanceMethod: method.isInstanceMethod
     };
   });
 }

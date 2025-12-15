@@ -56,6 +56,19 @@ export const registerButtonComponent = (editor: any) => {
           }]);
         }
         
+        // Calculate instance-method attribute if method-class and method are already set
+        // (This handles loading from saved JSON)
+        const methodClass = this.get('method-class');
+        const methodName = this.get('method') || this.get('data-method');
+        if (methodClass && methodName) {
+          const methodMetadata = getMethodsByClassId(methodClass).find(m => m.name === methodName);
+          if (methodMetadata) {
+            const attrs = this.getAttributes();
+            attrs['instance-method'] = methodMetadata.isInstanceMethod ? 'true' : 'false';
+            this.setAttributes(attrs);
+          }
+        }
+        
         // Dynamic trait visibility
         this.on('change:action-type', this.updateTraitVisibility);
         this.on('change:confirmation-required', this.updateTraitVisibility);
@@ -305,10 +318,10 @@ export const registerButtonComponent = (editor: any) => {
             attrs['data-instance-source'] = instanceSource;
           }
           
-          // Get method metadata to determine if it's static
+          // Get method metadata to determine if it's an instance method
           const methodMetadata = getMethodsByClassId(methodClass).find(m => m.name === methodName);
           if (methodMetadata) {
-            attrs['data-method-is-static'] = methodMetadata.isStatic ? 'true' : 'false';
+            attrs['instance-method'] = methodMetadata.isInstanceMethod ? 'true' : 'false';
           }
         }
         
