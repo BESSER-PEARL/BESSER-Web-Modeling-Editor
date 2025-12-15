@@ -7,7 +7,8 @@ import { TemplateFactory } from './template-factory';
 import { ModalContentProps } from '../application-modal-types';
 import { useAppDispatch } from '../../store/hooks';
 import { createDiagram } from '../../../services/diagram/diagramSlice';
-import { updateCurrentDiagramThunk, switchDiagramTypeThunk } from '../../../services/project/projectSlice';
+import { updateCurrentDiagramThunk, switchDiagramTypeThunk, updateQuantumDiagramThunk } from '../../../services/project/projectSlice';
+import { SupportedDiagramType, QuantumCircuitData } from '../../../types/project';
 
 export const CreateFromTemplateModal: React.FC<ModalContentProps> = ({ close }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template>(
@@ -28,18 +29,44 @@ export const CreateFromTemplateModal: React.FC<ModalContentProps> = ({ close }) 
   };
 
   const createNewDiagram = async () => {
-    // First, create the diagram in the local state
+    // Check if this is a non-UML diagram (like Quantum)
+    if (!selectedTemplate.isUMLDiagram) {
+      // Handle non-UML diagrams (e.g., Quantum Circuit)
+      if (selectedTemplate.diagramType === 'QuantumCircuitDiagram') {
+        try {
+          // Save the quantum template to the project
+          await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
+          console.log('Quantum template saved to project successfully');
+          
+          // Switch to the quantum diagram type
+          await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' as SupportedDiagramType }));
+          console.log('Switched to QuantumCircuitDiagram');
+        } catch (error) {
+          console.error('Failed to load quantum template:', error);
+        }
+      }
+      
+      close();
+      
+      // Force a page reload to ensure the template is properly rendered
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      return;
+    }
+
+    // Handle UML diagrams (original logic)
     dispatch(
       createDiagram({
         title: selectedTemplate.type,
-        diagramType: selectedTemplate.diagramType,
-        template: selectedTemplate.diagram,
+        diagramType: selectedTemplate.diagramType as any,
+        template: selectedTemplate.diagram as any,
       }),
     );
     
     // Then ensure we're on the correct diagram type in the project
     try {
-      await dispatch(switchDiagramTypeThunk({ diagramType: selectedTemplate.diagramType }));
+      await dispatch(switchDiagramTypeThunk({ diagramType: selectedTemplate.diagramType as SupportedDiagramType }));
       console.log('Switched to diagram type:', selectedTemplate.diagramType);
     } catch (error) {
       console.error('Failed to switch diagram type:', error);
@@ -48,7 +75,7 @@ export const CreateFromTemplateModal: React.FC<ModalContentProps> = ({ close }) 
     // Finally, save the template to the project system
     if (selectedTemplate.diagram) {
       try {
-        await dispatch(updateCurrentDiagramThunk({ model: selectedTemplate.diagram }));
+        await dispatch(updateCurrentDiagramThunk({ model: selectedTemplate.diagram as any }));
         console.log('Template saved to project successfully');
       } catch (error) {
         console.error('Failed to save template to project:', error);

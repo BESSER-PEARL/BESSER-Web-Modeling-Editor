@@ -5,3 +5,6 @@ export { useCircuitDragDrop } from './useCircuitDragDrop';
 export type { DragState, PreviewPosition } from './useCircuitDragDrop';
 export { useGateResize } from './useGateResize';
 export { useCircuitIO, useKeyboardShortcuts } from './useCircuitIO';
+export { useCircuitEditor } from './useCircuitEditor';
+export type { CircuitEditorState } from './useCircuitEditor';
+export { useCircuitKeyboard } from './useCircuitKeyboard';

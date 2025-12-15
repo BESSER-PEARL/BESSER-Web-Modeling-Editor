@@ -13,6 +13,7 @@ import factoryModel from '../../../templates/pattern/creational/factory.json';
 import observerModel from '../../../templates/pattern/behavioral/observer.json';
 import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
+import groverBvModel from '../../../templates/pattern/quantum/grover_bv_algorithm.json';
 // Could also be a static method on Template, which would be nicer.
 // However, because of circular dependency we decided to create a separate factory instead
 export class TemplateFactory {
@@ -80,6 +81,14 @@ export class TemplateFactory {
           UMLDiagramType.StateMachineDiagram,
           traficlightModel as any,
           SoftwarePatternCategory.STATE_MACHINE,
+        );
+      case SoftwarePatternType.GROVER_BV:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          'QuantumCircuitDiagram',  // Not a UMLDiagramType, use string directly
+          groverBvModel as any,
+          SoftwarePatternCategory.QUANTUM,
+          false,  // isUMLDiagram = false
         );
       default:
         throw Error(`Cannot create SoftwarePatternTemplate for type ${softwarePatternType}`);

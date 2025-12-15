@@ -1,11 +1,8 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { Circuit, Gate, InitialState } from '../types';
-import { CircuitGrid } from './CircuitGrid';
-import { GatePalette } from './GatePalette';
-import { COLORS, GATE_SIZE, WIRE_SPACING } from '../layout-constants';
-import { trimCircuit } from '../utils';
-import { GATES } from '../constants';
+import { CircuitEditor } from './CircuitEditor';
+import { COLORS } from '../layout-constants';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -163,21 +160,6 @@ const CloseButton = styled.button`
   }
 `;
 
-const PaletteContainer = styled.div`
-  min-width: 220px;
-  max-width: 220px;
-  border-right: 2px solid ${COLORS.STROKE};
-  padding-right: 20px;
-  overflow-y: auto;
-`;
-
-const CircuitContainer = styled.div`
-  flex: 1;
-  overflow: auto;
-  min-height: 500px;
-  min-width: 600px;
-`;
-
 interface NestedCircuitModalProps {
   gate: Gate;
   onClose: () => void;
@@ -188,8 +170,6 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
   const [gateName, setGateName] = useState<string>(gate.label || '');
   const [gateColor, setGateColor] = useState<string>(gate.backgroundColor || '#FFE8CC');
   const [circuit, setCircuit] = useState<Circuit>(() => {
-    //console.log('[NestedCircuitModal] Initial gate:', gate);
-    //console.log('[NestedCircuitModal] Initial nested circuit:', gate.nestedCircuit);
     return gate.nestedCircuit || {
       columns: [],
       qubitCount: gate.height || 2,
@@ -199,18 +179,12 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
 
   // Sync with gate prop changes (when reopening modal with updated gate)
   useEffect(() => {
-    //console.log('[NestedCircuitModal] useEffect - Gate changed:', gate);
-    //console.log('[NestedCircuitModal] useEffect - Gate nestedCircuit:', gate.nestedCircuit);
-    //console.log('[NestedCircuitModal] useEffect - Gate label:', gate.label);
-    
     setGateName(gate.label || '');
     setGateColor(gate.backgroundColor || '#FFE8CC');
     
     if (gate.nestedCircuit) {
-      //console.log('[NestedCircuitModal] useEffect - Setting circuit from gate.nestedCircuit');
       setCircuit(gate.nestedCircuit);
     } else {
-      //console.log('[NestedCircuitModal] useEffect - No nestedCircuit, creating empty circuit');
       setCircuit({
         columns: [],
         qubitCount: gate.height || 2,
@@ -219,134 +193,12 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
     }
   }, [gate]);
 
-  const circuitGridRef = useRef<HTMLDivElement>(null);
-  
-  // Drag and drop state
-  const [draggedGate, setDraggedGate] = useState<{ gate: string; offset: { x: number; y: number } } | null>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [previewPosition, setPreviewPosition] = useState<{ col: number; row: number; isValid: boolean } | null>(null);
-
-  const handleDragStart = useCallback((gateType: string, e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setDraggedGate({
-      gate: gateType,
-      offset: {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      },
-    });
+  const handleCircuitChange = useCallback((newCircuit: Circuit) => {
+    setCircuit(newCircuit);
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!draggedGate || !circuitGridRef.current) return;
-    
-    const rect = circuitGridRef.current.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left + circuitGridRef.current.scrollLeft;
-    const relativeY = e.clientY - rect.top + circuitGridRef.current.scrollTop;
-    
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-    
-    // Calculate preview position accounting for margins
-    const LEFT_MARGIN = 60;
-    const TOP_MARGIN = 20;
-    const col = Math.floor((relativeX - LEFT_MARGIN) / (GATE_SIZE + 4));
-    const row = Math.floor((relativeY - TOP_MARGIN) / WIRE_SPACING);
-    
-    // Get gate definition to check height
-    const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
-    const gateHeight = gateDefinition?.height || 1;
-    
-    // Check if position is valid
-    const isValid = col >= 0 && 
-                   row >= 0 && 
-                   row + gateHeight <= circuit.qubitCount;
-    
-    setPreviewPosition({
-      col: Math.max(0, col),
-      row: Math.max(0, row),
-      isValid,
-    });
-  }, [draggedGate, circuit.qubitCount]);
-
-  const handleMouseUp = useCallback(() => {
-    if (!draggedGate || !previewPosition || !previewPosition.isValid) {
-      setDraggedGate(null);
-      setPreviewPosition(null);
-      return;
-    }
-
-    const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
-    if (!gateDefinition) {
-      setDraggedGate(null);
-      setPreviewPosition(null);
-      return;
-    }
-
-    setCircuit((prev) => {
-      const newColumns = [...prev.columns];
-      const gateHeight = gateDefinition.height || 1;
-      
-      // Check if gate fits in available qubits
-      if (previewPosition.row + gateHeight > prev.qubitCount) {
-        console.warn('Gate does not fit in available qubits');
-        return prev;
-      }
-      
-      // Ensure column exists
-      while (newColumns.length <= previewPosition.col) {
-        newColumns.push({ gates: Array(prev.qubitCount).fill(null) });
-      }
-
-      // Check if cells are already occupied
-      const targetColumn = newColumns[previewPosition.col];
-      const newGates = [...targetColumn.gates];
-      
-      for (let i = 0; i < gateHeight; i++) {
-        if (newGates[previewPosition.row + i] !== null) {
-          console.warn('Cannot place gate: cells already occupied');
-          return prev;
-        }
-      }
-      
-      // Create new gate by spreading the full gate definition to preserve all properties
-      // including isControl, drawer, symbol, etc.
-      const newGate: Gate = {
-        ...gateDefinition,
-        id: `${draggedGate.gate}-${Date.now()}`,
-      };
-      
-      newGates[previewPosition.row] = newGate;
-
-      // Mark occupied cells for multi-qubit gates
-      for (let i = 1; i < gateHeight; i++) {
-        if (previewPosition.row + i < newGates.length) {
-          newGates[previewPosition.row + i] = { 
-            type: 'OCCUPIED', 
-            id: `${newGate.id}-occupied-${i}`, 
-            label: '',
-          } as Gate;
-        }
-      }
-
-      newColumns[previewPosition.col] = { gates: newGates };
-      return trimCircuit({ ...prev, columns: newColumns });
-    });
-
-    setDraggedGate(null);
-    setPreviewPosition(null);
-  }, [draggedGate, previewPosition]);
-
   const handleSave = useCallback(() => {
-    //console.log('[NestedCircuitModal] handleSave called!');
-    //console.log('[NestedCircuitModal] Saving circuit:', circuit);
-    //console.log('[NestedCircuitModal] Circuit columns:', circuit.columns);
-    //console.log('[NestedCircuitModal] Gate name:', gateName);
-    //console.log('[NestedCircuitModal] Gate color:', gateColor);
     onSave(circuit, gateName, gateColor);
-    // Don't call onClose here - onSave already handles closing
   }, [circuit, gateName, gateColor, onSave]);
 
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
@@ -391,7 +243,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
 
   return (
     <ModalOverlay onClick={handleOverlayClick}>
-      <ModalContent onClick={(e) => e.stopPropagation()} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <HeaderRow>
             <ModalTitle>
@@ -446,49 +298,14 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
         </ModalHeader>
         
         <ModalBody>
-          <PaletteContainer>
-            <h3 style={{ marginTop: 0, fontSize: 14, color: '#666' }}>Gate Palette</h3>
-            <GatePalette onDragStart={handleDragStart} />
-          </PaletteContainer>
-          
-          <CircuitContainer>
-            <CircuitGrid
-              ref={circuitGridRef}
-              circuit={circuit}
-              onGateDrop={() => {}}
-              draggedGate={draggedGate ? { gate: draggedGate.gate, x: mousePos.x, y: mousePos.y } : null}
-              onDragStart={handleDragStart}
-              onGateResize={(col: number, row: number, newHeight: number) => {
-                setCircuit((prev) => {
-                  const newColumns = [...prev.columns];
-                  if (newColumns[col]) {
-                    const newGates = [...newColumns[col].gates];
-                    const gateItem = newGates[row];
-                    if (gateItem && gateItem.canResize) {
-                      newGates[row] = { ...gateItem, height: newHeight };
-                      newColumns[col] = { gates: newGates };
-                    }
-                  }
-                  return { ...prev, columns: newColumns };
-                });
-              }}
-              onGateSelect={() => {}}
-              onInitialStateChange={(row: number) => {
-                setCircuit((prev) => {
-                  const currentStates = prev.initialStates || Array(prev.qubitCount).fill('|0⟩');
-                  const INITIAL_STATES = ['|0⟩', '|1⟩', '|+⟩', '|−⟩', '|i⟩', '|−i⟩'];
-                  const currentState = currentStates[row] || '|0⟩';
-                  const currentIndex = INITIAL_STATES.indexOf(currentState);
-                  const nextIndex = (currentIndex + 1) % INITIAL_STATES.length;
-                  const newStates = [...currentStates];
-                  newStates[row] = INITIAL_STATES[nextIndex];
-                  return { ...prev, initialStates: newStates };
-                });
-              }}
-              selectedGate={null}
-              previewPosition={previewPosition}
-            />
-          </CircuitContainer>
+          <CircuitEditor
+            initialCircuit={circuit}
+            onCircuitChange={handleCircuitChange}
+            isActive={true}
+            keyboardCapturePhase={true}
+            compactPalette={true}
+            style={{ flex: 1, minHeight: '400px' }}
+          />
         </ModalBody>
         
         <ModalFooter>

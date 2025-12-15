@@ -1,0 +1,97 @@
+{
+  "cols": [
+    ["H", "H", "H"],
+    ["__FUNC__Uf", 1, 1],
+    ["__FUNC__V", 1, 1],
+    ["__FUNC__Uf", 1, 1],
+    ["__FUNC__V", 1, 1],
+    ["Measure", 1, 1],
+    [1, "Measure", 1],
+    [1, 1, "Measure"]
+  ],
+  "gates": [],
+  "gateMetadata": {
+    "1_0": {
+      "nestedCircuit": {
+        "cols": [
+          [1, 1, "X"],
+          [1, 1, "H"],
+          ["◦", "•", "X"],
+          [1, 1, "H"],
+          [1, 1, "X"]
+        ],
+        "gates": [],
+        "gateMetadata": {},
+        "initialStates": ["|0⟩", "|0⟩", "|0⟩"]
+      },
+      "label": "Uf",
+      "type": "FUNCTION",
+      "isFunctionGate": true,
+      "height": 3,
+      "backgroundColor": "#FFE8E8"
+    },
+    "2_0": {
+      "nestedCircuit": {
+        "cols": [
+          ["H", "H", "H"],
+          [1, 1, "X"],
+          [1, 1, "H"],
+          ["◦", "◦", "X"],
+          ["H", "H", "H"],
+          [1, 1, "X"],
+          [1, 1, "H"]
+        ],
+        "gates": [],
+        "gateMetadata": {},
+        "initialStates": ["|0⟩", "|0⟩", "|0⟩"]
+      },
+      "label": "V",
+      "type": "FUNCTION",
+      "isFunctionGate": true,
+      "height": 3,
+      "backgroundColor": "#E8F4FF"
+    },
+    "3_0": {
+      "nestedCircuit": {
+        "cols": [
+          [1, 1, "X"],
+          [1, 1, "H"],
+          ["◦", "•", "X"],
+          [1, 1, "H"],
+          [1, 1, "X"]
+        ],
+        "gates": [],
+        "gateMetadata": {},
+        "initialStates": ["|0⟩", "|0⟩", "|0⟩"]
+      },
+      "label": "Uf",
+      "type": "FUNCTION",
+      "isFunctionGate": true,
+      "height": 3,
+      "backgroundColor": "#FFE8E8"
+    },
+    "4_0": {
+      "nestedCircuit": {
+        "cols": [
+          ["H", "H", "H"],
+          [1, 1, "X"],
+          [1, 1, "H"],
+          ["◦", "◦", "X"],
+          ["H", "H", "H"],
+          [1, 1, "X"],
+          [1, 1, "H"]
+        ],
+        "gates": [],
+        "gateMetadata": {},
+        "initialStates": ["|0⟩", "|0⟩", "|0⟩"]
+      },
+      "label": "V",
+      "type": "FUNCTION",
+      "isFunctionGate": true,
+      "height": 3,
+      "backgroundColor": "#E8F4FF"
+    }
+  },
+  "initialStates": ["|0⟩", "|0⟩", "|0⟩"],
+  "version": "1.0.0"
+}

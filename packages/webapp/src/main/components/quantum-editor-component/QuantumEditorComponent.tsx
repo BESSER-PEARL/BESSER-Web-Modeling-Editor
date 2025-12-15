@@ -291,10 +291,10 @@ export function QuantumEditorComponent(): JSX.Element {
                             <Gate gate={GATES.find((g) => g.type === draggedGate.gate)!} isDragging />
                         </DragGhost>
                     )}
-                    {nestedCircuitModal && (
+                    {nestedCircuitModal && circuit.columns[nestedCircuitModal.col]?.gates[nestedCircuitModal.row] && (
                         <NestedCircuitModal
                             key={`${nestedCircuitModal.col}-${nestedCircuitModal.row}`}
-                            gate={circuit.columns[nestedCircuitModal.col]?.gates[nestedCircuitModal.row]!}
+                            gate={circuit.columns[nestedCircuitModal.col].gates[nestedCircuitModal.row]!}
                             onClose={() => setNestedCircuitModal(null)}
                             onSave={(nestedCircuit: Circuit, name?: string, color?: string) => {
                                 handleSaveNestedCircuit(nestedCircuitModal.col, nestedCircuitModal.row, nestedCircuit, name, color);
