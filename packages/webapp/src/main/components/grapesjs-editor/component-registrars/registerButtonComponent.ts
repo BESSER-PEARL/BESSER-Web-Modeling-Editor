@@ -79,9 +79,20 @@ export const registerButtonComponent = (editor: any) => {
         this.updateTraitVisibility();
         this.updateMethodOptions();
         
-        // Refresh options when pages change
+        // Refresh options when components or pages change
         editor.on('component:add component:remove', () => {
           setTimeout(() => this.updateTraitVisibility(), 100);
+        });
+        
+        // Refresh Instance Source options when page changes
+        editor.on('page', () => {
+          setTimeout(() => {
+            const actionType = this.get('action-type');
+            if (actionType === 'run-method' || ['create', 'update', 'delete'].includes(actionType)) {
+              console.log('[Button] Page changed, refreshing Instance Source options');
+              this.updateTraitVisibility();
+            }
+          }, 100);
         });
       },
       updateTraitVisibility(this: any) {

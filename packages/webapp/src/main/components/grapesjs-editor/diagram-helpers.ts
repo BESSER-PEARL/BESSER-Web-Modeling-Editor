@@ -394,7 +394,7 @@ export function getMethodOptions(classId: string): { value: string; label: strin
 }
 
 /**
- * Get table options from the GrapesJS editor
+ * Get table options from the GrapesJS editor (current page only)
  * Returns an array of { value: tableId, label: "TableTitle (table)" }
  */
 export function getTableOptions(editor: any): { value: string; label: string }[] {
@@ -405,11 +405,14 @@ export function getTableOptions(editor: any): { value: string; label: string }[]
   if (!editor) return options;
   
   try {
-    const wrapper = editor.getWrapper?.();
-    if (!wrapper) return options;
+    // Get the current page's main component instead of global wrapper
+    const currentPage = editor.Pages?.getSelected();
+    const pageWrapper = currentPage?.getMainComponent();
     
-    // Find all table components in the current page
-    const tables = wrapper.find('[class*="table-component"]');
+    if (!pageWrapper) return options;
+    
+    // Find all table components in the current page only
+    const tables = pageWrapper.find('[class*="table-component"]');
     
     if (!tables) return options;
     
@@ -417,10 +420,11 @@ export function getTableOptions(editor: any): { value: string; label: string }[]
       try {
         const attrs = table.getAttributes();
         const title = attrs['chart-title'] || 'Untitled Table';
-        const componentId = table.getId();
+        // Use the id attribute instead of component ID
+        const tableId = attrs['id'] || table.getId();
         
         options.push({
-          value: componentId,  // Store the component ID as the value
+          value: tableId,  // Store the table's id attribute as the value
           label: `${title} (table)`  // Display the title with "(table)" suffix
         });
       } catch (err) {
@@ -428,7 +432,7 @@ export function getTableOptions(editor: any): { value: string; label: string }[]
       }
     });
   } catch (err) {
-    console.warn('[getTableOptions] Error getting wrapper:', err);
+    console.warn('[getTableOptions] Error getting page wrapper:', err);
   }
   
   return options;
