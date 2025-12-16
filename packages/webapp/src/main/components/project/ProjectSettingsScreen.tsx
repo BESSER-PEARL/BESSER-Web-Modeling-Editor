@@ -86,7 +86,7 @@ const getDiagramTypeColor = (type: SupportedDiagramType): string => {
     'ObjectDiagram': 'success',
     'StateMachineDiagram': 'warning',
     'AgentDiagram': 'info',
-    'GUINoCodeDiagram': 'dark',
+    'GUINoCodeDiagram': 'dark'
   };
   return colors[type] || 'secondary';
 };
@@ -95,7 +95,7 @@ export const ProjectSettingsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
-  
+
   // Use the new project hook
   const {
     currentProject,
@@ -109,7 +109,7 @@ export const ProjectSettingsScreen: React.FC = () => {
   useEffect(() => {
     const instancedObjectsSetting = settingsService.shouldShowInstancedObjects();
     setShowInstancedObjects(instancedObjectsSetting);
-    
+
     const associationNamesSetting = settingsService.shouldShowAssociationNames();
     setShowAssociationNames(associationNamesSetting);
   }, []);
@@ -128,7 +128,7 @@ export const ProjectSettingsScreen: React.FC = () => {
 
   const handleProjectUpdate = (field: string, value: string) => {
     if (!currentProject) return;
-    
+
     try {
       updateProject({ [field]: value } as any);
       // toast.success('Project updated successfully!');
@@ -140,21 +140,21 @@ export const ProjectSettingsScreen: React.FC = () => {
 
   const handleExportProject = async () => {
     if (!currentProject) return;
-    
+
     try {
       setIsLoading(true);
-      
+
       // Force GrapesJS to save before exporting (if editor is active)
       const GraphicalUIEditor = (window as any).editor;
       if (GraphicalUIEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
         console.log('[Export] Forcing GrapesJS save before export...');
-        
+
         // Wait for the store operation to complete
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('GrapesJS save timeout'));
           }, 5000);
-          
+
           GraphicalUIEditor.store((result: any) => {
             clearTimeout(timeout);
             console.log('[Export] GrapesJS save completed');
@@ -163,7 +163,7 @@ export const ProjectSettingsScreen: React.FC = () => {
           });
         });
       }
-      
+
       // Export with force refresh to get the latest data from localStorage
       await exportProject(currentProject.id, true);
       toast.success('Project exported successfully!');

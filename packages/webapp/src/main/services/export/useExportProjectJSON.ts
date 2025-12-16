@@ -1,5 +1,6 @@
 import { BesserProject, SupportedDiagramType } from '../../types/project';
 import { buildExportableProjectPayload } from './projectExportUtils';
+import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 
 // Simple download helper
 function downloadBlob(blob: Blob, filename: string) {
@@ -18,7 +19,14 @@ export async function exportProjectAsJson(
   project: BesserProject,
   diagramTypes?: SupportedDiagramType[]
 ) {
-  const projectPayload = buildExportableProjectPayload(project, diagramTypes);
+
+
+  const freshProject = ProjectStorageRepository.loadProject(project.id);
+  const projectToExport = freshProject || project;
+
+  console.log('[Export] Using project data:', projectToExport.id);
+
+  const projectPayload = buildExportableProjectPayload(projectToExport, diagramTypes);
 
   const exportData = {
     project: projectPayload,
@@ -26,11 +34,11 @@ export async function exportProjectAsJson(
     version: '2.0.0' // Updated version for V2 format
   };
 
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-    type: 'application/json' 
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: 'application/json'
   });
-  
-  const filename = `${project.name.replace(/[^a-z0-9]/gi, '_') || 'project'}.json`;
+
+  const filename = `${projectToExport.name.replace(/[^a-z0-9]/gi, '_') || 'project'}.json`;
   downloadBlob(blob, filename);
 }
 

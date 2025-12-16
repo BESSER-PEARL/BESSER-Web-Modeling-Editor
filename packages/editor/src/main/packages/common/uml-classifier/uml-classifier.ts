@@ -68,7 +68,10 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
     this.bounds.width = [this, ...attributes, ...methods].reduce(
       (current, child, index) => {
         // For attributes/methods, use displayName to get the full formatted text (visibility + name + type)
-        const displayText = child instanceof UMLClassifierMember ? child.displayName : child.name;
+        // For enumerations, only use the name
+        const displayText = child instanceof UMLClassifierMember
+          ? (this.stereotype === 'enumeration' ? child.name : child.displayName)
+          : child.name;
         return Math.max(
           current,
           Math.round(
@@ -78,7 +81,7 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
       },
       Math.round(this.bounds.width / radix) * radix,
     );
-    if(this.className){
+    if (this.className) {
       const text = this.name + (this.className ? ": " + this.className : "");
       const textWidth = Text.size(layer, text).width + 40; // add some padding
       this.bounds.width = Math.max(this.bounds.width, textWidth, 50);

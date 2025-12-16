@@ -129,6 +129,40 @@
   padding: 0;
 }
 
+.drag-handle {
+  color: #999;
+  cursor: grab;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.drag-handle:hover {
+  color: #666;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  color: #333;
+}
+
+.chevron-indicator {
+  font-size: 10px;
+  color: #999;
+  transition: transform 0.2s;
+  display: inline-block;
+  margin-left: 6px;
+}
+
+.column-row.collapsed .chevron-indicator {
+  transform: rotate(-90deg);
+  color: #bbb;
+}
+
 .add-btn {
   background: none;
   color: #28a745;
