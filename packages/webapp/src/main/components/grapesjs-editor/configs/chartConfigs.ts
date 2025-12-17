@@ -3,7 +3,6 @@ import { BarChartComponent } from '../widgets/BarChartComponent';
 import { PieChartComponent } from '../widgets/PieChartComponent';
 import { RadarChartComponent } from '../widgets/RadarChartComponent';
 import { RadialBarChartComponent } from '../widgets/RadialBarChartComponent';
-import { TableChartComponent } from '../widgets/TableChartComponent';
 import { getClassOptions } from '../diagram-helpers';
 
 // Aggregation options for dashboard metrics
@@ -157,24 +156,6 @@ export const chartConfigs: ChartConfig[] = [
   { type: 'number', label: 'Start Angle', name: 'start-angle', value: 90, changeProp: 1 },
   { type: 'number', label: 'End Angle', name: 'end-angle', value: 450, changeProp: 1 },
   { type: 'series-manager', name: 'series', label: 'Series', value: '[{"name":"Series 1","dataSource":"","labelField":"","dataField":"","color":"#4CAF50","data":[{"name":"Category A","value":90,"fill":"#00C49F"},{"name":"Category B","value":70,"fill":"#0088FE"},{"name":"Category C","value":50,"fill":"#FFBB28"},{"name":"Category D","value":30,"fill":"#FF8042"},{"name":"Category E","value":15,"fill":"#A569BD"}]}]', changeProp: 1 },
-    ],
-  },
-  {
-    id: 'table-chart',
-    label: 'Table Chart',
-    component: TableChartComponent,
-    defaultColor: '#2c3e50',
-    defaultTitle: 'Table Chart Title',
-    dataSource: '',
-    icon: '<svg viewBox="0 0 24 24" width="100%" height="100%"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" fill="currentColor"/><rect x="5" y="7" width="14" height="2" fill="#ffffff"/><rect x="5" y="11" width="14" height="2" fill="#ffffff"/><rect x="5" y="15" width="14" height="2" fill="#ffffff"/></svg>',
-    traits: [
-      { type: 'color', label: 'Header Color', name: 'chart-color', value: '#2c3e50', changeProp: 1 },
-      { type: 'text', label: 'Chart Title', name: 'chart-title', value: 'Table Chart Title', changeProp: 1 },
-      { type: 'select', label: 'Data Source', name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
-      { type: 'checkbox', label: 'Show Header', name: 'show-header', value: true, changeProp: 1 },
-      { type: 'checkbox', label: 'Striped Rows', name: 'striped-rows', value: false, changeProp: 1 },
-      { type: 'checkbox', label: 'Show Pagination', name: 'show-pagination', value: true, changeProp: 1 },
-      { type: 'number', label: 'Rows per Page', name: 'rows-per-page', value: 5, changeProp: 1 },
     ],
   },
 ];

@@ -6,6 +6,7 @@ import { ApollonEditor, diagramBridge, UMLDiagramType } from '@besser/wme';
 import { validateDiagram } from '../validation/validateDiagram';
 import { toUMLDiagramType } from '../../types/project';
 import { buildExportableProjectPayload } from './projectExportUtils';
+import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 
 async function convertDiagramModelToBUML(diagram: any, diagramTitle: string, project?: BesserProject): Promise<string> {
   // Create a mock editor object to use with validateDiagram
@@ -178,7 +179,14 @@ export async function exportProjectAsSingleBUMLFile(
     return;
   }
 
-  const projectToExport = buildExportableProjectPayload(project, diagramTypes);
+  // IMPORTANT: Always get fresh data from localStorage to ensure we have the latest changes
+  //   const projectPayload = buildExportableProjectPayload(project, diagramTypes);
+  const freshProject = ProjectStorageRepository.loadProject(project.id);
+  const projectToUse = freshProject || project;
+
+  console.log('[BUML Export] Using project data:', projectToUse.id);
+
+  const projectToExport = buildExportableProjectPayload(projectToUse, diagramTypes);
 
   try {
     const response = await fetch(`${BACKEND_URL}/export-project_as_buml`, {
@@ -196,18 +204,18 @@ export async function exportProjectAsSingleBUMLFile(
     }
 
     const blob = await response.blob();
-    
+
     // Get the filename from the response headers
     const contentDisposition = response.headers.get('Content-Disposition');
-    const normalizedProjectName = project.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const normalizedProjectName = projectToUse.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     let filename = `${normalizedProjectName}_besser.py`; // Default filename
-    
+
     if (contentDisposition) {
       // Try multiple patterns to extract filename
       const patterns = [
         /filename="([^"]+)"/,
-        /filename=([^;\s]+)/, 
-        /filename="?([^";\s]+)"?/ 
+        /filename=([^;\s]+)/,
+        /filename="?([^";\s]+)"?/
       ];
       for (const pattern of patterns) {
         const match = contentDisposition.match(pattern);

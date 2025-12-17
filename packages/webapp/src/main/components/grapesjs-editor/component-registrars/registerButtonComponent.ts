@@ -1,5 +1,5 @@
 import { getPageOptions } from '../utils/pageUtils';
-import { getClassOptions } from '../diagram-helpers';
+import { getClassOptions, getMethodOptions, getMethodsByClassId, getTableOptions } from '../diagram-helpers';
 
 /**
  * Register enhanced button component with actions (navigation, CRUD operations)
@@ -18,16 +18,20 @@ export const registerButtonComponent = (editor: any) => {
           type: 'button',
         },
         style: {
-          display: 'inline-block',
-          padding: '10px 20px',
-          background: '#007bff',
-          color: '#ffffff',
+          display: 'inline-flex',
+          'align-items': 'center',
+          padding: '6px 14px',
+          background: 'linear-gradient(90deg, #2563eb 0%, #1e40af 100%)',
+          color: '#fff',
           'text-decoration': 'none',
           'border-radius': '4px',
-          'font-size': '14px',
-          'font-weight': 'normal',
+          'font-size': '13px',
+          'font-weight': '600',
+          'letter-spacing': '0.01em',
           cursor: 'pointer',
           border: 'none',
+          'box-shadow': '0 1px 4px rgba(37,99,235,0.10)',
+          transition: 'background 0.2s',
         },
         content: 'Button',
         'button-label': 'Button',
@@ -42,8 +46,6 @@ export const registerButtonComponent = (editor: any) => {
         'success-message': 'Action completed successfully',
       },
       init(this: any) {
-        this.refreshTraits();
-        
         // Initialize components array with textnode for label extraction
         const label = this.get('button-label') || 'Button';
         const components = this.get('components');
@@ -54,44 +56,66 @@ export const registerButtonComponent = (editor: any) => {
           }]);
         }
         
+        // Calculate instance-method attribute if method-class and method are already set
+        // (This handles loading from saved JSON)
+        const methodClass = this.get('method-class');
+        const methodName = this.get('method') || this.get('data-method');
+        if (methodClass && methodName) {
+          const methodMetadata = getMethodsByClassId(methodClass).find(m => m.name === methodName);
+          if (methodMetadata) {
+            const attrs = this.getAttributes();
+            attrs['instance-method'] = methodMetadata.isInstanceMethod ? 'true' : 'false';
+            this.setAttributes(attrs);
+          }
+        }
+        
         // Dynamic trait visibility
         this.on('change:action-type', this.updateTraitVisibility);
+        this.on('change:confirmation-required', this.updateTraitVisibility);
+        this.on('change:method-class', this.updateMethodOptions);
         this.on('change:button-label change:button-style change:action-type', this.updateButton);
+        
+        // Set up traits with proper visibility from the start
         this.updateTraitVisibility();
+        this.updateMethodOptions();
+        
+        // Refresh options when components or pages change
+        editor.on('component:add component:remove', () => {
+          setTimeout(() => this.updateTraitVisibility(), 100);
+        });
+        
+        // Refresh Instance Source options when page changes
+        editor.on('page', () => {
+          setTimeout(() => {
+            const actionType = this.get('action-type');
+            if (actionType === 'run-method' || ['create', 'update', 'delete'].includes(actionType)) {
+              console.log('[Button] Page changed, refreshing Instance Source options');
+              this.updateTraitVisibility();
+            }
+          }, 100);
+        });
       },
-      refreshTraits(this: any) {
+      updateTraitVisibility(this: any) {
+        const actionType = this.get('action-type');
+        const confirmRequired = this.get('confirmation-required');
         const traits = this.get('traits');
         const pageOptions = getPageOptions(editor);
         const classOptions = getClassOptions();
         
-        traits.reset([
+        console.log('[Button] Updating trait visibility for action type:', actionType);
+        
+        // Base traits that are always visible
+        const baseTraits = [
           {
             type: 'text',
             label: 'Button Label',
             name: 'button-label',
-            value: 'Button',
             changeProp: 1,
-          },
-          {
-            type: 'select',
-            label: 'Action Type',
-            name: 'action-type',
-            value: 'navigate',
-            changeProp: 1,
-            options: [
-              { value: 'navigate', label: 'Navigate to Screen' },
-              { value: 'submit-form', label: 'Submit Form' },
-              { value: 'create', label: 'Create Entity' },
-              { value: 'update', label: 'Update Entity' },
-              { value: 'delete', label: 'Delete Entity' },
-              { value: 'custom', label: 'Custom Action' },
-            ],
           },
           {
             type: 'select',
             label: 'Button Style',
             name: 'button-style',
-            value: 'primary',
             changeProp: 1,
             options: [
               { value: 'primary', label: 'Primary' },
@@ -104,86 +128,151 @@ export const registerButtonComponent = (editor: any) => {
           },
           {
             type: 'select',
-            label: 'Target Screen',
-            name: 'target-screen',
-            value: '',
-            changeProp: 1,
-            options: pageOptions,
-          },
-          {
-            type: 'text',
-            label: 'Target Form ID',
-            name: 'target-form',
-            value: '',
-            changeProp: 1,
-            placeholder: 'Form element ID',
-          },
-          {
-            type: 'select',
-            label: 'CRUD Entity',
-            name: 'crud-entity',
-            value: '',
-            changeProp: 1,
-            options: classOptions,
-          },
-          {
-            type: 'checkbox',
-            label: 'Require Confirmation',
-            name: 'confirmation-required',
-            value: false,
-            changeProp: 1,
-          },
-          {
-            type: 'text',
-            label: 'Confirmation Message',
-            name: 'confirmation-message',
-            value: 'Are you sure?',
-            changeProp: 1,
-          },
-          {
-            type: 'select',
-            label: 'On Success Action',
-            name: 'on-success-action',
-            value: 'none',
+            label: 'Action Type',
+            name: 'action-type',
             changeProp: 1,
             options: [
-              { value: 'none', label: 'None' },
-              { value: 'navigate', label: 'Navigate' },
-              { value: 'show-message', label: 'Show Message' },
-              { value: 'refresh', label: 'Refresh Page' },
+              { value: 'navigate', label: 'Navigate to Screen' },
+              { value: 'run-method', label: 'Run Method' },
+              { value: 'create', label: 'Create Entity' },
+              { value: 'update', label: 'Update Entity' },
+              { value: 'delete', label: 'Delete Entity' },
             ],
           },
-          {
-            type: 'text',
-            label: 'Success Message',
-            name: 'success-message',
-            value: 'Action completed successfully',
-            changeProp: 1,
-          },
-        ]);
-
-        // Refresh options when pages change
-        editor.on('component:add component:remove', () => {
-          setTimeout(() => this.refreshTraits(), 100);
+        ];
+        
+        // Action-specific traits
+        const actionSpecificTraits: any[] = [];
+        
+        if (actionType === 'navigate') {
+          actionSpecificTraits.push(
+            {
+              type: 'select',
+              label: 'Target Screen',
+              name: 'target-screen',
+              changeProp: 1,
+              options: pageOptions,
+            },
+            {
+              type: 'checkbox',
+              label: 'Require Confirm',
+              name: 'confirmation-required',
+              changeProp: 1,
+            }
+          );
+          
+          // Add Confirmation Message only if confirmation is required
+          if (confirmRequired) {
+            actionSpecificTraits.push({
+              type: 'text',
+              label: 'Confirm Message',
+              name: 'confirmation-message',
+              changeProp: 1,
+            });
+          }
+        } else if (actionType === 'run-method') {
+          actionSpecificTraits.push(
+            {
+              type: 'select',
+              label: 'Method Class',
+              name: 'method-class',
+              changeProp: 1,
+              options: classOptions,
+            },
+            {
+              type: 'select',
+              label: 'Method',
+              name: 'method',
+              changeProp: 1,
+              options: [],
+            },
+            {
+              type: 'select',
+              label: 'Instance Source',
+              name: 'instance-source',
+              changeProp: 1,
+              options: getTableOptions(editor),
+            },
+            {
+              type: 'checkbox',
+              label: 'Require Confirm',
+              name: 'confirmation-required',
+              changeProp: 1,
+            }
+          );
+          
+          // Add Confirmation Message only if confirmation is required
+          if (confirmRequired) {
+            actionSpecificTraits.push({
+              type: 'text',
+              label: 'Confirm Message',
+              name: 'confirmation-message',
+              changeProp: 1,
+            });
+          }
+        } else if (['create', 'update', 'delete'].includes(actionType)) {
+          actionSpecificTraits.push(
+            {
+              type: 'select',
+              label: 'Class',
+              name: 'entity-class',
+              changeProp: 1,
+              options: classOptions,
+            },
+            {
+              type: 'select',
+              label: 'Instance Source',
+              name: 'instance-source',
+              changeProp: 1,
+              options: getTableOptions(editor),
+            }
+          );
+        }
+        
+        // Rebuild traits with current values preserved
+        const allTraits = [...baseTraits, ...actionSpecificTraits];
+        allTraits.forEach(traitDef => {
+          const currentValue = this.get(traitDef.name);
+          if (currentValue !== undefined) {
+            traitDef.value = currentValue;
+          }
         });
+        
+        traits.reset(allTraits);
+        
+        // If we're in run-method mode and have a method class selected, populate method options
+        if (actionType === 'run-method') {
+          const methodClass = this.get('method-class');
+          if (methodClass) {
+            const methodTrait = traits.where({ name: 'method' })[0];
+            if (methodTrait) {
+              const methodOptions = getMethodOptions(methodClass);
+              methodTrait.set('options', methodOptions);
+            }
+          }
+        }
+        
+        // Force trait panel to re-render
+        setTimeout(() => {
+          this.trigger('change:traits');
+          this.em.trigger('component:toggled');
+        }, 0);
       },
-      updateTraitVisibility(this: any) {
-        const actionType = this.get('action-type');
+      updateMethodOptions(this: any) {
+        const methodClass = this.get('method-class');
         const traits = this.get('traits');
+        const methodTrait = traits.where({ name: 'method' })[0];
         
-        const targetScreenTrait = traits.where({ name: 'target-screen' })[0];
-        const targetFormTrait = traits.where({ name: 'target-form' })[0];
-        const crudEntityTrait = traits.where({ name: 'crud-entity' })[0];
-        
-        // Show/hide traits based on action type
-        if (targetScreenTrait) {
-          targetScreenTrait.set('visible', actionType === 'navigate');
-        }
-        if (targetFormTrait) {
-          targetFormTrait.set('visible', actionType === 'submit-form');
-        }
-        if (crudEntityTrait) {
-          crudEntityTrait.set('visible', ['create', 'update', 'delete'].includes(actionType));
+        if (methodTrait && methodClass) {
+          const methodOptions = getMethodOptions(methodClass);
+          methodTrait.set('options', methodOptions);
+          
+          // Clear method if it's not in the new options
+          const currentMethod = this.get('method');
+          const isValid = methodOptions.some(opt => opt.value === currentMethod);
+          if (!isValid) {
+            this.set('method', '');
+          }
         }
       },
       updateButton(this: any) {
@@ -191,8 +280,10 @@ export const registerButtonComponent = (editor: any) => {
         const buttonStyle = this.get('button-style') || 'primary';
         const actionType = this.get('action-type') || 'navigate';
         const targetScreen = this.get('target-screen') || '';
-        const targetForm = this.get('target-form') || '';
-        const crudEntity = this.get('crud-entity') || '';
+        const entityClass = this.get('entity-class') || '';
+        const methodClass = this.get('method-class') || '';
+        const methodName = this.get('method-name') || '';
+        const instanceSource = this.get('instance-source') || '';
         const confirmRequired = this.get('confirmation-required') || false;
         const confirmMessage = this.get('confirmation-message') || 'Are you sure?';
         
@@ -226,35 +317,89 @@ export const registerButtonComponent = (editor: any) => {
           const pageId = targetScreen.startsWith('page:') ? targetScreen.replace('page:', '') : targetScreen;
           attrs['data-target-screen'] = pageId;
           attrs['target-screen'] = targetScreen; // Keep original format too
-        } else if (actionType === 'submit-form' && targetForm) {
-          attrs['data-target-form'] = targetForm;
-        } else if (['create', 'update', 'delete'].includes(actionType) && crudEntity) {
-          attrs['data-crud-entity'] = crudEntity;
+        } else if (['create', 'update', 'delete'].includes(actionType) && entityClass) {
+          attrs['data-entity-class'] = entityClass;
+          if (instanceSource) {
+            attrs['data-instance-source'] = instanceSource;
+          }
+        } else if (actionType === 'run-method' && methodClass && methodName) {
+          attrs['data-method-class'] = methodClass;
+          attrs['data-method-name'] = methodName;
+          if (instanceSource) {
+            attrs['data-instance-source'] = instanceSource;
+          }
+          
+          // Get method metadata to determine if it's an instance method
+          const methodMetadata = getMethodsByClassId(methodClass).find(m => m.name === methodName);
+          if (methodMetadata) {
+            attrs['instance-method'] = methodMetadata.isInstanceMethod ? 'true' : 'false';
+          }
         }
         
         this.addAttributes(attrs);
         
         // Update styling based on button style
-        const styleColors: Record<string, {bg: string, text: string}> = {
-          primary: { bg: '#007bff', text: '#ffffff' },
-          secondary: { bg: '#6c757d', text: '#ffffff' },
-          success: { bg: '#28a745', text: '#ffffff' },
-          danger: { bg: '#dc3545', text: '#ffffff' },
-          warning: { bg: '#ffc107', text: '#212529' },
-          info: { bg: '#17a2b8', text: '#ffffff' },
+        const styleColors: Record<string, {bg: string, text: string, shadow: string}> = {
+          primary: { 
+            bg: 'linear-gradient(90deg, #2563eb 0%, #1e40af 100%)', 
+            text: '#fff',
+            shadow: '0 1px 4px rgba(37,99,235,0.10)'
+          },
+          secondary: { 
+            bg: 'linear-gradient(90deg, #6b7280 0%, #4b5563 100%)', 
+            text: '#fff',
+            shadow: '0 1px 4px rgba(107,114,128,0.10)'
+          },
+          success: { 
+            bg: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', 
+            text: '#fff',
+            shadow: '0 1px 4px rgba(16,185,129,0.10)'
+          },
+          danger: { 
+            bg: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', 
+            text: '#fff',
+            shadow: '0 1px 4px rgba(239,68,68,0.10)'
+          },
+          warning: { 
+            bg: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)', 
+            text: '#fff',
+            shadow: '0 1px 4px rgba(245,158,11,0.10)'
+          },
+          info: { 
+            bg: 'linear-gradient(90deg, #06b6d4 0%, #0891b2 100%)', 
+            text: '#fff',
+            shadow: '0 1px 4px rgba(6,182,212,0.10)'
+          },
         };
         
         const colors = styleColors[buttonStyle] || styleColors.primary;
-        this.setStyle({
+        this.addStyle({
           background: colors.bg,
           color: colors.text,
+          'box-shadow': colors.shadow,
         });
       },
     },
     view: {
+      init(this: any) {
+        // Listen for button label changes and update the view
+        this.listenTo(this.model, 'change:button-label', this.updateText);
+      },
+      updateText(this: any) {
+        // Update the button's text content in the canvas
+        const label = this.model.get('button-label') || 'Button';
+        if (this.el) {
+          this.el.textContent = label;
+        }
+      },
       onRender({ model, el }: any) {
         // Store editor globally
         (window as any).editor = editor;
+        // Set the initial button label text
+        const label = model.get('button-label') || 'Button';
+        if (el) {
+          el.textContent = label;
+        }
       },
     },
     isComponent: (el: any) => {

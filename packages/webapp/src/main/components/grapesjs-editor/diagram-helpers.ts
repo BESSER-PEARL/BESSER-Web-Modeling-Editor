@@ -2,6 +2,17 @@ import { ProjectStorageRepository } from '../../services/storage/ProjectStorageR
 import { isUMLModel } from '../../types/project';
 import { ClassMetadata, AttributeMetadata, isNumericType, isStringType } from './utils/classBindingHelpers';
 
+/**
+ * Remove UML visibility characters (+, -, #, ~) from the beginning of a string
+ * @param name - The name that may contain visibility prefix
+ * @returns The name without visibility prefix
+ */
+function stripVisibility(name: string): string {
+  if (!name) return name;
+  // Remove leading visibility characters (+, -, #, ~) followed by optional space
+  return name.replace(/^[+\-#~]\s*/, '');
+}
+
 function getClassDiagramModel() {
   const project = ProjectStorageRepository.getCurrentProject();
   return project?.diagrams?.ClassDiagram?.model;
@@ -34,7 +45,12 @@ export function getAttributeOptionsByClassId(classId: string): { value: string; 
 
   return Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => ({ value: attr.id, label: attr.name }));
+    .map((attr: any) => {
+      const cleanName = stripVisibility(attr.name);
+      // Extract just the attribute name (without type suffix if present in legacy format)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+      return { value: attr.id, label: justName };
+    });
 }
 
 /**
@@ -49,11 +65,18 @@ export function getAttributeOptionsByType(classId: string, requireNumeric: boole
 
   const attributes = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => ({
-      value: attr.id,
-      label: attr.name,
-      type: attr.name?.split(':')[1]?.trim() || 'str'
-    }));
+    .map((attr: any) => {
+      const cleanName = stripVisibility(attr.name);
+      // Use attributeType property if available (new format), otherwise parse from name (legacy)
+      const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+      // Extract just the attribute name (without type suffix)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+      return {
+        value: attr.id,
+        label: justName,
+        type: type
+      };
+    });
 
   if (requireNumeric) {
     return attributes.filter(attr => isNumericType(attr.type));
@@ -64,8 +87,10 @@ export function getAttributeOptionsByType(classId: string, requireNumeric: boole
 
 /**
  * Get full class metadata including attributes with types
+ * @param classId - The ID of the class
+ * @param includeInherited - Whether to include inherited attributes from parent classes (default: true)
  */
-export function getClassMetadata(classId: string): ClassMetadata | undefined {
+export function getClassMetadata(classId: string, includeInherited: boolean = true): ClassMetadata | undefined {
   const classDiagram = getClassDiagramModel();
 
   if (!isUMLModel(classDiagram) || !classDiagram.elements) {
@@ -80,18 +105,44 @@ export function getClassMetadata(classId: string): ClassMetadata | undefined {
     return undefined;
   }
 
+  // Get direct attributes
   const attributes: AttributeMetadata[] = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
     .map((attr: any) => {
-      const type = attr.name?.split(':')[1]?.trim() || 'str';
+      const cleanName = stripVisibility(attr.name);
+      // Use attributeType property if available (new format), otherwise parse from name (legacy)
+      const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+      // Extract just the attribute name (without type suffix)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
       return {
         id: attr.id,
-        name: attr.name?.split(':')[0]?.trim() || attr.name,
+        name: justName,
         type: type,
         isNumeric: isNumericType(type),
         isString: isStringType(type)
       };
     });
+
+  // Add inherited attributes if requested
+  if (includeInherited && classDiagram.relationships) {
+    const inheritedAttributeIds = getInheritedAttributeOptionsByClassId(classId).map(a => a.value);
+    const inheritedAttributes = Object.values(classDiagram.elements)
+      .filter((element: any) => element?.type === 'ClassAttribute' && inheritedAttributeIds.includes(element.id))
+      .map((attr: any) => {
+        const cleanName = stripVisibility(attr.name);
+        const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+        const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+        return {
+          id: attr.id,
+          name: justName,
+          type: type,
+          isNumeric: isNumericType(type),
+          isString: isStringType(type)
+        };
+      });
+    
+    attributes.push(...inheritedAttributes);
+  }
 
   return {
     id: classElement.id,
@@ -100,14 +151,15 @@ export function getClassMetadata(classId: string): ClassMetadata | undefined {
   };
 }
 
-export function getEndsByClassId(classId: string): { value: string; label: string }[] {
+export function getEndsByClassId(classId: string, includeInherited: boolean = true): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
   if (!isUMLModel(classDiagram) || !classDiagram.relationships) {
     return [];
   }
 
-  return Object.values(classDiagram.relationships)
+  // Get direct association ends
+  const directEnds = Object.values(classDiagram.relationships)
     .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
     .map((relationship: any) => {
       if (relationship?.source?.element === classId) {
@@ -121,6 +173,14 @@ export function getEndsByClassId(classId: string): { value: string; label: strin
       return null;
     })
     .filter((end): end is { value: string; label: string } => end !== null);
+
+  // Add inherited association ends if requested
+  if (includeInherited) {
+    const inheritedEnds = getInheritedEndsByClassId(classId);
+    return [...directEnds, ...inheritedEnds];
+  }
+
+  return directEnds;
 }
 
 export function getElementNameById(elementId: string): string | null {
@@ -164,7 +224,12 @@ export function getInheritedAttributeOptionsByClassId(classId: string): { value:
   // Collect attributes from all parent classes
   const inheritedAttributes = Object.values(classDiagram.elements)
     .filter((element: any) => element?.type === 'ClassAttribute' && parentIds.includes(element.owner))
-    .map((attr: any) => ({ value: attr.id, label: attr.name }));
+    .map((attr: any) => {
+      const cleanName = stripVisibility(attr.name);
+      // Extract just the attribute name (without type suffix if present in legacy format)
+      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+      return { value: attr.id, label: justName };
+    });
 
   return inheritedAttributes;
 }
@@ -226,4 +291,149 @@ export function getAgentOptions(): { value: string; label: string }[] {
   
   console.warn('[diagram-helpers] No Agent diagram data available');
   return [];
+}
+
+/**
+ * Get methods for a specific class
+ */
+export interface MethodMetadata {
+  id: string;
+  name: string;
+  isInstanceMethod: boolean;
+  parameters: MethodParameter[];
+}
+
+export interface MethodParameter {
+  name: string;
+  type: string;
+  hasDefault: boolean;
+  defaultValue?: any;
+}
+
+export function getMethodsByClassId(classId: string): MethodMetadata[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+    return [];
+  }
+
+  // Find class by name (classId might be a name now)
+  const classElement = Object.values(classDiagram.elements).find(
+    (element: any) => element?.type === 'Class' && (element?.id === classId || element?.name === classId)
+  );
+  
+  if (!classElement) {
+    return [];
+  }
+
+  return Object.values(classDiagram.elements)
+    .filter((element: any) => element?.type === 'ClassMethod' && element?.owner === (classElement as any).id)
+    .map((method: any) => {
+      // Parse method signature to extract parameters
+      const methodName = method.name || '';
+      const isInstanceMethod = methodName.includes('(self') || methodName.includes('(session');
+      
+      // Extract method name (before parentheses)
+      const nameMatch = methodName.match(/^([^(]+)/);
+      const cleanName = nameMatch ? nameMatch[1].trim() : methodName;
+      
+      // Extract parameters from signature like "method_name(param1: type1 = default1, param2: type2)"
+      const paramsMatch = methodName.match(/\(([^)]*)\)/);
+      const parameters: MethodParameter[] = [];
+      
+      if (paramsMatch && paramsMatch[1]) {
+        const paramString = paramsMatch[1];
+        const paramParts = paramString.split(',').map((p: string) => p.trim());
+        
+        for (const part of paramParts) {
+          // Skip 'self' and 'session' parameters
+          if (part.startsWith('self') || part.startsWith('session')) {
+            continue;
+          }
+          
+          // Parse "param_name: type = default" or "param_name: type" or "param_name"
+          const paramMatch = part.match(/^([^:=]+)(?::\s*([^=]+))?(?:=\s*(.+))?$/);
+          if (paramMatch) {
+            const paramName = paramMatch[1].trim();
+            const paramType = paramMatch[2]?.trim() || 'str';
+            const defaultValue = paramMatch[3]?.trim();
+            
+            parameters.push({
+              name: paramName,
+              type: paramType,
+              hasDefault: !!defaultValue,
+              defaultValue: defaultValue
+            });
+          }
+        }
+      }
+      
+      return {
+        id: method.id,
+        name: cleanName,
+        isInstanceMethod: isInstanceMethod,
+        parameters: parameters
+      };
+    });
+}
+
+/**
+ * Get method options for dropdown (formatted as value: label)
+ */
+export function getMethodOptions(classId: string): { value: string; label: string; isInstanceMethod: boolean }[] {
+  const methods = getMethodsByClassId(classId);
+  return methods.map(method => {
+    // Remove visibility prefix (+ or -) from method name
+    const cleanName = method.name.replace(/^[+-]\s*/, '');
+    return {
+      value: method.id,  // Store the method ID
+      label: cleanName,  // Show only the clean method name without (static) suffix
+      isInstanceMethod: method.isInstanceMethod
+    };
+  });
+}
+
+/**
+ * Get table options from the GrapesJS editor (current page only)
+ * Returns an array of { value: tableId, label: "TableTitle (table)" }
+ */
+export function getTableOptions(editor: any): { value: string; label: string }[] {
+  const options: Array<{ value: string; label: string }> = [
+    { value: '', label: '-- Select Source --' }
+  ];
+  
+  if (!editor) return options;
+  
+  try {
+    // Get the current page's main component instead of global wrapper
+    const currentPage = editor.Pages?.getSelected();
+    const pageWrapper = currentPage?.getMainComponent();
+    
+    if (!pageWrapper) return options;
+    
+    // Find all table components in the current page only
+    const tables = pageWrapper.find('[class*="table-component"]');
+    
+    if (!tables) return options;
+    
+    tables.forEach((table: any) => {
+      try {
+        const attrs = table.getAttributes();
+        const title = attrs['chart-title'] || 'Untitled Table';
+        // Use the id attribute instead of component ID
+        const tableId = attrs['id'] || table.getId();
+        
+        options.push({
+          value: tableId,  // Store the table's id attribute as the value
+          label: `${title} (table)`  // Display the title with "(table)" suffix
+        });
+      } catch (err) {
+        console.warn('[getTableOptions] Error processing table:', err);
+      }
+    });
+  } catch (err) {
+    console.warn('[getTableOptions] Error getting page wrapper:', err);
+  }
+  
+  return options;
 }

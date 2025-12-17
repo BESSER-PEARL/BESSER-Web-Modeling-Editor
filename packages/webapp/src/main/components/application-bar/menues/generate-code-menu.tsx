@@ -25,6 +25,7 @@ export const GenerateCodeMenu: React.FC = () => {
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<'regular' | 'smart_data'>('regular');
   const [loadingAgent, setLoadingAgent] = useState(false);
+  const [agentMode, setAgentMode] = useState<'configuration' | 'personalization'>('configuration');
 
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
@@ -34,9 +35,9 @@ export const GenerateCodeMenu: React.FC = () => {
   const editor = apollonEditor?.editor;
 
   // Check if we're running locally (not on AWS)
-  const isLocalEnvironment = BACKEND_URL === undefined || 
-                            (BACKEND_URL ?? '').includes('localhost') || 
-                            (BACKEND_URL ?? '').includes('127.0.0.1');
+  const isLocalEnvironment = BACKEND_URL === undefined ||
+    (BACKEND_URL ?? '').includes('localhost') ||
+    (BACKEND_URL ?? '').includes('127.0.0.1');
 
   const handleGenerateCode = async (generatorType: string) => {
     // For GUI/No-Code diagrams, we don't need the apollon editor
@@ -106,14 +107,37 @@ export const GenerateCodeMenu: React.FC = () => {
   const handleAgentGenerate = async () => {
     setLoadingAgent(true);
     try {
-      let agentConfig: AgentConfig = {};
-      if (selectedAgentLanguages.length > 0) {
-        agentConfig.languages = {
-          source: sourceLanguage,
-          target: selectedAgentLanguages
-        };
+      // Build base agent config (from localStorage or languages selection)
+      let baseConfig: AgentConfig;
+      if (selectedAgentLanguages.length === 0) {
+        const stored = localStorage.getItem('agentConfig');
+        baseConfig = stored ? { ...JSON.parse(stored) } : {};
+      } else {
+        baseConfig = {
+          languages: {
+            source: sourceLanguage,
+            target: selectedAgentLanguages
+          }
+        } as any;
       }
-      await generateCode(editor!, 'agent', diagram.title, agentConfig);
+
+      // If mode is personalization, load mapping and send it under personalizationrules
+      if (agentMode === 'personalization') {
+        const mappingRaw = localStorage.getItem('agentPersonalization');
+        let mapping = null;
+        try {
+          mapping = mappingRaw ? JSON.parse(mappingRaw) : null;
+        } catch {
+          mapping = null;
+        }
+        const agentConfig: AgentConfig = {
+          personalizationrules: mapping || {}
+        } as any;
+        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+      } else {
+        // configuration mode: send the base config
+        await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+      }
       setShowAgentLanguageModal(false);
     } catch (error) {
       console.error('Error in Agent code generation:', error);
@@ -233,7 +257,7 @@ export const GenerateCodeMenu: React.FC = () => {
         {isGUINoCodeDiagram ? (
           // No-Code Diagram: Show No-Code generation options
           <>
-          <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
+            <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
           </>
         ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
@@ -309,7 +333,7 @@ export const GenerateCodeMenu: React.FC = () => {
       </NavDropdown>
 
       {/* Agent Language Selection Modal (dropdown + removable list) */}
-  <Modal show={showAgentLanguageModal} onHide={() => setShowAgentLanguageModal(false)}>
+      <Modal show={showAgentLanguageModal} onHide={() => setShowAgentLanguageModal(false)}>
         {loadingAgent && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
@@ -369,6 +393,13 @@ export const GenerateCodeMenu: React.FC = () => {
               </Form.Text>
               <div className="text-warning small mt-1">
                 <span role="img" aria-label="warning">⚠️</span> Adding more languages will increase the generation time.
+              </div>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mode</Form.Label>
+              <div>
+                <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
+                <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
               </div>
             </Form.Group>
             {/* List of selected languages with remove option */}
@@ -480,9 +511,9 @@ export const GenerateCodeMenu: React.FC = () => {
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Select SQL Dialect</Form.Label>
-              <Form.Select 
-                value={sqlDialect} 
-                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql'| 'mssql' | 'mariadb' | 'oracle')}
+              <Form.Select
+                value={sqlDialect}
+                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle')}
               >
                 <option value="sqlite">SQLite</option>
                 <option value="postgresql">PostgreSQL</option>
@@ -516,8 +547,8 @@ export const GenerateCodeMenu: React.FC = () => {
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Select Database System</Form.Label>
-              <Form.Select 
-                value={sqlAlchemyDbms} 
+              <Form.Select
+                value={sqlAlchemyDbms}
                 onChange={(e) => setSqlAlchemyDbms(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb')}
               >
                 <option value="sqlite">SQLite</option>
@@ -559,7 +590,7 @@ export const GenerateCodeMenu: React.FC = () => {
                 <option value="smart_data">Smart Data Models</option>
               </Form.Select>
               <Form.Text className="text-muted">
-                Regular mode generates a standard JSON schema. 
+                Regular mode generates a standard JSON schema.
                 Smart Data mode generates NGSI-LD compatible schemas for each class.
               </Form.Text>
             </Form.Group>
