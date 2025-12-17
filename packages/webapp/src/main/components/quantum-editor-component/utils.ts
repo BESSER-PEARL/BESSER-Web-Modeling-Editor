@@ -119,13 +119,16 @@ function trimUnusedQubits(circuit: Circuit): { columns: CircuitColumn[]; qubitCo
     }
 
     // Find the last used qubit row across all columns
+    // Must account for gate height (multi-qubit gates span multiple rows)
     let lastUsedQubit = 0;
     for (const column of circuit.columns) {
-        for (let row = column.gates.length - 1; row >= 0; row--) {
+        for (let row = 0; row < column.gates.length; row++) {
             const gate = column.gates[row];
             if (gate && gate.type !== 'OCCUPIED') {
-                lastUsedQubit = Math.max(lastUsedQubit, row);
-                break;
+                // Calculate the last row this gate occupies based on its height
+                const gateHeight = gate.height || 1;
+                const gateEndRow = row + gateHeight - 1;
+                lastUsedQubit = Math.max(lastUsedQubit, gateEndRow);
             }
         }
     }

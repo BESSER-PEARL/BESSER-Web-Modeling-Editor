@@ -49,6 +49,37 @@ export function useCircuitDragDrop({
     const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
     const [previewPosition, setPreviewPosition] = useState<PreviewPosition | null>(null);
 
+    // Measurement gate types - after measurement, qubit becomes classical
+    const MEASUREMENT_GATES = ['MEASURE', 'MEASURE_X', 'MEASURE_Y'];
+
+    // Check if a qubit has been measured before a given column
+    const isQubitMeasuredBefore = useCallback(
+        (qubitRow: number, beforeCol: number): boolean => {
+            for (let c = 0; c < beforeCol && c < circuit.columns.length; c++) {
+                const gate = circuit.columns[c]?.gates[qubitRow];
+                if (gate && MEASUREMENT_GATES.includes(gate.type)) {
+                    return true;
+                }
+                // Also check if this row is part of a multi-qubit measurement gate
+                // by looking for OCCUPIED cells and tracing back to the parent gate
+                if (gate && gate.type === 'OCCUPIED') {
+                    // Find the parent gate by searching upward
+                    for (let r = qubitRow - 1; r >= 0; r--) {
+                        const parentGate = circuit.columns[c]?.gates[r];
+                        if (parentGate && parentGate.type !== 'OCCUPIED') {
+                            if (MEASUREMENT_GATES.includes(parentGate.type)) {
+                                return true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            return false;
+        },
+        [circuit]
+    );
+
     // Calculate preview position when dragging
     const calculatePreviewPosition = useCallback(
         (clientX: number, clientY: number, gateType: GateType): PreviewPosition | null => {
@@ -75,19 +106,36 @@ export function useCircuitDragDrop({
             // Check if position is valid
             const isWithinBounds = col >= 0 && row >= 0 && row + gateHeight <= 16;
 
+            // Check if any qubit in the gate's range has been measured before this column
+            let isAfterMeasurement = false;
+            if (isWithinBounds) {
+                for (let i = 0; i < gateHeight; i++) {
+                    if (isQubitMeasuredBefore(row + i, col)) {
+                        isAfterMeasurement = true;
+                        break;
+                    }
+                }
+            }
+
             // Check if position would be available (considering existing gates)
             let isPositionAvailable = true;
             if (isWithinBounds && col < circuit.columns.length) {
                 for (let i = 0; i < gateHeight; i++) {
                     const targetRow = row + i;
                     const existingGate = circuit.columns[col]?.gates[targetRow];
-                    if (existingGate && existingGate.type !== 'OCCUPIED') {
-                        // Allow if it's the same gate being moved
-                        if (
-                            draggedGate?.originalPos?.col === col &&
-                            draggedGate?.originalPos?.row === targetRow
-                        ) {
-                            continue;
+                    // Any existing gate (including OCCUPIED cells from multi-qubit gates) blocks placement
+                    if (existingGate) {
+                        // Allow if it's the same gate being moved (check both the gate itself and its OCCUPIED cells)
+                        if (draggedGate?.originalPos) {
+                            const origCol = draggedGate.originalPos.col;
+                            const origRow = draggedGate.originalPos.row;
+                            const origGate = draggedGate.originalGate;
+                            const origHeight = origGate?.height || 1;
+                            
+                            // Check if targetRow is within the original gate's range
+                            if (col === origCol && targetRow >= origRow && targetRow < origRow + origHeight) {
+                                continue;
+                            }
                         }
                         isPositionAvailable = false;
                         break;
@@ -95,11 +143,11 @@ export function useCircuitDragDrop({
                 }
             }
 
-            const isValid = isWithinBounds && isPositionAvailable;
+            const isValid = isWithinBounds && isPositionAvailable && !isAfterMeasurement;
 
             return { col: Math.max(0, col), row: Math.max(0, row), isValid };
         },
-        [circuit, draggedGate, circuitGridRef]
+        [circuit, draggedGate, circuitGridRef, isQubitMeasuredBefore]
     );
 
     const handleDragStart = useCallback(
