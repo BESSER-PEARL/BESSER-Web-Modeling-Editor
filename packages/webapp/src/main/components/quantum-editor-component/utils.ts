@@ -211,6 +211,7 @@ export function serializeCircuit(circuit: Circuit): any {
         gates: [], // Custom gates would go here
         gateMetadata, // Store our additional metadata
         initialStates: circuit.initialStates, // Preserve initial states
+        classicalBitCount: circuit.classicalBitCount || 0, // Preserve classical bit count
     };
     //console.log('[serializeCircuit] Serialization complete, result:', result);
     //console.log('[serializeCircuit] gateMetadata:', gateMetadata);
@@ -400,6 +401,7 @@ export function deserializeCircuit(data: any): Circuit {
     return {
         columns,
         qubitCount,
+        classicalBitCount: data.classicalBitCount || 0,
         initialStates: initialStates || Array(qubitCount).fill('|0⟩'),
     };
 }

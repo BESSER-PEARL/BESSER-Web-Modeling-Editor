@@ -30,6 +30,7 @@ export type InitialState = '|0⟩' | '|1⟩' | '|+⟩' | '|−⟩' | '|i⟩' | '
 export interface Circuit {
     columns: CircuitColumn[];
     qubitCount: number;
+    classicalBitCount?: number; // Number of classical bits (defaults to 0)
     initialStates?: InitialState[]; // Initial state for each qubit (defaults to |0⟩)
 }
 

@@ -28,9 +28,59 @@ const Wire = styled.div<{ $row: number }>`
   z-index: 0;
 `;
 
-const WireLabel = styled.div<{ $row: number }>`
+// Classical bit wire - double line style
+const ClassicalWire = styled.div<{ $row: number }>`
+  position: absolute;
+  left: ${LEFT_MARGIN}px;
+  right: 0;
+  top: ${props => TOP_MARGIN + props.$row * WIRE_SPACING + GATE_SIZE / 2 - 2}px;
+  height: 0;
+  border-top: 1px solid ${COLORS.STROKE};
+  border-bottom: 1px solid ${COLORS.STROKE};
+  padding: 2px 0;
+  z-index: 0;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background-color: ${COLORS.BACKGROUND};
+  }
+`;
+
+const ClassicalWireLabel = styled.div<{ $row: number }>`
   position: absolute;
   left: 5px;
+  top: ${props => TOP_MARGIN + props.$row * WIRE_SPACING + GATE_SIZE / 2 - 10}px;
+  font-size: 14px;
+  font-family: sans-serif;
+  color: #666;
+  z-index: 2;
+  user-select: none;
+  padding: 2px 4px;
+  border-radius: 3px;
+`;
+
+// Qubit name label (q0, q1, etc.)
+const QubitNameLabel = styled.div<{ $row: number }>`
+  position: absolute;
+  left: 5px;
+  top: ${props => TOP_MARGIN + props.$row * WIRE_SPACING + GATE_SIZE / 2 - 10}px;
+  font-size: 12px;
+  font-family: monospace;
+  color: #666;
+  z-index: 2;
+  user-select: none;
+  padding: 2px 4px;
+`;
+
+// Initial state label (clickable)
+const WireLabel = styled.div<{ $row: number }>`
+  position: absolute;
+  left: 28px;
   top: ${props => TOP_MARGIN + props.$row * WIRE_SPACING + GATE_SIZE / 2 - 10}px;
   font-size: 14px;
   font-family: sans-serif;
@@ -117,6 +167,43 @@ interface DropPreviewPosition {
   isValid: boolean;
 }
 
+const AddWireButton = styled.button`
+  position: absolute;
+  left: 5px;
+  bottom: 10px;
+  width: 60px;
+  height: 24px;
+  font-size: 12px;
+  font-family: sans-serif;
+  color: #666;
+  background: #f5f5f5;
+  border: 1px dashed #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: all 0.15s ease;
+  
+  &:hover {
+    background: #e3f2fd;
+    border-color: #2196F3;
+    color: #2196F3;
+  }
+`;
+
+const WireSeparator = styled.div<{ $row: number }>`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: ${props => TOP_MARGIN + props.$row * WIRE_SPACING - 5}px;
+  height: 1px;
+  background: linear-gradient(to right, #ccc 50%, transparent 50%);
+  background-size: 8px 1px;
+  z-index: 0;
+`;
+
 interface CircuitGridProps {
     circuit: Circuit;
     onGateDrop: (gateType: GateType, col: number, row: number) => void;
@@ -128,10 +215,13 @@ interface CircuitGridProps {
     selectedGate?: { col: number, row: number } | null;
     onGateSelect?: (col: number, row: number) => void;
     onInitialStateChange?: (row: number) => void;
+    onAddQubit?: () => void;
 }
 
-export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, onGateDoubleClick, previewPosition, selectedGate, onGateSelect, onInitialStateChange }, ref) => {
-    const wires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
+export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop, draggedGate, onDragStart, onGateResize, onGateDoubleClick, previewPosition, selectedGate, onGateSelect, onInitialStateChange, onAddQubit }, ref) => {
+    const qubitWires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
+    const classicalBitCount = circuit.classicalBitCount || 0;
+    const classicalWires = Array.from({ length: classicalBitCount }, (_, i) => i);
     
     // Get initial state for a wire (defaults to |0⟩)
     const getInitialState = (row: number): string => {
@@ -179,8 +269,15 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
 
     return (
         <GridContainer ref={ref} onClick={handleGridClick}>
-            {/* Wire labels */}
-            {wires.map(row => (
+            {/* Qubit name labels (q0, q1, etc.) */}
+            {qubitWires.map(row => (
+                <QubitNameLabel key={`qname-${row}`} $row={row}>
+                    q{row}
+                </QubitNameLabel>
+            ))}
+
+            {/* Qubit initial state labels (clickable) */}
+            {qubitWires.map(row => (
                 <WireLabel 
                     key={`label-${row}`} 
                     $row={row}
@@ -194,9 +291,43 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                 </WireLabel>
             ))}
 
-            {/* Wires */}
-            {wires.map(row => (
-                <Wire key={row} $row={row} />
+            {/* Qubit wires */}
+            {qubitWires.map(row => (
+                <Wire key={`qubit-${row}`} $row={row} />
+            ))}
+
+            {/* Add qubit button - positioned at bottom left */}
+            {onAddQubit && (
+                <AddWireButton
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onAddQubit();
+                    }}
+                    title="Add qubit"
+                >
+                    + Qubit
+                </AddWireButton>
+            )}
+
+            {/* Separator between qubits and classical bits */}
+            {classicalBitCount > 0 && (
+                <WireSeparator $row={circuit.qubitCount} />
+            )}
+
+            {/* Classical bit labels */}
+            {classicalWires.map(idx => (
+                <ClassicalWireLabel 
+                    key={`c-label-${idx}`} 
+                    $row={circuit.qubitCount + idx}
+                    title="Measurement output - auto-generated from measurement gates"
+                >
+                    c{idx} ←
+                </ClassicalWireLabel>
+            ))}
+
+            {/* Classical bit wires (double line) */}
+            {classicalWires.map(idx => (
+                <ClassicalWire key={`c-wire-${idx}`} $row={circuit.qubitCount + idx} />
             ))}
 
             {/* Control wires */}

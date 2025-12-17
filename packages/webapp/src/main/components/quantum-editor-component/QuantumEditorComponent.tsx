@@ -235,6 +235,29 @@ export function QuantumEditorComponent(): JSX.Element {
         setCircuit(() => newCircuit);
     }, [setCircuit]);
 
+    // Add qubit handler
+    const handleAddQubit = useCallback(() => {
+        setCircuit((prev) => ({
+            ...prev,
+            qubitCount: prev.qubitCount + 1,
+            initialStates: [...(prev.initialStates || Array(prev.qubitCount).fill('|0⟩')), '|0⟩'],
+        }));
+    }, [setCircuit]);
+
+    // Count measurement gates to auto-calculate classical bits
+    const measurementCount = useMemo(() => {
+        const MEASUREMENT_GATES = ['MEASURE', 'MEASURE_X', 'MEASURE_Y'];
+        let count = 0;
+        for (const column of circuit.columns) {
+            for (const gate of column.gates) {
+                if (gate && MEASUREMENT_GATES.includes(gate.type)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }, [circuit.columns]);
+
     return (
         <TooltipProvider>
             <DndProvider backend={HTML5Backend}>
@@ -264,7 +287,7 @@ export function QuantumEditorComponent(): JSX.Element {
                         <CircuitContainer>
                             <CircuitGrid
                                 ref={circuitGridRef}
-                                circuit={circuit}
+                                circuit={{ ...circuit, classicalBitCount: measurementCount }}
                                 onGateDrop={() => { }} // Handled by global mouse up
                                 draggedGate={
                                     draggedGate
@@ -278,6 +301,7 @@ export function QuantumEditorComponent(): JSX.Element {
                                 selectedGate={selectedGate}
                                 onGateSelect={handleGateSelect}
                                 onInitialStateChange={handleInitialStateChange}
+                                onAddQubit={handleAddQubit}
                             />
                         </CircuitContainer>
                     </Workspace>

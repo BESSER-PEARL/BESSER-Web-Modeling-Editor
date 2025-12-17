@@ -31,14 +31,14 @@ export const GATES: Gate[] = [
     { ...MeasureYGate, id: 'measure-y' },
     { ...ControlGate, id: 'control' },
     { ...AntiControlGate, id: 'anti-control' },
-    { ...PostSelectOffGate, id: 'post-off' },
-    { ...PostSelectOnGate, id: 'post-on' },
-    { ...PostSelectXOffGate, id: 'post-x-off' },
-    { ...PostSelectXOnGate, id: 'post-x-on' },
-    { ...PostSelectYOffGate, id: 'post-y-off' },
-    { ...PostSelectYOnGate, id: 'post-y-on' },
-    { ...ControlXGate, id: 'control-x' },
-    { ...ControlYGate, id: 'control-y' },
+    // { ...PostSelectOffGate, id: 'post-off' },
+    // { ...PostSelectOnGate, id: 'post-on' },
+    // { ...PostSelectXOffGate, id: 'post-x-off' },
+    // { ...PostSelectXOnGate, id: 'post-x-on' },
+    // { ...PostSelectYOffGate, id: 'post-y-off' },
+    // { ...PostSelectYOnGate, id: 'post-y-on' },
+    // { ...ControlXGate, id: 'control-x' },
+    // { ...ControlYGate, id: 'control-y' },
 
     // // Displays
     // { ...BlochSphereGate, id: 'bloch', isControl: false },
@@ -77,16 +77,16 @@ export const GATES: Gate[] = [
     { ...XPowTGate, id: 'x-pow-t', isControl: false },
     { ...XPowNegTGate, id: 'x-pow-neg-t', isControl: false },
 
-    // Formulaic
-    { ...ZFuncTGate, id: 'z-func-t', isControl: false },
-    { ...RzFuncTGate, id: 'rz-func-t', isControl: false },
-    { ...YFuncTGate, id: 'y-func-t', isControl: false },
-    { ...RyFuncTGate, id: 'ry-func-t', isControl: false },
-    { ...XFuncTGate, id: 'x-func-t', isControl: false },
-    { ...XFuncTGate, id: 'x-func-t', isControl: false },
-    { ...RxFuncTGate, id: 'rx-func-t', isControl: false },
-    { ...TimeShiftGate, id: 'time-shift', isControl: false },
-    { ...TimeShiftInverseGate, id: 'time-shift-inv', isControl: false },
+    // Formulaic (commented out - too abstract for Qiskit)
+    // { ...ZFuncTGate, id: 'z-func-t', isControl: false },
+    // { ...RzFuncTGate, id: 'rz-func-t', isControl: false },
+    // { ...YFuncTGate, id: 'y-func-t', isControl: false },
+    // { ...RyFuncTGate, id: 'ry-func-t', isControl: false },
+    // { ...XFuncTGate, id: 'x-func-t', isControl: false },
+    // { ...XFuncTGate, id: 'x-func-t', isControl: false },
+    // { ...RxFuncTGate, id: 'rx-func-t', isControl: false },
+    // { ...TimeShiftGate, id: 'time-shift', isControl: false },
+    // { ...TimeShiftInverseGate, id: 'time-shift-inv', isControl: false },
 
     // Parametrized Rotations
     { ...XPowGate, id: 'x-pow', isControl: false },
@@ -144,11 +144,11 @@ export const GATES: Gate[] = [
     { ...ReverseBitsGate, id: 'reverse-bits', isControl: false },
     { ...XorGate, id: 'xor', isControl: false },
 
-    // Input
-    { ...InputAGate, id: 'input-a', isControl: false },
-    { ...InputBGate, id: 'input-b', isControl: false },
-    { ...InputRGate, id: 'input-r', isControl: false },
-    { ...RandomGate, id: 'random', isControl: false },
+    // Input (commented out - use X gates for initialization)
+    // { ...InputAGate, id: 'input-a', isControl: false },
+    // { ...InputBGate, id: 'input-b', isControl: false },
+    // { ...InputRGate, id: 'input-r', isControl: false },
+    // { ...RandomGate, id: 'random', isControl: false },
 
     // Order
     { ...InterleaveGate, id: 'interleave', isControl: false },
@@ -156,10 +156,10 @@ export const GATES: Gate[] = [
     { ...RotateBitsLeftGate, id: 'rotate-bits-left', isControl: false },
     { ...RotateBitsRightGate, id: 'rotate-bits-right', isControl: false },
 
-    // Custom
-    { ...MysteryGate, id: 'mystery', isControl: false },
-    { ...ZeroGate, id: 'zero', isControl: false },
-    { ...UniversalNotGate, id: 'universal-not', isControl: false },
+    // Custom (commented out - undefined/unrealizable)
+    // { ...MysteryGate, id: 'mystery', isControl: false },
+    // { ...ZeroGate, id: 'zero', isControl: false },
+    // { ...UniversalNotGate, id: 'universal-not', isControl: false },
 
     // Scalar
     { ...PhaseIGate, id: 'phase-i', isControl: false },
@@ -180,13 +180,13 @@ export const TOOLBOX_GROUPS = [
     {
         name: 'Probes',
         toolbox: 'Toolbox',
-        gates: ['MEASURE', 'CONTROL', 'ANTI_CONTROL', 'POST_SELECT_OFF', 'POST_SELECT_ON']
+        gates: ['MEASURE', 'CONTROL', 'ANTI_CONTROL']
     },
-    {
-        name: 'Displays',
-        toolbox: 'Toolbox',
-        gates: ['BLOCH', 'DENSITY', 'AMPLITUDE', 'CHANCE']
-    },
+    // {
+    //     name: 'Displays',
+    //     toolbox: 'Toolbox',
+    //     gates: ['BLOCH', 'DENSITY', 'AMPLITUDE', 'CHANCE']
+    // },
     {
         name: 'Half Turns',
         toolbox: 'Toolbox',
@@ -207,11 +207,11 @@ export const TOOLBOX_GROUPS = [
         toolbox: 'Toolbox',
         gates: ['X_POW', 'Y_POW', 'Z_POW', 'EXP_X', 'EXP_Y', 'EXP_Z']
     },
-    {
-        name: 'Sampling',
-        toolbox: 'Toolbox',
-        gates: ['SAMPLE', 'DETECT', 'AXIS_SAMPLE']
-    },
+    // {
+    //     name: 'Sampling',
+    //     toolbox: 'Toolbox',
+    //     gates: ['SAMPLE', 'DETECT', 'AXIS_SAMPLE']
+    // },
     {
         name: 'Arithmetic',
         toolbox: 'Toolbox',
@@ -222,21 +222,21 @@ export const TOOLBOX_GROUPS = [
         toolbox: 'Toolbox',
         gates: ['COMPARE', 'GREATER_THAN', 'LESS_EQUAL', 'GREATER_EQUAL', 'EQUAL', 'NOT_EQUAL', 'COMPARE_A_LT', 'COMPARE_A_GT', 'COMPARE_A_EQ', 'COUNT_1S', 'CYCLE_BITS', 'XOR']
     },
-    {
-        name: 'Inputs',
-        toolbox: 'Toolbox',
-        gates: ['INPUT_A', 'INPUT_B', 'INPUT_R', 'RANDOM']
-    },
+    // {
+    //     name: 'Inputs',
+    //     toolbox: 'Toolbox',
+    //     gates: ['INPUT_A', 'INPUT_B', 'INPUT_R', 'RANDOM']
+    // },
     // Toolbox 2
-    {
-        name: 'X/Y Probes',
-        toolbox: 'Toolbox2',
-        gates: ['CONTROL_X', 'CONTROL_Y', 'POST_SELECT_X_OFF', 'POST_SELECT_X_ON', 'POST_SELECT_Y_OFF', 'POST_SELECT_Y_ON', 'MEASURE_X', 'MEASURE_Y']
-    },
+    // {
+    //     name: 'X/Y Probes',
+    //     toolbox: 'Toolbox2',
+    //     gates: ['CONTROL_X', 'CONTROL_Y', 'POST_SELECT_X_OFF', 'POST_SELECT_X_ON', 'POST_SELECT_Y_OFF', 'POST_SELECT_Y_ON', 'MEASURE_X', 'MEASURE_Y']
+    // },
     {
         name: 'Order',
         toolbox: 'Toolbox2',
-        gates: ['INTERLEAVE', 'DEINTERLEAVE', 'REVERSE_BITS', 'ROTATE_BITS_LEFT', 'ROTATE_BITS_RIGHT', 'TIME_SHIFT', 'TIME_SHIFT_INV']
+        gates: ['INTERLEAVE', 'DEINTERLEAVE', 'REVERSE_BITS', 'ROTATE_BITS_LEFT', 'ROTATE_BITS_RIGHT']
     },
     {
         name: 'Frequency',
@@ -248,11 +248,11 @@ export const TOOLBOX_GROUPS = [
         toolbox: 'Toolbox2',
         gates: ['Z_POW_T', 'Z_POW_NEG_T', 'Y_POW_T', 'Y_POW_NEG_T', 'X_POW_T', 'X_POW_NEG_T']
     },
-    {
-        name: 'Formulaic',
-        toolbox: 'Toolbox2',
-        gates: ['Z_FUNC_T', 'RZ_FUNC_T', 'Y_FUNC_T', 'RY_FUNC_T', 'X_FUNC_T', 'RX_FUNC_T']
-    },
+    // {
+    //     name: 'Formulaic',
+    //     toolbox: 'Toolbox2',
+    //     gates: ['Z_FUNC_T', 'RZ_FUNC_T', 'Y_FUNC_T', 'RY_FUNC_T', 'X_FUNC_T', 'RX_FUNC_T']
+    // },
     {
         name: 'Scalar',
         toolbox: 'Toolbox2',
