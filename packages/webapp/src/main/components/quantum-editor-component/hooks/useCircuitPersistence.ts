@@ -47,8 +47,8 @@ export function useCircuitPersistence(
             // Serialize to Quirk format for compact storage
             const quirkData = serializeCircuit(circuitData);
             
-            console.log('[saveCircuit] Saving circuit with', circuitData.columns.length, 'columns');
-            console.log('[saveCircuit] gateMetadata keys:', Object.keys(quirkData.gateMetadata || {}));
+            // console.log('[saveCircuit] Saving circuit with', circuitData.columns.length, 'columns');
+            // console.log('[saveCircuit] gateMetadata keys:', Object.keys(quirkData.gateMetadata || {}));
             
             const quantumData: QuantumCircuitData = {
                 ...quirkData,
@@ -66,7 +66,7 @@ export function useCircuitPersistence(
             );
 
             if (updated) {
-                console.log('[saveCircuit] Save successful');
+                // console.log('[saveCircuit] Save successful');
                 setSaveStatus('saved');
             } else {
                 console.error('[saveCircuit] updateDiagram returned false');
