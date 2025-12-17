@@ -133,8 +133,8 @@ function trimUnusedQubits(circuit: Circuit): { columns: CircuitColumn[]; qubitCo
         }
     }
 
-    // Keep at least 3 qubits, or up to the last used qubit + 1
-    const newQubitCount = Math.max(3, lastUsedQubit + 1);
+    // Keep at least 1 qubit, or up to the last used qubit + 1
+    const newQubitCount = Math.max(1, lastUsedQubit + 1);
 
     // If no trimming needed, return as-is
     if (newQubitCount >= circuit.qubitCount) {
@@ -326,8 +326,8 @@ export function deserializeCircuit(data: any): Circuit {
         }
     });
 
-    // Ensure at least 5 qubits or enough to fit the circuit
-    const qubitCount = Math.max(5, maxWires);
+    // Ensure at least 1 qubit or enough to fit the circuit
+    const qubitCount = Math.max(1, maxWires);
 
     // Second pass: reconstruct columns and gates
     cols.forEach((colData: any[], colIndex: number) => {
