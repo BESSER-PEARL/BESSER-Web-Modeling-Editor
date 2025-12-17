@@ -78,7 +78,7 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
                 dataKey={s.name}
                 stroke={s.color || '#8884d8'}
                 fill={s.color || '#8884d8'}
-                fillOpacity={0.6}
+                fillOpacity={0.5}
               />
             ))}
             {showTooltip && <Tooltip />}

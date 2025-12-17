@@ -52,16 +52,9 @@
   font-size: 12px;
 }
 .series-manager-panel .add-btn-plus {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  font-size: 18px;
-  line-height: 1;
   font-weight: 700;
-  margin: 0;
-  padding: 0;
+  line-height: 1;
+  font-size: 24px;
 }
 .series-manager-panel .series-title {
   box-shadow: 0 1px 4px rgba(60,72,88,0.04);
@@ -137,47 +130,47 @@
 }
 .series-manager-panel .remove-btn-x {
   background: none;
-  color: #a0aec0;
+  color: #dc3545;
   border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 22px;
-  font-weight: 700;
   cursor: pointer;
-  align-self: flex-end;
-  margin-top: 0;
-  margin-left: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.18s, color 0.18s;
-}
-.series-manager-panel .remove-btn-x:hover {
-  background: #e2e8f0;
-  color: #e53e3e;
-}
-.series-manager-panel .add-btn {
-  margin-top: 10px;
-  background: #10b981;
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
   font-size: 16px;
   font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-left: 6px;
+  padding: 2px 4px;
+}
+.series-manager-panel .remove-btn-x:hover {
+  color: #c82333;
+  transform: scale(1.2);
+}
+.series-manager-panel .remove-btn-x:active {
+  transform: scale(1.1);
+}
+.series-manager-panel .add-btn {
+  background: none;
+  color: #28a745;
+  border: none;
   cursor: pointer;
+  font-size: 24px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(16,185,129,0.08);
-  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  margin: 4px auto 0 auto;
+  transition: all 0.2s;
+  padding: 2px;
 }
 .series-manager-panel .add-btn:hover {
-  background: #059669;
-  color: #e2e8f0;
-  box-shadow: 0 4px 16px rgba(16,185,129,0.15);
+  color: #218838;
+  transform: scale(1.2);
+}
+.series-manager-panel .add-btn:active {
+  transform: scale(1.1);
 }
 .series-manager-panel .add-btn-circle {
   padding: 0;

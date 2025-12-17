@@ -462,7 +462,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
         const barBase = 50 + idx * 10;
         const barData = defaultNames.map((n) => ({ name: `Category ${n}`, value: randNear(barBase, 40) }));
         const radarBase = 75 + idx * 6;
-        const radarData = defaultNames.map((n) => ({ subject: `Metric ${n}`, value: randNear(radarBase, 30), fullMark: 100 }));
+        const radarData = defaultNames.map((n) => ({ subject: `Category ${n}`, value: randNear(radarBase, 30), fullMark: 100 }));
         // PieChart and RadialBarChart: 5 categories, use color/fill keys
         if (isPieOrRadial) {
           // Use palette 0 as default
