@@ -7,11 +7,11 @@ import { UMLDiagramType } from '@besser/wme';
 import { loadDiagram } from '../../../services/diagram/diagramSlice';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
-import { 
-  Diagram3, 
-  Diagram2, 
-  Robot, 
-  ArrowRepeat, 
+import {
+  Diagram3,
+  Diagram2,
+  Robot,
+  ArrowRepeat,
   Check2Circle,
   InfoCircle,
   Person,
@@ -45,8 +45,7 @@ const DIAGRAM_ICONS = {
   [UMLDiagramType.ObjectDiagram]: Diagram2,
   [UMLDiagramType.AgentDiagram]: Robot,
   [UMLDiagramType.StateMachineDiagram]: ArrowRepeat,
-  'GUI': Grid3x3Gap,
-  'Quantum': Cpu,
+  'GUI': Grid3x3Gap
 };
 
 export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
@@ -57,7 +56,7 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
     defaultDiagramType: UMLDiagramType.ClassDiagram,
   });
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { createProject, loading, error } = useProject();
@@ -73,7 +72,7 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
     }
 
     setIsLoading(true);
-    
+
     try {
       // Create project using the new architecture
       const project = await createProject(
@@ -99,7 +98,7 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
       toast.success(`Project "${formData.name}" created successfully with all diagram types!`);
       close();
       navigate('/');
-      
+
     } catch (error) {
       console.error('Error creating project:', error);
       toast.error('Failed to create project. Please try again.');
@@ -163,7 +162,6 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
               <option value={UMLDiagramType.StateMachineDiagram}>State Machine Diagram</option>
               <option value={UMLDiagramType.AgentDiagram}>Agent Diagram</option>
               <option value="GUI">Graphical UI Editor (GUI)</option>
-              <option value="Quantum">Quantum Circuit Editor</option>
             </Form.Select>
             <Form.Text className="text-muted">
               This will be the active view when you first open the project.
@@ -200,10 +198,6 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
                     <Grid3x3Gap className="text-dark me-2" size={16} />
                     <span className="small">Graphical UI Editor</span>
                   </div>
-                  <div className="d-flex align-items-center mb-2">
-                    <Cpu className="text-secondary me-2" size={16} />
-                    <span className="small">Quantum Circuit Editor</span>
-                  </div>
                 </Col>
               </Row>
               <div className="mt-2">
@@ -220,9 +214,9 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
         <Button variant="secondary" onClick={close} disabled={isLoading || loading}>
           Cancel
         </Button>
-        <Button 
-          variant="primary" 
-          onClick={handleCreateProject} 
+        <Button
+          variant="primary"
+          onClick={handleCreateProject}
           disabled={!formData.name.trim() || isLoading || loading}
         >
           {(isLoading || loading) ? 'Creating Project...' : 'Create Project'}

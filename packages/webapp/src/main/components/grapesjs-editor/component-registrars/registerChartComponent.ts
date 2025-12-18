@@ -41,33 +41,6 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
     props.startAngle = attrs['start-angle'] !== undefined ? Number(attrs['start-angle']) : 90;
     props.endAngle = attrs['end-angle'] !== undefined ? Number(attrs['end-angle']) : 450;
   }
-  else if (config.id === 'table-chart') {
-    const toBool = (value: any, defaultValue: boolean) => {
-      if (value === undefined || value === null || value === '') return defaultValue;
-      return value === true || value === 'true' || value === 1 || value === '1';
-    };
-
-    props.showHeader = toBool(attrs['show-header'], true);
-    props.striped = toBool(attrs['striped-rows'], false);
-    props.showPagination = toBool(attrs['show-pagination'], true);
-    if (attrs['rows-per-page'] !== undefined) {
-      const parsed = Number(attrs['rows-per-page']);
-      props.rowsPerPage = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
-    } else {
-      props.rowsPerPage = 5;
-    }
-    const classId = attrs['data-source'];
-    const classMetadata = typeof classId === 'string' && classId ? getClassMetadata(classId) : undefined;
-    if (classMetadata?.attributes?.length) {
-      props.columns = classMetadata.attributes.map(attr => ({
-        field: attr.name,
-        label: attr.name.replace(/_/g, ' ') || attr.name,
-      }));
-    }
-    props.dataBinding = {
-      entity: classMetadata?.name || attrs['data-source'] || '',
-    };
-  }
 
   return props;
 };
@@ -80,11 +53,11 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
 export const registerChartComponent = (editor: any, config: ChartConfig) => {
   // Build trait values inside the attributes object
   const traitAttributes: Record<string, any> = { class: `${config.id}-component` };
-  if (Array.isArray(config.traits)) {
-    config.traits.forEach(trait => {
-      traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
-    });
-  }
+  let traitsList = Array.isArray(config.traits) ? [...config.traits] : [];
+
+  traitsList.forEach(trait => {
+    traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
+  });
   const baseDefaults = {
     tagName: 'div',
     draggable: true,
@@ -100,42 +73,35 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       defaults: baseDefaults,
       init(this: any) {
         const traits = this.get('traits');
-        traits.reset(config.traits);
+        traits.reset(traitsList);
         // Ensure all trait values are set in attributes if not already present
-        if (Array.isArray(config.traits)) {
-          const attrs = this.get('attributes') || {};
-          let changed = false;
-          config.traits.forEach(trait => {
-            if (attrs[trait.name] === undefined) {
-              attrs[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
-              changed = true;
-            }
-          });
-          if (changed) this.set('attributes', attrs);
-        }
+        const attrs = this.get('attributes') || {};
+        let changed = false;
+        traitsList.forEach(trait => {
+          if (attrs[trait.name] === undefined) {
+            attrs[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
+            changed = true;
+          }
+        });
+        if (changed) this.set('attributes', attrs);
 
         // On init, copy all values from attributes to top-level for traits (so sidebar shows correct values)
-        if (Array.isArray(config.traits)) {
-          const attrs = this.get('attributes') || {};
-          config.traits.forEach(trait => {
-            if (attrs[trait.name] !== undefined) {
-              this.set(trait.name, attrs[trait.name]);
-            }
-          });
-        }
+        traitsList.forEach(trait => {
+          if (attrs[trait.name] !== undefined) {
+            this.set(trait.name, attrs[trait.name]);
+          }
+        });
 
         // Synchronize trait property changes to attributes (do not remove top-level property)
-        if (Array.isArray(config.traits)) {
-          config.traits.forEach(trait => {
-            this.on(`change:${trait.name}`, () => {
-              const attrs = { ...(this.get('attributes') || {}) };
-              attrs[trait.name] = this.get(trait.name);
-              this.set('attributes', attrs);
-              // Re-render chart for any trait change
-              this.renderReactChart();
-            });
+        traitsList.forEach(trait => {
+          this.on(`change:${trait.name}`, () => {
+            const attrs = { ...(this.get('attributes') || {}) };
+            attrs[trait.name] = this.get(trait.name);
+            this.set('attributes', attrs);
+            // Re-render chart for any trait change
+            this.renderReactChart();
           });
-        }
+        });
 
         // Update data-source trait with fresh class options (called dynamically when component is initialized)
         const dataSourceTrait = traits.where({ name: 'data-source' })[0];

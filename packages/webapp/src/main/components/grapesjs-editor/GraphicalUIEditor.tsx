@@ -10,9 +10,11 @@ import gjsPluginForms from 'grapesjs-plugin-forms';
 import './grapesjs-styles.css';
 import { getClassOptions } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
+import { tableConfig } from './configs/tableConfig';
 import { metricCardConfig } from './configs/metricCardConfigs';
 import { mapConfig } from './configs/mapConfig';
 import { registerChartComponent } from './component-registrars/registerChartComponent';
+import { registerTableComponent } from './component-registrars/registerTableComponent';
 import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
 import { registerMapComponent } from './component-registrars/registerMapComponent';
 import { registerButtonComponent } from './component-registrars/registerButtonComponent';
@@ -21,6 +23,7 @@ import { registerLayoutComponents } from './component-registrars/registerLayoutC
 import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
+import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate } from '../../types/project';
 
@@ -202,6 +205,7 @@ function setupEditorFeatures(
   
   // Additional features
   setupDataBindingTraits(editor);
+  setupCustomTraits(editor);
   setupLayoutBlocks(editor);
   // enableAbsolutePositioning(editor);
   
@@ -217,6 +221,9 @@ function registerCustomComponents(editor: Editor) {
   chartConfigs.forEach((config) => {
     registerChartComponent(editor, config);
   });
+
+  // Register table
+  registerTableComponent(editor, tableConfig);
 
   // Register metric card
   registerMetricCardComponent(editor, metricCardConfig);
@@ -846,6 +853,16 @@ function setupDataBindingTraits(editor: Editor) {
   });
   
   console.log('[Data Binding] System initialized');
+}
+
+/**
+ * Setup custom traits (columns-manager, etc.)
+ */
+function setupCustomTraits(editor: Editor) {
+  // Register columns-manager trait for tables
+  registerColumnsManagerTrait(editor);
+  
+  console.log('[Custom Traits] Registered columns-manager trait');
 }
 
 // ============================================

@@ -1,6 +1,6 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 // Supported diagram types in projects
-export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
+export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram';
 
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
@@ -24,12 +24,12 @@ export interface QuantumCircuitData {
 export interface ProjectDiagram {
   id: string;
   title: string;
-  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
+  model?: UMLModel | GrapesJSProjectData;
   lastUpdate: string;
   description?: string;
 }
 
-export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData;
+export type ProjectDiagramModel = UMLModel | GrapesJSProjectData;
 
 // New centralized project structure
 export interface BesserProject {
@@ -46,7 +46,6 @@ export interface BesserProject {
     StateMachineDiagram: ProjectDiagram;
     AgentDiagram: ProjectDiagram;
     GUINoCodeDiagram: ProjectDiagram;
-    QuantumCircuitDiagram: ProjectDiagram;
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -84,32 +83,13 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.AgentDiagram;
     case 'GUINoCodeDiagram':
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
-    case 'QuantumCircuitDiagram':
-      return null; // QuantumCircuitDiagram doesn't have a UML diagram type
     default:
       return null;
   }
 };
 
 // Default diagram factory
-export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
-  // For Quantum Circuit diagram
-  if (diagramKind === 'quantum') {
-    // ========================================
-    // ⚛️ EMPTY QUANTUM CIRCUIT DIAGRAM
-    // ========================================
-    return {
-      id: crypto.randomUUID(),
-      title,
-      model: {
-        cols: [],
-        gates: [],
-        version: '1.0.0'
-      } as QuantumCircuitData,
-      lastUpdate: new Date().toISOString(),
-    };
-  }
-  
+export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui'): ProjectDiagram => {
   // For GUI/No-Code diagram
   if (type === null || diagramKind === 'gui') {
     // ========================================
@@ -152,7 +132,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
       lastUpdate: new Date().toISOString(),
     };
   }
-  
+
   // For UML diagrams
   return {
     id: crypto.randomUUID(),
@@ -207,12 +187,12 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 
 // Default project factory
 export const createDefaultProject = (
-  name: string, 
-  description: string, 
+  name: string,
+  description: string,
   owner: string
 ): BesserProject => {
   const projectId = crypto.randomUUID();
-  
+
   return {
     id: projectId,
     type: 'Project',
@@ -227,7 +207,6 @@ export const createDefaultProject = (
       StateMachineDiagram: createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram),
       AgentDiagram: createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram),
       GUINoCodeDiagram: createEmptyDiagram('GUI Diagram', null, 'gui'),
-      QuantumCircuitDiagram: createEmptyDiagram('Quantum Circuit', null, 'quantum'),
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -242,28 +221,23 @@ export const isProject = (obj: any): obj is BesserProject => {
   if (!obj || typeof obj !== 'object' || obj.type !== 'Project') {
     return false;
   }
-  
+
   if (!obj.diagrams || typeof obj.diagrams !== 'object' || !obj.currentDiagramType) {
     return false;
   }
-  
-  // Check for required diagram types (QuantumCircuitDiagram is optional for backward compatibility)
-  const hasRequiredDiagrams = 
+
+  // Check for required diagram types
+  const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
     obj.diagrams.GUINoCodeDiagram;
-  
+
   if (!hasRequiredDiagrams) {
     return false;
   }
-  
-  // Add QuantumCircuitDiagram if missing (for backward compatibility with older projects)
-  if (!obj.diagrams.QuantumCircuitDiagram) {
-    obj.diagrams.QuantumCircuitDiagram = createEmptyDiagram('Quantum Circuit', null, 'quantum');
-  }
-  
+
   return true;
 };
 
@@ -293,51 +267,20 @@ export const isGrapesJSProjectData = (model: unknown): model is GrapesJSProjectD
     candidate.styles !== undefined ||
     candidate.assets !== undefined ||
     candidate.symbols !== undefined ||
-    (candidate.version !== undefined && !candidate.qubitCount) // Exclude QuantumCircuitData
+    (candidate.version !== undefined && !candidate.qubitCount)
   );
 };
 
-export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitData => {
-  if (!model || typeof model !== 'object') {
-    return false;
-  }
-
-  const candidate = model as any;
-  return (
-    candidate.cols !== undefined &&
-    Array.isArray(candidate.cols)
-  );
-};
 
 // Normalize any data to valid GrapesJS format
 export const normalizeToGrapesJSProjectData = (data: unknown): GrapesJSProjectData => {
   const candidate = (data && typeof data === 'object') ? data as any : {};
-  
+
   return {
     pages: Array.isArray(candidate.pages) ? candidate.pages : [],
     styles: Array.isArray(candidate.styles) ? candidate.styles : [],
     assets: Array.isArray(candidate.assets) ? candidate.assets : [],
     symbols: Array.isArray(candidate.symbols) ? candidate.symbols : [],
     version: typeof candidate.version === 'string' ? candidate.version : '0.21.13'
-  };
-};
-
-// Normalize any data to valid Quantum Circuit format
-export const normalizeToQuantumCircuitData = (data: unknown): QuantumCircuitData => {
-  const candidate = (data && typeof data === 'object') ? data as any : {};
-  
-  return {
-    cols: Array.isArray(candidate.cols) ? candidate.cols : [],
-    gates: Array.isArray(candidate.gates) ? candidate.gates : [],
-    version: typeof candidate.version === 'string' ? candidate.version : '1.0.0'
-  };
-};
-
-// Create empty quantum circuit
-export const createEmptyQuantumCircuit = (): QuantumCircuitData => {
-  return {
-    cols: [],
-    gates: [],
-    version: '1.0.0'
   };
 };

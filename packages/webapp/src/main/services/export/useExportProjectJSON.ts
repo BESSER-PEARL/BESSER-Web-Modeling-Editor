@@ -19,17 +19,13 @@ export async function exportProjectAsJson(
   project: BesserProject,
   diagramTypes?: SupportedDiagramType[]
 ) {
-  // IMPORTANT: Always get fresh data from localStorage to ensure we have the latest changes
-  // This is crucial because some editors (like QuantumEditor) save directly to localStorage
-  // and the Redux state might be stale
-  //   const projectPayload = buildExportableProjectPayload(project, diagramTypes);
+
 
   const freshProject = ProjectStorageRepository.loadProject(project.id);
   const projectToExport = freshProject || project;
-  
-  console.log('[Export] Using project data:', projectToExport.id, 
-    'QuantumCircuit lastUpdate:', projectToExport.diagrams.QuantumCircuitDiagram?.lastUpdate);
-  
+
+  console.log('[Export] Using project data:', projectToExport.id);
+
   const projectPayload = buildExportableProjectPayload(projectToExport, diagramTypes);
 
   const exportData = {
@@ -38,10 +34,10 @@ export async function exportProjectAsJson(
     version: '2.0.0' // Updated version for V2 format
   };
 
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-    type: 'application/json' 
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    type: 'application/json'
   });
-  
+
   const filename = `${projectToExport.name.replace(/[^a-z0-9]/gi, '_') || 'project'}.json`;
   downloadBlob(blob, filename);
 }

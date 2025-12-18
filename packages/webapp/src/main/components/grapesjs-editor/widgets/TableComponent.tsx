@@ -5,7 +5,7 @@ interface TableColumn {
   label?: string;
 }
 
-interface TableChartComponentProps {
+interface TableComponentProps {
   color?: string;
   title?: string;
   data?: Array<Record<string, any>>;
@@ -14,17 +14,22 @@ interface TableChartComponentProps {
   showPagination?: boolean;
   rowsPerPage?: number;
   columns?: TableColumn[];
+  actionButtons?: boolean;
+  dataBinding?: { entity?: string };
+  filter?: string;
 }
 
-export const TableChartComponent: React.FC<TableChartComponentProps> = ({
+export const TableComponent: React.FC<TableComponentProps> = ({
   color = '#2c3e50',
-  title = 'Table Chart Title',
+  title = 'Table Title',
   data = [],
   showHeader = true,
   striped = false,
   showPagination = true,
   rowsPerPage = 5,
   columns,
+  actionButtons = true,
+  dataBinding,
 }) => {
   const headerColor = useMemo(() => {
     if (typeof color === 'string' && color.trim().length > 0) {
@@ -69,9 +74,13 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
     return showPagination ? sourceRows.slice(0, pageSize) : sourceRows;
   }, [sourceRows, pageSize, showPagination]);
 
+  // Get class/entity name for Add button
+  const entityName = typeof dataBinding?.entity === 'string' && dataBinding.entity ? dataBinding.entity : '';
+  const addButtonText = entityName ? `Add ${entityName}` : 'Add Register';
+
   return (
     <div
-      className="table-chart-container"
+      className="table-container"
       style={{
         padding: '20px',
         background: 'white',
@@ -98,6 +107,41 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
         </p>
       </div>
 
+      {actionButtons ? (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <button
+            style={{
+              padding: '6px 14px',
+              background: 'linear-gradient(90deg, #2563eb 0%, #1e40af 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontSize: '13px',
+              boxShadow: '0 1px 4px rgba(37,99,235,0.10)',
+              letterSpacing: '0.01em',
+              transition: 'background 0.2s',
+              marginRight: '0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            type="button"
+            title={addButtonText}
+            onClick={() => {}}
+          >
+            {/* Smaller Add icon */}
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="8" fill="#2563eb"/>
+              <rect x="9" y="5.5" width="2" height="9" rx="1" fill="white"/>
+              <rect x="5.5" y="9" width="9" height="2" rx="1" fill="white"/>
+            </svg>
+            {addButtonText}
+          </button>
+        </div>
+      ) : null}
+
       <div style={{ overflowX: 'auto', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
         <table
           style={{
@@ -105,7 +149,7 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
             borderCollapse: 'collapse',
             fontFamily: 'Arial, sans-serif',
             fontSize: '14px',
-            tableLayout: 'fixed',
+            tableLayout: 'auto',
             maxWidth: '100%',
             boxSizing: 'border-box',
           }}
@@ -118,6 +162,11 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
                     {column.label ?? column.field}
                   </th>
                 ))}
+                {actionButtons ? (
+                  <th style={{ textAlign: 'center', padding: '10px 4px', fontWeight: 600, width: '40px', minWidth: '40px', maxWidth: '40px', overflow: 'hidden' }}>
+                    {/* Slimmer Actions column, no label for minimalist look */}
+                  </th>
+                ) : null}
               </tr>
             </thead>
           )}
@@ -144,6 +193,44 @@ export const TableChartComponent: React.FC<TableChartComponentProps> = ({
                     {(row as any)?.[column.field] ?? ''}
                   </td>
                 ))}
+                {actionButtons ? (
+                  <td style={{ textAlign: 'center', padding: '10px 2px', width: '40px', minWidth: '40px', maxWidth: '40px', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '2px', width: '100%' }}>
+                      <button
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '2px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        type="button"
+                        title="Edit"
+                        onClick={() => {}}
+                      >
+                        {/* Modern pencil icon */}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e42" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                      </button>
+                      <button
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '2px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                        type="button"
+                        title="Remove"
+                        onClick={() => {}}
+                      >
+                        {/* Modern trash icon */}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m5 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

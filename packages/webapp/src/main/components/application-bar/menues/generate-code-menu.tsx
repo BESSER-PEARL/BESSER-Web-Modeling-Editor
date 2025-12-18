@@ -1,6 +1,5 @@
 import React, { useContext, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
-import { useLocation } from 'react-router-dom';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
@@ -29,6 +28,7 @@ export const GenerateCodeMenu: React.FC = () => {
   const [showQiskitConfig, setShowQiskitConfig] = useState(false);
   const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  const [agentMode, setAgentMode] = useState<'configuration' | 'personalization'>('configuration');
 
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
@@ -36,21 +36,15 @@ export const GenerateCodeMenu: React.FC = () => {
   const diagram = useAppSelector((state) => state.diagram.diagram);
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
-  const location = useLocation();
 
   // Check if we're running locally (not on AWS)
   const isLocalEnvironment = BACKEND_URL === undefined ||
     (BACKEND_URL ?? '').includes('localhost') ||
     (BACKEND_URL ?? '').includes('127.0.0.1');
 
-  const isQuantumDiagram = location.pathname.includes('/quantum-editor');
-  // Placeholder for isGUINoCodeDiagram if it was intended to be used. 
-  // Assuming it might be related to a specific diagram type check.
-  const isGUINoCodeDiagram = false;
-
   const handleGenerateCode = async (generatorType: string) => {
     // For GUI/No-Code diagrams, we don't need the apollon editor
-    if (!isGUINoCodeDiagram && !editor && !isQuantumDiagram) {
+    if (!isGUINoCodeDiagram && !editor) {
       toast.error('No diagram available to generate code from');
       return;
     }
@@ -123,14 +117,37 @@ export const GenerateCodeMenu: React.FC = () => {
   const handleAgentGenerate = async () => {
     setLoadingAgent(true);
     try {
-      let agentConfig: AgentConfig = {};
-      if (selectedAgentLanguages.length > 0) {
-        agentConfig.languages = {
-          source: sourceLanguage,
-          target: selectedAgentLanguages
-        };
+      // Build base agent config (from localStorage or languages selection)
+      let baseConfig: AgentConfig;
+      if (selectedAgentLanguages.length === 0) {
+        const stored = localStorage.getItem('agentConfig');
+        baseConfig = stored ? { ...JSON.parse(stored) } : {};
+      } else {
+        baseConfig = {
+          languages: {
+            source: sourceLanguage,
+            target: selectedAgentLanguages
+          }
+        } as any;
       }
-      await generateCode(editor!, 'agent', diagram.title, agentConfig);
+
+      // If mode is personalization, load mapping and send it under personalizationrules
+      if (agentMode === 'personalization') {
+        const mappingRaw = localStorage.getItem('agentPersonalization');
+        let mapping = null;
+        try {
+          mapping = mappingRaw ? JSON.parse(mappingRaw) : null;
+        } catch {
+          mapping = null;
+        }
+        const agentConfig: AgentConfig = {
+          personalizationrules: mapping || {}
+        } as any;
+        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+      } else {
+        // configuration mode: send the base config
+        await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+      }
       setShowAgentLanguageModal(false);
     } catch (error) {
       console.error('Error in Agent code generation:', error);
@@ -235,8 +252,8 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
       setShowJsonSchemaConfig(false);
     } catch (error) {
-      console.error('Error in JSON Schema generation:', error);
-      toast.error('JSON Schema generation failed');
+      console.error('Error in JSON Schema code generation:', error);
+      toast.error('JSON Schema code generation failed');
     }
   };
 
@@ -254,13 +271,23 @@ export const GenerateCodeMenu: React.FC = () => {
       toast.error('Qiskit code generation failed');
     }
   };
+  const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
+  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
 
   return (
     <>
-      <NavDropdown title="Generate" id="basic-nav-dropdown">
-        {isQuantumDiagram ? (
-          <Dropdown.Item onClick={() => handleGenerateCode('qiskit')}>Qiskit Code</Dropdown.Item>
-        ) : (editor ? (
+      <NavDropdown title="Generate" className="pt-0 pb-0">
+        {isGUINoCodeDiagram ? (
+          // No-Code Diagram: Show No-Code generation options
+          <>
+            <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
+          </>
+        ) : isAgentDiagram ? (
+          // Agent Diagram: Show agent generation option
+          <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
+        ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
+          // ...existing code...
           <>
             {/* Web Dropdown */}
             <Dropdown drop="end">
@@ -326,7 +353,7 @@ export const GenerateCodeMenu: React.FC = () => {
         ) : (
           // Not yet available
           <Dropdown.Item disabled>Not yet available</Dropdown.Item>
-        ))}
+        )}
       </NavDropdown>
 
       {/* Agent Language Selection Modal (dropdown + removable list) */}
@@ -390,6 +417,13 @@ export const GenerateCodeMenu: React.FC = () => {
               </Form.Text>
               <div className="text-warning small mt-1">
                 <span role="img" aria-label="warning">⚠️</span> Adding more languages will increase the generation time.
+              </div>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mode</Form.Label>
+              <div>
+                <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
+                <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
               </div>
             </Form.Group>
             {/* List of selected languages with remove option */}

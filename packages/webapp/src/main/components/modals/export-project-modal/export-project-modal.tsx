@@ -322,7 +322,6 @@ const diagramLabels: Record<SupportedDiagramType, string> = {
   StateMachineDiagram: 'State Machine Diagram',
   AgentDiagram: 'Agent Diagram',
   GUINoCodeDiagram: 'GUI No-Code Diagram',
-  QuantumCircuitDiagram: 'Quantum Circuit Diagram',
 };
 
 const formatsRequiringSelection = new Set(['JSON', 'BUML']);
@@ -336,7 +335,7 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
   const apollonEditor = useContext(ApollonEditorContext);
   const editor = apollonEditor?.editor;
   const diagram = useAppSelector((state) => state.diagram.diagram);
-  
+
   // Use the new project system
   const { currentProject } = useProject();
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
@@ -421,10 +420,10 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
   };
 
   return (
-    <StyledModal 
-      show={show} 
-      onHide={onHide} 
-      centered 
+    <StyledModal
+      show={show}
+      onHide={onHide}
+      centered
       backdrop={true}
       keyboard={true}
       aria-labelledby="export-modal-title"
@@ -440,7 +439,7 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
             <X size={16} />
           </CloseButton>
         </ModalHeader>
-        
+
         <ModalBody>
           <ContentGrid>
             {/* Project Export Section */}
@@ -449,7 +448,7 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
                 <FileEarmarkCode size={18} />
                 Multiple Diagrams
               </SectionTitle>
-              
+
               <InfoText>
                 Export selected diagrams as a complete project file.
               </InfoText>
@@ -471,7 +470,7 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
                       />
                     ))}
                   </DiagramSelectionBox>
-                  
+
                   <ExportButtonsGrid>
                     <ExportButton
                       variant="primary"
@@ -502,7 +501,7 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
                 <Image size={18} />
                 Current Diagram
               </SectionTitle>
-              
+
               <InfoText>
                 Export only the diagram you're currently viewing.
               </InfoText>
@@ -537,12 +536,12 @@ export const ExportProjectModal: React.FC<ExportProjectModalProps> = ({ show, on
             </ExportSection>
           </ContentGrid>
         </ModalBody>
-        
+
         <ModalFooterStyled>
           <FooterContent>
             <small>💡 Use JSON/B-UML to backup your entire project</small>
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={onHide}
               size="sm"
               style={{ fontWeight: 600 }}

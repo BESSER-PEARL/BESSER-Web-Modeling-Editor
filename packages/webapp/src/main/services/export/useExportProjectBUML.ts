@@ -183,9 +183,8 @@ export async function exportProjectAsSingleBUMLFile(
   //   const projectPayload = buildExportableProjectPayload(project, diagramTypes);
   const freshProject = ProjectStorageRepository.loadProject(project.id);
   const projectToUse = freshProject || project;
-  
-  console.log('[BUML Export] Using project data:', projectToUse.id, 
-    'QuantumCircuit lastUpdate:', projectToUse.diagrams.QuantumCircuitDiagram?.lastUpdate);
+
+  console.log('[BUML Export] Using project data:', projectToUse.id);
 
   const projectToExport = buildExportableProjectPayload(projectToUse, diagramTypes);
 
@@ -205,18 +204,18 @@ export async function exportProjectAsSingleBUMLFile(
     }
 
     const blob = await response.blob();
-    
+
     // Get the filename from the response headers
     const contentDisposition = response.headers.get('Content-Disposition');
     const normalizedProjectName = projectToUse.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     let filename = `${normalizedProjectName}_besser.py`; // Default filename
-    
+
     if (contentDisposition) {
       // Try multiple patterns to extract filename
       const patterns = [
         /filename="([^"]+)"/,
-        /filename=([^;\s]+)/, 
-        /filename="?([^";\s]+)"?/ 
+        /filename=([^;\s]+)/,
+        /filename="?([^";\s]+)"?/
       ];
       for (const pattern of patterns) {
         const match = contentDisposition.match(pattern);
