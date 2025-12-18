@@ -1,5 +1,4 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import CompleteGUI from '../templates/pattern/gui/Complete.json';
 // Supported diagram types in projects
 export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram';
 
@@ -10,6 +9,15 @@ export interface GrapesJSProjectData {
   assets: any[];
   symbols: any[];
   version: string;
+}
+
+// Quantum Circuit data structure 
+export interface QuantumCircuitData {
+  cols: any[][]; // Each column is an array where 1 = empty, strings = gate symbols
+  gates: any[]; // Custom gates (optional)
+  gateMetadata?: Record<string, any>; // Metadata for gates with nested circuits, custom labels, etc.
+  initialStates?: string[]; // Initial qubit states
+  version?: string;
 }
 
 // Diagram structure within a project
@@ -87,18 +95,40 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
     // ========================================
     // 🎨 EMPTY GUI DIAGRAM
     // ========================================
-    // The GUI diagram starts with minimal structure - the template will be loaded
-    // only on first visit to the GUI editor
+    // The GUI diagram starts with one empty page - users can drag blocks from Templates category
     return {
       id: crypto.randomUUID(),
       title,
       model: {
-        pages: [],
+        pages: [
+          {
+            name: 'Home',
+            frames: [
+              {
+                component: {
+                  type: 'wrapper',
+                  stylable: [
+                    'background',
+                    'background-color',
+                    'background-image',
+                    'background-repeat',
+                    'background-attachment',
+                    'background-position',
+                    'background-size'
+                  ],
+                  components: [],
+                  head: { type: 'head' },
+                  docEl: { tagName: 'html' }
+                }
+              }
+            ]
+          }
+        ],
         styles: [],
         assets: [],
         symbols: [],
         version: '0.21.13'
-      } as GrapesJSProjectData, // Empty structure - will be populated on first editor load
+      } as GrapesJSProjectData,
       lastUpdate: new Date().toISOString(),
     };
   }
@@ -121,8 +151,38 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
 };
 
 // Factory to create default GUI template (used on first editor load)
+// Returns a minimal structure with one empty page - users can drag the "Full Home Page" block from Templates category
 export const createDefaultGUITemplate = (): GrapesJSProjectData => {
-  return CompleteGUI as GrapesJSProjectData;
+  return {
+    pages: [
+      {
+        name: 'Home',
+        frames: [
+          {
+            component: {
+              type: 'wrapper',
+              stylable: [
+                'background',
+                'background-color',
+                'background-image',
+                'background-repeat',
+                'background-attachment',
+                'background-position',
+                'background-size'
+              ],
+              components: [],
+              head: { type: 'head' },
+              docEl: { tagName: 'html' }
+            }
+          }
+        ]
+      }
+    ],
+    styles: [],
+    assets: [],
+    symbols: [],
+    version: '0.21.13'
+  };
 };
 
 // Default project factory

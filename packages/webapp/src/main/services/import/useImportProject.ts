@@ -45,7 +45,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
-    'GUINoCodeDiagram'
+    'GUINoCodeDiagram',
+    'QuantumCircuitDiagram'
   ];
 
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -54,6 +55,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
     GUINoCodeDiagram: null,
+    QuantumCircuitDiagram: null,
   };
 
   const diagramTitles: Record<SupportedDiagramType, string> = {
@@ -61,7 +63,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: 'Object Diagram',
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
-    GUINoCodeDiagram: 'GUI Diagram'
+    GUINoCodeDiagram: 'GUI Diagram',
+    QuantumCircuitDiagram: 'Quantum Circuit'
   };
 
   // Ensure all diagram types exist

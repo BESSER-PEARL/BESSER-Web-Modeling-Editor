@@ -141,13 +141,14 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Header/Navbar
   bm.add('navbar', {
-    label: 'Navigation Bar',
+    label: 'Navigation Bar/Header',
     category: 'Layout',
     content: `
       <nav style="background: linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%) !important; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; font-family: Arial, sans-serif;">
         <div style="font-size: 24px; font-weight: bold;">BESSER</div>
         <div style="display: flex; gap: 30px;">
           <a href="/" style="color: white; text-decoration: none;">Home</a>
+          <a href="/about" style="color: white; text-decoration: none;">About</a>
           <a href="/about" style="color: white; text-decoration: none;">About</a>
         </div>
       </nav>
@@ -465,6 +466,54 @@ export function setupLayoutBlocks(editor: Editor) {
       </div>
     `,
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="3" width="20" height="5" rx="1" fill="currentColor" opacity="0.3"/><rect x="2" y="10" width="9" height="11" rx="1" fill="currentColor"/><rect x="13" y="10" width="9" height="11" rx="1" fill="currentColor"/></svg>',
+  });
+
+  // Full Home Page Template
+  bm.add('full-home-page', {
+    label: 'Full Home Page',
+    category: 'Templates',
+    content: `
+      <nav style="background:linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%);color:white;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;font-family:Arial, sans-serif;">
+        <div style="font-size:24px;font-weight:bold;">BESSER</div>
+        <div style="display:flex;gap:30px;">
+          <a href="/" style="color:white;text-decoration:none;">Home</a>
+          <a href="/about" style="color:white;text-decoration:none;">About</a>
+        </div>
+      </nav>
+      <div class="gjs-row" style="display:table;padding:10px;width:100%;">
+        <div class="gjs-cell" style="width:33%;display:table-cell;height:75px;">
+          <div data-gjs-type="line-chart" chart-color="#4CAF50" chart-title="Line Chart" line-width="2" show-grid="true" show-legend="true" show-tooltip="true" curve-type="monotone" animate="true" style="width:100%;min-height:400px;"></div>
+        </div>
+        <div class="gjs-cell" style="width:33%;display:table-cell;height:75px;">
+          <div data-gjs-type="bar-chart" chart-color="#3498db" chart-title="Bar Chart" bar-width="30" orientation="vertical" show-grid="true" show-legend="true" stacked="false" style="width:100%;min-height:400px;"></div>
+        </div>
+        <div class="gjs-cell" style="width:33%;display:table-cell;height:75px;">
+          <div data-gjs-type="radar-chart" chart-color="#8884d8" chart-title="Radar Chart" show-grid="true" show-tooltip="true" show-radius-axis="true" style="width:100%;min-height:400px;"></div>
+        </div>
+      </div>
+      <footer style="background:linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%);color:white;padding:40px 20px;font-family:Arial, sans-serif;">
+        <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));gap:30px;">
+          <div>
+            <h4 style="margin-top:0;">About BESSER</h4>
+            <p style="opacity:0.8;line-height:1.6;">BESSER is a low-code platform for building smarter software faster. Empower your development with our dashboard generator and modeling tools.</p>
+          </div>
+          <div>
+            <h4 style="margin-top:0;">Quick Links</h4>
+            <ul style="list-style:none;padding:0;opacity:0.8;">
+              <li style="margin:8px 0;"><a href="/about" style="color:white;text-decoration:none;">About</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="margin-top:0;">Contact</h4>
+            <p style="opacity:0.8;">Email: info@besser-pearl.org<br/>Phone: (123) 456-7890</p>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);opacity:0.7;">
+          © 2025 BESSER. All rights reserved.
+        </div>
+      </footer>
+    `,
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="2" width="20" height="4" rx="1" fill="currentColor"/><rect x="2" y="8" width="20" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="20" width="20" height="2" rx="0.5" fill="currentColor"/></svg>',
   });
 
   // KPI Dashboard Template

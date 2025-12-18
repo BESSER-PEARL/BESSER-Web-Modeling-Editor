@@ -26,6 +26,11 @@ export interface JSONSchemaConfig {
   mode: 'regular' | 'smart_data';
 }
 
+export interface QiskitConfig {
+  backend: 'aer_simulator' | 'fake_backend' | 'ibm_quantum';
+  shots: number;
+}
+
 export interface AgentConfig {
   languages?: {
     source: string;
@@ -38,6 +43,7 @@ export type GeneratorConfig = {
   sql: SQLConfig;
   sqlalchemy: SQLAlchemyConfig;
   jsonschema: JSONSchemaConfig;
+  qiskit: QiskitConfig;
   agent: AgentConfig;
   [key: string]: any;
 };
@@ -49,24 +55,29 @@ export const useGenerateCode = () => {
     async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]) => {
       console.log('Starting code generation...');
 
-      // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
-      if (!validationResult.isValid) {
-        toast.error(validationResult.message || 'Validation failed');
-        return;
+      // For Web App generator, send the entire project (doesn't need editor)
+      if (generatorType === 'web_app') {
+        return await generateCodeFromProject(generatorType, config);
       }
 
+      // For Qiskit generator, it uses project data not editor
+      if (generatorType === 'qiskit') {
+        return await generateCodeFromProject(generatorType, config);
+      }
+
+      // For other generators, we need the editor and model
       if (!editor || !editor.model) {
         console.error('No editor or model available');
         toast.error('No diagram to generate code from');
         return;
       }
 
-      // For Web App generator, send the entire project
-      if (generatorType === 'web_app') {
-        return await generateCodeFromProject(generatorType, config);
+      // Validate diagram before generation
+      const validationResult = await validateDiagram(editor, diagramTitle);
+      if (!validationResult.isValid) {
+        toast.error(validationResult.message || 'Validation failed');
+        return;
       }
-
 
       // Prepare body for single diagram generation
       const body: any = {

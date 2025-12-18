@@ -115,8 +115,16 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     dispatch(showModal({ type: ModalContentType.ShareModal, size: 'lg' }));
   };
   const handleQualityCheck = async () => {
-    if (editor) {
+    // For quantum circuits, diagram.model contains the circuit data
+    // For UML diagrams, editor.model contains the model data
+    if (diagram?.model && !isUMLModel(diagram.model)) {
+      // Non-UML diagram (like quantum circuit) - pass model directly
+      await validateDiagram(null, diagram.title, diagram.model);
+    } else if (editor) {
+      // UML diagram - use editor
       await validateDiagram(editor, diagram.title);
+    } else {
+      toast.error('No diagram available to validate');
     }
   };
 

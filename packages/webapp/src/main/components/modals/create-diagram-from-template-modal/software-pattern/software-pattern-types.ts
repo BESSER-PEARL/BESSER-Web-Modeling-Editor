@@ -1,5 +1,5 @@
-import { Template, TemplateType } from '../template-types';
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { Template, TemplateType, TemplateDiagramType } from '../template-types';
+import { UMLModel } from '@besser/wme';
 
 export enum SoftwarePatternCategory {
   CREATIONAL = 'Creational',
@@ -23,7 +23,7 @@ export enum SoftwarePatternType {
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
   // State Machine patterns
-  TRAFIC_LIGHT = 'Traffic Light',
+  TRAFIC_LIGHT = 'Traffic Light'
 }
 
 export class SoftwarePatternTemplate extends Template {
@@ -31,19 +31,20 @@ export class SoftwarePatternTemplate extends Template {
 
   /**
    * Should only be called from TemplateFactory. Do not call this method!
-   * @param templateCategory
    * @param templateType
    * @param diagramType
    * @param diagram
    * @param patternCategory
+   * @param isUMLDiagram - Whether this is a UML diagram (default true)
    */
   constructor(
     templateType: TemplateType,
-    diagramType: UMLDiagramType,
-    diagram: UMLModel,
+    diagramType: TemplateDiagramType,
+    diagram: UMLModel | object,
     patternCategory: SoftwarePatternCategory,
+    isUMLDiagram: boolean = true,
   ) {
-    super(templateType, diagramType, diagram);
+    super(templateType, diagramType, diagram, isUMLDiagram);
     this.softwarePatternCategory = patternCategory;
   }
 }
