@@ -1,7 +1,6 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import CompleteGUI from '../templates/pattern/gui/Complete.json';
 // Supported diagram types in projects
-export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram';
+export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
 
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
@@ -12,11 +11,20 @@ export interface GrapesJSProjectData {
   version: string;
 }
 
+// Quantum Circuit data structure 
+export interface QuantumCircuitData {
+  cols: any[][]; // Each column is an array where 1 = empty, strings = gate symbols
+  gates: any[]; // Custom gates (optional)
+  gateMetadata?: Record<string, any>; // Metadata for gates with nested circuits, custom labels, etc.
+  initialStates?: string[]; // Initial qubit states
+  version?: string;
+}
+
 // Diagram structure within a project
 export interface ProjectDiagram {
   id: string;
   title: string;
-  model?: UMLModel | GrapesJSProjectData;
+  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
   lastUpdate: string;
   description?: string;
 }
@@ -38,6 +46,7 @@ export interface BesserProject {
     StateMachineDiagram: ProjectDiagram;
     AgentDiagram: ProjectDiagram;
     GUINoCodeDiagram: ProjectDiagram;
+    QuantumCircuitDiagram: ProjectDiagram;
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -75,30 +84,70 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.AgentDiagram;
     case 'GUINoCodeDiagram':
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
+    case 'QuantumCircuitDiagram':
+      return null; // QuantumCircuitDiagram doesn't have a UML diagram type
     default:
       return null;
   }
 };
 
 // Default diagram factory
-export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui'): ProjectDiagram => {
+export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
+  // For Quantum Circuit diagram
+  if (diagramKind === 'quantum') {
+    return {
+      id: crypto.randomUUID(),
+      title,
+      model: {
+        cols: [],
+        gates: [],
+        gateMetadata: {},
+        initialStates: [],
+        version: '1.0.0'
+      } as QuantumCircuitData,
+      lastUpdate: new Date().toISOString(),
+    };
+  }
+
   // For GUI/No-Code diagram
   if (type === null || diagramKind === 'gui') {
     // ========================================
     // 🎨 EMPTY GUI DIAGRAM
     // ========================================
-    // The GUI diagram starts with minimal structure - the template will be loaded
-    // only on first visit to the GUI editor
+    // The GUI diagram starts with one empty page - users can drag blocks from Templates category
     return {
       id: crypto.randomUUID(),
       title,
       model: {
-        pages: [],
+        pages: [
+          {
+            name: 'Home',
+            frames: [
+              {
+                component: {
+                  type: 'wrapper',
+                  stylable: [
+                    'background',
+                    'background-color',
+                    'background-image',
+                    'background-repeat',
+                    'background-attachment',
+                    'background-position',
+                    'background-size'
+                  ],
+                  components: [],
+                  head: { type: 'head' },
+                  docEl: { tagName: 'html' }
+                }
+              }
+            ]
+          }
+        ],
         styles: [],
         assets: [],
         symbols: [],
         version: '0.21.13'
-      } as GrapesJSProjectData, // Empty structure - will be populated on first editor load
+      } as GrapesJSProjectData,
       lastUpdate: new Date().toISOString(),
     };
   }
@@ -121,8 +170,38 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
 };
 
 // Factory to create default GUI template (used on first editor load)
+// Returns a minimal structure with one empty page - users can drag the "Full Home Page" block from Templates category
 export const createDefaultGUITemplate = (): GrapesJSProjectData => {
-  return CompleteGUI as GrapesJSProjectData;
+  return {
+    pages: [
+      {
+        name: 'Home',
+        frames: [
+          {
+            component: {
+              type: 'wrapper',
+              stylable: [
+                'background',
+                'background-color',
+                'background-image',
+                'background-repeat',
+                'background-attachment',
+                'background-position',
+                'background-size'
+              ],
+              components: [],
+              head: { type: 'head' },
+              docEl: { tagName: 'html' }
+            }
+          }
+        ]
+      }
+    ],
+    styles: [],
+    assets: [],
+    symbols: [],
+    version: '0.21.13'
+  };
 };
 
 // Default project factory
@@ -147,6 +226,7 @@ export const createDefaultProject = (
       StateMachineDiagram: createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram),
       AgentDiagram: createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram),
       GUINoCodeDiagram: createEmptyDiagram('GUI Diagram', null, 'gui'),
+      QuantumCircuitDiagram: createEmptyDiagram('Quantum Circuit', null, 'quantum'),
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -166,7 +246,7 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
-  // Check for required diagram types
+  // Check for required diagram types (QuantumCircuitDiagram is optional for backward compatibility)
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
@@ -176,6 +256,11 @@ export const isProject = (obj: any): obj is BesserProject => {
 
   if (!hasRequiredDiagrams) {
     return false;
+  }
+
+  // Add QuantumCircuitDiagram if missing (for backward compatibility with older projects)
+  if (!obj.diagrams.QuantumCircuitDiagram) {
+    obj.diagrams.QuantumCircuitDiagram = createEmptyDiagram('Quantum Circuit', null, 'quantum');
   }
 
   return true;
@@ -209,6 +294,15 @@ export const isGrapesJSProjectData = (model: unknown): model is GrapesJSProjectD
     candidate.symbols !== undefined ||
     (candidate.version !== undefined && !candidate.qubitCount)
   );
+};
+
+export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitData => {
+  if (!model || typeof model !== 'object') {
+    return false;
+  }
+
+  const candidate = model as any;
+  return Array.isArray(candidate.cols);
 };
 
 

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import {
   Diagram3,
@@ -7,7 +7,8 @@ import {
   ArrowRepeat,
   Gear,
   PencilSquare,
-  House
+  House,
+  Cpu
 } from 'react-bootstrap-icons';
 import { UMLDiagramType } from '@besser/wme';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -80,7 +81,7 @@ const GIcon = styled.span`
   font-family: 'Arial', sans-serif;
 `;
 
-type SidebarItemType = UMLDiagramType | 'home' | 'settings' | 'graphical-ui-editor';
+type SidebarItemType = UMLDiagramType | 'home' | 'settings' | 'graphical-ui-editor' | 'quantum-editor';
 
 interface SidebarItem {
   type: SidebarItemType;
@@ -96,6 +97,7 @@ const sidebarItems: SidebarItem[] = [
   { type: UMLDiagramType.StateMachineDiagram, label: 'State Machine', icon: <ArrowRepeat size={20} /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent Diagram', icon: <Robot size={20} /> },
   { type: 'graphical-ui-editor', label: 'Graphical UI', icon: <PencilSquare size={20} />, path: '/graphical-ui-editor' },
+  { type: 'quantum-editor', label: 'Quantum Circuit', icon: <Cpu size={20} />, path: '/quantum-editor' },
   { type: 'settings', label: 'Project Settings', icon: <Gear size={20} />, path: '/project-settings' },
 ];
 
@@ -111,6 +113,7 @@ export const DiagramTypeSidebar: React.FC = () => {
     switchDiagramType
   } = useProject();
 
+
   const handleItemClick = (item: SidebarItem) => {
     // Handle navigation items (home, settings, graphical-ui-editor, quantum-editor)
     if (item.path) {
@@ -119,7 +122,7 @@ export const DiagramTypeSidebar: React.FC = () => {
     }
 
     // This should not happen with current setup, but let's be safe
-    if (item.type === 'home' || item.type === 'settings' || item.type === 'graphical-ui-editor') {
+    if (item.type === 'home' || item.type === 'settings' || item.type === 'graphical-ui-editor' || item.type === 'quantum-editor') {
       return;
     }
 
@@ -144,6 +147,15 @@ export const DiagramTypeSidebar: React.FC = () => {
   };
 
   const isItemActive = (item: SidebarItem): boolean => {
+    // Handle items with explicit paths
+    if (item.path) {
+      return location.pathname === item.path;
+    }
+
+    // For UML diagram types, check if we're on main editor and this is the active type
+    if (item.type === UMLDiagramType.AgentDiagram) {
+      return location.pathname === '/' && toUMLDiagramType(currentDiagramType) === UMLDiagramType.AgentDiagram;
+    }
     if (item.path) {
       return location.pathname === item.path;
     }

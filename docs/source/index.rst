@@ -34,12 +34,10 @@ The content is organised around the main developer journeys:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Editor package
+   :caption: Editors
 
    editor/index
-   editor/api
-   editor/extending-diagrams
-   editor/diagram-bridge
+
 
 .. toctree::
    :maxdepth: 2
