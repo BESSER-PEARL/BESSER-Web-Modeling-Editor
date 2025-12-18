@@ -7,7 +7,8 @@ import {
   ArrowRepeat,
   Gear,
   PencilSquare,
-  House
+  House,
+  Cpu
 } from 'react-bootstrap-icons';
 import { UMLDiagramType } from '@besser/wme';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -80,7 +81,7 @@ const GIcon = styled.span`
   font-family: 'Arial', sans-serif;
 `;
 
-type SidebarItemType = UMLDiagramType | 'home' | 'settings' | 'graphical-ui-editor';
+type SidebarItemType = UMLDiagramType | 'home' | 'settings' | 'graphical-ui-editor' | 'quantum-editor';
 
 interface SidebarItem {
   type: SidebarItemType;
@@ -96,6 +97,7 @@ const sidebarItems: SidebarItem[] = [
   { type: UMLDiagramType.StateMachineDiagram, label: 'State Machine', icon: <ArrowRepeat size={20} /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent Diagram', icon: <Robot size={20} /> },
   { type: 'graphical-ui-editor', label: 'Graphical UI', icon: <PencilSquare size={20} />, path: '/graphical-ui-editor' },
+  { type: 'quantum-editor', label: 'Quantum Circuit', icon: <Cpu size={20} />, path: '/quantum-editor' },
   { type: 'settings', label: 'Project Settings', icon: <Gear size={20} />, path: '/project-settings' },
 ];
 
@@ -139,7 +141,7 @@ export const DiagramTypeSidebar: React.FC = () => {
     }
 
     // This should not happen with current setup, but let's be safe
-    if (item.type === 'home' || item.type === 'settings' || item.type === 'graphical-ui-editor') {
+    if (item.type === 'home' || item.type === 'settings' || item.type === 'graphical-ui-editor' || item.type === 'quantum-editor') {
       return;
     }
 

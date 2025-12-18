@@ -67,12 +67,18 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     QuantumCircuitDiagram: 'Quantum Circuit'
   };
 
+  const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
+    GUINoCodeDiagram: 'gui',
+    QuantumCircuitDiagram: 'quantum',
+  };
+
   // Ensure all diagram types exist
   allDiagramTypes.forEach(diagramType => {
     if (!project.diagrams[diagramType]) {
       const umlType = diagramTypeToUMLType[diagramType];
       const title = diagramTitles[diagramType];
-      project.diagrams[diagramType] = createEmptyDiagram(title, umlType);
+      const kind = diagramKinds[diagramType];
+      project.diagrams[diagramType] = createEmptyDiagram(title, umlType, kind);
     }
   });
 

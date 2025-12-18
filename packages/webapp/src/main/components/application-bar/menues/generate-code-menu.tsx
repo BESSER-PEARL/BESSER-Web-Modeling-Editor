@@ -37,14 +37,19 @@ export const GenerateCodeMenu: React.FC = () => {
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
 
+  // Detect if we're on the Quantum Circuit editor page by checking the URL path
+  const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+
   // Check if we're running locally (not on AWS)
   const isLocalEnvironment = BACKEND_URL === undefined ||
     (BACKEND_URL ?? '').includes('localhost') ||
     (BACKEND_URL ?? '').includes('127.0.0.1');
 
   const handleGenerateCode = async (generatorType: string) => {
-    // For GUI/No-Code diagrams, we don't need the apollon editor
-    if (!isGUINoCodeDiagram && !editor) {
+    // For GUI/No-Code diagrams and Quantum diagrams, we don't need the apollon editor
+    if (!isGUINoCodeDiagram && !isQuantumDiagram && !editor) {
       toast.error('No diagram available to generate code from');
       return;
     }
@@ -272,13 +277,16 @@ export const GenerateCodeMenu: React.FC = () => {
     }
   };
   const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
-  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
-  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
 
   return (
     <>
       <NavDropdown title="Generate" className="pt-0 pb-0">
-        {isGUINoCodeDiagram ? (
+        {isQuantumDiagram ? (
+          // Quantum Diagram: Show Qiskit generation option
+          <>
+            <Dropdown.Item onClick={() => handleGenerateCode('qiskit')}>Qiskit Code</Dropdown.Item>
+          </>
+        ) : isGUINoCodeDiagram ? (
           // No-Code Diagram: Show No-Code generation options
           <>
             <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>

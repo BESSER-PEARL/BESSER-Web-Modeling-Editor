@@ -52,7 +52,7 @@ export const useGenerateCode = () => {
   const downloadFile = useFileDownload();
 
   const generateCode = useCallback(
-    async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]) => {
+    async (editor: ApollonEditor | null, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]) => {
       console.log('Starting code generation...');
 
       // For Web App generator, send the entire project (doesn't need editor)
