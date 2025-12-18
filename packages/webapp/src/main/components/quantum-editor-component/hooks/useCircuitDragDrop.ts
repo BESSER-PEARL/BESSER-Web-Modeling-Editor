@@ -52,6 +52,30 @@ export function useCircuitDragDrop({
     // Measurement gate types - after measurement, qubit becomes classical
     const MEASUREMENT_GATES = ['MEASURE', 'MEASURE_X', 'MEASURE_Y'];
 
+    // Gates that can be placed after measurement (classical operations, resets, etc.)
+    const GATES_ALLOWED_AFTER_MEASUREMENT = [
+        // Another measurement is allowed
+        'MEASURE', 'MEASURE_X', 'MEASURE_Y',
+        // Reset brings qubit back to quantum state
+        'RESET',
+        // Control and anti-control (can act as classical control)
+        'CONTROL', 'ANTI_CONTROL',
+        // Classical control gates (X controlled by classical bit)
+        'CLASSICALLY_CONTROLLED_X',
+        // Display/visualization gates (if they exist)
+        'DISPLAY',
+        // Spacer/identity (doesn't affect state)
+        'SPACER', 'I',
+    ];
+
+    // Check if a gate type is allowed after measurement
+    const isGateAllowedAfterMeasurement = useCallback(
+        (gateType: GateType): boolean => {
+            return GATES_ALLOWED_AFTER_MEASUREMENT.includes(gateType);
+        },
+        []
+    );
+
     // Check if a qubit has been measured before a given column
     const isQubitMeasuredBefore = useCallback(
         (qubitRow: number, beforeCol: number): boolean => {
@@ -107,11 +131,12 @@ export function useCircuitDragDrop({
             const isWithinBounds = col >= 0 && row >= 0 && row + gateHeight <= 16;
 
             // Check if any qubit in the gate's range has been measured before this column
-            let isAfterMeasurement = false;
-            if (isWithinBounds) {
+            // But allow gates that are specifically permitted after measurement
+            let isBlockedByMeasurement = false;
+            if (isWithinBounds && !isGateAllowedAfterMeasurement(gateType)) {
                 for (let i = 0; i < gateHeight; i++) {
                     if (isQubitMeasuredBefore(row + i, col)) {
-                        isAfterMeasurement = true;
+                        isBlockedByMeasurement = true;
                         break;
                     }
                 }
@@ -143,11 +168,11 @@ export function useCircuitDragDrop({
                 }
             }
 
-            const isValid = isWithinBounds && isPositionAvailable && !isAfterMeasurement;
+            const isValid = isWithinBounds && isPositionAvailable && !isBlockedByMeasurement;
 
             return { col: Math.max(0, col), row: Math.max(0, row), isValid };
         },
-        [circuit, draggedGate, circuitGridRef, isQubitMeasuredBefore]
+        [circuit, draggedGate, circuitGridRef, isQubitMeasuredBefore, isGateAllowedAfterMeasurement]
     );
 
     const handleDragStart = useCallback(
@@ -355,7 +380,20 @@ export function useCircuitDragDrop({
                         const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
                         const gateHeight = gateDefinition?.height || 1;
 
-                        if (col >= 0 && row >= 0 && row < 16 && row + gateHeight <= 16) {
+                        // Check if any qubit in the gate's range has been measured before this column
+                        // But allow gates that are specifically permitted after measurement
+                        let isBlockedByMeasurement = false;
+                        if (!isGateAllowedAfterMeasurement(draggedGate.gate)) {
+                            for (let i = 0; i < gateHeight; i++) {
+                                if (isQubitMeasuredBefore(row + i, col)) {
+                                    isBlockedByMeasurement = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Only drop if position is valid and not blocked by measurement
+                        if (col >= 0 && row >= 0 && row < 16 && row + gateHeight <= 16 && !isBlockedByMeasurement) {
                             handleGateDrop(draggedGate.gate, col, row, draggedGate.originalPos, draggedGate.originalGate);
                             droppedOnGrid = true;
                         }
@@ -370,7 +408,7 @@ export function useCircuitDragDrop({
                 setPreviewPosition(null);
             }
         },
-        [draggedGate, circuitGridRef, handleGateDrop, handleGateDelete]
+        [draggedGate, circuitGridRef, handleGateDrop, handleGateDelete, isQubitMeasuredBefore, isGateAllowedAfterMeasurement]
     );
 
     return {
