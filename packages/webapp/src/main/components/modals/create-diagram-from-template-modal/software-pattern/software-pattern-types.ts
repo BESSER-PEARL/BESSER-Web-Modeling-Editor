@@ -7,7 +7,6 @@ export enum SoftwarePatternCategory {
   BEHAVIORAL = 'Behavioral',
   AGENT = 'Agent Diagram',
   STATE_MACHINE = 'State Machine Diagram',
-  QUANTUM = 'Quantum Circuit',
 }
 
 export enum SoftwarePatternType {
@@ -24,9 +23,7 @@ export enum SoftwarePatternType {
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
   // State Machine patterns
-  TRAFIC_LIGHT = 'Traffic Light',
-  // Quantum patterns
-  GROVER_BV = 'Grover-BV Algorithm',
+  TRAFIC_LIGHT = 'Traffic Light'
 }
 
 export class SoftwarePatternTemplate extends Template {

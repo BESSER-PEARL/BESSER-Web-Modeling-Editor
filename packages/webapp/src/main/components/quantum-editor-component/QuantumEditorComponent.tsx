@@ -282,7 +282,7 @@ export function QuantumEditorComponent(): JSX.Element {
                     />
                     <Workspace>
                         <PaletteContainer>
-                            <GatePalette onDragStart={handleDragStart} />
+                            <GatePalette onDragStart={handleDragStart} onLoadCircuit={handleLoadCircuit} />
                         </PaletteContainer>
                         <CircuitContainer>
                             <CircuitGrid

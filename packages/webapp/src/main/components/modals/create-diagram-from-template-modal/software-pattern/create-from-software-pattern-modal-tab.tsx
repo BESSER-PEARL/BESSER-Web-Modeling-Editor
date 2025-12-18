@@ -69,7 +69,6 @@ export const CreateFromSoftwarePatternModalTab: React.FC<Props> = ({ selectedTem
       {patternTabComponentForCategory(allPatterns, SoftwarePatternCategory.CREATIONAL, selectedTemplate, selectPattern)} */}
       {patternTabComponentForCategory(allPatterns, SoftwarePatternCategory.STATE_MACHINE, selectedTemplate, selectPattern)}
       {patternTabComponentForCategory(allPatterns, SoftwarePatternCategory.AGENT, selectedTemplate, selectPattern)}
-      {patternTabComponentForCategory(allPatterns, SoftwarePatternCategory.QUANTUM, selectedTemplate, selectPattern)}
     </Tabs>
   );
 };

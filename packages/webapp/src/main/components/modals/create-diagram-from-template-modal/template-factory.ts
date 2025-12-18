@@ -82,14 +82,6 @@ export class TemplateFactory {
           traficlightModel as any,
           SoftwarePatternCategory.STATE_MACHINE,
         );
-      case SoftwarePatternType.GROVER_BV:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          'QuantumCircuitDiagram',  // Not a UMLDiagramType, use string directly
-          groverBvModel as any,
-          SoftwarePatternCategory.QUANTUM,
-          false,  // isUMLDiagram = false
-        );
       default:
         throw Error(`Cannot create SoftwarePatternTemplate for type ${softwarePatternType}`);
     }
