@@ -17,7 +17,7 @@ type Props = {
   id: string;
   onRefChange: (instance: Textfield<any>) => void;
   value: string;
-  onChange: (id: string, values: { name?: string; fillColor?: string; textColor?: string; lineColor?: string }) => void;
+  onChange: (id: string, values: { name?: string; fillColor?: string; textColor?: string; lineColor?: string ; intent_description?: string }) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
@@ -33,6 +33,10 @@ const AgentIntentUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, on
   const handleNameChange = (newName: string) => {
     onChange(id, { name: newName });
   };
+
+  const handleIntentDescriptionChange = (newDescription: string) => {
+    onChange(id, { intent_description: newDescription });
+  }
 
   const handleDelete = () => {
     onDelete(id)();

@@ -119,8 +119,8 @@ class StateUpdate extends Component<Props, State> {
                 index === bodies.length - 1
                   ? this.newBodyField.current?.focus()
                   : this.setState({
-                      fieldToFocus: bodyRefs[index + 1],
-                    })
+                    fieldToFocus: bodyRefs[index + 1],
+                  })
               }
               onDelete={this.delete}
               onRefChange={(ref) => (bodyRefs[index] = ref)}
@@ -152,7 +152,17 @@ class StateUpdate extends Component<Props, State> {
             }}
           />
         </section>
-        
+        <Divider />
+        <section>
+          Description (Optional)
+          <Flex>
+            <Textfield value={element.intent_description} onChange={this.props.update} autoFocus />
+            <ColorButton onClick={this.toggleColor} />
+ 
+          </Flex>
+         
+
+        </section>
       </div>
     );
   }
@@ -167,6 +177,8 @@ class StateUpdate extends Component<Props, State> {
   private rename = (id: string) => (value: string) => {
     this.props.update(id, { name: value });
   };
+
+
 
   private delete = (id: string) => () => {
     this.props.delete(id);

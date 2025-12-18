@@ -34,7 +34,7 @@ export class AgentIntent extends UMLContainer implements IUMLState {
   stereotype: string | null = null;
   deviderPosition: number = 0;
   hasBody: boolean = false;
-
+  intent_description: string = "";
   get headerHeight() {
     return this.stereotype ? AgentIntent.stereotypeHeaderHeight : AgentIntent.nonStereotypeHeaderHeight;
   }
@@ -53,7 +53,8 @@ export class AgentIntent extends UMLContainer implements IUMLState {
     return {
       ...super.serialize(children),
       type: this.type as UMLElementType,
-      bodies: children.filter((x) => x instanceof AgentIntentBody).map((x) => x.id)
+      bodies: children.filter((x) => x instanceof AgentIntentBody).map((x) => x.id),
+      intent_description: this.intent_description
     };
   }
 

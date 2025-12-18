@@ -128,6 +128,7 @@ export interface AgentState extends UMLElement {
 export interface AgentIntent extends UMLElement {
   type: UMLElementType;
   bodies: string[];
+  intent_description: string;
 }
 
 export interface UMLReply extends UMLElement {

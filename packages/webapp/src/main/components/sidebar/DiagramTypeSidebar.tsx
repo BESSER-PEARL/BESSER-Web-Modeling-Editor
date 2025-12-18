@@ -132,6 +132,14 @@ export const DiagramTypeSidebar: React.FC = () => {
 
   const handleItemClick = (item: SidebarItem) => {
     if (item.type === UMLDiagramType.AgentDiagram) {
+      try {
+        switchDiagramType(UMLDiagramType.AgentDiagram);
+        if (location.pathname !== '/') {
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Failed to switch diagram type:', error);
+      }
       setShowAgentMenu(true);
       return;
     }
