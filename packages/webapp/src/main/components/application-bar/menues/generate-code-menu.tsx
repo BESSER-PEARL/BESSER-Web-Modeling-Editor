@@ -28,7 +28,6 @@ export const GenerateCodeMenu: React.FC = () => {
   const [showQiskitConfig, setShowQiskitConfig] = useState(false);
   const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
-  const [agentMode, setAgentMode] = useState<'configuration' | 'personalization'>('configuration');
 
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
@@ -136,23 +135,8 @@ export const GenerateCodeMenu: React.FC = () => {
         } as any;
       }
 
-      // If mode is personalization, load mapping and send it under personalizationrules
-      if (agentMode === 'personalization') {
-        const mappingRaw = localStorage.getItem('agentPersonalization');
-        let mapping = null;
-        try {
-          mapping = mappingRaw ? JSON.parse(mappingRaw) : null;
-        } catch {
-          mapping = null;
-        }
-        const agentConfig: AgentConfig = {
-          personalizationrules: mapping || {}
-        } as any;
-        await generateCode(editor!, 'agent', diagram.title, agentConfig);
-      } else {
-        // configuration mode: send the base config
-        await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
-      }
+      // Send the configuration
+      await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
       setShowAgentLanguageModal(false);
     } catch (error) {
       console.error('Error in Agent code generation:', error);
@@ -425,13 +409,6 @@ export const GenerateCodeMenu: React.FC = () => {
               </Form.Text>
               <div className="text-warning small mt-1">
                 <span role="img" aria-label="warning">⚠️</span> Adding more languages will increase the generation time.
-              </div>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Mode</Form.Label>
-              <div>
-                <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
-                <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
               </div>
             </Form.Group>
             {/* List of selected languages with remove option */}
