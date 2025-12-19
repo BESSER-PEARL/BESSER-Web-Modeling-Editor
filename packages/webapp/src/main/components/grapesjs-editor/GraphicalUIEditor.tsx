@@ -8,7 +8,7 @@ import gjsBlocksBasic from 'grapesjs-blocks-basic';
 // @ts-ignore
 import gjsPluginForms from 'grapesjs-plugin-forms';
 import './grapesjs-styles.css';
-import { getClassOptions } from './diagram-helpers';
+import { getClassOptions, getEndsByClassId, getClassMetadata as getClassMeta } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
 import { tableConfig } from './configs/tableConfig';
 import { metricCardConfig } from './configs/metricCardConfigs';
@@ -875,62 +875,48 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
     console.log('[Auto-Generate] Cleared existing pages');
   }
   
-  // Create pages sequentially with proper async initialization
-  let pageCounter = 0;
+  // Create all pages synchronously - columns are pre-generated so no delay needed
+  let firstPage: any = null;
   
-  const createPageSequentially = async () => {
-    let firstPage = null;
+  classes.forEach((classOption: any, index: number) => {
+    const className = classOption.label;
+    const classId = classOption.value;
+    const pageName = className.toLowerCase().replace(/\s+/g, '-');
+    const pageRoute = `/${pageName}`;
     
-    for (let index = 0; index < classes.length; index++) {
-      const classOption = classes[index];
-      const className = classOption.label;
-      const classId = classOption.value;
-      const pageName = className.toLowerCase().replace(/\s+/g, '-');
-      const pageRoute = `/${pageName}`;
-      
-      console.log(`[Auto-Generate] Creating page ${index + 1}/${classes.length} for class: ${className}`);
-      
-      // Get class metadata (attributes and methods)
-      const classMetadata = getClassMetadata(classId);
-      const methods = getMethodsByClassId(classId);
-      
-      // Create the page with route_path
-      const page = pages.add({
-        id: `page-${pageName}-${pageCounter}`,
-        name: className,
-      });
-      
-      // Set the route_path on the page
-      if (page) {
-        page.set('route_path', pageRoute);
-      }
-      
-      // Store the first page
-      if (index === 0) {
-        firstPage = page;
-      }
-      
-      // Build the page components programmatically with unique counter
-      buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, pageCounter);
-      
-      pageCounter++;
-      
-      // Wait for the page to initialize before creating the next one
-      await new Promise(resolve => setTimeout(resolve, 500));
+    console.log(`[Auto-Generate] Creating page ${index + 1}/${classes.length} for class: ${className}`);
+    
+    // Get class metadata (attributes and methods)
+    const classMetadata = getClassMetadata(classId);
+    const methods = getMethodsByClassId(classId);
+    
+    // Create the page with route_path
+    const page = pages.add({
+      id: `page-${pageName}-${index}`,
+      name: className,
+    });
+    
+    // Set the route_path on the page
+    if (page) {
+      page.set('route_path', pageRoute);
     }
     
-    // After all pages are created, go back to the first page
-    if (firstPage) {
-      setTimeout(() => {
-        pages.select(firstPage);
-        console.log('[Auto-Generate] Returned to first page');
-      }, 300);
+    // Store the first page
+    if (index === 0) {
+      firstPage = page;
     }
     
-    console.log('[Auto-Generate] GUI generation complete');
-  };
+    // Build the page components programmatically
+    buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
+  });
   
-  createPageSequentially();
+  // Select the first page after all pages are created
+  if (firstPage) {
+    pages.select(firstPage);
+    console.log('[Auto-Generate] Selected first page');
+  }
+  
+  console.log(`[Auto-Generate] GUI generation complete - created ${classes.length} pages`);
 }
 
 /**
@@ -1096,8 +1082,40 @@ function buildPageComponents(
               'margin-bottom': '30px',
             }
           },
-          // Table component with proper traits
+          // Table component with proper traits and PRE-GENERATED columns
           (() => {
+            // Pre-generate columns from class metadata (same logic as in registerTableComponent)
+            const autoColumns: any[] = [];
+            
+            // Add Field columns from class attributes
+            if (classMetadata?.attributes?.length) {
+              classMetadata.attributes.forEach((attr: any) => {
+                autoColumns.push({
+                  field: attr.name,
+                  label: attr.name.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                  columnType: 'field',
+                  _expanded: false,
+                });
+              });
+            }
+            
+            // Add Lookup columns from class relationship ends
+            const classEnds = getEndsByClassId(classId);
+            if (classEnds?.length) {
+              classEnds.forEach((end: any) => {
+                const targetClassMetadata = getClassMeta(end.value);
+                const firstAttribute = targetClassMetadata?.attributes?.[0];
+                autoColumns.push({
+                  field: end.label || end.value,
+                  label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                  columnType: 'lookup',
+                  lookupEntity: end.value,
+                  lookupField: firstAttribute?.name || '',
+                  _expanded: false,
+                });
+              });
+            }
+            
             const tableComponent = {
               type: 'table',
               attributes: {
@@ -1111,6 +1129,7 @@ function buildPageComponents(
                 'action-buttons': 'true',
                 'rows-per-page': '5',
                 'filter': '',
+                'columns': autoColumns,  // Pre-generated columns!
               },
               // Set table traits as top-level properties (for the traits panel)
               'chart-title': `${className} List`,
@@ -1121,12 +1140,13 @@ function buildPageComponents(
               'action-buttons': true,
               'rows-per-page': 5,
               'filter': '',
+              'columns': autoColumns,  // Pre-generated columns!
             };
             console.log(`[Auto-Generate] Creating table for ${className}:`, {
               tableId,
               classId,
               title: `${className} List`,
-              attributes: classMetadata?.attributes?.length || 0
+              columnsCount: autoColumns.length,
             });
             return tableComponent;
           })(),
