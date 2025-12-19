@@ -156,9 +156,13 @@ class StateUpdate extends Component<Props, State> {
         <section>
           Description (Optional)
           <Flex>
-            <Textfield value={element.intent_description} onChange={this.props.update} autoFocus />
+            <Textfield
+              value={element.intent_description}
+              onChange={this.updateIntentDescription(element.id)}
+              autoFocus
+            />
             <ColorButton onClick={this.toggleColor} />
- 
+
           </Flex>
          
 
@@ -182,6 +186,10 @@ class StateUpdate extends Component<Props, State> {
 
   private delete = (id: string) => () => {
     this.props.delete(id);
+  };
+
+  private updateIntentDescription = (id: string) => (value: string) => {
+    this.props.update(id, { intent_description: value } as Partial<AgentIntent>);
   };
 }
 

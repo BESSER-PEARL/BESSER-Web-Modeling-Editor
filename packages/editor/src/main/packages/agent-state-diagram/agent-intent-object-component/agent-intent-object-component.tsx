@@ -2,6 +2,10 @@ import React, { FunctionComponent } from 'react';
 import { Text } from '../../../components/controls/text/text';
 import { AgentIntent } from './agent-intent';
 import { ThemedRect, ThemedPath } from '../../../components/theme/themedComponents';
+import {
+  AgentIntentDescriptionComponent,
+  AGENT_INTENT_DESCRIPTION_HEIGHT,
+} from '../agent-intent-description/agent-intent-description';
 
 interface Props {
   element: AgentIntent;
@@ -12,6 +16,7 @@ interface Props {
 export const AgentIntentComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const cornerRadius = 0;
   element.name = "Intent: " + element.name;
+  const hasIntentDescription = element.intent_description.trim().length > 0;
   return (
     <g>
       <svg
@@ -81,8 +86,21 @@ export const AgentIntentComponent: FunctionComponent<Props> = ({ element, childr
               </Text>
 
             </svg>
+  
+          )}
+            
+          {hasIntentDescription && (
+            <g transform={`translate(0, ${element.headerHeight})`}>
+              <AgentIntentDescriptionComponent
+                description={element.intent_description}
+                width={element.bounds.width}
+                textColor={element.textColor || '#000'}
+            
+              />
+            </g>
+          )}
 
-          )} {children}
+           {children}
           <ThemedRect
             width="100%"
             height="100%"
@@ -91,8 +109,14 @@ export const AgentIntentComponent: FunctionComponent<Props> = ({ element, childr
             pointer-events="none"
             rx={cornerRadius}
           />
-          {element.hasBody && (
+          {(element.hasBody || hasIntentDescription) && (
             <ThemedPath d={`M 0 ${element.headerHeight} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
+          )}
+          {hasIntentDescription && element.hasBody && (
+            <ThemedPath
+              d={`M 0 ${element.headerHeight + AGENT_INTENT_DESCRIPTION_HEIGHT} H ${element.bounds.width}`}
+              strokeColor={element.strokeColor}
+            />
           )}
 
 
