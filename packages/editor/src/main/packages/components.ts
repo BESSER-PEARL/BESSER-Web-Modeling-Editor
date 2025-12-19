@@ -82,6 +82,7 @@ import { UMLStateCodeBlockComponent } from './uml-state-diagram/uml-state-code-b
 import { UMLStateMemberComponent } from './uml-state-diagram/uml-state/uml-state-member-component';
 import { AgentIntentComponent } from './agent-state-diagram/agent-intent-object-component/agent-intent-object-component';
 import { AgentIntentMemberComponent } from './agent-state-diagram/agent-intent-object-component/agent-intent-member-component';
+import { AgentRagElementComponent } from './agent-state-diagram/agent-rag-element/agent-rag-element-component';
 import { AgentStateComponent } from './agent-state-diagram/agent-state/agent-state-component';
 import { AgentStateMemberComponent } from './agent-state-diagram/agent-state/agent-state-member-component';
 import { AgentStateTransitionComponent } from './agent-state-diagram/agent-state-transition/agent-state-transition-component';
@@ -194,6 +195,7 @@ export const Components: {
 
   [UMLElementType.AgentIntent]: AgentIntentComponent,
   [UMLElementType.AgentIntentBody]: AgentIntentMemberComponent,
+  [UMLElementType.AgentRagElement]: AgentRagElementComponent,
   [UMLElementType.AgentState]: AgentStateComponent,
   [UMLElementType.AgentStateBody]: AgentStateMemberComponent,
   [UMLElementType.AgentStateFallbackBody]: AgentStateMemberComponent,

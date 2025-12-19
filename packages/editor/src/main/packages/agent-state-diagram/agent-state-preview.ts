@@ -6,6 +6,7 @@ import { ComposePreview } from '../compose-preview';
 
 
 import { AgentIntent } from './agent-intent-object-component/agent-intent';
+import { AgentRagElement } from './agent-rag-element/agent-rag-element';
 
 import { UMLStateFinalNode } from '../uml-state-diagram/uml-state-final-node/uml-state-final-node';
 import { UMLStateInitialNode } from '../uml-state-diagram/uml-state-initial-node/uml-state-initial-node';
@@ -37,6 +38,15 @@ export const composeBotPreview: ComposePreview = (
     height: emptyIntent.bounds.height,
   };
   elements.push(emptyIntent);
+
+  const ragElement = new AgentRagElement({ name: 'RAG DB Name' });
+  ragElement.bounds = {
+    ...ragElement.bounds,
+    width: computeDimension(1.0, ragElement.bounds.width),
+    height: computeDimension(1.0, ragElement.bounds.height),
+  };
+  ragElement.render(layer);
+  elements.push(ragElement);
 
    // Empty State
    const emptyAgentState = new AgentState({ name: "AgentState" });

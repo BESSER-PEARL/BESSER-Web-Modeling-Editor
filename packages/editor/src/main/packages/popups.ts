@@ -45,6 +45,7 @@ import { UMLStateCodeBlockUpdate } from './uml-state-diagram/uml-state-code-bloc
 import { UMLStateUpdate } from './uml-state-diagram/uml-state/uml-state-update';
 
 import { AgentIntentBodyUpdate } from './agent-state-diagram/agent-intent-object-component/agent-intent-update';
+import { AgentRagElementUpdate } from './agent-state-diagram/agent-rag-element/agent-rag-element-update';
 import { AgentStateUpdate } from './agent-state-diagram/agent-state/agent-state-update';
 import { AgentStateTransitionUpdate } from './agent-state-diagram/agent-state-transition/agent-state-transition-update';
 
@@ -122,6 +123,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.StateCodeBlock]: UMLStateCodeBlockUpdate,
   [UMLElementType.AgentIntent]: AgentIntentBodyUpdate,
   [UMLElementType.AgentIntentBody]: null,
+  [UMLElementType.AgentRagElement]: AgentRagElementUpdate,
   [UMLElementType.AgentState]: AgentStateUpdate,
   [UMLElementType.AgentStateBody]: null,
   [UMLElementType.AgentStateFallbackBody]: null,

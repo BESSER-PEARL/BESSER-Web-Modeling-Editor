@@ -15,6 +15,7 @@ export const AgentElementType = {
   StateObjectNode: 'StateObjectNode',
   StateCodeBlock: 'StateCodeBlock',
   AgentIntent: 'AgentIntent',
+  AgentRagElement: 'AgentRagElement',
   AgentState: 'AgentState',
   AgentStateBody: 'AgentStateBody',
   AgentStateFallbackBody: 'AgentStateFallbackBody',
