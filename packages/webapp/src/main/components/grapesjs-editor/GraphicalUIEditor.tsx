@@ -198,7 +198,6 @@ function setupEditorFeatures(
   if (editor.Pages) {
     setupPageSystem(editor);
     setupPageRouting(editor);
-    addPagesButton(editor);
     addAutoGenerateGUIButton(editor);
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
@@ -714,42 +713,21 @@ function setupKeyboardShortcuts(editor: Editor) {
 // ============================================
 
 /**
- * Add Pages button to the toolbar and remove preview button
- */
-function addPagesButton(editor: Editor) {
-  editor.on('load', () => {
-    const panelManager = editor.Panels;
-    
-    // Remove preview button (eye icon)
-    try {
-      const previewBtn = document.querySelector('[title="Preview"]');
-      if (previewBtn) {
-        previewBtn.remove();
-        // console.log('[Toolbar] Preview button removed');
-      }
-    } catch (error) {
-      console.warn('[Toolbar] Could not remove preview button:', error);
-    }
-    
-    // Add button to open pages panel
-    panelManager.addButton('options', {
-      id: 'open-pages',
-      className: 'fa fa-file-text',
-      command: 'show-pages',
-      attributes: { title: 'Manage Pages' },
-      label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" /></svg>',
-    });
-    
-    // console.log('[Pages] Button added to toolbar');
-  });
-}
-
-/**
  * Add Auto-Generate GUI button to the devices panel
  */
 function addAutoGenerateGUIButton(editor: Editor) {
   editor.on('load', () => {
     const panelManager = editor.Panels;
+    
+    // Remove preview button (eye icon) - moved here from removed addPagesButton
+    try {
+      const previewBtn = document.querySelector('[title="Preview"]');
+      if (previewBtn) {
+        previewBtn.remove();
+      }
+    } catch (error) {
+      console.warn('[Toolbar] Could not remove preview button:', error);
+    }
     
     // Add button to devices panel (where monitor, tablet, cellphone icons are)
     panelManager.addButton('devices-c', {
@@ -907,7 +885,8 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
       const classOption = classes[index];
       const className = classOption.label;
       const classId = classOption.value;
-      const pageName = className.toLowerCase();
+      const pageName = className.toLowerCase().replace(/\s+/g, '-');
+      const pageRoute = `/${pageName}`;
       
       console.log(`[Auto-Generate] Creating page ${index + 1}/${classes.length} for class: ${className}`);
       
@@ -915,15 +894,16 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
       const classMetadata = getClassMetadata(classId);
       const methods = getMethodsByClassId(classId);
       
-      // Create the page
+      // Create the page with route_path
       const page = pages.add({
         id: `page-${pageName}-${pageCounter}`,
         name: className,
-        attributes: {
-          route: `/${pageName}`,
-          'data-route': `/${pageName}`
-        }
       });
+      
+      // Set the route_path on the page
+      if (page) {
+        page.set('route_path', pageRoute);
+      }
       
       // Store the first page
       if (index === 0) {
@@ -1258,11 +1238,14 @@ function setupPageRouting(editor: Editor) {
   
   editor.on('page:select', (page: any) => {
     if (!page) return;
-    const currentRoute = page.get('attributes')?.route || `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
+    // Use route_path as primary, fallback to attributes.route or auto-generated
+    const currentRoute = page.get('route_path') || 
+      page.get('attributes')?.route || 
+      `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
     // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
   });
   
-  // Add command to edit page route
+  // Add command to edit page route (legacy - now handled in Pages panel)
   editor.Commands.add('edit-page-route', {
     run(editor: Editor) {
       const currentPage = editor.Pages.getSelected();
@@ -1272,8 +1255,10 @@ function setupPageRouting(editor: Editor) {
       }
       
       const pageName = currentPage.getName();
-      const attrs: any = currentPage.get('attributes') || {};
-      const currentRoute = attrs.route || `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
+      const storedRoute = currentPage.get('route_path');
+      const currentRoute: string = (typeof storedRoute === 'string' && storedRoute) 
+        ? storedRoute 
+        : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
       
       const newRoute = prompt(
         `Edit route path for page "${pageName}":\n\nExamples:\n- /home\n- /users/:id\n- /products`, 
@@ -1283,10 +1268,10 @@ function setupPageRouting(editor: Editor) {
       if (newRoute !== null && newRoute.trim()) {
         let route = newRoute.trim();
         if (!route.startsWith('/')) route = '/' + route;
+        // Clean the route
+        route = route.replace(/[^a-zA-Z0-9\-_\/:]/g, '');
         
-        attrs.route = route;
-        attrs['data-route'] = route;
-        currentPage.set('attributes', attrs);
+        currentPage.set('route_path', route);
         
         // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
         alert(`Route updated to: ${route}`);
