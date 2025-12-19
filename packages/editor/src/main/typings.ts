@@ -67,6 +67,7 @@ export type UMLModelElement = {
 
 export interface AgentModelElement extends UMLModelElement {
   replyType: string;
+  ragDatabaseName?: string;
 }
 
 export type UMLElement = UMLModelElement & {

@@ -31,6 +31,7 @@ import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
+import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 
 
 const Flex = styled.div`
@@ -76,7 +77,9 @@ interface OwnProps {
   element: AgentState;
 }
 
-type StateProps = {};
+type StateProps = {
+  elements: ModelState['elements'];
+};
 
 interface DispatchProps {
   create: typeof UMLElementRepository.create;
@@ -98,12 +101,15 @@ const getInitialState = (): State => ({
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-    create: UMLElementRepository.create,
-    update: UMLElementRepository.update,
-    remove: UMLElementRepository.delete, // Updated to match the renamed property
-    getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
-  }),
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(
+    (state) => ({ elements: state.elements }),
+    {
+      create: UMLElementRepository.create,
+      update: UMLElementRepository.update,
+      remove: UMLElementRepository.delete, // Updated to match the renamed property
+      getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
+    },
+  ),
 );
 
 class StateUpdate extends Component<Props, State> {
@@ -155,24 +161,32 @@ class StateUpdate extends Component<Props, State> {
 
 
   render() {
-    const { element, getById } = this.props;
+    const { element, getById, elements } = this.props;
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
     const bodies = children.filter(
       (child): child is AgentStateMember => child instanceof AgentStateBody
     );
+    const ragDatabaseNames = Array.from(
+      new Set(
+        Object.values(elements)
+          .filter((el: any) => el.type === AgentElementType.AgentRagElement && typeof el.name === 'string')
+          .map((el: any) => el.name.trim())
+          .filter((name) => name.length > 0),
+      ),
+    );
+    const ragBody = bodies.find((body) => body.replyType === 'rag');
     const preserveTabs = (str: string): string => {
       return str.replace(/\t/g, '    ');
     };
 
-    bodies.forEach((body) => {
-      if (body.replyType === "llm") {
-        this.bodyReplyType = "llm"
-      } else if (body.replyType === "code") {
-        this.bodyReplyType = "code"
-      } else {
-        this.bodyReplyType = "text"
-      }
-    });
+    this.bodyReplyType = 'text';
+    if (bodies.some((body) => body.replyType === 'rag')) {
+      this.bodyReplyType = 'rag';
+    } else if (bodies.some((body) => body.replyType === 'llm')) {
+      this.bodyReplyType = 'llm';
+    } else if (bodies.some((body) => body.replyType === 'code')) {
+      this.bodyReplyType = 'code';
+    }
 
     const fallbackBodies = children.filter(
       (child): child is AgentStateMember => child instanceof AgentStateFallbackBody
@@ -223,7 +237,7 @@ class StateUpdate extends Component<Props, State> {
                   this.bodyReplyType = "text";
                   {
                     bodies.forEach((body) => {
-                      if (body.replyType === "llm" || body.replyType === "code") {
+                      if (body.replyType === "llm" || body.replyType === "code" || body.replyType === "rag") {
                         this.delete(body.id)();
                       }
                     })
@@ -245,7 +259,7 @@ class StateUpdate extends Component<Props, State> {
                   this.bodyReplyType = "llm"
                   {
                     bodies.forEach((body) => {
-                      if (body.replyType === "code" || body.replyType === "text") {
+                      if (body.replyType === "code" || body.replyType === "text" || body.replyType === "rag") {
                         this.delete(body.id)();
                       }
                     })
@@ -260,13 +274,35 @@ class StateUpdate extends Component<Props, State> {
               <input
                 type="radio"
                 name="actionType"
+                value="rag"
+                defaultChecked={this.bodyReplyType === "rag"}
+                onChange={() => {
+                  this.bodyReplyType = "rag";
+                  bodies.forEach((body) => {
+                    if (body.replyType !== "rag") {
+                      this.delete(body.id)();
+                    }
+                  });
+                  if (!bodies.some((body) => body.replyType === "rag")) {
+                    const defaultName = this.getRagDisplayName('');
+                    this.create(AgentStateBody, "rag", { ragDatabaseName: '', name: defaultName })(defaultName);
+                  }
+                  this.forceUpdate();
+                }}
+              />
+              RAG reply
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="actionType"
                 value="pythonCode"
                 defaultChecked={this.bodyReplyType === "code"}
                 onChange={() => {
                   this.bodyReplyType = "code"
                   {
                     bodies.forEach((body) => {
-                      if (body.replyType === "llm" || body.replyType === "text") {
+                      if (body.replyType === "llm" || body.replyType === "text" || body.replyType === "rag") {
                         this.delete(body.id)();
                       }
                     })
@@ -365,6 +401,34 @@ class StateUpdate extends Component<Props, State> {
               </ResizableCodeMirrorWrapper>
 
             </>
+          ) : this.bodyReplyType === "rag" ? (
+            ragDatabaseNames.length ? (
+              <Dropdown
+                value={ragBody?.ragDatabaseName && ragBody.ragDatabaseName.length > 0 ? ragBody.ragDatabaseName : '__placeholder__'}
+                onChange={(value) => {
+                  const selected = value === '__placeholder__' ? '' : value;
+                  const displayName = this.getRagDisplayName(selected);
+                  if (ragBody) {
+                    this.props.update<AgentStateMember>(ragBody.id, { ragDatabaseName: selected, name: displayName });
+                  } else {
+                    this.create(AgentStateBody, 'rag', { ragDatabaseName: selected, name: displayName })(displayName);
+                  }
+                }}
+              >
+                {[
+                  <Dropdown.Item value="__placeholder__" key="rag-placeholder">
+                    Select RAG database
+                  </Dropdown.Item>,
+                  ...ragDatabaseNames.map((name, index) => (
+                    <Dropdown.Item key={`rag-${index}-${name}`} value={name}>
+                      {name}
+                    </Dropdown.Item>
+                  )),
+                ]}
+              </Dropdown>
+            ) : (
+              <p>No RAG databases available. Create one from the palette first.</p>
+            )
           ) : (
             <>
               <>
@@ -525,11 +589,23 @@ class StateUpdate extends Component<Props, State> {
     );
   }
 
-  private create = (Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody, replyType: string) => (value: string) => {
+  private getRagDisplayName = (databaseName: string): string => {
+    const trimmed = (databaseName || '').trim();
+    return trimmed.length ? `RAG reply using ${trimmed} database` : 'RAG reply (select database)';
+  };
+
+  private create = (
+    Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+    replyType: string,
+    initialValues?: Partial<AgentStateMember>,
+  ) => (value: string) => {
     const { element, create } = this.props;
     const member = new Clazz();
     member.name = value;
-    member.replyType = replyType
+    member.replyType = replyType;
+    if (initialValues) {
+      Object.assign(member, initialValues);
+    }
     create(member, element.id);
   };
 
