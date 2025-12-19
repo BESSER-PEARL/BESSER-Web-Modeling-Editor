@@ -132,6 +132,10 @@ export interface AgentIntent extends UMLElement {
   intent_description: string;
 }
 
+export interface AgentRagElement extends UMLElement {
+  type: UMLElementType;
+}
+
 export interface UMLReply extends UMLElement {
   type: UMLElementType;
   bodies: string[];
