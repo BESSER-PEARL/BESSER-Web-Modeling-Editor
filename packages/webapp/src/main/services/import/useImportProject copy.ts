@@ -45,8 +45,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
-    'GUINoCodeDiagram',
-    'QuantumCircuitDiagram'
+    'UserDiagram',
+    'GUINoCodeDiagram'
   ];
 
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -54,8 +54,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: UMLDiagramType.ObjectDiagram,
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
+    UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
-    QuantumCircuitDiagram: null,
   };
 
   const diagramTitles: Record<SupportedDiagramType, string> = {
@@ -63,13 +63,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: 'Object Diagram',
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
-    GUINoCodeDiagram: 'GUI Diagram',
-    QuantumCircuitDiagram: 'Quantum Circuit'
-  };
-
-  const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
-    GUINoCodeDiagram: 'gui',
-    QuantumCircuitDiagram: 'quantum',
+    UserDiagram: 'User Diagram',
+    GUINoCodeDiagram: 'GUI Diagram'
   };
 
   // Ensure all diagram types exist
@@ -77,8 +72,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     if (!project.diagrams[diagramType]) {
       const umlType = diagramTypeToUMLType[diagramType];
       const title = diagramTitles[diagramType];
-      const kind = diagramKinds[diagramType];
-      project.diagrams[diagramType] = createEmptyDiagram(title, umlType, kind);
+      project.diagrams[diagramType] = createEmptyDiagram(title, umlType);
     }
   });
 
@@ -400,4 +394,8 @@ export async function handleImportAny(): Promise<BesserProject> {
     window.dispatchEvent(new Event('storage'));
 
     return importedProject;
-  } catch (error)
+  } catch (error) {
+    console.error('Import process failed:', error);
+    throw error;
+  }
+}
