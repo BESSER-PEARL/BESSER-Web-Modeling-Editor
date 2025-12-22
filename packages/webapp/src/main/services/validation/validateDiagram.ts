@@ -9,12 +9,19 @@ import { ApollonEditor } from '@besser/wme';
  * 2. Returns any validation errors from BUML construction
  * 3. For ClassDiagram/ObjectDiagram: also runs OCL constraint checks
  * 4. Returns unified validation results with errors, warnings, and OCL results
+ * 
+ * @param editor - Apollon editor instance (can be null/undefined for quantum circuits)
+ * @param diagramTitle - Title of the diagram being validated
+ * @param modelData - Optional: Direct model data (used for quantum circuits that don't use Apollon)
  */
-export async function validateDiagram(editor: ApollonEditor, diagramTitle: string) {
+export async function validateDiagram(editor: ApollonEditor | null | undefined, diagramTitle: string, modelData?: any) {
   toast.dismiss();
   
   try {
-    if (!editor || !editor.model) {
+    // Get model data from editor or use provided modelData (for quantum circuits)
+    const model = modelData || editor?.model;
+    
+    if (!model) {
       toast.error('No diagram to validate');
       return { isValid: false, errors: ['No diagram available'] };
     }
@@ -29,8 +36,6 @@ export async function validateDiagram(editor: ApollonEditor, diagramTitle: strin
       draggable: false
     });
 
-    let modelData = editor.model;
-
     // Call unified validation endpoint
     const response = await fetch(`${BACKEND_URL}/validate-diagram`, {
       method: 'POST',
@@ -39,7 +44,7 @@ export async function validateDiagram(editor: ApollonEditor, diagramTitle: strin
       },
       body: JSON.stringify({
         title: diagramTitle,
-        model: modelData
+        model: model
       }),
     });
 

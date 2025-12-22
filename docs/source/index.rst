@@ -12,6 +12,7 @@ The content is organised around the main developer journeys:
 
 * **Overview** introduces the repository layout, prerequisites, and developer
   workflows for installing and running the project locally.
+* **User Guide** provides detailed instructions for using the editor to create and manage models.
 * **Editor package** documents the `packages/editor` module, including the
   `ApollonEditor` API, application architecture, and guidance for adding new
   diagram types or behaviours.
@@ -29,16 +30,14 @@ The content is organised around the main developer journeys:
 
    overview/index
    overview/getting-started
-   overview/project-structure
+   user-guide/index
 
 .. toctree::
    :maxdepth: 2
-   :caption: Editor package
+   :caption: Editors
 
    editor/index
-   editor/api
-   editor/extending-diagrams
-   editor/diagram-bridge
+
 
 .. toctree::
    :maxdepth: 2
@@ -54,6 +53,7 @@ The content is organised around the main developer journeys:
 
    contributing/index
    contributing/development-workflow
+   contributing/new-diagram-guide/index
 
 .. toctree::
    :maxdepth: 1
