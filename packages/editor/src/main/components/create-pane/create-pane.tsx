@@ -8,7 +8,7 @@ import { composeCommunicationPreview } from '../../packages/uml-communication-di
 import { composeComponentPreview } from '../../packages/uml-component-diagram/component-preview';
 import { composeDeploymentPreview } from '../../packages/uml-deployment-diagram/deployment-preview';
 import { composeObjectPreview } from '../../packages/uml-object-diagram/object-preview';
-import { composeIconObjectPreview as composeUserModelingPreview } from '../../packages/user-modeling/icon-object-preview';
+import { composeUserModelPreview } from '../../packages/user-modeling/user-model-preview';
 import { composeUseCasePreview } from '../../packages/uml-use-case-diagram/use-case-preview';
 import { UMLElement } from '../../services/uml-element/uml-element';
 import { UMLElementFeatures } from '../../services/uml-element/uml-element-features';
@@ -105,7 +105,7 @@ const getInitialState = ({ type, canvas, translate, colorEnabled }: Props) => {
       break;
     case UMLDiagramType.UserDiagram:
       // Use dedicated user modeling preview
-      previews.push(...composeUserModelingPreview(canvas, translate));
+      previews.push(...composeUserModelPreview(canvas, translate));
       break;
   }
   if (colorEnabled) {

@@ -21,7 +21,7 @@ import { notEmpty } from '../../../utils/not-empty';
 import { UMLObjectAttribute } from '../uml-object-attribute/uml-object-attribute';
 import { UMLObjectMethod } from '../uml-object-method/uml-object-method';
 import { UMLObjectName } from './uml-object-name';
-import UMLObjectAttributeUpdate from '../uml-object-attribute/uml-object-attribute-update';
+import UMLUserModelAttributeUpdate from '../uml-user-model-attribute/uml-user-model-attribute-update';
 
 const Flex = styled.div`
   display: flex;
@@ -267,7 +267,7 @@ class ObjectNameComponent extends Component<Props, State> {
         </section>
         <section>          <Header>{this.props.translate('popup.attributes')}</Header>
           {attributes.map((attribute, index) => (
-            <UMLObjectAttributeUpdate
+              <UMLUserModelAttributeUpdate
               id={attribute.id}
               key={attribute.id}
               value={attribute.name}
