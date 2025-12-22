@@ -45,6 +45,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
+    'UserDiagram',
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram'
   ];
@@ -54,6 +55,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: UMLDiagramType.ObjectDiagram,
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
+    UserDiagram: UMLDiagramType.UserDiagram, 
     GUINoCodeDiagram: null,
     QuantumCircuitDiagram: null,
   };
@@ -63,6 +65,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: 'Object Diagram',
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
+    UserDiagram: 'User Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
     QuantumCircuitDiagram: 'Quantum Circuit'
   };
@@ -400,4 +403,8 @@ export async function handleImportAny(): Promise<BesserProject> {
     window.dispatchEvent(new Event('storage'));
 
     return importedProject;
-  } catch (error)
+  } catch (error) {
+    console.error('Import process failed:', error);
+    throw error;
+  }
+} 

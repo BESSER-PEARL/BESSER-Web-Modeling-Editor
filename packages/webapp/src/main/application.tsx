@@ -16,6 +16,8 @@ import { SidebarLayout } from './components/sidebar/SidebarLayout';
 import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
 import { useProject } from './hooks/useProject';
+import { AgentConfigScreen } from './components/agent/AgentConfigScreen';
+import { AgentPersonalizationConfigScreen } from './components/agent/AgentPersonalizationConfigScreen';
 import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
@@ -140,7 +142,25 @@ function AppContentInner() {
             </SidebarLayout>
           }
         />
+        {/* Agent configuration route */}
+        <Route 
+          path="/agent-config" 
+          element={
+            <SidebarLayout>
+              <AgentConfigScreen />
+            </SidebarLayout>
+          } 
+        />
 
+        {/* Agent personalization route */}
+        <Route 
+          path="/agent-personalization" 
+          element={
+            <SidebarLayout>
+              <AgentPersonalizationConfigScreen />
+            </SidebarLayout>
+          } 
+        />
         {/* Quantum Circuit Editor route */}
         <Route
           path="/quantum-editor"
