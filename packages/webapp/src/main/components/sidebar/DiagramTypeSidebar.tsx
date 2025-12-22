@@ -1,4 +1,19 @@
-ect';
+import React from 'react';
+import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import {
+  Diagram3,
+  Diagram2,
+  Robot,
+  ArrowRepeat,
+  Gear,
+  PencilSquare,
+  House,
+  Cpu
+} from 'react-bootstrap-icons';
+import { UMLDiagramType } from '@besser/wme';
+import { useNavigate, useLocation } from 'react-router-dom';
+import styled from 'styled-components';
+import { useProject } from '../../hooks/useProject';
 import { toUMLDiagramType } from '../../types/project';
 
 const SidebarContainer = styled.div`
