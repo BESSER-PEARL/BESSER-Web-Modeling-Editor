@@ -292,3 +292,148 @@ export function getAgentOptions(): { value: string; label: string }[] {
   console.warn('[diagram-helpers] No Agent diagram data available');
   return [];
 }
+
+/**
+ * Get methods for a specific class
+ */
+export interface MethodMetadata {
+  id: string;
+  name: string;
+  isInstanceMethod: boolean;
+  parameters: MethodParameter[];
+}
+
+export interface MethodParameter {
+  name: string;
+  type: string;
+  hasDefault: boolean;
+  defaultValue?: any;
+}
+
+export function getMethodsByClassId(classId: string): MethodMetadata[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+    return [];
+  }
+
+  // Find class by name (classId might be a name now)
+  const classElement = Object.values(classDiagram.elements).find(
+    (element: any) => element?.type === 'Class' && (element?.id === classId || element?.name === classId)
+  );
+  
+  if (!classElement) {
+    return [];
+  }
+
+  return Object.values(classDiagram.elements)
+    .filter((element: any) => element?.type === 'ClassMethod' && element?.owner === (classElement as any).id)
+    .map((method: any) => {
+      // Parse method signature to extract parameters
+      const methodName = method.name || '';
+      const isInstanceMethod = methodName.includes('(self') || methodName.includes('(session');
+      
+      // Extract method name (before parentheses)
+      const nameMatch = methodName.match(/^([^(]+)/);
+      const cleanName = nameMatch ? nameMatch[1].trim() : methodName;
+      
+      // Extract parameters from signature like "method_name(param1: type1 = default1, param2: type2)"
+      const paramsMatch = methodName.match(/\(([^)]*)\)/);
+      const parameters: MethodParameter[] = [];
+      
+      if (paramsMatch && paramsMatch[1]) {
+        const paramString = paramsMatch[1];
+        const paramParts = paramString.split(',').map((p: string) => p.trim());
+        
+        for (const part of paramParts) {
+          // Skip 'self' and 'session' parameters
+          if (part.startsWith('self') || part.startsWith('session')) {
+            continue;
+          }
+          
+          // Parse "param_name: type = default" or "param_name: type" or "param_name"
+          const paramMatch = part.match(/^([^:=]+)(?::\s*([^=]+))?(?:=\s*(.+))?$/);
+          if (paramMatch) {
+            const paramName = paramMatch[1].trim();
+            const paramType = paramMatch[2]?.trim() || 'str';
+            const defaultValue = paramMatch[3]?.trim();
+            
+            parameters.push({
+              name: paramName,
+              type: paramType,
+              hasDefault: !!defaultValue,
+              defaultValue: defaultValue
+            });
+          }
+        }
+      }
+      
+      return {
+        id: method.id,
+        name: cleanName,
+        isInstanceMethod: isInstanceMethod,
+        parameters: parameters
+      };
+    });
+}
+
+/**
+ * Get method options for dropdown (formatted as value: label)
+ */
+export function getMethodOptions(classId: string): { value: string; label: string; isInstanceMethod: boolean }[] {
+  const methods = getMethodsByClassId(classId);
+  return methods.map(method => {
+    // Remove visibility prefix (+ or -) from method name
+    const cleanName = method.name.replace(/^[+-]\s*/, '');
+    return {
+      value: method.id,  // Store the method ID
+      label: cleanName,  // Show only the clean method name without (static) suffix
+      isInstanceMethod: method.isInstanceMethod
+    };
+  });
+}
+
+/**
+ * Get table options from the GrapesJS editor (current page only)
+ * Returns an array of { value: tableId, label: "TableTitle (table)" }
+ */
+export function getTableOptions(editor: any): { value: string; label: string }[] {
+  const options: Array<{ value: string; label: string }> = [
+    { value: '', label: '-- Select Source --' }
+  ];
+  
+  if (!editor) return options;
+  
+  try {
+    // Get the current page's main component instead of global wrapper
+    const currentPage = editor.Pages?.getSelected();
+    const pageWrapper = currentPage?.getMainComponent();
+    
+    if (!pageWrapper) return options;
+    
+    // Find all table components in the current page only
+    const tables = pageWrapper.find('[class*="table-component"]');
+    
+    if (!tables) return options;
+    
+    tables.forEach((table: any) => {
+      try {
+        const attrs = table.getAttributes();
+        const title = attrs['chart-title'] || 'Untitled Table';
+        // Use the id attribute instead of component ID
+        const tableId = attrs['id'] || table.getId();
+        
+        options.push({
+          value: tableId,  // Store the table's id attribute as the value
+          label: `${title} (table)`  // Display the title with "(table)" suffix
+        });
+      } catch (err) {
+        console.warn('[getTableOptions] Error processing table:', err);
+      }
+    });
+  } catch (err) {
+    console.warn('[getTableOptions] Error getting page wrapper:', err);
+  }
+  
+  return options;
+}

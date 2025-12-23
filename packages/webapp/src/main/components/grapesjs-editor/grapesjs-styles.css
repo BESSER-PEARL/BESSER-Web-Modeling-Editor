@@ -341,3 +341,7 @@
 .gjs-toolbar-item:hover {
   background-color: #f5f5f5 !important;
 }
+
+.gjs-trt-trait__wrp-series .gjs-label-wrp {
+  display: none !important;
+}

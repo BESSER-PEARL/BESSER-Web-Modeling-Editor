@@ -88,11 +88,19 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
   });
   
   // Add the trait for filter
+  //traitsList.push({
+  //  type: 'text',
+  //  name: 'filter',
+  //  label: 'Filter',
+  //  value: '',
+  //  changeProp: 1,
+  //});
+  
+  // Add the columns-manager trait at the end
   traitsList.push({
-    type: 'text',
-    name: 'filter',
-    label: 'Filter',
-    value: '',
+    type: 'columns-manager',
+    name: 'columns',
+    value: [],
     changeProp: 1,
   });
 

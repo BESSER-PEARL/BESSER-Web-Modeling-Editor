@@ -46,11 +46,12 @@
   "dependencies": {
     "@besser/wme": "*",
     "@sentry/node": "8.55.0",
+    "file-saver": "^2.0.5",
     "grapesjs": "^0.22.13",
     "grapesjs-blocks-basic": "^1.0.2",
-    "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
-    "recharts": "^3.2.1"
+    "recharts": "^3.2.1",
+    "vanilla-colorful": "^0.7.2"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
