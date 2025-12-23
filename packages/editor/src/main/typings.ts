@@ -99,6 +99,7 @@ export type UMLClassifierMember = UMLElement & {
   code?: string;
   visibility?: Visibility;
   attributeType?: string;
+  attributeOperator?: '<' | '<=' | '==' | '>=' | '>';
 };
 
 export interface IUMLObjectName extends UMLClassifier {

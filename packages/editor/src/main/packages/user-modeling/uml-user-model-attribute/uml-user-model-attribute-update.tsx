@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
+import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { diagramBridge } from '../../../services/diagram-bridge/diagram-bridge-service';
+import {
+  IUMLUserModelAttribute,
+  USER_MODEL_ATTRIBUTE_COMPARATORS,
+  UserModelAttributeComparator,
+  normalizeUserModelAttributeComparator,
+} from './uml-user-model-attribute';
 
 // Define TextfieldValue type locally as it's not exported from textfield
 type TextfieldValue = string | number;
-const COMPARATORS = ['<', '<=', '==', '>=', '>'] as const;
-type Comparator = typeof COMPARATORS[number];
+const COMPARATORS = USER_MODEL_ATTRIBUTE_COMPARATORS;
+type Comparator = UserModelAttributeComparator;
 
 const Flex = styled.div`
   display: flex;
@@ -39,11 +46,25 @@ const ValueTextfield = styled(Textfield)`
   min-width: 60px;
 `;
 
+const ComparatorDropdown = styled(Dropdown)`
+  margin-right: 6px;
+`;
+
 type Props = {
   id: string;
   onRefChange: (instance: Textfield<any>) => void;
   value: string;
-  onChange: (id: string, values: { name?: string; icon?: string; fillColor?: string; textColor?: string; lineColor?: string }) => void;
+  onChange: (
+    id: string,
+    values: {
+      name?: string;
+      icon?: string;
+      fillColor?: string;
+      textColor?: string;
+      lineColor?: string;
+      attributeOperator?: Comparator;
+    },
+  ) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
@@ -51,16 +72,23 @@ type Props = {
 
 const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, onDelete, element }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
+  const attributeElement = element as IUMLUserModelAttribute;
 
   const toggleColor = () => setColorOpen((open) => !open);
 
   const getAttributeId = () => (element as any).attributeId || '';
 
-  const getAttributeType = (): string => {
+  const getAttributeDefinition = () => {
     const attrId = getAttributeId();
-    if (!attrId) return '';
+    if (!attrId) {
+      return null;
+    }
     const data = diagramBridge.getClassDiagramData();
-    const attr = data?.elements?.[attrId];
+    return data?.elements?.[attrId] ?? null;
+  };
+
+  const getAttributeType = (): string => {
+    const attr = getAttributeDefinition();
     if (attr && typeof attr.attributeType === 'string') {
       return attr.attributeType.toLowerCase();
     }
@@ -72,57 +100,81 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
     return t === 'int' || t === 'integer' || t === 'number';
   };
 
-  const normalizeComparator = (raw: string): Comparator => (raw === '=' ? '==' : (COMPARATORS.includes(raw as Comparator) ? (raw as Comparator) : '=='));
-
   const parseAttributeValue = (fullValue: string): { name: string; comparator: Comparator; value: string } => {
     const comparatorMatch = fullValue.match(/^(.*?)(?:\s*(<=|>=|==|=|<|>)\s*)(.*)$/);
     if (comparatorMatch) {
       return {
         name: comparatorMatch[1].trim(),
-        comparator: normalizeComparator(comparatorMatch[2]),
+        comparator: normalizeUserModelAttributeComparator(comparatorMatch[2]),
         value: comparatorMatch[3],
       };
     }
-    return { name: '', comparator: '==', value: fullValue };
+    return { name: '', comparator: normalizeUserModelAttributeComparator(), value: fullValue };
   };
 
   const { name: attributeName, comparator, value: attributeValue } = parseAttributeValue(value);
+  const storedComparator =
+    typeof attributeElement.attributeOperator === 'string'
+      ? normalizeUserModelAttributeComparator(attributeElement.attributeOperator)
+      : undefined;
+  const effectiveComparator = storedComparator ?? comparator;
+  const [currentComparator, setCurrentComparator] = useState<Comparator>(effectiveComparator);
+
+  useEffect(() => {
+    setCurrentComparator(effectiveComparator);
+  }, [effectiveComparator]);
+
+  const attributeDefinition = getAttributeDefinition();
+  const resolvedAttributeName = attributeName || attributeDefinition?.name || '';
+  const baseAttributeName = resolvedAttributeName || attributeName;
 
   const formatAttribute = (attributeName: string, op: Comparator, newValue: TextfieldValue) => `${attributeName.trim()} ${op} ${newValue}`;
 
   const handleValueChange = (newValue: TextfieldValue) => {
-    if (attributeName) {
-      onChange(id, { name: formatAttribute(attributeName, comparator, newValue) });
+    if (baseAttributeName) {
+      onChange(id, { name: formatAttribute(baseAttributeName, currentComparator, newValue), attributeOperator: currentComparator });
     } else {
-      onChange(id, { name: String(newValue) });
+      onChange(id, { name: String(newValue), attributeOperator: currentComparator });
     }
   };
 
   const handleComparatorChange = (newComparator: Comparator) => {
-    if (attributeName) {
-      onChange(id, { name: formatAttribute(attributeName, newComparator, attributeValue) });
+    setCurrentComparator(newComparator);
+    if (baseAttributeName) {
+      onChange(id, {
+        name: formatAttribute(baseAttributeName, newComparator, attributeValue),
+        attributeOperator: newComparator,
+      });
+    } else {
+      onChange(id, { attributeOperator: newComparator });
     }
   };
 
   const handleDelete = () => onDelete(id)();
-  const renderComparatorInput = attributeName && isIntegerType();
+  const renderComparatorInput = Boolean(baseAttributeName) && isIntegerType();
 
-  if (attributeName) {
+  const labelText = resolvedAttributeName || attributeName;
+
+  if (labelText) {
     return (
       <>
         <Flex>
           <AttributeInputContainer>
-            <AttributeNameLabel>{attributeName} {renderComparatorInput ? '' : '='} </AttributeNameLabel>
+            <AttributeNameLabel>
+              {labelText} {renderComparatorInput ? '' : '='}{' '}
+            </AttributeNameLabel>
             {renderComparatorInput && (
-              <select
-                style={{ marginRight: 6 }}
-                value={comparator}
-                onChange={(e) => handleComparatorChange(e.target.value as Comparator)}
+              <ComparatorDropdown
+                value={currentComparator}
+                onChange={(value) => handleComparatorChange(value as Comparator)}
+                size="sm"
               >
                 {COMPARATORS.map((op) => (
-                  <option key={op} value={op}>{op}</option>
+                  <Dropdown.Item key={op} value={op}>
+                    {op}
+                  </Dropdown.Item>
                 ))}
-              </select>
+              </ComparatorDropdown>
             )}
             <ValueTextfield
               ref={onRefChange}
@@ -146,7 +198,13 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
   return (
     <>
       <Flex>
-        <Textfield ref={onRefChange} gutter value={value} onChange={(newName) => onChange(id, { name: newName })} onSubmitKeyUp={onSubmitKeyUp} />
+        <Textfield
+          ref={onRefChange}
+          gutter
+          value={value}
+          onChange={(newName) => onChange(id, { name: newName, attributeOperator: currentComparator })}
+          onSubmitKeyUp={onSubmitKeyUp}
+        />
         <ColorButton onClick={toggleColor} />
         <Button color="link" tabIndex={-1} onClick={handleDelete}>
           <TrashIcon />

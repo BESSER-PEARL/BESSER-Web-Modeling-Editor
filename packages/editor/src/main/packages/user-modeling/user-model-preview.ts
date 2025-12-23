@@ -59,6 +59,7 @@ const composeIconView = (layer: ILayer, translate: (id: string) => string): UMLE
         name: `${attr.name} = `,
         owner: instanceUser.id,
         bounds: { x: 0, y: 0, width: 0, height: 0 },
+        attributeId: attr.id,
       });
       instanceAttributes.push(attribute);
     });
@@ -93,18 +94,9 @@ const composeNormalView = (layer: ILayer, translate: (id: string) => string): UM
   const userModel = new UMLUserModelName({ name: translate('packages.ObjectDiagram.ObjectName') });
   userModel.bounds = { ...userModel.bounds, width: userModel.bounds.width, height: userModel.bounds.height };
 
-  const primaryAttribute = new UMLUserModelAttribute({
-    name: translate('sidebar.objectAttribute'),
-    owner: userModel.id,
-    bounds: {
-      x: 0,
-      y: 0,
-      width: computeDimension(1.0, 200),
-      height: computeDimension(1.0, 25),
-    },
-  });
-  userModel.ownedElements = [primaryAttribute.id];
-  elements.push(...(userModel.render(layer, [primaryAttribute]) as UMLElement[]));
+
+  userModel.ownedElements = [];
+
 
   const shouldShowInstances = settingsService.shouldShowInstancedObjects() && diagramBridge.hasClassDiagramData();
   if (!shouldShowInstances) return elements;
@@ -132,15 +124,6 @@ const composeNormalView = (layer: ILayer, translate: (id: string) => string): UM
     const instanceAttributes: UMLUserModelAttribute[] = [];
     let iconElement: UMLUserModelIcon | null = null;
 
-    if (instanceUser.icon) {
-      iconElement = new UMLUserModelIcon({
-        name: 'icon',
-        owner: instanceUser.id,
-        bounds: { x: 0, y: 0, width: 0, height: 0 },
-        icon: instanceUser.icon,
-      });
-    }
-
     classInfo.attributes.forEach((attr, index) => {
       const attribute = new UMLUserModelAttribute({
         name: `${attr.name} = `,
@@ -151,17 +134,15 @@ const composeNormalView = (layer: ILayer, translate: (id: string) => string): UM
           width: computeDimension(1.0, 200),
           height: computeDimension(1.0, 25),
         },
+        attributeId: attr.id,
       });
       instanceAttributes.push(attribute);
     });
 
     instanceUser.ownedElements = instanceAttributes.map((attr) => attr.id);
-    if (iconElement) {
-      instanceUser.ownedElements.push(iconElement.id);
-      elements.push(...(instanceUser.renderObject(layer, instanceAttributes, iconElement) as UMLElement[]));
-    } else {
-      elements.push(...(instanceUser.render(layer, instanceAttributes) as UMLElement[]));
-    }
+
+    elements.push(...(instanceUser.render(layer, instanceAttributes) as UMLElement[]));
+
 
     currentX += instanceUser.bounds.width + 50;
   });

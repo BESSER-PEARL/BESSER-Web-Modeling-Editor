@@ -48,6 +48,7 @@ import { AgentIntentBodyUpdate } from './agent-state-diagram/agent-intent-object
 import { AgentRagElementUpdate } from './agent-state-diagram/agent-rag-element/agent-rag-element-update';
 import { AgentStateUpdate } from './agent-state-diagram/agent-state/agent-state-update';
 import { AgentStateTransitionUpdate } from './agent-state-diagram/agent-state-transition/agent-state-transition-update';
+import UMLUserModelAttributeUpdate from './user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
 
 export type Popups = { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null };
 export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null } = {
@@ -64,6 +65,9 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.ObjectAttribute]: null,
   [UMLElementType.ObjectMethod]: null,
   [UMLElementType.ObjectIcon]: null,
+  [UMLElementType.UserModelName]: UMLObjectNameUpdate,
+  [UMLElementType.UserModelAttribute]: null,
+  [UMLElementType.UserModelIcon]: null,
   [UMLElementType.Activity]: DefaultPopup,
   [UMLElementType.ActivityActionNode]: DefaultPopup,
   [UMLElementType.ActivityFinalNode]: DefaultPopup,
@@ -140,6 +144,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLRelationshipType.Link]: DefaultRelationshipPopup,
   [UMLRelationshipType.ClassLinkRel]: DefaultRelationshipPopup,
   [UMLRelationshipType.ObjectLink]: UMLObjectLinkUpdate,
+  [UMLRelationshipType.UserModelLink]: UMLObjectLinkUpdate,
   [UMLRelationshipType.ActivityControlFlow]: UMLActivityControlFlowUpdate,
   [UMLRelationshipType.UseCaseAssociation]: UMLUseCaseAssociationUpdate,
   [UMLRelationshipType.UseCaseExtend]: UMLUseCaseAssociationUpdate,

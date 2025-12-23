@@ -47,6 +47,7 @@ export const UMLRelationships = {
   [UMLRelationshipType.Link]: UMLLink,
   [UMLRelationshipType.ClassLinkRel]: UMLClassLinkRel,
   [UMLRelationshipType.ObjectLink]: UMLObjectLink,
+  [UMLRelationshipType.UserModelLink]: UMLObjectLink,
   [UMLRelationshipType.ActivityControlFlow]: UMLActivityControlFlow,
   [UMLRelationshipType.UseCaseAssociation]: UMLUseCaseAssociation,
   [UMLRelationshipType.UseCaseExtend]: UMLUseCaseExtend,

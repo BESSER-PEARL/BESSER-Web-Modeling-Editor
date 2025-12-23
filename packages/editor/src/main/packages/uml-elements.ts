@@ -21,6 +21,9 @@ import { UMLObjectAttribute } from './uml-object-diagram/uml-object-attribute/um
 import { UMLObjectMethod } from './uml-object-diagram/uml-object-method/uml-object-method';
 import { UMLObjectName } from './uml-object-diagram/uml-object-name/uml-object-name';
 import { UMLObjectIcon } from './uml-object-diagram/uml-object-icon/uml-object-icon';
+import { UMLUserModelAttribute } from './user-modeling/uml-user-model-attribute/uml-user-model-attribute';
+import { UMLUserModelIcon } from './user-modeling/uml-user-model-icon/uml-user-model-icon';
+import { UMLUserModelName } from './user-modeling/uml-user-model-name/uml-user-model-name';
 import { UMLUseCaseActor } from './uml-use-case-diagram/uml-use-case-actor/uml-use-case-actor';
 import { UMLUseCaseSystem } from './uml-use-case-diagram/uml-use-case-system/uml-use-case-system';
 import { UMLUseCase } from './uml-use-case-diagram/uml-use-case/uml-use-case';
@@ -91,6 +94,9 @@ export const UMLElements = {
   [UMLElementType.ObjectAttribute]: UMLObjectAttribute,
   [UMLElementType.ObjectMethod]: UMLObjectMethod,
   [UMLElementType.ObjectIcon]: UMLObjectIcon,
+  [UMLElementType.UserModelName]: UMLUserModelName,
+  [UMLElementType.UserModelAttribute]: UMLUserModelAttribute,
+  [UMLElementType.UserModelIcon]: UMLUserModelIcon,
   [UMLElementType.Activity]: UMLActivity,
   [UMLElementType.ActivityInitialNode]: UMLActivityInitialNode,
   [UMLElementType.ActivityFinalNode]: UMLActivityFinalNode,

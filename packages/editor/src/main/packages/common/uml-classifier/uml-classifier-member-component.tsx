@@ -6,6 +6,7 @@ import { ThemedRect } from '../../../components/theme/themedComponents';
 import { settingsService } from '../../../services/settings/settings-service';
 import { ModelState } from '../../../components/store/model-state';
 import { ObjectElementType } from '../../uml-object-diagram';
+import { UserModelElementType } from '../../user-modeling';
 
 interface OwnProps {
   element: UMLClassifierMember;
@@ -23,10 +24,11 @@ const UMLClassifierMemberComponentUnconnected: FunctionComponent<Props> = ({ ele
   const owner = element.owner ? elements[element.owner] : null;
   const isObjectAttribute = element.type === ObjectElementType.ObjectAttribute;
   const isObjectMethod = element.type === ObjectElementType.ObjectMethod;
+  const isUserModelAttribute = element.type === UserModelElementType.UserModelAttribute;
   const shouldShowIconView = settingsService.shouldShowIconView();
 
   // Hide attributes and methods in icon view for object diagrams
-  if ((isObjectAttribute || isObjectMethod) && shouldShowIconView) {
+  if ((isObjectAttribute || isObjectMethod || isUserModelAttribute) && shouldShowIconView) {
     return null;
   }
 
