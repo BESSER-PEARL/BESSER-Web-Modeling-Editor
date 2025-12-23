@@ -10,6 +10,7 @@ import { RateLimiterService, RateLimitStatus } from './services/RateLimiterServi
 import { JsonViewerModal } from '../modals/json-viewer-modal/json-viewer-modal';
 import { UML_BOT_WS_URL } from '../../constant';
 import { isUMLModel } from '../../types/project';
+import posthog from 'posthog-js';
 
 // Styled Components
 const ChatWidgetContainer = styled.div`
@@ -844,6 +845,12 @@ export const UMLAgentModeling: React.FC = () => {
           wsService.connect().catch(() => setConnectionStatus('disconnected'));
         }
       }
+
+      // Track vibe modeling agent usage
+      posthog.capture('vibe_modeling_agent_message', {
+        diagram_type: currentDiagramType,
+        message_length: inputValue.length
+      });
 
       setInputValue('');
     } catch (error) {

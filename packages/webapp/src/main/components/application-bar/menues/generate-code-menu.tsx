@@ -2,6 +2,7 @@ import React, { useContext, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
+import posthog from 'posthog-js';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
@@ -85,6 +86,11 @@ export const GenerateCodeMenu: React.FC = () => {
         };
         if (editor) {
           await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
+          posthog.capture('generator_used', {
+            generator_type: 'smartdata',
+            diagram_title: diagram.title,
+            diagram_type: currentDiagramType
+          });
         }
       } catch (error) {
         console.error('Error in Smart Data Models generation:', error);
@@ -101,6 +107,11 @@ export const GenerateCodeMenu: React.FC = () => {
       } else if (editor) {
         // Regular UML diagrams use editor
         await generateCode(editor, generatorType, diagram.title);
+        posthog.capture('generator_used', {
+          generator_type: generatorType,
+          diagram_title: diagram.title,
+          diagram_type: currentDiagramType
+        });
       } else {
         toast.error('No diagram available to generate code from');
       }
@@ -137,6 +148,13 @@ export const GenerateCodeMenu: React.FC = () => {
 
       // Send the configuration
       await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'agent',
+        diagram_title: diagram.title,
+        diagram_type: currentDiagramType,
+        source_language: sourceLanguage,
+        target_languages: selectedAgentLanguages
+      });
       setShowAgentLanguageModal(false);
     } catch (error) {
       console.error('Error in Agent code generation:', error);
@@ -169,6 +187,12 @@ export const GenerateCodeMenu: React.FC = () => {
         containerization: useDocker
       };
       await generateCode(editor!, 'django', diagram.title, djangoConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'django',
+        diagram_title: diagram.title,
+        diagram_type: currentDiagramType,
+        use_docker: useDocker
+      });
       setShowDjangoConfig(false);
     } catch (error) {
       console.error('Error in Django code generation:', error);
@@ -201,6 +225,12 @@ export const GenerateCodeMenu: React.FC = () => {
       // Close the modal first, then start deployment
       setShowDjangoConfig(false);
       await deployLocally(editor!, 'django', diagram.title, djangoConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'django_deploy_locally',
+        diagram_title: diagram.title,
+        diagram_type: currentDiagramType,
+        use_docker: useDocker
+      });
     } catch (error) {
       console.error('Error in Django local deployment:', error);
       toast.error('Django local deployment failed');
@@ -213,6 +243,12 @@ export const GenerateCodeMenu: React.FC = () => {
         dialect: sqlDialect
       };
       await generateCode(editor!, 'sql', diagram.title, sqlConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'sql',
+        diagram_title: diagram.title,
+        diagram_type: currentDiagramType,
+        sql_dialect: sqlDialect
+      });
       setShowSqlConfig(false);
     } catch (error) {
       console.error('Error in SQL code generation:', error);
@@ -226,6 +262,12 @@ export const GenerateCodeMenu: React.FC = () => {
         dbms: sqlAlchemyDbms
       };
       await generateCode(editor!, 'sqlalchemy', diagram.title, sqlAlchemyConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'sqlalchemy',
+        diagram_title: diagram.title,
+        diagram_type: currentDiagramType,
+        dbms: sqlAlchemyDbms
+      });
       setShowSqlAlchemyConfig(false);
     } catch (error) {
       console.error('Error in SQLAlchemy code generation:', error);
@@ -239,6 +281,12 @@ export const GenerateCodeMenu: React.FC = () => {
         mode: jsonSchemaMode
       };
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'jsonschema',
+        diagram_title: diagram.title,
+        diagram_type: currentDiagramType,
+        json_schema_mode: jsonSchemaMode
+      });
       setShowJsonSchemaConfig(false);
     } catch (error) {
       console.error('Error in JSON Schema code generation:', error);
@@ -254,6 +302,12 @@ export const GenerateCodeMenu: React.FC = () => {
       };
       // Pass null for editor since qiskit generator uses project data
       await generateCode(null, 'qiskit', diagram.title, qiskitConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'qiskit',
+        diagram_title: diagram.title,
+        qiskit_backend: qiskitBackend,
+        qiskit_shots: qiskitShots
+      });
       setShowQiskitConfig(false);
     } catch (error) {
       console.error('Error in Qiskit code generation:', error);
