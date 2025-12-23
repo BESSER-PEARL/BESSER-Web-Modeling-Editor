@@ -1,4 +1,4 @@
-import { LocalStorageDiagramListItem, StoredUserProfile } from './local-storage-types';
+import { LocalStorageDiagramListItem, StoredAgentConfiguration, StoredAgentProfileConfigurationMapping, StoredUserProfile } from './local-storage-types';
 import {
   localStorageCollaborationColor,
   localStorageCollaborationName,
@@ -8,11 +8,14 @@ import {
   localStorageSystemThemePreference,
   localStorageUserThemePreference,
   localStorageUserProfiles,
+  localStorageAgentConfigurations,
+  localStorageAgentProfileMappings,
 } from '../../constant';
 import { Diagram } from '../diagram/diagramSlice';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { isUMLModel } from '../../types/project';
 import { uuid } from '../../utils/uuid';
+import { AgentConfigurationPayload } from '../../types/agent-config';
 
 type LocalDiagramEntry = {
   id: string;
@@ -38,6 +41,44 @@ const getStoredUserProfiles = (): StoredUserProfile[] => {
 
 const persistUserProfiles = (profiles: StoredUserProfile[]) => {
   localStorage.setItem(localStorageUserProfiles, JSON.stringify(profiles));
+};
+
+const getStoredAgentConfigurations = (): StoredAgentConfiguration[] => {
+  const json = localStorage.getItem(localStorageAgentConfigurations);
+  if (!json) {
+    return [];
+  }
+
+  try {
+    const parsed: StoredAgentConfiguration[] = JSON.parse(json);
+    return parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+  } catch (error) {
+    console.warn('Failed to parse stored agent configurations:', error);
+    return [];
+  }
+};
+
+const persistAgentConfigurations = (configs: StoredAgentConfiguration[]) => {
+  localStorage.setItem(localStorageAgentConfigurations, JSON.stringify(configs));
+};
+
+const getStoredAgentProfileMappings = (): StoredAgentProfileConfigurationMapping[] => {
+  const json = localStorage.getItem(localStorageAgentProfileMappings);
+  if (!json) {
+    return [];
+  }
+
+  try {
+    const parsed: StoredAgentProfileConfigurationMapping[] = JSON.parse(json);
+    return parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+  } catch (error) {
+    console.warn('Failed to parse stored agent profile mappings:', error);
+    return [];
+  }
+};
+
+const persistAgentProfileMappings = (entries: StoredAgentProfileConfigurationMapping[]) => {
+  localStorage.setItem(localStorageAgentProfileMappings, JSON.stringify(entries));
 };
 
 export const LocalStorageRepository = {
@@ -178,6 +219,81 @@ export const LocalStorageRepository = {
   deleteUserProfile: (id: string) => {
     const profiles = getStoredUserProfiles().filter((profile) => profile.id !== id);
     persistUserProfiles(profiles);
+  },
+
+  saveAgentConfiguration: (name: string, config: AgentConfigurationPayload) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      throw new Error('Configuration name must not be empty');
+    }
+
+    const clone = JSON.parse(JSON.stringify(config)) as AgentConfigurationPayload;
+    const savedAt = new Date().toISOString();
+    const configs = getStoredAgentConfigurations();
+
+    const existingIndex = configs.findIndex((entry) => entry.name.toLowerCase() === trimmedName.toLowerCase());
+    const storedEntry: StoredAgentConfiguration = {
+      id: existingIndex >= 0 ? configs[existingIndex].id : uuid(),
+      name: trimmedName,
+      savedAt,
+      config: clone,
+    };
+
+    if (existingIndex >= 0) {
+      configs[existingIndex] = storedEntry;
+    } else {
+      configs.push(storedEntry);
+    }
+
+    persistAgentConfigurations(configs);
+    return storedEntry;
+  },
+
+  getAgentConfigurations: (): StoredAgentConfiguration[] => {
+    return getStoredAgentConfigurations();
+  },
+
+  loadAgentConfiguration: (id: string): StoredAgentConfiguration | null => {
+    const configs = getStoredAgentConfigurations();
+    return configs.find((entry) => entry.id === id) || null;
+  },
+
+  deleteAgentConfiguration: (id: string) => {
+    const configs = getStoredAgentConfigurations().filter((entry) => entry.id !== id);
+    persistAgentConfigurations(configs);
+  },
+
+  saveAgentProfileConfigurationMapping: (profile: StoredUserProfile, config: StoredAgentConfiguration) => {
+    const mappings = getStoredAgentProfileMappings();
+    const savedAt = new Date().toISOString();
+    const existingIndex = mappings.findIndex((entry) => entry.userProfileId === profile.id);
+
+    const mapping: StoredAgentProfileConfigurationMapping = {
+      id: existingIndex >= 0 ? mappings[existingIndex].id : uuid(),
+      userProfileId: profile.id,
+      userProfileName: profile.name,
+      agentConfigurationId: config.id,
+      agentConfigurationName: config.name,
+      savedAt,
+    };
+
+    if (existingIndex >= 0) {
+      mappings[existingIndex] = mapping;
+    } else {
+      mappings.push(mapping);
+    }
+
+    persistAgentProfileMappings(mappings);
+    return mapping;
+  },
+
+  getAgentProfileConfigurationMappings: (): StoredAgentProfileConfigurationMapping[] => {
+    return getStoredAgentProfileMappings();
+  },
+
+  deleteAgentProfileConfigurationMapping: (id: string) => {
+    const mappings = getStoredAgentProfileMappings().filter((entry) => entry.id !== id);
+    persistAgentProfileMappings(mappings);
   },
 };
 

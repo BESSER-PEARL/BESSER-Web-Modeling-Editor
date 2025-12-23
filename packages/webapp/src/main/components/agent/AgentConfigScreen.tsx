@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Card, Form, Button, Row, Col, Badge } from 'react-bootstrap';
 import styled from 'styled-components';
-
-type InterfaceStyleSetting = {
-    size: number;
-    font: 'sans' | 'serif' | 'monospace' | 'neutral' | 'grotesque';
-    lineSpacing: number;
-    alignment: 'left' | 'center' | 'justify';
-    color: string;
-    contrast: 'low' | 'medium' | 'high';
-};
+import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
+import { StoredAgentConfiguration } from '../../services/local-storage/local-storage-types';
+import {
+    AgentConfigurationPayload,
+    AgentLLMConfiguration,
+    AgentLLMProvider,
+    AgentLanguageComplexity,
+    AgentSentenceLength,
+    IntentRecognitionTechnology,
+    InterfaceStyleSetting,
+    VoiceStyleSetting
+} from '../../types/agent-config';
 
 const defaultInterfaceStyle: InterfaceStyleSetting = {
     size: 16,
@@ -20,17 +23,10 @@ const defaultInterfaceStyle: InterfaceStyleSetting = {
     contrast: 'medium',
 };
 
-type VoiceStyleSetting = {
-    gender: 'male' | 'female' | 'ambiguous';
-    speed: number;
-};
-
 const defaultVoiceStyle: VoiceStyleSetting = {
     gender: 'male',
     speed: 1,
 };
-
-type IntentRecognitionTechnology = 'classical' | 'llm-based';
 
 const defaultIntentRecognitionTechnology: IntentRecognitionTechnology = 'classical';
 
@@ -80,105 +76,146 @@ const PageContainer = styled.div`
     align-items: flex-start;
 `;
 
+const configKey = 'agentConfig';
 
+const createDefaultConfig = (): AgentConfigurationPayload => ({
+    agentLanguage: 'original',
+    inputModalities: ['text'],
+    outputModalities: ['text'],
+    agentPlatform: 'streamlit',
+    responseTiming: 'instant',
+    agentStyle: 'original',
+    llm: {},
+    languageComplexity: 'original',
+    sentenceLength: 'concise',
+    interfaceStyle: { ...defaultInterfaceStyle },
+    voiceStyle: { ...defaultVoiceStyle },
+    avatar: null,
+    useAbbreviations: false,
+    intentRecognitionTechnology: defaultIntentRecognitionTechnology,
+});
 
-export const AgentConfigScreen: React.FC = () => {
-    // Only keep language, input/output modalities, platform, LLM, and avatar
-    const configKey = 'agentConfig';
-    // Load from localStorage if available
-    const getInitialConfig = () => {
-        try {
-            const stored = localStorage.getItem(configKey);
-            if (stored) {
-                const config = JSON.parse(stored);
-                let llmProvider = '';
-                let llmModel = '';
-                if (config.llm && typeof config.llm === 'object') {
-                    llmProvider = config.llm.provider || '';
-                    llmModel = config.llm.model || '';
-                }
-                const intentRecognitionTechnology = config.intentRecognitionTechnology === 'llm-based' ? 'llm-based' as IntentRecognitionTechnology : defaultIntentRecognitionTechnology;
-                return {
-                    agentLanguage: config.agentLanguage || 'original',
-                    inputModalities: config.inputModalities || ['text'],
-                    outputModalities: config.outputModalities || ['text'],
-                    agentPlatform: config.agentPlatform || 'streamlit',
-                    responseTiming: config.responseTiming || 'instant',
-                    agentStyle: config.agentStyle || 'original',
-                    llmProvider,
-                    llmModel,
-                    avatar: config.avatar || null,
-                    sentenceLength: config.sentenceLength || 'concise', // Default value
-                    interfaceStyle: config.interfaceStyle ? { ...defaultInterfaceStyle, ...config.interfaceStyle } : defaultInterfaceStyle,
-                    voiceStyle: config.voiceStyle ? { ...defaultVoiceStyle, ...config.voiceStyle } : defaultVoiceStyle,
-                    useAbbreviations: config.useAbbreviations ?? false,
-                    intentRecognitionTechnology,
-                };
-            }
-        } catch { }
-        return {
-            agentLanguage: 'original',
-            inputModalities: ['text'],
-            outputModalities: ['text'],
-            agentPlatform: 'streamlit',
-            responseTiming: 'instant',
-            agentStyle: 'original',
-            llmProvider: '',
-            llmModel: '',
-            avatar: null,
-            sentenceLength: 'concise',
-            interfaceStyle: defaultInterfaceStyle,
-            voiceStyle: defaultVoiceStyle,
-            useAbbreviations: false,
-            intentRecognitionTechnology: defaultIntentRecognitionTechnology,
-        };
+const normalizeModalityList = (value?: string[]): string[] =>
+    Array.isArray(value) && value.length > 0 ? value : ['text'];
+
+const normalizeInterfaceStyle = (value?: InterfaceStyleSetting): InterfaceStyleSetting => ({
+    ...defaultInterfaceStyle,
+    ...(value || {}),
+});
+
+const normalizeVoiceStyle = (value?: VoiceStyleSetting): VoiceStyleSetting => ({
+    ...defaultVoiceStyle,
+    ...(value || {}),
+});
+
+const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & Record<string, any>): AgentConfigurationPayload => {
+    if (!raw) {
+        return createDefaultConfig();
+    }
+
+    let llm: AgentLLMConfiguration | Record<string, never> = {};
+    if (raw.llm && typeof raw.llm === 'object') {
+        const provider = ((raw.llm as Partial<AgentLLMConfiguration>).provider ?? '') as AgentLLMProvider;
+        const model = ((raw.llm as Partial<AgentLLMConfiguration>).model ?? '') as string;
+        if (provider) {
+            llm = { provider, model };
+        }
+    }
+
+    const intentRecognitionTechnology: IntentRecognitionTechnology = raw.intentRecognitionTechnology === 'llm-based'
+        ? 'llm-based'
+        : defaultIntentRecognitionTechnology;
+
+    return {
+        agentLanguage: raw.agentLanguage || 'original',
+        inputModalities: normalizeModalityList(raw.inputModalities),
+        outputModalities: normalizeModalityList(raw.outputModalities),
+        agentPlatform: raw.agentPlatform || 'streamlit',
+        responseTiming: raw.responseTiming || 'instant',
+        agentStyle: raw.agentStyle || 'original',
+        llm,
+        languageComplexity: (raw.languageComplexity as AgentLanguageComplexity) || 'original',
+        sentenceLength: (raw.sentenceLength as AgentSentenceLength) || 'concise',
+        interfaceStyle: normalizeInterfaceStyle(raw.interfaceStyle),
+        voiceStyle: normalizeVoiceStyle(raw.voiceStyle),
+        avatar: raw.avatar || null,
+        useAbbreviations: raw.useAbbreviations ?? false,
+        intentRecognitionTechnology,
     };
+};
 
-    const [agentLanguage, setAgentLanguage] = useState(getInitialConfig().agentLanguage);
-    const [inputModalities, setInputModalities] = useState(getInitialConfig().inputModalities);
-    const [outputModalities, setOutputModalities] = useState(getInitialConfig().outputModalities);
-    const [agentPlatform, setAgentPlatform] = useState(getInitialConfig().agentPlatform);
-    const [responseTiming, setResponseTiming] = useState(getInitialConfig().responseTiming);
-    const [agentStyle, setAgentStyle] = useState(getInitialConfig().agentStyle);
-    const [llmProvider, setLlmProvider] = useState(getInitialConfig().llmProvider);
-    const [llmModel, setLlmModel] = useState(getInitialConfig().llmModel);
-    const [customModel, setCustomModel] = useState('');
-    const [languageComplexity, setLanguageComplexity] = useState<'original' | 'simple' | 'medium' | 'complex'>('original');
-    const [sentenceLength, setSentenceLength] = useState<'concise' | 'verbose'>(getInitialConfig().sentenceLength || 'concise');
-    const [interfaceStyle, setInterfaceStyle] = useState<InterfaceStyleSetting>(getInitialConfig().interfaceStyle || defaultInterfaceStyle);
-    const [voiceStyle, setVoiceStyle] = useState<VoiceStyleSetting>(getInitialConfig().voiceStyle || defaultVoiceStyle);
-    const [avatarData, setAvatarData] = useState<string | null>(getInitialConfig().avatar || null);
-    const [useAbbreviations, setUseAbbreviations] = useState<boolean>(getInitialConfig().useAbbreviations ?? false);
-    const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(getInitialConfig().intentRecognitionTechnology || defaultIntentRecognitionTechnology);
+const loadInitialState = () => {
+    const savedConfigurations = LocalStorageRepository.getAgentConfigurations();
 
-    // Sync state with localStorage on mount
-    useEffect(() => {
+    if (savedConfigurations.length > 0) {
+        const primary = savedConfigurations[0];
+        return {
+            config: normalizeAgentConfiguration(primary.config),
+            activeId: primary.id,
+            activeName: primary.name,
+            savedConfigs: savedConfigurations,
+        };
+    }
+
+    try {
         const stored = localStorage.getItem(configKey);
         if (stored) {
-            try {
-                const config = JSON.parse(stored);
-                setAgentLanguage(config.agentLanguage || 'original');
-                setInputModalities(config.inputModalities || ['text']);
-                setOutputModalities(config.outputModalities || ['text']);
-                setAgentPlatform(config.agentPlatform || 'streamlit');
-                setResponseTiming(config.responseTiming || 'instant');
-                setAgentStyle(config.agentStyle || 'original');
-                if (config.llm && typeof config.llm === 'object') {
-                    setLlmProvider(config.llm.provider || '');
-                    setLlmModel(config.llm.model || '');
-                } else {
-                    setLlmProvider('');
-                    setLlmModel('');
-                }
-                setSentenceLength(config.sentenceLength || 'concise'); // Apply sentence length from config
-                setInterfaceStyle(config.interfaceStyle ? { ...defaultInterfaceStyle, ...config.interfaceStyle } : defaultInterfaceStyle);
-                setVoiceStyle(config.voiceStyle ? { ...defaultVoiceStyle, ...config.voiceStyle } : defaultVoiceStyle);
-                setAvatarData(config.avatar || null);
-                setUseAbbreviations(config.useAbbreviations ?? false);
-                setIntentRecognitionTechnology(config.intentRecognitionTechnology === 'llm-based' ? 'llm-based' as IntentRecognitionTechnology : defaultIntentRecognitionTechnology);
-            } catch { }
+            const legacyConfig = JSON.parse(stored);
+            return {
+                config: normalizeAgentConfiguration(legacyConfig),
+                activeId: null,
+                activeName: '',
+                savedConfigs: savedConfigurations,
+            };
         }
-    }, []);
+    } catch {
+        /* ignore legacy parsing issues */
+    }
+
+    return {
+        config: createDefaultConfig(),
+        activeId: null,
+        activeName: '',
+        savedConfigs: savedConfigurations,
+    };
+};
+
+const knownLLMModels = ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'mistral-7b', 'falcon-40b', 'llama-3-8b', 'bloom-176b'];
+
+export const AgentConfigScreen: React.FC = () => {
+    const [initialLoad] = useState(loadInitialState);
+    const initialConfig = initialLoad.config;
+    const initialSavedConfigs = initialLoad.savedConfigs;
+    const initialLLMProvider: AgentLLMProvider = 'provider' in initialConfig.llm ? initialConfig.llm.provider : '';
+    const initialLLMModelValue = 'provider' in initialConfig.llm ? initialConfig.llm.model : '';
+    const useCustomModelInitially = Boolean(initialLLMProvider && initialLLMModelValue && !knownLLMModels.includes(initialLLMModelValue));
+    const derivedInitialModel = useCustomModelInitially ? 'other' : initialLLMModelValue;
+    const derivedInitialCustomModel = useCustomModelInitially ? initialLLMModelValue : '';
+
+    const [savedConfigs, setSavedConfigs] = useState<StoredAgentConfiguration[]>(initialSavedConfigs);
+    const [selectedConfigId, setSelectedConfigId] = useState<string>(initialSavedConfigs[0]?.id || '');
+    const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
+    const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
+    const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || '');
+
+    const [agentLanguage, setAgentLanguage] = useState(initialConfig.agentLanguage);
+    const [inputModalities, setInputModalities] = useState<string[]>([...initialConfig.inputModalities]);
+    const [outputModalities, setOutputModalities] = useState<string[]>([...initialConfig.outputModalities]);
+    const [agentPlatform, setAgentPlatform] = useState(initialConfig.agentPlatform);
+    const [responseTiming, setResponseTiming] = useState(initialConfig.responseTiming);
+    const [agentStyle, setAgentStyle] = useState(initialConfig.agentStyle);
+    const [llmProvider, setLlmProvider] = useState<AgentLLMProvider>(initialLLMProvider);
+    const [llmModel, setLlmModel] = useState(derivedInitialModel);
+    const [customModel, setCustomModel] = useState(derivedInitialCustomModel);
+    const [languageComplexity, setLanguageComplexity] = useState<AgentLanguageComplexity>(initialConfig.languageComplexity);
+    const [sentenceLength, setSentenceLength] = useState<AgentSentenceLength>(initialConfig.sentenceLength);
+    const [interfaceStyle, setInterfaceStyle] = useState<InterfaceStyleSetting>({ ...initialConfig.interfaceStyle });
+    const [voiceStyle, setVoiceStyle] = useState<VoiceStyleSetting>({ ...initialConfig.voiceStyle });
+    const [avatarData, setAvatarData] = useState<string | null>(initialConfig.avatar || null);
+    const [useAbbreviations, setUseAbbreviations] = useState<boolean>(initialConfig.useAbbreviations);
+    const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(initialConfig.intentRecognitionTechnology);
+
+    const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
     const handleInputModalityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setInputModalities((prev: string[]) =>
@@ -217,18 +254,125 @@ export const AgentConfigScreen: React.FC = () => {
         setInterfaceStyle(prev => ({ ...prev, [field]: value }));
     };
 
-    const getConfigObject = () => ({
+    const refreshSavedConfigurations = useCallback((preferredId?: string) => {
+        const configs = LocalStorageRepository.getAgentConfigurations();
+        setSavedConfigs(configs);
+        if (configs.length === 0) {
+            setSelectedConfigId('');
+            return configs;
+        }
+
+        const hasPreferred = Boolean(preferredId && configs.some((entry) => entry.id === preferredId));
+        const nextId = hasPreferred ? (preferredId as string) : configs[0].id;
+        setSelectedConfigId(nextId);
+        return configs;
+    }, []);
+
+    const applyConfiguration = useCallback((config: AgentConfigurationPayload, source?: { id?: string | null; name?: string }) => {
+        const normalized = normalizeAgentConfiguration(config);
+        setAgentLanguage(normalized.agentLanguage);
+        setInputModalities([...normalized.inputModalities]);
+        setOutputModalities([...normalized.outputModalities]);
+        setAgentPlatform(normalized.agentPlatform);
+        setResponseTiming(normalized.responseTiming);
+        setAgentStyle(normalized.agentStyle);
+
+        const llmConfig = normalized.llm as Partial<AgentLLMConfiguration>;
+        const providerValue = (llmConfig.provider ?? '') as AgentLLMProvider;
+        const modelValue = llmConfig.model ?? '';
+
+        setLlmProvider(providerValue);
+        if (!providerValue || !modelValue) {
+            setLlmModel('');
+            setCustomModel('');
+        } else if (knownLLMModels.includes(modelValue)) {
+            setLlmModel(modelValue);
+            setCustomModel('');
+        } else {
+            setLlmModel('other');
+            setCustomModel(modelValue);
+        }
+
+        setLanguageComplexity(normalized.languageComplexity);
+        setSentenceLength(normalized.sentenceLength);
+        setInterfaceStyle({ ...normalized.interfaceStyle });
+        setVoiceStyle({ ...normalized.voiceStyle });
+        setAvatarData(normalized.avatar || null);
+        setUseAbbreviations(normalized.useAbbreviations);
+        setIntentRecognitionTechnology(normalized.intentRecognitionTechnology);
+
+        if (source) {
+            const nextId = source.id ?? null;
+            setActiveConfigId(nextId);
+            setSelectedConfigId(source.id ?? '');
+            const nextName = source.name ?? '';
+            setActiveConfigName(nextName);
+            setConfigurationName(nextName);
+        } else {
+            setActiveConfigId(null);
+            setActiveConfigName('');
+            setConfigurationName('');
+            setSelectedConfigId('');
+        }
+    }, []);
+
+    const handleLoadSavedConfiguration = useCallback((configId?: string) => {
+        const targetId = configId ?? selectedConfigId;
+        if (!targetId) {
+            alert('Please select a configuration to load.');
+            return;
+        }
+
+        const stored = LocalStorageRepository.loadAgentConfiguration(targetId);
+        if (!stored) {
+            alert('The selected configuration could not be found.');
+            refreshSavedConfigurations();
+            return;
+        }
+
+        applyConfiguration(stored.config, { id: stored.id, name: stored.name });
+        localStorage.setItem(configKey, JSON.stringify(stored.config));
+        alert(`Configuration "${stored.name}" loaded.`);
+    }, [selectedConfigId, refreshSavedConfigurations, applyConfiguration]);
+
+    const handleDeleteSavedConfiguration = useCallback((configId?: string) => {
+        const targetId = configId ?? selectedConfigId;
+        if (!targetId) {
+            alert('Please select a configuration to delete.');
+            return;
+        }
+
+        const stored = LocalStorageRepository.loadAgentConfiguration(targetId);
+        const confirmed = window.confirm(`Delete configuration "${stored?.name ?? 'this configuration'}"?`);
+        if (!confirmed) {
+            return;
+        }
+
+        LocalStorageRepository.deleteAgentConfiguration(targetId);
+        const updated = refreshSavedConfigurations();
+        if (activeConfigId === targetId) {
+            const nextActive = updated[0] || null;
+            setActiveConfigId(nextActive?.id ?? null);
+            setActiveConfigName(nextActive?.name ?? '');
+            setConfigurationName(nextActive?.name ?? '');
+        }
+        alert('Configuration deleted.');
+    }, [selectedConfigId, refreshSavedConfigurations, activeConfigId]);
+
+    const getConfigObject = (): AgentConfigurationPayload => ({
         agentLanguage,
-        inputModalities,
-        outputModalities,
+        inputModalities: [...inputModalities],
+        outputModalities: [...outputModalities],
         agentPlatform,
         responseTiming,
         agentStyle,
-        llm: llmProvider && (llmModel || customModel) ? { provider: llmProvider, model: llmModel === 'other' ? customModel : llmModel } : {},
+        llm: llmProvider && (llmModel || customModel)
+            ? { provider: llmProvider, model: llmModel === 'other' ? customModel : llmModel }
+            : {},
         languageComplexity,
         sentenceLength,
-        interfaceStyle,
-        voiceStyle,
+        interfaceStyle: { ...interfaceStyle },
+        voiceStyle: { ...voiceStyle },
         avatar: avatarData,
         useAbbreviations,
         intentRecognitionTechnology,
@@ -236,18 +380,36 @@ export const AgentConfigScreen: React.FC = () => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const trimmedName = configurationName.trim();
+        if (!trimmedName) {
+            alert('Please provide a configuration name before saving.');
+            return;
+        }
+
         const config = getConfigObject();
-        localStorage.setItem(configKey, JSON.stringify(config));
-        alert('Agent configuration saved to localStorage!');
+        try {
+            const savedEntry = LocalStorageRepository.saveAgentConfiguration(trimmedName, config);
+            refreshSavedConfigurations(savedEntry.id);
+            setActiveConfigId(savedEntry.id);
+            setActiveConfigName(savedEntry.name);
+            setConfigurationName(savedEntry.name);
+            localStorage.setItem(configKey, JSON.stringify(config));
+            alert(`Configuration "${savedEntry.name}" saved!`);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to save configuration.';
+            alert(message);
+        }
     };
 
     const handleDownload = () => {
         const config = getConfigObject();
+        const slug = configurationName.trim().toLowerCase().replace(/[^a-z0-9-_]+/g, '-');
+        const filename = slug ? `${slug}.json` : 'agent_config.json';
         const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'agent_config.json';
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -261,44 +423,16 @@ export const AgentConfigScreen: React.FC = () => {
         reader.onload = (event) => {
             try {
                 const config = JSON.parse(event.target?.result as string);
-                setAgentLanguage(config.agentLanguage || 'original');
-                setInputModalities(config.inputModalities || ['text']);
-                setOutputModalities(config.outputModalities || ['text']);
-                setAgentPlatform(config.agentPlatform || 'streamlit');
-                setResponseTiming(config.responseTiming || 'instant');
-                setAgentStyle(config.agentStyle || 'original');
-                if (config.llm && typeof config.llm === 'object') {
-                    setLlmProvider(config.llm.provider || '');
-                    if (['openai', 'huggingface', 'huggingfaceapi', 'replicate'].includes(config.llm.provider) &&
-                        ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'mistral-7b', 'falcon-40b', 'llama-3-8b', 'bloom-176b'].includes(config.llm.model)) {
-                        setLlmModel(config.llm.model);
-                        setCustomModel('');
-                    } else {
-                        setLlmModel('other');
-                        setCustomModel(config.llm.model || '');
-                    }
-                } else {
-                    setLlmProvider('');
-                    setLlmModel('');
-                    setCustomModel('');
-                }
-                setSentenceLength(config.sentenceLength || 'concise');
-                setInterfaceStyle(config.interfaceStyle ? { ...defaultInterfaceStyle, ...config.interfaceStyle } : defaultInterfaceStyle);
-                setVoiceStyle(config.voiceStyle ? { ...defaultVoiceStyle, ...config.voiceStyle } : defaultVoiceStyle);
-                setAvatarData(config.avatar || null);
-                setUseAbbreviations(config.useAbbreviations ?? false);
-                const intentRecognitionTechnology = config.intentRecognitionTechnology === 'llm-based'
-                    ? 'llm-based' as IntentRecognitionTechnology
-                    : defaultIntentRecognitionTechnology;
-                setIntentRecognitionTechnology(intentRecognitionTechnology);
-                config.intentRecognitionTechnology = intentRecognitionTechnology;
-                localStorage.setItem(configKey, JSON.stringify(config));
-                alert('Configuration loaded!');
+                const normalized = normalizeAgentConfiguration(config);
+                applyConfiguration(normalized);
+                localStorage.setItem(configKey, JSON.stringify(normalized));
+                alert('Configuration loaded from file. Remember to save it if you want it in your library.');
             } catch {
                 alert('Invalid configuration file.');
             }
         };
         reader.readAsText(file);
+        e.target.value = '';
     };
 
     return (
@@ -309,6 +443,97 @@ export const AgentConfigScreen: React.FC = () => {
                 </CardHeader>
                 <CardBody>
                     <Form onSubmit={handleSubmit}>
+                        <SectionTitle>Saved Configurations</SectionTitle>
+                        <Row className="mb-4">
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Configuration Name</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        value={configurationName}
+                                        placeholder="Give this setup a name"
+                                        onChange={e => setConfigurationName(e.target.value)}
+                                    />
+                                    {activeConfigId ? (
+                                        <div className="mt-2 d-flex align-items-center gap-2">
+                                            <Badge bg="secondary">Active</Badge>
+                                            <span className="text-muted small">{activeConfigName || 'Unnamed configuration'}</span>
+                                        </div>
+                                    ) : (
+                                        <Form.Text className="text-muted">Not linked to a saved configuration yet.</Form.Text>
+                                    )}
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Import / Export</Form.Label>
+                                    <div className="d-flex flex-wrap gap-2">
+                                        <Button variant="outline-secondary" type="button" onClick={handleDownload}>
+                                            Download JSON
+                                        </Button>
+                                        <label className="btn btn-outline-secondary mb-0 flex-grow-1 text-center">
+                                            Upload JSON
+                                            <input
+                                                type="file"
+                                                accept="application/json"
+                                                style={{ display: 'none' }}
+                                                onChange={handleUpload}
+                                            />
+                                        </label>
+                                    </div>
+                                    <Form.Text className="text-muted">
+                                        Uploading replaces the current form values but does not auto-save.
+                                    </Form.Text>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                        <Row className="mb-5 align-items-end">
+                            <Col md={8}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Saved Configurations</Form.Label>
+                                    <Form.Select
+                                        value={selectedConfigId}
+                                        onChange={e => setSelectedConfigId(e.target.value)}
+                                        disabled={savedConfigs.length === 0}
+                                    >
+                                        <option value="">
+                                            {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
+                                        </option>
+                                        {savedConfigs.map((entry) => (
+                                            <option key={entry.id} value={entry.id}>
+                                                {entry.name}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                    {selectedConfig && (
+                                        <div className="mt-2 text-muted small">
+                                            Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
+                                        </div>
+                                    )}
+                                </Form.Group>
+                            </Col>
+                            <Col md={4}>
+                                <div className="d-flex gap-2">
+                                    <Button
+                                        variant="outline-primary"
+                                        type="button"
+                                        onClick={() => handleLoadSavedConfiguration()}
+                                        disabled={!selectedConfigId}
+                                    >
+                                        Load Selected
+                                    </Button>
+                                    <Button
+                                        variant="outline-danger"
+                                        type="button"
+                                        onClick={() => handleDeleteSavedConfiguration()}
+                                        disabled={!selectedConfigId}
+                                    >
+                                        Delete
+                                    </Button>
+                                </div>
+                            </Col>
+                        </Row>
+
                         <SectionTitle>Presentation</SectionTitle>
                         <Row>
                             <Col md={4}>
@@ -699,7 +924,7 @@ export const AgentConfigScreen: React.FC = () => {
                                             <b>i</b>
                                         </span>
                                     </Form.Label>
-                                    <Form.Select value={llmProvider} onChange={e => { setLlmProvider(e.target.value); setLlmModel(''); }}>
+                                    <Form.Select value={llmProvider} onChange={e => { setLlmProvider(e.target.value as AgentLLMProvider); setLlmModel(''); }}>
                                         <option value="">None</option>
                                         <option value="openai">OpenAI</option>
                                         <option value="huggingface">HuggingFace</option>
@@ -747,22 +972,10 @@ export const AgentConfigScreen: React.FC = () => {
                             </Col>
                         </Row>
            
-                        <div className="d-flex justify-content-end gap-3 mt-4">
+                        <div className="d-flex justify-content-end mt-4">
                             <Button variant="primary" type="submit">
                                 Save Configuration
                             </Button>
-                            <Button variant="outline-secondary" type="button" onClick={handleDownload}>
-                                Download Configuration
-                            </Button>
-                            <label className="btn btn-outline-secondary mb-0">
-                                Upload Configuration
-                                <input
-                                    type="file"
-                                    accept="application/json"
-                                    style={{ display: 'none' }}
-                                    onChange={handleUpload}
-                                />
-                            </label>
                         </div>
                     </Form>
                 </CardBody>

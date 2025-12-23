@@ -31,6 +31,8 @@ export const localStorageCollaborationColor = localStoragePrefix + 'collaboratio
 export const localStorageUserThemePreference = localStoragePrefix + 'userThemePreference';
 export const localStorageSystemThemePreference = localStoragePrefix + 'systemThemePreference';
 export const localStorageUserProfiles = localStoragePrefix + 'userProfiles';
+export const localStorageAgentConfigurations = localStoragePrefix + 'agentConfigs';
+export const localStorageAgentProfileMappings = localStoragePrefix + 'agentProfileMappings';
 
 // Project constants
 export const localStorageProjectPrefix = localStoragePrefix + 'project_';

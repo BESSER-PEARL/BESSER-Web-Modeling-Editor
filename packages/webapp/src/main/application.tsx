@@ -18,6 +18,7 @@ import { ProjectSettingsScreen } from './components/project/ProjectSettingsScree
 import { useProject } from './hooks/useProject';
 import { AgentConfigScreen } from './components/agent/AgentConfigScreen';
 import { AgentPersonalizationConfigScreen } from './components/agent/AgentPersonalizationConfigScreen';
+import { AgentPersonalizationMappingScreen } from './components/agent/AgentPersonalizationMappingScreen';
 import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
@@ -40,7 +41,8 @@ function AppContentInner() {
     location.pathname !== '/graphical-ui-editor' &&
     location.pathname !== '/quantum-editor' &&
     location.pathname !== '/agent-config' &&
-    location.pathname !== '/agent-personalization'; 
+    location.pathname !== '/agent-personalization' &&
+    location.pathname !== '/agent-personalization-2'; 
 
   const handleSetEditor = (newEditor: ApollonEditor) => {
     setEditor(newEditor);
@@ -158,6 +160,15 @@ function AppContentInner() {
           element={
             <SidebarLayout>
               <AgentPersonalizationConfigScreen />
+            </SidebarLayout>
+          } 
+        />
+        {/* Agent personalization v2 route */}
+        <Route 
+          path="/agent-personalization-2" 
+          element={
+            <SidebarLayout>
+              <AgentPersonalizationMappingScreen />
             </SidebarLayout>
           } 
         />
