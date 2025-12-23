@@ -8,7 +8,7 @@ import gjsBlocksBasic from 'grapesjs-blocks-basic';
 // @ts-ignore
 import gjsPluginForms from 'grapesjs-plugin-forms';
 import './grapesjs-styles.css';
-import { getClassOptions } from './diagram-helpers';
+import { getClassOptions, getEndsByClassId, getClassMetadata as getClassMeta } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
 import { tableConfig } from './configs/tableConfig';
 import { metricCardConfig } from './configs/metricCardConfigs';
@@ -198,7 +198,6 @@ function setupEditorFeatures(
   if (editor.Pages) {
     setupPageSystem(editor);
     setupPageRouting(editor);
-    addPagesButton(editor);
     addAutoGenerateGUIButton(editor);
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
@@ -714,42 +713,21 @@ function setupKeyboardShortcuts(editor: Editor) {
 // ============================================
 
 /**
- * Add Pages button to the toolbar and remove preview button
- */
-function addPagesButton(editor: Editor) {
-  editor.on('load', () => {
-    const panelManager = editor.Panels;
-    
-    // Remove preview button (eye icon)
-    try {
-      const previewBtn = document.querySelector('[title="Preview"]');
-      if (previewBtn) {
-        previewBtn.remove();
-        // console.log('[Toolbar] Preview button removed');
-      }
-    } catch (error) {
-      console.warn('[Toolbar] Could not remove preview button:', error);
-    }
-    
-    // Add button to open pages panel
-    panelManager.addButton('options', {
-      id: 'open-pages',
-      className: 'fa fa-file-text',
-      command: 'show-pages',
-      attributes: { title: 'Manage Pages' },
-      label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" /></svg>',
-    });
-    
-    // console.log('[Pages] Button added to toolbar');
-  });
-}
-
-/**
  * Add Auto-Generate GUI button to the devices panel
  */
 function addAutoGenerateGUIButton(editor: Editor) {
   editor.on('load', () => {
     const panelManager = editor.Panels;
+    
+    // Remove preview button (eye icon) - moved here from removed addPagesButton
+    try {
+      const previewBtn = document.querySelector('[title="Preview"]');
+      if (previewBtn) {
+        previewBtn.remove();
+      }
+    } catch (error) {
+      console.warn('[Toolbar] Could not remove preview button:', error);
+    }
     
     // Add button to devices panel (where monitor, tablet, cellphone icons are)
     panelManager.addButton('devices-c', {
@@ -897,60 +875,48 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
     console.log('[Auto-Generate] Cleared existing pages');
   }
   
-  // Create pages sequentially with proper async initialization
-  let pageCounter = 0;
+  // Create all pages synchronously - columns are pre-generated so no delay needed
+  let firstPage: any = null;
   
-  const createPageSequentially = async () => {
-    let firstPage = null;
+  classes.forEach((classOption: any, index: number) => {
+    const className = classOption.label;
+    const classId = classOption.value;
+    const pageName = className.toLowerCase().replace(/\s+/g, '-');
+    const pageRoute = `/${pageName}`;
     
-    for (let index = 0; index < classes.length; index++) {
-      const classOption = classes[index];
-      const className = classOption.label;
-      const classId = classOption.value;
-      const pageName = className.toLowerCase();
-      
-      console.log(`[Auto-Generate] Creating page ${index + 1}/${classes.length} for class: ${className}`);
-      
-      // Get class metadata (attributes and methods)
-      const classMetadata = getClassMetadata(classId);
-      const methods = getMethodsByClassId(classId);
-      
-      // Create the page
-      const page = pages.add({
-        id: `page-${pageName}-${pageCounter}`,
-        name: className,
-        attributes: {
-          route: `/${pageName}`,
-          'data-route': `/${pageName}`
-        }
-      });
-      
-      // Store the first page
-      if (index === 0) {
-        firstPage = page;
-      }
-      
-      // Build the page components programmatically with unique counter
-      buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, pageCounter);
-      
-      pageCounter++;
-      
-      // Wait for the page to initialize before creating the next one
-      await new Promise(resolve => setTimeout(resolve, 500));
+    console.log(`[Auto-Generate] Creating page ${index + 1}/${classes.length} for class: ${className}`);
+    
+    // Get class metadata (attributes and methods)
+    const classMetadata = getClassMetadata(classId);
+    const methods = getMethodsByClassId(classId);
+    
+    // Create the page with route_path
+    const page = pages.add({
+      id: `page-${pageName}-${index}`,
+      name: className,
+    });
+    
+    // Set the route_path on the page
+    if (page) {
+      page.set('route_path', pageRoute);
     }
     
-    // After all pages are created, go back to the first page
-    if (firstPage) {
-      setTimeout(() => {
-        pages.select(firstPage);
-        console.log('[Auto-Generate] Returned to first page');
-      }, 300);
+    // Store the first page
+    if (index === 0) {
+      firstPage = page;
     }
     
-    console.log('[Auto-Generate] GUI generation complete');
-  };
+    // Build the page components programmatically
+    buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
+  });
   
-  createPageSequentially();
+  // Select the first page after all pages are created
+  if (firstPage) {
+    pages.select(firstPage);
+    console.log('[Auto-Generate] Selected first page');
+  }
+  
+  console.log(`[Auto-Generate] GUI generation complete - created ${classes.length} pages`);
 }
 
 /**
@@ -1116,8 +1082,40 @@ function buildPageComponents(
               'margin-bottom': '30px',
             }
           },
-          // Table component with proper traits
+          // Table component with proper traits and PRE-GENERATED columns
           (() => {
+            // Pre-generate columns from class metadata (same logic as in registerTableComponent)
+            const autoColumns: any[] = [];
+            
+            // Add Field columns from class attributes
+            if (classMetadata?.attributes?.length) {
+              classMetadata.attributes.forEach((attr: any) => {
+                autoColumns.push({
+                  field: attr.name,
+                  label: attr.name.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                  columnType: 'field',
+                  _expanded: false,
+                });
+              });
+            }
+            
+            // Add Lookup columns from class relationship ends
+            const classEnds = getEndsByClassId(classId);
+            if (classEnds?.length) {
+              classEnds.forEach((end: any) => {
+                const targetClassMetadata = getClassMeta(end.value);
+                const firstAttribute = targetClassMetadata?.attributes?.[0];
+                autoColumns.push({
+                  field: end.label || end.value,
+                  label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                  columnType: 'lookup',
+                  lookupEntity: end.value,
+                  lookupField: firstAttribute?.name || '',
+                  _expanded: false,
+                });
+              });
+            }
+            
             const tableComponent = {
               type: 'table',
               attributes: {
@@ -1131,6 +1129,7 @@ function buildPageComponents(
                 'action-buttons': 'true',
                 'rows-per-page': '5',
                 'filter': '',
+                'columns': autoColumns,  // Pre-generated columns!
               },
               // Set table traits as top-level properties (for the traits panel)
               'chart-title': `${className} List`,
@@ -1141,12 +1140,13 @@ function buildPageComponents(
               'action-buttons': true,
               'rows-per-page': 5,
               'filter': '',
+              'columns': autoColumns,  // Pre-generated columns!
             };
             console.log(`[Auto-Generate] Creating table for ${className}:`, {
               tableId,
               classId,
               title: `${className} List`,
-              attributes: classMetadata?.attributes?.length || 0
+              columnsCount: autoColumns.length,
             });
             return tableComponent;
           })(),
@@ -1258,11 +1258,14 @@ function setupPageRouting(editor: Editor) {
   
   editor.on('page:select', (page: any) => {
     if (!page) return;
-    const currentRoute = page.get('attributes')?.route || `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
+    // Use route_path as primary, fallback to attributes.route or auto-generated
+    const currentRoute = page.get('route_path') || 
+      page.get('attributes')?.route || 
+      `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
     // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
   });
   
-  // Add command to edit page route
+  // Add command to edit page route (legacy - now handled in Pages panel)
   editor.Commands.add('edit-page-route', {
     run(editor: Editor) {
       const currentPage = editor.Pages.getSelected();
@@ -1272,8 +1275,10 @@ function setupPageRouting(editor: Editor) {
       }
       
       const pageName = currentPage.getName();
-      const attrs: any = currentPage.get('attributes') || {};
-      const currentRoute = attrs.route || `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
+      const storedRoute = currentPage.get('route_path');
+      const currentRoute: string = (typeof storedRoute === 'string' && storedRoute) 
+        ? storedRoute 
+        : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
       
       const newRoute = prompt(
         `Edit route path for page "${pageName}":\n\nExamples:\n- /home\n- /users/:id\n- /products`, 
@@ -1283,10 +1288,10 @@ function setupPageRouting(editor: Editor) {
       if (newRoute !== null && newRoute.trim()) {
         let route = newRoute.trim();
         if (!route.startsWith('/')) route = '/' + route;
+        // Clean the route
+        route = route.replace(/[^a-zA-Z0-9\-_\/:]/g, '');
         
-        attrs.route = route;
-        attrs['data-route'] = route;
-        currentPage.set('attributes', attrs);
+        currentPage.set('route_path', route);
         
         // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
         alert(`Route updated to: ${route}`);
