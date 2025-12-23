@@ -9,10 +9,10 @@ export function setupPageSystem(editor: Editor) {
   (editor as any).__pageSystemInitialized = true;
   
   console.log('[Page System] Initializing');
-  initializePagesPanel(editor);
+  addPagesPanelCSS();
+  setupPagesTabInSidebar(editor);
   setupPageCommands(editor);
   setupPageListeners(editor);
-  addPagesPanelCSS();
   
   // Suppress harmless ResizeObserver warning in development
   if (process.env.NODE_ENV === 'development') {
@@ -39,32 +39,200 @@ export function loadDefaultPages(editor: Editor) {
   if (homePage) pages.select(homePage);
 }
 
-function initializePagesPanel(editor: Editor) {
+/**
+ * Setup Pages as a proper tab in the GrapesJS right sidebar
+ */
+function setupPagesTabInSidebar(editor: Editor) {
+  const panelManager = editor.Panels;
+  
+  // Add the Pages button to the views panel (alongside Blocks, Styles, Layers, etc.)
+  editor.on('load', () => {
+    // Create and append the pages panel to views-container
+    createAndAppendPagesPanel(editor);
+    
+    panelManager.addButton('views', {
+      id: 'open-pages-tab',
+      className: 'fa fa-file-alt gjs-pn-btn',
+      command: 'open-pages-tab',
+      togglable: true,
+      attributes: { title: 'Pages' },
+      label: `<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
+        <path d="M19,5V19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M7,7H9V9H7V7M7,11H9V13H7V11M7,15H9V17H7V15M11,7H17V9H11V7M11,11H17V13H11V11M11,15H17V17H11V15Z" />
+      </svg>`,
+    });
+    
+    // Also remove the old floating panel button if exists
+    try {
+      panelManager.removeButton('options', 'open-pages');
+    } catch (e) {
+      // Ignore if button doesn't exist
+    }
+    
+    // Initialize the pages list after editor is loaded
+    setTimeout(() => updatePagesList(editor), 100);
+    
+    // Listen for other panel buttons to restore their panels when clicked
+    setupPanelSwitchListeners(editor);
+  });
+
+  // Add command to toggle pages panel
+  editor.Commands.add('open-pages-tab', {
+    run(editor: Editor, sender: any) {
+      const pagesPanel = document.getElementById('gjs-pages-panel');
+      if (pagesPanel) {
+        pagesPanel.style.display = 'flex';
+        updatePagesList(editor);
+      }
+      // Hide other panels (blocks, styles, layers, traits)
+      hideOtherPanels();
+      sender?.set?.('active', true);
+    },
+    stop(editor: Editor, sender: any) {
+      const pagesPanel = document.getElementById('gjs-pages-panel');
+      if (pagesPanel) {
+        pagesPanel.style.display = 'none';
+      }
+      // Restore other panels visibility
+      restoreOtherPanels();
+      sender?.set?.('active', false);
+    }
+  });
+}
+
+/**
+ * Setup listeners for other panel buttons to properly restore panels
+ */
+function setupPanelSwitchListeners(editor: Editor) {
+  const panelManager = editor.Panels;
+  
+  // Get the views panel buttons (Blocks, Styles, Layers, etc.)
+  const viewsPanel = panelManager.getPanel('views');
+  if (!viewsPanel) return;
+  
+  const buttons = viewsPanel.get('buttons');
+  if (!buttons) return;
+  
+  // Listen to each button's active state change
+  buttons.forEach((btn: any) => {
+    const btnId = btn.get('id');
+    // Skip our pages tab button
+    if (btnId === 'open-pages-tab') return;
+    
+    // When another button becomes active, hide pages panel and restore other panels
+    btn.on('change:active', (model: any, active: boolean) => {
+      if (active) {
+        const pagesPanel = document.getElementById('gjs-pages-panel');
+        if (pagesPanel) {
+          pagesPanel.style.display = 'none';
+        }
+        restoreOtherPanels();
+        
+        // Deactivate pages button
+        const pagesBtn = panelManager.getButton('views', 'open-pages-tab');
+        if (pagesBtn) {
+          pagesBtn.set('active', false);
+        }
+      }
+    });
+  });
+}
+
+/**
+ * Create and append the Pages panel to views-container
+ */
+function createAndAppendPagesPanel(editor: Editor) {
+  // Check if panel already exists
+  if (document.getElementById('gjs-pages-panel')) return;
+  
+  const viewsContainer = document.querySelector('.gjs-pn-views-container');
+  if (!viewsContainer) {
+    console.warn('[Pages] views-container not found');
+    return;
+  }
+  
   const container = document.createElement('div');
-  container.className = 'pages-panel-container';
-  container.style.display = 'none'; // Hidden by default
-  container.innerHTML = '<div class="pages-panel-header"><h3>Pages</h3><div class="pages-panel-controls"><button id=\"add-page-btn\" title="Add new page">+</button><button id=\"close-pages-btn\" title="Close panel">×</button></div></div><input type=\"text\" id=\"page-search\" placeholder=\"Search pages...\" /><div id=\"pages-list\"></div>';
-  editor.getContainer()?.appendChild(container);
+  container.id = 'gjs-pages-panel';
+  container.className = 'gjs-pages-panel';
+  container.style.display = 'none';
   
-  setTimeout(() => {
-    document.getElementById('add-page-btn')?.addEventListener('click', () => editor.runCommand('add-page'));
-    document.getElementById('close-pages-btn')?.addEventListener('click', () => {
-      const panel = document.querySelector('.pages-panel-container') as HTMLElement;
-      if (panel) panel.style.display = 'none';
-    });
-    document.getElementById('page-search')?.addEventListener('input', (e) => {
-      const term = (e.target as HTMLInputElement).value.toLowerCase();
-      document.querySelectorAll('.page-item').forEach((item: any) => {
-        item.style.display = item.textContent?.toLowerCase().includes(term) ? 'flex' : 'none';
-      });
-    });
-  }, 100);
+  container.innerHTML = `
+    <div class="gjs-pages-header">
+      <span class="gjs-pages-title">Pages</span>
+      <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="Add new page">
+        <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
+          <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+        </svg>
+      </button>
+    </div>
+    <div class="gjs-pages-search-container">
+      <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="Search pages..." />
+    </div>
+    <div id="gjs-pages-list" class="gjs-pages-list"></div>
+  `;
   
-  updatePagesList(editor);
+  viewsContainer.appendChild(container);
+  
+  // Setup event listeners
+  document.getElementById('gjs-add-page-btn')?.addEventListener('click', () => {
+    editor.runCommand('add-page');
+  });
+  
+  document.getElementById('gjs-page-search')?.addEventListener('input', (e) => {
+    const term = (e.target as HTMLInputElement).value.toLowerCase();
+    document.querySelectorAll('.gjs-page-item').forEach((item: any) => {
+      const nameEl = item.querySelector('.gjs-page-name');
+      const name = nameEl?.textContent?.toLowerCase() || '';
+      item.style.display = name.includes(term) ? 'flex' : 'none';
+    });
+  });
+}
+
+/**
+ * Hide other GrapesJS panels when Pages tab is active
+ */
+function hideOtherPanels() {
+  // GrapesJS default panels
+  const panelSelectors = [
+    '.gjs-block-categories',
+    '.gjs-blocks-c', 
+    '.gjs-sm-sectors',
+    '.gjs-layer-items',
+    '.gjs-clm-tags',
+    '.gjs-trt-traits',
+  ];
+  
+  panelSelectors.forEach(selector => {
+    const panel = document.querySelector(selector) as HTMLElement;
+    if (panel) {
+      panel.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Restore other GrapesJS panels when switching away from Pages tab
+ */
+function restoreOtherPanels() {
+  // Restore GrapesJS default panels
+  const panelSelectors = [
+    '.gjs-block-categories',
+    '.gjs-blocks-c', 
+    '.gjs-sm-sectors',
+    '.gjs-layer-items',
+    '.gjs-clm-tags',
+    '.gjs-trt-traits',
+  ];
+  
+  panelSelectors.forEach(selector => {
+    const panel = document.querySelector(selector) as HTMLElement;
+    if (panel) {
+      panel.style.display = '';
+    }
+  });
 }
 
 function updatePagesList(editor: Editor) {
-  const list = document.getElementById('pages-list');
+  const list = document.getElementById('gjs-pages-list');
   if (!list || !editor.Pages) return;
   
   // Cancel any pending animation frame to prevent multiple updates
@@ -80,12 +248,61 @@ function updatePagesList(editor: Editor) {
     list.innerHTML = '';
     
     editor.Pages.getAll().forEach((page: any) => {
+      const pageRoute = page.get('route_path') || '/' + page.getName().toLowerCase().replace(/\s+/g, '-');
       const item = document.createElement('div');
-      item.className = 'page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
-      item.innerHTML = '<span class="page-name">' + page.getName() + '</span><div class="page-actions"><button class="rename-page-btn" title="Rename page"></button><button class="duplicate-page-btn" title="Duplicate page"></button><button class="delete-page-btn" title="Delete page"></button></div>';
+      item.className = 'gjs-page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
+      item.innerHTML = `
+        <div class="gjs-page-info">
+          <span class="gjs-page-name">${page.getName()}</span>
+          <span class="gjs-page-route">${pageRoute}</span>
+        </div>
+        <div class="gjs-page-actions">
+          <button class="gjs-page-btn route-page-btn" title="Edit URL route">
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+              <path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C6.22,11.88 6.22,7.12 9.17,4.17C12.12,1.22 16.88,1.22 19.83,4.17C22.78,7.12 22.78,11.88 19.83,14.83C19.44,15.22 18.8,15.22 18.41,14.83C18,14.44 18,13.8 18.41,13.41C20.59,11.23 20.59,7.77 18.41,5.59C16.23,3.41 12.77,3.41 10.59,5.59C8.41,7.77 8.41,11.23 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C17.78,12.12 17.78,16.88 14.83,19.83C11.88,22.78 7.12,22.78 4.17,19.83C1.22,16.88 1.22,12.12 4.17,9.17C4.56,8.78 5.2,8.78 5.59,9.17C6,9.56 6,10.2 5.59,10.59C3.41,12.77 3.41,16.23 5.59,18.41C7.77,20.59 11.23,20.59 13.41,18.41C15.59,16.23 15.59,12.77 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" />
+            </svg>
+          </button>
+          <button class="gjs-page-btn rename-page-btn" title="Rename page">
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+              <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
+            </svg>
+          </button>
+          <button class="gjs-page-btn duplicate-page-btn" title="Duplicate page">
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+              <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
+            </svg>
+          </button>
+          <button class="gjs-page-btn delete-page-btn" title="Delete page">
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+              <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+            </svg>
+          </button>
+        </div>
+      `;
       
       item.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).tagName !== 'BUTTON') editor.Pages.select(page);
+        const target = e.target as HTMLElement;
+        if (target.tagName !== 'BUTTON' && !target.closest('button') && target.tagName.toLowerCase() !== 'input') {
+          editor.Pages.select(page);
+        }
+      });
+      
+      // Route edit button
+      item.querySelector('.route-page-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentRoute = page.get('route_path') || '/' + page.getName().toLowerCase().replace(/\s+/g, '-');
+        const newRoute = prompt('Enter URL route for this page (e.g., /about-us):', currentRoute);
+        if (newRoute !== null) {
+          // Ensure route starts with /
+          let cleanRoute = newRoute.trim();
+          if (cleanRoute && !cleanRoute.startsWith('/')) {
+            cleanRoute = '/' + cleanRoute;
+          }
+          // Clean the route - only allow alphanumeric, hyphens, underscores, and slashes
+          cleanRoute = cleanRoute.replace(/[^a-zA-Z0-9\-_\/]/g, '');
+          page.set('route_path', cleanRoute || '/');
+          updatePagesList(editor);
+        }
       });
       
       item.querySelector('.rename-page-btn')?.addEventListener('click', (e) => {
@@ -292,29 +509,13 @@ function updatePagesList(editor: Editor) {
 }
 
 function setupPageCommands(editor: Editor) {
+  // Legacy command for backwards compatibility - now redirects to the new tab command
   editor.Commands.add('show-pages', {
     run() {
-      // Look for panel in the editor's container specifically
-      const editorContainer = editor.getContainer();
-      const panel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
-      if (panel) {
-        panel.style.display = 'flex';
-        updatePagesList(editor);
-      } else {
-        console.warn('[Pages] Panel not found, re-initializing...');
-        // Re-create the panel if it doesn't exist
-        initializePagesPanel(editor);
-        const newPanel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
-        if (newPanel) {
-          newPanel.style.display = 'flex';
-          updatePagesList(editor);
-        }
-      }
+      editor.runCommand('open-pages-tab');
     },
     stop() {
-      const editorContainer = editor.getContainer();
-      const panel = editorContainer?.querySelector('.pages-panel-container') as HTMLElement;
-      if (panel) panel.style.display = 'none';
+      editor.stopCommand('open-pages-tab');
     }
   });
   
@@ -323,7 +524,7 @@ function setupPageCommands(editor: Editor) {
       const name = prompt('Enter page name:');
       if (!name?.trim() || !editor.Pages) return;
       
-      const id = name.toLowerCase().replace(/\s+/g, '-');
+      const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
       const page = editor.Pages.add({ id, name: name.trim() });
       if (page) {
         editor.Pages.select(page);
@@ -350,172 +551,222 @@ function setupPageListeners(editor: Editor) {
 }
 
 function addPagesPanelCSS() {
+  // Check if CSS is already added
+  if (document.getElementById('gjs-pages-panel-css')) return;
+  
   const style = document.createElement('style');
+  style.id = 'gjs-pages-panel-css';
   style.textContent = `
-    .pages-panel-container {
-      position: fixed;
-      right: 20px;
-      top: 60px;
-      width: 280px;
-      background: #3b3d46;
-      border: 1px solid #2a2b30;
-      border-radius: 4px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
-      max-height: 80vh;
-      overflow: hidden;
-      display: none;
+    /* Pages Panel - Integrated into GrapesJS sidebar */
+    .gjs-pages-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #ffffff;
+      display: flex;
       flex-direction: column;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    .pages-panel-header {
+    
+    .gjs-pages-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 10px 12px;
-      background: #2a2b30;
-      color: #ddd;
-      border-bottom: 1px solid #1a1b1f;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ddd;
     }
-    .pages-panel-header h3 {
-      margin: 0;
-      font-size: 13px;
-      font-weight: 400;
-      flex: 1;
+    
+    .gjs-pages-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #333;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .pages-panel-controls {
-      display: flex;
-      gap: 6px;
-    }
-    #add-page-btn, #close-pages-btn {
-      background: transparent;
-      border: none;
-      color: #ddd;
-      width: 24px;
-      height: 24px;
-      cursor: pointer;
-      font-size: 18px;
-      line-height: 1;
-      transition: all 0.2s;
+    
+    .gjs-pages-add-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 2px;
+      width: 28px;
+      height: 28px;
+      background: #0066cc;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    #add-page-btn:hover, #close-pages-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+    
+    .gjs-pages-add-btn:hover {
+      background: #0052a3;
+      transform: scale(1.05);
     }
-    #close-pages-btn {
-      font-size: 22px;
+    
+    .gjs-pages-search-container {
+      padding: 8px 12px;
+      border-bottom: 1px solid #eee;
     }
-    #page-search {
-      margin: 10px;
-      padding: 6px 10px;
-      border: 1px solid #2a2b30;
-      background: #2a2b30;
-      color: #ddd;
-      border-radius: 2px;
-      font-size: 12px;
-      width: calc(100% - 20px);
+    
+    .gjs-pages-search {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+      background: #fff;
+      color: #333;
       box-sizing: border-box;
     }
-    #page-search:focus {
+    
+    .gjs-pages-search:focus {
       outline: none;
-      border-color: #4e9ffc;
-      background: #323439;
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
     }
-    #page-search::placeholder {
-      color: #888;
+    
+    .gjs-pages-search::placeholder {
+      color: #999;
     }
-    #pages-list {
+    
+    .gjs-pages-list {
       flex: 1;
       overflow-y: auto;
       padding: 8px;
     }
-    .page-item {
+    
+    .gjs-page-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 10px;
+      padding: 10px 12px;
       margin-bottom: 4px;
-      background: #2a2b30;
-      border: 1px solid transparent;
+      background: #f9f9f9;
+      border: 1px solid #eee;
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s;
-      border-radius: 2px;
     }
-    .page-item:hover {
-      background: #323439;
-      border-color: #4e9ffc;
+    
+    .gjs-page-item:hover {
+      background: #f0f0f0;
+      border-color: #0066cc;
     }
-    .page-item.selected {
-      background: #4e9ffc;
-      color: #fff;
-      border-color: #4e9ffc;
+    
+    .gjs-page-item.selected {
+      background: #0066cc;
+      border-color: #0066cc;
     }
-    .page-name {
-      font-size: 13px;
-      font-weight: 400;
-      flex: 1;
-      color: #ddd;
-    }
-    .page-item.selected .page-name {
-      color: #fff;
-    }
-    .page-actions {
+    
+    .gjs-page-info {
       display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
       gap: 2px;
+    }
+    
+    .gjs-page-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .gjs-page-route {
+      font-size: 11px;
+      color: #888;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: monospace;
+    }
+    
+    .gjs-page-item.selected .gjs-page-name {
+      color: #fff;
+    }
+    
+    .gjs-page-item.selected .gjs-page-route {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .gjs-page-actions {
+      display: flex;
+      gap: 4px;
       opacity: 0;
       transition: opacity 0.2s;
     }
-    .page-item:hover .page-actions,
-    .page-item.selected .page-actions {
+    
+    .gjs-page-item:hover .gjs-page-actions,
+    .gjs-page-item.selected .gjs-page-actions {
       opacity: 1;
     }
-    .page-actions button {
+    
+    .gjs-page-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
       background: transparent;
       border: none;
-      padding: 4px 6px;
+      border-radius: 4px;
       cursor: pointer;
-      font-size: 14px;
-      border-radius: 2px;
+      color: #666;
       transition: all 0.2s;
-      color: #ddd;
     }
-    .page-actions button:hover {
-      background: rgba(0, 0, 0, 0.2);
+    
+    .gjs-page-btn:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: #333;
     }
-    .page-item.selected .page-actions button {
+    
+    .gjs-page-item.selected .gjs-page-btn {
+      color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .gjs-page-item.selected .gjs-page-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
       color: #fff;
     }
-    .page-item.selected .page-actions button:hover {
-      background: rgba(255, 255, 255, 0.2);
+    
+    .gjs-page-btn.delete-page-btn:hover {
+      background: #e74c3c;
+      color: white;
     }
-    .rename-page-btn::before {
-      content: '✏️';
+    
+    .gjs-page-item.selected .gjs-page-btn.delete-page-btn:hover {
+      background: #c0392b;
     }
-    .duplicate-page-btn::before {
-      content: '📄';
+    
+    /* Scrollbar styling */
+    .gjs-pages-list::-webkit-scrollbar {
+      width: 6px;
     }
-    .delete-page-btn::before {
-      content: '🗑️';
+    
+    .gjs-pages-list::-webkit-scrollbar-track {
+      background: #f5f5f5;
     }
-    #pages-list::-webkit-scrollbar {
-      width: 8px;
+    
+    .gjs-pages-list::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
     }
-    #pages-list::-webkit-scrollbar-track {
-      background: #2a2b30;
+    
+    .gjs-pages-list::-webkit-scrollbar-thumb:hover {
+      background: #999;
     }
-    #pages-list::-webkit-scrollbar-thumb {
-      background: #4e9ffc;
-      border-radius: 4px;
-    }
-    #pages-list::-webkit-scrollbar-thumb:hover {
-      background: #5fa9ff;
+    
+    /* Hide the old floating panel if it exists */
+    .pages-panel-container {
+      display: none !important;
     }
   `;
   document.head.appendChild(style);
 }
+
