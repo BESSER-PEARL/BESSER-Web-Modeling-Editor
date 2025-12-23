@@ -39,5 +39,6 @@ export interface AgentConfigurationPayload {
   voiceStyle: VoiceStyleSetting;
   avatar: string | null;
   useAbbreviations: boolean;
+  adaptContentToUserProfile: boolean;
   intentRecognitionTechnology: IntentRecognitionTechnology;
 }

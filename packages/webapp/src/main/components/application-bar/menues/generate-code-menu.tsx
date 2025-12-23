@@ -1,12 +1,13 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../../constant';
+import { BACKEND_URL, localStorageAgentConfigurations } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
+import { StoredAgentConfiguration } from '../../../services/local-storage/local-storage-types';
 
 export const GenerateCodeMenu: React.FC = () => {
   // Modal for spoken language selection for agent diagrams
@@ -28,13 +29,55 @@ export const GenerateCodeMenu: React.FC = () => {
   const [showQiskitConfig, setShowQiskitConfig] = useState(false);
   const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<StoredAgentConfiguration[]>([]);
+    const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
 
+  const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
   const diagram = useAppSelector((state) => state.diagram.diagram);
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
+  const handleStoredAgentConfigToggle = (id: string) => {
+    setSelectedStoredAgentConfigIds((prev) =>
+      prev.includes(id) ? prev.filter((entryId) => entryId !== id) : [...prev, id]
+    );
+  };
+
+  useEffect(() => {
+    if (!showAgentLanguageModal) {
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem(localStorageAgentConfigurations);
+      if (!stored) {
+        setStoredAgentConfigurations([]);
+        setSelectedStoredAgentConfigIds([]);
+        return;
+      }
+
+      const parsed: StoredAgentConfiguration[] = JSON.parse(stored);
+      parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+      setStoredAgentConfigurations(parsed);
+        setSelectedStoredAgentConfigIds((prev) => {
+          const stillValid = prev.filter((id) => parsed.some((entry) => entry.id === id));
+          if (stillValid.length > 0) {
+            return stillValid;
+          }
+          return parsed[0]?.id ? [parsed[0].id] : [];
+        });
+    } catch (error) {
+      console.error('Failed to parse stored agent configurations from localStorage', error);
+      setStoredAgentConfigurations([]);
+        setSelectedStoredAgentConfigIds([]);
+    }
+  }, [showAgentLanguageModal]);
 
   // Detect if we're on the Quantum Circuit editor page by checking the URL path
   const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
@@ -134,9 +177,55 @@ export const GenerateCodeMenu: React.FC = () => {
           }
         } as any;
       }
+ // If mode is personalization, load mapping and send it under personalizationrules
+      if (agentMode === 'personalization') {
+        const mappingRaw = localStorage.getItem('agentPersonalization');
+        let mapping = null;
+        try {
+          mapping = mappingRaw ? JSON.parse(mappingRaw) : null;
+        } catch {
+          mapping = null;
+        }
+        const agentConfig: AgentConfig = {
+          personalizationrules: mapping || {}
+        } as any;
+        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+      } else if (agentMode === 'configuration') {
+        if (storedAgentConfigurations.length === 0) {
+          toast.error('No stored agent configurations available.');
+          return;
+        }
 
-      // Send the configuration
-      await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+        const selectedEntries = storedAgentConfigurations.filter((entry) => selectedStoredAgentConfigIds.includes(entry.id));
+        let configsToSend = selectedEntries.map((entry) => ({
+          name: entry.name,
+          configuration: entry.config,
+        }));
+
+        if (configsToSend.length === 0) {
+          const fallback = storedAgentConfigurations[0];
+          if (!fallback) {
+            toast.error('No stored agent configurations available.');
+            return;
+          }
+          configsToSend = [{
+            name: fallback.name,
+            configuration: fallback.config,
+          }];
+          setSelectedStoredAgentConfigIds([fallback.id]);
+        }
+
+        const agentConfig: AgentConfig = {
+          ...baseConfig,
+          configurations: configsToSend,
+        } as any;
+
+        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+      } else {
+        // Send the configuration
+      await generateCode(editor!, 'agent', diagram.title);
+      }
+      
       setShowAgentLanguageModal(false);
     } catch (error) {
       console.error('Error in Agent code generation:', error);
@@ -411,6 +500,43 @@ export const GenerateCodeMenu: React.FC = () => {
                 <span role="img" aria-label="warning">⚠️</span> Adding more languages will increase the generation time.
               </div>
             </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Mode</Form.Label>
+              <div>
+                <Form.Check inline type="radio" id="mode-original" label="Original" name="agentMode" checked={agentMode === 'original'} onChange={() => setAgentMode('original')} />
+                <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
+                <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
+              </div>
+            </Form.Group>
+            {agentMode === 'configuration' && (
+              <Form.Group className="mb-3">
+                <Form.Label>Select stored configurations</Form.Label>
+                {storedAgentConfigurations.length === 0 ? (
+                  <Form.Text className="text-muted d-block">
+                    No saved configurations found. Save one from the Agent Configuration screen first.
+                  </Form.Text>
+                ) : (
+                  <div className="d-flex flex-column gap-2">
+                    {storedAgentConfigurations.map((entry) => (
+                      <Form.Check
+                        key={entry.id}
+                        type="checkbox"
+                        name="storedAgentConfig"
+                        id={`storedAgentConfig-${entry.id}`}
+                        label={`${entry.name} (${new Date(entry.savedAt).toLocaleString()})`}
+                        value={entry.id}
+                        checked={selectedStoredAgentConfigIds.includes(entry.id)}
+                        onChange={() => handleStoredAgentConfigToggle(entry.id)}
+                      />
+                    ))}
+                    <Form.Text className="text-muted">
+                      Select one or more configurations to include in the request.
+                    </Form.Text>
+                  </div>
+                )}
+              </Form.Group>
+            )}
             {/* List of selected languages with remove option */}
             {selectedAgentLanguages.length > 0 && (
               <div className="mb-3">

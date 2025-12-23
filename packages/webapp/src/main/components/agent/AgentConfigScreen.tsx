@@ -147,6 +147,7 @@ const createDefaultConfig = (): AgentConfigurationPayload => ({
     voiceStyle: { ...defaultVoiceStyle },
     avatar: null,
     useAbbreviations: false,
+    adaptContentToUserProfile: false,
     intentRecognitionTechnology: defaultIntentRecognitionTechnology,
 });
 
@@ -195,6 +196,7 @@ const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & 
         voiceStyle: normalizeVoiceStyle(raw.voiceStyle),
         avatar: raw.avatar || null,
         useAbbreviations: raw.useAbbreviations ?? false,
+        adaptContentToUserProfile: Boolean(raw.adaptContentToUserProfile),
         intentRecognitionTechnology,
     };
 };
@@ -268,6 +270,7 @@ export const AgentConfigScreen: React.FC = () => {
     const [voiceStyle, setVoiceStyle] = useState<VoiceStyleSetting>({ ...initialConfig.voiceStyle });
     const [avatarData, setAvatarData] = useState<string | null>(initialConfig.avatar || null);
     const [useAbbreviations, setUseAbbreviations] = useState<boolean>(initialConfig.useAbbreviations);
+    const [adaptContentToUserProfile, setAdaptContentToUserProfile] = useState<boolean>(initialConfig.adaptContentToUserProfile);
     const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(initialConfig.intentRecognitionTechnology);
 
     const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
@@ -354,6 +357,7 @@ export const AgentConfigScreen: React.FC = () => {
         setVoiceStyle({ ...normalized.voiceStyle });
         setAvatarData(normalized.avatar || null);
         setUseAbbreviations(normalized.useAbbreviations);
+        setAdaptContentToUserProfile(normalized.adaptContentToUserProfile);
         setIntentRecognitionTechnology(normalized.intentRecognitionTechnology);
 
         if (source) {
@@ -430,6 +434,7 @@ export const AgentConfigScreen: React.FC = () => {
         voiceStyle: { ...voiceStyle },
         avatar: avatarData,
         useAbbreviations,
+        adaptContentToUserProfile,
         intentRecognitionTechnology,
     });
 
@@ -1030,6 +1035,21 @@ export const AgentConfigScreen: React.FC = () => {
                                 Save Configuration
                             </StyledButton>
                         </div>
+                    </Section>
+                    <Section>
+                        <SectionTitle>Content</SectionTitle>
+                        <Form.Group className="mb-3">
+                            <Form.Check
+                                type="switch"
+                                id="adaptContentToUserProfile"
+                                label="Adapt content to user profile"
+                                checked={adaptContentToUserProfile}
+                                onChange={e => setAdaptContentToUserProfile(e.target.checked)}
+                            />
+                        </Form.Group>
+                        <Form.Text className="text-muted">
+                            Enable this option to tailor generated responses to the active user profile.
+                        </Form.Text>
                     </Section>
                 </ContentGrid>
                     </Form>

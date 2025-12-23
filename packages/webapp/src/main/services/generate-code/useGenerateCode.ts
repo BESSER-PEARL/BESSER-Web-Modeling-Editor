@@ -4,6 +4,12 @@ import { useFileDownload } from '../file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../validation/validateDiagram';
 import { BACKEND_URL } from '../../constant';
+import { AgentConfigurationPayload } from '../../types/agent-config';
+
+export interface AgentConfigurationSelection {
+  name: string;
+  configuration: AgentConfigurationPayload;
+}
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { isGrapesJSProjectData } from '../../types/project';
 
@@ -36,6 +42,7 @@ export interface AgentConfig {
     source: string;
     target: string[];
   };
+  configurations?: AgentConfigurationSelection[];
 }
 
 export type GeneratorConfig = {
