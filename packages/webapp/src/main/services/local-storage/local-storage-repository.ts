@@ -1,4 +1,4 @@
-import { LocalStorageDiagramListItem } from './local-storage-types';
+import { LocalStorageDiagramListItem, StoredUserProfile } from './local-storage-types';
 import {
   localStorageCollaborationColor,
   localStorageCollaborationName,
@@ -7,16 +7,37 @@ import {
   localStorageLatest,
   localStorageSystemThemePreference,
   localStorageUserThemePreference,
+  localStorageUserProfiles,
 } from '../../constant';
 import { Diagram } from '../diagram/diagramSlice';
-import { UMLDiagramType } from '@besser/wme';
+import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { isUMLModel } from '../../types/project';
+import { uuid } from '../../utils/uuid';
 
 type LocalDiagramEntry = {
   id: string;
   title: string;
   type: UMLDiagramType;
   lastUpdate: string;
+};
+
+const getStoredUserProfiles = (): StoredUserProfile[] => {
+  const json = localStorage.getItem(localStorageUserProfiles);
+  if (!json) {
+    return [];
+  }
+
+  try {
+    const parsed: StoredUserProfile[] = JSON.parse(json);
+    return parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+  } catch (error) {
+    console.warn('Failed to parse stored user profiles:', error);
+    return [];
+  }
+};
+
+const persistUserProfiles = (profiles: StoredUserProfile[]) => {
+  localStorage.setItem(localStorageUserProfiles, JSON.stringify(profiles));
 };
 
 export const LocalStorageRepository = {
@@ -114,6 +135,49 @@ export const LocalStorageRepository = {
   removeDiagramByType: (type: UMLDiagramType) => {
     const key = `${localStorageDiagramPrefix}type_${type}`;
     localStorage.removeItem(key);
-  }
+  },
+
+  saveUserProfile: (name: string, model: UMLModel) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      throw new Error('Profile name must not be empty');
+    }
+
+    const clone = JSON.parse(JSON.stringify(model));
+    const savedAt = new Date().toISOString();
+    const profiles = getStoredUserProfiles();
+
+    const existingIndex = profiles.findIndex((profile) => profile.name.toLowerCase() === trimmedName.toLowerCase());
+    const profile: StoredUserProfile = {
+      id: existingIndex >= 0 ? profiles[existingIndex].id : uuid(),
+      name: trimmedName,
+      savedAt,
+      model: clone,
+    };
+
+    if (existingIndex >= 0) {
+      profiles[existingIndex] = profile;
+    } else {
+      profiles.push(profile);
+    }
+
+    persistUserProfiles(profiles);
+    return profile;
+  },
+
+  getUserProfiles: (): StoredUserProfile[] => {
+    return getStoredUserProfiles();
+  },
+
+  loadUserProfile: (id: string): StoredUserProfile | null => {
+    const profiles = getStoredUserProfiles();
+    const profile = profiles.find((entry) => entry.id === id);
+    return profile || null;
+  },
+
+  deleteUserProfile: (id: string) => {
+    const profiles = getStoredUserProfiles().filter((profile) => profile.id !== id);
+    persistUserProfiles(profiles);
+  },
 };
 

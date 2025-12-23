@@ -1,5 +1,5 @@
-﻿import React, { ChangeEvent, useEffect, useState, useContext } from 'react';
-import { Nav, Navbar } from 'react-bootstrap';
+﻿import React, { ChangeEvent, useEffect, useState, useContext, useCallback } from 'react';
+import { Nav, Navbar, NavDropdown } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
 import { ThemeSwitcherMenu } from './menues/theme-switcher-menu';
@@ -16,7 +16,7 @@ import { selectDisplaySidebar, toggleSidebar } from '../../services/version-mana
 import { ClassDiagramImporter } from './menues/class-diagram-importer';
 import { GenerateCodeMenu } from './menues/generate-code-menu';
 import { validateDiagram } from '../../services/validation/validateDiagram';
-import { UMLDiagramType } from '@besser/wme';
+import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { DiagramRepository } from '../../services/diagram/diagram-repository';
 import { displayError } from '../../services/error-management/errorManagementSlice';
 import { DiagramView } from 'shared';
@@ -26,6 +26,12 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import { useProject } from '../../hooks/useProject';
 import { isUMLModel } from '../../types/project';
+
+type UserProfileSummary = {
+  id: string;
+  name: string;
+  savedAt: string;
+};
 
 const DiagramTitle = styled.input`
   font-size: 1rem;
@@ -85,6 +91,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const dispatch = useAppDispatch();
   const { diagram } = useAppSelector((state) => state.diagram);
   const [diagramTitle, setDiagramTitle] = useState<string>(diagram?.title || '');
+  const [userProfiles, setUserProfiles] = useState<UserProfileSummary[]>([]);
   const isSidebarOpen = useAppSelector(selectDisplaySidebar);
   const urlPath = window.location.pathname;
   const tokenInUrl = urlPath.substring(1); // This removes the leading "/"
@@ -94,12 +101,107 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const editor = apollonEditor?.editor;
   const location = useLocation();
   const { currentProject } = useProject();
+  const isUserDiagram = currentType === UMLDiagramType.UserDiagram;
 
   useEffect(() => {
     if (diagram?.title) {
       setDiagramTitle(diagram.title);
     }
   }, [diagram?.title]);
+
+  const refreshUserProfiles = useCallback(() => {
+    if (!isUserDiagram) {
+      setUserProfiles([]);
+      return;
+    }
+
+    const entries = LocalStorageRepository.getUserProfiles()
+      .filter((profile) => profile.model?.type === UMLDiagramType.UserDiagram)
+      .map(({ id, name, savedAt }) => ({ id, name, savedAt }));
+    setUserProfiles(entries);
+  }, [isUserDiagram]);
+
+  useEffect(() => {
+    refreshUserProfiles();
+  }, [refreshUserProfiles]);
+
+  const getActiveUserModel = (): UMLModel | null => {
+    if (editor && isUMLModel(editor.model) && editor.model.type === UMLDiagramType.UserDiagram) {
+      return editor.model;
+    }
+    if (isUMLModel(diagram?.model) && diagram?.model?.type === UMLDiagramType.UserDiagram) {
+      return diagram.model;
+    }
+    return null;
+  };
+
+  const handleSaveUserProfile = () => {
+    if (!isUserDiagram) {
+      toast.error('Profile saving is only available for user diagrams.');
+      return;
+    }
+
+    const model = getActiveUserModel();
+    if (!model) {
+      toast.error('No user model available to save.');
+      return;
+    }
+
+    const suggestedName = diagramTitle ? `${diagramTitle} Profile` : 'User Profile';
+    const input = window.prompt('Enter a name for this user profile', suggestedName);
+    if (input === null) {
+      return;
+    }
+    const trimmedName = input.trim();
+    if (!trimmedName) {
+      toast.error('Profile name cannot be empty.');
+      return;
+    }
+
+    const existing = userProfiles.find((profile) => profile.name.toLowerCase() === trimmedName.toLowerCase());
+    if (existing) {
+      const shouldOverwrite = window.confirm(`A profile named "${trimmedName}" already exists. Overwrite it?`);
+      if (!shouldOverwrite) {
+        return;
+      }
+    }
+
+    try {
+      LocalStorageRepository.saveUserProfile(trimmedName, model);
+      refreshUserProfiles();
+      toast.success(`Profile "${trimmedName}" saved.`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to save the profile.');
+    }
+  };
+
+  const handleLoadUserProfile = async (profileId: string) => {
+    if (!isUserDiagram) {
+      toast.error('Profile loading is only available for user diagrams.');
+      return;
+    }
+
+    const storedProfile = LocalStorageRepository.loadUserProfile(profileId);
+    if (!storedProfile || storedProfile.model?.type !== UMLDiagramType.UserDiagram) {
+      toast.error('The selected profile could not be loaded.');
+      refreshUserProfiles();
+      return;
+    }
+
+    try {
+      if (editor) {
+        editor.model = storedProfile.model;
+      } else {
+        dispatch(setCreateNewEditor(true));
+      }
+      await dispatch(updateDiagramThunk({ model: storedProfile.model })).unwrap();
+      toast.success(`Profile "${storedProfile.name}" loaded.`);
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to load the selected profile.');
+    }
+  };
 
   const changeDiagramTitlePreview = (event: ChangeEvent<HTMLInputElement>) => {
     setDiagramTitle(event.target.value);
@@ -234,6 +336,33 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
               </Nav.Item>
             )} */}
             <HelpMenu />
+            {isUserDiagram && (
+              <>
+                <Nav.Item className="ms-2">
+                  <Nav.Link onClick={handleSaveUserProfile}>Save Profile</Nav.Link>
+                </Nav.Item>
+                <NavDropdown
+                  title="Load Profile"
+                  id="user-profile-dropdown"
+                  className="ms-2"
+                  menuVariant="dark"
+                  disabled={userProfiles.length === 0}
+                >
+                  {userProfiles.length === 0 ? (
+                    <NavDropdown.ItemText>No saved profiles yet</NavDropdown.ItemText>
+                  ) : (
+                    userProfiles.map((profile) => (
+                      <NavDropdown.Item key={profile.id} onClick={() => handleLoadUserProfile(profile.id)}>
+                        <div className="d-flex flex-column">
+                          <span>{profile.name}</span>
+                          <small className="text-muted">{new Date(profile.savedAt).toLocaleString()}</small>
+                        </div>
+                      </NavDropdown.Item>
+                    ))
+                  )}
+                </NavDropdown>
+              </>
+            )}
             <DiagramTitle
               type="text"
               value={diagramTitle}

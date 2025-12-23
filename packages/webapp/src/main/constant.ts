@@ -30,6 +30,7 @@ export const localStorageCollaborationName = localStoragePrefix + 'collaboration
 export const localStorageCollaborationColor = localStoragePrefix + 'collaborationColor';
 export const localStorageUserThemePreference = localStoragePrefix + 'userThemePreference';
 export const localStorageSystemThemePreference = localStoragePrefix + 'systemThemePreference';
+export const localStorageUserProfiles = localStoragePrefix + 'userProfiles';
 
 // Project constants
 export const localStorageProjectPrefix = localStoragePrefix + 'project_';
