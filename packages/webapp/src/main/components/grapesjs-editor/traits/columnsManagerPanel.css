@@ -1,8 +1,31 @@
 /* Columns Manager Panel Styles */
 
+.columns-title-separator {
+  border: none;
+  border-top: 2px solid #cbd5e1;
+  margin: 2px 0 0 0;
+}
+
+.columns-manager-panel .columns-title {
+  font-weight: 400;
+  font-size: 13px;
+  margin-bottom: 0 !important;
+  color: #2d3748;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+.gjs-trt-trait.gjs-trt-trait--columns-manager {
+  padding: 0 !important;
+}
+
 .columns-manager-panel {
   width: 100%;
   box-sizing: border-box;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #fff;
+  border-radius: 0;
+  padding: 12px 10px 8px 10px;
 }
 
 .column-row {
