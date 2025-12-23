@@ -4,41 +4,120 @@ import styled from 'styled-components';
 import jsonSchema from './json_schema.json';
 
 const PageContainer = styled.div`
-  padding: 40px 20px;
+  padding: 32px 40px;
   min-height: calc(100vh - 60px);
   background-color: var(--apollon-background);
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-`;
-
-const AgentCard = styled(Card)`
+  flex-direction: column;
   width: 100%;
-  max-width: 900px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--apollon-switch-box-border-color);
-  border-radius: 16px;
-  overflow: hidden;
-  background-color: var(--apollon-background);
+  overflow-y: auto;
 `;
 
-const CardHeader = styled(Card.Header)`
-  background: var(--apollon-primary);
-  color: var(--apollon-primary-contrast);
-  border: none;
-  padding: 24px 32px;
-  h3 {
-    margin: 0;
-    font-weight: 600;
-    font-size: 1.5rem;
+const PageHeader = styled.div`
+  margin-bottom: 32px;
+  h1 {
+    margin: 0 0 8px 0;
+    font-weight: 700;
+    font-size: 2rem;
     color: var(--apollon-primary-contrast);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  p {
+    margin: 0;
+    color: var(--apollon-secondary);
+    font-size: 1rem;
   }
 `;
 
-const CardBody = styled(Card.Body)`
+const Section = styled.div`
+  background: var(--apollon-background);
+  border: 1px solid var(--apollon-switch-box-border-color);
+  border-radius: 12px;
   padding: 24px;
+  margin-bottom: 24px;
+  transition: box-shadow 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const SectionTitle = styled.h5`
+  color: var(--apollon-primary-contrast);
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--apollon-primary);
+    border-radius: 2px;
+  }
+`;
+
+const RuleCard = styled.div`
+  background: var(--apollon-background-variant, #f8f9fa);
+  border: 1px solid var(--apollon-switch-box-border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+`;
+
+const AgentCard = styled.div`
+  width: 100%;
+  background-color: var(--apollon-background);
+`;
+
+const CardHeader = styled.div`
+  display: none;
+`;
+
+const CardBody = styled.div`
+  padding: 0;
   background-color: var(--apollon-background);
   color: var(--apollon-primary-contrast);
+`;
+
+const ActionBar = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--apollon-switch-box-border-color);
+  flex-wrap: wrap;
+`;
+
+const StyledButton = styled(Button)`
+  padding: 10px 24px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 32px;
+  color: var(--apollon-secondary);
+  font-style: italic;
 `;
 
 type Operator = 'is' | 'contains' | '<' | '<=' | '>' | '>=' | 'between';
@@ -157,44 +236,47 @@ export const AgentPersonalizationConfigScreen: React.FC = () => {
 
   return (
     <PageContainer>
-      <AgentCard>
-        <CardHeader>
-          <h3>Agent Personalization</h3>
-        </CardHeader>
-        <CardBody>
-          <p>Define rules that map user attributes to agent configuration. For each user feature you may add rules that set an agent feature when the rule matches.</p>
+      <PageHeader>
+        <h1>🎯 Agent Personalization</h1>
+        <p>Define rules that map user attributes to agent configuration settings</p>
+      </PageHeader>
+      
+      <Section>
+        <SectionHeader>
+          <SectionTitle>Personalization Rules</SectionTitle>
+          <div className="d-flex gap-2">
+            <Button variant="outline-secondary" onClick={handleDownload} style={{ borderRadius: '8px' }}>Download Mapping</Button>
+            <label className="btn btn-outline-secondary mb-0" style={{ borderRadius: '8px' }}>
+              Upload Mapping
+              <input type="file" accept="application/json" style={{ display: 'none' }} onChange={handleUpload} />
+            </label>
+          </div>
+        </SectionHeader>
+        
+        <p className="text-muted mb-4">For each user feature, add rules that configure the agent when the rule matches.</p>
 
-          <Row className="mb-3">
-            <Col>
-              <Form.Label>Features</Form.Label>
-              <div className="text-muted">Add rules directly in each feature row below.</div>
-            </Col>
-            <Col className="d-flex align-items-end justify-content-end gap-2">
-              <Button variant="outline-secondary" onClick={handleDownload}>Download Mapping</Button>
-              <label className="btn btn-outline-secondary mb-0">
-                Upload Mapping
-                <input type="file" accept="application/json" style={{ display: 'none' }} onChange={handleUpload} />
-              </label>
-            </Col>
-          </Row>
+        {mappings.length === 0 && (
+          <EmptyState>No user features found in the schema.</EmptyState>
+        )}
 
-          {mappings.map(map => (
-            <Card key={map.feature} className="mb-3">
-                <Card.Header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div><b>{map.feature}</b></div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Button variant="success" size="sm" onClick={() => addRule(map.feature)}>Add rule</Button>
-                    <div>{map.rules.length} rule(s)</div>
-                  </div>
-                </Card.Header>
-              <Card.Body>
-                {map.rules.length === 0 && <div className="text-muted">No rules defined for this feature.</div>}
+        {mappings.map(map => (
+          <Section key={map.feature} style={{ marginBottom: '16px', background: 'var(--apollon-background-variant, #f8f9fa)' }}>
+            <SectionHeader>
+              <SectionTitle style={{ fontSize: '1rem' }}>{map.feature}</SectionTitle>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span className="text-muted">{map.rules.length} rule(s)</span>
+                <Button variant="success" size="sm" onClick={() => addRule(map.feature)} style={{ borderRadius: '6px' }}>
+                  + Add Rule
+                </Button>
+              </div>
+            </SectionHeader>
+                {map.rules.length === 0 && <EmptyState>No rules defined for this feature.</EmptyState>}
                 {map.rules.map(rule => {
                   const prop = userProps.find(p => p.name === map.feature);
                   const isNumeric = prop?.type === 'integer' || prop?.type === 'number';
                   const isEnum = !!prop?.enum;
                   return (
-                    <div key={rule.id} className="mb-3 p-2" style={{ border: '1px dashed var(--apollon-switch-box-border-color)', borderRadius: 6 }}>
+                    <RuleCard key={rule.id}>
                       <Row className="align-items-center">
                         <Col md={3}>
                           <Form.Control as="select" value={rule.operator} onChange={e => updateRule(map.feature, rule.id, { operator: e.target.value as Operator })}>
@@ -268,22 +350,28 @@ export const AgentPersonalizationConfigScreen: React.FC = () => {
                           )}
                         </Col>
                         <Col md={1} className="text-end">
-                          <Button variant="danger" size="sm" onClick={() => removeRule(map.feature, rule.id)}>Remove</Button>
+                          <Button variant="danger" size="sm" onClick={() => removeRule(map.feature, rule.id)} style={{ borderRadius: '6px' }}>Remove</Button>
                         </Col>
                       </Row>
-                    </div>
+                    </RuleCard>
                   );
                 })}
-              </Card.Body>
-            </Card>
+                
+                {map.rules.length === 0 && (
+                  <EmptyState>No rules defined for this feature. Click "+ Add Rule" to create one.</EmptyState>
+                )}
+          </Section>
           ))}
+      </Section>
 
-          <div className="d-flex justify-content-end gap-3 mt-3">
-            <Button variant="primary" onClick={() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings)); alert('Saved'); }}>Save</Button>
-            <Button variant="outline-secondary" onClick={() => { localStorage.removeItem(STORAGE_KEY); setMappings(userProps.map(p => ({ feature: p.name, rules: [] }))); }}>Reset</Button>
-          </div>
-        </CardBody>
-      </AgentCard>
+      <ActionBar>
+        <StyledButton variant="primary" onClick={() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings)); alert('Saved'); }}>
+          Save All Rules
+        </StyledButton>
+        <StyledButton variant="outline-secondary" onClick={() => { localStorage.removeItem(STORAGE_KEY); setMappings(userProps.map(p => ({ feature: p.name, rules: [] }))); }}>
+          Reset All
+        </StyledButton>
+      </ActionBar>
     </PageContainer>
   );
 };

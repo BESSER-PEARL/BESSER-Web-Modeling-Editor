@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import {
   Diagram3,
@@ -34,7 +34,19 @@ const SidebarContainer = styled.div`
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
 `;
 
-const SidebarButton = styled(Button) <{ $isActive: boolean }>`
+const AgentItemWrapper = styled.div<{ $isExpanded: boolean }>`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: ${props => props.$isExpanded ? 'var(--apollon-primary)' : 'transparent'};
+  border-radius: ${props => props.$isExpanded ? '12px' : '0'};
+  padding: ${props => props.$isExpanded ? '6px 0 8px 0' : '0'};
+  margin-bottom: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+`;
+
+const SidebarButton = styled(Button) <{ $isActive: boolean; $isExpanded?: boolean }>`
   margin-bottom: 8px;
   border: none;
   border-radius: 12px;
@@ -46,26 +58,81 @@ const SidebarButton = styled(Button) <{ $isActive: boolean }>`
   padding: 0;
   transition: all 0.2s ease;
   
-  background-color: ${props => props.$isActive
-    ? 'var(--apollon-primary)'
-    : 'transparent'};
-  color: ${props => props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-secondary)'};
+  background-color: ${props => {
+    if (props.$isExpanded) return 'rgba(255, 255, 255, 0.2)';
+    return props.$isActive ? 'var(--apollon-primary)' : 'transparent';
+  }};
+  color: ${props => {
+    if (props.$isExpanded) return 'var(--apollon-background)';
+    return props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-secondary)';
+  }};
   
   &:hover {
-    background-color: ${props => props.$isActive
-    ? 'var(--apollon-primary)'
-    : 'var(--apollon-background-variant)'};
-    color: ${props => props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-primary-contrast)'};
+    background-color: ${props => {
+      if (props.$isExpanded) return 'rgba(255, 255, 255, 0.3)';
+      return props.$isActive ? 'var(--apollon-primary)' : 'var(--apollon-background-variant)';
+    }};
+    color: ${props => {
+      if (props.$isExpanded) return 'var(--apollon-background)';
+      return props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-primary-contrast)';
+    }};
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
   
   &:active, &:focus {
-    background-color: ${props => props.$isActive
-    ? 'var(--apollon-primary)'
-    : 'var(--apollon-background-variant)'};
+    background-color: ${props => {
+      if (props.$isExpanded) return 'rgba(255, 255, 255, 0.2)';
+      return props.$isActive ? 'var(--apollon-primary)' : 'var(--apollon-background-variant)';
+    }};
     border: none;
     box-shadow: none;
+  }
+`;
+
+const SubItemsContainer = styled.div<{ $isExpanded: boolean }>`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-height: ${props => props.$isExpanded ? '500px' : '0'};
+  opacity: ${props => props.$isExpanded ? '1' : '0'};
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: ${props => props.$isExpanded ? '4px 8px 0 8px' : '0 8px'};
+`;
+
+const SubItemButton = styled(Button)<{ $isActive: boolean }>`
+  margin-bottom: 0;
+  border: none;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  
+  background-color: ${props => props.$isActive
+    ? 'var(--apollon-primary)'
+    : 'rgba(255, 255, 255, 0.85)'};
+  color: ${props => props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-secondary)'};
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    background-color: ${props => props.$isActive ? 'var(--apollon-primary)' : 'var(--apollon-background)'};
+    color: ${props => props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-primary)'};
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active, &:focus {
+    background-color: ${props => props.$isActive ? 'var(--apollon-primary)' : 'var(--apollon-background)'};
+    color: ${props => props.$isActive ? 'var(--apollon-background)' : 'var(--apollon-primary)'};
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 `;
 
@@ -106,7 +173,6 @@ const sidebarItems: SidebarItem[] = [
 export const DiagramTypeSidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showAgentMenu, setShowAgentMenu] = useState(false);
 
   // Use the new project-based state management
   const {
@@ -115,22 +181,6 @@ export const DiagramTypeSidebar: React.FC = () => {
     currentDiagramType,
     switchDiagramType
   } = useProject();
-
-
-
-  useEffect(() => {
-    if (!showAgentMenu) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      const menu = document.getElementById('agent-menu-modal');
-      if (menu && !menu.contains(event.target as Node)) {
-        setShowAgentMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside, true);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside, true);
-    };
-  }, [showAgentMenu]);
 
   const handleItemClick = (item: SidebarItem) => {
     if (item.type === UMLDiagramType.AgentDiagram) {
@@ -142,9 +192,9 @@ export const DiagramTypeSidebar: React.FC = () => {
       } catch (error) {
         console.error('Failed to switch diagram type:', error);
       }
-      setShowAgentMenu(true);
       return;
     }
+    
     // Handle navigation items (home, settings, graphical-ui-editor, agent-config, quantum-editor)
     if (item.path) {
       navigate(item.path);
@@ -176,27 +226,15 @@ export const DiagramTypeSidebar: React.FC = () => {
     }
   };
 
-  const handleAgentMenuSelect = (choice: 'diagram' | 'config' | 'personalization' | 'personalization-two') => {
-    setShowAgentMenu(false);
-    if (choice === 'diagram') {
-      // Switch to Agent Diagram as usual
-      try {
-        switchDiagramType(UMLDiagramType.AgentDiagram);
-        if (location.pathname !== '/') {
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Failed to switch diagram type:', error);
-      }
-    } else if (choice === 'config') {
-      // Navigate to agent config editor (replace with your actual path)
-      navigate('/agent-config');
-    } else if (choice === 'personalization') {
-      // Navigate to agent personalization editor (replace with your actual path)
-      navigate('/agent-personalization');
-    } else if (choice === 'personalization-two') {
-      navigate('/agent-personalization-2');
-    }
+  const handleAgentSubItemClick = (path: string) => {
+    navigate(path);
+  };
+
+  const isAgentRelated = () => {
+    return toUMLDiagramType(currentDiagramType) === UMLDiagramType.AgentDiagram || 
+           location.pathname === '/agent-config' ||
+           location.pathname === '/agent-personalization' ||
+           location.pathname === '/agent-personalization-2';
   };
 
   const isItemActive = (item: SidebarItem): boolean => {
@@ -205,18 +243,16 @@ export const DiagramTypeSidebar: React.FC = () => {
       return location.pathname === item.path;
     }
 
-    // For UML diagram types, check if we're on main editor and this is the active type
+    // For Agent Diagram, only active if on main editor AND agent diagram type
     if (item.type === UMLDiagramType.AgentDiagram) {
       return location.pathname === '/' && toUMLDiagramType(currentDiagramType) === UMLDiagramType.AgentDiagram;
-    }
-    if (item.path) {
-      return location.pathname === item.path;
     }
 
     if (item.type === 'home') {
       return location.pathname === '/';
     }
 
+    // For other diagram types, check if we're on main editor and this is the active type
     if (location.pathname === '/' && item.type === toUMLDiagramType(currentDiagramType)) {
       return true;
     }
@@ -229,96 +265,101 @@ export const DiagramTypeSidebar: React.FC = () => {
       {sidebarItems.map((item, index) => {
         const isActive = isItemActive(item);
         const isDividerAfter = index === sidebarItems.length - 2; // Only before settings
+        const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
+        const showAgentSubItems = isAgentItem && isAgentRelated();
 
         return (
           <React.Fragment key={item.type}>
-            <OverlayTrigger
-              placement="right"
-              overlay={
-                <Tooltip id={`tooltip-${item.type}`}>
-                  {item.label}
-                </Tooltip>
-              }
-            >
-              <SidebarButton
-                variant="link"
-                $isActive={isActive}
-                onClick={() => handleItemClick(item)}
-                title={item.label}
+            {isAgentItem ? (
+              <AgentItemWrapper $isExpanded={showAgentSubItems}>
+                <OverlayTrigger
+                  placement="right"
+                  overlay={
+                    <Tooltip id={`tooltip-${item.type}`}>
+                      {item.label}
+                    </Tooltip>
+                  }
+                >
+                  <SidebarButton
+                    variant="link"
+                    $isActive={isActive}
+                    $isExpanded={showAgentSubItems}
+                    onClick={() => handleItemClick(item)}
+                    title={item.label}
+                  >
+                    {item.icon}
+                  </SidebarButton>
+                </OverlayTrigger>
+                
+                {/* Agent sub-items with smooth animation */}
+                <SubItemsContainer $isExpanded={showAgentSubItems}>
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={<Tooltip id="tooltip-agent-config">Agent Configuration</Tooltip>}
+                  >
+                    <SubItemButton
+                      variant="link"
+                      $isActive={location.pathname === '/agent-config'}
+                      onClick={() => handleAgentSubItemClick('/agent-config')}
+                      title="Agent Configuration"
+                    >
+                      <Gear size={16} />
+                    </SubItemButton>
+                  </OverlayTrigger>
+                  
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={<Tooltip id="tooltip-agent-personalization">Agent Personalization</Tooltip>}
+                  >
+                    <SubItemButton
+                      variant="link"
+                      $isActive={location.pathname === '/agent-personalization'}
+                      onClick={() => handleAgentSubItemClick('/agent-personalization')}
+                      title="Agent Personalization"
+                    >
+                      <Person size={16} />
+                    </SubItemButton>
+                  </OverlayTrigger>
+                  
+                  <OverlayTrigger
+                    placement="right"
+                    overlay={<Tooltip id="tooltip-agent-personalization-2">Agent Personalization 2</Tooltip>}
+                  >
+                    <SubItemButton
+                      variant="link"
+                      $isActive={location.pathname === '/agent-personalization-2'}
+                      onClick={() => handleAgentSubItemClick('/agent-personalization-2')}
+                      title="Agent Personalization 2"
+                    >
+                      <PencilSquare size={16} />
+                    </SubItemButton>
+                  </OverlayTrigger>
+                </SubItemsContainer>
+              </AgentItemWrapper>
+            ) : (
+              <OverlayTrigger
+                placement="right"
+                overlay={
+                  <Tooltip id={`tooltip-${item.type}`}>
+                    {item.label}
+                  </Tooltip>
+                }
               >
-                {item.icon}
-              </SidebarButton>
-            </OverlayTrigger>
+                <SidebarButton
+                  variant="link"
+                  $isActive={isActive}
+                  onClick={() => handleItemClick(item)}
+                  title={item.label}
+                >
+                  {item.icon}
+                </SidebarButton>
+              </OverlayTrigger>
+            )}
+            
             {isDividerAfter && <Divider />}
           </React.Fragment>
         );
       })}
-      {/* Agent menu modal/dropdown */}
-      {showAgentMenu && (
-        <>
-          {/* Overlay to block interaction with other elements */}
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.15)',
-              zIndex: 9999,
-            }}
-          />
-          <div
-            id="agent-menu-modal"
-            style={{
-              position: 'fixed',
-              left: 70,
-              top: 100,
-              zIndex: 10000,
-              background: 'var(--apollon-background)',
-              border: '1px solid var(--apollon-switch-box-border-color)',
-              borderRadius: 8,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-              padding: '16px 24px',
-              minWidth: 250,
-            }}
-          >
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Choose Agent View</div>
-            <Button
-              variant={location.pathname === '/' ? 'primary' : 'outline-primary'}
-              style={{ width: '100%', marginBottom: 8 }}
-              onClick={() => handleAgentMenuSelect('diagram')}
-            >
-              Agent Diagram
-            </Button>
-            <Button
-              variant={location.pathname === '/agent-config' ? 'primary' : 'outline-primary'}
-              style={{ width: '100%' }}
-              onClick={() => handleAgentMenuSelect('config')}
-            >
-              Agent Configuration
-            </Button>
-            <Button
-              variant={location.pathname === '/agent-personalization' ? 'primary' : 'outline-primary'}
-              style={{ width: '100%', marginTop: 8 }}
-              onClick={() => handleAgentMenuSelect('personalization')}
-            >
-              Agent Personalization
-            </Button>
-            <Button
-              variant={location.pathname === '/agent-personalization-2' ? 'primary' : 'outline-primary'}
-              style={{ width: '100%', marginTop: 8 }}
-              onClick={() => handleAgentMenuSelect('personalization-two')}
-            >
-              Agent Personalization 2
-            </Button>
-            <Button
-              variant="link"
-              style={{ width: '100%', marginTop: 8, color: '#888' }}
-              onClick={() => setShowAgentMenu(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </>
-      )}
     </SidebarContainer>
   );
 };

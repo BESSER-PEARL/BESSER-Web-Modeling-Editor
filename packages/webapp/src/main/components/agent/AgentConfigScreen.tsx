@@ -30,50 +30,105 @@ const defaultVoiceStyle: VoiceStyleSetting = {
 
 const defaultIntentRecognitionTechnology: IntentRecognitionTechnology = 'classical';
 
-const AgentCard = styled(Card)`
-  width: 100%;
-  max-width: 700px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--apollon-switch-box-border-color);
-  border-radius: 16px;
-  overflow: hidden;
+const PageContainer = styled.div`
+  padding: 32px 40px;
+  min-height: calc(100vh - 60px);
   background-color: var(--apollon-background);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow-y: auto;
 `;
 
-const CardHeader = styled(Card.Header)`
-  background: var(--apollon-primary);
-  color: var(--apollon-primary-contrast);
-  border: none;
-  padding: 24px 32px;
-  h3 {
-    margin: 0;
-    font-weight: 600;
-    font-size: 1.5rem;
+const PageHeader = styled.div`
+  margin-bottom: 32px;
+  h1 {
+    margin: 0 0 8px 0;
+    font-weight: 700;
+    font-size: 2rem;
     color: var(--apollon-primary-contrast);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  p {
+    margin: 0;
+    color: var(--apollon-secondary);
+    font-size: 1rem;
   }
 `;
 
-const CardBody = styled(Card.Body)`
-  padding: 32px;
+const ContentGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  width: 100%;
+`;
+
+const Section = styled.div`
+  background: var(--apollon-background);
+  border: 1px solid var(--apollon-switch-box-border-color);
+  border-radius: 12px;
+  padding: 24px;
+  transition: box-shadow 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const SectionTitle = styled.h5`
+  color: var(--apollon-primary-contrast);
+  margin: 0 0 20px 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--apollon-primary);
+    border-radius: 2px;
+  }
+`;
+
+const AgentCard = styled.div`
+  width: 100%;
+  background-color: var(--apollon-background);
+`;
+
+const CardHeader = styled.div`
+  display: none;
+`;
+
+const CardBody = styled.div`
+  padding: 0;
   background-color: var(--apollon-background);
   color: var(--apollon-primary-contrast);
 `;
 
-const SectionTitle = styled.h5`
-    color: var(--apollon-primary-contrast);
-    margin-bottom: 20px;
-    font-weight: 600;
-    border-bottom: 2px solid var(--apollon-switch-box-border-color);
-    padding-bottom: 8px;
+const ActionBar = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--apollon-switch-box-border-color);
+  flex-wrap: wrap;
 `;
 
-const PageContainer = styled.div`
-    padding: 40px 20px;
-    min-height: calc(100vh - 60px);
-    background-color: var(--apollon-background);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+const StyledButton = styled(Button)`
+  padding: 10px 24px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const configKey = 'agentConfig';
@@ -437,103 +492,101 @@ export const AgentConfigScreen: React.FC = () => {
 
     return (
         <PageContainer>
-            <AgentCard>
-                <CardHeader>
-                    <h3>Agent Configuration</h3>
-                </CardHeader>
-                <CardBody>
-                    <Form onSubmit={handleSubmit}>
+            <PageHeader>
+                <h1>🤖 Agent Configuration</h1>
+                <p>Configure your agent's behavior, language, and interaction settings</p>
+            </PageHeader>
+            
+            <Form onSubmit={handleSubmit}>
+                <ContentGrid>
+                    <Section>
                         <SectionTitle>Saved Configurations</SectionTitle>
-                        <Row className="mb-4">
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Configuration Name</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        value={configurationName}
-                                        placeholder="Give this setup a name"
-                                        onChange={e => setConfigurationName(e.target.value)}
-                                    />
-                                    {activeConfigId ? (
-                                        <div className="mt-2 d-flex align-items-center gap-2">
-                                            <Badge bg="secondary">Active</Badge>
-                                            <span className="text-muted small">{activeConfigName || 'Unnamed configuration'}</span>
-                                        </div>
-                                    ) : (
-                                        <Form.Text className="text-muted">Not linked to a saved configuration yet.</Form.Text>
-                                    )}
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Import / Export</Form.Label>
-                                    <div className="d-flex flex-wrap gap-2">
-                                        <Button variant="outline-secondary" type="button" onClick={handleDownload}>
-                                            Download JSON
-                                        </Button>
-                                        <label className="btn btn-outline-secondary mb-0 flex-grow-1 text-center">
-                                            Upload JSON
-                                            <input
-                                                type="file"
-                                                accept="application/json"
-                                                style={{ display: 'none' }}
-                                                onChange={handleUpload}
-                                            />
-                                        </label>
-                                    </div>
-                                    <Form.Text className="text-muted">
-                                        Uploading replaces the current form values but does not auto-save.
-                                    </Form.Text>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row className="mb-5 align-items-end">
-                            <Col md={8}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Saved Configurations</Form.Label>
-                                    <Form.Select
-                                        value={selectedConfigId}
-                                        onChange={e => setSelectedConfigId(e.target.value)}
-                                        disabled={savedConfigs.length === 0}
-                                    >
-                                        <option value="">
-                                            {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
-                                        </option>
-                                        {savedConfigs.map((entry) => (
-                                            <option key={entry.id} value={entry.id}>
-                                                {entry.name}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                    {selectedConfig && (
-                                        <div className="mt-2 text-muted small">
-                                            Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
-                                        </div>
-                                    )}
-                                </Form.Group>
-                            </Col>
-                            <Col md={4}>
-                                <div className="d-flex gap-2">
-                                    <Button
-                                        variant="outline-primary"
-                                        type="button"
-                                        onClick={() => handleLoadSavedConfiguration()}
-                                        disabled={!selectedConfigId}
-                                    >
-                                        Load Selected
-                                    </Button>
-                                    <Button
-                                        variant="outline-danger"
-                                        type="button"
-                                        onClick={() => handleDeleteSavedConfiguration()}
-                                        disabled={!selectedConfigId}
-                                    >
-                                        Delete
-                                    </Button>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Configuration Name</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={configurationName}
+                                placeholder="Give this setup a name"
+                                onChange={e => setConfigurationName(e.target.value)}
+                            />
+                            {activeConfigId ? (
+                                <div className="mt-2 d-flex align-items-center gap-2">
+                                    <Badge bg="secondary">Active</Badge>
+                                    <span className="text-muted small">{activeConfigName || 'Unnamed configuration'}</span>
                                 </div>
-                            </Col>
-                        </Row>
+                            ) : (
+                                <Form.Text className="text-muted">Not linked to a saved configuration yet.</Form.Text>
+                            )}
+                        </Form.Group>
+                        
+                        <Form.Group className="mb-3">
+                            <Form.Label>Saved Configurations</Form.Label>
+                            <Form.Select
+                                value={selectedConfigId}
+                                onChange={e => setSelectedConfigId(e.target.value)}
+                                disabled={savedConfigs.length === 0}
+                            >
+                                <option value="">
+                                    {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
+                                </option>
+                                {savedConfigs.map((entry) => (
+                                    <option key={entry.id} value={entry.id}>
+                                        {entry.name}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            {selectedConfig && (
+                                <div className="mt-2 text-muted small">
+                                    Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
+                                </div>
+                            )}
+                        </Form.Group>
+                        
+                        <div className="d-flex flex-wrap gap-2 mt-3">
+                            <StyledButton
+                                variant="outline-primary"
+                                type="button"
+                                onClick={() => handleLoadSavedConfiguration()}
+                                disabled={!selectedConfigId}
+                            >
+                                Load Selected
+                            </StyledButton>
+                            <StyledButton
+                                variant="outline-danger"
+                                type="button"
+                                onClick={() => handleDeleteSavedConfiguration()}
+                                disabled={!selectedConfigId}
+                            >
+                                Delete
+                            </StyledButton>
+                        </div>
+                    </Section>
+                    
+                    <Section>
+                        <SectionTitle>Import / Export</SectionTitle>
+                        <p className="text-muted mb-3">Download or upload configuration files</p>
+                        <div className="d-flex flex-wrap gap-2">
+                            <StyledButton variant="outline-secondary" type="button" onClick={handleDownload}>
+                                Download JSON
+                            </StyledButton>
+                            <label className="btn btn-outline-secondary mb-0" style={{ borderRadius: '8px', padding: '10px 24px', fontWeight: 500 }}>
+                                Upload JSON
+                                <input
+                                    type="file"
+                                    accept="application/json"
+                                    style={{ display: 'none' }}
+                                    onChange={handleUpload}
+                                />
+                            </label>
+                        </div>
+                        <Form.Text className="text-muted d-block mt-2">
+                            Uploading replaces the current form values but does not auto-save.
+                        </Form.Text>
+                    </Section>
+                </ContentGrid>
 
+                <ContentGrid style={{ marginTop: '24px' }}>
+                    <Section>
                         <SectionTitle>Presentation</SectionTitle>
                         <Row>
                             <Col md={4}>
@@ -973,13 +1026,13 @@ export const AgentConfigScreen: React.FC = () => {
                         </Row>
            
                         <div className="d-flex justify-content-end mt-4">
-                            <Button variant="primary" type="submit">
+                            <StyledButton variant="primary" type="submit">
                                 Save Configuration
-                            </Button>
+                            </StyledButton>
                         </div>
+                    </Section>
+                </ContentGrid>
                     </Form>
-                </CardBody>
-            </AgentCard>
         </PageContainer>
     );
 };
