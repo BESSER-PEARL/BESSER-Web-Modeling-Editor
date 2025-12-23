@@ -42,11 +42,9 @@ const UMLClassifierMemberComponentUnconnected: FunctionComponent<Props> = ({ ele
   return (
     <g>
       <ThemedRect fillColor={fillColor || element.fillColor} strokeColor="none" width="100%" height="100%" />
-      <svg width="100%" height="100%" style={{ overflow: 'hidden' }}>
-        <Text x={10} fill={element.textColor} fontWeight="normal" textAnchor="start">
-          {displayText}
-        </Text>
-      </svg>
+      <Text x={10} fill={element.textColor} fontWeight="normal" textAnchor="start">
+        {displayText}
+      </Text>
     </g>
   );
 };
