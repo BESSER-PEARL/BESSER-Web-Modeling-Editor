@@ -12,6 +12,12 @@ import { UMLClassifierAttribute } from './uml-classifier-attribute';
 import { UMLClassifierMethod } from './uml-classifier-method';
 import { UMLClassifierMember } from './uml-classifier-member';
 
+export const CLASSIFIER_MIN_WIDTH = 80;
+export const CLASSIFIER_MAX_AUTO_WIDTH = 420;
+
+const clampClassifierWidth = (value: number) =>
+  Math.max(CLASSIFIER_MIN_WIDTH, Math.min(CLASSIFIER_MAX_AUTO_WIDTH, value));
+
 export interface IUMLClassifier extends IUMLContainer {
   italic: boolean;
   underline: boolean;
@@ -65,27 +71,29 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
     this.hasAttributes = attributes.length > 0;
     this.hasMethods = methods.length > 0;
     const radix = 10;
-    this.bounds.width = [this, ...attributes, ...methods].reduce(
+    const initialWidth = Math.round(this.bounds.width / radix) * radix;
+    let computedWidth = [this, ...attributes, ...methods].reduce(
       (current, child, index) => {
         // For attributes/methods, use displayName to get the full formatted text (visibility + name + type)
         // For enumerations, only use the name
         const displayText = child instanceof UMLClassifierMember
           ? (this.stereotype === 'enumeration' ? child.name : child.displayName)
           : child.name;
-        return Math.max(
-          current,
-          Math.round(
-            (Text.size(layer, displayText, index === 0 ? { fontWeight: 'bold' } : undefined).width + 20) / radix,
-          ) * radix,
-        );
+        const rawWidth = Text.size(layer, displayText, index === 0 ? { fontWeight: 'bold' } : undefined).width + 20;
+        const roundedWidth = Math.round(rawWidth / radix) * radix;
+        return Math.max(current, roundedWidth);
       },
-      Math.round(this.bounds.width / radix) * radix,
+      initialWidth,
     );
+
     if (this.className) {
-      const text = this.name + (this.className ? ": " + this.className : "");
-      const textWidth = Text.size(layer, text).width + 40; // add some padding
-      this.bounds.width = Math.max(this.bounds.width, textWidth, 50);
+      const text = this.name + (this.className ? ': ' + this.className : '');
+      const rawClassLabelWidth = Text.size(layer, text).width + 40; // add some padding
+      const roundedClassLabelWidth = Math.round(rawClassLabelWidth / radix) * radix;
+      computedWidth = Math.max(computedWidth, roundedClassLabelWidth);
     }
+
+    this.bounds.width = clampClassifierWidth(computedWidth);
 
     let y = this.headerHeight;
     for (const attribute of attributes) {

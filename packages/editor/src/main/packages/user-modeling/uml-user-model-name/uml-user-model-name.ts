@@ -1,6 +1,6 @@
 import { DeepPartial } from 'redux';
 import * as Apollon from '../../../typings';
-import { UMLClassifier, IUMLClassifier } from '../../common/uml-classifier/uml-classifier';
+import { UMLClassifier, IUMLClassifier, CLASSIFIER_MAX_AUTO_WIDTH, CLASSIFIER_MIN_WIDTH } from '../../common/uml-classifier/uml-classifier';
 import { UMLClassifierAttribute } from '../../common/uml-classifier/uml-classifier-attribute';
 import { UMLClassifierMethod } from '../../common/uml-classifier/uml-classifier-method';
 import { UserModelElementType, UserModelRelationshipType } from '..';
@@ -152,6 +152,11 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     if (icon) {
       icon.bounds.width = element.bounds.width;
     }
+
+    element.bounds.width = Math.max(
+      CLASSIFIER_MIN_WIDTH,
+      Math.min(CLASSIFIER_MAX_AUTO_WIDTH, element.bounds.width),
+    );
   }
 
   render(layer: ILayer, children: ILayoutable[] = []): ILayoutable[] {

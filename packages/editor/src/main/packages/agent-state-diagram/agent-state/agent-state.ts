@@ -14,6 +14,12 @@ import { AgentStateFallbackBody } from '../agent-state-fallback-body/agent-state
 import { AgentRelationshipType } from '..';
 import { GeneralRelationshipType } from '../../uml-relationship-type';
 
+const AGENT_STATE_MIN_WIDTH = 80;
+const AGENT_STATE_MAX_AUTO_WIDTH = 420;
+
+const clampAgentStateWidth = (value: number) =>
+  Math.max(AGENT_STATE_MIN_WIDTH, Math.min(AGENT_STATE_MAX_AUTO_WIDTH, value));
+
 export interface IUMLState extends IUMLContainer {
   italic: boolean;
   underline: boolean;
@@ -73,16 +79,17 @@ export class AgentState extends UMLContainer implements IUMLState {
     this.hasFallbackBody = fallbackBodies.length > 0;
 
     const radix = 10;
-    this.bounds.width = [this, ...bodies, ...fallbackBodies].reduce(
-      (current, child, index) =>
-        Math.max(
-          current,
-          Math.round(
-            (Text.size(layer, child.name, index === 0 ? { fontWeight: 'bold' } : undefined).width + 60) / radix,
-          ) * radix,
-        ),
-      Math.round(this.bounds.width / radix) * radix,
+    const initialWidth = Math.round(this.bounds.width / radix) * radix;
+    const computedWidth = [this, ...bodies, ...fallbackBodies].reduce(
+      (current, child, index) => {
+        const measured = Text.size(layer, child.name, index === 0 ? { fontWeight: 'bold' } : undefined).width + 60;
+        const rounded = Math.round(measured / radix) * radix;
+        return Math.max(current, rounded);
+      },
+      initialWidth,
     );
+
+    this.bounds.width = clampAgentStateWidth(computedWidth);
 
     let y = this.headerHeight;
     for (const body of bodies) {

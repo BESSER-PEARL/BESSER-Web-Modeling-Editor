@@ -19,7 +19,7 @@ export const UMLClassifierComponent: FunctionComponent<Props> = ({ element, chil
         strokeColor="none"
       />
       {element.stereotype ? (
-        <svg height={50}>
+        <svg height={50} width="100%" style={{ overflow: 'hidden' }}>
           <Text fill={element.textColor}>
             <tspan x="50%" dy={-8} textAnchor="middle" fontSize="85%">
               {`«${element.stereotype}»`}
@@ -36,7 +36,7 @@ export const UMLClassifierComponent: FunctionComponent<Props> = ({ element, chil
           </Text>
         </svg>
       ) : (
-        <svg height={40}>
+        <svg height={40} width="100%" style={{ overflow: 'hidden' }}>
           <Text
             fill={element.textColor}
             fontStyle={element.italic ? 'italic' : undefined}
