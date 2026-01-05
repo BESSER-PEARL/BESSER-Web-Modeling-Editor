@@ -52,7 +52,7 @@ export const GraphicalUIEditor: React.FC = () => {
 
       // Handle editor load event
       editor.on('load', () => {
-        console.log('[GraphicalUIEditor] Editor ready, loading stored data');
+        // console.log('[GraphicalUIEditor] Editor ready, loading stored data');
         editor.StorageManager.load((data: unknown) => {
           if (data && Object.keys(data as Record<string, unknown>).length > 0) {
             console.log('[GraphicalUIEditor] Stored data loaded successfully');
@@ -64,7 +64,7 @@ export const GraphicalUIEditor: React.FC = () => {
 
       // Cleanup on unmount
       return () => {
-        console.log('[GraphicalUIEditor] Cleaning up...');
+        // console.log('[GraphicalUIEditor] Cleaning up...');
         
         // Clear save interval
         if (saveIntervalRef.current) {
@@ -738,13 +738,11 @@ function addAutoGenerateGUIButton(editor: Editor) {
       label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" /></svg>',
     });
     
-    console.log('[Auto-Generate] Button added to devices panel');
   });
   
   // Define the command for auto-generating GUI
   editor.Commands.add('auto-generate-gui', {
     run(editor: Editor) {
-      console.log('[Auto-Generate] Starting GUI generation from class diagram');
       
       // Show custom confirmation modal
       const modal = editor.Modal;
@@ -841,7 +839,6 @@ function addAutoGenerateGUIButton(editor: Editor) {
           cancelBtn.style.borderColor = '#6c757d';
         };
         cancelBtn.onclick = () => {
-          console.log('[Auto-Generate] Cancelled by user');
           modal.close();
         };
       }
@@ -863,8 +860,6 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
     throw new Error('No classes found in the Class Diagram. Please create a class diagram first.');
   }
   
-  console.log(`[Auto-Generate] Found ${classes.length} classes:`, classes);
-  
   // Clear all existing pages
   const pages = editor.Pages;
   if (pages) {
@@ -872,7 +867,6 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
     existingPages.forEach((page: any) => {
       pages.remove(page);
     });
-    console.log('[Auto-Generate] Cleared existing pages');
   }
   
   // Create all pages synchronously - columns are pre-generated so no delay needed
@@ -884,7 +878,6 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
     const pageName = className.toLowerCase().replace(/\s+/g, '-');
     const pageRoute = `/${pageName}`;
     
-    console.log(`[Auto-Generate] Creating page ${index + 1}/${classes.length} for class: ${className}`);
     
     // Get class metadata (attributes and methods)
     const classMetadata = getClassMetadata(classId);
@@ -913,10 +906,8 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
   // Select the first page after all pages are created
   if (firstPage) {
     pages.select(firstPage);
-    console.log('[Auto-Generate] Selected first page');
   }
   
-  console.log(`[Auto-Generate] GUI generation complete - created ${classes.length} pages`);
 }
 
 /**
@@ -960,9 +951,7 @@ function buildPageComponents(
   // Create method buttons components
   const methodButtonsComponents: any[] = [];
   if (methods && methods.length > 0) {
-    console.log(`[Auto-Generate] Creating ${methods.length} method buttons for ${className}, tableId: ${tableId}`);
     methods.forEach((method, idx) => {
-      console.log(`[Auto-Generate] Button ${idx + 1}: ${method.name}, method.id: ${method.id}, classId: ${classId}`);
       
       // Create action-button component with proper traits
       const buttonComponent = {
@@ -1142,12 +1131,6 @@ function buildPageComponents(
               'filter': '',
               'columns': autoColumns,  // Pre-generated columns!
             };
-            console.log(`[Auto-Generate] Creating table for ${className}:`, {
-              tableId,
-              classId,
-              title: `${className} List`,
-              columnsCount: autoColumns.length,
-            });
             return tableComponent;
           })(),
           // Method buttons container
@@ -1185,7 +1168,6 @@ function buildPageComponents(
       const tableComp = tables[0];
       
       if (tableComp) {
-        console.log(`[Auto-Generate] Initializing table for ${className}, tableId: ${tableId}`);
         
         // Get the current data-source value
         const currentDataSource = tableComp.get('data-source') || classId;
@@ -1195,24 +1177,22 @@ function buildPageComponents(
         
         setTimeout(() => {
           tableComp.set('data-source', currentDataSource);
-          console.log(`[Auto-Generate] Table data-source set to: ${currentDataSource}`);
           
           // After table is initialized, initialize buttons
           setTimeout(() => {
             const buttons = pageWrapper?.find('.action-button-component') || [];
-            console.log(`[Auto-Generate] Found ${buttons.length} buttons on page ${className}`);
             
             buttons.forEach((buttonComp: any, btnIdx: number) => {
               const methodClass = buttonComp.get('method-class');
               const methodId = buttonComp.get('method');
               const instanceSource = buttonComp.get('instance-source');
               
-              console.log(`[Auto-Generate] Initializing button ${btnIdx + 1}:`, {
-                methodClass,
-                methodId,
-                instanceSource,
-                expectedTableId: tableId
-              });
+              // console.log(`[Auto-Generate] Initializing button ${btnIdx + 1}:`, {
+              //   methodClass,
+              //   methodId,
+              //   instanceSource,
+              //   expectedTableId: tableId
+              // });
               
               // Force the button to re-initialize its traits
               buttonComp.set('method-class', '');
@@ -1244,7 +1224,6 @@ function buildPageComponents(
     }
   }, 300);
   
-  console.log(`[Auto-Generate] Built page for ${className} with ${methods.length} method buttons`);
 }
 
 /**
@@ -1371,7 +1350,7 @@ function setupCustomTraits(editor: Editor) {
   // Register columns-manager trait for tables
   registerColumnsManagerTrait(editor);
   
-  console.log('[Custom Traits] Registered columns-manager trait');
+  // console.log('[Custom Traits] Registered columns-manager trait');
 }
 
 // ============================================
