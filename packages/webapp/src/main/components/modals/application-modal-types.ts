@@ -18,6 +18,7 @@ export const ModalContentType = {
   RestoreVersionModal: 'RestoreVersionModal',
   EditVersionInfoModal: 'EditVersionInfoModal',
   CreateVersionModal: 'CreateVersionModal',
+  FeedbackModal: 'FeedbackModal',
 } as const;
 
 /**

@@ -2,6 +2,7 @@
 import { Nav, Navbar } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
+import { CommunityMenu } from './menues/community-menu';
 import { ThemeSwitcherMenu } from './menues/theme-switcher-menu';
 import styled from 'styled-components';
 import { appVersion } from '../../application-constants';
@@ -234,6 +235,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
               </Nav.Item>
             )} */}
             <HelpMenu />
+            <CommunityMenu />
             <DiagramTitle
               type="text"
               value={diagramTitle}
