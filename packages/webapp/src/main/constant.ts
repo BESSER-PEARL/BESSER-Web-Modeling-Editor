@@ -33,6 +33,8 @@ export const localStorageSystemThemePreference = localStoragePrefix + 'systemThe
 export const localStorageUserProfiles = localStoragePrefix + 'userProfiles';
 export const localStorageAgentConfigurations = localStoragePrefix + 'agentConfigs';
 export const localStorageAgentProfileMappings = localStoragePrefix + 'agentProfileMappings';
+export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentActiveConfig';
+export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
 
 // Project constants
 export const localStorageProjectPrefix = localStoragePrefix + 'project_';

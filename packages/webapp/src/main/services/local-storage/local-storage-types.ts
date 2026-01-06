@@ -20,6 +20,9 @@ export type StoredAgentConfiguration = {
   name: string;
   savedAt: string;
   config: AgentConfigurationPayload;
+  baseAgentModel?: UMLModel | null;
+  personalizedAgentModel?: UMLModel | null;
+  originalAgentModel?: UMLModel | null;
 };
 
 export type StoredAgentProfileConfigurationMapping = {

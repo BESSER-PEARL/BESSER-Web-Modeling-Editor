@@ -18,7 +18,7 @@ export type AgentLLMProvider = 'openai' | 'huggingface' | 'huggingfaceapi' | 're
 
 export type AgentLanguageComplexity = 'original' | 'simple' | 'medium' | 'complex';
 
-export type AgentSentenceLength = 'concise' | 'verbose';
+export type AgentSentenceLength = 'original' | 'concise' | 'verbose';
 
 export interface AgentLLMConfiguration {
   provider: AgentLLMProvider;

@@ -64,15 +64,7 @@ const composeIconView = (layer: ILayer, translate: (id: string) => string): UMLE
       instanceAttributes.push(attribute);
     });
 
-    if (instanceAttributes.length === 0) {
-      instanceAttributes.push(
-        new UMLUserModelAttribute({
-          name: translate('sidebar.objectAttribute'),
-          owner: instanceUser.id,
-          bounds: { x: 0, y: 0, width: 0, height: 0 },
-        }),
-      );
-    }
+   
 
     instanceUser.ownedElements = instanceAttributes.map((attr) => attr.id);
     if (iconElement) {

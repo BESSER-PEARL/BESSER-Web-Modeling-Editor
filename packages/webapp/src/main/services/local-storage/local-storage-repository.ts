@@ -10,6 +10,8 @@ import {
   localStorageUserProfiles,
   localStorageAgentConfigurations,
   localStorageAgentProfileMappings,
+  localStorageActiveAgentConfiguration,
+  localStorageAgentBaseModels,
 } from '../../constant';
 import { Diagram } from '../diagram/diagramSlice';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
@@ -23,6 +25,8 @@ type LocalDiagramEntry = {
   type: UMLDiagramType;
   lastUpdate: string;
 };
+
+type AgentBaseModelMap = Record<string, UMLModel>;
 
 const getStoredUserProfiles = (): StoredUserProfile[] => {
   const json = localStorage.getItem(localStorageUserProfiles);
@@ -79,6 +83,24 @@ const getStoredAgentProfileMappings = (): StoredAgentProfileConfigurationMapping
 
 const persistAgentProfileMappings = (entries: StoredAgentProfileConfigurationMapping[]) => {
   localStorage.setItem(localStorageAgentProfileMappings, JSON.stringify(entries));
+};
+
+const getStoredAgentBaseModels = (): AgentBaseModelMap => {
+  const json = localStorage.getItem(localStorageAgentBaseModels);
+  if (!json) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(json) as AgentBaseModelMap;
+  } catch (error) {
+    console.warn('Failed to parse stored agent base models:', error);
+    return {};
+  }
+};
+
+const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
+  localStorage.setItem(localStorageAgentBaseModels, JSON.stringify(entries));
 };
 
 export const LocalStorageRepository = {
@@ -159,6 +181,40 @@ export const LocalStorageRepository = {
     window.localStorage.removeItem(localStorageUserThemePreference);
   },
 
+  saveAgentBaseModel: (diagramId: string, model: UMLModel) => {
+    if (!diagramId) {
+      return;
+    }
+
+    const baseModels = getStoredAgentBaseModels();
+    baseModels[diagramId] = JSON.parse(JSON.stringify(model));
+    persistAgentBaseModels(baseModels);
+  },
+
+  getAgentBaseModel: (diagramId: string): UMLModel | null => {
+    if (!diagramId) {
+      return null;
+    }
+
+    const baseModels = getStoredAgentBaseModels();
+    const stored = baseModels[diagramId];
+    return stored ? (JSON.parse(JSON.stringify(stored)) as UMLModel) : null;
+  },
+
+  removeAgentBaseModel: (diagramId: string) => {
+    if (!diagramId) {
+      return;
+    }
+
+    const baseModels = getStoredAgentBaseModels();
+    if (!(diagramId in baseModels)) {
+      return;
+    }
+
+    delete baseModels[diagramId];
+    persistAgentBaseModels(baseModels);
+  },
+
   storeDiagramByType: (type: UMLDiagramType, diagram: Diagram) => {
     const key = `${localStorageDiagramPrefix}type_${type}`;
     localStorage.setItem(key, JSON.stringify(diagram));
@@ -221,13 +277,23 @@ export const LocalStorageRepository = {
     persistUserProfiles(profiles);
   },
 
-  saveAgentConfiguration: (name: string, config: AgentConfigurationPayload) => {
+  saveAgentConfiguration: (
+    name: string,
+    config: AgentConfigurationPayload,
+    options?: { personalizedAgentModel?: UMLModel | null; originalAgentModel?: UMLModel | null },
+  ) => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       throw new Error('Configuration name must not be empty');
     }
 
     const clone = JSON.parse(JSON.stringify(config)) as AgentConfigurationPayload;
+    const personalizedSnapshot = options?.personalizedAgentModel
+      ? (JSON.parse(JSON.stringify(options.personalizedAgentModel)) as UMLModel)
+      : null;
+    const originalSnapshot = options?.originalAgentModel
+      ? (JSON.parse(JSON.stringify(options.originalAgentModel)) as UMLModel)
+      : null;
     const savedAt = new Date().toISOString();
     const configs = getStoredAgentConfigurations();
 
@@ -237,6 +303,9 @@ export const LocalStorageRepository = {
       name: trimmedName,
       savedAt,
       config: clone,
+      baseAgentModel: personalizedSnapshot,
+      personalizedAgentModel: personalizedSnapshot,
+      originalAgentModel: originalSnapshot,
     };
 
     if (existingIndex >= 0) {
@@ -261,6 +330,18 @@ export const LocalStorageRepository = {
   deleteAgentConfiguration: (id: string) => {
     const configs = getStoredAgentConfigurations().filter((entry) => entry.id !== id);
     persistAgentConfigurations(configs);
+  },
+
+  setActiveAgentConfigurationId: (id: string) => {
+    localStorage.setItem(localStorageActiveAgentConfiguration, id);
+  },
+
+  getActiveAgentConfigurationId: (): string | null => {
+    return localStorage.getItem(localStorageActiveAgentConfiguration);
+  },
+
+  clearActiveAgentConfigurationId: () => {
+    localStorage.removeItem(localStorageActiveAgentConfiguration);
   },
 
   saveAgentProfileConfigurationMapping: (profile: StoredUserProfile, config: StoredAgentConfiguration) => {

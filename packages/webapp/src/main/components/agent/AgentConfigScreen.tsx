@@ -13,6 +13,11 @@ import {
     InterfaceStyleSetting,
     VoiceStyleSetting
 } from '../../types/agent-config';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { isUMLModel } from '../../types/project';
+import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { BACKEND_URL } from '../../constant';
+import { setCreateNewEditor, updateDiagramThunk } from '../../services/diagram/diagramSlice';
 
 const defaultInterfaceStyle: InterfaceStyleSetting = {
     size: 16,
@@ -132,6 +137,7 @@ const StyledButton = styled(Button)`
 `;
 
 const configKey = 'agentConfig';
+const AGENT_CONFIG_CHANGED_EVENT = 'agent-configurations-changed';
 
 const createDefaultConfig = (): AgentConfigurationPayload => ({
     agentLanguage: 'original',
@@ -142,7 +148,7 @@ const createDefaultConfig = (): AgentConfigurationPayload => ({
     agentStyle: 'original',
     llm: {},
     languageComplexity: 'original',
-    sentenceLength: 'concise',
+    sentenceLength: 'original',
     interfaceStyle: { ...defaultInterfaceStyle },
     voiceStyle: { ...defaultVoiceStyle },
     avatar: null,
@@ -240,6 +246,10 @@ const loadInitialState = () => {
 const knownLLMModels = ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'mistral-7b', 'falcon-40b', 'llama-3-8b', 'bloom-176b'];
 
 export const AgentConfigScreen: React.FC = () => {
+    const dispatch = useAppDispatch();
+    const diagram = useAppSelector((state) => state.diagram.diagram);
+    const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
+
     const [initialLoad] = useState(loadInitialState);
     const initialConfig = initialLoad.config;
     const initialSavedConfigs = initialLoad.savedConfigs;
@@ -254,6 +264,7 @@ export const AgentConfigScreen: React.FC = () => {
     const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
     const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
     const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || '');
+    const [isLoading, setIsLoading] = useState(false);
 
     const [agentLanguage, setAgentLanguage] = useState(initialConfig.agentLanguage);
     const [inputModalities, setInputModalities] = useState<string[]>([...initialConfig.inputModalities]);
@@ -325,6 +336,19 @@ export const AgentConfigScreen: React.FC = () => {
         setSelectedConfigId(nextId);
         return configs;
     }, []);
+
+    const captureBaseAgentModel = useCallback(() => {
+        if (currentDiagramType !== UMLDiagramType.AgentDiagram) {
+            return null;
+        }
+
+        const model = diagram?.model;
+        if (!model || !isUMLModel(model) || model.type !== UMLDiagramType.AgentDiagram) {
+            return null;
+        }
+
+        return JSON.parse(JSON.stringify(model));
+    }, [currentDiagramType, diagram]);
 
     const applyConfiguration = useCallback((config: AgentConfigurationPayload, source?: { id?: string | null; name?: string }) => {
         const normalized = normalizeAgentConfiguration(config);
@@ -438,26 +462,154 @@ export const AgentConfigScreen: React.FC = () => {
         intentRecognitionTechnology,
     });
 
+    const saveConfiguration = (
+        options?: {
+            captureSnapshot?: boolean;
+            markActive?: boolean;
+            snapshotOverride?: UMLModel | null;
+            originalAgentModel?: UMLModel | null;
+        },
+    ) => {
+        const trimmedName = configurationName.trim();
+        if (!trimmedName) {
+            alert('Please provide a configuration name before saving.');
+            return { ok: false, snapshotCaptured: false } as const;
+        }
+
+        const config = getConfigObject();
+        let snapshot: UMLModel | null = null;
+        if (options && 'snapshotOverride' in options && options.snapshotOverride !== undefined) {
+            snapshot = options.snapshotOverride ?? null;
+        } else if (options?.captureSnapshot) {
+            snapshot = captureBaseAgentModel();
+        }
+
+        const personalizedClone = snapshot ? (JSON.parse(JSON.stringify(snapshot)) as UMLModel) : null;
+        const originalClone = options?.originalAgentModel
+            ? (JSON.parse(JSON.stringify(options.originalAgentModel)) as UMLModel)
+            : null;
+
+        try {
+            const savedEntry = LocalStorageRepository.saveAgentConfiguration(trimmedName, config, {
+                personalizedAgentModel: personalizedClone,
+                originalAgentModel: originalClone,
+            });
+            refreshSavedConfigurations(savedEntry.id);
+            setActiveConfigId(savedEntry.id);
+            setActiveConfigName(savedEntry.name);
+            setConfigurationName(savedEntry.name);
+            localStorage.setItem(configKey, JSON.stringify(config));
+
+            try {
+                window.dispatchEvent(new Event(AGENT_CONFIG_CHANGED_EVENT));
+            } catch {
+                /* no-op */
+            }
+
+            if (options?.markActive) {
+                LocalStorageRepository.setActiveAgentConfigurationId(savedEntry.id);
+            }
+
+            return { ok: true, savedEntry, snapshotCaptured: Boolean(personalizedClone) } as const;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to save configuration.';
+            alert(message);
+            return { ok: false, snapshotCaptured: Boolean(personalizedClone) } as const;
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const result = saveConfiguration();
+        if (!result?.ok || !result.savedEntry) {
+            return;
+        }
+        alert(`Configuration "${result.savedEntry.name}" saved!`);
+    };
+
+    const handleSaveAndApply = async () => {
         const trimmedName = configurationName.trim();
         if (!trimmedName) {
             alert('Please provide a configuration name before saving.');
             return;
         }
 
+        const agentModel = captureBaseAgentModel();
+        if (!agentModel) {
+            alert('Please open an Agent diagram before saving and applying.');
+            return;
+        }
+
+        if (diagram?.id) {
+            const existingBase = LocalStorageRepository.getAgentBaseModel(diagram.id);
+            if (!existingBase) {
+                LocalStorageRepository.saveAgentBaseModel(diagram.id, agentModel);
+            }
+        }
+
         const config = getConfigObject();
+        if (!config || Object.keys(config).length === 0) {
+            alert('Please configure the agent before saving.');
+            return;
+        }
+
         try {
-            const savedEntry = LocalStorageRepository.saveAgentConfiguration(trimmedName, config);
-            refreshSavedConfigurations(savedEntry.id);
-            setActiveConfigId(savedEntry.id);
-            setActiveConfigName(savedEntry.name);
-            setConfigurationName(savedEntry.name);
-            localStorage.setItem(configKey, JSON.stringify(config));
-            alert(`Configuration "${savedEntry.name}" saved!`);
+            setIsLoading(true);
+            const referenceDiagramData = (diagram as any)?.referenceDiagramData;
+            const payload = {
+                id: diagram?.id,
+                title: diagram?.title || trimmedName,
+                model: agentModel,
+                lastUpdate: diagram?.lastUpdate,
+                generator: 'agent',
+                config,
+                ...(referenceDiagramData ? { referenceDiagramData } : {}),
+            };
+
+            const normalizedBaseRaw = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+            const normalizedBase = normalizedBaseRaw || '';
+            const apiBase = normalizedBase.endsWith('/besser_api') ? normalizedBase : `${normalizedBase}/besser_api`;
+            const transformUrl = `${apiBase}/transform_agent_model_json`;
+
+            const response = await fetch(transformUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const message = await response.text();
+                alert(`Failed to transform agent model: ${message || response.statusText}`);
+                return;
+            }
+
+            const transformedModel = await response.json();
+            const snapshotModel = (transformedModel && typeof transformedModel === 'object' && 'model' in transformedModel)
+                ? (transformedModel as any).model
+                : transformedModel;
+
+            if (snapshotModel && diagram?.id) {
+                await dispatch(updateDiagramThunk({ model: snapshotModel })).unwrap();
+                dispatch(setCreateNewEditor(true));
+            }
+
+            const result = saveConfiguration({
+                snapshotOverride: snapshotModel,
+                markActive: true,
+                originalAgentModel: agentModel,
+            });
+            if (result.ok) {
+                window.dispatchEvent(new Event(AGENT_CONFIG_CHANGED_EVENT));
+                alert('Configuration transformed, saved, and applied successfully!');
+                setSelectedConfigId(result.savedEntry?.id || activeConfigId || '');
+            } else {
+                alert('Failed to save configuration locally.');
+            }
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to save configuration.';
-            alert(message);
+            console.error('Error transforming agent model:', error);
+            alert('An unexpected error occurred while transforming the agent model.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -845,12 +997,21 @@ export const AgentConfigScreen: React.FC = () => {
                                     <div className="d-flex gap-3">
                                         <Form.Check
                                             type="radio"
+                                            label="Original"
+                                            name="sentenceLength"
+                                            id="sentenceLengthOriginal"
+                                            value="original"
+                                            checked={sentenceLength === 'original'}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
+                                        />
+                                        <Form.Check
+                                            type="radio"
                                             label="Concise"
                                             name="sentenceLength"
                                             id="sentenceLengthConcise"
                                             value="concise"
                                             checked={sentenceLength === 'concise'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'concise' | 'verbose')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
                                         />
                                         <Form.Check
                                             type="radio"
@@ -859,7 +1020,7 @@ export const AgentConfigScreen: React.FC = () => {
                                             id="sentenceLengthVerbose"
                                             value="verbose"
                                             checked={sentenceLength === 'verbose'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'concise' | 'verbose')}
+                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
                                         />
                                     </div>
                                 </Form.Group>
@@ -1030,8 +1191,11 @@ export const AgentConfigScreen: React.FC = () => {
                             </Col>
                         </Row>
            
-                        <div className="d-flex justify-content-end mt-4">
-                            <StyledButton variant="primary" type="submit">
+                        <div className="d-flex justify-content-end mt-4 gap-2 flex-wrap">
+                            <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
+                                {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
+                            </StyledButton>
+                            <StyledButton variant="primary" type="submit" disabled={isLoading}>
                                 Save Configuration
                             </StyledButton>
                         </div>

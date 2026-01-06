@@ -1,4 +1,4 @@
-﻿import React, { ChangeEvent, useEffect, useState, useContext, useCallback } from 'react';
+﻿import React, { ChangeEvent, useEffect, useState, useContext, useCallback, useRef } from 'react';
 import { Nav, Navbar, NavDropdown } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
@@ -21,6 +21,7 @@ import { DiagramRepository } from '../../services/diagram/diagram-repository';
 import { displayError } from '../../services/error-management/errorManagementSlice';
 import { DiagramView } from 'shared';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
+import { StoredAgentConfiguration } from '../../services/local-storage/local-storage-types';
 import { toast } from 'react-toastify';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
@@ -92,6 +93,9 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const { diagram } = useAppSelector((state) => state.diagram);
   const [diagramTitle, setDiagramTitle] = useState<string>(diagram?.title || '');
   const [userProfiles, setUserProfiles] = useState<UserProfileSummary[]>([]);
+  const [agentConfigOptions, setAgentConfigOptions] = useState<StoredAgentConfiguration[]>([]);
+  const [activeAgentConfigId, setActiveAgentConfigId] = useState<string>(LocalStorageRepository.getActiveAgentConfigurationId() || '');
+  const baseAgentModelRef = useRef<UMLModel | null>(null);
   const isSidebarOpen = useAppSelector(selectDisplaySidebar);
   const urlPath = window.location.pathname;
   const tokenInUrl = urlPath.substring(1); // This removes the leading "/"
@@ -102,6 +106,10 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const location = useLocation();
   const { currentProject } = useProject();
   const isUserDiagram = currentType === UMLDiagramType.UserDiagram;
+  const isAgentDiagram = currentType === UMLDiagramType.AgentDiagram;
+  const isAgentGenerated = isAgentDiagram && diagram?.model && isUMLModel(diagram.model);
+  const activeAgentConfigName = agentConfigOptions.find((entry) => entry.id === activeAgentConfigId)?.name;
+  const agentConfigDropdownLabel = activeAgentConfigName ? `Agent Config: ${activeAgentConfigName}` : 'Agent Configuration: Original';
 
   useEffect(() => {
     if (diagram?.title) {
@@ -124,6 +132,69 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   useEffect(() => {
     refreshUserProfiles();
   }, [refreshUserProfiles]);
+
+  const refreshAgentConfigs = useCallback(() => {
+    const configs = LocalStorageRepository.getAgentConfigurations()
+      .filter((entry) => Boolean(entry.baseAgentModel || entry.personalizedAgentModel))
+      .map((entry) => {
+        if (!entry.personalizedAgentModel && entry.baseAgentModel) {
+          return { ...entry, personalizedAgentModel: entry.baseAgentModel } as StoredAgentConfiguration;
+        }
+        return entry;
+      });
+    setAgentConfigOptions(configs);
+
+    setActiveAgentConfigId((current) => {
+      const storedActive = LocalStorageRepository.getActiveAgentConfigurationId();
+      if (storedActive && configs.some((cfg) => cfg.id === storedActive)) {
+        return storedActive;
+      }
+      if (current && configs.some((cfg) => cfg.id === current)) {
+        return current;
+      }
+      return '';
+    });
+  }, []);
+
+  useEffect(() => {
+    refreshAgentConfigs();
+
+    const handleConfigChange = () => refreshAgentConfigs();
+    window.addEventListener('agent-configurations-changed', handleConfigChange);
+    return () => {
+      window.removeEventListener('agent-configurations-changed', handleConfigChange);
+    };
+  }, [refreshAgentConfigs]);
+
+  useEffect(() => {
+    if (!isAgentDiagram) {
+      baseAgentModelRef.current = null;
+      return;
+    }
+
+    const storedBase = diagram?.id ? LocalStorageRepository.getAgentBaseModel(diagram.id) : null;
+    if (storedBase) {
+      baseAgentModelRef.current = storedBase;
+      return;
+    }
+
+    const activeConfig = activeAgentConfigId
+      ? agentConfigOptions.find((entry) => entry.id === activeAgentConfigId)
+      : null;
+    if (activeConfig?.originalAgentModel) {
+      baseAgentModelRef.current = JSON.parse(JSON.stringify(activeConfig.originalAgentModel));
+      return;
+    }
+
+    if (
+      isAgentGenerated &&
+      isUMLModel(diagram?.model) &&
+      diagram?.model.type === UMLDiagramType.AgentDiagram &&
+      !baseAgentModelRef.current
+    ) {
+      baseAgentModelRef.current = JSON.parse(JSON.stringify(diagram.model));
+    }
+  }, [activeAgentConfigId, agentConfigOptions, diagram?.id, diagram?.model, isAgentDiagram, isAgentGenerated]);
 
   const getActiveUserModel = (): UMLModel | null => {
     if (editor && isUMLModel(editor.model) && editor.model.type === UMLDiagramType.UserDiagram) {
@@ -203,6 +274,73 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     }
   };
 
+  const handleApplyAgentConfiguration = useCallback(
+    async (configId: string) => {
+      if (!isAgentGenerated) {
+        toast.error('Generate the agent before applying a configuration.');
+        return;
+      }
+
+      if (!baseAgentModelRef.current && isUMLModel(diagram?.model)) {
+        baseAgentModelRef.current = JSON.parse(JSON.stringify(diagram.model));
+      }
+
+      const findConfigById = (id?: string | null) => (id ? agentConfigOptions.find((entry) => entry.id === id) : null);
+      const cloneModel = (model?: UMLModel | null) => (model ? (JSON.parse(JSON.stringify(model)) as UMLModel) : null);
+
+      if (!configId) {
+        const activeConfig = findConfigById(activeAgentConfigId);
+        const storedOriginal = activeConfig?.originalAgentModel;
+        const fallbackBase = diagram?.id ? LocalStorageRepository.getAgentBaseModel(diagram.id) : null;
+        const referenceSource = storedOriginal ?? baseAgentModelRef.current ?? fallbackBase;
+        const snapshot = cloneModel(referenceSource);
+
+        if (snapshot) {
+          await dispatch(updateDiagramThunk({ model: snapshot })).unwrap();
+          dispatch(setCreateNewEditor(true));
+          if (diagram?.id && storedOriginal) {
+            LocalStorageRepository.saveAgentBaseModel(diagram.id, snapshot);
+          }
+          baseAgentModelRef.current = JSON.parse(JSON.stringify(snapshot));
+          LocalStorageRepository.clearActiveAgentConfigurationId();
+          setActiveAgentConfigId('');
+          toast.success('Reverted to the original agent.');
+        } else {
+          toast.error('No original agent snapshot available.');
+        }
+        return;
+      }
+
+      const target = findConfigById(configId);
+      const personalizedModel = target?.personalizedAgentModel || target?.baseAgentModel;
+      if (!target || !personalizedModel || !isUMLModel(personalizedModel)) {
+        toast.error('Selected configuration has no stored agent copy to apply.');
+        return;
+      }
+
+      const snapshot = cloneModel(personalizedModel);
+      if (!snapshot) {
+        toast.error('Failed to clone the selected agent configuration.');
+        return;
+      }
+
+      await dispatch(updateDiagramThunk({ model: snapshot })).unwrap();
+      dispatch(setCreateNewEditor(true));
+      LocalStorageRepository.setActiveAgentConfigurationId(configId);
+      setActiveAgentConfigId(configId);
+
+      if (target.originalAgentModel) {
+        baseAgentModelRef.current = JSON.parse(JSON.stringify(target.originalAgentModel));
+        if (diagram?.id) {
+          LocalStorageRepository.saveAgentBaseModel(diagram.id, target.originalAgentModel);
+        }
+      }
+
+      toast.success(`Applied agent configuration "${target.name}"`);
+    },
+    [activeAgentConfigId, agentConfigOptions, dispatch, diagram?.id, diagram?.model, isAgentGenerated],
+  );
+
   const changeDiagramTitlePreview = (event: ChangeEvent<HTMLInputElement>) => {
     setDiagramTitle(event.target.value);
   };
@@ -248,7 +386,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     let token = diagram.token;
     const diagramCopy = Object.assign({}, diagram);
     diagramCopy.description = diagramCopy.description || 'Shared diagram';
-    
+
 
     try {
       const res = await DiagramRepository.publishDiagramVersionOnServer(diagramCopy, diagram.token);
@@ -256,11 +394,11 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
       dispatch(setCreateNewEditor(true));
       dispatch(setDisplayUnpublishedVersion(false));
       token = res.diagramToken;
-      
+
       // Set collaborate view as the published type
       LocalStorageRepository.setLastPublishedType(DiagramView.COLLABORATE);
       LocalStorageRepository.setLastPublishedToken(token);
-      
+
       // Generate and copy the link without the view parameter
       const link = `${DEPLOYMENT_URL}/${token}`;
       try {
@@ -278,19 +416,19 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
           }
           document.body.removeChild(textArea);
         }
-        
+
         toast.success(
           'The collaboration link has been copied to your clipboard and can be shared by pasting the link.',
           {
             autoClose: 10000,
           },
         );
-        
+
         // Close sidebar if it's open
         if (isSidebarOpen) {
           dispatch(toggleSidebar());
         }
-        
+
         // Navigate to the collaboration view using just the token
         navigate(`/${token}`);
       } catch (err) {
@@ -303,7 +441,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
       );
       console.error(error);
     }
-  };  return (
+  }; return (
     <MainContent $isSidebarOpen={isSidebarOpen}>
       <Navbar className="navbar" variant="dark" expand="lg">
         <Navbar.Brand as={Link} to="/">
@@ -314,8 +452,8 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
           <Nav className="me-auto">
             <Nav.Item className="me-3">
               <Nav.Link onClick={onOpenHome} title="Home">
-              <House size={20} />
-            </Nav.Link>
+                <House size={20} />
+              </Nav.Link>
             </Nav.Item>
             <FileMenu />
             {/* <ClassDiagramImporter /> */}
@@ -328,6 +466,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
                 </Nav.Item>
               )}
             </>
+
             {/* {APPLICATION_SERVER_VERSION && (
               <Nav.Item>
                 <Nav.Link onClick={handleQuickShare} title="Store and share your diagram into the database">
@@ -370,6 +509,28 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
               onBlur={changeDiagramTitleApplicationState}
               placeholder="Diagram Title"
             />
+            {isAgentGenerated && agentConfigOptions.length > 0 && (
+              <NavDropdown
+                title={agentConfigDropdownLabel}
+                id="agent-config-dropdown"
+                className="ms-2"
+                menuVariant="dark"
+              >
+                <NavDropdown.Item active={!activeAgentConfigId} onClick={() => handleApplyAgentConfiguration('')}>
+                  Original Agent
+                </NavDropdown.Item>
+                <NavDropdown.Divider />
+                {agentConfigOptions.map((entry) => (
+                  <NavDropdown.Item
+                    key={entry.id}
+                    active={entry.id === activeAgentConfigId}
+                    onClick={() => handleApplyAgentConfiguration(entry.id)}
+                  >
+                    {entry.name}
+                  </NavDropdown.Item>
+                ))}
+              </NavDropdown>
+            )}
           </Nav>
         </Navbar.Collapse>
         <Nav.Item className="me-3">

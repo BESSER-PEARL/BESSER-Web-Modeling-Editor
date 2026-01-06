@@ -233,7 +233,6 @@ export const DiagramTypeSidebar: React.FC = () => {
   const isAgentRelated = () => {
     return toUMLDiagramType(currentDiagramType) === UMLDiagramType.AgentDiagram || 
            location.pathname === '/agent-config' ||
-           location.pathname === '/agent-personalization' ||
            location.pathname === '/agent-personalization-2';
   };
 
@@ -306,24 +305,9 @@ export const DiagramTypeSidebar: React.FC = () => {
                       <Gear size={16} />
                     </SubItemButton>
                   </OverlayTrigger>
-                  
                   <OverlayTrigger
                     placement="right"
-                    overlay={<Tooltip id="tooltip-agent-personalization">Agent Personalization</Tooltip>}
-                  >
-                    <SubItemButton
-                      variant="link"
-                      $isActive={location.pathname === '/agent-personalization'}
-                      onClick={() => handleAgentSubItemClick('/agent-personalization')}
-                      title="Agent Personalization"
-                    >
-                      <Person size={16} />
-                    </SubItemButton>
-                  </OverlayTrigger>
-                  
-                  <OverlayTrigger
-                    placement="right"
-                    overlay={<Tooltip id="tooltip-agent-personalization-2">Agent Personalization 2</Tooltip>}
+                    overlay={<Tooltip id="tooltip-agent-personalization-2">Agent Personalization</Tooltip>}
                   >
                     <SubItemButton
                       variant="link"
@@ -331,7 +315,7 @@ export const DiagramTypeSidebar: React.FC = () => {
                       onClick={() => handleAgentSubItemClick('/agent-personalization-2')}
                       title="Agent Personalization 2"
                     >
-                      <PencilSquare size={16} />
+                     <Person size={16} />
                     </SubItemButton>
                   </OverlayTrigger>
                 </SubItemsContainer>
