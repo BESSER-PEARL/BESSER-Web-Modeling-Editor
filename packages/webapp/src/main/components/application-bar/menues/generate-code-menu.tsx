@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import { BACKEND_URL, localStorageAgentConfigurations } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
 import { StoredAgentConfiguration } from '../../../services/local-storage/local-storage-types';
+import { LocalStorageRepository } from '../../../services/local-storage/local-storage-repository';
 
 export const GenerateCodeMenu: React.FC = () => {
   // Modal for spoken language selection for agent diagrams
@@ -206,28 +207,51 @@ export const GenerateCodeMenu: React.FC = () => {
           return;
         }
 
-        const selectedEntries = storedAgentConfigurations.filter((entry) => selectedStoredAgentConfigIds.includes(entry.id));
-        let configsToSend = selectedEntries.map((entry) => ({
-          name: entry.name,
-          configuration: entry.config,
-        }));
+        let selectedEntries = storedAgentConfigurations.filter((entry) => selectedStoredAgentConfigIds.includes(entry.id));
 
-        if (configsToSend.length === 0) {
+        if (selectedEntries.length === 0) {
           const fallback = storedAgentConfigurations[0];
           if (!fallback) {
             toast.error('No stored agent configurations available.');
             return;
           }
-          configsToSend = [{
-            name: fallback.name,
-            configuration: fallback.config,
-          }];
           setSelectedStoredAgentConfigIds([fallback.id]);
+          selectedEntries = [fallback];
+        }
+
+        const baseModelSource = diagram?.id ? LocalStorageRepository.getAgentBaseModel(diagram.id) : null;
+        const fallbackOriginal = selectedEntries.find((entry) => entry.originalAgentModel)?.originalAgentModel;
+        const baseModel = baseModelSource || fallbackOriginal || (diagram?.model ?? null);
+
+        if (!baseModel) {
+          toast.error('No base agent model available. Please run "Save & Apply" before generating.');
+          return;
+        }
+
+        const variations = selectedEntries
+          .filter((entry) => Boolean(entry.personalizedAgentModel || entry.baseAgentModel))
+          .map((entry) => {
+            const variantModel = entry.personalizedAgentModel || entry.baseAgentModel;
+            if (!variantModel) {
+              return null;
+            }
+            return {
+              name: entry.name,
+              model: JSON.parse(JSON.stringify(variantModel)),
+              config: JSON.parse(JSON.stringify(entry.config)),
+            };
+          })
+          .filter((entry): entry is { name: string; model: any; config: any } => Boolean(entry));
+
+        if (variations.length === 0) {
+          toast.error('Selected configurations do not have generated agents. Please run "Save & Apply" for them first.');
+          return;
         }
 
         const agentConfig: AgentConfig = {
           ...baseConfig,
-          configurations: configsToSend,
+          baseModel: JSON.parse(JSON.stringify(baseModel)),
+          variations,
         } as any;
 
         await generateCode(editor!, 'agent', diagram.title, agentConfig);

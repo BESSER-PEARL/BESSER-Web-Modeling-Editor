@@ -206,6 +206,61 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     return null;
   };
 
+  const getCurrentAgentModel = useCallback((): UMLModel | null => {
+    if (editor && isUMLModel(editor.model) && editor.model.type === UMLDiagramType.AgentDiagram) {
+      return editor.model;
+    }
+    if (isUMLModel(diagram?.model) && diagram?.model?.type === UMLDiagramType.AgentDiagram) {
+      return diagram.model;
+    }
+    return null;
+  }, [diagram?.model, editor]);
+
+  const persistCurrentAgentSnapshot = useCallback((options?: { nextConfigId?: string }) => {
+    const currentModel = getCurrentAgentModel();
+    if (!currentModel) {
+      return;
+    }
+
+    const snapshot = JSON.parse(JSON.stringify(currentModel)) as UMLModel;
+
+    if (activeAgentConfigId) {
+      const activeConfig = agentConfigOptions.find((entry) => entry.id === activeAgentConfigId);
+      if (!activeConfig) {
+        return;
+      }
+
+      LocalStorageRepository.saveAgentConfiguration(activeConfig.name, activeConfig.config, {
+        personalizedAgentModel: snapshot,
+        originalAgentModel: activeConfig.originalAgentModel || baseAgentModelRef.current || null,
+      });
+
+      try {
+        window.dispatchEvent(new Event('agent-configurations-changed'));
+      } catch {
+        /* no-op */
+      }
+    } else if (diagram?.id) {
+      LocalStorageRepository.saveAgentBaseModel(diagram.id, snapshot);
+      baseAgentModelRef.current = snapshot;
+
+      if (options?.nextConfigId) {
+        const targetConfig = agentConfigOptions.find((entry) => entry.id === options.nextConfigId);
+        if (targetConfig) {
+          LocalStorageRepository.saveAgentConfiguration(targetConfig.name, targetConfig.config, {
+            personalizedAgentModel: targetConfig.personalizedAgentModel || targetConfig.baseAgentModel || null,
+            originalAgentModel: snapshot,
+          });
+          try {
+            window.dispatchEvent(new Event('agent-configurations-changed'));
+          } catch {
+            /* no-op */
+          }
+        }
+      }
+    }
+  }, [activeAgentConfigId, agentConfigOptions, diagram?.id, getCurrentAgentModel]);
+
   const handleSaveUserProfile = () => {
     if (!isUserDiagram) {
       toast.error('Profile saving is only available for user diagrams.');
@@ -281,6 +336,8 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
         return;
       }
 
+      persistCurrentAgentSnapshot({ nextConfigId: configId || undefined });
+
       if (!baseAgentModelRef.current && isUMLModel(diagram?.model)) {
         baseAgentModelRef.current = JSON.parse(JSON.stringify(diagram.model));
       }
@@ -338,7 +395,15 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
 
       toast.success(`Applied agent configuration "${target.name}"`);
     },
-    [activeAgentConfigId, agentConfigOptions, dispatch, diagram?.id, diagram?.model, isAgentGenerated],
+    [
+      activeAgentConfigId,
+      agentConfigOptions,
+      dispatch,
+      diagram?.id,
+      diagram?.model,
+      isAgentGenerated,
+      persistCurrentAgentSnapshot,
+    ],
   );
 
   const changeDiagramTitlePreview = (event: ChangeEvent<HTMLInputElement>) => {
