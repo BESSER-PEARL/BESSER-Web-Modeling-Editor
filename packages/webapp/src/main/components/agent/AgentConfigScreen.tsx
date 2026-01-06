@@ -534,17 +534,17 @@ export const AgentConfigScreen: React.FC = () => {
             return;
         }
 
-        const agentModel = captureBaseAgentModel();
+        const storedBaseModel = diagram?.id ? LocalStorageRepository.getAgentBaseModel(diagram.id) : null;
+        const agentModel = storedBaseModel
+            ? (JSON.parse(JSON.stringify(storedBaseModel)) as UMLModel)
+            : captureBaseAgentModel();
         if (!agentModel) {
             alert('Please open an Agent diagram before saving and applying.');
             return;
         }
 
-        if (diagram?.id) {
-            const existingBase = LocalStorageRepository.getAgentBaseModel(diagram.id);
-            if (!existingBase) {
-                LocalStorageRepository.saveAgentBaseModel(diagram.id, agentModel);
-            }
+        if (!storedBaseModel && diagram?.id) {
+            LocalStorageRepository.saveAgentBaseModel(diagram.id, agentModel);
         }
 
         const config = getConfigObject();
