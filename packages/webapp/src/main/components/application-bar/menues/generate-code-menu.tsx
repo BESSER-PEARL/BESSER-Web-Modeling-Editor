@@ -64,13 +64,23 @@ export const GenerateCodeMenu: React.FC = () => {
 
       const parsed: StoredAgentConfiguration[] = JSON.parse(stored);
       parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
-      setStoredAgentConfigurations(parsed);
+
+      const usableConfigs = parsed
+        .filter((entry) => Boolean(entry.personalizedAgentModel || entry.baseAgentModel))
+        .map((entry) => {
+          if (!entry.personalizedAgentModel && entry.baseAgentModel) {
+            return { ...entry, personalizedAgentModel: entry.baseAgentModel } as StoredAgentConfiguration;
+          }
+          return entry;
+        });
+
+      setStoredAgentConfigurations(usableConfigs);
         setSelectedStoredAgentConfigIds((prev) => {
-          const stillValid = prev.filter((id) => parsed.some((entry) => entry.id === id));
+          const stillValid = prev.filter((id) => usableConfigs.some((entry) => entry.id === id));
           if (stillValid.length > 0) {
             return stillValid;
           }
-          return parsed[0]?.id ? [parsed[0].id] : [];
+          return usableConfigs[0]?.id ? [usableConfigs[0].id] : [];
         });
     } catch (error) {
       console.error('Failed to parse stored agent configurations from localStorage', error);
@@ -514,7 +524,7 @@ export const GenerateCodeMenu: React.FC = () => {
                 <Form.Label>Select stored configurations</Form.Label>
                 {storedAgentConfigurations.length === 0 ? (
                   <Form.Text className="text-muted d-block">
-                    No saved configurations found. Save one from the Agent Configuration screen first.
+                    No saved configurations with generated agents found. Use "Save & Apply" first to make them available here.
                   </Form.Text>
                 ) : (
                   <div className="d-flex flex-column gap-2">
@@ -531,7 +541,7 @@ export const GenerateCodeMenu: React.FC = () => {
                       />
                     ))}
                     <Form.Text className="text-muted">
-                      Select one or more configurations to include in the request.
+                      Select one or more configurations (only entries with generated agents are listed) to include in the request.
                     </Form.Text>
                   </div>
                 )}
