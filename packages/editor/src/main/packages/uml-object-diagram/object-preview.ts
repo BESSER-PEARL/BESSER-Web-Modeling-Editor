@@ -81,6 +81,7 @@ const composeIconObjectPreview = (
       classInfo.attributes.forEach((attr, index) => {
         const objectAttribute = new UMLObjectAttribute({
           name: `${attr.name} = `,
+          attributeType: attr.attributeType || 'str',
           owner: instanceObject.id,
           bounds: {
             x: 0,
@@ -189,6 +190,7 @@ const composeNormalObjectPreview = (
       classInfo.attributes.forEach((attr, index) => {
         const objectAttribute = new UMLObjectAttribute({
           name: `${attr.name} = `,
+          attributeType: attr.attributeType || 'str',
           owner: instanceObject.id,
           bounds: {
             x: 0,
