@@ -8,17 +8,19 @@ import { IUMLElement } from '../../../services/uml-element/uml-element';
 
 export interface IUMLObjectAttribute extends IUMLElement {
   attributeId?: string; // ID of the attribute from the library class
+  attributeType?: string; // Type of the attribute (str, int, float, etc.)
 }
 
 export class UMLObjectAttribute extends UMLClassifierAttribute {
   type: UMLElementType = ObjectElementType.ObjectAttribute;
   attributeId?: string; // Store the ID of the attribute from the library class
 
-  constructor(values?: DeepPartial<IUMLElement & { attributeId?: string }>) {
+  constructor(values?: DeepPartial<IUMLElement & { attributeId?: string; attributeType?: string }>) {
     super(values);
     if (values?.attributeId) {
       this.attributeId = values.attributeId;
     }
+    // attributeType is already handled by the parent class constructor via assign()
   }
   serialize() {
     return {

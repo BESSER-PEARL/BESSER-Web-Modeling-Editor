@@ -29,6 +29,8 @@ export interface IClassInfo {
 export interface IAttributeInfo {
   id: string;
   name: string;
+  attributeType?: string;
+  visibility?: string;
 }
 
 /**
@@ -150,12 +152,30 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   private readonly STORAGE_KEY = 'besser-class-diagram-bridge-data';
 
   /**
-   * Clean attribute name by removing visibility modifiers (+, -, #)
+   * Parse attribute name to extract type (for legacy data format)
+   * Legacy format: "+ attributeName: type" or "- attributeName: type"
    */
-  private cleanAttributeName(attributeName: string): string {
-    if (!attributeName) return '';
-    // Remove leading visibility modifiers and trim
-    return attributeName.replace(/^[+\-#]\s*/, '').trim();
+  private parseAttributeType(name: string): string {
+    if (!name) return 'str';
+    // Match pattern like "+ name: type" or "name: type"
+    const typeMatch = name.match(/:\s*(\w+)\s*$/);
+    if (typeMatch) {
+      return typeMatch[1];
+    }
+    return 'str';
+  }
+
+  /**
+   * Clean attribute name by removing visibility modifiers and type
+   * Legacy format: "+ attributeName: type" -> "attributeName"
+   */
+  private cleanAttributeName(name: string): string {
+    if (!name) return '';
+    // Remove leading visibility modifiers (+, -, #, ~) and trailing type
+    let cleaned = name.replace(/^[+\-#~]\s*/, '');
+    // Remove trailing type (": type")
+    cleaned = cleaned.replace(/:\s*\w+\s*$/, '');
+    return cleaned.trim();
   }
 
   /**
@@ -245,9 +265,15 @@ export class DiagramBridgeService implements IDiagramBridgeService {
         .map((attrId: string) => {
           const attribute = data.elements[attrId];
           if (attribute) {
+            // Check if we have new format (separate attributeType property)
+            // or legacy format (type embedded in name like "+ name: str")
+            const hasNewFormat = attribute.attributeType !== undefined;
+            
             return {
               id: attrId,
-              name: this.cleanAttributeName(attribute.name),
+              name: hasNewFormat ? attribute.name : this.cleanAttributeName(attribute.name),
+              attributeType: hasNewFormat ? attribute.attributeType : this.parseAttributeType(attribute.name),
+              visibility: attribute.visibility || 'public',
               sourceClass: currentClass.name,
               isInherited: isInherited
             };
@@ -284,7 +310,9 @@ export class DiagramBridgeService implements IDiagramBridgeService {
       if (!uniqueAttributes.has(attr.id)) {
         uniqueAttributes.set(attr.id, {
           id: attr.id,
-          name: attr.name
+          name: attr.name,
+          attributeType: attr.attributeType,
+          visibility: attr.visibility
         });
       }
     });
