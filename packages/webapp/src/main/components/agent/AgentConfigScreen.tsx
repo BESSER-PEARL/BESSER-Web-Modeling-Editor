@@ -64,10 +64,14 @@ const PageHeader = styled.div`
 `;
 
 const ContentGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
-  width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    width: 100%;
+
+    @media (max-width: 992px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const Section = styled.div`
@@ -717,6 +721,15 @@ export const AgentConfigScreen: React.FC = () => {
                                 Delete
                             </StyledButton>
                         </div>
+
+                        <ActionBar>
+                            <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
+                                {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
+                            </StyledButton>
+                            <StyledButton variant="primary" type="submit" disabled={isLoading}>
+                                Save Configuration
+                            </StyledButton>
+                        </ActionBar>
                     </Section>
                     
                     <Section>
@@ -758,48 +771,6 @@ export const AgentConfigScreen: React.FC = () => {
                                         <option value="luxembourgish">Luxembourgish</option>
                                         <option value="portuguese">Portuguese</option>
                                     </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Input Modalities</Form.Label>
-                                    <div>
-                                        <Form.Check
-                                            type="checkbox"
-                                            label="Text"
-                                            value="text"
-                                            checked={inputModalities.includes('text')}
-                                            onChange={handleInputModalityChange}
-                                        />
-                                        <Form.Check
-                                            type="checkbox"
-                                            label="Speech"
-                                            value="speech"
-                                            checked={inputModalities.includes('speech')}
-                                            onChange={handleInputModalityChange}
-                                        />
-                                    </div>
-                                </Form.Group>
-                            </Col>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Output Modalities</Form.Label>
-                                    <div>
-                                        <Form.Check
-                                            type="checkbox"
-                                            label="Text"
-                                            value="text"
-                                            checked={outputModalities.includes('text')}
-                                            onChange={handleOutputModalityChange}
-                                        />
-                                        <Form.Check
-                                            type="checkbox"
-                                            label="Speech"
-                                            value="speech"
-                                            checked={outputModalities.includes('speech')}
-                                            onChange={handleOutputModalityChange}
-                                        />
-                                    </div>
                                 </Form.Group>
                             </Col>
                         </Row>
@@ -1091,10 +1062,56 @@ export const AgentConfigScreen: React.FC = () => {
                             </Col>
                         </Row>
 
+                    </Section>
+                    <Section>
+                        <SectionTitle>Modality</SectionTitle>
+                        <Row>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Input Modalities</Form.Label>
+                                    <div>
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="Text"
+                                            value="text"
+                                            checked={inputModalities.includes('text')}
+                                            onChange={handleInputModalityChange}
+                                        />
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="Speech"
+                                            value="speech"
+                                            checked={inputModalities.includes('speech')}
+                                            onChange={handleInputModalityChange}
+                                        />
+                                    </div>
+                                </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Output Modalities</Form.Label>
+                                    <div>
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="Text"
+                                            value="text"
+                                            checked={outputModalities.includes('text')}
+                                            onChange={handleOutputModalityChange}
+                                        />
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="Speech"
+                                            value="speech"
+                                            checked={outputModalities.includes('speech')}
+                                            onChange={handleOutputModalityChange}
+                                        />
+                                    </div>
+                                </Form.Group>
+                            </Col>
+                        </Row>
+                    </Section>
+                    <Section>
                         <SectionTitle>Behavior</SectionTitle>
-
-
-
                         <Row>
                             <Col md={4}>
                                 <Form.Group className="mb-3">
@@ -1106,6 +1123,23 @@ export const AgentConfigScreen: React.FC = () => {
                                 </Form.Group>
                             </Col>
                         </Row>
+                    </Section>
+                    <Section>
+                        <SectionTitle>Content</SectionTitle>
+                        <Form.Group className="mb-3">
+                            <Form.Check
+                                type="switch"
+                                id="adaptContentToUserProfile"
+                                label="Adapt content to user profile"
+                                checked={adaptContentToUserProfile}
+                                onChange={e => setAdaptContentToUserProfile(e.target.checked)}
+                            />
+                        </Form.Group>
+                        <Form.Text className="text-muted">
+                            Enable this option to tailor generated responses to the active user profile.
+                        </Form.Text>
+                    </Section>
+                    <Section style={{ gridColumn: '1 / -1' }}>
                         <SectionTitle>System Configuration</SectionTitle>
                         <Row>
                             <Col md={6}>
@@ -1118,13 +1152,13 @@ export const AgentConfigScreen: React.FC = () => {
                                     </Form.Select>
                                 </Form.Group>
    
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Intent recognition</Form.Label>
-                                        <Form.Select value={intentRecognitionTechnology} onChange={e => setIntentRecognitionTechnology(e.target.value as IntentRecognitionTechnology)}>
-                                            <option value="classical">Classical</option>
-                                            <option value="llm-based">LLM-based</option>
-                                        </Form.Select>
-                                    </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Intent recognition</Form.Label>
+                                    <Form.Select value={intentRecognitionTechnology} onChange={e => setIntentRecognitionTechnology(e.target.value as IntentRecognitionTechnology)}>
+                                        <option value="classical">Classical</option>
+                                        <option value="llm-based">LLM-based</option>
+                                    </Form.Select>
+                                </Form.Group>
                           
                             </Col>
                             <Col md={6}>
@@ -1190,30 +1224,17 @@ export const AgentConfigScreen: React.FC = () => {
                                 )}
                             </Col>
                         </Row>
-           
-                        <div className="d-flex justify-content-end mt-4 gap-2 flex-wrap">
+                    </Section>
+                    <Section style={{ gridColumn: '1 / -1' }}>
+                        <SectionTitle>Configuration Actions</SectionTitle>
+                        <ActionBar>
                             <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
                                 {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
                             </StyledButton>
                             <StyledButton variant="primary" type="submit" disabled={isLoading}>
                                 Save Configuration
                             </StyledButton>
-                        </div>
-                    </Section>
-                    <Section>
-                        <SectionTitle>Content</SectionTitle>
-                        <Form.Group className="mb-3">
-                            <Form.Check
-                                type="switch"
-                                id="adaptContentToUserProfile"
-                                label="Adapt content to user profile"
-                                checked={adaptContentToUserProfile}
-                                onChange={e => setAdaptContentToUserProfile(e.target.checked)}
-                            />
-                        </Form.Group>
-                        <Form.Text className="text-muted">
-                            Enable this option to tailor generated responses to the active user profile.
-                        </Form.Text>
+                        </ActionBar>
                     </Section>
                 </ContentGrid>
                     </Form>
