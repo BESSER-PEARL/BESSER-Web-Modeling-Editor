@@ -40,5 +40,6 @@ export interface AgentConfigurationPayload {
   avatar: string | null;
   useAbbreviations: boolean;
   adaptContentToUserProfile: boolean;
+  userProfileName: string | null;
   intentRecognitionTechnology: IntentRecognitionTechnology;
 }

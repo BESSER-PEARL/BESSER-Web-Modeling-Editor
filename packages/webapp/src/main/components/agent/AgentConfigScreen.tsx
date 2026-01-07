@@ -1,8 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card, Form, Button, Row, Col, Badge } from 'react-bootstrap';
 import styled from 'styled-components';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
-import { StoredAgentConfiguration } from '../../services/local-storage/local-storage-types';
+import { StoredAgentConfiguration, StoredUserProfile } from '../../services/local-storage/local-storage-types';
 import {
     AgentConfigurationPayload,
     AgentLLMConfiguration,
@@ -158,6 +158,7 @@ const createDefaultConfig = (): AgentConfigurationPayload => ({
     avatar: null,
     useAbbreviations: false,
     adaptContentToUserProfile: false,
+    userProfileName: null,
     intentRecognitionTechnology: defaultIntentRecognitionTechnology,
 });
 
@@ -191,6 +192,7 @@ const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & 
     const intentRecognitionTechnology: IntentRecognitionTechnology = raw.intentRecognitionTechnology === 'llm-based'
         ? 'llm-based'
         : defaultIntentRecognitionTechnology;
+    const normalizedProfileName = typeof raw.userProfileName === 'string' ? raw.userProfileName.trim() : '';
 
     return {
         agentLanguage: raw.agentLanguage || 'original',
@@ -207,6 +209,7 @@ const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & 
         avatar: raw.avatar || null,
         useAbbreviations: raw.useAbbreviations ?? false,
         adaptContentToUserProfile: Boolean(raw.adaptContentToUserProfile),
+        userProfileName: normalizedProfileName || null,
         intentRecognitionTechnology,
     };
 };
@@ -269,6 +272,8 @@ export const AgentConfigScreen: React.FC = () => {
     const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
     const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || '');
     const [isLoading, setIsLoading] = useState(false);
+    const [userProfiles, setUserProfiles] = useState<StoredUserProfile[]>([]);
+    const [selectedUserProfileName, setSelectedUserProfileName] = useState<string>(initialConfig.userProfileName || '');
 
     const [agentLanguage, setAgentLanguage] = useState(initialConfig.agentLanguage);
     const [inputModalities, setInputModalities] = useState<string[]>([...initialConfig.inputModalities]);
@@ -323,9 +328,32 @@ export const AgentConfigScreen: React.FC = () => {
 
     const handleAvatarRemove = () => setAvatarData(null);
 
+    const handleAdaptContentToggle = (checked: boolean) => {
+        setAdaptContentToUserProfile(checked);
+        if (!checked) {
+            setSelectedUserProfileName('');
+        }
+    };
+
     const updateInterfaceStyle = (field: keyof InterfaceStyleSetting, value: InterfaceStyleSetting[keyof InterfaceStyleSetting]) => {
         setInterfaceStyle(prev => ({ ...prev, [field]: value }));
     };
+
+    const refreshUserProfiles = useCallback(() => {
+        const profiles = LocalStorageRepository.getUserProfiles()
+            .filter((profile) => profile.model?.type === UMLDiagramType.UserDiagram);
+        setUserProfiles(profiles);
+        setSelectedUserProfileName((currentName) => {
+            if (!currentName) {
+                return '';
+            }
+            return profiles.some((profile) => profile.name === currentName) ? currentName : '';
+        });
+    }, []);
+
+    useEffect(() => {
+        refreshUserProfiles();
+    }, [refreshUserProfiles]);
 
     const refreshSavedConfigurations = useCallback((preferredId?: string) => {
         const configs = LocalStorageRepository.getAgentConfigurations();
@@ -386,6 +414,7 @@ export const AgentConfigScreen: React.FC = () => {
         setAvatarData(normalized.avatar || null);
         setUseAbbreviations(normalized.useAbbreviations);
         setAdaptContentToUserProfile(normalized.adaptContentToUserProfile);
+        setSelectedUserProfileName(normalized.userProfileName || '');
         setIntentRecognitionTechnology(normalized.intentRecognitionTechnology);
 
         if (source) {
@@ -463,8 +492,75 @@ export const AgentConfigScreen: React.FC = () => {
         avatar: avatarData,
         useAbbreviations,
         adaptContentToUserProfile,
+        userProfileName: adaptContentToUserProfile ? (selectedUserProfileName.trim() || null) : null,
         intentRecognitionTechnology,
     });
+
+    const buildStructuredExport = (config: AgentConfigurationPayload) => ({
+        presentation: {
+            agentLanguage: config.agentLanguage,
+            agentStyle: config.agentStyle,
+            languageComplexity: config.languageComplexity,
+            sentenceLength: config.sentenceLength,
+            interfaceStyle: config.interfaceStyle,
+            voiceStyle: config.voiceStyle,
+            avatar: config.avatar,
+            useAbbreviations: config.useAbbreviations,
+        },
+        modality: {
+            inputModalities: config.inputModalities,
+            outputModalities: config.outputModalities,
+        },
+        behavior: {
+            responseTiming: config.responseTiming,
+        },
+        content: {
+            adaptContentToUserProfile: config.adaptContentToUserProfile,
+            userProfileName: config.userProfileName,
+        },
+        system: {
+            agentPlatform: config.agentPlatform,
+            intentRecognitionTechnology: config.intentRecognitionTechnology,
+            llm: config.llm,
+        },
+    });
+
+    const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> => {
+        if (!raw || typeof raw !== 'object') {
+            return raw || {};
+        }
+
+        const structuredKeys = ['presentation', 'modality', 'behavior', 'content', 'system'];
+        const isStructured = structuredKeys.some((key) => key in raw);
+        if (!isStructured) {
+            return raw;
+        }
+
+        const presentation = raw.presentation || {};
+        const modality = raw.modality || {};
+        const behavior = raw.behavior || {};
+        const content = raw.content || {};
+        const system = raw.system || {};
+
+        return {
+            agentLanguage: presentation.agentLanguage,
+            agentStyle: presentation.agentStyle,
+            languageComplexity: presentation.languageComplexity,
+            sentenceLength: presentation.sentenceLength,
+            interfaceStyle: presentation.interfaceStyle,
+            voiceStyle: presentation.voiceStyle,
+            avatar: presentation.avatar,
+            useAbbreviations: presentation.useAbbreviations,
+            inputModalities: modality.inputModalities,
+            outputModalities: modality.outputModalities,
+            responseTiming: behavior.responseTiming,
+            adaptContentToUserProfile: content.adaptContentToUserProfile,
+            userProfileName: content.userProfileName,
+            agentPlatform: system.agentPlatform,
+            intentRecognitionTechnology: system.intentRecognitionTechnology,
+            llm: system.llm,
+        };
+    };
 
     const saveConfiguration = (
         options?: {
@@ -619,9 +715,10 @@ export const AgentConfigScreen: React.FC = () => {
 
     const handleDownload = () => {
         const config = getConfigObject();
+        const structuredExport = buildStructuredExport(config);
         const slug = configurationName.trim().toLowerCase().replace(/[^a-z0-9-_]+/g, '-');
         const filename = slug ? `${slug}.json` : 'agent_config.json';
-        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(structuredExport, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -639,7 +736,8 @@ export const AgentConfigScreen: React.FC = () => {
         reader.onload = (event) => {
             try {
                 const config = JSON.parse(event.target?.result as string);
-                const normalized = normalizeAgentConfiguration(config);
+                const prepared = flattenStructuredConfig(config);
+                const normalized = normalizeAgentConfiguration(prepared);
                 applyConfiguration(normalized);
                 localStorage.setItem(configKey, JSON.stringify(normalized));
                 alert('Configuration loaded from file. Remember to save it if you want it in your library.');
@@ -1132,11 +1230,32 @@ export const AgentConfigScreen: React.FC = () => {
                                 id="adaptContentToUserProfile"
                                 label="Adapt content to user profile"
                                 checked={adaptContentToUserProfile}
-                                onChange={e => setAdaptContentToUserProfile(e.target.checked)}
+                                    onChange={e => handleAdaptContentToggle(e.target.checked)}
                             />
                         </Form.Group>
+                            {adaptContentToUserProfile && (
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Select user profile</Form.Label>
+                                    <Form.Select
+                                        value={selectedUserProfileName || ''}
+                                        onChange={e => setSelectedUserProfileName(e.target.value)}
+                                    >
+                                        <option value="">None</option>
+                                        {userProfiles.map((profile) => (
+                                            <option key={profile.id} value={profile.name}>
+                                                {profile.name}
+                                            </option>
+                                        ))}
+                                    </Form.Select>
+                                    {userProfiles.length === 0 && (
+                                        <Form.Text className="text-muted">
+                                            No saved user profiles available. Save one from the user diagram screen first.
+                                        </Form.Text>
+                                    )}
+                                </Form.Group>
+                            )}
                         <Form.Text className="text-muted">
-                            Enable this option to tailor generated responses to the active user profile.
+                            Enable this option to tailor generated responses to the active user profile. This option requires user profiles to be defined. You'll have then to select a profile and attributes you think are relevant for the agent to consider when adapting responses.
                         </Form.Text>
                     </Section>
                     <Section style={{ gridColumn: '1 / -1' }}>
