@@ -234,8 +234,8 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
                 </Nav.Link>
               </Nav.Item>
             )} */}
-            <HelpMenu />
             <CommunityMenu />
+            <HelpMenu />
             <DiagramTitle
               type="text"
               value={diagramTitle}
