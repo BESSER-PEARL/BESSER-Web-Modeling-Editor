@@ -49,7 +49,7 @@ app.get('/*', (req, res) => {
 const collaborationService = new CollaborationService();
 
 const server = app.listen(port, () => {
-  console.log('Apollon Standalone Server listening at http://localhost:%s', port);
+  console.log('BESSER Standalone Server listening at http://localhost:%s', port);
 });
 
 server.on('upgrade', (request, socket, head) => {
