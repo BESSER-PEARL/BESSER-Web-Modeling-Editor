@@ -31,6 +31,7 @@ export const GenerateCodeMenu: React.FC = () => {
   const [showQiskitConfig, setShowQiskitConfig] = useState(false);
   const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  const [loadingToastId, setLoadingToastId] = useState<string | number | null>(null);
   
   // GitHub deployment state
   const [showGitHubModal, setShowGitHubModal] = useState(false);
@@ -91,12 +92,16 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     if (generatorType === 'smartdata') {
+      const toastId = toast.loading('Generating Smart Data Models...');
+      setLoadingToastId(toastId);
       try {
         const jsonSchemaConfig: JSONSchemaConfig = {
           mode: 'smart_data'
         };
         if (editor) {
           await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
+          toast.dismiss(toastId);
+          toast.success('Smart Data Models generated successfully!');
           posthog.capture('generator_used', {
             generator_type: 'smartdata',
             diagram_title: diagram.title,
@@ -104,8 +109,11 @@ export const GenerateCodeMenu: React.FC = () => {
           });
         }
       } catch (error) {
+        toast.dismiss(toastId);
         console.error('Error in Smart Data Models generation:', error);
         toast.error('Smart Data Models generation failed. Check console for details.');
+      } finally {
+        setLoadingToastId(null);
       }
       return;
     }
@@ -115,9 +123,33 @@ export const GenerateCodeMenu: React.FC = () => {
       if (isQuantumDiagram && generatorType === 'qiskit') {
         setShowQiskitConfig(true);
         return;
+      } else if (generatorType === 'web_app') {
+        // Show loading toast for web app generation
+        const toastId = toast.loading('Generating web application...');
+        setLoadingToastId(toastId);
+        if (editor) {
+          await generateCode(editor, generatorType, diagram.title);
+          toast.dismiss(toastId);
+          toast.success('Web application generated successfully!');
+          setLoadingToastId(null);
+          posthog.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_title: diagram.title,
+            diagram_type: currentDiagramType
+          });
+        } else {
+          toast.dismiss(toastId);
+          toast.error('No diagram available to generate code from');
+          setLoadingToastId(null);
+        }
       } else if (editor) {
         // Regular UML diagrams use editor
+        const toastId = toast.loading(`Generating ${generatorType}...`);
+        setLoadingToastId(toastId);
         await generateCode(editor, generatorType, diagram.title);
+        toast.dismiss(toastId);
+        toast.success(`${generatorType} generated successfully!`);
+        setLoadingToastId(null);
         posthog.capture('generator_used', {
           generator_type: generatorType,
           diagram_title: diagram.title,
@@ -127,8 +159,12 @@ export const GenerateCodeMenu: React.FC = () => {
         toast.error('No diagram available to generate code from');
       }
     } catch (error) {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
       console.error('Error in code generation:', error);
       toast.error('Code generation failed. Check console for details.');
+      setLoadingToastId(null);
     }
   };
 
@@ -142,6 +178,8 @@ export const GenerateCodeMenu: React.FC = () => {
 
   const handleAgentGenerate = async () => {
     setLoadingAgent(true);
+    const toastId = toast.loading('Generating Agent code...');
+    setLoadingToastId(toastId);
     try {
       // Build base agent config (from localStorage or languages selection)
       let baseConfig: AgentConfig;
@@ -159,6 +197,8 @@ export const GenerateCodeMenu: React.FC = () => {
 
       // Send the configuration
       await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+      toast.dismiss(toastId);
+      toast.success('Agent code generated successfully!');
       posthog.capture('generator_used', {
         generator_type: 'agent',
         diagram_title: diagram.title,
@@ -168,10 +208,12 @@ export const GenerateCodeMenu: React.FC = () => {
       });
       setShowAgentLanguageModal(false);
     } catch (error) {
+      toast.dismiss(toastId);
       console.error('Error in Agent code generation:', error);
       toast.error('Agent code generation failed');
     } finally {
       setLoadingAgent(false);
+      setLoadingToastId(null);
     }
   };
 
@@ -191,6 +233,8 @@ export const GenerateCodeMenu: React.FC = () => {
       return;
     }
 
+    const toastId = toast.loading('Generating Django project...');
+    setLoadingToastId(toastId);
     try {
       const djangoConfig: DjangoConfig = {
         project_name: projectName,
@@ -198,6 +242,8 @@ export const GenerateCodeMenu: React.FC = () => {
         containerization: useDocker
       };
       await generateCode(editor!, 'django', diagram.title, djangoConfig);
+      toast.dismiss(toastId);
+      toast.success('Django project generated successfully!');
       posthog.capture('generator_used', {
         generator_type: 'django',
         diagram_title: diagram.title,
@@ -206,8 +252,11 @@ export const GenerateCodeMenu: React.FC = () => {
       });
       setShowDjangoConfig(false);
     } catch (error) {
+      toast.dismiss(toastId);
       console.error('Error in Django code generation:', error);
       toast.error('Django code generation failed');
+    } finally {
+      setLoadingToastId(null);
     }
   };
 
@@ -235,7 +284,12 @@ export const GenerateCodeMenu: React.FC = () => {
       };
       // Close the modal first, then start deployment
       setShowDjangoConfig(false);
+      const toastId = toast.loading('Deploying Django application...');
+      setLoadingToastId(toastId);
       await deployLocally(editor!, 'django', diagram.title, djangoConfig);
+      toast.dismiss(toastId);
+      toast.success('Django application deployed successfully!');
+      setLoadingToastId(null);
       posthog.capture('generator_used', {
         generator_type: 'django_deploy_locally',
         diagram_title: diagram.title,
@@ -243,17 +297,25 @@ export const GenerateCodeMenu: React.FC = () => {
         use_docker: useDocker
       });
     } catch (error) {
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId);
+      }
       console.error('Error in Django local deployment:', error);
       toast.error('Django local deployment failed');
+      setLoadingToastId(null);
     }
   };
 
   const handleSqlGenerate = async () => {
+    const toastId = toast.loading('Generating SQL...');
+    setLoadingToastId(toastId);
     try {
       const sqlConfig: SQLConfig = {
         dialect: sqlDialect
       };
       await generateCode(editor!, 'sql', diagram.title, sqlConfig);
+      toast.dismiss(toastId);
+      toast.success('SQL generated successfully!');
       posthog.capture('generator_used', {
         generator_type: 'sql',
         diagram_title: diagram.title,
@@ -262,17 +324,24 @@ export const GenerateCodeMenu: React.FC = () => {
       });
       setShowSqlConfig(false);
     } catch (error) {
+      toast.dismiss(toastId);
       console.error('Error in SQL code generation:', error);
       toast.error('SQL code generation failed');
+    } finally {
+      setLoadingToastId(null);
     }
   };
 
   const handleSqlAlchemyGenerate = async () => {
+    const toastId = toast.loading('Generating SQLAlchemy code...');
+    setLoadingToastId(toastId);
     try {
       const sqlAlchemyConfig: SQLAlchemyConfig = {
         dbms: sqlAlchemyDbms
       };
       await generateCode(editor!, 'sqlalchemy', diagram.title, sqlAlchemyConfig);
+      toast.dismiss(toastId);
+      toast.success('SQLAlchemy code generated successfully!');
       posthog.capture('generator_used', {
         generator_type: 'sqlalchemy',
         diagram_title: diagram.title,
@@ -281,17 +350,24 @@ export const GenerateCodeMenu: React.FC = () => {
       });
       setShowSqlAlchemyConfig(false);
     } catch (error) {
+      toast.dismiss(toastId);
       console.error('Error in SQLAlchemy code generation:', error);
       toast.error('SQLAlchemy code generation failed');
+    } finally {
+      setLoadingToastId(null);
     }
   };
 
   const handleJsonSchemaGenerate = async () => {
+    const toastId = toast.loading('Generating JSON Schema...');
+    setLoadingToastId(toastId);
     try {
       const jsonSchemaConfig: JSONSchemaConfig = {
         mode: jsonSchemaMode
       };
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
+      toast.dismiss(toastId);
+      toast.success('JSON Schema generated successfully!');
       posthog.capture('generator_used', {
         generator_type: 'jsonschema',
         diagram_title: diagram.title,
@@ -300,12 +376,17 @@ export const GenerateCodeMenu: React.FC = () => {
       });
       setShowJsonSchemaConfig(false);
     } catch (error) {
+      toast.dismiss(toastId);
       console.error('Error in JSON Schema code generation:', error);
       toast.error('JSON Schema code generation failed');
+    } finally {
+      setLoadingToastId(null);
     }
   };
 
   const handleQiskitGenerate = async () => {
+    const toastId = toast.loading('Generating Qiskit code...');
+    setLoadingToastId(toastId);
     try {
       const qiskitConfig: QiskitConfig = {
         backend: qiskitBackend,
@@ -313,6 +394,8 @@ export const GenerateCodeMenu: React.FC = () => {
       };
       // Pass null for editor since qiskit generator uses project data
       await generateCode(null, 'qiskit', diagram.title, qiskitConfig);
+      toast.dismiss(toastId);
+      toast.success('Qiskit code generated successfully!');
       posthog.capture('generator_used', {
         generator_type: 'qiskit',
         diagram_title: diagram.title,
@@ -321,8 +404,11 @@ export const GenerateCodeMenu: React.FC = () => {
       });
       setShowQiskitConfig(false);
     } catch (error) {
+      toast.dismiss(toastId);
       console.error('Error in Qiskit code generation:', error);
       toast.error('Qiskit code generation failed');
+    } finally {
+      setLoadingToastId(null);
     }
   };
 

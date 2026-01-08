@@ -21,6 +21,7 @@ import { registerButtonComponent } from './component-registrars/registerButtonCo
 import { registerFormComponents } from './component-registrars/registerFormComponents';
 import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
 import { registerAgentComponent } from './component-registrars/registerAgentComponent';
+import { registerLanguageSwitcherComponent } from './component-registrars/registerLanguageSwitcherComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
@@ -234,6 +235,7 @@ function registerCustomComponents(editor: Editor) {
   // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);
   registerAgentComponent(editor);
+  registerLanguageSwitcherComponent(editor);
   
   // console.log('[GraphicalUIEditor] All custom components registered');
 }
