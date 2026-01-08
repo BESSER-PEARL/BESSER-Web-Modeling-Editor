@@ -801,7 +801,7 @@ export const GenerateCodeMenu: React.FC = () => {
             <ol className="mb-0 mt-2">
               <li>We'll create a repository in your GitHub account</li>
               <li>Push the generated web app code to that repository</li>
-              <li>You can then deploy to Vercel, Netlify, or Render with one click!</li>
+              <li>You can then deploy to Render with one click!</li>
             </ol>
           </Alert>
 
@@ -870,7 +870,7 @@ export const GenerateCodeMenu: React.FC = () => {
                 <small>{deploymentResult.files_uploaded} files uploaded</small>
               </Alert>
 
-              <h5 className="mt-4 mb-3">🚀 Deploy Your App (100% FREE!):</h5>
+              <h5 className="mt-4 mb-3">🚀 Deploy Your App :</h5>
 
               <div className="d-grid gap-3">
                 <a
@@ -896,14 +896,14 @@ export const GenerateCodeMenu: React.FC = () => {
 
               <Alert variant="info" className="mt-4">
                 <small>
-                  <strong>Why Render?</strong>
+                  {/* <strong>Why Render?</strong>
                   <ul className="mb-0 mt-2">
                     <li>✅ Truly FREE - 750 hours/month for both frontend + backend</li>
                     <li>✅ One-click deploy - No manual configuration needed</li>
                     <li>✅ No payment info required</li>
                     <li>✅ Auto SSL certificates</li>
                     <li>⚠️ Spins down after 15 min idle (cold start ~30s)</li>
-                  </ul>
+                  </ul> */}
                   <strong className="d-block mt-2">Next step:</strong> Click "Deploy to Render" above, sign in (free), and your app will be live in ~2 minutes!
                 </small>
               </Alert>
