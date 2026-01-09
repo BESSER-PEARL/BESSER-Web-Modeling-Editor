@@ -94,6 +94,7 @@ export const GenerateCodeMenu: React.FC = () => {
   const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
   // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
   const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  const isUserDiagram = currentDiagramType === UMLDiagramType.UserDiagram;
 
   // Check if we're running locally (not on AWS)
   const isLocalEnvironment = BACKEND_URL === undefined ||
@@ -369,6 +370,20 @@ export const GenerateCodeMenu: React.FC = () => {
     }
   };
 
+  const handleJsonObjectGenerate = async () => {
+    if (!editor) {
+      toast.error('No diagram available to generate code from');
+      return;
+    }
+
+    try {
+      await generateCode(editor, 'json', diagram.title);
+    } catch (error) {
+      console.error('Error in JSON Object generation:', error);
+      toast.error('JSON Object generation failed');
+    }
+  };
+
   const handleQiskitGenerate = async () => {
     try {
       const qiskitConfig: QiskitConfig = {
@@ -401,6 +416,8 @@ export const GenerateCodeMenu: React.FC = () => {
         ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
           <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
+        ) : isUserDiagram ? (
+          <Dropdown.Item onClick={handleJsonObjectGenerate}>JSON Object</Dropdown.Item>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
           // ...existing code...
           <>

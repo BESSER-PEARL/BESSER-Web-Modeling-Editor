@@ -653,6 +653,18 @@ export const AgentConfigScreen: React.FC = () => {
             return;
         }
 
+        const requestConfig: AgentConfigurationPayload & { userProfileModel?: UMLModel } = { ...config };
+        if (config.adaptContentToUserProfile && config.userProfileName) {
+            const trimmedProfileName = config.userProfileName.trim();
+            if (trimmedProfileName) {
+                const availableProfiles = userProfiles.length > 0 ? userProfiles : LocalStorageRepository.getUserProfiles();
+                const selectedProfile = availableProfiles.find((profile) => profile.name === trimmedProfileName);
+                if (selectedProfile?.model && selectedProfile.model.type === UMLDiagramType.UserDiagram) {
+                    requestConfig.userProfileModel = JSON.parse(JSON.stringify(selectedProfile.model)) as UMLModel;
+                }
+            }
+        }
+
         try {
             setIsLoading(true);
             const referenceDiagramData = (diagram as any)?.referenceDiagramData;
@@ -662,7 +674,7 @@ export const AgentConfigScreen: React.FC = () => {
                 model: agentModel,
                 lastUpdate: diagram?.lastUpdate,
                 generator: 'agent',
-                config,
+                config: requestConfig,
                 ...(referenceDiagramData ? { referenceDiagramData } : {}),
             };
 
