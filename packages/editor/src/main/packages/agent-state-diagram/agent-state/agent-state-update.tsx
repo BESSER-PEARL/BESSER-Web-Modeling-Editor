@@ -127,25 +127,27 @@ class StateUpdate extends Component<Props, State> {
       this.setState({ fieldToFocus: undefined });
     }
 
-    // Sync bodyCode from props if not already set or if element changed
-    const { element, getById } = this.props;
-    const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
-    const bodies = children.filter(
-      (child): child is AgentStateMember => child instanceof AgentStateBody
-    );
-    const codeBody = bodies.find((body) => body.replyType === "code");
-    
-    if (codeBody && this.state.bodyCode === undefined) {
-      this.setState({ bodyCode: codeBody.name });
-    }
+    // Sync bodyCode from props if element changed and state not already set
+    if (prevProps.element !== this.props.element) {
+      const { element, getById } = this.props;
+      const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
+      const bodies = children.filter(
+        (child): child is AgentStateMember => child instanceof AgentStateBody
+      );
+      const codeBody = bodies.find((body) => body.replyType === "code");
+      
+      if (codeBody && this.state.bodyCode === undefined) {
+        this.setState({ bodyCode: codeBody.name });
+      }
 
-    const fallbackBodies = children.filter(
-      (child): child is AgentStateMember => child instanceof AgentStateFallbackBody
-    );
-    const codeFallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code");
-    
-    if (codeFallbackBody && this.state.fallbackBodyCode === undefined) {
-      this.setState({ fallbackBodyCode: codeFallbackBody.name });
+      const fallbackBodies = children.filter(
+        (child): child is AgentStateMember => child instanceof AgentStateFallbackBody
+      );
+      const codeFallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code");
+      
+      if (codeFallbackBody && this.state.fallbackBodyCode === undefined) {
+        this.setState({ fallbackBodyCode: codeFallbackBody.name });
+      }
     }
   }
 
