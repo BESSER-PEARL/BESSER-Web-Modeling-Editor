@@ -89,7 +89,7 @@ export const registerButtonComponent = (editor: any) => {
           setTimeout(() => {
             const actionType = this.get('action-type');
             if (actionType === 'run-method' || ['create', 'update', 'delete'].includes(actionType)) {
-              console.log('[Button] Page changed, refreshing Instance Source options');
+              // console.log('[Button] Page changed, refreshing Instance Source options');
               this.updateTraitVisibility();
             }
           }, 100);
@@ -102,7 +102,7 @@ export const registerButtonComponent = (editor: any) => {
         const pageOptions = getPageOptions(editor);
         const classOptions = getClassOptions();
         
-        console.log('[Button] Updating trait visibility for action type:', actionType);
+        // console.log('[Button] Updating trait visibility for action type:', actionType);
         
         // Base traits that are always visible
         const baseTraits = [
