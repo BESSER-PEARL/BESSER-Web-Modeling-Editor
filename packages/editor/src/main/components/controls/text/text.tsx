@@ -41,6 +41,7 @@ export const Text: React.FC<Props & Record<string, any>> = ({
       textAnchor={textAnchor}
       fontWeight={fontWeight}
       pointerEvents={pointerEvents}
+      direction="ltr"
       {...props}
     >
       {children}

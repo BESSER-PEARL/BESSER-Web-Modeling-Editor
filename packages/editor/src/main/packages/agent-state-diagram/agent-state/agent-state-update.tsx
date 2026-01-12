@@ -90,6 +90,8 @@ type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 interface State {
   colorOpen: boolean;
   fieldToFocus?: Textfield<string> | null;
+  bodyCode?: string;
+  fallbackBodyCode?: string;
 }
 
 const getInitialState = (): State => ({
@@ -119,10 +121,31 @@ class StateUpdate extends Component<Props, State> {
     }));
   };
 
-  componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<{}>, snapshot?: any) {
+  componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
     if (this.state.fieldToFocus) {
       this.state.fieldToFocus.focus();
       this.setState({ fieldToFocus: undefined });
+    }
+
+    // Sync bodyCode from props if not already set or if element changed
+    const { element, getById } = this.props;
+    const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
+    const bodies = children.filter(
+      (child): child is AgentStateMember => child instanceof AgentStateBody
+    );
+    const codeBody = bodies.find((body) => body.replyType === "code");
+    
+    if (codeBody && this.state.bodyCode === undefined) {
+      this.setState({ bodyCode: codeBody.name });
+    }
+
+    const fallbackBodies = children.filter(
+      (child): child is AgentStateMember => child instanceof AgentStateFallbackBody
+    );
+    const codeFallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code");
+    
+    if (codeFallbackBody && this.state.fallbackBodyCode === undefined) {
+      this.setState({ fallbackBodyCode: codeFallbackBody.name });
     }
   }
 
@@ -271,7 +294,9 @@ class StateUpdate extends Component<Props, State> {
                       }
                     })
                   }
-                  this.create(AgentStateBody, "code")("def action_name(session: AgentSession):\n\n\n\n\n")
+                  const defaultCode = "def action_name(session: AgentSession):\n\n\n\n\n";
+                  this.setState({ bodyCode: defaultCode });
+                  this.create(AgentStateBody, "code")(defaultCode)
                   this.forceUpdate()
                 }}
               />
@@ -341,7 +366,7 @@ class StateUpdate extends Component<Props, State> {
 
               <ResizableCodeMirrorWrapper>
                 <CodeMirror
-                  value={bodies.find((body) => body.replyType === "code")!.name}
+                  value={this.state.bodyCode || bodies.find((body) => body.replyType === "code")?.name || ""}
                   options={{
                     mode: 'python', // Enable Python syntax highlighting
                     theme: 'material', // Use the Material theme
@@ -350,15 +375,14 @@ class StateUpdate extends Component<Props, State> {
                     indentWithTabs: true,
                   }}
                   onBeforeChange={(editor, data, value) => {
-                    const body = bodies.find((body) => body.replyType === "code")!;
-                    this.props.update(body.id, { name: value }); // Update the backend with the new value
+                    // Update local state immediately for responsive typing
+                    this.setState({ bodyCode: value });
                   }}
                   onChange={(editor, data, value) => {
-                    const body = bodies.find((body) => body.replyType === "code")!;
-                    if (value.trim()) {
+                    // Update backend
+                    const body = bodies.find((body) => body.replyType === "code");
+                    if (body) {
                       this.props.update(body.id, { name: value });
-                    } else {
-
                     }
                   }}
                 />
@@ -437,7 +461,9 @@ class StateUpdate extends Component<Props, State> {
                       }
                     })
                   }
-                  this.create(AgentStateFallbackBody, "code")("def action_name(session: AgentSession):\n")
+                  const defaultCode = "def action_name(session: AgentSession):\n";
+                  this.setState({ fallbackBodyCode: defaultCode });
+                  this.create(AgentStateFallbackBody, "code")(defaultCode)
                   this.forceUpdate()
                 }}
               />
@@ -494,7 +520,7 @@ class StateUpdate extends Component<Props, State> {
 
               <ResizableCodeMirrorWrapper>
                 <CodeMirror
-                  value={fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code")!.name}
+                  value={this.state.fallbackBodyCode || fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code")?.name || ""}
                   options={{
                     mode: 'python', // Enable Python syntax highlighting
                     theme: 'material', // Use the Material theme
@@ -503,15 +529,14 @@ class StateUpdate extends Component<Props, State> {
                     indentWithTabs: true,
                   }}
                   onBeforeChange={(editor, data, value) => {
-                    const fallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code")!;
-                    this.props.update(fallbackBody.id, { name: value }); // Update the backend with the new value
+                    // Update local state immediately for responsive typing
+                    this.setState({ fallbackBodyCode: value });
                   }}
                   onChange={(editor, data, value) => {
-                    const fallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code")!;
-                    if (value.trim()) {
+                    // Update backend
+                    const fallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code");
+                    if (fallbackBody) {
                       this.props.update(fallbackBody.id, { name: value });
-                    } else {
-
                     }
                   }}
                 />
