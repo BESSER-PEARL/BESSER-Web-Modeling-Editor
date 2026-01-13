@@ -50,6 +50,15 @@ export interface IAssociationInfo {
 }
 
 /**
+ * Interface for diagram references (state machines, quantum circuits, etc.)
+ * Used to reference diagrams from method implementations
+ */
+export interface IDiagramReference {
+  id: string;
+  name: string;
+}
+
+/**
  * Service interface for bridging diagram data between different diagram types
  */
 export interface IDiagramBridgeService {
@@ -86,6 +95,26 @@ export interface IDiagramBridgeService {
    * Get all classes that are related to the given class (excluding inheritance)
    */
   getRelatedClasses(classId: string): IClassInfo[];
+
+  /**
+   * Get available state machine diagram references
+   */
+  getStateMachineDiagrams(): IDiagramReference[];
+
+  /**
+   * Set available state machine diagram references
+   */
+  setStateMachineDiagrams(diagrams: IDiagramReference[]): void;
+
+  /**
+   * Get available quantum circuit diagram references
+   */
+  getQuantumCircuitDiagrams(): IDiagramReference[];
+
+  /**
+   * Set available quantum circuit diagram references
+   */
+  setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void;
 }
 
 /**
@@ -148,6 +177,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   }
   private classDiagramData: IClassDiagramData | null = null;
   private readonly STORAGE_KEY = 'besser-class-diagram-bridge-data';
+  private stateMachineDiagrams: IDiagramReference[] = [];
+  private quantumCircuitDiagrams: IDiagramReference[] = [];
 
   /**
    * Clean attribute name by removing visibility modifiers (+, -, #)
@@ -519,6 +550,34 @@ export class DiagramBridgeService implements IDiagramBridgeService {
 
     collectHierarchy(classId);
     return hierarchy;
+  }
+
+  /**
+   * Get available state machine diagram references
+   */
+  getStateMachineDiagrams(): IDiagramReference[] {
+    return this.stateMachineDiagrams;
+  }
+
+  /**
+   * Set available state machine diagram references
+   */
+  setStateMachineDiagrams(diagrams: IDiagramReference[]): void {
+    this.stateMachineDiagrams = diagrams;
+  }
+
+  /**
+   * Get available quantum circuit diagram references
+   */
+  getQuantumCircuitDiagrams(): IDiagramReference[] {
+    return this.quantumCircuitDiagrams;
+  }
+
+  /**
+   * Set available quantum circuit diagram references
+   */
+  setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void {
+    this.quantumCircuitDiagrams = diagrams;
   }
 }
 

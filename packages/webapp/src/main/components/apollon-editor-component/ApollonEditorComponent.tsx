@@ -1,4 +1,4 @@
-import { ApollonEditor, UMLModel } from '@besser/wme';
+import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext } from 'react';
 import styled from 'styled-components';
 import { uuid } from '../../utils/uuid';
@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectPreviewedDiagramIndex } from '../../services/version-management/versionManagementSlice';
 import { addDiagramToCurrentProject } from '../../utils/localStorage';
 import { isUMLModel } from '../../types/project';
+import { selectCurrentProject } from '../../services/project/projectSlice';
 
 const ApollonContainer = styled.div`
   display: flex;
@@ -30,9 +31,28 @@ export const ApollonEditorComponent: React.FC = () => {
   const previewedDiagramIndex = useAppSelector(selectPreviewedDiagramIndex);
   const { setEditor } = useContext(ApollonEditorContext);
   const currentModel = isUMLModel(reduxDiagram?.model) ? reduxDiagram?.model : undefined;
+  const currentProject = useAppSelector(selectCurrentProject);
   
   // Track if this diagram was added to the project to avoid duplicate additions
   const diagramAddedToProjectRef = useRef<string | null>(null);
+
+  // Update diagram bridge with available diagrams from project
+  useEffect(() => {
+    if (currentProject) {
+      // Set available state machines
+      const stateMachines = currentProject.diagrams.StateMachineDiagram?.id && currentProject.diagrams.StateMachineDiagram?.title
+        ? [{ id: currentProject.diagrams.StateMachineDiagram.id, name: currentProject.diagrams.StateMachineDiagram.title }]
+        : [];
+      
+      // Set available quantum circuits
+      const quantumCircuits = currentProject.diagrams.QuantumCircuitDiagram?.id && currentProject.diagrams.QuantumCircuitDiagram?.title
+        ? [{ id: currentProject.diagrams.QuantumCircuitDiagram.id, name: currentProject.diagrams.QuantumCircuitDiagram.title }]
+        : [];
+      
+      diagramBridge.setStateMachineDiagrams(stateMachines);
+      diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
+    }
+  }, [currentProject]);
 
   useEffect(() => {
     let isSubscribed = true;
