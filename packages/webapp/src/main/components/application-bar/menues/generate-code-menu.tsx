@@ -8,6 +8,8 @@ import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
+import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
+import { GrapesJSProjectData } from '../../../types/project';
 
 export const GenerateCodeMenu: React.FC = () => {
   // Modal for spoken language selection for agent diagrams
@@ -52,6 +54,23 @@ export const GenerateCodeMenu: React.FC = () => {
     if (!isGUINoCodeDiagram && !isQuantumDiagram && !editor) {
       toast.error('No diagram available to generate code from');
       return;
+    }
+
+    // Special check for web_app generator - verify GUI model has content
+    if (generatorType === 'web_app') {
+      const project = ProjectStorageRepository.getCurrentProject();
+      const guiModel = project?.diagrams?.GUINoCodeDiagram?.model as GrapesJSProjectData | undefined;
+      
+      // Check if GUI model is empty or has no meaningful content
+      const isEmpty = !guiModel || 
+                      !guiModel.pages || 
+                      guiModel.pages.length === 0 ||
+                      guiModel.pages.every(page => !page || !page.component || Object.keys(page.component).length === 0);
+      
+      if (isEmpty) {
+        toast.error('Cannot generate web application: GUI diagram is empty. Please design your UI first in the Graphical UI Editor.');
+        return;
+      }
     }
 
     if (generatorType === 'agent') {
@@ -347,6 +366,7 @@ export const GenerateCodeMenu: React.FC = () => {
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => handleGenerateCode('django')}>Django Project</Dropdown.Item>
                 <Dropdown.Item onClick={() => handleGenerateCode('backend')}>Full Backend</Dropdown.Item>
+                <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
 
