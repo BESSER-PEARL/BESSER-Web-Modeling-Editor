@@ -27,6 +27,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import { useProject } from '../../hooks/useProject';
 import { isUMLModel } from '../../types/project';
+import { setUser } from '@sentry/react';
 
 type UserProfileSummary = {
   id: string;
@@ -93,6 +94,8 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const { diagram } = useAppSelector((state) => state.diagram);
   const [diagramTitle, setDiagramTitle] = useState<string>(diagram?.title || '');
   const [userProfiles, setUserProfiles] = useState<UserProfileSummary[]>([]);
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
+  const [currentProfile, setCurrentProfile] = useState<UserProfileSummary | null>(null);
   const [agentConfigOptions, setAgentConfigOptions] = useState<StoredAgentConfiguration[]>([]);
   const [activeAgentConfigId, setActiveAgentConfigId] = useState<string>(LocalStorageRepository.getActiveAgentConfigurationId() || '');
   const baseAgentModelRef = useRef<UMLModel | null>(null);
@@ -322,6 +325,8 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
         dispatch(setCreateNewEditor(true));
       }
       await dispatch(updateDiagramThunk({ model: storedProfile.model })).unwrap();
+      setCurrentProfileId(profileId);
+      setCurrentProfile(storedProfile);
       toast.success(`Profile "${storedProfile.name}" loaded.`);
     } catch (error) {
       console.error(error);
@@ -463,7 +468,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
       // Set collaborate view as the published type
       LocalStorageRepository.setLastPublishedType(DiagramView.COLLABORATE);
       LocalStorageRepository.setLastPublishedToken(token);
-
+      const currentProfile = userProfiles.find(p => p.id === currentProfileId);
       // Generate and copy the link without the view parameter
       const link = `${DEPLOYMENT_URL}/${token}`;
       try {
@@ -545,8 +550,9 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
                 <Nav.Item className="ms-2">
                   <Nav.Link onClick={handleSaveUserProfile}>Save Profile</Nav.Link>
                 </Nav.Item>
+                
                 <NavDropdown
-                  title="Load Profile"
+                  title={`Load Profile${currentProfile ? `: ${currentProfile.name}` : ""}`}
                   id="user-profile-dropdown"
                   className="ms-2"
                   menuVariant="dark"
