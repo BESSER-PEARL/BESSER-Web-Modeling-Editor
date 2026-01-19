@@ -235,7 +235,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
 
       LocalStorageRepository.saveAgentConfiguration(activeConfig.name, activeConfig.config, {
         personalizedAgentModel: snapshot,
-        originalAgentModel: activeConfig.originalAgentModel || baseAgentModelRef.current || null,
+        originalAgentModel: baseAgentModelRef.current || activeConfig.originalAgentModel || null,
       });
 
       try {
@@ -352,9 +352,9 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
 
       if (!configId) {
         const activeConfig = findConfigById(activeAgentConfigId);
-        const storedOriginal = activeConfig?.originalAgentModel;
         const fallbackBase = diagram?.id ? LocalStorageRepository.getAgentBaseModel(diagram.id) : null;
-        const referenceSource = storedOriginal ?? baseAgentModelRef.current ?? fallbackBase;
+        const storedOriginal = activeConfig?.originalAgentModel;
+        const referenceSource = baseAgentModelRef.current ?? fallbackBase ?? storedOriginal;
         const snapshot = cloneModel(referenceSource);
 
         if (snapshot) {
@@ -391,10 +391,13 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
       LocalStorageRepository.setActiveAgentConfigurationId(configId);
       setActiveAgentConfigId(configId);
 
-      if (target.originalAgentModel) {
-        baseAgentModelRef.current = JSON.parse(JSON.stringify(target.originalAgentModel));
+      const storedBase = diagram?.id ? LocalStorageRepository.getAgentBaseModel(diagram.id) : null;
+      const latestBase = storedBase || baseAgentModelRef.current || (target.originalAgentModel ? cloneModel(target.originalAgentModel) : null);
+
+      if (latestBase) {
+        baseAgentModelRef.current = latestBase;
         if (diagram?.id) {
-          LocalStorageRepository.saveAgentBaseModel(diagram.id, target.originalAgentModel);
+          LocalStorageRepository.saveAgentBaseModel(diagram.id, latestBase);
         }
       }
 
