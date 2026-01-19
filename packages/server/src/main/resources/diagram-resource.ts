@@ -1,6 +1,4 @@
 import { Request, Response } from 'express';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { DiagramDTO } from 'shared';
 import { DiagramService } from '../services/diagram-service/diagram-service';
 import { DiagramStorageFactory } from '../services/diagram-storage';
@@ -91,29 +89,5 @@ export class DiagramResource {
         console.error(error);
         res.status(503).send('Error occurred while editing version');
       });
-  };
-
-  convertSvgToPdf = (req: Request, res: Response) => {
-    const width: number = req.body.width;
-    const height: number = req.body.height;
-    if (width === undefined || height === undefined) {
-      res.status(400).send('Both width and height must be defined');
-    } else {
-      pdfMake.vfs = pdfFonts.pdfMake.vfs;
-      const svg = req.body.svg;
-      const doc = pdfMake.createPdf({
-        content: [
-          {
-            svg,
-          },
-        ],
-        pageSize: { width, height },
-        pageMargins: 0,
-      });
-      const document = doc.getStream();
-
-      document.pipe(res);
-      document.end();
-    }
   };
 }
