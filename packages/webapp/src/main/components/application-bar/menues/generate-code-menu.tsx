@@ -49,17 +49,24 @@ export const GenerateCodeMenu: React.FC = () => {
   const editor = apollonEditor?.editor;
 
   // Helper to get model size metrics for analytics
-  const getModelMetrics = () => {
-    if (!diagram?.model) return { elements_count: 0, relationships_count: 0, total_size: 0 };
-    const model = diagram.model as any;
-    const elementsCount = model.elements ? Object.keys(model.elements).length : 0;
-    const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
-    return { 
-      elements_count: elementsCount, 
-      relationships_count: relationshipsCount,
-      total_size: elementsCount + relationshipsCount
-    };
+ const getModelMetrics = () => {
+  if (!diagram?.model) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
+  const model = diagram.model as any;
+  
+  const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
+  const classesCount = model.elements 
+    ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length 
+    : 0;
+  
+  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+  
+  return { 
+    elements_count: allElementsCount,
+    classes_count: classesCount,
+    relationships_count: relationshipsCount,
+    total_size: allElementsCount + relationshipsCount
   };
+};
 
   // Detect if we're on the Quantum Circuit editor page by checking the URL path
   const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
