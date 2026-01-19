@@ -7,7 +7,7 @@ import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
 import { BACKEND_URL, localStorageAgentConfigurations } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
-import { StoredAgentConfiguration } from '../../../services/local-storage/local-storage-types';
+import { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping, StoredUserProfile } from '../../../services/local-storage/local-storage-types';
 import { LocalStorageRepository } from '../../../services/local-storage/local-storage-repository';
 
 export const GenerateCodeMenu: React.FC = () => {
@@ -31,7 +31,8 @@ export const GenerateCodeMenu: React.FC = () => {
   const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<StoredAgentConfiguration[]>([]);
-    const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
+  const [storedAgentMappings, setStoredAgentMappings] = useState<Array<StoredAgentProfileConfigurationMapping & { userProfileLabel: string; agentConfigurationLabel: string }>>([]);
+  const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
 
   const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
   const apollonEditor = useContext(ApollonEditorContext);
@@ -76,17 +77,41 @@ export const GenerateCodeMenu: React.FC = () => {
         });
 
       setStoredAgentConfigurations(usableConfigs);
-        setSelectedStoredAgentConfigIds((prev) => {
-          const stillValid = prev.filter((id) => usableConfigs.some((entry) => entry.id === id));
-          if (stillValid.length > 0) {
-            return stillValid;
-          }
-          return usableConfigs[0]?.id ? [usableConfigs[0].id] : [];
+      const profiles = LocalStorageRepository.getUserProfiles();
+      const profileNameById = profiles.reduce<Record<string, string>>((acc, profile) => {
+        acc[profile.id] = profile.name;
+        return acc;
+      }, {});
+
+      const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+      const enrichedMappings = mappings
+        .filter((mapping) => usableConfigs.some((cfg) => cfg.id === mapping.agentConfigurationId))
+        .map((mapping) => {
+          const config = usableConfigs.find((cfg) => cfg.id === mapping.agentConfigurationId);
+          return {
+            ...mapping,
+            userProfileLabel: profileNameById[mapping.userProfileId] || mapping.userProfileName || 'Unknown profile',
+            agentConfigurationLabel: config?.name || mapping.agentConfigurationName || 'Unknown configuration',
+          };
         });
+
+      setStoredAgentMappings(enrichedMappings);
+
+      setSelectedStoredAgentConfigIds((prev) => {
+        const stillValid = prev.filter((id) => usableConfigs.some((entry) => entry.id === id));
+        if (stillValid.length > 0) {
+          return stillValid;
+        }
+        if (enrichedMappings.length > 0) {
+          return [enrichedMappings[0].agentConfigurationId];
+        }
+        return usableConfigs[0]?.id ? [usableConfigs[0].id] : [];
+      });
     } catch (error) {
       console.error('Failed to parse stored agent configurations from localStorage', error);
       setStoredAgentConfigurations([]);
-        setSelectedStoredAgentConfigIds([]);
+      setStoredAgentMappings([]);
+      setSelectedStoredAgentConfigIds([]);
     }
   }, [showAgentLanguageModal]);
 
@@ -191,16 +216,50 @@ export const GenerateCodeMenu: React.FC = () => {
       }
  // If mode is personalization, load mapping and send it under personalizationrules
       if (agentMode === 'personalization') {
-        const mappingRaw = localStorage.getItem('agentPersonalization');
-        let mapping = null;
-        try {
-          mapping = mappingRaw ? JSON.parse(mappingRaw) : null;
-        } catch {
-          mapping = null;
+        const profiles = LocalStorageRepository.getUserProfiles();
+        const selectedMappings = storedAgentMappings.filter((entry) => selectedStoredAgentConfigIds.includes(entry.agentConfigurationId));
+
+        if (selectedMappings.length === 0) {
+          toast.error('Select at least one mapping to generate personalized agents.');
+          return;
         }
+
+        const personalizationMapping = selectedMappings
+          .map((entry) => {
+            const profile = profiles.find((p) => p.id === entry.userProfileId);
+            const config = storedAgentConfigurations.find((cfg) => cfg.id === entry.agentConfigurationId);
+
+            if (!profile || !profile.model) {
+              return null;
+            }
+            if (!config) {
+              return null;
+            }
+
+            const agentModel = config.personalizedAgentModel || config.baseAgentModel;
+            if (!agentModel) {
+              return null;
+            }
+
+            return {
+              name: profile.name,
+              configuration: JSON.parse(JSON.stringify(config.config)),
+              user_profile: JSON.parse(JSON.stringify(profile.model)),
+              agent_model: JSON.parse(JSON.stringify(agentModel)),
+            } as any;
+          })
+          .filter(Boolean) as any[];
+
+        if (personalizationMapping.length === 0) {
+          toast.error('No valid mappings with user profiles and generated configurations found.');
+          return;
+        }
+
         const agentConfig: AgentConfig = {
-          personalizationrules: mapping || {}
+          ...baseConfig,
+          personalizationMapping,
         } as any;
+
         await generateCode(editor!, 'agent', diagram.title, agentConfig);
       } else if (agentMode === 'configuration') {
         if (storedAgentConfigurations.length === 0) {
@@ -560,31 +619,57 @@ export const GenerateCodeMenu: React.FC = () => {
                 <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
               </div>
             </Form.Group>
-            {agentMode === 'configuration' && (
+            {(agentMode === 'configuration' || agentMode === 'personalization') && (
               <Form.Group className="mb-3">
-                <Form.Label>Select stored configurations</Form.Label>
-                {storedAgentConfigurations.length === 0 ? (
-                  <Form.Text className="text-muted d-block">
-                    No saved configurations with generated agents found. Use "Save & Apply" first to make them available here.
-                  </Form.Text>
-                ) : (
-                  <div className="d-flex flex-column gap-2">
-                    {storedAgentConfigurations.map((entry) => (
-                      <Form.Check
-                        key={entry.id}
-                        type="checkbox"
-                        name="storedAgentConfig"
-                        id={`storedAgentConfig-${entry.id}`}
-                        label={`${entry.name} (${new Date(entry.savedAt).toLocaleString()})`}
-                        value={entry.id}
-                        checked={selectedStoredAgentConfigIds.includes(entry.id)}
-                        onChange={() => handleStoredAgentConfigToggle(entry.id)}
-                      />
-                    ))}
-                    <Form.Text className="text-muted">
-                      Select one or more configurations (only entries with generated agents are listed) to include in the request.
+                <Form.Label>{agentMode === 'personalization' ? 'Select profile → configuration mappings' : 'Select stored configurations'}</Form.Label>
+                {agentMode === 'personalization' ? (
+                  storedAgentMappings.length === 0 ? (
+                    <Form.Text className="text-muted d-block">
+                      No mappings with generated agents found. Create mappings and run "Save & Apply" first.
                     </Form.Text>
-                  </div>
+                  ) : (
+                    <div className="d-flex flex-column gap-2">
+                      {storedAgentMappings.map((mapping) => (
+                        <Form.Check
+                          key={mapping.id}
+                          type="checkbox"
+                          name="storedAgentMapping"
+                          id={`storedAgentMapping-${mapping.id}`}
+                          label={`${mapping.userProfileLabel} → ${mapping.agentConfigurationLabel} (${new Date(mapping.savedAt).toLocaleString()})`}
+                          value={mapping.agentConfigurationId}
+                          checked={selectedStoredAgentConfigIds.includes(mapping.agentConfigurationId)}
+                          onChange={() => handleStoredAgentConfigToggle(mapping.agentConfigurationId)}
+                        />
+                      ))}
+                      <Form.Text className="text-muted">
+                        Only mappings whose target configuration already has a generated agent are listed.
+                      </Form.Text>
+                    </div>
+                  )
+                ) : (
+                  storedAgentConfigurations.length === 0 ? (
+                    <Form.Text className="text-muted d-block">
+                      No saved configurations with generated agents found. Use "Save & Apply" first to make them available here.
+                    </Form.Text>
+                  ) : (
+                    <div className="d-flex flex-column gap-2">
+                      {storedAgentConfigurations.map((entry) => (
+                        <Form.Check
+                          key={entry.id}
+                          type="checkbox"
+                          name="storedAgentConfig"
+                          id={`storedAgentConfig-${entry.id}`}
+                          label={`${entry.name} (${new Date(entry.savedAt).toLocaleString()})`}
+                          value={entry.id}
+                          checked={selectedStoredAgentConfigIds.includes(entry.id)}
+                          onChange={() => handleStoredAgentConfigToggle(entry.id)}
+                        />
+                      ))}
+                      <Form.Text className="text-muted">
+                        Select one or more configurations (only entries with generated agents are listed) to include in the request. This will generate one agent per configuration.
+                      </Form.Text>
+                    </div>
+                  )
                 )}
               </Form.Group>
             )}
