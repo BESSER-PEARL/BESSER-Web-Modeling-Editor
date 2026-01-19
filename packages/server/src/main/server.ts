@@ -5,7 +5,6 @@ import express, { RequestHandler } from 'express';
 import * as Sentry from '@sentry/node';
 import { indexHtml, webappPath } from './constants';
 import { register } from './routes';
-import { CollaborationService } from './services/collaboration-service/collaboration-service';
 
 const port = 8080;
 
@@ -46,12 +45,7 @@ register(app);
 app.get('/*', (req, res) => {
   res.sendFile(indexHtml);
 });
-const collaborationService = new CollaborationService();
 
 const server = app.listen(port, () => {
   console.log('BESSER Standalone Server listening at http://localhost:%s', port);
-});
-
-server.on('upgrade', (request, socket, head) => {
-  collaborationService.handleUpgrade(request, socket, head);
 });

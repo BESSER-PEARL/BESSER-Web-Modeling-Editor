@@ -10,8 +10,6 @@ import { ApplicationModal } from './components/modals/application-modal';
 import { ToastContainer } from 'react-toastify';
 import { PostHogProvider } from 'posthog-js/react';
 import { ApplicationStore } from './components/store/application-store';
-import { ApollonEditorComponentWithConnection } from './components/apollon-editor-component/ApollonEditorComponentWithConnection';
-import { VersionManagementSidebar } from './components/version-management-sidebar/VersionManagementSidebar';
 import { SidebarLayout } from './components/sidebar/SidebarLayout';
 import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
@@ -105,7 +103,6 @@ function AppContentInner() {
     <ApollonEditorProvider value={{ editor, setEditor: handleSetEditor }}>
       <ApplicationBar onOpenHome={() => setShowHomeModal(true)} />
       <ApplicationModal />
-      <VersionManagementSidebar />
       {/* Home Modal */}
       <HomeModal
         show={showHomeModal}

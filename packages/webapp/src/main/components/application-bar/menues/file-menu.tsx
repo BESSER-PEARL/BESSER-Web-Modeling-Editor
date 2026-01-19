@@ -8,7 +8,6 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 
 import { showModal } from '../../../services/modal/modalSlice';
 import { useExportJSON } from '../../../services/export/useExportJson';
-import { useExportPDF } from '../../../services/export/useExportPdf';
 import { useExportPNG } from '../../../services/export/useExportPng';
 import { useExportSVG } from '../../../services/export/useExportSvg';
 import { useExportBUML } from '../../../services/export/useExportBuml';
@@ -30,7 +29,6 @@ export const FileMenu: React.FC = () => {
   const { currentProject } = useProject();
   const exportAsSVG = useExportSVG();
   const exportAsPNG = useExportPNG();
-  const exportAsPDF = useExportPDF();
   const exportAsJSON = useExportJSON();
   const exportAsBUML = useExportBUML();
   const generateProjectBumlPreview = useProjectBumlPreview();
@@ -63,7 +61,7 @@ export const FileMenu: React.FC = () => {
     handleDownloadBumlPreview,
   } = useProjectPreviewModal(generateProjectBumlPreview);
 
-  const exportDiagram = async (exportType: 'PNG' | 'PNG_WHITE' | 'SVG' | 'JSON' | 'PDF' | 'BUML'): Promise<void> => {
+  const exportDiagram = async (exportType: 'PNG' | 'PNG_WHITE' | 'SVG' | 'JSON' | 'BUML'): Promise<void> => {
     if (!editor) {
       toast.error('No diagram available to export');
       return;
@@ -79,9 +77,6 @@ export const FileMenu: React.FC = () => {
           break;
         case 'PNG':
           await exportAsPNG(editor, diagram.title, false);
-          break;
-        case 'PDF':
-          await exportAsPDF(editor, diagram.title);
           break;
         case 'JSON':
           await exportAsJSON(editor, diagram);

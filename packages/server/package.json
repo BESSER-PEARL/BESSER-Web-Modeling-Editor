@@ -26,7 +26,6 @@
     "react-router-dom": "6.30.3",
     "redis": "4.7.0",
     "rxjs": "7.8.1",
-    "shared": "*",
     "webpack-dev-server": "5.2.3"
   },
   "devDependencies": {

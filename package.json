@@ -13,7 +13,6 @@
     "node": ">=20.0.0"
   },
   "workspaces": [
-    "packages/shared",
     "packages/server",
     "packages/webapp",
     "packages/editor"
@@ -23,9 +22,8 @@
     "start": "concurrently \"npm run start:webapp\" \"npm run start:server\"",
     "start:webapp": "npm run start --workspace=webapp",
     "start:server": "npm run start --workspace=server",
-    "build": "npm run build:shared && concurrently \"npm run build:webapp\" \"npm run build:server\"",
-    "build:local": "npm run build:shared && concurrently \"npm run build:webapp:local\" \"npm run build:server\"",
-    "build:shared": "npm run build --workspace=shared",
+    "build": "concurrently \"npm run build:webapp\" \"npm run build:server\"",
+    "build:local": "concurrently \"npm run build:webapp:local\" \"npm run build:server\"",
     "build:webapp": "npm run build --workspace=webapp",
     "build:webapp:local": "npm run build:local --workspace=webapp",
     "build:server": "npm run build --workspace=server",
