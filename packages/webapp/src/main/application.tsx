@@ -19,9 +19,17 @@ import { useProject } from './hooks/useProject';
 import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
+import { CookieConsentBanner, hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
 
+// PostHog options - GDPR compliant configuration
 const postHogOptions = {
   api_host: POSTHOG_HOST,
+  autocapture: false,
+  disable_session_recording: true,
+  respect_dnt: true,
+  opt_out_capturing_by_default: !hasUserConsented(),
+  persistence: (hasUserConsented() ? 'localStorage+cookie' : 'memory') as 'localStorage+cookie' | 'memory',
+  ip: false,
 };
 
 function AppContentInner() {
@@ -182,6 +190,7 @@ export function RoutedApplication() {
     <PostHogProvider apiKey={POSTHOG_KEY} options={postHogOptions}>
       <ApplicationStore>
         <AppContent />
+        <CookieConsentBanner />
       </ApplicationStore>
     </PostHogProvider>
   );

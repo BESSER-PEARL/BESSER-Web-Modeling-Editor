@@ -48,6 +48,19 @@ export const GenerateCodeMenu: React.FC = () => {
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
 
+  // Helper to get model size metrics for analytics
+  const getModelMetrics = () => {
+    if (!diagram?.model) return { elements_count: 0, relationships_count: 0, total_size: 0 };
+    const model = diagram.model as any;
+    const elementsCount = model.elements ? Object.keys(model.elements).length : 0;
+    const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+    return { 
+      elements_count: elementsCount, 
+      relationships_count: relationshipsCount,
+      total_size: elementsCount + relationshipsCount
+    };
+  };
+
   // Detect if we're on the Quantum Circuit editor page by checking the URL path
   const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
   // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
@@ -99,8 +112,8 @@ export const GenerateCodeMenu: React.FC = () => {
           await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
           posthog.capture('generator_used', {
             generator_type: 'smartdata',
-            diagram_title: diagram.title,
-            diagram_type: currentDiagramType
+            diagram_type: currentDiagramType,
+            ...getModelMetrics()
           });
         }
       } catch (error) {
@@ -120,8 +133,8 @@ export const GenerateCodeMenu: React.FC = () => {
         await generateCode(editor, generatorType, diagram.title);
         posthog.capture('generator_used', {
           generator_type: generatorType,
-          diagram_title: diagram.title,
-          diagram_type: currentDiagramType
+          diagram_type: currentDiagramType,
+          ...getModelMetrics()
         });
       } else {
         toast.error('No diagram available to generate code from');
@@ -161,10 +174,10 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
       posthog.capture('generator_used', {
         generator_type: 'agent',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
         source_language: sourceLanguage,
-        target_languages: selectedAgentLanguages
+        target_languages: selectedAgentLanguages,
+        ...getModelMetrics()
       });
       setShowAgentLanguageModal(false);
     } catch (error) {
@@ -200,9 +213,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'django', diagram.title, djangoConfig);
       posthog.capture('generator_used', {
         generator_type: 'django',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        use_docker: useDocker
+        use_docker: useDocker,
+        ...getModelMetrics()
       });
       setShowDjangoConfig(false);
     } catch (error) {
@@ -238,9 +251,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await deployLocally(editor!, 'django', diagram.title, djangoConfig);
       posthog.capture('generator_used', {
         generator_type: 'django_deploy_locally',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        use_docker: useDocker
+        use_docker: useDocker,
+        ...getModelMetrics()
       });
     } catch (error) {
       console.error('Error in Django local deployment:', error);
@@ -256,9 +269,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'sql', diagram.title, sqlConfig);
       posthog.capture('generator_used', {
         generator_type: 'sql',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        sql_dialect: sqlDialect
+        sql_dialect: sqlDialect,
+        ...getModelMetrics()
       });
       setShowSqlConfig(false);
     } catch (error) {
@@ -275,9 +288,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'sqlalchemy', diagram.title, sqlAlchemyConfig);
       posthog.capture('generator_used', {
         generator_type: 'sqlalchemy',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        dbms: sqlAlchemyDbms
+        dbms: sqlAlchemyDbms,
+        ...getModelMetrics()
       });
       setShowSqlAlchemyConfig(false);
     } catch (error) {
@@ -294,9 +307,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
       posthog.capture('generator_used', {
         generator_type: 'jsonschema',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        json_schema_mode: jsonSchemaMode
+        json_schema_mode: jsonSchemaMode,
+        ...getModelMetrics()
       });
       setShowJsonSchemaConfig(false);
     } catch (error) {
@@ -315,9 +328,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(null, 'qiskit', diagram.title, qiskitConfig);
       posthog.capture('generator_used', {
         generator_type: 'qiskit',
-        diagram_title: diagram.title,
         qiskit_backend: qiskitBackend,
-        qiskit_shots: qiskitShots
+        qiskit_shots: qiskitShots,
+        ...getModelMetrics()
       });
       setShowQiskitConfig(false);
     } catch (error) {
@@ -355,9 +368,8 @@ export const GenerateCodeMenu: React.FC = () => {
       setShowGitHubModal(false);
       setShowDeploymentLinks(true);
       posthog.capture('github_deploy', {
-        repo_name: result.repo_name,
-        owner: result.owner,
         is_private: githubRepoPrivate,
+        ...getModelMetrics()
       });
     }
   };
