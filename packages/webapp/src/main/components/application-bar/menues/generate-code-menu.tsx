@@ -413,7 +413,7 @@ export const GenerateCodeMenu: React.FC = () => {
             <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item onClick={handleInitiateGitHubDeploy}>
-              {isAuthenticated ? `Deploy to Cloud (${username})` : 'Deploy to Cloud (Sign in)'}
+              {isAuthenticated ? `Deploy to GitHub (${username})` : 'Deploy to GitHub (Sign in)'}
             </Dropdown.Item>
             {isAuthenticated && (
               <Dropdown.Item onClick={githubLogout} className="text-muted">
