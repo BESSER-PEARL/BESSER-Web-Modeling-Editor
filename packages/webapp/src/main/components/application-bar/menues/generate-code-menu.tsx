@@ -855,6 +855,14 @@ export const GenerateCodeMenu: React.FC = () => {
                 checked={githubRepoPrivate}
                 onChange={(e) => setGithubRepoPrivate(e.target.checked)}
               />
+              {githubRepoPrivate && (
+                <Alert variant="warning" className="mt-2 mb-0">
+                  <small>
+                    <strong>⚠️ Private Repository:</strong> The one-click "Deploy to Render" button won't work. 
+                    You'll need to manually connect your GitHub account to Render and grant access to private repositories.
+                  </small>
+                </Alert>
+              )}
             </Form.Group>
           </Form>
         </Modal.Body>
