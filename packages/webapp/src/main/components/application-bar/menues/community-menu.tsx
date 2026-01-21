@@ -7,6 +7,7 @@ import { showModal } from '../../../services/modal/modalSlice';
 
 const githubRepoURL = 'https://github.com/BESSER-PEARL/BESSER';
 const contributingGuideURL = 'https://github.com/BESSER-PEARL/BESSER/blob/main/CONTRIBUTING.md';
+const userEvaluationSurveyURL = 'https://docs.google.com/forms/d/e/1FAIpQLSdhYVFFu8xiFkoV4u6Pgjf5F7-IS_W7aTj34N5YS2L143vxoQ/viewform';
 
 export const CommunityMenu: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -23,6 +24,9 @@ export const CommunityMenu: React.FC = () => {
       <NavDropdown.Item onClick={() => dispatch(showModal({ type: ModalContentType.FeedbackModal }))}>
         Send Feedback
       </NavDropdown.Item>
+      <a href={userEvaluationSurveyURL} target="_blank" className="dropdown-item">
+        User Evaluation Survey
+      </a>
       <a href={bugReportURL} target="_blank" className="dropdown-item">
         Report a Problem
       </a>
