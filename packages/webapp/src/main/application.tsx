@@ -8,6 +8,7 @@ import { ErrorPanel } from './components/error-handling/error-panel';
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { ApplicationModal } from './components/modals/application-modal';
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { PostHogProvider } from 'posthog-js/react';
 import { ApplicationStore } from './components/store/application-store';
 import { SidebarLayout } from './components/sidebar/SidebarLayout';

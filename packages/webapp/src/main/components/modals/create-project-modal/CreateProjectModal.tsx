@@ -94,8 +94,7 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
         };
         dispatch(loadDiagram(legacyDiagram));
       }
-      // TODO: Issue success toast
-      // toast.success(`Project "${formData.name}" created successfully with all diagram types!`);
+      toast.success(`Project "${formData.name}" created successfully with all diagram types!`);
       close();
       navigate('/');
 
