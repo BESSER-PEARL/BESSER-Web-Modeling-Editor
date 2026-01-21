@@ -14,6 +14,7 @@ import { showModal } from '../../services/modal/modalSlice';
 import { LayoutTextSidebarReverse, Github, Share, House, BoxArrowRight } from 'react-bootstrap-icons';
 import { ClassDiagramImporter } from './menues/class-diagram-importer';
 import { GenerateCodeMenu } from './menues/generate-code-menu';
+import { DeployMenu } from './menues/deploy-menu';
 import { validateDiagram } from '../../services/validation/validateDiagram';
 import { UMLDiagramType } from '@besser/wme';
 import { displayError } from '../../services/error-management/errorManagementSlice';
@@ -183,6 +184,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
             {/* Ensure all diagram types have access to GenerateCodeMenu and Quality Check */}
             <>
               <GenerateCodeMenu />
+              <DeployMenu />
               {APPLICATION_SERVER_VERSION && (
                 <Nav.Item>
                   <Nav.Link onClick={handleQualityCheck}>Quality Check</Nav.Link>
