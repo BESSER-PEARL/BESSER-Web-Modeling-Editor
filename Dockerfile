@@ -4,7 +4,7 @@
 ARG build_dir=/build_application
 
 # First stage: Builds the application
-FROM node:20.18.0 as builder
+FROM node:22-alpine as builder
 
 ARG build_dir
 ENV DEPLOYMENT_URL="http://localhost:8080"
@@ -20,26 +20,26 @@ RUN npm install
 RUN npm run build
 
 # Second stage: Sets up the container to run the application
-FROM node:20.18.0
+FROM node:22-alpine
 
 # Expose the application's default port
 EXPOSE 8080
 
 # Create a user and set up necessary directories and permissions
-RUN useradd -r -s /bin/false apollon_standalone \
-    && mkdir /opt/apollon_standalone
+RUN adduser -D -s /bin/sh besser_standalone \
+    && mkdir /opt/besser
 
-RUN chown -R apollon_standalone /opt/apollon_standalone
+RUN chown -R besser_standalone /opt/besser
 
 # Switch to non-root user for security
-USER apollon_standalone
-WORKDIR /opt/apollon_standalone
+USER besser_standalone
+WORKDIR /opt/besser
 
 # Copy build results from the first stage
-COPY --chown=apollon_standalone:apollon_standalone --from=builder $build_dir .
+COPY --chown=besser_standalone:besser_standalone --from=builder /build_application/build ./build
 
 # Set the working directory for the server
-WORKDIR /opt/apollon_standalone/build/server
+WORKDIR /opt/besser/build/server
 
 # Start the application
-CMD [ "node", "./src/main/server.js" ]
+CMD [ "node", "bundle.js" ]
