@@ -4,7 +4,8 @@ import { ApollonEditorContext } from '../../apollon-editor-component/apollon-edi
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
 import posthog from 'posthog-js';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
-import { useGitHubAuth, useDeployToGitHub } from '../../../services/deploy/useGitHubDeploy';
+import { useGitHubAuth } from '../../../services/github/useGitHubAuth';
+import { useDeployToGitHub } from '../../../services/deploy/useGitHubDeploy';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../constant';
@@ -43,7 +44,7 @@ export const GenerateCodeMenu: React.FC = () => {
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
-  const { isAuthenticated, username, githubSession, login: githubLogin, logout: githubLogout } = useGitHubAuth();
+  const { isAuthenticated, username, githubSession } = useGitHubAuth();
   const { deployToGitHub, isDeploying: isDeployingToGitHub, deploymentResult } = useDeployToGitHub();
   const diagram = useAppSelector((state) => state.diagram.diagram);
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
@@ -401,8 +402,7 @@ export const GenerateCodeMenu: React.FC = () => {
 
   const handleInitiateGitHubDeploy = () => {
     if (!isAuthenticated) {
-      // Not signed in, redirect to GitHub OAuth
-      githubLogin();
+      toast.info('Please connect to GitHub first using the button in the top bar');
     } else {
       // Already signed in, show deploy modal
       setShowGitHubModal(true);
@@ -430,14 +430,24 @@ export const GenerateCodeMenu: React.FC = () => {
           <>
             <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
             <Dropdown.Divider />
-            <Dropdown.Item onClick={handleInitiateGitHubDeploy}>
-              {isAuthenticated ? `Deploy to GitHub (${username})` : 'Deploy to GitHub (Sign in)'}
+            <Dropdown.Item 
+              onClick={() => {
+                if (isAuthenticated) {
+                  // Already signed in, show deploy modal
+                  setShowGitHubModal(true);
+                  const currentProject = ProjectStorageRepository.getCurrentProject();
+                  if (currentProject) {
+                    const defaultName = currentProject.name.toLowerCase().replace(/\s+/g, '-');
+                    setGithubRepoName(defaultName);
+                  }
+                } else {
+                  toast.info('Please connect to GitHub first using the button in the top bar');
+                }
+              }}
+              disabled={!isAuthenticated}
+            >
+              {isAuthenticated ? `Deploy to GitHub (${username})` : 'Deploy to GitHub (Connect first)'}
             </Dropdown.Item>
-            {isAuthenticated && (
-              <Dropdown.Item onClick={githubLogout} className="text-muted">
-                <small>Sign out from GitHub</small>
-              </Dropdown.Item>
-            )}
           </>
         ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option

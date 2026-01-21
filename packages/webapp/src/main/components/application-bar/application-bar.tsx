@@ -1,5 +1,5 @@
 ﻿import React, { ChangeEvent, useEffect, useState, useContext } from 'react';
-import { Nav, Navbar } from 'react-bootstrap';
+import { Nav, Navbar, Button } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
 import { CommunityMenu } from './menues/community-menu';
@@ -11,7 +11,7 @@ import { ModalContentType } from '../modals/application-modal-types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCreateNewEditor, setDisplayUnpublishedVersion, updateDiagramThunk } from '../../services/diagram/diagramSlice';
 import { showModal } from '../../services/modal/modalSlice';
-import { LayoutTextSidebarReverse, Github, Share, House } from 'react-bootstrap-icons';
+import { LayoutTextSidebarReverse, Github, Share, House, BoxArrowRight } from 'react-bootstrap-icons';
 import { ClassDiagramImporter } from './menues/class-diagram-importer';
 import { GenerateCodeMenu } from './menues/generate-code-menu';
 import { validateDiagram } from '../../services/validation/validateDiagram';
@@ -22,6 +22,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import { useProject } from '../../hooks/useProject';
 import { isUMLModel } from '../../types/project';
+import { useGitHubAuth } from '../../services/github/useGitHubAuth';
 
 const DiagramTitle = styled.input`
   font-size: 1rem;
@@ -72,6 +73,53 @@ const ProjectName = styled.div`
   }
 `;
 
+const GitHubButton = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+  
+  .github-user {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+  
+  .github-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    
+    &.login {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+    }
+    
+    &.logout {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.7);
+      
+      &:hover {
+        background: rgba(255, 100, 100, 0.2);
+        color: #ff6b6b;
+        border-color: rgba(255, 100, 100, 0.3);
+      }
+    }
+  }
+`;
+
 export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHome }) => {
   const dispatch = useAppDispatch();
   const { diagram } = useAppSelector((state) => state.diagram);
@@ -84,6 +132,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const editor = apollonEditor?.editor;
   const location = useLocation();
   const { currentProject } = useProject();
+  const { isAuthenticated, username, login: githubLogin, logout: githubLogout, isLoading: githubLoading } = useGitHubAuth();
 
   useEffect(() => {
     if (diagram?.title) {
@@ -113,10 +162,6 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     } else {
       toast.error('No diagram available to validate');
     }
-  };
-
-  const openGitHubRepo = () => {
-    window.open('https://github.com/BESSER-PEARL/BESSER', '_blank');
   };
 
   return (
@@ -162,11 +207,31 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
             />
           </Nav>
         </Navbar.Collapse>
-        <Nav.Item className="me-3">
-          <Nav.Link onClick={openGitHubRepo} title="View on GitHub">
-            <Github size={20} />
-          </Nav.Link>
-        </Nav.Item>
+        <GitHubButton>
+          {isAuthenticated ? (
+            <>
+              <span className="github-user">
+                <Github size={16} style={{ transform: 'translateY(-1px)' }} /> {username}
+              </span>
+              <button 
+                className="github-btn logout" 
+                onClick={githubLogout}
+                title="Sign out from GitHub"
+              >
+                <BoxArrowRight size={14} /> Sign Out
+              </button>
+            </>
+          ) : (
+            <button 
+              className="github-btn login" 
+              onClick={githubLogin}
+              disabled={githubLoading}
+              title="Connect to GitHub for deployment"
+            >
+              <Github size={16} /> {githubLoading ? 'Connecting...' : 'Connect GitHub'}
+            </button>
+          )}
+        </GitHubButton>
         <ThemeSwitcherMenu />
       </Navbar>
     </>
