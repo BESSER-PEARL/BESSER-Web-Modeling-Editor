@@ -13,6 +13,7 @@ export enum SoftwarePatternCategory {
 export enum SoftwarePatternType {
   // Structural patterns
   LIBRARY = 'Library',
+  LIBRARY_COMPLETE = 'Library Complete',
   TEAMOCL = 'Team Player with OCL',
   DPP = 'Digital Product Passport ',
   AISANDBOX = 'AI Sandbox',

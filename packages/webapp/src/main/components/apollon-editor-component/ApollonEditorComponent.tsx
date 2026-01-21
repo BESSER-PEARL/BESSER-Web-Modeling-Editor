@@ -6,7 +6,6 @@ import { uuid } from '../../utils/uuid';
 import { setCreateNewEditor, updateDiagramThunk, selectCreatenewEditor } from '../../services/diagram/diagramSlice';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { selectPreviewedDiagramIndex } from '../../services/version-management/versionManagementSlice';
 import { addDiagramToCurrentProject } from '../../utils/localStorage';
 import { isUMLModel } from '../../types/project';
 
@@ -27,7 +26,6 @@ export const ApollonEditorComponent: React.FC = () => {
   const { diagram: reduxDiagram } = useAppSelector((state) => state.diagram);
   const options = useAppSelector((state) => state.diagram.editorOptions);
   const createNewEditor = useAppSelector(selectCreatenewEditor);
-  const previewedDiagramIndex = useAppSelector(selectPreviewedDiagramIndex);
   const { setEditor } = useContext(ApollonEditorContext);
   const currentModel = isUMLModel(reduxDiagram?.model) ? reduxDiagram?.model : undefined;
   
@@ -39,7 +37,7 @@ export const ApollonEditorComponent: React.FC = () => {
     const setupEditor = async () => {
       if (!containerRef.current) return;
 
-      if (createNewEditor || previewedDiagramIndex === -1) {
+      if (createNewEditor) {
         // Reset tracking when creating a new editor
         diagramAddedToProjectRef.current = null;
         
@@ -85,18 +83,6 @@ export const ApollonEditorComponent: React.FC = () => {
 
         setEditor!(editorRef.current);
         dispatch(setCreateNewEditor(false));
-      } else if (previewedDiagramIndex !== -1 && editorRef.current) {
-        // Handle preview mode
-        const editorOptions = { ...options, readonly: true };
-        await editorRef.current.nextRender;
-        editorRef.current.destroy();
-        editorRef.current = new ApollonEditor(containerRef.current, editorOptions);
-        await editorRef.current.nextRender;
-
-        const modelToPreview = reduxDiagram?.versions && reduxDiagram.versions[previewedDiagramIndex]?.model;
-        if (isUMLModel(modelToPreview)) {
-          editorRef.current.model = modelToPreview;
-        }
       }
     };
 
@@ -104,7 +90,7 @@ export const ApollonEditorComponent: React.FC = () => {
     return () => {
       isSubscribed = false;
     };
-  }, [createNewEditor, previewedDiagramIndex, options.type]);
+  }, [createNewEditor, options.type]);
 
   const key = reduxDiagram?.id || uuid();
 

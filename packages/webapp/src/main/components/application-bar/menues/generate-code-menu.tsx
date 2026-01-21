@@ -1,9 +1,10 @@
 import React, { useContext, useState } from 'react';
-import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
+import { Dropdown, NavDropdown, Modal, Form, Button, Alert } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
 import posthog from 'posthog-js';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
+import { useGitHubAuth, useDeployToGitHub } from '../../../services/deploy/useGitHubDeploy';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../constant';
@@ -31,13 +32,42 @@ export const GenerateCodeMenu: React.FC = () => {
   const [showQiskitConfig, setShowQiskitConfig] = useState(false);
   const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  
+  // GitHub deployment state
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
+  const [githubRepoName, setGithubRepoName] = useState('');
+  const [githubRepoDescription, setGithubRepoDescription] = useState('');
+  const [githubRepoPrivate, setGithubRepoPrivate] = useState(false);
+  const [showDeploymentLinks, setShowDeploymentLinks] = useState(false);
 
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
+  const { isAuthenticated, username, githubSession, login: githubLogin, logout: githubLogout } = useGitHubAuth();
+  const { deployToGitHub, isDeploying: isDeployingToGitHub, deploymentResult } = useDeployToGitHub();
   const diagram = useAppSelector((state) => state.diagram.diagram);
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
+
+  // Helper to get model size metrics for analytics
+ const getModelMetrics = () => {
+  if (!diagram?.model) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
+  const model = diagram.model as any;
+  
+  const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
+  const classesCount = model.elements 
+    ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length 
+    : 0;
+  
+  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+  
+  return { 
+    elements_count: allElementsCount,
+    classes_count: classesCount,
+    relationships_count: relationshipsCount,
+    total_size: allElementsCount + relationshipsCount
+  };
+};
 
   // Detect if we're on the Quantum Circuit editor page by checking the URL path
   const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
@@ -107,8 +137,8 @@ export const GenerateCodeMenu: React.FC = () => {
           await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
           posthog.capture('generator_used', {
             generator_type: 'smartdata',
-            diagram_title: diagram.title,
-            diagram_type: currentDiagramType
+            diagram_type: currentDiagramType,
+            ...getModelMetrics()
           });
         }
       } catch (error) {
@@ -128,8 +158,8 @@ export const GenerateCodeMenu: React.FC = () => {
         await generateCode(editor, generatorType, diagram.title);
         posthog.capture('generator_used', {
           generator_type: generatorType,
-          diagram_title: diagram.title,
-          diagram_type: currentDiagramType
+          diagram_type: currentDiagramType,
+          ...getModelMetrics()
         });
       } else {
         toast.error('No diagram available to generate code from');
@@ -169,10 +199,10 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
       posthog.capture('generator_used', {
         generator_type: 'agent',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
         source_language: sourceLanguage,
-        target_languages: selectedAgentLanguages
+        target_languages: selectedAgentLanguages,
+        ...getModelMetrics()
       });
       setShowAgentLanguageModal(false);
     } catch (error) {
@@ -208,9 +238,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'django', diagram.title, djangoConfig);
       posthog.capture('generator_used', {
         generator_type: 'django',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        use_docker: useDocker
+        use_docker: useDocker,
+        ...getModelMetrics()
       });
       setShowDjangoConfig(false);
     } catch (error) {
@@ -246,9 +276,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await deployLocally(editor!, 'django', diagram.title, djangoConfig);
       posthog.capture('generator_used', {
         generator_type: 'django_deploy_locally',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        use_docker: useDocker
+        use_docker: useDocker,
+        ...getModelMetrics()
       });
     } catch (error) {
       console.error('Error in Django local deployment:', error);
@@ -264,9 +294,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'sql', diagram.title, sqlConfig);
       posthog.capture('generator_used', {
         generator_type: 'sql',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        sql_dialect: sqlDialect
+        sql_dialect: sqlDialect,
+        ...getModelMetrics()
       });
       setShowSqlConfig(false);
     } catch (error) {
@@ -283,9 +313,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'sqlalchemy', diagram.title, sqlAlchemyConfig);
       posthog.capture('generator_used', {
         generator_type: 'sqlalchemy',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        dbms: sqlAlchemyDbms
+        dbms: sqlAlchemyDbms,
+        ...getModelMetrics()
       });
       setShowSqlAlchemyConfig(false);
     } catch (error) {
@@ -302,9 +332,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
       posthog.capture('generator_used', {
         generator_type: 'jsonschema',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        json_schema_mode: jsonSchemaMode
+        json_schema_mode: jsonSchemaMode,
+        ...getModelMetrics()
       });
       setShowJsonSchemaConfig(false);
     } catch (error) {
@@ -323,9 +353,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(null, 'qiskit', diagram.title, qiskitConfig);
       posthog.capture('generator_used', {
         generator_type: 'qiskit',
-        diagram_title: diagram.title,
         qiskit_backend: qiskitBackend,
-        qiskit_shots: qiskitShots
+        qiskit_shots: qiskitShots,
+        ...getModelMetrics()
       });
       setShowQiskitConfig(false);
     } catch (error) {
@@ -333,6 +363,58 @@ export const GenerateCodeMenu: React.FC = () => {
       toast.error('Qiskit code generation failed');
     }
   };
+
+  const handleGitHubDeploy = async () => {
+    if (!githubRepoName.trim()) {
+      toast.error('Please enter a repository name');
+      return;
+    }
+
+    if (!githubSession) {
+      toast.error('GitHub session not found');
+      return;
+    }
+
+    const currentProject = ProjectStorageRepository.getCurrentProject();
+    if (!currentProject) {
+      toast.error('No project available for deployment');
+      return;
+    }
+
+    const result = await deployToGitHub(
+      currentProject,
+      githubRepoName,
+      githubRepoDescription || 'Web application generated by BESSER',
+      githubRepoPrivate,
+      githubSession
+    );
+
+    if (result) {
+      setShowGitHubModal(false);
+      setShowDeploymentLinks(true);
+      posthog.capture('github_deploy', {
+        is_private: githubRepoPrivate,
+        ...getModelMetrics()
+      });
+    }
+  };
+
+  const handleInitiateGitHubDeploy = () => {
+    if (!isAuthenticated) {
+      // Not signed in, redirect to GitHub OAuth
+      githubLogin();
+    } else {
+      // Already signed in, show deploy modal
+      setShowGitHubModal(true);
+      // Set default repo name from project name
+      const currentProject = ProjectStorageRepository.getCurrentProject();
+      if (currentProject) {
+        const defaultName = currentProject.name.toLowerCase().replace(/\s+/g, '-');
+        setGithubRepoName(defaultName);
+      }
+    }
+  };
+
   const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
 
   return (
@@ -347,6 +429,15 @@ export const GenerateCodeMenu: React.FC = () => {
           // No-Code Diagram: Show No-Code generation options
           <>
             <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
+            <Dropdown.Divider />
+            <Dropdown.Item onClick={handleInitiateGitHubDeploy}>
+              {isAuthenticated ? `Deploy to GitHub (${username})` : 'Deploy to GitHub (Sign in)'}
+            </Dropdown.Item>
+            {isAuthenticated && (
+              <Dropdown.Item onClick={githubLogout} className="text-muted">
+                <small>Sign out from GitHub</small>
+              </Dropdown.Item>
+            )}
           </>
         ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
@@ -733,6 +824,141 @@ export const GenerateCodeMenu: React.FC = () => {
           </Button>
           <Button variant="primary" onClick={handleQiskitGenerate}>
             Generate
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* GitHub Deployment Modal */}
+      <Modal show={showGitHubModal} onHide={() => setShowGitHubModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Deploy to GitHub</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="info">
+            <strong>How it works:</strong>
+            <ol className="mb-0 mt-2">
+              <li>We'll create a repository in your GitHub account</li>
+              <li>Push the generated web app code to that repository</li>
+              <li>You can then deploy to Render with one click!</li>
+            </ol>
+          </Alert>
+
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Repository Name</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="my-awesome-app"
+                value={githubRepoName}
+                onChange={(e) => setGithubRepoName(e.target.value)}
+              />
+              <Form.Text className="text-muted">
+                Lowercase, hyphens and underscores only
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Description (optional)</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Web application generated by BESSER"
+                value={githubRepoDescription}
+                onChange={(e) => setGithubRepoDescription(e.target.value)}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="checkbox"
+                label="Make repository private"
+                checked={githubRepoPrivate}
+                onChange={(e) => setGithubRepoPrivate(e.target.checked)}
+              />
+              {githubRepoPrivate && (
+                <Alert variant="warning" className="mt-2 mb-0">
+                  <small>
+                    <strong>⚠️ Private Repository:</strong> The one-click "Deploy to Render" button won't work. 
+                    You'll need to manually connect your GitHub account to Render and grant access to private repositories.
+                  </small>
+                </Alert>
+              )}
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowGitHubModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleGitHubDeploy}
+            disabled={isDeployingToGitHub || !githubRepoName.trim()}
+          >
+            {isDeployingToGitHub ? 'Creating Repository...' : 'Create & Deploy'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Deployment Links Modal */}
+      <Modal show={showDeploymentLinks} onHide={() => setShowDeploymentLinks(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>🎉 Repository Created Successfully!</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {deploymentResult && (
+            <>
+              <Alert variant="success">
+                <strong>Repository:</strong>{' '}
+                <a href={deploymentResult.repo_url} target="_blank" rel="noopener noreferrer">
+                  {deploymentResult.owner}/{deploymentResult.repo_name}
+                </a>
+                <br />
+                <small>{deploymentResult.files_uploaded} files uploaded</small>
+              </Alert>
+
+              <h5 className="mt-4 mb-3">🚀 Deploy Your App :</h5>
+
+              <div className="d-grid gap-3">
+                <a
+                  href={deploymentResult.deployment_urls.render}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-success btn-lg"
+                >
+                  <strong>Deploy to Render</strong>
+                  <br />
+                  <small className="text-white-50">Free full-stack deployment (Frontend + Backend)</small>
+                </a>
+
+                <a
+                  href={deploymentResult.repo_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline-secondary"
+                >
+                  View on GitHub
+                </a>
+              </div>
+
+              <Alert variant="info" className="mt-4">
+                <small>
+                  {/* <strong>Why Render?</strong>
+                  <ul className="mb-0 mt-2">
+                    <li>✅ Truly FREE - 750 hours/month for both frontend + backend</li>
+                    <li>✅ One-click deploy - No manual configuration needed</li>
+                    <li>✅ No payment info required</li>
+                    <li>✅ Auto SSL certificates</li>
+                    <li>⚠️ Spins down after 15 min idle (cold start ~30s)</li>
+                  </ul> */}
+                  <strong className="d-block mt-2">Next step:</strong> Click "Deploy to Render" above, sign in (free), and your app will be live in ~2 minutes!
+                </small>
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => setShowDeploymentLinks(false)}>
+            Done
           </Button>
         </Modal.Footer>
       </Modal>
