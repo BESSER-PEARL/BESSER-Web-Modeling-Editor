@@ -277,6 +277,46 @@ export function getInheritedEndsByClassId(classId: string): { value: string; lab
 }
 
 /**
+ * Get attributes from related classes via relationships (e.g., "measure.value" for Metric->Measure)
+ * Returns options like { value: "relationshipRole.attributeId", label: "relationshipRole.attributeName" }
+ */
+export function getRelatedClassAttributeOptions(classId: string): { value: string; label: string }[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements || !classDiagram.relationships) {
+    return [];
+  }
+
+  const relatedOptions: { value: string; label: string }[] = [];
+  
+  // Get all relationships where this class is involved (direct and inherited)
+  const allEnds = getEndsByClassId(classId, true);
+  
+  // For each relationship end, get the attributes of the related class
+  allEnds.forEach(end => {
+    const relatedClassId = end.value;
+    const relationshipRole = end.label;
+    
+    if (!relationshipRole) return;
+    
+    // Get attributes of the related class (including inherited)
+    const relatedAttrs = getAttributeOptionsByClassId(relatedClassId);
+    const relatedInheritedAttrs = getInheritedAttributeOptionsByClassId(relatedClassId);
+    const allRelatedAttrs = [...relatedAttrs, ...relatedInheritedAttrs];
+    
+    // Create options like "measure.value"
+    allRelatedAttrs.forEach(attr => {
+      relatedOptions.push({
+        value: `${relationshipRole}.${attr.value}`,
+        label: `${relationshipRole}.${attr.label}`
+      });
+    });
+  });
+  
+  return relatedOptions;
+}
+
+/**
  * Get agent options from AgentDiagram - returns the entire diagram as an option
  */
 export function getAgentOptions(): { value: string; label: string }[] {
