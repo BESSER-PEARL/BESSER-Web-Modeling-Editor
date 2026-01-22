@@ -847,9 +847,15 @@ export const UMLAgentModeling: React.FC = () => {
       }
 
       // Track vibe modeling agent usage
+      const elementsCount = modelSnapshot?.elements ? Object.keys(modelSnapshot.elements).length : 0;
+      const relationshipsCount = modelSnapshot?.relationships ? Object.keys(modelSnapshot.relationships).length : 0;
+      
       posthog.capture('vibe_modeling_agent_message', {
         diagram_type: currentDiagramType,
-        message_length: inputValue.length
+        message_length: inputValue.length,
+        elements_count: elementsCount,
+        relationships_count: relationshipsCount,
+        total_size: elementsCount + relationshipsCount
       });
 
       setInputValue('');

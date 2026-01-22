@@ -869,15 +869,14 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
     });
   }
   
-  // Create all pages synchronously - columns are pre-generated so no delay needed
-  let firstPage: any = null;
+  // Create all pages and force render each one to ensure proper styling
+  const createdPages: any[] = [];
   
   classes.forEach((classOption: any, index: number) => {
     const className = classOption.label;
     const classId = classOption.value;
     const pageName = className.toLowerCase().replace(/\s+/g, '-');
     const pageRoute = `/${pageName}`;
-    
     
     // Get class metadata (attributes and methods)
     const classMetadata = getClassMetadata(classId);
@@ -894,19 +893,42 @@ function autoGenerateGUIFromClassDiagram(editor: Editor) {
       page.set('route_path', pageRoute);
     }
     
-    // Store the first page
-    if (index === 0) {
-      firstPage = page;
-    }
-    
-    // Build the page components programmatically
-    buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
+    // Store created page
+    createdPages.push({ page, className, classId, classMetadata, methods, index });
   });
   
-  // Select the first page after all pages are created
-  if (firstPage) {
-    pages.select(firstPage);
-  }
+  // Process each page sequentially with delays to ensure GrapesJS renders each one
+  // This ensures all pages get proper IDs and normalized styles
+  const processPages = async () => {
+    for (let i = 0; i < createdPages.length; i++) {
+      const { page, className, classId, classMetadata, methods, index } = createdPages[i];
+      
+      // Select the page to force GrapesJS to render it
+      pages.select(page);
+      
+      // Build the page components
+      buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
+      
+      // Wait for GrapesJS to process the page (render and assign IDs)
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // Trigger a canvas refresh to ensure components are processed
+      editor.refresh();
+    }
+    
+    // Return to the first page after all pages are processed
+    if (createdPages.length > 0) {
+      pages.select(createdPages[0].page);
+    }
+    
+    // Trigger a final save to persist all properly styled pages
+    setTimeout(() => {
+      editor.store();
+    }, 300);
+  };
+  
+  // Execute the async page processing
+  processPages();
   
 }
 
