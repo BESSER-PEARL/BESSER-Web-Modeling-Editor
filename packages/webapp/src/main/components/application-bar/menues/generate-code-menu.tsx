@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Dropdown, NavDropdown, Modal, Form, Button, Alert } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
@@ -59,10 +60,10 @@ export const GenerateCodeMenu: React.FC = () => {
   };
 };
 
-  // Detect if we're on the Quantum Circuit editor page by checking the URL path
-  const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
-  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
-  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  // Use React Router's useLocation for reliable path detection
+  const location = useLocation();
+  const isQuantumDiagram = /quantum-editor/.test(location.pathname);
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(location.pathname);
 
   // Check if we're running locally (not on AWS)
   const isLocalEnvironment = BACKEND_URL === undefined ||
@@ -82,15 +83,41 @@ export const GenerateCodeMenu: React.FC = () => {
       const guiModel = project?.diagrams?.GUINoCodeDiagram?.model as GrapesJSProjectData | undefined;
       
       // Check if GUI model is empty or has no meaningful content
+      // GrapesJS structure: pages[] -> frames[] -> component
       const isEmpty = !guiModel || 
                       !guiModel.pages || 
                       guiModel.pages.length === 0 ||
-                      guiModel.pages.every(page => !page || !page.component || Object.keys(page.component).length === 0);
+                      guiModel.pages.every((page: any) => {
+                        // Check for new GrapesJS structure with frames
+                        if (page.frames && Array.isArray(page.frames)) {
+                          return page.frames.every((frame: any) => 
+                            !frame || !frame.component || 
+                            !frame.component.components || 
+                            frame.component.components.length === 0
+                          );
+                        }
+                        // Fallback: check old structure with direct component
+                        return !page.component || Object.keys(page.component).length === 0;
+                      });
       
       if (isEmpty) {
         toast.error('Cannot generate web application: GUI diagram is empty. Please design your UI first in the Graphical UI Editor.');
         return;
       }
+      
+      // web_app generator doesn't need the apollon editor - it uses project data
+      try {
+        await generateCode(null, 'web_app', diagram.title);
+        posthog.capture('generator_used', {
+          generator_type: 'web_app',
+          diagram_type: currentDiagramType,
+          ...getModelMetrics()
+        });
+      } catch (error) {
+        console.error('Error in Web App generation:', error);
+        toast.error('Web App generation failed. Check console for details.');
+      }
+      return;
     }
 
     if (generatorType === 'agent') {

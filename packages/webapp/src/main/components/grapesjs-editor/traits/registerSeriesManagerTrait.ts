@@ -1,6 +1,6 @@
 
 import './seriesManagerPanel.css';
-import { getAttributeOptionsByClassId, getEndsByClassId, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
+import { getAttributeOptionsByClassId, getEndsByClassId, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId, getRelatedClassAttributeOptions } from '../diagram-helpers';
 import 'vanilla-colorful/hex-color-picker.js';
 
 // Types for GrapesJS editor and component (minimal, for this file)
@@ -27,7 +27,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
   const el = document.createElement('div');
   el.className = 'series-manager-panel';
 
-      // Helper to get dropdown options for a classId
+      // Helper to get dropdown options for a classId (all fields including relationships)
       function getFieldOptions(classId: string) {
         const attrOptions = getAttributeOptionsByClassId(classId);
         const inheritedAttrOptions = getInheritedAttributeOptionsByClassId(classId);
@@ -36,25 +36,35 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
         return [...attrOptions, ...inheritedAttrOptions, ...relOptions, ...inheritedRelOptions];
       }
 
+      // Helper to get only attribute options (no relationships) - used for Data Field
+      // Includes direct attributes, inherited attributes, and related class attributes via relationships
+      function getAttributeOnlyOptions(classId: string) {
+        const attrOptions = getAttributeOptionsByClassId(classId);
+        const inheritedAttrOptions = getInheritedAttributeOptionsByClassId(classId);
+        const relatedAttrOptions = getRelatedClassAttributeOptions(classId);
+        return [...attrOptions, ...inheritedAttrOptions, ...relatedAttrOptions];
+      }
+
       // Parse current series from attributes or default, with robust check
       let series: SeriesItem[] = [];
       const attrVal = component.getAttributes()['series'];
       if (typeof attrVal === 'string' && attrVal.trim().startsWith('[')) {
         try {
           series = JSON.parse(attrVal).map((s: any) => {
-            // Convert kebab-case keys to camelCase if present (for backward compatibility)
+            // Normalize to kebab-case keys for consistency
             const out: any = { ...s };
-            if ('data-source' in out) {
-              out.dataSource = out['data-source'];
-              delete out['data-source'];
+            // Convert camelCase to kebab-case if present (for backward compatibility)
+            if ('dataSource' in out && !('data-source' in out)) {
+              out['data-source'] = out.dataSource;
+              delete out.dataSource;
             }
-            if ('label-field' in out) {
-              out.labelField = out['label-field'];
-              delete out['label-field'];
+            if ('labelField' in out && !('label-field' in out)) {
+              out['label-field'] = out.labelField;
+              delete out.labelField;
             }
-            if ('data-field' in out) {
-              out.dataField = out['data-field'];
-              delete out['data-field'];
+            if ('dataField' in out && !('data-field' in out)) {
+              out['data-field'] = out.dataField;
+              delete out.dataField;
             }
             return out;
           });
@@ -223,7 +233,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
             labelFieldSelect.appendChild(option);
           });
 
-          // Data Field (dropdown only)
+          // Data Field (dropdown only) - use only attributes, not relationships
           const dataFieldLabel = document.createElement('label');
           dataFieldLabel.textContent = 'Data Field';
           const dataFieldSelect = document.createElement('select');
@@ -234,7 +244,8 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           dataFieldSelect.appendChild(dataBlank);
           let dataFieldOptions: Array<{ value: string; label: string }> = [];
           if (typeof s['data-source'] === 'string' && s['data-source']) {
-            dataFieldOptions = getFieldOptions(s['data-source']);
+            // Use attribute-only options for data field (numeric values)
+            dataFieldOptions = getAttributeOnlyOptions(s['data-source']);
           }
           dataFieldOptions.forEach(opt => {
             const option = document.createElement('option');

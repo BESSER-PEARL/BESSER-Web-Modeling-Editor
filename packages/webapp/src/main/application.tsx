@@ -47,7 +47,7 @@ function AppContentInner() {
     location.pathname !== '/agent-config' &&
     location.pathname !== '/agent-personalization'; 
 
-  const handleSetEditor = (newEditor: ApollonEditor) => {
+  const handleSetEditor = (newEditor: ApollonEditor | undefined) => {
     setEditor(newEditor);
   };
 
