@@ -1,5 +1,5 @@
 ﻿import React, { ChangeEvent, useEffect, useState, useContext } from 'react';
-import { Nav, Navbar, Button } from 'react-bootstrap';
+import { Nav, Navbar, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
 import { CommunityMenu } from './menues/community-menu';
@@ -12,6 +12,20 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCreateNewEditor, setDisplayUnpublishedVersion, updateDiagramThunk } from '../../services/diagram/diagramSlice';
 import { showModal } from '../../services/modal/modalSlice';
 import { LayoutTextSidebarReverse, Github, Share, House, BoxArrowRight } from 'react-bootstrap-icons';
+
+// Custom Sidebar Icon SVG component
+const SidebarIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 24 24" 
+    fill="currentColor" 
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path fillRule="evenodd" d="M11.28 9.53L8.81 12l2.47 2.47a.75.75 0 11-1.06 1.06l-3-3a.75.75 0 010-1.06l3-3a.75.75 0 111.06 1.06z"/>
+    <path fillRule="evenodd" d="M3.75 2A1.75 1.75 0 002 3.75v16.5c0 .966.784 1.75 1.75 1.75h16.5A1.75 1.75 0 0022 20.25V3.75A1.75 1.75 0 0020.25 2H3.75zM3.5 3.75a.25.25 0 01.25-.25H15v17H3.75a.25.25 0 01-.25-.25V3.75zm13 16.75v-17h3.75a.25.25 0 01.25.25v16.5a.25.25 0 01-.25.25H16.5z"/>
+  </svg>
+);
 import { ClassDiagramImporter } from './menues/class-diagram-importer';
 import { GenerateCodeMenu } from './menues/generate-code-menu';
 import { DeployMenu } from './menues/deploy-menu';
@@ -24,6 +38,7 @@ import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor
 import { useProject } from '../../hooks/useProject';
 import { isUMLModel } from '../../types/project';
 import { useGitHubAuth } from '../../services/github/useGitHubAuth';
+import { GitHubSidebar } from '../github-sidebar';
 
 const DiagramTitle = styled.input`
   font-size: 1rem;
@@ -121,10 +136,38 @@ const GitHubButton = styled.div`
   }
 `;
 
+const SidebarToggleButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 8px;
+  margin-left: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  &.has-changes {
+    color: #ffc107;
+    
+    &:hover {
+      color: #ffcd39;
+    }
+  }
+`;
+
 export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHome }) => {
   const dispatch = useAppDispatch();
   const { diagram } = useAppSelector((state) => state.diagram);
   const [diagramTitle, setDiagramTitle] = useState<string>(diagram?.title || '');
+  const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
   const urlPath = window.location.pathname;
   const tokenInUrl = urlPath.substring(1); // This removes the leading "/"
   const currentType = useAppSelector((state) => state.diagram.editorOptions.type);
@@ -235,7 +278,26 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
           )}
         </GitHubButton>
         <ThemeSwitcherMenu />
+        {isAuthenticated && (
+          <OverlayTrigger
+            placement="bottom"
+            overlay={<Tooltip>GitHub Version Control</Tooltip>}
+          >
+            <SidebarToggleButton
+              onClick={() => setIsGitHubSidebarOpen(true)}
+              title="Open GitHub sync panel"
+            >
+              <SidebarIcon size={20} />
+            </SidebarToggleButton>
+          </OverlayTrigger>
+        )}
       </Navbar>
+      
+      {/* GitHub Sidebar for version control */}
+      <GitHubSidebar 
+        isOpen={isGitHubSidebarOpen} 
+        onClose={() => setIsGitHubSidebarOpen(false)} 
+      />
     </>
   );
 };
