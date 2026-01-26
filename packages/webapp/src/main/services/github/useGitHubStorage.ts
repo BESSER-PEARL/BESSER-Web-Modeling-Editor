@@ -28,6 +28,14 @@ export interface GitHubProjectFile {
   content?: string;
 }
 
+export interface GitHubContentItem {
+  name: string;
+  path: string;
+  type: 'file' | 'dir';
+  size: number;
+  sha: string;
+}
+
 export interface LinkedRepository {
   owner: string;
   repo: string;
@@ -125,6 +133,84 @@ export const useGitHubStorage = () => {
   }, []);
 
   /**
+   * Fetch branches for a repository
+   */
+  const fetchBranches = useCallback(async (
+    githubSession: string,
+    owner: string,
+    repo: string
+  ): Promise<string[]> => {
+    try {
+      const params = new URLSearchParams({ owner, repo });
+      const response = await fetch(`${BACKEND_URL}/github/branches?${params}`, {
+        headers: {
+          'X-GitHub-Session': githubSession,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch branches');
+      }
+
+      const data = await response.json();
+      return data.branches || [];
+    } catch (error) {
+      console.error('Failed to fetch branches:', error);
+      return [];
+    }
+  }, []);
+
+  /**
+   * Check if a file exists in a repository
+   */
+  const checkFileExists = useCallback(async (
+    githubSession: string,
+    owner: string,
+    repo: string,
+    branch: string,
+    filePath: string
+  ): Promise<boolean> => {
+    try {
+      const params = new URLSearchParams({ owner, repo, branch, file_path: filePath });
+      const response = await fetch(`${BACKEND_URL}/github/file/exists?${params}`, {
+        headers: {
+          'X-GitHub-Session': githubSession,
+        },
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      return data.exists === true;
+    } catch (error) {
+      console.error('Failed to check file existence:', error);
+      return false;
+    }
+  }, []);
+
+  /**
+   * Link a repository to a project without pushing (just saves the link metadata)
+   */
+  const linkRepoOnly = useCallback((
+    projectId: string,
+    owner: string,
+    repo: string,
+    branch: string,
+    filePath: string
+  ): void => {
+    saveLinkedRepo(projectId, {
+      owner,
+      repo,
+      branch,
+      filePath,
+      lastSyncedAt: '', // Empty = never synced
+    });
+    toast.success('Repository linked! Push to sync your project.');
+  }, [saveLinkedRepo]);
+
+  /**
    * Fetch commits for a repository
    */
   const fetchCommits = useCallback(async (
@@ -196,7 +282,7 @@ export const useGitHubStorage = () => {
       }
 
       const result = await response.json();
-      
+
       // Update linked repo info
       saveLinkedRepo(project.id, {
         owner,
@@ -244,7 +330,6 @@ export const useGitHubStorage = () => {
       }
 
       const data = await response.json();
-      toast.success('Project loaded from GitHub!');
       return data.project as BesserProject;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load project';
@@ -301,7 +386,8 @@ export const useGitHubStorage = () => {
     project: BesserProject,
     repoName: string,
     description: string,
-    isPrivate: boolean
+    isPrivate: boolean,
+    filePath: string = 'besser-project.json'
   ): Promise<{ success: boolean; repoUrl?: string }> => {
     setIsLoading(true);
     try {
@@ -316,6 +402,7 @@ export const useGitHubStorage = () => {
           description,
           is_private: isPrivate,
           project_data: project,
+          file_path: filePath,
         }),
       });
 
@@ -325,13 +412,13 @@ export const useGitHubStorage = () => {
       }
 
       const result = await response.json();
-      
+
       // Link the project to the new repo
       saveLinkedRepo(project.id, {
         owner: result.owner,
         repo: repoName,
         branch: 'main',
-        filePath: 'besser-project.json',
+        filePath: filePath,
         lastSyncedAt: new Date().toISOString(),
         lastCommitSha: result.commit_sha,
       });
@@ -364,9 +451,9 @@ export const useGitHubStorage = () => {
         linkedRepo.branch,
         linkedRepo.filePath
       );
-      
+
       if (!remoteProject) return true; // Assume changes if we can't load
-      
+
       // Simple comparison - you might want a more sophisticated diff
       return JSON.stringify(project) !== JSON.stringify(remoteProject);
     } catch {
@@ -383,26 +470,136 @@ export const useGitHubStorage = () => {
     return link;
   }, [getLinkedRepo]);
 
+  /**
+   * Fetch contents of a repository path
+   */
+  const fetchRepoContents = useCallback(async (
+    githubSession: string,
+    owner: string,
+    repo: string,
+    path: string = '',
+    branch: string = 'main'
+  ): Promise<GitHubContentItem[]> => {
+    try {
+      const params = new URLSearchParams({ owner, repo, path, branch });
+      const response = await fetch(`${BACKEND_URL}/github/contents?${params}`, {
+        headers: {
+          'X-GitHub-Session': githubSession,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch contents');
+      }
+
+      const data = await response.json();
+      return data.contents || [];
+    } catch (error) {
+      console.error('Failed to fetch repo contents:', error);
+      return [];
+    }
+  }, []);
+
+  /**
+   * Get remote project silently (for diff preview - no toasts)
+   */
+  const getRemoteProjectSilent = useCallback(async (
+    githubSession: string,
+    owner: string,
+    repo: string,
+    branch: string = 'main',
+    filePath: string = 'besser-project.json'
+  ): Promise<BesserProject | null> => {
+    try {
+      const params = new URLSearchParams({ owner, repo, branch, file_path: filePath });
+      const response = await fetch(`${BACKEND_URL}/github/project/load?${params}`, {
+        headers: {
+          'X-GitHub-Session': githubSession,
+        },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      return data.project as BesserProject;
+    } catch (error) {
+      console.error('Failed to get remote project:', error);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Create a GitHub Gist from project
+   */
+  const createGist = useCallback(async (
+    githubSession: string,
+    project: BesserProject,
+    description: string,
+    isPublic: boolean
+  ): Promise<{ success: boolean; gistUrl?: string }> => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${BACKEND_URL}/github/gist/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-GitHub-Session': githubSession,
+        },
+        body: JSON.stringify({
+          project_data: project,
+          description: description || `BESSER Project: ${project.name}`,
+          is_public: isPublic,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to create Gist');
+      }
+
+      const result = await response.json();
+      toast.success('Gist created successfully!');
+      return { success: true, gistUrl: result.gist_url };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create Gist';
+      toast.error(message);
+      console.error('GitHub Gist error:', error);
+      return { success: false };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     // State
     isLoading,
     repositories,
     commits,
     linkedRepo,
-    
+
     // Actions
     fetchRepositories,
+    fetchBranches,
     fetchCommits,
+    fetchRepoContents,
     saveProjectToGitHub,
     loadProjectFromGitHub,
     loadProjectFromCommit,
     createRepositoryForProject,
     checkForChanges,
-    
+    checkFileExists,
+
     // Linking
     getLinkedRepo,
     saveLinkedRepo,
     unlinkRepo,
     initLinkedRepo,
+    linkRepoOnly,
+
+    // Diff & Gist
+    getRemoteProjectSilent,
+    createGist,
   };
 };
