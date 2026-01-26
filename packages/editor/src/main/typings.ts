@@ -94,10 +94,20 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
+export type MethodImplementationType = 'none' | 'code' | 'state_machine' | 'quantum_circuit';
+
+export type DiagramReference = {
+  id: string;
+  name: string;
+};
+
 export type UMLClassifierMember = UMLElement & {
   code?: string;
   visibility?: Visibility;
   attributeType?: string;
+  implementationType?: MethodImplementationType;
+  stateMachineId?: string;
+  quantumCircuitId?: string;
 };
 
 export interface IUMLObjectName extends UMLClassifier {

@@ -7,6 +7,7 @@ import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { MethodImplementationType } from './uml-classifier-member';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
@@ -37,6 +38,16 @@ const VisibilityDropdown = styled(Dropdown)`
   flex-shrink: 0;
 `;
 
+const ImplementationTypeDropdown = styled(Dropdown)`
+  min-width: 140px;
+  flex-shrink: 0;
+`;
+
+const DiagramDropdown = styled(Dropdown)`
+  min-width: 150px;
+  flex-shrink: 0;
+`;
+
 const NameField = styled(Textfield)`
   flex: 1;
   min-width: 0;
@@ -57,6 +68,29 @@ const MethodNameLabel = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`;
+
+const ImplementationRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: ${(props) => props.theme.color.grayLight || '#f8f9fa'};
+  border-radius: 4px;
+`;
+
+const ImplementationLabel = styled.span`
+  font-size: 11px;
+  color: ${(props) => props.theme.color.gray || '#666'};
+`;
+
+const DiagramRefLabel = styled.span`
+  font-size: 12px;
+  padding: 4px 8px;
+  background-color: ${(props) => props.theme.color.primary || '#007bff'}20;
+  color: ${(props) => props.theme.color.primary || '#007bff'};
+  border-radius: 4px;
 `;
 
 const CodeEditorWrapper = styled.div`
@@ -101,21 +135,65 @@ const VISIBILITY_OPTIONS = [
   { symbol: '~', value: 'package', label: '~' },
 ];
 
+const IMPLEMENTATION_TYPE_OPTIONS: { value: MethodImplementationType; label: string; icon: string }[] = [
+  { value: 'none', label: 'None (UML)', icon: '📋' },
+  { value: 'code', label: 'Python Code', icon: '📝' },
+  { value: 'state_machine', label: 'State Machine', icon: '🔄' },
+  { value: 'quantum_circuit', label: 'Quantum Circuit', icon: '⚛️' },
+];
+
+// Available diagram references (these would be passed as props from the webapp in a real implementation)
+export interface DiagramReference {
+  id: string;
+  name: string;
+}
+
 type Props = {
   id: string;
   onRefChange: (instance: Textfield<any>) => void;
   value: string;
   code: string;
-  onChange: (id: string, values: { name?: string; code?: string; fillColor?: string; textColor?: string; lineColor?: string }) => void;
+  implementationType?: MethodImplementationType;
+  stateMachineId?: string;
+  quantumCircuitId?: string;
+  availableStateMachines?: DiagramReference[];
+  availableQuantumCircuits?: DiagramReference[];
+  onChange: (id: string, values: { 
+    name?: string; 
+    code?: string; 
+    implementationType?: MethodImplementationType;
+    stateMachineId?: string;
+    quantumCircuitId?: string;
+    fillColor?: string; 
+    textColor?: string; 
+    lineColor?: string 
+  }) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
 };
 
-const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp, onDelete, element }: Props) => {
+const UmlMethodUpdate = ({ 
+  id, 
+  onRefChange, 
+  value, 
+  code, 
+  implementationType = 'none',
+  stateMachineId = '',
+  quantumCircuitId = '',
+  availableStateMachines = [],
+  availableQuantumCircuits = [],
+  onChange, 
+  onSubmitKeyUp, 
+  onDelete, 
+  element 
+}: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
   const [codeEditorOpen, setCodeEditorOpen] = useState(code ? true : false); // Auto-open if code exists
   const [localCode, setLocalCode] = useState(code || '');
+  const [localImplType, setLocalImplType] = useState<MethodImplementationType>(
+    implementationType || (code ? 'code' : 'none')
+  );
 
   const toggleColor = () => {
     setColorOpen(!colorOpen);
@@ -222,14 +300,59 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
     onDelete(id)();
   };
 
+  const handleImplementationTypeChange = (newType: unknown) => {
+    const implType = newType as MethodImplementationType;
+    setLocalImplType(implType);
+    
+    // Clear related fields when switching types
+    if (implType === 'none') {
+      setLocalCode('');
+      setCodeEditorOpen(false);
+      onChange(id, { implementationType: implType, code: '', stateMachineId: '', quantumCircuitId: '' });
+    } else if (implType === 'code') {
+      onChange(id, { implementationType: implType, stateMachineId: '', quantumCircuitId: '' });
+      if (!localCode) {
+        const methodName = parseMethod(value).name || 'method_name';
+        const cleanMethodName = methodName.split('(')[0].trim() || 'new_method';
+        const template = `def ${cleanMethodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+        setLocalCode(template);
+        onChange(id, { code: template, implementationType: implType });
+      }
+      setCodeEditorOpen(true);
+    } else if (implType === 'state_machine') {
+      setLocalCode('');
+      setCodeEditorOpen(false);
+      onChange(id, { implementationType: implType, code: '', quantumCircuitId: '' });
+    } else if (implType === 'quantum_circuit') {
+      setLocalCode('');
+      setCodeEditorOpen(false);
+      onChange(id, { implementationType: implType, code: '', stateMachineId: '' });
+    }
+  };
+
+  const handleStateMachineChange = (smId: unknown) => {
+    onChange(id, { stateMachineId: smId as string });
+  };
+
+  const handleQuantumCircuitChange = (qcId: unknown) => {
+    onChange(id, { quantumCircuitId: qcId as string });
+  };
+
   const visibilityValue = VISIBILITY_OPTIONS.find(v => v.symbol === visibility)?.value || 'public';
   const hasCode = localCode && localCode.trim().length > 0;
+  const currentImplOption = IMPLEMENTATION_TYPE_OPTIONS.find(opt => opt.value === localImplType);
+
+  // Determine display mode based on implementation type
+  const showCodeEditor = localImplType === 'code';
+  const showStateMachineSelector = localImplType === 'state_machine';
+  const showQuantumCircuitSelector = localImplType === 'quantum_circuit';
+  const showSignatureFields = localImplType === 'none' || (!hasCode && localImplType === 'code');
 
   return (
     <MethodRow>
       <ControlsRow>
-        {/* Show signature fields only when NOT in code mode */}
-        {!hasCode && (
+        {/* Show visibility and name fields for signature-based methods */}
+        {showSignatureFields && (
           <>
             <VisibilityDropdown value={visibilityValue} onChange={handleVisibilityChange}>
               {VISIBILITY_OPTIONS.map(vis => (
@@ -243,30 +366,116 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
               value={name} 
               onChange={handleNameChange} 
               onSubmitKeyUp={onSubmitKeyUp}
-              placeholder="method(param: type): returnType or click Code →"
+              placeholder="method(param: type): returnType"
             />
           </>
         )}
-        {/* Show method name label when in code mode */}
-        {hasCode && (
-          <MethodNameLabel title="Method defined in code below">
-            📝 {name.split('(')[0] || 'method'} (Python code)
+        
+        {/* Show method name label when in code mode with code */}
+        {hasCode && localImplType === 'code' && (
+          <MethodNameLabel title="Method defined in Python code">
+            📝 {name.split('(')[0] || 'method'}
           </MethodNameLabel>
         )}
-        <CodeButton 
-          color={hasCode ? "primary" : "link"} 
-          onClick={toggleCodeEditor}
-          title={hasCode ? "Edit Python code" : "Write Python implementation"}
-        >
-          {codeEditorOpen ? '▼ Code' : '▶ Code'}
-        </CodeButton>
+
+        {/* Show method name label for state machine reference */}
+        {showStateMachineSelector && (
+          <MethodNameLabel title="Method behavior defined by state machine">
+            🔄 {name.split('(')[0] || 'method'}
+          </MethodNameLabel>
+        )}
+
+        {/* Show method name label for quantum circuit reference */}
+        {showQuantumCircuitSelector && (
+          <MethodNameLabel title="Method behavior defined by quantum circuit">
+            ⚛️ {name.split('(')[0] || 'method'}
+          </MethodNameLabel>
+        )}
+
         <ColorButton onClick={toggleColor} />
         <Button color="link" tabIndex={-1} onClick={handleDelete}>
           <TrashIcon />
         </Button>
       </ControlsRow>
+
+      {/* Implementation Type Selection Row */}
+      <ImplementationRow>
+        <ImplementationLabel>Implementation:</ImplementationLabel>
+        <ImplementationTypeDropdown 
+          value={localImplType} 
+          onChange={handleImplementationTypeChange}
+        >
+          {IMPLEMENTATION_TYPE_OPTIONS.map(opt => (
+            <Dropdown.Item key={opt.value} value={opt.value}>
+              {opt.icon} {opt.label}
+            </Dropdown.Item>
+          ))}
+        </ImplementationTypeDropdown>
+
+        {/* State Machine Selector */}
+        {showStateMachineSelector && (
+          <>
+            {availableStateMachines.length > 0 ? (
+              <DiagramDropdown 
+                value={stateMachineId} 
+                onChange={handleStateMachineChange}
+              >
+                {[
+                  <Dropdown.Item key="__placeholder__" value="">-- Select State Machine --</Dropdown.Item>,
+                  ...availableStateMachines.map(sm => (
+                    <Dropdown.Item key={sm.id} value={sm.id}>
+                      {sm.name}
+                    </Dropdown.Item>
+                  ))
+                ]}
+              </DiagramDropdown>
+            ) : (
+              <DiagramRefLabel title="Create a State Machine diagram in your project first">
+                No state machines available
+              </DiagramRefLabel>
+            )}
+          </>
+        )}
+
+        {/* Quantum Circuit Selector */}
+        {showQuantumCircuitSelector && (
+          <>
+            {availableQuantumCircuits.length > 0 ? (
+              <DiagramDropdown 
+                value={quantumCircuitId} 
+                onChange={handleQuantumCircuitChange}
+              >
+                {[
+                  <Dropdown.Item key="__placeholder__" value="">-- Select Quantum Circuit --</Dropdown.Item>,
+                  ...availableQuantumCircuits.map(qc => (
+                    <Dropdown.Item key={qc.id} value={qc.id}>
+                      {qc.name}
+                    </Dropdown.Item>
+                  ))
+                ]}
+              </DiagramDropdown>
+            ) : (
+              <DiagramRefLabel title="Create a Quantum Circuit diagram in your project first">
+                No quantum circuits available
+              </DiagramRefLabel>
+            )}
+          </>
+        )}
+
+        {/* Code toggle button when in code mode */}
+        {showCodeEditor && (
+          <CodeButton 
+            color={hasCode ? "primary" : "link"} 
+            onClick={toggleCodeEditor}
+            title={codeEditorOpen ? "Hide code editor" : "Show code editor"}
+          >
+            {codeEditorOpen ? '▼ Code' : '▶ Code'}
+          </CodeButton>
+        )}
+      </ImplementationRow>
       
-      {codeEditorOpen && (
+      {/* Code Editor Panel */}
+      {codeEditorOpen && showCodeEditor && (
         <CodeEditorWrapper>
           <CodeEditorHeader>
             <CodeEditorTitle>Python Implementation (full method definition)</CodeEditorTitle>

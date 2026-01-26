@@ -26,6 +26,7 @@ import { UMLClassifier } from './uml-classifier';
 import UmlAttributeUpdate from './uml-classifier-attribute-update';
 import UmlMethodUpdate from './uml-classifier-method-update';
 import { UMLClassifierMember } from './uml-classifier-member';
+import { diagramBridge } from '../../../services/diagram-bridge';
 
 const Flex = styled.div`
   display: flex;
@@ -243,6 +244,11 @@ class ClassifierUpdate extends Component<Props, State> {
                   key={method.id}
                   value={method.name}
                   code={methodMember.code || ''}
+                  implementationType={methodMember.implementationType || 'none'}
+                  stateMachineId={methodMember.stateMachineId || ''}
+                  quantumCircuitId={methodMember.quantumCircuitId || ''}
+                  availableStateMachines={diagramBridge.getStateMachineDiagrams()}
+                  availableQuantumCircuits={diagramBridge.getQuantumCircuitDiagrams()}
                   onChange={this.props.update}
                   onSubmitKeyUp={() =>
                     index === methods.length - 1
