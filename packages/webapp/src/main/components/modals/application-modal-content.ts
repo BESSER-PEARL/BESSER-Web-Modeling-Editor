@@ -9,12 +9,6 @@ import { StartProjectModal } from './create-project-modal/StartProjectModal';
 import { StartFromSpreadsheetModal } from './create-project-modal/StartFromSpreadsheetModal';
 import { ImportProjectModal } from './import-project-modal/ImportProjectModal';
 import { CreateFromTemplateModal } from './create-diagram-from-template-modal/create-from-template-modal';
-import { ShareModal } from './share-modal/share-modal';
-import { CollaborationModal } from './collaboration-modal/collaboration-modal';
-import { DeleteVersionModal } from './delete-version-modal/delete-version-modal';
-import { RestoreVersionModal } from './restore-version-modal/restore-version-modal';
-import { EditVersionModal } from './edit-version-info-modal/edit-version-info-modal';
-import { CreateVersionModal } from './create-version-modal/create-version-modal';
 import { FeedbackModal } from './feedback-modal/feedback-modal';
 
 export const ApplicationModalContent: { [key in ModalContentType]: React.FC<ModalContentProps> } = {
@@ -28,11 +22,5 @@ export const ApplicationModalContent: { [key in ModalContentType]: React.FC<Moda
   [ModalContentType.StartFromSpreadsheetModal]: StartFromSpreadsheetModal,
   [ModalContentType.ImportProjectModal]: ImportProjectModal,
   [ModalContentType.CreateDiagramFromTemplateModal]: CreateFromTemplateModal,
-  [ModalContentType.ShareModal]: ShareModal,
-  [ModalContentType.CollaborationModal]: CollaborationModal,
-  [ModalContentType.DeleteVersionModal]: DeleteVersionModal,
-  [ModalContentType.RestoreVersionModal]: RestoreVersionModal,
-  [ModalContentType.EditVersionInfoModal]: EditVersionModal,
-  [ModalContentType.CreateVersionModal]: CreateVersionModal,
   [ModalContentType.FeedbackModal]: FeedbackModal,
 };

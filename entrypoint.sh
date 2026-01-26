@@ -2,5 +2,5 @@
 
 echo "Docker container has been started"
 
-cd /var/apollon_standalone/build/server
+cd /var/besser/build/server
 node server.js

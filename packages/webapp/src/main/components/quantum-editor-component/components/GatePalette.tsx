@@ -1,9 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { Gate } from './Gate';
 import { TOOLBOX_GROUPS, GATES } from '../constants';
-import { GateType, Circuit } from '../types';
-import { EXAMPLE_CIRCUITS, getCircuitsByCategory } from '../exampleCircuits';
+import { GateType } from '../types';
 
 const PaletteWrapper = styled.div`
   display: flex;
@@ -137,152 +136,19 @@ const SelectInput = styled.select`
   }
 `;
 
-// Examples Dropdown Styles
-const ExamplesSection = styled.div`
-  margin-bottom: 12px;
-  position: relative;
-`;
-
-const ExamplesButton = styled.button<{ $isOpen: boolean }>`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 40px;
-  border-radius: 6px;
-  border: 1px solid #e4e4e7;
-  background-color: ${props => props.$isOpen ? '#f0f9ff' : 'white'};
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #09090b;
-  cursor: pointer;
-  transition: all 200ms ease;
-
-  &:hover {
-    border-color: #3b82f6;
-    background-color: #f0f9ff;
-  }
-`;
-
-const ExamplesDropdown = styled.div<{ $isOpen: boolean }>`
-  display: ${props => props.$isOpen ? 'block' : 'none'};
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 4px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: white;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  max-height: 280px;
-  overflow-y: auto;
-  z-index: 1000;
-`;
-
-const ExampleCategory = styled.div`
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-`;
-
-const ExampleItem = styled.div`
-  padding: 10px 12px;
-  cursor: pointer;
-  border-bottom: 1px solid #f1f5f9;
-  transition: background-color 150ms ease;
-
-  &:hover {
-    background-color: #f0f9ff;
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const ExampleTitle = styled.div`
-  font-size: 13px;
-  font-weight: 500;
-  color: #1e293b;
-  margin-bottom: 2px;
-`;
-
-const ExampleDescription = styled.div`
-  font-size: 11px;
-  color: #64748b;
-  line-height: 1.3;
-`;
-
 interface GatePaletteProps {
     onDragStart?: (gate: GateType, e: React.MouseEvent) => void;
-    onLoadCircuit?: (circuit: Circuit) => void;
 }
 
-export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart, onLoadCircuit }) => {
+export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
     const [selectedToolbox, setSelectedToolbox] = useState('Toolbox');
-    const [examplesOpen, setExamplesOpen] = useState(false);
     const getGate = (type: string) => GATES.find(g => g.type === type);
 
     const filteredGroups = TOOLBOX_GROUPS.filter(group => group.toolbox === selectedToolbox);
-    const circuitsByCategory = getCircuitsByCategory();
-    const categoryOrder = ['Basic', 'Algorithms', 'Protocols', 'Advanced'];
-
-    const handleExampleSelect = useCallback((circuit: Circuit) => {
-        if (onLoadCircuit) {
-            // Deep clone the circuit to avoid mutations
-            const clonedCircuit: Circuit = {
-                qubitCount: circuit.qubitCount,
-                columns: circuit.columns.map(col => ({
-                    gates: col.gates.map(g => g ? { ...g, id: `${g.type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` } : null)
-                })),
-                initialStates: circuit.initialStates,
-            };
-            onLoadCircuit(clonedCircuit);
-        }
-        setExamplesOpen(false);
-    }, [onLoadCircuit]);
 
     return (
         <PaletteWrapper>
             <PaletteHeader>
-                {/* Examples Dropdown */}
-                <ExamplesSection>
-                    <ExamplesButton 
-                        $isOpen={examplesOpen}
-                        onClick={() => setExamplesOpen(!examplesOpen)}
-                    >
-                        <span>Load Example Circuit</span>
-                        <span>{examplesOpen ? '▲' : '▼'}</span>
-                    </ExamplesButton>
-                    <ExamplesDropdown $isOpen={examplesOpen}>
-                        {categoryOrder.map(category => (
-                            circuitsByCategory[category] && (
-                                <React.Fragment key={category}>
-                                    <ExampleCategory>{category}</ExampleCategory>
-                                    {circuitsByCategory[category].map((example, idx) => (
-                                        <ExampleItem
-                                            key={`${category}-${idx}`}
-                                            onClick={() => handleExampleSelect(example.circuit)}
-                                        >
-                                            <ExampleTitle>{example.name}</ExampleTitle>
-                                            <ExampleDescription>{example.description}</ExampleDescription>
-                                        </ExampleItem>
-                                    ))}
-                                </React.Fragment>
-                            )
-                        ))}
-                    </ExamplesDropdown>
-                </ExamplesSection>
-
                 {/* Toolbox Select */}
                 <SelectWrapper>
                     <SelectInput

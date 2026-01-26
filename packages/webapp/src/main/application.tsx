@@ -8,10 +8,9 @@ import { ErrorPanel } from './components/error-handling/error-panel';
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { ApplicationModal } from './components/modals/application-modal';
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { PostHogProvider } from 'posthog-js/react';
 import { ApplicationStore } from './components/store/application-store';
-import { ApollonEditorComponentWithConnection } from './components/apollon-editor-component/ApollonEditorComponentWithConnection';
-import { VersionManagementSidebar } from './components/version-management-sidebar/VersionManagementSidebar';
 import { SidebarLayout } from './components/sidebar/SidebarLayout';
 import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
@@ -19,9 +18,17 @@ import { useProject } from './hooks/useProject';
 import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
+import { CookieConsentBanner, hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
 
+// PostHog options - GDPR compliant configuration
 const postHogOptions = {
   api_host: POSTHOG_HOST,
+  autocapture: false,
+  disable_session_recording: true,
+  respect_dnt: true,
+  opt_out_capturing_by_default: !hasUserConsented(),
+  persistence: (hasUserConsented() ? 'localStorage+cookie' : 'memory') as 'localStorage+cookie' | 'memory',
+  ip: false,
 };
 
 function AppContentInner() {
@@ -40,7 +47,7 @@ function AppContentInner() {
     location.pathname !== '/agent-config' &&
     location.pathname !== '/agent-personalization'; 
 
-  const handleSetEditor = (newEditor: ApollonEditor) => {
+  const handleSetEditor = (newEditor: ApollonEditor | undefined) => {
     setEditor(newEditor);
   };
 
@@ -97,7 +104,6 @@ function AppContentInner() {
     <ApollonEditorProvider value={{ editor, setEditor: handleSetEditor }}>
       <ApplicationBar onOpenHome={() => setShowHomeModal(true)} />
       <ApplicationModal />
-      <VersionManagementSidebar />
       {/* Home Modal */}
       <HomeModal
         show={showHomeModal}
@@ -182,6 +188,7 @@ export function RoutedApplication() {
     <PostHogProvider apiKey={POSTHOG_KEY} options={postHogOptions}>
       <ApplicationStore>
         <AppContent />
+        <CookieConsentBanner />
       </ApplicationStore>
     </PostHogProvider>
   );

@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
-import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
+import { useLocation } from 'react-router-dom';
+import { Dropdown, NavDropdown, Modal, Form, Button, Alert } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
 import posthog from 'posthog-js';
@@ -8,6 +9,8 @@ import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
+import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
+import { GrapesJSProjectData } from '../../../types/project';
 
 export const GenerateCodeMenu: React.FC = () => {
   // Modal for spoken language selection for agent diagrams
@@ -37,10 +40,30 @@ export const GenerateCodeMenu: React.FC = () => {
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
 
-  // Detect if we're on the Quantum Circuit editor page by checking the URL path
-  const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
-  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
-  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  // Helper to get model size metrics for analytics
+ const getModelMetrics = () => {
+  if (!diagram?.model) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
+  const model = diagram.model as any;
+  
+  const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
+  const classesCount = model.elements 
+    ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length 
+    : 0;
+  
+  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+  
+  return { 
+    elements_count: allElementsCount,
+    classes_count: classesCount,
+    relationships_count: relationshipsCount,
+    total_size: allElementsCount + relationshipsCount
+  };
+};
+
+  // Use React Router's useLocation for reliable path detection
+  const location = useLocation();
+  const isQuantumDiagram = /quantum-editor/.test(location.pathname);
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(location.pathname);
 
   // Check if we're running locally (not on AWS)
   const isLocalEnvironment = BACKEND_URL === undefined ||
@@ -51,6 +74,49 @@ export const GenerateCodeMenu: React.FC = () => {
     // For GUI/No-Code diagrams and Quantum diagrams, we don't need the apollon editor
     if (!isGUINoCodeDiagram && !isQuantumDiagram && !editor) {
       toast.error('No diagram available to generate code from');
+      return;
+    }
+
+    // Special check for web_app generator - verify GUI model has content
+    if (generatorType === 'web_app') {
+      const project = ProjectStorageRepository.getCurrentProject();
+      const guiModel = project?.diagrams?.GUINoCodeDiagram?.model as GrapesJSProjectData | undefined;
+      
+      // Check if GUI model is empty or has no meaningful content
+      // GrapesJS structure: pages[] -> frames[] -> component
+      const isEmpty = !guiModel || 
+                      !guiModel.pages || 
+                      guiModel.pages.length === 0 ||
+                      guiModel.pages.every((page: any) => {
+                        // Check for new GrapesJS structure with frames
+                        if (page.frames && Array.isArray(page.frames)) {
+                          return page.frames.every((frame: any) => 
+                            !frame || !frame.component || 
+                            !frame.component.components || 
+                            frame.component.components.length === 0
+                          );
+                        }
+                        // Fallback: check old structure with direct component
+                        return !page.component || Object.keys(page.component).length === 0;
+                      });
+      
+      if (isEmpty) {
+        toast.error('Cannot generate web application: GUI diagram is empty. Please design your UI first in the Graphical UI Editor.');
+        return;
+      }
+      
+      // web_app generator doesn't need the apollon editor - it uses project data
+      try {
+        await generateCode(null, 'web_app', diagram.title);
+        posthog.capture('generator_used', {
+          generator_type: 'web_app',
+          diagram_type: currentDiagramType,
+          ...getModelMetrics()
+        });
+      } catch (error) {
+        console.error('Error in Web App generation:', error);
+        toast.error('Web App generation failed. Check console for details.');
+      }
       return;
     }
 
@@ -88,8 +154,8 @@ export const GenerateCodeMenu: React.FC = () => {
           await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
           posthog.capture('generator_used', {
             generator_type: 'smartdata',
-            diagram_title: diagram.title,
-            diagram_type: currentDiagramType
+            diagram_type: currentDiagramType,
+            ...getModelMetrics()
           });
         }
       } catch (error) {
@@ -109,8 +175,8 @@ export const GenerateCodeMenu: React.FC = () => {
         await generateCode(editor, generatorType, diagram.title);
         posthog.capture('generator_used', {
           generator_type: generatorType,
-          diagram_title: diagram.title,
-          diagram_type: currentDiagramType
+          diagram_type: currentDiagramType,
+          ...getModelMetrics()
         });
       } else {
         toast.error('No diagram available to generate code from');
@@ -150,10 +216,10 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
       posthog.capture('generator_used', {
         generator_type: 'agent',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
         source_language: sourceLanguage,
-        target_languages: selectedAgentLanguages
+        target_languages: selectedAgentLanguages,
+        ...getModelMetrics()
       });
       setShowAgentLanguageModal(false);
     } catch (error) {
@@ -189,9 +255,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'django', diagram.title, djangoConfig);
       posthog.capture('generator_used', {
         generator_type: 'django',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        use_docker: useDocker
+        use_docker: useDocker,
+        ...getModelMetrics()
       });
       setShowDjangoConfig(false);
     } catch (error) {
@@ -227,9 +293,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await deployLocally(editor!, 'django', diagram.title, djangoConfig);
       posthog.capture('generator_used', {
         generator_type: 'django_deploy_locally',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        use_docker: useDocker
+        use_docker: useDocker,
+        ...getModelMetrics()
       });
     } catch (error) {
       console.error('Error in Django local deployment:', error);
@@ -245,9 +311,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'sql', diagram.title, sqlConfig);
       posthog.capture('generator_used', {
         generator_type: 'sql',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        sql_dialect: sqlDialect
+        sql_dialect: sqlDialect,
+        ...getModelMetrics()
       });
       setShowSqlConfig(false);
     } catch (error) {
@@ -264,9 +330,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'sqlalchemy', diagram.title, sqlAlchemyConfig);
       posthog.capture('generator_used', {
         generator_type: 'sqlalchemy',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        dbms: sqlAlchemyDbms
+        dbms: sqlAlchemyDbms,
+        ...getModelMetrics()
       });
       setShowSqlAlchemyConfig(false);
     } catch (error) {
@@ -283,9 +349,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
       posthog.capture('generator_used', {
         generator_type: 'jsonschema',
-        diagram_title: diagram.title,
         diagram_type: currentDiagramType,
-        json_schema_mode: jsonSchemaMode
+        json_schema_mode: jsonSchemaMode,
+        ...getModelMetrics()
       });
       setShowJsonSchemaConfig(false);
     } catch (error) {
@@ -304,9 +370,9 @@ export const GenerateCodeMenu: React.FC = () => {
       await generateCode(null, 'qiskit', diagram.title, qiskitConfig);
       posthog.capture('generator_used', {
         generator_type: 'qiskit',
-        diagram_title: diagram.title,
         qiskit_backend: qiskitBackend,
-        qiskit_shots: qiskitShots
+        qiskit_shots: qiskitShots,
+        ...getModelMetrics()
       });
       setShowQiskitConfig(false);
     } catch (error) {
@@ -314,6 +380,7 @@ export const GenerateCodeMenu: React.FC = () => {
       toast.error('Qiskit code generation failed');
     }
   };
+
   const isAgentDiagram = currentDiagramType === UMLDiagramType.AgentDiagram;
 
   return (
@@ -347,6 +414,7 @@ export const GenerateCodeMenu: React.FC = () => {
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => handleGenerateCode('django')}>Django Project</Dropdown.Item>
                 <Dropdown.Item onClick={() => handleGenerateCode('backend')}>Full Backend</Dropdown.Item>
+                <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
 
