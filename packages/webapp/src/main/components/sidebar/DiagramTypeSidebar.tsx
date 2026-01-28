@@ -315,7 +315,9 @@ export const DiagramTypeSidebar: React.FC = () => {
                       onClick={() => handleAgentSubItemClick('/agent-personalization-2')}
                       title="Agent Personalization 2"
                     >
-                     <Person size={16} />
+                      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" style={{ width: 16, height: 16 }}>
+                        <path fill="#020101" d="M19.235 13.234H4.765v3.494L0 11.964l4.765-4.765v3.494h14.47V7.199L24 11.964l-4.765 4.765z" />
+                      </svg>
                     </SubItemButton>
                   </OverlayTrigger>
                 </SubItemsContainer>
