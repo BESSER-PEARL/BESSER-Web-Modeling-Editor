@@ -122,12 +122,12 @@ export const FileMenu: React.FC = () => {
       const GraphicalUIEditor = (window as any).editor;
       if (GraphicalUIEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
         console.log('[Preview] Forcing GrapesJS save before preview...');
-        
+
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('GrapesJS save timeout'));
           }, 5000);
-          
+
           GraphicalUIEditor.store((result: any) => {
             clearTimeout(timeout);
             console.log('[Preview] GrapesJS save completed');
@@ -149,7 +149,7 @@ export const FileMenu: React.FC = () => {
         exportedAt: new Date().toISOString(),
         version: '2.0.0'
       };
-      
+
       const jsonString = JSON.stringify(exportData, null, 2);
       openPreviewModal({
         project: freshProject,
@@ -217,7 +217,7 @@ export const FileMenu: React.FC = () => {
     if (file) {
       const allowedTypes = ['application/json', 'text/turtle', 'application/x-turtle'];
       const allowedExtensions = ['.json', '.ttl', '.rdf'];
-       const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+      const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
       if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
         setFileError('Only TTL, RDF, or JSON files are allowed.');
         setSelectedFile(null);
@@ -284,7 +284,7 @@ export const FileMenu: React.FC = () => {
         {currentProject && (
           <>
             {/* <NavDropdown.Divider /> */}
-            <NavDropdown.Item 
+            <NavDropdown.Item
               onClick={handleImportDiagramToCurrentProject}
               title="Import a single diagram JSON file and add it to the current project (useful for converting old diagrams)"
             >
@@ -293,30 +293,26 @@ export const FileMenu: React.FC = () => {
           </>
         )}
 
-        {/* Import Single Diagram from Image to Project - only show when a project is active */}
+        {/* Import Class Diagram from - nested dropdown - only show when a project is active */}
         {currentProject && (
-          <>
-            {/* <NavDropdown.Divider /> */}
-            <NavDropdown.Item 
+          <NavDropdown
+            drop="end"
+            title={<span className="text-dark">Import Class Diagram from</span>}
+            id="import-class-diagram-submenu"
+          >
+            <Dropdown.Item
               onClick={handleImportDiagramPictureToCurrentProject}
               title="Import Class Diagram by uploading an image containing the diagram and add it to the current project"
             >
-              Import Class Diagram from Image to Project
-            </NavDropdown.Item>
-          </>
-        )}
-
-        {/* Import Single Diagram from KG to Project - only show when a project is active */}
-        {currentProject && (
-          <>
-            {/* <NavDropdown.Divider /> */}
-            <NavDropdown.Item 
+              Image to Project
+            </Dropdown.Item>
+            <Dropdown.Item
               onClick={handleImportKGToCurrentProject}
               title="Import and convert a Knowledge Graph (KG) into a class diagram and add it to the current project"
             >
-              Import Class Diagram from KG to Project
-            </NavDropdown.Item>
-          </>
+              KG to Project
+            </Dropdown.Item>
+          </NavDropdown>
         )}
 
         {/* Load */}
@@ -506,7 +502,7 @@ export const FileMenu: React.FC = () => {
                     className="form-control"
                     id="diagram-image-file"
                     accept="image/png, image/jpeg"
-                    onChange={handleFileChange}
+                    onChange={handleImageFileChange}
                   />
                   {fileError && <div className="text-danger mt-1">{fileError}</div>}
                   {selectedFile && <div className="mt-1">Selected file: {selectedFile.name}</div>}
@@ -548,9 +544,9 @@ export const FileMenu: React.FC = () => {
       />
 
       {/* Export Project Modal */}
-      <ExportProjectModal 
-        show={showExportModal} 
-        onHide={() => setShowExportModal(false)} 
+      <ExportProjectModal
+        show={showExportModal}
+        onHide={() => setShowExportModal(false)}
       />
     </>
   );
