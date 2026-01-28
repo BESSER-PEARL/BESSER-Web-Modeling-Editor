@@ -1,7 +1,5 @@
-import { ApollonEditor, UMLModel } from '@besser/wme';
-import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
-import React, { useEffect, useRef, useContext } from 'react';
+import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import styled from 'styled-components';
 import { uuid } from '../../utils/uuid';
 
@@ -29,91 +27,13 @@ export const ApollonEditorComponent: React.FC = () => {
   const { diagram: reduxDiagram } = useAppSelector((state) => state.diagram);
   const options = useAppSelector((state) => state.diagram.editorOptions);
   const createNewEditor = useAppSelector(selectCreatenewEditor);
+  const currentProject = useAppSelector(selectCurrentProject);
   const { setEditor } = useContext(ApollonEditorContext);
 
   // Cleanup function
   const cleanupEditor = useCallback(() => {
     if (editorRef.current) {
       try {
-  const currentModel = isUMLModel(reduxDiagram?.model) ? reduxDiagram?.model : undefined;
-  const currentProject = useAppSelector(selectCurrentProject);
-  
-  // Track if this diagram was added to the project to avoid duplicate additions
-  const diagramAddedToProjectRef = useRef<string | null>(null);
-
-  // Update diagram bridge with available diagrams from project
-  useEffect(() => {
-    if (currentProject) {
-      // Set available state machines
-      const stateMachines = currentProject.diagrams.StateMachineDiagram?.id && currentProject.diagrams.StateMachineDiagram?.title
-        ? [{ id: currentProject.diagrams.StateMachineDiagram.id, name: currentProject.diagrams.StateMachineDiagram.title }]
-        : [];
-      
-      // Set available quantum circuits
-      const quantumCircuits = currentProject.diagrams.QuantumCircuitDiagram?.id && currentProject.diagrams.QuantumCircuitDiagram?.title
-        ? [{ id: currentProject.diagrams.QuantumCircuitDiagram.id, name: currentProject.diagrams.QuantumCircuitDiagram.title }]
-        : [];
-      
-      diagramBridge.setStateMachineDiagrams(stateMachines);
-      diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
-    }
-  }, [currentProject]);
-
-  useEffect(() => {
-    let isSubscribed = true;
-    const setupEditor = async () => {
-      if (!containerRef.current) return;
-
-      if (createNewEditor || previewedDiagramIndex === -1) {
-        // Reset tracking when creating a new editor
-        diagramAddedToProjectRef.current = null;
-        
-        // Initialize or reset editor
-        if (editorRef.current) {
-          await editorRef.current.nextRender;
-          editorRef.current.destroy();
-        }
-        editorRef.current = new ApollonEditor(containerRef.current, options);
-        await editorRef.current.nextRender;
-
-        // Only load the model if we're not changing diagram type
-        if (currentModel && currentModel.type === options.type) {
-          editorRef.current.model = currentModel;
-        }
-
-        // Debounced model change handler
-        let timeoutId: NodeJS.Timeout;
-        editorRef.current.subscribeToModelChange((model: UMLModel) => {
-          if (!isSubscribed) return;
-          
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            if (JSON.stringify(model) !== JSON.stringify(currentModel)) {
-              // Check if this is a drag and drop operation (empty diagram becomes non-empty)
-              const wasEmpty = !currentModel || !currentModel.elements || Object.keys(currentModel.elements).length === 0;
-              const isNowNonEmpty = model && model.elements && Object.keys(model.elements).length > 0;
-              
-              // If diagram went from empty to non-empty, and hasn't been added to project yet, add it
-              if (wasEmpty && isNowNonEmpty && reduxDiagram?.id && diagramAddedToProjectRef.current !== reduxDiagram.id) {
-                addDiagramToCurrentProject(reduxDiagram.id);
-                diagramAddedToProjectRef.current = reduxDiagram.id;
-                console.log('Diagram added to project via drag and drop:', reduxDiagram.id);
-              }
-              
-              dispatch(updateDiagramThunk({
-                model,
-                lastUpdate: new Date().toISOString()
-              }));
-            }
-          }, 500); // 500ms debounce
-        });
-
-        setEditor!(editorRef.current);
-        dispatch(setCreateNewEditor(false));
-      } else if (previewedDiagramIndex !== -1 && editorRef.current) {
-        // Handle preview mode
-        const editorOptions = { ...options, readonly: true };
-        await editorRef.current.nextRender;
         editorRef.current.destroy();
       } catch (e) {
         console.warn('Error destroying editor:', e);
@@ -122,6 +42,30 @@ export const ApollonEditorComponent: React.FC = () => {
     }
     initializedRef.current = false;
   }, []);
+
+  useEffect(() => {
+    if (!currentProject) {
+      diagramBridge.setStateMachineDiagrams([]);
+      diagramBridge.setQuantumCircuitDiagrams([]);
+      return;
+    }
+
+    const stateMachineDiagram = currentProject.diagrams.StateMachineDiagram;
+    const quantumCircuitDiagram = currentProject.diagrams.QuantumCircuitDiagram;
+
+    const stateMachines =
+      stateMachineDiagram?.id && stateMachineDiagram?.title
+        ? [{ id: stateMachineDiagram.id, name: stateMachineDiagram.title }]
+        : [];
+
+    const quantumCircuits =
+      quantumCircuitDiagram?.id && quantumCircuitDiagram?.title
+        ? [{ id: quantumCircuitDiagram.id, name: quantumCircuitDiagram.title }]
+        : [];
+
+    diagramBridge.setStateMachineDiagrams(stateMachines);
+    diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
+  }, [currentProject]);
 
   // Initialize editor on mount, cleanup on unmount
   useEffect(() => {

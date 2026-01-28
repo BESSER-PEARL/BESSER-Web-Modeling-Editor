@@ -38,7 +38,7 @@ const composeIconObjectPreview = (
     // Additional objects - Instantiated from available classes
     const availableClasses = diagramBridge.getAvailableClasses();
     let currentX = 0;
-    
+
     // Show all available classes
     const classesToShow = availableClasses;
     classesToShow.forEach((classInfo, classIndex) => {
@@ -81,6 +81,7 @@ const composeIconObjectPreview = (
       classInfo.attributes.forEach((attr, index) => {
         const objectAttribute = new UMLObjectAttribute({
           name: `${attr.name} = `,
+          attributeType: attr.type, // Store type for UI formatting
           owner: instanceObject.id,
           bounds: {
             x: 0,
@@ -138,26 +139,26 @@ const composeNormalObjectPreview = (
   elements.push(...(umlObject.render(layer, [umlObjectMember]) as UMLElement[]));
 
   // Check if we should show instantiated objects based on user settings and available data
-  const shouldShowInstances = settingsService.shouldShowInstancedObjects() && 
-                              diagramBridge.hasClassDiagramData();
-  
+  const shouldShowInstances = settingsService.shouldShowInstancedObjects() &&
+    diagramBridge.hasClassDiagramData();
+
   if (shouldShowInstances) {
     // Additional objects - Instantiated from available classes
     const availableClasses = diagramBridge.getAvailableClasses();
     let currentX = umlObject.bounds.x + umlObject.bounds.width + 50;
-    
+
     // Show all available classes
-    const classesToShow = availableClasses;    
+    const classesToShow = availableClasses;
     classesToShow.forEach((classInfo, classIndex) => {
       // Create an object instance of the available class
       const instanceName = `${classInfo.name.charAt(0).toLowerCase() + classInfo.name.slice(1)}_1`;
-      const instanceObject = new UMLObjectName({ 
+      const instanceObject = new UMLObjectName({
         name: instanceName,
         classId: classInfo.id,
         className: classInfo.name,
         icon: classInfo.icon,
       });
-      
+
       // Position it next to the previous object
       instanceObject.bounds = {
         ...instanceObject.bounds,
@@ -182,13 +183,14 @@ const composeNormalObjectPreview = (
             width: 0,
             height: 0,
           },
-          icon: instanceObject.icon, 
+          icon: instanceObject.icon,
         });
       }
-      
+
       classInfo.attributes.forEach((attr, index) => {
         const objectAttribute = new UMLObjectAttribute({
           name: `${attr.name} = `,
+          attributeType: attr.type, // Store type for UI formatting
           owner: instanceObject.id,
           bounds: {
             x: 0,
@@ -200,10 +202,10 @@ const composeNormalObjectPreview = (
         instanceAttributes.push(objectAttribute);
       });
 
-  
+
 
       instanceObject.ownedElements = instanceAttributes.map(attr => attr.id);
-      
+
       // Add icon to owned elements if it exists
       if (iconElement) {
         instanceObject.ownedElements.push(iconElement.id);
@@ -211,7 +213,7 @@ const composeNormalObjectPreview = (
       } else {
         elements.push(...(instanceObject.render(layer, instanceAttributes) as UMLElement[]));
       }
-      
+
       // Update position for next object
       currentX += instanceObject.bounds.width + 50;
     });

@@ -37,11 +37,29 @@ const UMLClassifierMemberComponentUnconnected: FunctionComponent<Props> = ({ ele
   // For enumerations, only show the name (no visibility or type)
   const displayText = isEnumeration ? element.name : (element.displayName || element.name);
 
+  // Check if this is a string-type object attribute to add quotes
+  const isStringAttribute = isObjectAttribute &&
+    ((element as any).attributeType === 'str' || (element as any).attributeType === 'string');
+
+  // For string attributes, wrap the value part with quotes
+  let finalDisplayText = displayText;
+  if (isStringAttribute) {
+    // Parse "attributeName = value" format
+    const equalIndex = displayText.indexOf(' = ');
+    if (equalIndex !== -1) {
+      const namePart = displayText.substring(0, equalIndex + 3); // Include " = "
+      const valuePart = displayText.substring(equalIndex + 3);
+      finalDisplayText = `${namePart}"${valuePart}"`;
+    } else {
+      finalDisplayText = `${displayText}""`;
+    }
+  }
+
   return (
     <g>
       <ThemedRect fillColor={fillColor || element.fillColor} strokeColor="none" width="100%" height="100%" />
       <Text x={10} fill={element.textColor} fontWeight="normal" textAnchor="start">
-        {displayText}
+        {finalDisplayText}
       </Text>
     </g>
   );

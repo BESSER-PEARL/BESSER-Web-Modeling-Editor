@@ -14,10 +14,21 @@ export class UMLObjectAttribute extends UMLClassifierAttribute {
   type: UMLElementType = ObjectElementType.ObjectAttribute;
   attributeId?: string; // Store the ID of the attribute from the library class
 
-  constructor(values?: DeepPartial<IUMLElement & { attributeId?: string }>) {
+  /**
+   * Override displayName to return just the name without visibility and type
+   * Object diagrams don't show visibility symbols or type annotations
+   */
+  get displayName(): string {
+    return this.name;
+  }
+
+  constructor(values?: DeepPartial<IUMLElement & { attributeId?: string; attributeType?: string }>) {
     super(values);
     if (values?.attributeId) {
       this.attributeId = values.attributeId;
+    }
+    if (values?.attributeType) {
+      this.attributeType = values.attributeType;
     }
   }
   serialize() {
