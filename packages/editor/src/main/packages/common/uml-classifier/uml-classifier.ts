@@ -10,6 +10,7 @@ import { Text } from '../../../utils/svg/text';
 import { UMLElementType } from '../../uml-element-type';
 import { UMLClassifierAttribute } from './uml-classifier-attribute';
 import { UMLClassifierMethod } from './uml-classifier-method';
+import { UMLClassifierMember } from './uml-classifier-member';
 
 export interface IUMLClassifier extends IUMLContainer {
   italic: boolean;
@@ -65,16 +66,22 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
     this.hasMethods = methods.length > 0;
     const radix = 10;
     this.bounds.width = [this, ...attributes, ...methods].reduce(
-      (current, child, index) =>
-        Math.max(
+      (current, child, index) => {
+        // For attributes/methods, use displayName to get the full formatted text (visibility + name + type)
+        // For enumerations, only use the name
+        const displayText = child instanceof UMLClassifierMember
+          ? (this.stereotype === 'enumeration' ? child.name : child.displayName)
+          : child.name;
+        return Math.max(
           current,
           Math.round(
-            (Text.size(layer, child.name, index === 0 ? { fontWeight: 'bold' } : undefined).width + 20) / radix,
+            (Text.size(layer, displayText, index === 0 ? { fontWeight: 'bold' } : undefined).width + 20) / radix,
           ) * radix,
-        ),
+        );
+      },
       Math.round(this.bounds.width / radix) * radix,
     );
-    if(this.className){
+    if (this.className) {
       const text = this.name + (this.className ? ": " + this.className : "");
       const textWidth = Text.size(layer, text).width + 40; // add some padding
       this.bounds.width = Math.max(this.bounds.width, textWidth, 50);

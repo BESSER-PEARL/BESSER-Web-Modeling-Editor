@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { ApollonEditor, diagramBridge, UMLDiagramType } from '@besser/wme';
 import { useFileDownload } from '../file-download/useFileDownload';
 import { toast } from 'react-toastify';
-import { validateDiagram } from '../validation/diagramValidation';
+import { validateDiagram } from '../validation/validateDiagram';
 import { BACKEND_URL } from '../../constant';
 import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 
@@ -14,9 +14,9 @@ export const useExportBUML = () => {
     async (editor: ApollonEditor, diagramTitle: string) => {
 
       // Add validation before export
-      const validationResult = validateDiagram(editor);
+      const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message);
+        toast.error(validationResult.message || 'Validation failed');
         return;
       }
 

@@ -1,12 +1,16 @@
 import React, { useContext, useState } from 'react';
-import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
+import { useLocation } from 'react-router-dom';
+import { Dropdown, NavDropdown, Modal, Form, Button, Alert } from 'react-bootstrap';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
-import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig } from '../../../services/generate-code/useGenerateCode';
+import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
+import posthog from 'posthog-js';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
+import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
+import { GrapesJSProjectData } from '../../../types/project';
 
 export const GenerateCodeMenu: React.FC = () => {
   // Modal for spoken language selection for agent diagrams
@@ -21,10 +25,13 @@ export const GenerateCodeMenu: React.FC = () => {
   const [projectName, setProjectName] = useState('');
   const [appName, setAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
-  const [sqlDialect, setSqlDialect] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb'>('sqlite');
-  const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb'>('sqlite');
+  const [sqlDialect, setSqlDialect] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
+  const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<'regular' | 'smart_data'>('regular');
   const [loadingAgent, setLoadingAgent] = useState(false);
+  const [showQiskitConfig, setShowQiskitConfig] = useState(false);
+  const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
+  const [qiskitShots, setQiskitShots] = useState<number>(1024);
 
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
@@ -33,14 +40,83 @@ export const GenerateCodeMenu: React.FC = () => {
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
 
+  // Helper to get model size metrics for analytics
+ const getModelMetrics = () => {
+  if (!diagram?.model) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
+  const model = diagram.model as any;
+  
+  const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
+  const classesCount = model.elements 
+    ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length 
+    : 0;
+  
+  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+  
+  return { 
+    elements_count: allElementsCount,
+    classes_count: classesCount,
+    relationships_count: relationshipsCount,
+    total_size: allElementsCount + relationshipsCount
+  };
+};
+
+  // Use React Router's useLocation for reliable path detection
+  const location = useLocation();
+  const isQuantumDiagram = /quantum-editor/.test(location.pathname);
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(location.pathname);
+
   // Check if we're running locally (not on AWS)
-  const isLocalEnvironment = BACKEND_URL === undefined || 
-                            (BACKEND_URL ?? '').includes('localhost') || 
-                            (BACKEND_URL ?? '').includes('127.0.0.1');
+  const isLocalEnvironment = BACKEND_URL === undefined ||
+    (BACKEND_URL ?? '').includes('localhost') ||
+    (BACKEND_URL ?? '').includes('127.0.0.1');
 
   const handleGenerateCode = async (generatorType: string) => {
-    if (!editor) {
+    // For GUI/No-Code diagrams and Quantum diagrams, we don't need the apollon editor
+    if (!isGUINoCodeDiagram && !isQuantumDiagram && !editor) {
       toast.error('No diagram available to generate code from');
+      return;
+    }
+
+    // Special check for web_app generator - verify GUI model has content
+    if (generatorType === 'web_app') {
+      const project = ProjectStorageRepository.getCurrentProject();
+      const guiModel = project?.diagrams?.GUINoCodeDiagram?.model as GrapesJSProjectData | undefined;
+      
+      // Check if GUI model is empty or has no meaningful content
+      // GrapesJS structure: pages[] -> frames[] -> component
+      const isEmpty = !guiModel || 
+                      !guiModel.pages || 
+                      guiModel.pages.length === 0 ||
+                      guiModel.pages.every((page: any) => {
+                        // Check for new GrapesJS structure with frames
+                        if (page.frames && Array.isArray(page.frames)) {
+                          return page.frames.every((frame: any) => 
+                            !frame || !frame.component || 
+                            !frame.component.components || 
+                            frame.component.components.length === 0
+                          );
+                        }
+                        // Fallback: check old structure with direct component
+                        return !page.component || Object.keys(page.component).length === 0;
+                      });
+      
+      if (isEmpty) {
+        toast.error('Cannot generate web application: GUI diagram is empty. Please design your UI first in the Graphical UI Editor.');
+        return;
+      }
+      
+      // web_app generator doesn't need the apollon editor - it uses project data
+      try {
+        await generateCode(null, 'web_app', diagram.title);
+        posthog.capture('generator_used', {
+          generator_type: 'web_app',
+          diagram_type: currentDiagramType,
+          ...getModelMetrics()
+        });
+      } catch (error) {
+        console.error('Error in Web App generation:', error);
+        toast.error('Web App generation failed. Check console for details.');
+      }
       return;
     }
 
@@ -74,7 +150,14 @@ export const GenerateCodeMenu: React.FC = () => {
         const jsonSchemaConfig: JSONSchemaConfig = {
           mode: 'smart_data'
         };
-        await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
+        if (editor) {
+          await generateCode(editor, 'jsonschema', diagram.title, jsonSchemaConfig);
+          posthog.capture('generator_used', {
+            generator_type: 'smartdata',
+            diagram_type: currentDiagramType,
+            ...getModelMetrics()
+          });
+        }
       } catch (error) {
         console.error('Error in Smart Data Models generation:', error);
         toast.error('Smart Data Models generation failed. Check console for details.');
@@ -83,7 +166,21 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      await generateCode(editor, generatorType, diagram.title);
+      // For quantum diagrams generating qiskit code, show config modal
+      if (isQuantumDiagram && generatorType === 'qiskit') {
+        setShowQiskitConfig(true);
+        return;
+      } else if (editor) {
+        // Regular UML diagrams use editor
+        await generateCode(editor, generatorType, diagram.title);
+        posthog.capture('generator_used', {
+          generator_type: generatorType,
+          diagram_type: currentDiagramType,
+          ...getModelMetrics()
+        });
+      } else {
+        toast.error('No diagram available to generate code from');
+      }
     } catch (error) {
       console.error('Error in code generation:', error);
       toast.error('Code generation failed. Check console for details.');
@@ -101,14 +198,29 @@ export const GenerateCodeMenu: React.FC = () => {
   const handleAgentGenerate = async () => {
     setLoadingAgent(true);
     try {
-      let agentConfig: AgentConfig = {};
-      if (selectedAgentLanguages.length > 0) {
-        agentConfig.languages = {
-          source: sourceLanguage,
-          target: selectedAgentLanguages
-        };
+      // Build base agent config (from localStorage or languages selection)
+      let baseConfig: AgentConfig;
+      if (selectedAgentLanguages.length === 0) {
+        const stored = localStorage.getItem('agentConfig');
+        baseConfig = stored ? { ...JSON.parse(stored) } : {};
+      } else {
+        baseConfig = {
+          languages: {
+            source: sourceLanguage,
+            target: selectedAgentLanguages
+          }
+        } as any;
       }
-      await generateCode(editor!, 'agent', diagram.title, agentConfig);
+
+      // Send the configuration
+      await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'agent',
+        diagram_type: currentDiagramType,
+        source_language: sourceLanguage,
+        target_languages: selectedAgentLanguages,
+        ...getModelMetrics()
+      });
       setShowAgentLanguageModal(false);
     } catch (error) {
       console.error('Error in Agent code generation:', error);
@@ -141,6 +253,12 @@ export const GenerateCodeMenu: React.FC = () => {
         containerization: useDocker
       };
       await generateCode(editor!, 'django', diagram.title, djangoConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'django',
+        diagram_type: currentDiagramType,
+        use_docker: useDocker,
+        ...getModelMetrics()
+      });
       setShowDjangoConfig(false);
     } catch (error) {
       console.error('Error in Django code generation:', error);
@@ -173,6 +291,12 @@ export const GenerateCodeMenu: React.FC = () => {
       // Close the modal first, then start deployment
       setShowDjangoConfig(false);
       await deployLocally(editor!, 'django', diagram.title, djangoConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'django_deploy_locally',
+        diagram_type: currentDiagramType,
+        use_docker: useDocker,
+        ...getModelMetrics()
+      });
     } catch (error) {
       console.error('Error in Django local deployment:', error);
       toast.error('Django local deployment failed');
@@ -185,6 +309,12 @@ export const GenerateCodeMenu: React.FC = () => {
         dialect: sqlDialect
       };
       await generateCode(editor!, 'sql', diagram.title, sqlConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'sql',
+        diagram_type: currentDiagramType,
+        sql_dialect: sqlDialect,
+        ...getModelMetrics()
+      });
       setShowSqlConfig(false);
     } catch (error) {
       console.error('Error in SQL code generation:', error);
@@ -198,6 +328,12 @@ export const GenerateCodeMenu: React.FC = () => {
         dbms: sqlAlchemyDbms
       };
       await generateCode(editor!, 'sqlalchemy', diagram.title, sqlAlchemyConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'sqlalchemy',
+        diagram_type: currentDiagramType,
+        dbms: sqlAlchemyDbms,
+        ...getModelMetrics()
+      });
       setShowSqlAlchemyConfig(false);
     } catch (error) {
       console.error('Error in SQLAlchemy code generation:', error);
@@ -211,10 +347,37 @@ export const GenerateCodeMenu: React.FC = () => {
         mode: jsonSchemaMode
       };
       await generateCode(editor!, 'jsonschema', diagram.title, jsonSchemaConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'jsonschema',
+        diagram_type: currentDiagramType,
+        json_schema_mode: jsonSchemaMode,
+        ...getModelMetrics()
+      });
       setShowJsonSchemaConfig(false);
     } catch (error) {
       console.error('Error in JSON Schema code generation:', error);
       toast.error('JSON Schema code generation failed');
+    }
+  };
+
+  const handleQiskitGenerate = async () => {
+    try {
+      const qiskitConfig: QiskitConfig = {
+        backend: qiskitBackend,
+        shots: qiskitShots
+      };
+      // Pass null for editor since qiskit generator uses project data
+      await generateCode(null, 'qiskit', diagram.title, qiskitConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'qiskit',
+        qiskit_backend: qiskitBackend,
+        qiskit_shots: qiskitShots,
+        ...getModelMetrics()
+      });
+      setShowQiskitConfig(false);
+    } catch (error) {
+      console.error('Error in Qiskit code generation:', error);
+      toast.error('Qiskit code generation failed');
     }
   };
 
@@ -223,7 +386,17 @@ export const GenerateCodeMenu: React.FC = () => {
   return (
     <>
       <NavDropdown title="Generate" className="pt-0 pb-0">
-        {isAgentDiagram ? (
+        {isQuantumDiagram ? (
+          // Quantum Diagram: Show Qiskit generation option
+          <>
+            <Dropdown.Item onClick={() => handleGenerateCode('qiskit')}>Qiskit Code</Dropdown.Item>
+          </>
+        ) : isGUINoCodeDiagram ? (
+          // No-Code Diagram: Show No-Code generation options
+          <>
+            <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
+          </>
+        ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
           <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
@@ -241,6 +414,7 @@ export const GenerateCodeMenu: React.FC = () => {
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => handleGenerateCode('django')}>Django Project</Dropdown.Item>
                 <Dropdown.Item onClick={() => handleGenerateCode('backend')}>Full Backend</Dropdown.Item>
+                <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
               </Dropdown.Menu>
             </Dropdown>
 
@@ -297,7 +471,7 @@ export const GenerateCodeMenu: React.FC = () => {
       </NavDropdown>
 
       {/* Agent Language Selection Modal (dropdown + removable list) */}
-  <Modal show={showAgentLanguageModal} onHide={() => setShowAgentLanguageModal(false)}>
+      <Modal show={showAgentLanguageModal} onHide={() => setShowAgentLanguageModal(false)}>
         {loadingAgent && (
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(255,255,255,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
@@ -468,15 +642,16 @@ export const GenerateCodeMenu: React.FC = () => {
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Select SQL Dialect</Form.Label>
-              <Form.Select 
-                value={sqlDialect} 
-                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql'| 'mssql' | 'mariadb')}
+              <Form.Select
+                value={sqlDialect}
+                onChange={(e) => setSqlDialect(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle')}
               >
                 <option value="sqlite">SQLite</option>
                 <option value="postgresql">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
                 <option value="mssql">MS SQL Server</option>
                 <option value="mariadb">MariaDB</option>;
+                <option value="oracle">Oracle</option>
               </Form.Select>
               <Form.Text className="text-muted">
                 Choose the SQL dialect for your generated DDL statements
@@ -503,8 +678,8 @@ export const GenerateCodeMenu: React.FC = () => {
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Select Database System</Form.Label>
-              <Form.Select 
-                value={sqlAlchemyDbms} 
+              <Form.Select
+                value={sqlAlchemyDbms}
                 onChange={(e) => setSqlAlchemyDbms(e.target.value as 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb')}
               >
                 <option value="sqlite">SQLite</option>
@@ -546,7 +721,7 @@ export const GenerateCodeMenu: React.FC = () => {
                 <option value="smart_data">Smart Data Models</option>
               </Form.Select>
               <Form.Text className="text-muted">
-                Regular mode generates a standard JSON schema. 
+                Regular mode generates a standard JSON schema.
                 Smart Data mode generates NGSI-LD compatible schemas for each class.
               </Form.Text>
             </Form.Group>
@@ -557,6 +732,54 @@ export const GenerateCodeMenu: React.FC = () => {
             Cancel
           </Button>
           <Button variant="primary" onClick={handleJsonSchemaGenerate}>
+            Generate
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Qiskit Configuration Modal */}
+      <Modal show={showQiskitConfig} onHide={() => setShowQiskitConfig(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Qiskit Backend Configuration</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Execution Backend</Form.Label>
+              <Form.Select
+                value={qiskitBackend}
+                onChange={(e) => setQiskitBackend(e.target.value as 'aer_simulator' | 'fake_backend' | 'ibm_quantum')}
+              >
+                <option value="aer_simulator">Aer Simulator (Local)</option>
+                <option value="fake_backend">Moke Simulation (Noise Simulation)</option>
+                <option value="ibm_quantum">IBM Quantum (Real Hardware)</option>
+              </Form.Select>
+              <Form.Text className="text-muted">
+                {qiskitBackend === 'aer_simulator' && 'Fast local simulation without noise characteristics.'}
+                {qiskitBackend === 'fake_backend' && 'Simulates noise characteristics of real IBM quantum hardware.'}
+                {qiskitBackend === 'ibm_quantum' && 'Run on real IBM Quantum hardware. Requires IBM Quantum account.'}
+              </Form.Text>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Number of Shots</Form.Label>
+              <Form.Control
+                type="number"
+                value={qiskitShots}
+                onChange={(e) => setQiskitShots(Math.max(1, parseInt(e.target.value) || 1024))}
+                min={1}
+                max={100000}
+              />
+              <Form.Text className="text-muted">
+                Number of times to execute the circuit (1 - 100,000)
+              </Form.Text>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowQiskitConfig(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleQiskitGenerate}>
             Generate
           </Button>
         </Modal.Footer>

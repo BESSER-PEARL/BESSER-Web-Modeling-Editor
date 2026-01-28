@@ -17,7 +17,7 @@
   "repository": "github:BESSER-PEARL/BESSER-Web-Modeling-Editor",
   "sideEffects": false,
   "engines": {
-    "node": ">=18.17.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "lint": "npm run lint:ts && npm run lint:css",
@@ -27,6 +27,7 @@
     "prettier:write": "prettier --write 'src/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'"
   },
   "dependencies": {
+    "express": "4.22.1",
     "fast-json-patch": "3.1.1",
     "is-mobile": "4.0.0",
     "pepjs": "0.5.3",
@@ -35,6 +36,7 @@
     "react-color": "2.19.3",
     "react-dom": "18.2.0",
     "react-redux": "8.1.3",
+    "react-router-dom": "6.30.3",
     "react-tooltip": "4.5.1",
     "redux": "4.2.1",
     "redux-saga": "1.3.0",
@@ -52,7 +54,7 @@
   },
   "devDependencies": {
     "@stylelint/postcss-css-in-js": "0.38.0",
-    "@testing-library/jest-dom": "6.4.2",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "14.3.1",
     "@types/css-modules": "1.0.5",
     "@types/jest": "29.5.12",
@@ -87,7 +89,8 @@
     "postcss-syntax": "0.36.2",
     "prettier": "3.2.5",
     "redux-mock-store": "1.5.4",
-    "serve": "14.2.4",
+    "rimraf": "5.0.5",
+    "serve": "^14.2.5",
     "sleep-promise": "9.1.0",
     "start-server-and-test": "2.0.3",
     "style-loader": "3.3.4",
@@ -100,8 +103,7 @@
     "typescript": "5.4.5",
     "webpack": "5.96.1",
     "webpack-cli": "5.1.4",
-    "webpack-dev-server": "4.15.2",
-    "webpack-merge": "5.10.0",
-    "rimraf": "5.0.5"
+    "webpack-dev-server": "5.2.3",
+    "webpack-merge": "5.10.0"
   }
 }

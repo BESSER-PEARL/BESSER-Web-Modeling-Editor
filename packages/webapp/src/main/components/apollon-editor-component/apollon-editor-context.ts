@@ -3,7 +3,7 @@ import { createContext } from 'react';
 
 export type ApollonEditorContextType = {
   editor?: ApollonEditor;
-  setEditor: (editor: ApollonEditor) => void;
+  setEditor: (editor: ApollonEditor | undefined) => void;
 };
 
 // Provide a default no-op function for `setEditor`

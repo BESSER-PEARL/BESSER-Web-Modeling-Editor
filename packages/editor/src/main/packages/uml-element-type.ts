@@ -10,6 +10,7 @@ import { UMLDiagramType } from './diagram-type';
 import { SyntaxTreeElementType } from './syntax-tree';
 import { FlowchartElementType } from './flowchart';
 import { ColorLegendElementType } from './common/color-legend';
+import { CommentsElementType } from './common/comments';
 import { ReachabilityGraphElementType } from './uml-reachability-graph';
 import { BPMNElementType } from './bpmn';
 import { StateElementType } from './uml-state-diagram';
@@ -28,6 +29,7 @@ export type UMLElementType =
   | keyof typeof SyntaxTreeElementType
   | keyof typeof FlowchartElementType
   | keyof typeof ColorLegendElementType
+  | keyof typeof CommentsElementType
   | keyof typeof BPMNElementType
   | keyof typeof StateElementType
   | keyof typeof AgentElementType;
@@ -45,6 +47,7 @@ export const UMLElementType = {
   ...SyntaxTreeElementType,
   ...FlowchartElementType,
   ...ColorLegendElementType,
+  ...CommentsElementType,
   ...BPMNElementType,
   ...StateElementType,
   ...AgentElementType,
@@ -69,5 +72,5 @@ export const UMLElementsForDiagram: { [key in UMLDiagramType]: any } = {
     [UMLDiagramType.UserDiagram]: ObjectElementType, // Use ObjectElementType for UserDiagram as well
   },
   // ...ColorLegendElementType,
-  
+  // ...CommentsElementType,
 };

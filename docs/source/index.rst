@@ -1,71 +1,71 @@
 .. BESSER WME documentation master file
 
-BESSER Web Modeling Editor documentation
-=========================================
+BESSER Web Modeling Editor
+==========================
 
-The **BESSER Web Modeling Editor (WME) Standalone** is a complete toolkit for
-modelling BESSER-compliant diagrams in the browser and sharing them through an
-optional collaboration server. It builds on the `@besser/wme <https://www.npmjs.com/package/@besser/wme>`_
-engine and augments it with workflow automation, template management, an
-extensible front-end, and production-ready deployment artifacts.
+The **BESSER Web Modeling Editor (WME)** is the editor that powers
+the BESSER low-code platform. This documentation explains how the monorepo is
+organised, how to work with the reusable editor package, and how the bundled
+web application embeds, extends, and deploys the editor in production.
 
-This documentation set is organised into thematic collections so that readers
-can quickly deep-dive into the area that matters most:
+The content is organised around the main developer journeys:
 
-* **Getting started** walks through installation, configuration, and a guided
-  tour of the editor.
-* **User guides** cover everyday modelling tasks, keyboard shortcuts, sharing
-  flows, and ways to extend the workspace.
-* **Platform internals** describe how packages in this repository compose the
-  standalone experience and how data flows through the system.
-* **Backend** documentation explains the Express-based collaboration server,
-  REST APIs, storage adapters, and operational tooling.
-* **Frontend** documentation details the React application, store management,
-  theming approach, and integration with the modelling engine.
-* **Deployment** topics outline reference topologies for static hosting,
-  multi-service setups, and observability.
-* **Development** guides provide contributor onboarding, coding standards,
-  release management, and quality gates.
-* **Operations and Reference** sections cover CLI scripts, environment
-  variables, and day-two responsibilities.
-* **Appendix** gathers FAQs, glossaries, and troubleshooting recipes.
+* **Overview** introduces the repository layout, prerequisites, and developer
+  workflows for installing and running the project locally.
+* **Editor package** documents the `packages/editor` module, including the
+  `ApollonEditor` API, application architecture, and guidance for adding new
+  diagram types or behaviours.
+* **Web application** covers the React application under `packages/webapp`,
+  its project-centric UX, collaboration hooks, and how to integrate the editor
+  into other UIs.
+* **Contributing** summarises the expectations for pull requests, code quality,
+  and how to collaborate effectively with the maintainers.
+* **Reference** lists reusable CLI commands and environment variables that
+  shape runtime behaviour across packages.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Getting started
+   :caption: Overview
 
-   getting-started/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption: User guides
-
-   user-guide/index
+   overview/index
+   overview/getting-started
+   overview/project-structure
 
 .. toctree::
    :maxdepth: 2
-   :caption: Platform internals
+   :caption: Editors
 
-   platform/index
-   backend/index
-   frontend/index
+   editor/index
+
 
 .. toctree::
    :maxdepth: 2
-   :caption: Deploy, operate, and contribute
+   :caption: Web application
 
-   deployment/index
-   development/index
-   operations/index
-   reference/index
-   appendix/index
+   webapp/index
+   webapp/local-projects
+   webapp/embedding
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Contributing
+
+   contributing/index
+   contributing/development-workflow
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Reference
+
+   reference/cli
+   reference/environment
 
 Project resources
 -----------------
 
-* Source code: `<https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR>`_
+* Source: `<https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor>`_
 * Online editor: `<https://editor.besser-pearl.org>`_
-* BESSER low-code platform: `<https://github.com/BESSER-PEARL/BESSER>`_
+* BESSER platform: `<https://github.com/BESSER-PEARL/BESSER>`_
 
 Indices and tables
 ------------------

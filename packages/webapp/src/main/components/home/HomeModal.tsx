@@ -18,7 +18,7 @@ import styled from 'styled-components';
 import { 
   removeProjectFromLocalStorage
 } from '../../utils/localStorage';
-import { BesserProject } from '../../types/project';
+import { BesserProject, isUMLModel } from '../../types/project';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { toast } from 'react-toastify';
 import { useProject } from '../../hooks/useProject';
@@ -365,12 +365,12 @@ export const HomeModal: React.FC<HomeModalProps> = ({ show, onHide }) => {
       
       // Load the current diagram into the editor
       const currentDiagram = loadedProject.diagrams[loadedProject.currentDiagramType];
-      if (currentDiagram?.model) {
+      if (isUMLModel(currentDiagram?.model)) {
         // Convert to legacy Diagram format for compatibility with current editor
         const legacyDiagram = {
           id: currentDiagram.id,
           title: currentDiagram.title,
-          model: currentDiagram.model,
+          model: isUMLModel(currentDiagram.model) ? currentDiagram.model : undefined,
           lastUpdate: currentDiagram.lastUpdate,
           description: currentDiagram.description,
         };

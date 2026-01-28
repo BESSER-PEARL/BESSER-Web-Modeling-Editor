@@ -51,17 +51,7 @@ module.exports = {
     ],
   },
   externals: {
-    canvas: 'commonjs ./canvas/canvas',
     'utf-8-validate': 'utf-8-validate',
   },
-  plugins: [
-    new CopyPlugin({
-      patterns: [
-        {
-          from: '../../node_modules/canvas/build/Release/',
-          to: 'canvas',
-        },
-      ],
-    }),
-  ],
+  plugins: [],
 };

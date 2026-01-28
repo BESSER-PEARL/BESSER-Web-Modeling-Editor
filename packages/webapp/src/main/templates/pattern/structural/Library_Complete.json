@@ -1,0 +1,349 @@
+{
+"version": "3.0.0",
+"type": "ClassDiagram",
+"size": {
+  "width": 1580,
+  "height": 820
+},
+"interactive": {
+  "elements": {},
+  "relationships": {}
+},
+"elements": {
+  "class_oho5ergc3_mjikkmod": {
+    "id": "class_oho5ergc3_mjikkmod",
+    "name": "Book",
+    "type": "Class",
+    "owner": null,
+    "bounds": {
+      "x": -460,
+      "y": -390,
+      "width": 240,
+      "height": 215
+    },
+    "attributes": [
+      "attr_a87fqdtdi_mjikkmod",
+      "attr_v6ve12d44_mjikkmod",
+      "attr_edi3c3l8k_mjikkmod",
+      "attr_mczftcqfb_mjikkmod",
+      "attr_785suq5yn_mjikkmod",
+      "attr_urp7jb0c0_mjikkmod"
+    ],
+    "methods": [
+      "method_rb01uirsh_mjikkmod"
+    ]
+  },
+  "attr_a87fqdtdi_mjikkmod": {
+    "id": "attr_a87fqdtdi_mjikkmod",
+    "name": "title",
+    "type": "ClassAttribute",
+    "owner": "class_oho5ergc3_mjikkmod",
+    "bounds": {
+      "x": -459.5,
+      "y": -349.5,
+      "width": 239,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "str"
+  },
+  "attr_v6ve12d44_mjikkmod": {
+    "id": "attr_v6ve12d44_mjikkmod",
+    "name": "pages",
+    "type": "ClassAttribute",
+    "owner": "class_oho5ergc3_mjikkmod",
+    "bounds": {
+      "x": -459.5,
+      "y": -324.5,
+      "width": 239,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "int"
+  },
+  "attr_edi3c3l8k_mjikkmod": {
+    "id": "attr_edi3c3l8k_mjikkmod",
+    "name": "stock",
+    "type": "ClassAttribute",
+    "owner": "class_oho5ergc3_mjikkmod",
+    "bounds": {
+      "x": -459.5,
+      "y": -299.5,
+      "width": 239,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "int"
+  },
+  "attr_mczftcqfb_mjikkmod": {
+    "id": "attr_mczftcqfb_mjikkmod",
+    "name": "price",
+    "type": "ClassAttribute",
+    "owner": "class_oho5ergc3_mjikkmod",
+    "bounds": {
+      "x": -459.5,
+      "y": -274.5,
+      "width": 239,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "float"
+  },
+  "attr_785suq5yn_mjikkmod": {
+    "id": "attr_785suq5yn_mjikkmod",
+    "name": "release",
+    "type": "ClassAttribute",
+    "owner": "class_oho5ergc3_mjikkmod",
+    "bounds": {
+      "x": -459.5,
+      "y": -249.5,
+      "width": 239,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "date"
+  },
+  "attr_urp7jb0c0_mjikkmod": {
+    "id": "attr_urp7jb0c0_mjikkmod",
+    "name": "time",
+    "type": "ClassAttribute",
+    "owner": "class_oho5ergc3_mjikkmod",
+    "bounds": {
+      "x": -459.5,
+      "y": -224.5,
+      "width": 239,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "time"
+  },
+  "method_rb01uirsh_mjikkmod": {
+    "id": "method_rb01uirsh_mjikkmod",
+    "name": "+ decrease_stock(qty: int)",
+    "type": "ClassMethod",
+    "owner": "class_oho5ergc3_mjikkmod",
+    "bounds": {
+      "x": -459.5,
+      "y": -199.5,
+      "width": 239,
+      "height": 25
+    },
+    "code": "def decrease_stock(self, qty: int):\n    \"\"\"\n    Decrease the available stock by the given quantity.\n\n    :param qty: Number of items to remove from stock\n    :raises ValueError: If qty is negative or exceeds available stock\n    \"\"\"\n    if qty <= 0:\n        raise ValueError(\"Quantity must be a positive integer\")\n\n    if qty > self.stock:\n        raise ValueError(\n            f\"Cannot decrease stock by {qty}. Only {self.stock} items available.\"\n        )\n\n    self.stock -= qty\n\n",
+    "visibility": "public",
+    "attributeType": "int): any"
+  },
+  "class_06blhjj3h_mjikkmod": {
+    "id": "class_06blhjj3h_mjikkmod",
+    "name": "Library",
+    "type": "Class",
+    "owner": null,
+    "bounds": {
+      "x": 10,
+      "y": -230,
+      "width": 350,
+      "height": 65
+    },
+    "attributes": [
+      "attr_eryfh37kl_mjikkmod"
+    ],
+    "methods": []
+  },
+  "attr_eryfh37kl_mjikkmod": {
+    "id": "attr_eryfh37kl_mjikkmod",
+    "name": "name",
+    "type": "ClassAttribute",
+    "owner": "class_06blhjj3h_mjikkmod",
+    "bounds": {
+      "x": 10.5,
+      "y": -189.5,
+      "width": 349,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "str"
+  },
+  "class_d3f0di6lb_mjikkmoe": {
+    "id": "class_d3f0di6lb_mjikkmoe",
+    "name": "Author",
+    "type": "Class",
+    "owner": null,
+    "bounds": {
+      "x": 50,
+      "y": -390,
+      "width": 220,
+      "height": 65
+    },
+    "attributes": [
+      "attr_p3zqpt65k_mjikkmoe"
+    ],
+    "methods": []
+  },
+  "attr_p3zqpt65k_mjikkmoe": {
+    "id": "attr_p3zqpt65k_mjikkmoe",
+    "name": "name",
+    "type": "ClassAttribute",
+    "owner": "class_d3f0di6lb_mjikkmoe",
+    "bounds": {
+      "x": 50.5,
+      "y": -349.5,
+      "width": 219,
+      "height": 25
+    },
+    "code": "",
+    "visibility": "public",
+    "attributeType": "str"
+  },
+  "0029e46f-be06-417b-8780-38d6311c029d": {
+    "id": "0029e46f-be06-417b-8780-38d6311c029d",
+    "name": "",
+    "type": "ClassOCLConstraint",
+    "owner": null,
+    "bounds": {
+      "x": -770,
+      "y": -340,
+      "width": 220,
+      "height": 90
+    },
+    "constraint": "context Book inv inv1: self.pages> 10"
+  }
+},
+"relationships": {
+  "rel_z26fdxrdq_mjikkmoe": {
+    "id": "rel_z26fdxrdq_mjikkmoe",
+    "name": "books",
+    "type": "ClassBidirectional",
+    "owner": null,
+    "bounds": {
+      "x": -220,
+      "y": -212.5,
+      "width": 230,
+      "height": 48
+    },
+    "path": [
+      {
+        "x": 230,
+        "y": 10
+      },
+      {
+        "x": 0,
+        "y": 10
+      }
+    ],
+    "source": {
+      "direction": "Left",
+      "element": "class_06blhjj3h_mjikkmod",
+      "multiplicity": "*",
+      "role": "library",
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "target": {
+      "direction": "Right",
+      "element": "class_oho5ergc3_mjikkmod",
+      "multiplicity": "*",
+      "role": "books",
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "isManuallyLayouted": false
+  },
+  "rel_0ys2qxzq1_mjikkmoe": {
+    "id": "rel_0ys2qxzq1_mjikkmoe",
+    "name": "books",
+    "type": "ClassBidirectional",
+    "owner": null,
+    "bounds": {
+      "x": -220,
+      "y": -367.5,
+      "width": 270,
+      "height": 48
+    },
+    "path": [
+      {
+        "x": 270,
+        "y": 10
+      },
+      {
+        "x": 0,
+        "y": 10
+      }
+    ],
+    "source": {
+      "direction": "Left",
+      "element": "class_d3f0di6lb_mjikkmoe",
+      "multiplicity": "*",
+      "role": "authors",
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "target": {
+      "direction": "Right",
+      "element": "class_oho5ergc3_mjikkmod",
+      "multiplicity": "1..*",
+      "role": "books",
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    "isManuallyLayouted": false
+  },
+  "ce6ddd2c-d117-42e0-8d10-89876f362879": {
+    "id": "ce6ddd2c-d117-42e0-8d10-89876f362879",
+    "name": "",
+    "type": "ClassOCLLink",
+    "owner": null,
+    "bounds": {
+      "x": -550,
+      "y": -305,
+      "width": 90,
+      "height": 31
+    },
+    "path": [
+      {
+        "x": 0,
+        "y": 10
+      },
+      {
+        "x": 90,
+        "y": 10
+      }
+    ],
+    "source": {
+      "direction": "Upright",
+      "element": "0029e46f-be06-417b-8780-38d6311c029d",
+      "multiplicity": "",
+      "role": ""
+    },
+    "target": {
+      "direction": "Upleft",
+      "element": "class_oho5ergc3_mjikkmod",
+      "multiplicity": "",
+      "role": ""
+    },
+    "isManuallyLayouted": false
+  }
+},
+"assessments": {}
+}

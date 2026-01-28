@@ -4,7 +4,7 @@ import { Button, Modal } from 'react-bootstrap';
 import {
   besserLibraryRepositoryLink,
   besserLibraryVersion,
-  besserStandaloneRepositoryLink,
+  besserWMERepositoryLink,
   appVersion,
 } from '../../../application-constants';
 import { ModalContentProps } from '../application-modal-types';
@@ -30,8 +30,8 @@ export const InformationModal: React.FC<ModalContentProps> = ({ close }) => {
             <tr>
               <td>Version:</td>
               <td>
-                <a href={besserStandaloneRepositoryLink} target="_blank">
-                  BESSER WME Standalone{' '}
+                <a href={besserWMERepositoryLink} target="_blank">
+                  BESSER Web Modeling Editor{' '}
                 </a>
                 {/* {appVersion} */}
               </td>

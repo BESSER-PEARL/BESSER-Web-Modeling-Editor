@@ -98,6 +98,11 @@ export class WebSocketService {
           // Send queued messages
           this.processMessageQueue();
 
+          // Small delay to ensure message handler is ready before requesting greeting
+          setTimeout(() => {
+            this.requestGreeting();
+          }, 100);
+
           this.connectingPromise = null;
           resolve();
         };
@@ -168,7 +173,8 @@ export class WebSocketService {
 
   /**
    * Send message to agent with diagram type
-   * CRITICAL: Sends text message FIRST for intent detection, then JSON payload after delay
+   * Sends a single JSON payload containing both the message (for intent detection)
+   * and the full model context (for processing)
    */
   sendMessage(message: string, diagramType?: string, model?: any): SendStatus {
     const type = diagramType || 'ClassDiagram';
@@ -185,33 +191,81 @@ export class WebSocketService {
     }
 
     try {
-      // Step 1: Send text message FIRST for intent detection
-      // console.log('[ws] Step 1: Sending text message for intent detection');
-      this.sendTextMessage(messageWithPrefix, type);
-
-      // Step 2: Send JSON payload with model context AFTER a small delay
-      // This ensures the agent processes intent BEFORE receiving the full context
-      if (model) {
-        setTimeout(() => {
-          // console.log('[ws] Step 2: Sending JSON payload with model context');
-          this.sendModelContext(model, messageWithPrefix, type);
-        }, 500); // 500ms delay to ensure intent is detected first
-      }
-
+      // Send a single JSON message with both the text message and full model context
+      // The agent framework extracts 'message' field for intent classification
+      // and uses the full payload for diagram operations
+      this.sendUnifiedMessage(messageWithPrefix, type, model);
       return 'sent';
     } catch (error) {
       console.error('Failed to send message:', error);
       return 'error';
     }
   }
+
   /**
-   * Send model context to agent with diagram type (new feature)
+   * Send a unified JSON message containing both the message and model context
+   * The agent framework's ReceiveJSONEvent extracts 'message' for intent classification
+   */
+  private sendUnifiedMessage(message: string, diagramType: string, model?: any): void {
+    if (!this.isConnected || !this.ws) {
+      throw new Error('WebSocket is not connected');
+    }
+
+    // Build the envelope with message for intent detection and full model context
+    const envelope: any = {
+      message,  // This is extracted by ReceiveJSONEvent for intent classification
+      diagramType
+    };
+
+    // Add model context if available
+    if (model) {
+      const sanitizedModel = JSON.parse(JSON.stringify(model));
+      envelope.currentModel = sanitizedModel;
+    }
+
+    const payload = {
+      action: 'user_message',
+      message: JSON.stringify(envelope),
+      diagramType
+    };
+
+    // console.log('[ws] Sending unified message with diagram type:', diagramType);
+    this.ws.send(JSON.stringify(payload));
+    this.onTypingHandler?.(true);
+  }
+
+  /**
+   * Request initial greeting from the agent
+   * Called automatically when WebSocket connection is established
+   */
+  private requestGreeting(): void {
+    if (!this.isConnected || !this.ws) {
+      return;
+    }
+
+    const envelope = {
+      message: 'hello',
+      diagramType: 'ClassDiagram'
+    };
+
+    const payload = {
+      action: 'user_message',
+      message: JSON.stringify(envelope),
+      diagramType: 'ClassDiagram'
+    };
+
+    console.log('[ws] Requesting initial greeting from agent');
+    this.ws.send(JSON.stringify(payload));
+  }
+
+  /**
+   * Send model context to agent with diagram type
+   * @deprecated Use sendMessage() instead which now sends unified JSON messages
    */
   sendModelContext(model: any, message: string, diagramType?: string): boolean {
     const type = diagramType || 'ClassDiagram';
 
     if (!this.isConnected || !this.ws) {
-      // console.warn('[ws] WebSocket not connected, queuing context payload');
       this.messageQueue.push({
         preparedMessage: message,
         diagramType: type,
@@ -221,45 +275,13 @@ export class WebSocketService {
     }
 
     try {
-      const sanitizedModel = JSON.parse(JSON.stringify(model));
-      const envelope = {
-        message,
-        diagramType: type,
-        currentModel: sanitizedModel
-      };
-
-      const payload = {
-        action: 'user_message',
-        message: JSON.stringify(envelope),
-        diagramType: type
-      };
-
-      this.ws.send(JSON.stringify(payload));
-      this.onTypingHandler?.(true);
+      this.sendUnifiedMessage(message, type, model);
       return true;
     } catch (error) {
       console.error('[ws] Failed to send model context:', error);
       return false;
     }
   }
-
-  private sendTextMessage(message: string, diagramType: string): void {
-    if (!this.isConnected || !this.ws) {
-      throw new Error('WebSocket is not connected');
-    }
-
-    const payload = {
-      action: 'user_message',
-      message,
-      diagramType
-    };
-
-    // console.log('[ws] Sending message with diagram type:', diagramType);
-    this.ws.send(JSON.stringify(payload));
-    this.onTypingHandler?.(true);
-  }
-
-
 
   /**
    * Handle incoming WebSocket messages
@@ -407,7 +429,7 @@ export class WebSocketService {
 
   /**
    * Process queued messages
-   * Sends text message first, then model context with delay
+   * Sends unified JSON message with both text and model context
    */
   private processMessageQueue(): void {
     if (this.messageQueue.length === 0) {
@@ -421,17 +443,10 @@ export class WebSocketService {
 
     messages.forEach((item, index) => {
       try {
-        // Send text message first
+        // Send unified message (stagger multiple queued messages)
         setTimeout(() => {
-          this.sendTextMessage(item.preparedMessage, item.diagramType);
-
-          // Send model context after delay
-          if (item.model) {
-            setTimeout(() => {
-              this.sendModelContext(item.model, item.preparedMessage, item.diagramType);
-            }, 500);
-          }
-        }, index * 1000); // Stagger multiple queued messages
+          this.sendUnifiedMessage(item.preparedMessage, item.diagramType, item.model);
+        }, index * 1000);
       } catch (error) {
         // console.error('[ws] Failed to process queued message:', error);
       }

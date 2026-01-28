@@ -92,11 +92,11 @@ export const composeStatePreview: ComposePreview = (
   });
   elements.push(stateInitialNode);
 
-  // State Final Node
-  const stateFinalNode = new UMLStateFinalNode({
-    bounds: { x: 0, y: 0, width: 45, height: 45 },
-  });
-  elements.push(stateFinalNode);
+  // // State Final Node
+  // const stateFinalNode = new UMLStateFinalNode({
+  //   bounds: { x: 0, y: 0, width: 45, height: 45 },
+  // });
+  // elements.push(stateFinalNode);
 
   // // State Action Node
   // const stateActionNode = new UMLStateActionNode({

@@ -86,6 +86,8 @@ const getDiagramTypeColor = (type: SupportedDiagramType): string => {
     'ObjectDiagram': 'success',
     'StateMachineDiagram': 'warning',
     'AgentDiagram': 'info',
+    'GUINoCodeDiagram': 'dark',
+    'QuantumCircuitDiagram': 'secondary'
   };
   return colors[type] || 'secondary';
 };
@@ -93,7 +95,8 @@ const getDiagramTypeColor = (type: SupportedDiagramType): string => {
 export const ProjectSettingsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
-  
+  const [showAssociationNames, setShowAssociationNames] = useState(false);
+
   // Use the new project hook
   const {
     currentProject,
@@ -105,8 +108,11 @@ export const ProjectSettingsScreen: React.FC = () => {
 
   // Initialize settings on component mount
   useEffect(() => {
-    const currentSetting = settingsService.shouldShowInstancedObjects();
-    setShowInstancedObjects(currentSetting);
+    const instancedObjectsSetting = settingsService.shouldShowInstancedObjects();
+    setShowInstancedObjects(instancedObjectsSetting);
+
+    const associationNamesSetting = settingsService.shouldShowAssociationNames();
+    setShowAssociationNames(associationNamesSetting);
   }, []);
 
   const handleShowInstancedObjectsToggle = (checked: boolean) => {
@@ -115,9 +121,15 @@ export const ProjectSettingsScreen: React.FC = () => {
     toast.success(`Instanced objects ${checked ? 'enabled' : 'disabled'}`);
   };
 
+  const handleShowAssociationNamesToggle = (checked: boolean) => {
+    setShowAssociationNames(checked);
+    settingsService.updateSetting('showAssociationNames', checked);
+    toast.success(`Association names ${checked ? 'enabled' : 'disabled'}`);
+  };
+
   const handleProjectUpdate = (field: string, value: string) => {
     if (!currentProject) return;
-    
+
     try {
       updateProject({ [field]: value } as any);
       // toast.success('Project updated successfully!');
@@ -129,13 +141,38 @@ export const ProjectSettingsScreen: React.FC = () => {
 
   const handleExportProject = async () => {
     if (!currentProject) return;
-    
+
     try {
-      exportProject(currentProject.id);
+      setIsLoading(true);
+
+      // Force GrapesJS to save before exporting (if editor is active)
+      const GraphicalUIEditor = (window as any).editor;
+      if (GraphicalUIEditor && currentProject.currentDiagramType === 'GUINoCodeDiagram') {
+        console.log('[Export] Forcing GrapesJS save before export...');
+
+        // Wait for the store operation to complete
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('GrapesJS save timeout'));
+          }, 5000);
+
+          GraphicalUIEditor.store((result: any) => {
+            clearTimeout(timeout);
+            console.log('[Export] GrapesJS save completed');
+            // Add a longer delay to ensure storage writes complete to localStorage
+            setTimeout(() => resolve(), 300);
+          });
+        });
+      }
+
+      // Export with force refresh to get the latest data from localStorage
+      await exportProject(currentProject.id, true);
       toast.success('Project exported successfully!');
     } catch (error) {
       console.error('Error exporting project:', error);
-      toast.error('Failed to export project');
+      toast.error(`Failed to export project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -283,7 +320,7 @@ export const ProjectSettingsScreen: React.FC = () => {
             </Row>
 
             <SectionTitle>Display Settings</SectionTitle>
-            <Form.Group className="mb-4">
+            <Form.Group className="mb-3">
               <Form.Check
                 type="switch"
                 id="show-instanced-objects"
@@ -296,14 +333,28 @@ export const ProjectSettingsScreen: React.FC = () => {
               </Form.Text>
             </Form.Group>
 
+            <Form.Group className="mb-4">
+              <Form.Check
+                type="switch"
+                id="show-association-names"
+                label="Show Association Names"
+                checked={showAssociationNames}
+                onChange={(e) => handleShowAssociationNamesToggle(e.target.checked)}
+              />
+              <Form.Text className="text-muted">
+                Toggle the visibility of association names in class diagrams
+              </Form.Text>
+            </Form.Group>
+
             <div className="d-flex justify-content-end gap-3 mt-4">
               <ActionButton
                 variant="outline-primary"
                 onClick={handleExportProject}
+                disabled={isLoading}
                 className="d-flex align-items-center gap-2"
               >
                 <Download size={16} />
-                Export Project
+                {isLoading ? 'Exporting...' : 'Export Project'}
               </ActionButton>
             </div>
           </Form>

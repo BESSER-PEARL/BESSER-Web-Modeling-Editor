@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { UMLModel, UMLDiagramType } from '@besser/wme';
-import { BesserProject, ProjectDiagram, SupportedDiagramType, toSupportedDiagramType, toUMLDiagramType } from '../../types/project';
+import { BesserProject, ProjectDiagram, SupportedDiagramType, QuantumCircuitData, isUMLModel, toSupportedDiagramType, toUMLDiagramType } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../constant';
 
@@ -55,16 +55,20 @@ export const loadProjectThunk = createAsyncThunk(
       const compatibleDiagram = {
         id: currentDiagram.id,
         title: currentDiagram.title,
-        model: currentDiagram.model,
+        model: isUMLModel(currentDiagram.model) ? currentDiagram.model : undefined,
         lastUpdate: currentDiagram.lastUpdate,
       };
       
-      // Update the diagram slice
-      console.log('Syncing project load to diagram slice...');
-      dispatch(changeDiagramType(diagramType));
-      dispatch(loadDiagram(compatibleDiagram));
-      dispatch(setCreateNewEditor(true));
-      console.log('Successfully synced project load');
+      // Update the diagram slice (only for UML diagrams, skip GUINoCodeDiagram)
+      if (diagramType !== null) {
+        console.log('Syncing project load to diagram slice...');
+        dispatch(changeDiagramType(diagramType));
+        dispatch(loadDiagram(compatibleDiagram));
+        dispatch(setCreateNewEditor(true));
+        console.log('Successfully synced project load');
+      } else {
+        console.log('Skipping diagram sync for non-UML diagram type:', project.currentDiagramType);
+      }
     } catch (error) {
       console.warn('Could not sync to diagram slice:', error);
     }
@@ -93,12 +97,21 @@ export const createProjectThunk = createAsyncThunk(
         lastUpdate: currentDiagram.lastUpdate,
       };
       
-      // Update the diagram slice
-      console.log('Syncing project creation to diagram slice...');
-      dispatch(changeDiagramType(diagramType));
-      dispatch(loadDiagram(compatibleDiagram));
-      dispatch(setCreateNewEditor(true));
-      console.log('Successfully synced project creation');
+      // Update the diagram slice (only for UML diagrams, skip GUINoCodeDiagram)
+      if (diagramType !== null) {
+        console.log('Syncing project creation to diagram slice...');
+        dispatch(changeDiagramType(diagramType));
+        dispatch(loadDiagram({
+          id: currentDiagram.id,
+          title: currentDiagram.title,
+          model: isUMLModel(currentDiagram.model) ? currentDiagram.model : undefined,
+          lastUpdate: currentDiagram.lastUpdate,
+        }));
+        dispatch(setCreateNewEditor(true));
+        console.log('Successfully synced project creation');
+      } else {
+        console.log('Skipping diagram sync for non-UML diagram type:', project.currentDiagramType);
+      }
     } catch (error) {
       console.warn('Could not sync to diagram slice:', error);
     }
@@ -114,8 +127,11 @@ export const updateCurrentDiagramThunk = createAsyncThunk(
     const { currentProject, currentDiagramType } = state.project;
     
     if (!currentProject) {
-      throw new Error('No active project');
+      console.warn('updateCurrentDiagramThunk: No active project, skipping update');
+      return null;
     }
+    
+    // console.log('updateCurrentDiagramThunk: Saving to project', currentProject.id, 'diagram type:', currentDiagramType);
     
     const updatedDiagram: ProjectDiagram = {
       ...currentProject.diagrams[currentDiagramType],
@@ -130,7 +146,40 @@ export const updateCurrentDiagramThunk = createAsyncThunk(
     );
     
     if (!success) {
+      console.error('updateCurrentDiagramThunk: Failed to update diagram in storage');
       throw new Error('Failed to update diagram');
+    }
+    
+    // console.log('updateCurrentDiagramThunk: Successfully saved diagram');
+    return updatedDiagram;
+  }
+);
+
+// Thunk for updating quantum circuit diagram (non-UML diagram)
+export const updateQuantumDiagramThunk = createAsyncThunk(
+  'project/updateQuantumDiagram',
+  async ({ model }: { model: QuantumCircuitData }, { getState }) => {
+    const state = getState() as { project: ProjectState };
+    const { currentProject } = state.project;
+    
+    if (!currentProject) {
+      throw new Error('No active project');
+    }
+    
+    const updatedDiagram: ProjectDiagram = {
+      ...currentProject.diagrams.QuantumCircuitDiagram,
+      model: model,
+      lastUpdate: new Date().toISOString(),
+    };
+    
+    const success = ProjectStorageRepository.updateDiagram(
+      currentProject.id,
+      'QuantumCircuitDiagram',
+      updatedDiagram
+    );
+    
+    if (!success) {
+      throw new Error('Failed to update quantum diagram');
     }
     
     return updatedDiagram;
@@ -139,7 +188,7 @@ export const updateCurrentDiagramThunk = createAsyncThunk(
 
 export const switchDiagramTypeThunk = createAsyncThunk(
   'project/switchDiagramType',
-  async ({ diagramType }: { diagramType: UMLDiagramType }, { getState, dispatch }) => {
+  async ({ diagramType }: { diagramType: UMLDiagramType | SupportedDiagramType }, { getState, dispatch }) => {
     const state = getState() as { project: ProjectState };
     const { currentProject } = state.project;
     
@@ -147,7 +196,10 @@ export const switchDiagramTypeThunk = createAsyncThunk(
       throw new Error('No active project');
     }
     
-    const supportedType = toSupportedDiagramType(diagramType);
+    // Handle both UMLDiagramType and SupportedDiagramType
+    const supportedType = (diagramType === 'QuantumCircuitDiagram' || diagramType === 'GUINoCodeDiagram')
+      ? diagramType as SupportedDiagramType
+      : toSupportedDiagramType(diagramType as UMLDiagramType);
     const diagram = ProjectStorageRepository.switchDiagramType(currentProject.id, supportedType);
     
     if (!diagram) {
@@ -157,11 +209,12 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     // Special handling for Object Diagrams - set up reference to Class Diagram
     if (diagramType === UMLDiagramType.ObjectDiagram) {
       const classDiagram = currentProject.diagrams.ClassDiagram;
-      if (classDiagram?.model) {
+      const classDiagramModel = classDiagram?.model;
+      if (isUMLModel(classDiagramModel)) {
         try {
           const { diagramBridge } = await import('@besser/wme');
           // Set the class diagram data in the bridge so Object Diagram can reference it
-          diagramBridge.setClassDiagramData(classDiagram.model);
+          diagramBridge.setClassDiagramData(classDiagramModel);
           console.log('Set class diagram reference for object diagram');
         } catch (error) {
           console.warn('Could not set class diagram reference:', error);
@@ -177,16 +230,22 @@ export const switchDiagramTypeThunk = createAsyncThunk(
       const compatibleDiagram = {
         id: diagram.id,
         title: diagram.title,
-        model: diagram.model,
+        model: isUMLModel(diagram.model) ? diagram.model : undefined,
         lastUpdate: diagram.lastUpdate,
       };
       
-      // Update the diagram slice
-      console.log('Syncing diagram type switch to diagram slice...');
-      dispatch(changeDiagramType(diagramType));
-      dispatch(loadDiagram(compatibleDiagram));
-      dispatch(setCreateNewEditor(true));
-      console.log('Successfully synced diagram type switch');
+      // Update the diagram slice (only for UML diagrams)
+      // Non-UML diagrams (QuantumCircuitDiagram, GUINoCodeDiagram) have their own editors
+      const isUMLDiagramType = supportedType !== 'QuantumCircuitDiagram' && supportedType !== 'GUINoCodeDiagram';
+      if (isUMLDiagramType) {
+        console.log('Syncing diagram type switch to diagram slice...');
+        dispatch(changeDiagramType(diagramType as UMLDiagramType));
+        dispatch(loadDiagram(compatibleDiagram));
+        dispatch(setCreateNewEditor(true));
+        console.log('Successfully synced diagram type switch');
+      } else {
+        console.log('Non-UML diagram type, skipping diagram slice sync');
+      }
     } catch (error) {
       console.warn('Could not sync to diagram slice:', error);
     }
@@ -242,13 +301,29 @@ const projectSlice = createSlice({
       
       // Update current diagram
       .addCase(updateCurrentDiagramThunk.fulfilled, (state, action) => {
-        state.currentDiagram = action.payload;
-        if (state.currentProject) {
-          state.currentProject.diagrams[state.currentDiagramType] = action.payload;
+        if (action.payload) {
+          state.currentDiagram = action.payload;
+          if (state.currentProject) {
+            state.currentProject.diagrams[state.currentDiagramType] = action.payload;
+          }
         }
       })
       .addCase(updateCurrentDiagramThunk.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to update diagram';
+      })
+      
+      // Update quantum diagram
+      .addCase(updateQuantumDiagramThunk.fulfilled, (state, action) => {
+        if (state.currentProject) {
+          state.currentProject.diagrams.QuantumCircuitDiagram = action.payload;
+        }
+        // If currently viewing quantum diagram, update current diagram too
+        if (state.currentDiagramType === 'QuantumCircuitDiagram') {
+          state.currentDiagram = action.payload;
+        }
+      })
+      .addCase(updateQuantumDiagramThunk.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to update quantum diagram';
       })
       
       // Switch diagram type

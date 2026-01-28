@@ -7,18 +7,21 @@ import { UMLDiagramType } from '@besser/wme';
 import { loadDiagram } from '../../../services/diagram/diagramSlice';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
-import { 
-  Diagram3, 
-  Diagram2, 
-  Robot, 
-  ArrowRepeat, 
+import {
+  Diagram3,
+  Diagram2,
+  Robot,
+  ArrowRepeat,
   Check2Circle,
   InfoCircle,
   Person,
   FileText,
-  Tag
+  Tag,
+  Grid3x3Gap,
+  Cpu
 } from 'react-bootstrap-icons';
 import { useProject } from '../../../hooks/useProject';
+import { isUMLModel } from '../../../types/project';
 import { toUMLDiagramType } from '../../../types/project';
 
 // Legacy project type (kept for compatibility)
@@ -42,6 +45,7 @@ const DIAGRAM_ICONS = {
   [UMLDiagramType.ObjectDiagram]: Diagram2,
   [UMLDiagramType.AgentDiagram]: Robot,
   [UMLDiagramType.StateMachineDiagram]: ArrowRepeat,
+  'GUI': Grid3x3Gap
 };
 
 export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
@@ -52,7 +56,7 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
     defaultDiagramType: UMLDiagramType.ClassDiagram,
   });
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { createProject, loading, error } = useProject();
@@ -68,7 +72,7 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
     }
 
     setIsLoading(true);
-    
+
     try {
       // Create project using the new architecture
       const project = await createProject(
@@ -79,22 +83,21 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
 
       // Load the default diagram type in the editor
       const currentDiagram = project.diagrams[project.currentDiagramType];
-      if (currentDiagram?.model) {
+      if (isUMLModel(currentDiagram?.model)) {
         // Convert to legacy Diagram format for compatibility with current editor
         const legacyDiagram = {
           id: currentDiagram.id,
           title: currentDiagram.title,
-          model: currentDiagram.model,
+          model: isUMLModel(currentDiagram.model) ? currentDiagram.model : undefined,
           lastUpdate: currentDiagram.lastUpdate,
           description: currentDiagram.description,
         };
         dispatch(loadDiagram(legacyDiagram));
       }
-
       toast.success(`Project "${formData.name}" created successfully with all diagram types!`);
       close();
       navigate('/');
-      
+
     } catch (error) {
       console.error('Error creating project:', error);
       toast.error('Failed to create project. Please try again.');
@@ -157,9 +160,10 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
               <option value={UMLDiagramType.ObjectDiagram}>Object Diagram</option>
               <option value={UMLDiagramType.StateMachineDiagram}>State Machine Diagram</option>
               <option value={UMLDiagramType.AgentDiagram}>Agent Diagram</option>
+              <option value="GUI">Graphical UI Editor (GUI)</option>
             </Form.Select>
             <Form.Text className="text-muted">
-              This will be the active diagram when you first open the project.
+              This will be the active view when you first open the project.
             </Form.Text>
           </Form.Group>
 
@@ -179,22 +183,26 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
                     <Diagram2 className="text-success me-2" size={16} />
                     <span className="small">Object Diagram</span>
                   </div>
-                </Col>
-                <Col md={6}>
                   <div className="d-flex align-items-center mb-2">
                     <ArrowRepeat className="text-warning me-2" size={16} />
                     <span className="small">State Machine Diagram</span>
                   </div>
+                </Col>
+                <Col md={6}>
                   <div className="d-flex align-items-center mb-2">
                     <Robot className="text-info me-2" size={16} />
                     <span className="small">Agent Diagram</span>
+                  </div>
+                  <div className="d-flex align-items-center mb-2">
+                    <Grid3x3Gap className="text-dark me-2" size={16} />
+                    <span className="small">Graphical UI Editor</span>
                   </div>
                 </Col>
               </Row>
               <div className="mt-2">
                 <small className="text-muted">
                   <InfoCircle className="me-1" size={14} />
-                  All diagram types are always available. Switch between them anytime using the diagram type selector.
+                  All diagram types and editors are always available. Switch between them anytime.
                 </small>
               </div>
             </Card.Body>
@@ -205,9 +213,9 @@ export const CreateProjectModal: React.FC<ModalContentProps> = ({ close }) => {
         <Button variant="secondary" onClick={close} disabled={isLoading || loading}>
           Cancel
         </Button>
-        <Button 
-          variant="primary" 
-          onClick={handleCreateProject} 
+        <Button
+          variant="primary"
+          onClick={handleCreateProject}
           disabled={!formData.name.trim() || isLoading || loading}
         >
           {(isLoading || loading) ? 'Creating Project...' : 'Create Project'}

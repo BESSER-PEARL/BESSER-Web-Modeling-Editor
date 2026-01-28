@@ -1,3 +1,4 @@
+
 export type ModalContentType = keyof typeof ModalContentType;
 
 export const ModalContentType = {
@@ -6,16 +7,12 @@ export const ModalContentType = {
   InformationModal: 'InformationModal',
   LoadDiagramModal: 'LoadDiagramModal',
   CreateDiagramModal: 'CreateDiagramModal',
-  CreateProjectModal: 'CreateProjectModal',
+  CreateProjectModal: 'CreateProjectModal', // This will now map to StartProjectModal
+  StartProjectModal: 'StartProjectModal',
+  StartFromSpreadsheetModal: 'StartFromSpreadsheetModal',
   ImportProjectModal: 'ImportProjectModal',
   CreateDiagramFromTemplateModal: 'CreateDiagramFromTemplateModal',
-  ShareModal: 'ShareModal',
-  CollaborationModal: 'CollaborationModal',
-  DeleteVersionModal: 'DeleteVersionModal',
-  RestoreVersionModal: 'RestoreVersionModal',
-  EditVersionInfoModal: 'EditVersionInfoModal',
-  CreateVersionModal: 'CreateVersionModal',
-  ExportProjectModal: 'ExportProjectModal',
+  FeedbackModal: 'FeedbackModal',
 } as const;
 
 /**

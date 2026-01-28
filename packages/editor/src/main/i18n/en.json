@@ -5,7 +5,7 @@
     "highlight": "Show interactive elements"
   },
   "sidebar": {
-    "classAttribute": "+ attribute: str",
+    "classAttribute": "attribute",
     "classMethod": "+ method()",
     "enumAttribute": "Case",
     "objectAttribute": "attribute = value"

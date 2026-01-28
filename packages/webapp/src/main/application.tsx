@@ -4,24 +4,31 @@ import { ApollonEditorComponent } from './components/apollon-editor-component/Ap
 import { ApollonEditor } from '@besser/wme';
 import { POSTHOG_HOST, POSTHOG_KEY, localStorageLatestProject } from './constant';
 import { ApollonEditorProvider } from './components/apollon-editor-component/apollon-editor-context';
-import { FirefoxIncompatibilityHint } from './components/incompatability-hints/firefox-incompatibility-hint';
 import { ErrorPanel } from './components/error-handling/error-panel';
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import { ApplicationModal } from './components/modals/application-modal';
 import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { PostHogProvider } from 'posthog-js/react';
 import { ApplicationStore } from './components/store/application-store';
-import { ApollonEditorComponentWithConnection } from './components/apollon-editor-component/ApollonEditorComponentWithConnection';
-import { VersionManagementSidebar } from './components/version-management-sidebar/VersionManagementSidebar';
 import { SidebarLayout } from './components/sidebar/SidebarLayout';
 import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
-import { TeamPage } from './components/team/TeamPage';
 import { useProject } from './hooks/useProject';
+import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
+import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
+import { CookieConsentBanner, hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
 
+// PostHog options - GDPR compliant configuration
 const postHogOptions = {
   api_host: POSTHOG_HOST,
+  autocapture: false,
+  disable_session_recording: true,
+  respect_dnt: true,
+  opt_out_capturing_by_default: !hasUserConsented(),
+  persistence: (hasUserConsented() ? 'localStorage+cookie' : 'memory') as 'localStorage+cookie' | 'memory',
+  ip: false,
 };
 
 function AppContentInner() {
@@ -30,30 +37,34 @@ function AppContentInner() {
   const [hasCheckedForProject, setHasCheckedForProject] = useState(false);
   const { currentProject, loadProject } = useProject();
   const location = useLocation();
-  
+
   // Check if current path contains a token (collaboration route)
-  const hasTokenInUrl = location.pathname !== '/' && 
-                       location.pathname !== '/project-settings' && 
-                       location.pathname !== '/teampage';
-  
-  const handleSetEditor = (newEditor: ApollonEditor) => {
+  const hasTokenInUrl = location.pathname !== '/' &&
+    location.pathname !== '/project-settings' &&
+    location.pathname !== '/teampage' &&
+    location.pathname !== '/graphical-ui-editor' &&
+    location.pathname !== '/quantum-editor' &&
+    location.pathname !== '/agent-config' &&
+    location.pathname !== '/agent-personalization'; 
+
+  const handleSetEditor = (newEditor: ApollonEditor | undefined) => {
     setEditor(newEditor);
   };
-  
+
   // Check for latest project on app startup
   useEffect(() => {
     const checkForLatestProject = async () => {
       if (hasCheckedForProject) return;
-      
+
       // If there's a token in the URL, don't show home modal
       if (hasTokenInUrl) {
         setShowHomeModal(false);
         setHasCheckedForProject(true);
         return;
       }
-      
+
       const latestProjectId = localStorage.getItem(localStorageLatestProject);
-      
+
       if (latestProjectId) {
         try {
           await loadProject(latestProjectId);
@@ -66,13 +77,13 @@ function AppContentInner() {
         // No latest project, show modal
         setShowHomeModal(true);
       }
-      
+
       setHasCheckedForProject(true);
     };
-    
+
     checkForLatestProject();
   }, [loadProject, hasCheckedForProject, hasTokenInUrl]);
-  
+
   // Additional effect to handle currentProject changes
   useEffect(() => {
     if (hasCheckedForProject) {
@@ -86,25 +97,24 @@ function AppContentInner() {
       }
     }
   }, [currentProject, hasCheckedForProject, hasTokenInUrl]);
-  
+
   const isFirefox = useMemo(() => /Firefox/i.test(navigator.userAgent), []);
 
   return (
     <ApollonEditorProvider value={{ editor, setEditor: handleSetEditor }}>
       <ApplicationBar onOpenHome={() => setShowHomeModal(true)} />
       <ApplicationModal />
-      <VersionManagementSidebar />
       {/* Home Modal */}
-      <HomeModal 
-        show={showHomeModal} 
+      <HomeModal
+        show={showHomeModal}
         onHide={() => {
           // Only allow closing if there's a current project or if there's a token in URL
           if (currentProject || hasTokenInUrl) {
             setShowHomeModal(false);
           }
-        }} 
+        }}
       />
-      {/* {isFirefox && <FirefoxIncompatibilityHint />} */}
+
       <Routes>
         {/* Collaboration route with token */}
         {/* <Route 
@@ -114,31 +124,49 @@ function AppContentInner() {
               <ApollonEditorComponentWithConnection />
             // </SidebarLayout>
           } 
-        /> */}
-        
+        />  */}
+
         {/* Main editor route */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <SidebarLayout>
               <ApollonEditorComponent />
             </SidebarLayout>
-          } 
+          }
         />
-                
+
+
+        {/* GraphicalUIEditor Studio Editor route - Multi-page support */}
+        <Route
+          path="/graphical-ui-editor"
+          element={
+            <SidebarLayout>
+              <GraphicalUIEditor />
+            </SidebarLayout>
+          }
+        />
+
+        {/* Quantum Circuit Editor route */}
+        <Route
+          path="/quantum-editor"
+          element={
+            <SidebarLayout>
+              <QuantumEditorComponent />
+            </SidebarLayout>
+          }
+        />
 
         {/* Project settings route */}
-        <Route 
-          path="/project-settings" 
+        <Route
+          path="/project-settings"
           element={
             <SidebarLayout>
               <ProjectSettingsScreen />
             </SidebarLayout>
-          } 
+          }
         />
-        
-        {/* Team page route */}
-        <Route path="/teampage" element={<TeamPage />} />
+
       </Routes>
       <ErrorPanel />
       <UMLAgentModeling />
@@ -160,6 +188,7 @@ export function RoutedApplication() {
     <PostHogProvider apiKey={POSTHOG_KEY} options={postHogOptions}>
       <ApplicationStore>
         <AppContent />
+        <CookieConsentBanner />
       </ApplicationStore>
     </PostHogProvider>
   );
