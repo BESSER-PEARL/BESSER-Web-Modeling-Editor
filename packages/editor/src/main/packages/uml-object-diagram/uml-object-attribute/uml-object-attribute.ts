@@ -8,6 +8,7 @@ import { IUMLElement } from '../../../services/uml-element/uml-element';
 
 export interface IUMLObjectAttribute extends IUMLElement {
   attributeId?: string; // ID of the attribute from the library class
+  attributeType?: string; // Type of the attribute (str, int, float, etc.)
 }
 
 export class UMLObjectAttribute extends UMLClassifierAttribute {

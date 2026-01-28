@@ -1,17 +1,47 @@
 Getting Started
 ===============
 
+Accessing the Editor
+--------------------
+
+You can access the BESSER Web Modeling Editor in two ways:
+
+1.  **Public Online Version**: Visit `editor.besser-pearl.org <https://editor.besser-pearl.org>`_ in your web browser.
+2.  **Local Deployment**: Run the editor on your own machine using Docker or from source.
+
+.. image:: ../images/wme/editor/wme_docs.png
+  :width: 800
+  :alt: BESSER Web Modeling Editor
+  :align: center
+
 Prerequisites
 -------------
 
-* Node.js **22.10.0** or newer (the workspace relies on the built-in `crypto`
-  Web APIs and `ts-node-dev` shipping with Node 22).
-* npm 10 (bundled with current Node releases). Yarn/pnpm are not officially
-  supported.
-* Git for cloning the repository.
+*   **For Docker**: `Docker Desktop <https://www.docker.com/products/docker-desktop/>`_.
+*   **For Source**: Node.js **22.10.0** or newer, npm 10, and Git.
+
+Deploy with Docker (Recommended)
+--------------------------------
+
+The easiest way to run the editor locally is using Docker Compose.
+
+.. code-block:: bash
+
+   git clone https://github.com/BESSER-PEARL/BESSER.git
+   cd BESSER
+   git submodule init
+   git submodule update
+   docker-compose up
+
+Once the setup is complete, open your browser and navigate to ``http://localhost:8080``.
+
+Run from Source
+---------------
+
+If you want to contribute or modify the code, you can run from source.
 
 Clone and install
------------------
+~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
