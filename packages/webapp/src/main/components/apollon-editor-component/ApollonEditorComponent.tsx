@@ -1,4 +1,4 @@
-import { ApollonEditor, UMLModel } from '@besser/wme';
+import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import styled from 'styled-components';
 import { uuid } from '../../utils/uuid';
@@ -7,6 +7,7 @@ import { setCreateNewEditor, updateDiagramThunk, selectCreatenewEditor } from '.
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { isUMLModel } from '../../types/project';
+import { selectCurrentProject } from '../../services/project/projectSlice';
 
 const ApollonContainer = styled.div`
   display: flex;
@@ -26,6 +27,7 @@ export const ApollonEditorComponent: React.FC = () => {
   const { diagram: reduxDiagram } = useAppSelector((state) => state.diagram);
   const options = useAppSelector((state) => state.diagram.editorOptions);
   const createNewEditor = useAppSelector(selectCreatenewEditor);
+  const currentProject = useAppSelector(selectCurrentProject);
   const { setEditor } = useContext(ApollonEditorContext);
 
   // Cleanup function
@@ -40,6 +42,30 @@ export const ApollonEditorComponent: React.FC = () => {
     }
     initializedRef.current = false;
   }, []);
+
+  useEffect(() => {
+    if (!currentProject) {
+      diagramBridge.setStateMachineDiagrams([]);
+      diagramBridge.setQuantumCircuitDiagrams([]);
+      return;
+    }
+
+    const stateMachineDiagram = currentProject.diagrams.StateMachineDiagram;
+    const quantumCircuitDiagram = currentProject.diagrams.QuantumCircuitDiagram;
+
+    const stateMachines =
+      stateMachineDiagram?.id && stateMachineDiagram?.title
+        ? [{ id: stateMachineDiagram.id, name: stateMachineDiagram.title }]
+        : [];
+
+    const quantumCircuits =
+      quantumCircuitDiagram?.id && quantumCircuitDiagram?.title
+        ? [{ id: quantumCircuitDiagram.id, name: quantumCircuitDiagram.title }]
+        : [];
+
+    diagramBridge.setStateMachineDiagrams(stateMachines);
+    diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
+  }, [currentProject]);
 
   // Initialize editor on mount, cleanup on unmount
   useEffect(() => {

@@ -29,8 +29,8 @@ export interface IClassInfo {
 export interface IAttributeInfo {
   id: string;
   name: string;
-  attributeType?: string;
-  visibility?: string;
+  type: string;
+  visibility: string;
 }
 
 /**
@@ -49,6 +49,15 @@ export interface IAssociationInfo {
     role?: string;
     multiplicity?: string;
   };
+}
+
+/**
+ * Interface for diagram references (state machines, quantum circuits, etc.)
+ * Used to reference diagrams from method implementations
+ */
+export interface IDiagramReference {
+  id: string;
+  name: string;
 }
 
 /**
@@ -88,6 +97,26 @@ export interface IDiagramBridgeService {
    * Get all classes that are related to the given class (excluding inheritance)
    */
   getRelatedClasses(classId: string): IClassInfo[];
+
+  /**
+   * Get available state machine diagram references
+   */
+  getStateMachineDiagrams(): IDiagramReference[];
+
+  /**
+   * Set available state machine diagram references
+   */
+  setStateMachineDiagrams(diagrams: IDiagramReference[]): void;
+
+  /**
+   * Get available quantum circuit diagram references
+   */
+  getQuantumCircuitDiagrams(): IDiagramReference[];
+
+  /**
+   * Set available quantum circuit diagram references
+   */
+  setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void;
 }
 
 /**
@@ -139,8 +168,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
     // Check for inheritance relationships where classId is the source (child)
     Object.values(data.relationships || {}).forEach((rel: any) => {
       if (rel.type === 'ClassInheritance' && rel.source?.element === classId && rel.target?.element) {
-      const inheritedRelated = this.getRelatedClasses(rel.target.element);
-      inheritedRelated.forEach(cls => relatedClassIds.add(cls.id));
+        const inheritedRelated = this.getRelatedClasses(rel.target.element);
+        inheritedRelated.forEach(cls => relatedClassIds.add(cls.id));
       }
     });
 
@@ -150,6 +179,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   }
   private classDiagramData: IClassDiagramData | null = null;
   private readonly STORAGE_KEY = 'besser-class-diagram-bridge-data';
+  private stateMachineDiagrams: IDiagramReference[] = [];
+  private quantumCircuitDiagrams: IDiagramReference[] = [];
 
   /**
    * Parse attribute name to extract type (for legacy data format)
@@ -271,8 +302,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
             
             return {
               id: attrId,
-              name: hasNewFormat ? attribute.name : this.cleanAttributeName(attribute.name),
-              attributeType: hasNewFormat ? attribute.attributeType : this.parseAttributeType(attribute.name),
+              name: this.cleanAttributeName(attribute.name),
+              type: attribute.attributeType || 'str',
               visibility: attribute.visibility || 'public',
               sourceClass: currentClass.name,
               isInherited: isInherited
@@ -311,7 +342,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
         uniqueAttributes.set(attr.id, {
           id: attr.id,
           name: attr.name,
-          attributeType: attr.attributeType,
+          type: attr.type,
           visibility: attr.visibility
         });
       }
@@ -547,6 +578,34 @@ export class DiagramBridgeService implements IDiagramBridgeService {
 
     collectHierarchy(classId);
     return hierarchy;
+  }
+
+  /**
+   * Get available state machine diagram references
+   */
+  getStateMachineDiagrams(): IDiagramReference[] {
+    return this.stateMachineDiagrams;
+  }
+
+  /**
+   * Set available state machine diagram references
+   */
+  setStateMachineDiagrams(diagrams: IDiagramReference[]): void {
+    this.stateMachineDiagrams = diagrams;
+  }
+
+  /**
+   * Get available quantum circuit diagram references
+   */
+  getQuantumCircuitDiagrams(): IDiagramReference[] {
+    return this.quantumCircuitDiagrams;
+  }
+
+  /**
+   * Set available quantum circuit diagram references
+   */
+  setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void {
+    this.quantumCircuitDiagrams = diagrams;
   }
 }
 

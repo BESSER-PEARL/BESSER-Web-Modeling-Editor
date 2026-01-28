@@ -5,7 +5,7 @@ import { ApollonEditor } from '@besser/wme';
 import { POSTHOG_HOST, POSTHOG_KEY, localStorageLatestProject } from './constant';
 import { ApollonEditorProvider } from './components/apollon-editor-component/apollon-editor-context';
 import { ErrorPanel } from './components/error-handling/error-panel';
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ApplicationModal } from './components/modals/application-modal';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,6 +19,7 @@ import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
 import { CookieConsentBanner, hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
+import { useGitHubBumlImport } from './services/import/useGitHubBumlImport';
 
 // PostHog options - GDPR compliant configuration
 const postHogOptions = {
@@ -37,6 +38,8 @@ function AppContentInner() {
   const [hasCheckedForProject, setHasCheckedForProject] = useState(false);
   const { currentProject, loadProject } = useProject();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { importFromGitHub, isLoading: isGitHubImportLoading } = useGitHubBumlImport();
 
   // Check if current path contains a token (collaboration route)
   const hasTokenInUrl = location.pathname !== '/' &&
@@ -45,7 +48,7 @@ function AppContentInner() {
     location.pathname !== '/graphical-ui-editor' &&
     location.pathname !== '/quantum-editor' &&
     location.pathname !== '/agent-config' &&
-    location.pathname !== '/agent-personalization'; 
+    location.pathname !== '/agent-personalization';
 
   const handleSetEditor = (newEditor: ApollonEditor | undefined) => {
     setEditor(newEditor);
@@ -83,6 +86,20 @@ function AppContentInner() {
 
     checkForLatestProject();
   }, [loadProject, hasCheckedForProject, hasTokenInUrl]);
+
+  // Handle GitHub BUML import from URL parameter
+  useEffect(() => {
+    const bumlUrl = searchParams.get('buml');
+
+    if (bumlUrl && !isGitHubImportLoading) {
+      // Import from GitHub URL
+      importFromGitHub(bumlUrl).then(() => {
+        // Remove the parameter from URL after import
+        searchParams.delete('buml');
+        setSearchParams(searchParams, { replace: true });
+      });
+    }
+  }, [searchParams, setSearchParams, importFromGitHub, isGitHubImportLoading]);
 
   // Additional effect to handle currentProject changes
   useEffect(() => {
