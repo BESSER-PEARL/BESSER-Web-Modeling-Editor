@@ -138,8 +138,8 @@ const VISIBILITY_OPTIONS = [
 const IMPLEMENTATION_TYPE_OPTIONS: { value: MethodImplementationType; label: string; icon: string }[] = [
   { value: 'none', label: 'None (UML)', icon: '📋' },
   { value: 'code', label: 'Python Code', icon: '📝' },
-  { value: 'state_machine', label: 'State Machine', icon: '🔄' },
-  { value: 'quantum_circuit', label: 'Quantum Circuit', icon: '⚛️' },
+  { value: 'state_machine', label: 'State Machine', icon: '' },
+  { value: 'quantum_circuit', label: 'Quantum Circuit', icon: '' },
 ];
 
 // Available diagram references (these would be passed as props from the webapp in a real implementation)
@@ -374,21 +374,21 @@ const UmlMethodUpdate = ({
         {/* Show method name label when in code mode with code */}
         {hasCode && localImplType === 'code' && (
           <MethodNameLabel title="Method defined in Python code">
-            📝 {name.split('(')[0] || 'method'}
+            Python Code {name.split('(')[0] || 'method'}
           </MethodNameLabel>
         )}
 
         {/* Show method name label for state machine reference */}
         {showStateMachineSelector && (
           <MethodNameLabel title="Method behavior defined by state machine">
-            🔄 {name.split('(')[0] || 'method'}
+           StateMachine {name.split('(')[0] || 'method'}
           </MethodNameLabel>
         )}
 
         {/* Show method name label for quantum circuit reference */}
         {showQuantumCircuitSelector && (
           <MethodNameLabel title="Method behavior defined by quantum circuit">
-            ⚛️ {name.split('(')[0] || 'method'}
+            QuantumCircuit {name.split('(')[0] || 'method'}
           </MethodNameLabel>
         )}
 

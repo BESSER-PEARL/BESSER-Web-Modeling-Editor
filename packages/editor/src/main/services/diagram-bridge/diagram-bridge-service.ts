@@ -29,6 +29,8 @@ export interface IClassInfo {
 export interface IAttributeInfo {
   id: string;
   name: string;
+  type: string;
+  visibility: string;
 }
 
 /**
@@ -166,8 +168,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
     // Check for inheritance relationships where classId is the source (child)
     Object.values(data.relationships || {}).forEach((rel: any) => {
       if (rel.type === 'ClassInheritance' && rel.source?.element === classId && rel.target?.element) {
-      const inheritedRelated = this.getRelatedClasses(rel.target.element);
-      inheritedRelated.forEach(cls => relatedClassIds.add(cls.id));
+        const inheritedRelated = this.getRelatedClasses(rel.target.element);
+        inheritedRelated.forEach(cls => relatedClassIds.add(cls.id));
       }
     });
 
@@ -279,6 +281,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
             return {
               id: attrId,
               name: this.cleanAttributeName(attribute.name),
+              type: attribute.attributeType || 'str',
+              visibility: attribute.visibility || 'public',
               sourceClass: currentClass.name,
               isInherited: isInherited
             };
@@ -315,7 +319,9 @@ export class DiagramBridgeService implements IDiagramBridgeService {
       if (!uniqueAttributes.has(attr.id)) {
         uniqueAttributes.set(attr.id, {
           id: attr.id,
-          name: attr.name
+          name: attr.name,
+          type: attr.type,
+          visibility: attr.visibility
         });
       }
     });
