@@ -509,18 +509,26 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
       };
 
       // Update component attribute when changed
-      const update = () => {
+      const persistSeries = (silent = false) => {
         // Output kebab-case keys for data binding, and keep 'data' property for chart rendering
         const cleanSeries = series.map((s: any) => ({ ...s }));
         const seriesStr = JSON.stringify(cleanSeries);
         component.addAttributes({ series: seriesStr });
         // Also update the trait value directly for GrapesJS persistence
         if (typeof (component as any).set === 'function') {
-          (component as any).set('series', seriesStr);
+          if (silent) {
+            (component as any).set('series', seriesStr, { silent: true });
+          } else {
+            (component as any).set('series', seriesStr);
+          }
         }
-        if (typeof (component as any).trigger === 'function') {
+        if (!silent && typeof (component as any).trigger === 'function') {
           (component as any).trigger('change:series');
         }
+      };
+
+      const update = () => {
+        persistSeries(false);
         render();
       };
 
@@ -560,7 +568,8 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
         if (target.tagName === 'INPUT' && target.dataset.filterIdx !== undefined) {
           const idx = Number(target.dataset.filterIdx);
           series[idx].filter = target.value;
-          // Do not call update() here to avoid chart refresh
+          // Persist without re-render to avoid chart refresh on each keystroke
+          persistSeries(true);
         }
         // Color
         if (target.type === 'color' && target.dataset.colorIdx !== undefined) {
