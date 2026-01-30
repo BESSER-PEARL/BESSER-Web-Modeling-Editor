@@ -213,6 +213,7 @@ class ObjectNameComponent extends Component<Props, State> {
     const attributeRefs: (Textfield<string> | null)[] = [];
     const methodRefs: (Textfield<string> | null)[] = [];
     const availableClasses = this.getAvailableClasses();
+    const showClassSelection = !isUserModelElement && availableClasses.length > 0;
 
     return (
       <div>        <section>
@@ -227,7 +228,7 @@ class ObjectNameComponent extends Component<Props, State> {
             <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
               <TrashIcon />
             </Button>
-          </Flex>{availableClasses.length > 0 && (
+          </Flex>{showClassSelection && (
             <div style={{ marginTop: '8px' }}>
               <ClassSelectionFlex>
                 <Body style={{ marginRight: '0.5em' }}>Class:</Body>                

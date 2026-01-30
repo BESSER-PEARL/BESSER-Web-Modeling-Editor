@@ -71,8 +71,12 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
   render() {
     const { readonly, mode, view, diagramType, translate, changeView } = this.props;
     const { sidebarWidth, showIcon } = this.state;
-    const isObjectDiagram = diagramType.includes("Object") || diagramType.includes("User");
-
+    const isUserDiagram = diagramType.includes('User');
+    const isObjectDiagram = diagramType.includes('Object') || isUserDiagram;
+    const shouldUseIconMode = isUserDiagram ? true : showIcon;
+    if (isUserDiagram) {
+      settingsService.updateSetting('showIconView', true);
+    }
     if (readonly || mode === ApollonMode.Assessment) return null;
 
     // Sidebar content
@@ -105,19 +109,19 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
         {view === ApollonView.Modelling ? (
           <>
 
-            {(isObjectDiagram) && (
+            {(isObjectDiagram && !isUserDiagram) && (
               <label htmlFor="toggleIconMode" style={{ display: 'block', marginTop: 8 }}>
                 <input
                   id="toggleIconMode"
                   type="checkbox"
-                  checked={showIcon}
+                  checked={shouldUseIconMode}
                   onChange={this.handleToggleIconMode}
                 />
                 Display Object Diagram in Icon Mode
               </label>
             )}
             {/* Force CreatePane to rerender when showIcon changes by using key */}
-            <CreatePane key={showIcon ? 'icon' : 'default'} />
+            <CreatePane key={shouldUseIconMode ? 'icon' : 'default'} />
           </>
         ) : (
           <label htmlFor="toggleInteractiveElementsMode">
