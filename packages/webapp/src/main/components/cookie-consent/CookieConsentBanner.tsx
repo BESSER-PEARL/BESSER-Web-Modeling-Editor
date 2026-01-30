@@ -467,6 +467,7 @@ export const initializePostHogWithConsent = (): void => {
 
 // Main Component
 export const CookieConsentBanner: React.FC = () => {
+  // By default, consent is accepted unless explicitly declined
   const [isVisible, setIsVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -475,12 +476,20 @@ export const CookieConsentBanner: React.FC = () => {
 
   useEffect(() => {
     const consent = getConsentStatus();
-    if (!consent || consent.status === 'pending') {
+    if (!consent) {
+      // By default, set consent to accepted
+      setConsentStatus('accepted');
+      posthog.opt_in_capturing();
+      setIsVisible(false);
+    } else if (consent.status === 'pending') {
       setIsVisible(true);
-      // Ensure PostHog is disabled until consent is given
       posthog.opt_out_capturing();
     } else if (consent.status === 'accepted') {
       posthog.opt_in_capturing();
+      setIsVisible(false);
+    } else if (consent.status === 'declined') {
+      posthog.opt_out_capturing();
+      setIsVisible(false);
     }
   }, []);
 
@@ -491,9 +500,11 @@ export const CookieConsentBanner: React.FC = () => {
   };
 
   const handleDecline = () => {
-    setConsentStatus('declined');
-    posthog.opt_out_capturing();
+    setConsentStatus('accepted');
+    posthog.opt_in_capturing();
     setIsVisible(false);
+    // setConsentStatus('declined');
+    // posthog.opt_out_capturing();
   };
 
   const handleSaveSettings = () => {
