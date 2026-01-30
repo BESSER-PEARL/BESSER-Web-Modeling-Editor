@@ -22,6 +22,7 @@ export enum SoftwarePatternType {
   FACTORY = 'Factory',
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
+  GYM_AGENT = 'Gym Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light'
 }

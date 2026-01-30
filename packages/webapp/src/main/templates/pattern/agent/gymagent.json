@@ -1,0 +1,674 @@
+{
+  "version": "3.0.0",
+  "type": "AgentDiagram",
+  "size": { "width": 1080, "height": 400 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    
+            "699853eb-918b-4674-b08c-cf0af3cc61d7": {
+              "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
+              "name": "",
+              "type": "StateInitialNode",
+              "owner": null,
+              "bounds": {
+                "x": -230,
+                "y": -370,
+                "width": 45,
+                "height": 45
+              }
+            },
+            "0cba5357-2c30-414b-8d74-ac74ac4ab158": {
+              "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
+              "name": "Idle",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": -180,
+                "y": -200,
+                "width": 420,
+                "height": 100
+              },
+              "bodies": [
+                "63a2c160-ebbb-457b-953a-93fd2e643224"
+              ],
+              "fallbackBodies": [
+                "1f369122-06c2-4050-ba54-4ea160f95a8c"
+              ]
+            },
+            "63a2c160-ebbb-457b-953a-93fd2e643224": {
+              "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
+              "name": "I am here to answer any questions regarding exercises, nutrition and recovery.",
+              "type": "AgentStateBody",
+              "owner": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
+              "bounds": {
+                "x": -179.5,
+                "y": -159.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "1f369122-06c2-4050-ba54-4ea160f95a8c": {
+              "id": "1f369122-06c2-4050-ba54-4ea160f95a8c",
+              "name": "I focus on gym and fitness topics only dude.",
+              "type": "AgentStateFallbackBody",
+              "owner": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
+              "bounds": {
+                "x": -179.5,
+                "y": -129.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+              "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+              "name": "Muscles_intent",
+              "type": "AgentIntent",
+              "owner": null,
+              "bounds": {
+                "x": -900,
+                "y": -400,
+                "width": 630,
+                "height": 100
+              },
+              "bodies": [
+                "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+              ],
+              "intent_description": "Question about how to become muscular and which exercises to perform."
+            },
+            "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+              "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+              "name": "I want muscles",
+              "type": "AgentIntentBody",
+              "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+              "bounds": {
+                "x": -899.5,
+                "y": -329.5,
+                "width": 629,
+                "height": 30
+              }
+            },
+            "68ccb630-b264-41a0-b70e-1e369bd5706c": {
+              "id": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+              "name": "TrainingPlan",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": -800,
+                "y": -30,
+                "width": 420,
+                "height": 130
+              },
+              "bodies": [
+                "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
+                "747b8558-325d-4a15-baba-0d18a6602a8d",
+                "900f7fd9-738a-4981-a7d9-6c7334621981"
+              ],
+              "fallbackBodies": []
+            },
+            "aa261be5-9c53-4df1-a72f-5a107ce8f1b7": {
+              "id": "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
+              "name": "Focus on heavy compound lifts like squats, deadlifts, bench press, overhead press, and rows to build overall muscle mass. ",
+              "type": "AgentStateBody",
+              "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+              "bounds": {
+                "x": -799.5,
+                "y": 10.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "747b8558-325d-4a15-baba-0d18a6602a8d": {
+              "id": "747b8558-325d-4a15-baba-0d18a6602a8d",
+              "name": "Train 3–5 times per week, progressively increasing the weight while eating enough protein and calories to support growth. ",
+              "type": "AgentStateBody",
+              "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+              "bounds": {
+                "x": -799.5,
+                "y": 40.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "900f7fd9-738a-4981-a7d9-6c7334621981": {
+              "id": "900f7fd9-738a-4981-a7d9-6c7334621981",
+              "name": "Get good sleep and stay consistent—muscle comes from steady effort over time.",
+              "type": "AgentStateBody",
+              "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+              "bounds": {
+                "x": -799.5,
+                "y": 70.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "77976ef7-599d-4c49-9f4d-1ecb23239fe3": {
+              "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+              "name": "Initial",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": -100,
+                "y": -370,
+                "width": 420,
+                "height": 70
+              },
+              "bodies": [
+                "ad226172-93d8-4644-80c5-62825565dd24"
+              ],
+              "fallbackBodies": []
+            },
+            "ad226172-93d8-4644-80c5-62825565dd24": {
+              "id": "ad226172-93d8-4644-80c5-62825565dd24",
+              "name": "Hi, I am your buddy, the fitness agent.",
+              "type": "AgentStateBody",
+              "owner": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+              "bounds": {
+                "x": -99.5,
+                "y": -329.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "7610bbda-21ef-4637-a188-1da1352bea17": {
+              "id": "7610bbda-21ef-4637-a188-1da1352bea17",
+              "name": "Nutrition",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": -150,
+                "y": 130,
+                "width": 420,
+                "height": 190
+              },
+              "bodies": [
+                "bb7e67bd-ead9-4f14-93db-c18af0d806af",
+                "13072ea8-9b51-45fe-927e-a9323627701b",
+                "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
+                "44904a03-ac46-4f9f-983a-f6a740b81c0e",
+                "90dfba4f-6dec-4ca8-8c15-786ed36587a1"
+              ],
+              "fallbackBodies": []
+            },
+            "bb7e67bd-ead9-4f14-93db-c18af0d806af": {
+              "id": "bb7e67bd-ead9-4f14-93db-c18af0d806af",
+              "name": "Nutrition basics: Eat mostly whole foods (lean protein, vegetables, fruits, whole grains, healthy fats). Protein: ~1.6–2.2 g per kg of body weight daily..",
+              "type": "AgentStateBody",
+              "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+              "bounds": {
+                "x": -149.5,
+                "y": 170.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "13072ea8-9b51-45fe-927e-a9323627701b": {
+              "id": "13072ea8-9b51-45fe-927e-a9323627701b",
+              "name": "Match calories to your goal: slight surplus to gain muscle, deficit to lose fat, maintenance to stay the same. ",
+              "type": "AgentStateBody",
+              "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+              "bounds": {
+                "x": -149.5,
+                "y": 200.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "95241c3a-f8a2-4bf0-b169-5dcff5a926fb": {
+              "id": "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
+              "name": " Carbs fuel training; fats support hormones.",
+              "type": "AgentStateBody",
+              "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+              "bounds": {
+                "x": -149.5,
+                "y": 230.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "44904a03-ac46-4f9f-983a-f6a740b81c0e": {
+              "id": "44904a03-ac46-4f9f-983a-f6a740b81c0e",
+              "name": " Drink plenty of water and limit ultra-processed foods and alcohol. ",
+              "type": "AgentStateBody",
+              "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+              "bounds": {
+                "x": -149.5,
+                "y": 260.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "90dfba4f-6dec-4ca8-8c15-786ed36587a1": {
+              "id": "90dfba4f-6dec-4ca8-8c15-786ed36587a1",
+              "name": "Be consistent — results come from habits, not perfection",
+              "type": "AgentStateBody",
+              "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+              "bounds": {
+                "x": -149.5,
+                "y": 290.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "8c760b7d-7e72-4cd7-a92a-d5491c021a5b": {
+              "id": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
+              "name": "OtherQuestions",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": 350,
+                "y": -90,
+                "width": 180,
+                "height": 70
+              },
+              "bodies": [
+                "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
+              ],
+              "fallbackBodies": []
+            },
+            "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
+              "id": "6a3aeb02-bb44-4472-8489-595e8dc8ceb1",
+              "name": "AI response 🪄",
+              "type": "AgentStateBody",
+              "owner": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
+              "bounds": {
+                "x": 350.5,
+                "y": -49.5,
+                "width": 179,
+                "height": 30
+              },
+              "replyType": "llm",
+              "ragDatabaseName": ""
+            },
+            "659e810a-f686-47fb-aea8-d23ad06e482c": {
+              "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+              "name": "Nutrition_intent",
+              "type": "AgentIntent",
+              "owner": null,
+              "bounds": {
+                "x": -900,
+                "y": -290,
+                "width": 630,
+                "height": 100
+              },
+              "bodies": [
+                "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+              ],
+              "intent_description": "Question about nutrition in gym."
+            },
+            "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+              "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+              "name": "Which food to eat?",
+              "type": "AgentIntentBody",
+              "owner": "659e810a-f686-47fb-aea8-d23ad06e482c",
+              "bounds": {
+                "x": -899.5,
+                "y": -219.5,
+                "width": 629,
+                "height": 30
+              }
+            },
+            "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+              "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+              "name": "Other",
+              "type": "AgentIntent",
+              "owner": null,
+              "bounds": {
+                "x": -860,
+                "y": 150,
+                "width": 630,
+                "height": 70
+              },
+              "bodies": [],
+              "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+            }
+        
+  },
+        "relationships": {
+           
+            "bbd03bdd-b76e-47df-9e13-5a305885f94c": {
+              "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
+              "name": "",
+              "type": "AgentStateTransitionInit",
+              "owner": null,
+              "bounds": {
+                "x": -185,
+                "y": -347.5,
+                "width": 85,
+                "height": 1
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 85,
+                  "y": 0
+                }
+              ],
+              "source": {
+                "direction": "Right",
+                "element": "699853eb-918b-4674-b08c-cf0af3cc61d7",
+                "bounds": {
+                  "x": -535,
+                  "y": -37.5,
+                  "width": 0,
+                  "height": 0
+                }
+              },
+              "target": {
+                "direction": "Left",
+                "element": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+                "bounds": {
+                  "x": -280,
+                  "y": -45,
+                  "width": 0,
+                  "height": 0
+                }
+              },
+              "isManuallyLayouted": false
+            },
+            "0d7d8895-3eb0-44b0-bb41-e902684d0d2c": {
+              "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": -590,
+                "y": -150,
+                "width": 410,
+                "height": 120
+              },
+              "path": [
+                {
+                  "x": 410,
+                  "y": 0
+                },
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 0,
+                  "y": 120
+                }
+              ],
+              "source": {
+                "direction": "Left",
+                "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+              },
+              "target": {
+                "direction": "Up",
+                "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
+              },
+              "isManuallyLayouted": false,
+              "condition": "when_intent_matched",
+              "conditionValue": "Muscles"
+            },
+            "7d65df96-e669-4fc6-a882-dbfe92a57073": {
+              "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": 70,
+                "y": -300,
+                "width": 1,
+                "height": 100
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 0,
+                  "y": 100
+                }
+              ],
+              "source": {
+                "direction": "Down",
+                "element": "77976ef7-599d-4c49-9f4d-1ecb23239fe3"
+              },
+              "target": {
+                "direction": "Up",
+                "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+              },
+              "isManuallyLayouted": false,
+              "condition": "auto",
+              "conditionValue": ""
+            },
+            "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
+              "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": 240,
+                "y": -130,
+                "width": 200,
+                "height": 40
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 5
+                },
+                {
+                  "x": 40,
+                  "y": 5
+                },
+                {
+                  "x": 40,
+                  "y": 0
+                },
+                {
+                  "x": 200,
+                  "y": 0
+                },
+                {
+                  "x": 200,
+                  "y": 40
+                }
+              ],
+              "source": {
+                "direction": "Downright",
+                "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+              },
+              "target": {
+                "direction": "Up",
+                "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
+              },
+              "isManuallyLayouted": true,
+              "condition": "when_intent_matched",
+              "conditionValue": "Other"
+            },
+            "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
+              "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": -380,
+                "y": -125,
+                "width": 200,
+                "height": 127.5
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 127.5
+                },
+                {
+                  "x": 100,
+                  "y": 127.5
+                },
+                {
+                  "x": 100,
+                  "y": 0
+                },
+                {
+                  "x": 200,
+                  "y": 0
+                }
+              ],
+              "source": {
+                "direction": "Upright",
+                "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
+              },
+              "target": {
+                "direction": "Downleft",
+                "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+              },
+              "isManuallyLayouted": false,
+              "condition": "auto",
+              "conditionValue": ""
+            },
+            "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
+              "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": 135,
+                "y": -100,
+                "width": 215,
+                "height": 40
+              },
+              "path": [
+                {
+                  "x": 215,
+                  "y": 27.5
+                },
+                {
+                  "x": 175,
+                  "y": 27.5
+                },
+                {
+                  "x": 175,
+                  "y": 40
+                },
+                {
+                  "x": 0,
+                  "y": 40
+                },
+                {
+                  "x": 0,
+                  "y": 0
+                }
+              ],
+              "source": {
+                "direction": "Upleft",
+                "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
+              },
+              "target": {
+                "direction": "Bottomright",
+                "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+              },
+              "isManuallyLayouted": false,
+              "condition": "auto",
+              "conditionValue": ""
+            },
+            "3564da62-bea0-4489-81b2-fda2effddd02": {
+              "id": "3564da62-bea0-4489-81b2-fda2effddd02",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": -190,
+                "y": -100,
+                "width": 115,
+                "height": 277.5
+              },
+              "path": [
+                {
+                  "x": 40,
+                  "y": 277.5
+                },
+                {
+                  "x": 0,
+                  "y": 277.5
+                },
+                {
+                  "x": 0,
+                  "y": 115
+                },
+                {
+                  "x": 115,
+                  "y": 115
+                },
+                {
+                  "x": 115,
+                  "y": 0
+                }
+              ],
+              "source": {
+                "direction": "Upleft",
+                "element": "7610bbda-21ef-4637-a188-1da1352bea17"
+              },
+              "target": {
+                "direction": "Bottomleft",
+                "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+              },
+              "isManuallyLayouted": false,
+              "condition": "auto",
+              "conditionValue": ""
+            },
+            "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
+              "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": 45,
+                "y": -100,
+                "width": 1,
+                "height": 230
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 0,
+                  "y": 230
+                }
+              ],
+              "source": {
+                "direction": "Down",
+                "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+              },
+              "target": {
+                "direction": "Up",
+                "element": "7610bbda-21ef-4637-a188-1da1352bea17"
+              },
+              "isManuallyLayouted": false,
+              "condition": "when_intent_matched",
+              "conditionValue": "Nutrition"
+            }
+           },
+  "assessments": {}
+}
