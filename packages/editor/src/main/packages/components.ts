@@ -95,6 +95,7 @@ import { NNSectionSeparatorComponent } from './nn-diagram/nn-section-separator-c
 import { NNContainerComponent } from './nn-diagram/nn-container/nn-container-component';
 import { NNReferenceComponent } from './nn-diagram/nn-reference/nn-reference-component';
 import { NNComponentMemberComponent } from './nn-diagram/nn-component-member-component';
+import { NNLayerIconComponent } from './nn-diagram/nn-layer-icon/nn-layer-icon-component';
 
 export const Components: {
   [key in UMLElementType | UMLRelationshipType]:
@@ -209,7 +210,7 @@ export const Components: {
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionComponent,
   [UMLRelationshipType.AgentStateTransitionInit]: AgentStateTransitionInitComponent,
 
-  [NNElementType.Conv1DLayer]: UMLClassifierComponent,
+  [NNElementType.Conv1DLayer]: NNLayerIconComponent,
   // Conv1D Attributes
   [NNElementType.NameAttributeConv1D]: NNComponentMemberComponent,
   [NNElementType.KernelDimAttributeConv1D]: NNComponentMemberComponent,
@@ -224,7 +225,7 @@ export const Components: {
   [NNElementType.PermuteInAttributeConv1D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv1D]: NNComponentMemberComponent,
 
-  [NNElementType.Conv2DLayer]: UMLClassifierComponent,
+  [NNElementType.Conv2DLayer]: NNLayerIconComponent,
   // Conv2D Attributes
   [NNElementType.NameAttributeConv2D]: NNComponentMemberComponent,
   [NNElementType.KernelDimAttributeConv2D]: NNComponentMemberComponent,
@@ -239,7 +240,7 @@ export const Components: {
   [NNElementType.PermuteInAttributeConv2D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv2D]: NNComponentMemberComponent,
 
-  [NNElementType.Conv3DLayer]: UMLClassifierComponent,
+  [NNElementType.Conv3DLayer]: NNLayerIconComponent,
   // Conv3D Attributes
   [NNElementType.NameAttributeConv3D]: NNComponentMemberComponent,
   [NNElementType.KernelDimAttributeConv3D]: NNComponentMemberComponent,
@@ -254,7 +255,7 @@ export const Components: {
   [NNElementType.PermuteInAttributeConv3D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv3D]: NNComponentMemberComponent,
 
-  [NNElementType.PoolingLayer]: UMLClassifierComponent,
+  [NNElementType.PoolingLayer]: NNLayerIconComponent,
   // Pooling Attributes
   [NNElementType.NameAttributePooling]: NNComponentMemberComponent,
   [NNElementType.PoolingTypeAttributePooling]: NNComponentMemberComponent,
@@ -270,7 +271,7 @@ export const Components: {
   [NNElementType.PermuteInAttributePooling]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributePooling]: NNComponentMemberComponent,
 
-  [NNElementType.RNNLayer]: UMLClassifierComponent,
+  [NNElementType.RNNLayer]: NNLayerIconComponent,
   // RNN Attributes
   [NNElementType.NameAttributeRNN]: NNComponentMemberComponent,
   [NNElementType.HiddenSizeAttributeRNN]: NNComponentMemberComponent,
@@ -283,7 +284,7 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeRNN]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeRNN]: NNComponentMemberComponent,
 
-  [NNElementType.LSTMLayer]: UMLClassifierComponent,
+  [NNElementType.LSTMLayer]: NNLayerIconComponent,
   // LSTM Attributes
   [NNElementType.NameAttributeLSTM]: NNComponentMemberComponent,
   [NNElementType.HiddenSizeAttributeLSTM]: NNComponentMemberComponent,
@@ -296,7 +297,7 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeLSTM]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLSTM]: NNComponentMemberComponent,
 
-  [NNElementType.GRULayer]: UMLClassifierComponent,
+  [NNElementType.GRULayer]: NNLayerIconComponent,
   // GRU Attributes
   [NNElementType.NameAttributeGRU]: NNComponentMemberComponent,
   [NNElementType.HiddenSizeAttributeGRU]: NNComponentMemberComponent,
@@ -309,7 +310,7 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeGRU]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeGRU]: NNComponentMemberComponent,
 
-  [NNElementType.LinearLayer]: UMLClassifierComponent,
+  [NNElementType.LinearLayer]: NNLayerIconComponent,
   // Linear Attributes
   [NNElementType.NameAttributeLinear]: NNComponentMemberComponent,
   [NNElementType.OutFeaturesAttributeLinear]: NNComponentMemberComponent,
@@ -318,7 +319,7 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeLinear]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLinear]: NNComponentMemberComponent,
 
-  [NNElementType.FlattenLayer]: UMLClassifierComponent,
+  [NNElementType.FlattenLayer]: NNLayerIconComponent,
   // Flatten Attributes
   [NNElementType.NameAttributeFlatten]: NNComponentMemberComponent,
   [NNElementType.StartDimAttributeFlatten]: NNComponentMemberComponent,
@@ -327,7 +328,7 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeFlatten]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeFlatten]: NNComponentMemberComponent,
 
-  [NNElementType.EmbeddingLayer]: UMLClassifierComponent,
+  [NNElementType.EmbeddingLayer]: NNLayerIconComponent,
   // Embedding Attributes
   [NNElementType.NameAttributeEmbedding]: NNComponentMemberComponent,
   [NNElementType.NumEmbeddingsAttributeEmbedding]: NNComponentMemberComponent,
@@ -336,14 +337,14 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeEmbedding]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeEmbedding]: NNComponentMemberComponent,
 
-  [NNElementType.DropoutLayer]: UMLClassifierComponent,
+  [NNElementType.DropoutLayer]: NNLayerIconComponent,
   // Dropout Attributes
   [NNElementType.NameAttributeDropout]: NNComponentMemberComponent,
   [NNElementType.RateAttributeDropout]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeDropout]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeDropout]: NNComponentMemberComponent,
 
-  [NNElementType.LayerNormalizationLayer]: UMLClassifierComponent,
+  [NNElementType.LayerNormalizationLayer]: NNLayerIconComponent,
   // LayerNormalization Attributes
   [NNElementType.NameAttributeLayerNormalization]: NNComponentMemberComponent,
   [NNElementType.NormalizedShapeAttributeLayerNormalization]: NNComponentMemberComponent,
@@ -351,7 +352,7 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeLayerNormalization]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLayerNormalization]: NNComponentMemberComponent,
 
-  [NNElementType.BatchNormalizationLayer]: UMLClassifierComponent,
+  [NNElementType.BatchNormalizationLayer]: NNLayerIconComponent,
   // BatchNormalization Attributes
   [NNElementType.NameAttributeBatchNormalization]: NNComponentMemberComponent,
   [NNElementType.NumFeaturesAttributeBatchNormalization]: NNComponentMemberComponent,
@@ -360,7 +361,7 @@ export const Components: {
   [NNElementType.NameModuleInputAttributeBatchNormalization]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeBatchNormalization]: NNComponentMemberComponent,
 
-  [NNElementType.TensorOp]: UMLClassifierComponent,
+  [NNElementType.TensorOp]: NNLayerIconComponent,
   // TensorOp Attributes
   [NNElementType.NameAttributeTensorOp]: NNComponentMemberComponent,
   [NNElementType.TnsTypeAttributeTensorOp]: NNComponentMemberComponent,
@@ -371,7 +372,7 @@ export const Components: {
   [NNElementType.PermuteDimAttributeTensorOp]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeTensorOp]: NNComponentMemberComponent,
 
-  [NNElementType.Configuration]: UMLClassifierComponent,
+  [NNElementType.Configuration]: NNLayerIconComponent,
   // Configuration Attributes
   [NNElementType.BatchSizeAttributeConfiguration]: NNComponentMemberComponent,
   [NNElementType.EpochsAttributeConfiguration]: NNComponentMemberComponent,

@@ -1,10 +1,8 @@
 import React, { FunctionComponent } from 'react';
 import { Point } from '../../../utils/geometry/point';
-import { ClassRelationshipType } from '../../uml-class-diagram';
 import { UMLAssociation } from '../../common/uml-association/uml-association';
 import { ThemedPath, ThemedPolyline } from '../../../components/theme/themedComponents';
 import {
-  computeMiddlePositionForUMLAssociation,
   computeTextPositionForUMLAssociation,
   layoutTextForUMLAssociation
 } from '../../common/uml-association/uml-association-component';
@@ -14,8 +12,8 @@ const Marker = {
     <marker
       id={id}
       viewBox={'0 0 30 30'}
-      markerWidth={22}
-      markerHeight={30}
+      markerWidth={12}
+      markerHeight={18}
       refX={30}
       refY={15}
       orient="auto"
@@ -76,7 +74,7 @@ export const NNAssociationComponent: FunctionComponent<Props> = ({ element }) =>
         x={middle.x || 0}
         y={middle.y || 0}
         textAnchor="middle"
-        dy="-5"
+        dy="-12"
         pointerEvents="none"
         style={{ ...textFill, fontSize: '12px', fontWeight: 'bold' }}
       >

@@ -579,6 +579,29 @@ class NNComponentUpdateComponent extends Component<Props, State> {
     }
   };
 
+  // Helper to filter Pooling optional attributes based on pooling_type value
+  private getPoolingOptionalAttributes = (
+    poolingType: string,
+    optionalAttributes: Array<{ type: string; ctor: any; label: string }>
+  ) => {
+    // Attributes to hide for global pooling types
+    const globalHiddenAttrs = ['kernel_dim', 'stride_dim', 'padding_amount', 'padding_type', 'output_dim'];
+    // Attributes to hide for adaptive pooling types (keep output_dim)
+    const adaptiveHiddenAttrs = ['kernel_dim', 'stride_dim', 'padding_amount', 'padding_type'];
+    // Attributes to hide for standard max/average pooling
+    const standardHiddenAttrs = ['output_dim'];
+
+    if (poolingType === 'global_average' || poolingType === 'global_max') {
+      return optionalAttributes.filter((attr) => !globalHiddenAttrs.includes(attr.label));
+    } else if (poolingType === 'adaptive_average' || poolingType === 'adaptive_max') {
+      return optionalAttributes.filter((attr) => !adaptiveHiddenAttrs.includes(attr.label));
+    } else if (poolingType === 'average' || poolingType === 'max') {
+      return optionalAttributes.filter((attr) => !standardHiddenAttrs.includes(attr.label));
+    }
+    // For other pooling types, show all attributes
+    return optionalAttributes;
+  };
+
   render() {
     const { element, elements } = this.props;
     const config = LAYER_CONFIG[element.type];
@@ -600,7 +623,7 @@ class NNComponentUpdateComponent extends Component<Props, State> {
     // Separate mandatory and optional attributes
     const mandatoryAttributes = children.filter((attr) => attr.isMandatory);
 
-    // Get optional attributes - filter for TensorOp based on tns_type
+    // Get optional attributes - filter based on element type and attribute values
     let optionalAttributes = config.optionalAttributes;
     if (element.type === NNElementType.TensorOp) {
       const tnsTypeAttr = children.find(
@@ -608,6 +631,12 @@ class NNComponentUpdateComponent extends Component<Props, State> {
       ) as TensorOpAttribute | undefined;
       const tnsType = tnsTypeAttr?.value || 'reshape';
       optionalAttributes = this.getTensorOpOptionalAttributes(tnsType, config.optionalAttributes);
+    } else if (element.type === NNElementType.PoolingLayer) {
+      const poolingTypeAttr = children.find(
+        (attr) => (attr as PoolingAttribute).attributeName === 'pooling_type'
+      ) as PoolingAttribute | undefined;
+      const poolingType = poolingTypeAttr?.value || 'max';
+      optionalAttributes = this.getPoolingOptionalAttributes(poolingType, config.optionalAttributes);
     }
 
     return (

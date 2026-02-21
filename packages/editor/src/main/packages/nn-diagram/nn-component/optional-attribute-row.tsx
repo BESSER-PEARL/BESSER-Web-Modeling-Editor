@@ -164,9 +164,10 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
       if (!existingAttribute) {
         const instance = new attributeCtor({ owner: layerId });
 
-        // For Pooling kernel_dim and stride_dim, adjust value based on current dimension
+        // For Pooling kernel_dim, stride_dim, and output_dim, adjust value based on current dimension
         if (attributeType === NNElementType.KernelDimAttributePooling ||
-            attributeType === NNElementType.StrideDimAttributePooling) {
+            attributeType === NNElementType.StrideDimAttributePooling ||
+            attributeType === NNElementType.OutputDimAttributePooling) {
           // Find the dimension attribute for this Pooling layer
           const dimensionAttr = Object.values(elements).find(
             (el: any) => el.owner === layerId && el.type === NNElementType.DimensionAttributePooling
@@ -180,11 +181,18 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
               case '3D': instance.value = '[3, 3, 3]'; break;
               default: instance.value = '[3, 3]'; break;
             }
-          } else { // stride_dim
+          } else if (attributeType === NNElementType.StrideDimAttributePooling) {
             switch (dimension) {
               case '1D': instance.value = '[1]'; break;
               case '3D': instance.value = '[1, 1, 1]'; break;
               default: instance.value = '[1, 1]'; break;
+            }
+          } else if (attributeType === NNElementType.OutputDimAttributePooling) {
+            // output_dim for adaptive pooling - list size matches dimension
+            switch (dimension) {
+              case '1D': instance.value = '[16]'; break;
+              case '3D': instance.value = '[16, 16, 16]'; break;
+              default: instance.value = '[16, 16]'; break;
             }
           }
           instance.name = `${instance.attributeName} = ${instance.value}`;

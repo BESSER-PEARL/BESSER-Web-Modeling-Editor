@@ -117,7 +117,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     } as any);
   };
 
-  // Special handler for Pooling dimension changes - updates kernel_dim and stride_dim
+  // Special handler for Pooling dimension changes - updates kernel_dim, stride_dim, and output_dim
   private handleDimensionChange = (newValue: TextfieldValue) => {
     const { element, update, elements } = this.props;
     const dimensionValue = String(newValue);
@@ -128,7 +128,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
       name: `${element.attributeName} = ${dimensionValue}`
     } as any);
 
-    // Find sibling kernel_dim and stride_dim attributes
+    // Find sibling kernel_dim, stride_dim, and output_dim attributes
     const ownerId = element.owner;
     if (ownerId) {
       const siblingElements = Object.values(elements).filter(
@@ -138,19 +138,23 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
       // Determine the correct list values based on dimension
       let kernelValue: string;
       let strideValue: string;
+      let outputValue: string;
       switch (dimensionValue) {
         case '1D':
           kernelValue = '[3]';
           strideValue = '[1]';
+          outputValue = '[16]';
           break;
         case '3D':
           kernelValue = '[3, 3, 3]';
           strideValue = '[1, 1, 1]';
+          outputValue = '[16, 16, 16]';
           break;
         case '2D':
         default:
           kernelValue = '[3, 3]';
           strideValue = '[1, 1]';
+          outputValue = '[16, 16]';
           break;
       }
 
@@ -173,6 +177,17 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
         update(strideDimAttr.id, {
           value: strideValue,
           name: `stride_dim = ${strideValue}`
+        } as any);
+      }
+
+      // Update output_dim if it exists
+      const outputDimAttr = siblingElements.find(
+        (el: any) => el.type === NNElementType.OutputDimAttributePooling
+      );
+      if (outputDimAttr) {
+        update(outputDimAttr.id, {
+          value: outputValue,
+          name: `output_dim = ${outputValue}`
         } as any);
       }
     }

@@ -26,9 +26,9 @@ export class NNContainer extends UMLContainer {
   // Minimum dimensions for the container
   static minWidth = 200;
   static minHeight = 150;
-  // Default tall size when dropped on canvas (empty container)
-  static defaultWidth = 300;
-  static defaultHeight = 600;
+  // Default horizontal size when dropped on canvas (layers side by side)
+  static defaultWidth = 800;
+  static defaultHeight = 200;
 
   constructor(values?: Partial<NNContainer>) {
     super();
