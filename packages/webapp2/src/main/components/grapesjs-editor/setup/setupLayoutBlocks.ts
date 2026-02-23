@@ -191,6 +191,23 @@ export function setupLayoutBlocks(editor: Editor) {
     `,
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="20" height="4" rx="1" fill="currentColor"/><line x1="2" y1="11" x2="22" y2="11" stroke="currentColor" stroke-width="2"/><line x1="2" y1="15" x2="22" y2="15" stroke="currentColor" stroke-width="2"/><line x1="2" y1="19" x2="22" y2="19" stroke="currentColor" stroke-width="2"/></svg>',
   });
+
+  // Header/Navbar 2 (Light — matches LLM-generated agent navbar)
+  bm.add('navbar-light', {
+    label: 'Navbar Light',
+    category: 'Layout',
+    content: `
+      <nav style="background-color: #ffffff; padding: 0 32px; height: 64px; display: flex; justify-content: space-between; align-items: center; font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 50;">
+        <div style="font-size: 1.25rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">BESSER</div>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <a href="/" style="color: #2563eb; text-decoration: none; font-weight: 600; font-size: 0.9rem; padding: 8px 16px; border-radius: 8px; background-color: #eff6ff;">Home</a>
+          <a href="/about" style="color: #64748b; text-decoration: none; font-weight: 500; font-size: 0.9rem; padding: 8px 16px; border-radius: 8px;">About</a>
+          <a href="/contact" style="color: #64748b; text-decoration: none; font-weight: 500; font-size: 0.9rem; padding: 8px 16px; border-radius: 8px;">Contact</a>
+        </div>
+      </nav>
+    `,
+    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="20" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><line x1="2" y1="11" x2="22" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="15" x2="22" y2="15" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="19" x2="22" y2="19" stroke="currentColor" stroke-width="1.5"/></svg>',
+  });
   
   // Footer
   bm.add('footer', {
