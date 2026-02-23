@@ -442,7 +442,7 @@ class StateUpdate extends Component<Props, State> {
 
         </section>
         <section>
-          Bot Fallback Action
+          Agent Fallback Action
           <div>
             <label>
               <input
@@ -485,6 +485,28 @@ class StateUpdate extends Component<Props, State> {
                 }}
               />
               LLM automatic reply
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="actionType"
+                value="rag"
+                defaultChecked={this.fallbackBodyReplyType === "rag"}
+                onChange={() => {
+                  this.fallbackBodyReplyType = "rag";
+                  fallbackBodies.forEach((fallbackBody) => {
+                    if (fallbackBody.replyType !== "rag") {
+                      this.delete(fallbackBody.id)();
+                    }
+                  });
+                  if (!fallbackBodies.some((body) => body.replyType === "rag")) {
+                    const defaultName = this.getRagDisplayName('');
+                    this.create(AgentStateFallbackBody, "rag", { ragDatabaseName: '', name: defaultName })(defaultName);
+                  }
+                  this.forceUpdate();
+                }}
+              />
+              RAG reply
             </label>
             <label>
               <input
