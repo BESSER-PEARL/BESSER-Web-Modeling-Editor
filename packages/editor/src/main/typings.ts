@@ -67,6 +67,7 @@ export type UMLModelElement = {
 
 export interface AgentModelElement extends UMLModelElement {
   replyType: string;
+  ragDatabaseName?: string;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -110,6 +111,7 @@ export type UMLClassifierMember = UMLElement & {
   code?: string;
   visibility?: Visibility;
   attributeType?: string;
+  attributeOperator?: '<' | '<=' | '==' | '>=' | '>';
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
@@ -143,6 +145,11 @@ export interface AgentState extends UMLElement {
 export interface AgentIntent extends UMLElement {
   type: UMLElementType;
   bodies: string[];
+  intent_description: string;
+}
+
+export interface AgentRagElement extends UMLElement {
+  type: UMLElementType;
 }
 
 export interface UMLReply extends UMLElement {

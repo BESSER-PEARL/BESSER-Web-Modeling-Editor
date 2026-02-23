@@ -22,11 +22,14 @@ export abstract class AgentStateMember extends UMLElement {
 
   bounds: IBoundary = { ...this.bounds, height: computeDimension(1.0, 30) };
   replyType: string = "text";
+  ragDatabaseName: string = '';
   
   constructor(values?: DeepPartial<IUMLElement>) {
     super(values);
     assign<IUMLElement>(this, values);
-    
+    if ((values as any)?.ragDatabaseName !== undefined) {
+      this.ragDatabaseName = (values as any).ragDatabaseName ?? '';
+    }
   }
 
 
@@ -44,10 +47,11 @@ export abstract class AgentStateMember extends UMLElement {
       textColor: this.textColor,
       assessmentNote: this.assessmentNote,
       replyType: this.replyType,
+      ragDatabaseName: this.ragDatabaseName,
     };
   }
 
-    deserialize<T extends Apollon.UMLModelElement>(values: T & { replyType : string }) {
+    deserialize<T extends Apollon.UMLModelElement>(values: T & { replyType: string; ragDatabaseName?: string }) {
       this.id = values.id;
       this.name = values.name;
       this.type = values.type;
@@ -59,6 +63,7 @@ export abstract class AgentStateMember extends UMLElement {
       this.textColor = values.textColor;
       this.assessmentNote = values.assessmentNote;
       this.replyType = values.replyType;
+      this.ragDatabaseName = values.ragDatabaseName ?? '';
     }
 
   render(layer: ILayer): ILayoutable[] {

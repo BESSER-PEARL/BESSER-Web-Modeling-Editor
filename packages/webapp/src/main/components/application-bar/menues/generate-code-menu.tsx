@@ -1,3 +1,5 @@
+import React, { useContext, useEffect, useState } from 'react';
+import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
 import React, { useContext, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Dropdown, NavDropdown, Modal, Form, Button, Alert } from 'react-bootstrap';
@@ -7,8 +9,11 @@ import posthog from 'posthog-js';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../../constant';
+import { BACKEND_URL, DEFAULT_AGENT_CONFIGURATION_NAME, localStorageAgentConfigurations, SHOW_FULL_AGENT_CONFIGURATION } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
+import { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping, StoredUserProfile } from '../../../services/local-storage/local-storage-types';
+import { LocalStorageRepository } from '../../../services/local-storage/local-storage-repository';
+import { useNavigate } from 'react-router-dom';
 import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData } from '../../../types/project';
 
@@ -32,14 +37,102 @@ export const GenerateCodeMenu: React.FC = () => {
   const [showQiskitConfig, setShowQiskitConfig] = useState(false);
   const [qiskitBackend, setQiskitBackend] = useState<'aer_simulator' | 'fake_backend' | 'ibm_quantum'>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<StoredAgentConfiguration[]>([]);
+  const [storedAgentMappings, setStoredAgentMappings] = useState<Array<StoredAgentProfileConfigurationMapping & { userProfileLabel: string; agentConfigurationLabel: string }>>([]);
+  const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
+  const [hasSavedAgentConfiguration, setHasSavedAgentConfiguration] = useState(true);
 
+  const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
+  const navigate = useNavigate();
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
   const diagram = useAppSelector((state) => state.diagram.diagram);
   const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
   const editor = apollonEditor?.editor;
+  const handleStoredAgentConfigToggle = (id: string) => {
+    setSelectedStoredAgentConfigIds((prev) =>
+      prev.includes(id) ? prev.filter((entryId) => entryId !== id) : [...prev, id]
+    );
+  };
 
+  useEffect(() => {
+    if (!showAgentLanguageModal) {
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const allSavedConfigurations = LocalStorageRepository.getAgentConfigurations();
+      setHasSavedAgentConfiguration(allSavedConfigurations.length > 0);
+
+      const stored = localStorage.getItem(localStorageAgentConfigurations);
+      if (!stored) {
+        setStoredAgentConfigurations([]);
+        setSelectedStoredAgentConfigIds([]);
+        setStoredAgentMappings([]);
+        return;
+      }
+
+      const parsed: StoredAgentConfiguration[] = JSON.parse(stored);
+      parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+
+      const usableConfigs = parsed
+        .filter((entry) => Boolean(entry.personalizedAgentModel || entry.baseAgentModel))
+        .map((entry) => {
+          if (!entry.personalizedAgentModel && entry.baseAgentModel) {
+            return { ...entry, personalizedAgentModel: entry.baseAgentModel } as StoredAgentConfiguration;
+          }
+          return entry;
+        });
+
+      setStoredAgentConfigurations(usableConfigs);
+      const profiles = LocalStorageRepository.getUserProfiles();
+      const profileNameById = profiles.reduce<Record<string, string>>((acc, profile) => {
+        acc[profile.id] = profile.name;
+        return acc;
+      }, {});
+
+      const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+      const enrichedMappings = mappings
+        .filter((mapping) => usableConfigs.some((cfg) => cfg.id === mapping.agentConfigurationId))
+        .map((mapping) => {
+          const config = usableConfigs.find((cfg) => cfg.id === mapping.agentConfigurationId);
+          return {
+            ...mapping,
+            userProfileLabel: profileNameById[mapping.userProfileId] || mapping.userProfileName || 'Unknown profile',
+            agentConfigurationLabel: config?.name || mapping.agentConfigurationName || 'Unknown configuration',
+          };
+        });
+
+      setStoredAgentMappings(enrichedMappings);
+
+      setSelectedStoredAgentConfigIds((prev) => {
+        const stillValid = prev.filter((id) => usableConfigs.some((entry) => entry.id === id));
+        if (stillValid.length > 0) {
+          return stillValid;
+        }
+        if (enrichedMappings.length > 0) {
+          return [enrichedMappings[0].agentConfigurationId];
+        }
+        return usableConfigs[0]?.id ? [usableConfigs[0].id] : [];
+      });
+    } catch (error) {
+      console.error('Failed to parse stored agent configurations from localStorage', error);
+      setStoredAgentConfigurations([]);
+      setStoredAgentMappings([]);
+      setSelectedStoredAgentConfigIds([]);
+    }
+  }, [showAgentLanguageModal]);
+
+  // Detect if we're on the Quantum Circuit editor page by checking the URL path
+  const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
+  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
+  const isUserDiagram = currentDiagramType === UMLDiagramType.UserDiagram;
   // Helper to get model size metrics for analytics
  const getModelMetrics = () => {
   if (!diagram?.model) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
@@ -198,6 +291,10 @@ export const GenerateCodeMenu: React.FC = () => {
   const handleAgentGenerate = async () => {
     setLoadingAgent(true);
     try {
+      const effectiveAgentMode: 'original' | 'configuration' | 'personalization' = SHOW_FULL_AGENT_CONFIGURATION
+        ? agentMode
+        : 'original';
+
       // Build base agent config (from localStorage or languages selection)
       let baseConfig: AgentConfig;
       if (selectedAgentLanguages.length === 0) {
@@ -211,7 +308,112 @@ export const GenerateCodeMenu: React.FC = () => {
           }
         } as any;
       }
+ // If mode is personalization, load mapping and send it under personalizationrules
+   if (effectiveAgentMode === 'personalization') {
+        const profiles = LocalStorageRepository.getUserProfiles();
+        const selectedMappings = storedAgentMappings.filter((entry) => selectedStoredAgentConfigIds.includes(entry.agentConfigurationId));
 
+        if (selectedMappings.length === 0) {
+          toast.error('Select at least one mapping to generate personalized agents.');
+          return;
+        }
+
+        const personalizationMapping = selectedMappings
+          .map((entry) => {
+            const profile = profiles.find((p) => p.id === entry.userProfileId);
+            const config = storedAgentConfigurations.find((cfg) => cfg.id === entry.agentConfigurationId);
+
+            if (!profile || !profile.model) {
+              return null;
+            }
+            if (!config) {
+              return null;
+            }
+
+            const agentModel = config.personalizedAgentModel || config.baseAgentModel;
+            if (!agentModel) {
+              return null;
+            }
+
+            return {
+              name: profile.name,
+              configuration: JSON.parse(JSON.stringify(config.config)),
+              user_profile: JSON.parse(JSON.stringify(profile.model)),
+              agent_model: JSON.parse(JSON.stringify(agentModel)),
+            } as any;
+          })
+          .filter(Boolean) as any[];
+
+        if (personalizationMapping.length === 0) {
+          toast.error('No valid mappings with user profiles and generated configurations found.');
+          return;
+        }
+
+        const agentConfig: AgentConfig = {
+          ...baseConfig,
+          personalizationMapping,
+        } as any;
+
+        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+      } else if (effectiveAgentMode === 'configuration') {
+        if (storedAgentConfigurations.length === 0) {
+          toast.error('No stored agent configurations available.');
+          return;
+        }
+
+        let selectedEntries = storedAgentConfigurations.filter((entry) => selectedStoredAgentConfigIds.includes(entry.id));
+
+        if (selectedEntries.length === 0) {
+          const fallback = storedAgentConfigurations[0];
+          if (!fallback) {
+            toast.error('No stored agent configurations available.');
+            return;
+          }
+          setSelectedStoredAgentConfigIds([fallback.id]);
+          selectedEntries = [fallback];
+        }
+
+        const baseModelSource = diagram?.id ? LocalStorageRepository.getAgentBaseModel(diagram.id) : null;
+        const fallbackOriginal = selectedEntries.find((entry) => entry.originalAgentModel)?.originalAgentModel;
+        const baseModel = baseModelSource || fallbackOriginal || (diagram?.model ?? null);
+
+        if (!baseModel) {
+          toast.error('No base agent model available. Please run "Save & Apply" before generating.');
+          return;
+        }
+
+        const variations = selectedEntries
+          .filter((entry) => Boolean(entry.personalizedAgentModel || entry.baseAgentModel))
+          .map((entry) => {
+            const variantModel = entry.personalizedAgentModel || entry.baseAgentModel;
+            if (!variantModel) {
+              return null;
+            }
+            return {
+              name: entry.name,
+              model: JSON.parse(JSON.stringify(variantModel)),
+              config: JSON.parse(JSON.stringify(entry.config)),
+            };
+          })
+          .filter((entry): entry is { name: string; model: any; config: any } => Boolean(entry));
+
+        if (variations.length === 0) {
+          toast.error('Selected configurations do not have generated agents. Please run "Save & Apply" for them first.');
+          return;
+        }
+
+        const agentConfig: AgentConfig = {
+          ...baseConfig,
+          baseModel: JSON.parse(JSON.stringify(baseModel)),
+          variations,
+        } as any;
+
+        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+      } else {
+        // Send the configuration
+      await generateCode(editor!, 'agent', diagram.title);
+      }
+      
       // Send the configuration
       await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
       posthog.capture('generator_used', {
@@ -360,6 +562,20 @@ export const GenerateCodeMenu: React.FC = () => {
     }
   };
 
+  const handleJsonObjectGenerate = async () => {
+    if (!editor) {
+      toast.error('No diagram available to generate code from');
+      return;
+    }
+
+    try {
+      await generateCode(editor, 'json', diagram.title);
+    } catch (error) {
+      console.error('Error in JSON Object generation:', error);
+      toast.error('JSON Object generation failed');
+    }
+  };
+
   const handleQiskitGenerate = async () => {
     try {
       const qiskitConfig: QiskitConfig = {
@@ -399,6 +615,8 @@ export const GenerateCodeMenu: React.FC = () => {
         ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
           <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
+        ) : isUserDiagram ? (
+          <Dropdown.Item onClick={handleJsonObjectGenerate}>JSON Object</Dropdown.Item>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
           // ...existing code...
           <>
@@ -484,6 +702,23 @@ export const GenerateCodeMenu: React.FC = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
+            {!hasSavedAgentConfiguration && (
+              <div className="mb-3 p-3 border rounded" style={{ background: 'var(--apollon-background-variant)' }}>
+                <div className="small text-muted mb-2">
+                  No saved configuration found. The agent will be generated with the default configuration.
+                </div>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => {
+                    setShowAgentLanguageModal(false);
+                    navigate('/agent-config');
+                  }}
+                >
+                  Configure agent technologies
+                </Button>
+              </div>
+            )}
             <Form.Group className="mb-3">
               <Form.Label>Source language (optional)</Form.Label>
               <Form.Select
@@ -533,6 +768,71 @@ export const GenerateCodeMenu: React.FC = () => {
                 <span role="img" aria-label="warning">⚠️</span> Adding more languages will increase the generation time.
               </div>
             </Form.Group>
+
+            {SHOW_FULL_AGENT_CONFIGURATION && (
+              <Form.Group className="mb-3">
+                <Form.Label>Mode</Form.Label>
+                <div>
+                  <Form.Check inline type="radio" id="mode-original" label="Original" name="agentMode" checked={agentMode === 'original'} onChange={() => setAgentMode('original')} />
+                  <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
+                  <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
+                </div>
+              </Form.Group>
+            )}
+            {SHOW_FULL_AGENT_CONFIGURATION && (agentMode === 'configuration' || agentMode === 'personalization') && (
+              <Form.Group className="mb-3">
+                <Form.Label>{agentMode === 'personalization' ? 'Select profile → configuration mappings' : 'Select stored configurations'}</Form.Label>
+                {agentMode === 'personalization' ? (
+                  storedAgentMappings.length === 0 ? (
+                    <Form.Text className="text-muted d-block">
+                      No mappings with generated agents found. Create mappings and run "Save & Apply" first.
+                    </Form.Text>
+                  ) : (
+                    <div className="d-flex flex-column gap-2">
+                      {storedAgentMappings.map((mapping) => (
+                        <Form.Check
+                          key={mapping.id}
+                          type="checkbox"
+                          name="storedAgentMapping"
+                          id={`storedAgentMapping-${mapping.id}`}
+                          label={`${mapping.userProfileLabel} → ${mapping.agentConfigurationLabel} (${new Date(mapping.savedAt).toLocaleString()})`}
+                          value={mapping.agentConfigurationId}
+                          checked={selectedStoredAgentConfigIds.includes(mapping.agentConfigurationId)}
+                          onChange={() => handleStoredAgentConfigToggle(mapping.agentConfigurationId)}
+                        />
+                      ))}
+                      <Form.Text className="text-muted">
+                        Only mappings whose target configuration already has a generated agent are listed.
+                      </Form.Text>
+                    </div>
+                  )
+                ) : (
+                  storedAgentConfigurations.length === 0 ? (
+                    <Form.Text className="text-muted d-block">
+                      No saved configurations with generated agents found. Use "Save & Apply" first to make them available here.
+                    </Form.Text>
+                  ) : (
+                    <div className="d-flex flex-column gap-2">
+                      {storedAgentConfigurations.map((entry) => (
+                        <Form.Check
+                          key={entry.id}
+                          type="checkbox"
+                          name="storedAgentConfig"
+                          id={`storedAgentConfig-${entry.id}`}
+                          label={`${entry.name} (${new Date(entry.savedAt).toLocaleString()})`}
+                          value={entry.id}
+                          checked={selectedStoredAgentConfigIds.includes(entry.id)}
+                          onChange={() => handleStoredAgentConfigToggle(entry.id)}
+                        />
+                      ))}
+                      <Form.Text className="text-muted">
+                        Select one or more configurations (only entries with generated agents are listed) to include in the request. This will generate one agent per configuration.
+                      </Form.Text>
+                    </div>
+                  )
+                )}
+              </Form.Group>
+            )}
             {/* List of selected languages with remove option */}
             {selectedAgentLanguages.length > 0 && (
               <div className="mb-3">

@@ -5,6 +5,7 @@ import { ThemedRect } from '../../../components/theme/themedComponents';
 import { settingsService } from '../../../services/settings/settings-service';
 import { ModelState } from '../../../components/store/model-state';
 import { ObjectElementType } from '../../uml-object-diagram';
+import { UserModelElementType } from '../../user-modeling';
 
 interface OwnProps {
   element: UMLClassifierMember;
@@ -49,15 +50,16 @@ const getIconWidth = (svgString?: string): number => {
 const UMLClassifierMemberComponentIconUnconnected: FunctionComponent<Props> = ({ element, fillColor, elements }) => {
   // Check if this is an ObjectIcon and if icon view is enabled
   const isObjectIcon = element.type === ObjectElementType.ObjectIcon;
+  const isUserModelIcon = element.type === UserModelElementType.UserModelIcon;
   const shouldShowIconView = settingsService.shouldShowIconView();
   
   // Icons should only be visible in icon view mode, hidden in normal view
-  if (isObjectIcon && !shouldShowIconView) {
+  if ((isObjectIcon || isUserModelIcon) && !shouldShowIconView) {
     return null;
   }
   
   // If this is not an ObjectIcon, don't render anything
-  if (!isObjectIcon) {
+  if (!isObjectIcon && !isUserModelIcon) {
     return null;
   }
   
