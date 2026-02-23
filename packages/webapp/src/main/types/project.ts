@@ -45,7 +45,7 @@ export interface BesserProject {
     ObjectDiagram: ProjectDiagram;
     StateMachineDiagram: ProjectDiagram;
     AgentDiagram: ProjectDiagram;
-    UserDiagram: ProjectDiagram; 
+    UserDiagram: ProjectDiagram;
     GUINoCodeDiagram: ProjectDiagram;
     QuantumCircuitDiagram: ProjectDiagram;
   };
@@ -68,7 +68,7 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
     case UMLDiagramType.AgentDiagram:
       return 'AgentDiagram';
     case UMLDiagramType.UserDiagram:
-      return 'UserDiagram'; 
+      return 'UserDiagram';
     default:
       return 'ClassDiagram'; // fallback
   }
@@ -86,7 +86,7 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
     case 'AgentDiagram':
       return UMLDiagramType.AgentDiagram;
     case 'UserDiagram':
-      return UMLDiagramType.UserDiagram; 
+      return UMLDiagramType.UserDiagram;
     case 'GUINoCodeDiagram':
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
     case 'QuantumCircuitDiagram':

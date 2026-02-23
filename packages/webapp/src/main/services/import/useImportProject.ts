@@ -55,7 +55,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: UMLDiagramType.ObjectDiagram,
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
-    UserDiagram: UMLDiagramType.UserDiagram, 
+    UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
     QuantumCircuitDiagram: null,
   };
@@ -407,4 +407,4 @@ export async function handleImportAny(): Promise<BesserProject> {
     console.error('Import process failed:', error);
     throw error;
   }
-} 
+}

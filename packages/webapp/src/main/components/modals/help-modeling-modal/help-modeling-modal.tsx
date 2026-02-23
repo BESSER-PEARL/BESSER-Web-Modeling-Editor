@@ -367,7 +367,7 @@ export const HelpModelingModal: React.FC<ModalContentProps> = ({ close }) => {
               <tr>
                 <th>Defining Intents</th>
                 <td>
-                  To define the intents your agent is supposed to recognize, drag and drop the intent element from the left panel onto the canvas. You can then double-click on the intent element to open a popup where you can define the intent name and its training sentences. The training sentences are the phrases that users might say to trigger this intent. The desription is used to describe the purpose or idea behind the intent.
+                  To define the intents your agent is supposed to recognize, drag and drop the intent element from the left panel onto the canvas. You can then double-click on the intent element to open a popup where you can define the intent name and its training sentences. The training sentences are the phrases that users might say to trigger this intent. The description is used to describe the purpose or idea behind the intent.
                 </td>
                 <td>
                   <img width="400" src="/images/help/agent/help-agent-intent.png" alt="Image not found" />
