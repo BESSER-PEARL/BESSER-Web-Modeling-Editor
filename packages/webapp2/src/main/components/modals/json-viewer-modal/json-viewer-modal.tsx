@@ -206,6 +206,85 @@ const CodeBlock = styled.pre`
   }
 `;
 
+const JsonTreeBlock = styled.div`
+  margin: 0;
+  border-radius: 12px;
+  border: 1px solid #263754;
+  background: radial-gradient(120% 120% at 0% 0%, #0f1b33 0%, #0b1326 58%, #090f20 100%);
+  color: #dbe5ff;
+  padding: 18px;
+  font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  overflow: auto;
+`;
+
+const JsonLine = styled.div<{ $depth: number }>`
+  display: flex;
+  align-items: baseline;
+  white-space: nowrap;
+  padding-left: ${props => `${props.$depth * 16}px`};
+`;
+
+const JsonLineButton = styled.button`
+  border: none;
+  background: transparent;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+  text-align: left;
+
+  &:hover {
+    opacity: 0.92;
+  }
+`;
+
+const JsonChevron = styled.span`
+  display: inline-block;
+  width: 14px;
+  margin-right: 4px;
+  color: #93a7c7;
+  text-align: center;
+`;
+
+const JsonChevronSpacer = styled(JsonChevron)`
+  color: transparent;
+`;
+
+const JsonPunctuation = styled.span`
+  color: #dbe5ff;
+`;
+
+const JsonCollapsedHint = styled.span`
+  color: #7f8aa3;
+`;
+
+const JsonKeyToken = styled.span`
+  color: #7dc4e4;
+`;
+
+const JsonStringToken = styled.span`
+  color: #a6da95;
+`;
+
+const JsonNumberToken = styled.span`
+  color: #f5a97f;
+`;
+
+const JsonBooleanToken = styled.span`
+  color: #ff7ab2;
+`;
+
+const JsonNullToken = styled.span`
+  color: #ff7ab2;
+`;
+
 const ModalFooter = styled.div`
   display: flex;
   gap: 10px;
@@ -268,6 +347,18 @@ interface JsonViewerModalProps {
 }
 
 type SupportedLanguage = 'json' | 'python';
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+interface JsonTreeNodeProps {
+  value: JsonValue;
+  path: string;
+  depth: number;
+  isLast: boolean;
+  propertyKey?: string;
+  collapsedPaths: Set<string>;
+  onToggle: (path: string) => void;
+}
 
 const escapeHtml = (value: string): string =>
   value
@@ -296,6 +387,181 @@ const HighlightedCode: React.FC<{ code: string; language: SupportedLanguage }> =
     <CodeBlock>
       <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightedMarkup }} />
     </CodeBlock>
+  );
+};
+
+const isJsonContainer = (value: JsonValue): value is JsonValue[] | { [key: string]: JsonValue } =>
+  typeof value === 'object' && value !== null;
+
+const buildJsonPath = (parentPath: string, key: string | number): string =>
+  `${parentPath}/${encodeURIComponent(String(key))}`;
+
+const renderJsonPrimitive = (value: JsonPrimitive): React.ReactNode => {
+  if (typeof value === 'string') {
+    return <JsonStringToken>{JSON.stringify(value)}</JsonStringToken>;
+  }
+
+  if (typeof value === 'number') {
+    return <JsonNumberToken>{value}</JsonNumberToken>;
+  }
+
+  if (typeof value === 'boolean') {
+    return <JsonBooleanToken>{value ? 'true' : 'false'}</JsonBooleanToken>;
+  }
+
+  return <JsonNullToken>null</JsonNullToken>;
+};
+
+const renderJsonKey = (propertyKey?: string): React.ReactNode => {
+  if (propertyKey === undefined) {
+    return null;
+  }
+
+  return (
+    <>
+      <JsonKeyToken>{JSON.stringify(propertyKey)}</JsonKeyToken>
+      <JsonPunctuation>: </JsonPunctuation>
+    </>
+  );
+};
+
+const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
+  value,
+  path,
+  depth,
+  isLast,
+  propertyKey,
+  collapsedPaths,
+  onToggle,
+}) => {
+  if (!isJsonContainer(value)) {
+    return (
+      <JsonLine $depth={depth}>
+        <JsonChevronSpacer aria-hidden="true" />
+        {renderJsonKey(propertyKey)}
+        {renderJsonPrimitive(value)}
+        {!isLast && <JsonPunctuation>,</JsonPunctuation>}
+      </JsonLine>
+    );
+  }
+
+  const isArray = Array.isArray(value);
+  const openToken = isArray ? '[' : '{';
+  const closeToken = isArray ? ']' : '}';
+  const entries: Array<[string | number, JsonValue]> = isArray
+    ? value.map((item, index) => [index, item])
+    : (Object.entries(value) as Array<[string, JsonValue]>);
+  const hasChildren = entries.length > 0;
+  const isCollapsed = hasChildren && collapsedPaths.has(path);
+  const sectionName = propertyKey ?? 'root';
+
+  if (!hasChildren) {
+    return (
+      <JsonLine $depth={depth}>
+        <JsonChevronSpacer aria-hidden="true" />
+        {renderJsonKey(propertyKey)}
+        <JsonPunctuation>{openToken}{closeToken}</JsonPunctuation>
+        {!isLast && <JsonPunctuation>,</JsonPunctuation>}
+      </JsonLine>
+    );
+  }
+
+  return (
+    <>
+      <JsonLine $depth={depth}>
+        <JsonLineButton
+          type="button"
+          onClick={() => onToggle(path)}
+          aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${sectionName}`}
+        >
+          <JsonChevron aria-hidden="true">{isCollapsed ? '>' : 'v'}</JsonChevron>
+          {renderJsonKey(propertyKey)}
+          <JsonPunctuation>{openToken}</JsonPunctuation>
+          {isCollapsed && (
+            <>
+              <JsonPunctuation> </JsonPunctuation>
+              <JsonCollapsedHint>...</JsonCollapsedHint>
+              <JsonPunctuation> {closeToken}</JsonPunctuation>
+            </>
+          )}
+        </JsonLineButton>
+        {isCollapsed && !isLast && <JsonPunctuation>,</JsonPunctuation>}
+      </JsonLine>
+
+      {!isCollapsed && (
+        <>
+          {entries.map(([entryKey, entryValue], index) => {
+            const childPath = buildJsonPath(path, entryKey);
+
+            return (
+              <JsonTreeNode
+                key={childPath}
+                value={entryValue}
+                path={childPath}
+                depth={depth + 1}
+                isLast={index === entries.length - 1}
+                propertyKey={isArray ? undefined : String(entryKey)}
+                collapsedPaths={collapsedPaths}
+                onToggle={onToggle}
+              />
+            );
+          })}
+          <JsonLine $depth={depth}>
+            <JsonChevronSpacer aria-hidden="true" />
+            <JsonPunctuation>{closeToken}</JsonPunctuation>
+            {!isLast && <JsonPunctuation>,</JsonPunctuation>}
+          </JsonLine>
+        </>
+      )}
+    </>
+  );
+};
+
+const JsonTreeViewer: React.FC<{ rawJson: string }> = ({ rawJson }) => {
+  const [collapsedPaths, setCollapsedPaths] = React.useState<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    setCollapsedPaths(new Set());
+  }, [rawJson]);
+
+  const parsed = React.useMemo<{ isValid: true; value: JsonValue } | { isValid: false }>(() => {
+    try {
+      return { isValid: true, value: JSON.parse(rawJson) as JsonValue };
+    } catch (error) {
+      console.warn('Failed to parse JSON preview. Falling back to highlighted text.', error);
+      return { isValid: false };
+    }
+  }, [rawJson]);
+
+  const togglePath = React.useCallback((path: string) => {
+    setCollapsedPaths((previousState) => {
+      const nextState = new Set(previousState);
+
+      if (nextState.has(path)) {
+        nextState.delete(path);
+      } else {
+        nextState.add(path);
+      }
+
+      return nextState;
+    });
+  }, []);
+
+  if (!parsed.isValid) {
+    return <HighlightedCode code={rawJson} language="json" />;
+  }
+
+  return (
+    <JsonTreeBlock>
+      <JsonTreeNode
+        value={parsed.value}
+        path="root"
+        depth={0}
+        isLast
+        collapsedPaths={collapsedPaths}
+        onToggle={togglePath}
+      />
+    </JsonTreeBlock>
   );
 };
 
@@ -380,7 +646,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
               )}
             </>
           ) : (
-            <HighlightedCode code={jsonData} language="json" />
+            <JsonTreeViewer rawJson={jsonData} />
           )}
         </ModalBody>
 
