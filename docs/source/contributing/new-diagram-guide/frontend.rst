@@ -3,6 +3,10 @@ Frontend Implementation
 
 This section covers the changes required in the React/TypeScript frontend to support a new diagram type.
 
+If the diagram type already exists in the editor package (``packages/editor``) and you only need to expose it in the
+webapp project UI, skip to the **Webapp wiring** step below and follow
+``packages/webapp/src/main/components/project/ADDING_NEW_DIAGRAM_TYPE.md``.
+
 1. Define the Diagram and Elements
 ----------------------------------
 
@@ -12,19 +16,33 @@ First, register the new types in the editor's core definitions.
 
     .. code-block:: typescript
 
-        export enum UMLDiagramType {
+        export const UMLDiagramType = {
           // ...
-          MyNewDiagram = 'MyNewDiagram',
-        }
+          MyNewDiagram: 'MyNewDiagram',
+        } as const;
 
-*   **Element Types**: Add to ``packages/editor/src/main/uml-element-type.ts``.
+*   **Element Types**: Define element type constants in your new diagram package and
+    register them in ``packages/editor/src/main/uml-element-type.ts``.
 
     .. code-block:: typescript
 
-        export enum UMLElementType {
+        // packages/editor/src/main/packages/my-new-diagram/my-new-diagram-element-type.ts
+        export const MyNewDiagramElementType = {
+          MyNewElement: 'MyNewElement',
+        } as const;
+
+        // packages/editor/src/main/uml-element-type.ts
+        import { MyNewDiagramElementType } from './my-new-diagram/my-new-diagram-element-type';
+
+        export const UMLElementType = {
           // ...
-          MyNewElement = 'MyNewElement',
-        }
+          ...MyNewDiagramElementType,
+        };
+
+        export const UMLElementsForDiagram = {
+          // ...
+          [UMLDiagramType.MyNewDiagram]: MyNewDiagramElementType,
+        };
 
 2. Create the Diagram Package
 -----------------------------
@@ -104,6 +122,17 @@ Now wire it all together in the central registries.
         // ...
         [UMLElementType.MyNewElement]: MyNewElement,
 
+*   **Relationships (if any)**:
+
+    * Add the relationship type in ``packages/editor/src/main/uml-relationship-type.ts``.
+    * Register it in ``packages/editor/src/main/packages/uml-relationships.ts``.
+    * Add the renderer to ``packages/editor/src/main/packages/components.ts``.
+
+*   **Property panels**:
+
+    Add or extend the property popup in ``packages/editor/src/main/packages/popups.ts`` so users can edit fields
+    for your new element or relationship type.
+
 *   **Sidebar Integration**: This is critical for the element to appear in the editor.
     
     1.  Open ``packages/editor/src/main/packages/compose-preview.ts``.
@@ -126,3 +155,12 @@ Add the display name for your element in ``packages/editor/src/main/i18n/en.json
             "MyNewElement": "My New Element"
         }
     }
+
+5. Webapp wiring (project UI)
+-----------------------------
+
+Once the editor package knows how to render the new diagram, expose it in the webapp:
+
+* Update the project model, sidebar, import/export labels, and settings badges.
+* Follow the checklist in ``packages/webapp/src/main/components/project/ADDING_NEW_DIAGRAM_TYPE.md``.
+* Verify that creating a new project includes the new diagram slot.

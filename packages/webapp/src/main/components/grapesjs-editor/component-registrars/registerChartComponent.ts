@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { ChartConfig } from '../configs/chartConfigs';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
+import registerSeriesManagerTrait from '../traits/registerSeriesManagerTrait';
+
 /**
  * Build chart props from attributes - extracted to avoid duplication
  */
@@ -51,8 +53,34 @@ const buildChartProps = (attrs: Record<string, any>, config: ChartConfig): any =
  * @param config - Chart configuration
  */
 export const registerChartComponent = (editor: any, config: ChartConfig) => {
+  // Register the custom series-manager trait type (safe to call multiple times)
+  registerSeriesManagerTrait(editor);
   // Build trait values inside the attributes object
   const traitAttributes: Record<string, any> = { class: `${config.id}-component` };
+  // Add the series-manager trait for all charts (including PieChart and RadialBarChart)
+  if (!config.traits) config.traits = [];
+  if (!config.traits.some(t => t.name === 'series')) {
+    config.traits.push({
+      type: 'series-manager',
+      name: 'series',
+      label: 'Series',
+      value: '',
+      changeProp: 1
+    });
+  }
+
+  // Remove Data Source, Data Field, Label Field traits for charts with series-manager
+  if (['line-chart', 'bar-chart', 'radar-chart'].includes(config.id)) {
+    config.traits = config.traits.filter(
+      t => !['data-source', 'label-field', 'data-field'].includes(t.name)
+    );
+  }
+
+  if (Array.isArray(config.traits)) {
+    config.traits.forEach(trait => {
+      traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
+    });
+  }
   let traitsList = Array.isArray(config.traits) ? [...config.traits] : [];
 
   traitsList.forEach(trait => {
@@ -143,7 +171,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
           const container = view.el;
           container.innerHTML = '';
           const root = ReactDOM.createRoot(container);
-          const props = buildChartProps(attrs, config);
+          const props = getChartProps(attrs, config);
           root.render(React.createElement(config.component, props));
         }
       },
@@ -151,8 +179,8 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
     view: {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
+        const props = getChartProps(attrs, config);
         const root = ReactDOM.createRoot(el);
-        const props = buildChartProps(attrs, config);
         root.render(React.createElement(config.component, props));
       },
     },
@@ -162,6 +190,75 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       }
     },
   });
+
+  // Patch: Wrap buildChartProps to never inject fake/default series/data. Pass empty series/data if none exist.
+  const getChartProps = (attrs: Record<string, any>, config: ChartConfig) => {
+    const props = buildChartProps(attrs, config);
+    // For all charts with series-manager, always use the real series, or empty array
+    if (config.traits && config.traits.some(t => t.name === 'series')) {
+      let series: any[] = [];
+      try {
+        series = JSON.parse(attrs['series'] || '[]');
+      } catch {}
+      props.series = Array.isArray(series) ? series : [];
+    }
+    return props;
+  };
+
+  // For charts with series-manager, ensure a default series is created on block creation
+  if (['line-chart', 'bar-chart', 'radar-chart'].includes(config.id)) {
+    if (!traitAttributes['series'] || traitAttributes['series'] === '' || traitAttributes['series'] === '[]') {
+      let defaultSeries;
+      if (config.id === 'line-chart') {
+        defaultSeries = [
+          {
+            name: 'Series 1',
+            color: '#4CAF50',
+            data: [
+              { name: 'Category A', value: 40 },
+              { name: 'Category B', value: 65 },
+              { name: 'Category C', value: 85 },
+              { name: 'Category D', value: 55 },
+              { name: 'Category E', value: 75 },
+            ],
+          },
+        ];
+      } else if (config.id === 'bar-chart') {
+        defaultSeries = [
+          {
+            name: 'Series 1',
+            color: '#3498db',
+            data: [
+              { name: 'Category A', value: 40 },
+              { name: 'Category B', value: 65 },
+              { name: 'Category C', value: 85 },
+              { name: 'Category D', value: 55 },
+              { name: 'Category E', value: 75 },
+            ],
+          },
+        ];
+      } else if (config.id === 'radar-chart') {
+        defaultSeries = [
+          {
+            name: 'Series 1',
+            color: '#8884d8',
+            data: [
+              { subject: 'Category A', value: 85, fullMark: 100 },
+              { subject: 'Category B', value: 75, fullMark: 100 },
+              { subject: 'Category C', value: 90, fullMark: 100 },
+              { subject: 'Category D', value: 80, fullMark: 100 },
+              { subject: 'Category E', value: 70, fullMark: 100 },
+            ],
+          },
+        ];
+      } else {
+        defaultSeries = [
+          { name: 'Series 1', color: '#4CAF50', data: [] }
+        ];
+      }
+      traitAttributes['series'] = JSON.stringify(defaultSeries);
+    }
+  }
 
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {

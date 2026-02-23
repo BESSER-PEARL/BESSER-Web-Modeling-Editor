@@ -8,8 +8,6 @@ RUN apk add --no-cache \
   giflib-dev
 
 ENV DEPLOYMENT_URL="http://localhost:8080"
-ENV APOLLON_REDIS_URL="redis://localhost:6379"
-ENV APOLLON_REDIS_DIAGRAM_TTL="30d"
 
 WORKDIR /app
 

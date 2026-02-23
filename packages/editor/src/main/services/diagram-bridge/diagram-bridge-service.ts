@@ -29,6 +29,8 @@ export interface IClassInfo {
 export interface IAttributeInfo {
   id: string;
   name: string;
+  type: string;
+  visibility: string;
 }
 
 /**
@@ -47,6 +49,15 @@ export interface IAssociationInfo {
     role?: string;
     multiplicity?: string;
   };
+}
+
+/**
+ * Interface for diagram references (state machines, quantum circuits, etc.)
+ * Used to reference diagrams from method implementations
+ */
+export interface IDiagramReference {
+  id: string;
+  name: string;
 }
 
 /**
@@ -86,6 +97,26 @@ export interface IDiagramBridgeService {
    * Get all classes that are related to the given class (excluding inheritance)
    */
   getRelatedClasses(classId: string): IClassInfo[];
+
+  /**
+   * Get available state machine diagram references
+   */
+  getStateMachineDiagrams(): IDiagramReference[];
+
+  /**
+   * Set available state machine diagram references
+   */
+  setStateMachineDiagrams(diagrams: IDiagramReference[]): void;
+
+  /**
+   * Get available quantum circuit diagram references
+   */
+  getQuantumCircuitDiagrams(): IDiagramReference[];
+
+  /**
+   * Set available quantum circuit diagram references
+   */
+  setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void;
 }
 
 /**
@@ -137,8 +168,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
     // Check for inheritance relationships where classId is the source (child)
     Object.values(data.relationships || {}).forEach((rel: any) => {
       if (rel.type === 'ClassInheritance' && rel.source?.element === classId && rel.target?.element) {
-      const inheritedRelated = this.getRelatedClasses(rel.target.element);
-      inheritedRelated.forEach(cls => relatedClassIds.add(cls.id));
+        const inheritedRelated = this.getRelatedClasses(rel.target.element);
+        inheritedRelated.forEach(cls => relatedClassIds.add(cls.id));
       }
     });
 
@@ -148,14 +179,34 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   }
   private classDiagramData: IClassDiagramData | null = null;
   private readonly STORAGE_KEY = 'besser-class-diagram-bridge-data';
+  private stateMachineDiagrams: IDiagramReference[] = [];
+  private quantumCircuitDiagrams: IDiagramReference[] = [];
 
   /**
-   * Clean attribute name by removing visibility modifiers (+, -, #)
+   * Parse attribute name to extract type (for legacy data format)
+   * Legacy format: "+ attributeName: type" or "- attributeName: type"
    */
-  private cleanAttributeName(attributeName: string): string {
-    if (!attributeName) return '';
-    // Remove leading visibility modifiers and trim
-    return attributeName.replace(/^[+\-#]\s*/, '').trim();
+  private parseAttributeType(name: string): string {
+    if (!name) return 'str';
+    // Match pattern like "+ name: type" or "name: type"
+    const typeMatch = name.match(/:\s*(\w+)\s*$/);
+    if (typeMatch) {
+      return typeMatch[1];
+    }
+    return 'str';
+  }
+
+  /**
+   * Clean attribute name by removing visibility modifiers and type
+   * Legacy format: "+ attributeName: type" -> "attributeName"
+   */
+  private cleanAttributeName(name: string): string {
+    if (!name) return '';
+    // Remove leading visibility modifiers (+, -, #, ~) and trailing type
+    let cleaned = name.replace(/^[+\-#~]\s*/, '');
+    // Remove trailing type (": type")
+    cleaned = cleaned.replace(/:\s*\w+\s*$/, '');
+    return cleaned.trim();
   }
 
   /**
@@ -245,9 +296,15 @@ export class DiagramBridgeService implements IDiagramBridgeService {
         .map((attrId: string) => {
           const attribute = data.elements[attrId];
           if (attribute) {
+            // Check if we have new format (separate attributeType property)
+            // or legacy format (type embedded in name like "+ name: str")
+            const hasNewFormat = attribute.attributeType !== undefined;
+            
             return {
               id: attrId,
               name: this.cleanAttributeName(attribute.name),
+              type: attribute.attributeType || 'str',
+              visibility: attribute.visibility || 'public',
               sourceClass: currentClass.name,
               isInherited: isInherited
             };
@@ -284,7 +341,9 @@ export class DiagramBridgeService implements IDiagramBridgeService {
       if (!uniqueAttributes.has(attr.id)) {
         uniqueAttributes.set(attr.id, {
           id: attr.id,
-          name: attr.name
+          name: attr.name,
+          type: attr.type,
+          visibility: attr.visibility
         });
       }
     });
@@ -519,6 +578,34 @@ export class DiagramBridgeService implements IDiagramBridgeService {
 
     collectHierarchy(classId);
     return hierarchy;
+  }
+
+  /**
+   * Get available state machine diagram references
+   */
+  getStateMachineDiagrams(): IDiagramReference[] {
+    return this.stateMachineDiagrams;
+  }
+
+  /**
+   * Set available state machine diagram references
+   */
+  setStateMachineDiagrams(diagrams: IDiagramReference[]): void {
+    this.stateMachineDiagrams = diagrams;
+  }
+
+  /**
+   * Get available quantum circuit diagram references
+   */
+  getQuantumCircuitDiagrams(): IDiagramReference[] {
+    return this.quantumCircuitDiagrams;
+  }
+
+  /**
+   * Set available quantum circuit diagram references
+   */
+  setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void {
+    this.quantumCircuitDiagrams = diagrams;
   }
 }
 

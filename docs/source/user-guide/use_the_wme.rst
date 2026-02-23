@@ -17,7 +17,7 @@ Dashboard Structure
 .. note::
    The BESSER Web Modeling Editor is now organized around **projects**. Projects allow you to group related diagrams together, manage multiple models within a single workspace, and maintain better organization of your work. When you create diagrams, they are automatically organized within projects, enabling you to work on complex systems that require multiple interconnected models.
 
-.. image:: ../img/wme/editor/wme_docs.png
+.. image:: ../images/wme/editor/wme_docs.png
   :width: 800
   :alt: WME Dashboard
   :align: center
@@ -27,12 +27,12 @@ Dashboard Structure
 
 The *File* menu contains the following options:
 
-.. image:: ../img/wme/editor/file_menu.png
+.. image:: ../images/wme/editor/file_menu.png
   :width: 350
   :alt: File Menu
   :align: center
 
-- *New Project*: Creates a new project that can contain multiple related diagrams. Currently, :doc:`Structural models <./../buml_language/model_types/structural>` (via class diagrams), :doc:`Object models <./../buml_language/model_types/object>` (via object diagrams), :doc:`State Machine models <./../buml_language/model_types/state_machine>` (via state machine diagrams), and :doc:`Agent models <./../buml_language/model_types/agent>` (via agent diagrams) are supported. Additional model types will be added in the future.
+- *New Project*: Creates a new project that can contain multiple related diagrams. Currently, `Structural models <https://besser.readthedocs.io/en/latest/buml_language/model_types/structural.html>`_ (via class diagrams), `Object models <https://besser.readthedocs.io/en/latest/buml_language/model_types/object.html>`_ (via object diagrams), `State Machine models <https://besser.readthedocs.io/en/latest/buml_language/model_types/state_machine.html>`_ (via state machine diagrams), and `Agent models <https://besser.readthedocs.io/en/latest/buml_language/model_types/agent.html>`_ (via agent diagrams) are supported. Additional model types will be added in the future.
 - *Import Project*: Loads existing projects or provides ready-made example projects that you can modify according to your needs.
 - *Import Single Diagram to Project*: Allows you to import individual diagrams into your current project. This is useful when you want to add specific diagrams from other sources or restore previously saved diagrams.
 - *Load Template*: Imports a model template in JSON or B-UML format (`.json` or `.py` file, respectively) to start your project with predefined structures.
@@ -41,10 +41,10 @@ The *File* menu contains the following options:
 2. Generate Code Menu
 ~~~~~~~~~~~~~~~~~~~~~
 
-Once your model is complete, you can use the :doc:`BESSER code generators <../../generators>`.
+Once your model is complete, you can use the `BESSER code generators <https://besser.readthedocs.io/en/latest/generators.html>`_.
 The generated code will be downloaded to your machine.
 
-.. image:: ../img/wme/editor/generators_menu.png
+.. image:: ../images/wme/editor/generators_menu.png
   :width: 300
   :alt: Generation Menu
   :align: center
@@ -55,7 +55,7 @@ The generated code will be downloaded to your machine.
 Quality check allows you to verify whether your model contains errors, including the syntactic correctness of OCL rules.
 For example, if two classes have the same name, the validation will fail as follows:
 
-.. image:: ../img/wme/editor/wme_checks.png
+.. image:: ../images/wme/editor/wme_checks.png
   :width: 400
   :alt: Quality Check
   :align: center
@@ -82,7 +82,7 @@ This is the title of the diagram you are currently working on. You can change it
 7. Class Diagram / Object Diagram / State Machine Diagram / Agent Diagram and Project settings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As mentioned earlier, the WME supports :doc:`Structural models <./../buml_language/model_types/structural>` (via class diagrams), :doc:`Object models <./../buml_language/model_types/object>` (via object diagrams), :doc:`State Machine models <./../buml_language/model_types/state_machine>` (via state machine diagrams), and :doc:`Agent models <./../buml_language/model_types/agent>` (via agent diagrams).
+As mentioned earlier, the WME supports `Structural models <https://besser.readthedocs.io/en/latest/buml_language/model_types/structural.html>`_ (via class diagrams), `Object models <https://besser.readthedocs.io/en/latest/buml_language/model_types/object.html>`_ (via object diagrams), `State Machine models <https://besser.readthedocs.io/en/latest/buml_language/model_types/state_machine.html>`_ (via state machine diagrams), and `Agent models <https://besser.readthedocs.io/en/latest/buml_language/model_types/agent.html>`_ (via agent diagrams).
 This menu allows you to switch between these models **alternately**, while ensuring that all are saved, preventing any data loss when switching.
 The menu also allows you to access the project settings, where you can edit the project name, description, and other metadata.
 
@@ -96,3 +96,4 @@ on how to use the elements of each model.
 ~~~~~~~~~
 
 Finally, the canvas is the drawing area where you can design your model.
+

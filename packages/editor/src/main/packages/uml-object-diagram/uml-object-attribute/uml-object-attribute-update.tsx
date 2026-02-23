@@ -38,6 +38,19 @@ const ValueTextfield = styled(Textfield)`
   min-width: 60px;
 `;
 
+const QuoteWrapper = styled.span`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+`;
+
+const Quote = styled.span`
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  user-select: none;
+`;
+
 const DateTimeInput = styled.input`
   flex-grow: 1;
   min-width: 60px;
@@ -101,19 +114,19 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
   // Check if this attribute is of enumeration type
   const isEnumerationAttribute = () => {
     const { name: attributeName } = parseAttributeValue(value);
-    
+
     if (!attributeName) {
       return false;
     }
 
     const attributeType = getAttributeType(attributeName);
-    
+
     if (!attributeType) {
       return false;
     }
 
     const classDiagramData = diagramBridge.getClassDiagramData();
-    
+
     if (!classDiagramData) {
       return false;
     }
@@ -129,41 +142,41 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
   // Check if this attribute is a date/time type
   const isDateTimeAttribute = () => {
     const { name: attributeName } = parseAttributeValue(value);
-    
+
     if (!attributeName) {
       return { isDateTime: false, type: null };
     }
 
     const attributeType = getAttributeType(attributeName).toLowerCase();
-    
+
     // Date types
     if (attributeType === 'date' || attributeType === 'localdate') {
       return { isDateTime: true, type: 'date' };
-    } 
+    }
     // DateTime types
-    else if (attributeType === 'datetime' || attributeType === 'timestamp' || 
-             attributeType === 'localdatetime' || attributeType === 'offsetdatetime' || 
-             attributeType === 'zoneddatetime' || attributeType === 'instant') {
+    else if (attributeType === 'datetime' || attributeType === 'timestamp' ||
+      attributeType === 'localdatetime' || attributeType === 'offsetdatetime' ||
+      attributeType === 'zoneddatetime' || attributeType === 'instant') {
       return { isDateTime: true, type: 'datetime-local' };
-    } 
+    }
     // Time types
-    else if (attributeType === 'time' || attributeType === 'localtime' || 
-             attributeType === 'offsettime') {
+    else if (attributeType === 'time' || attributeType === 'localtime' ||
+      attributeType === 'offsettime') {
       return { isDateTime: true, type: 'time' };
-    } 
+    }
     // Duration/Period types
-    else if (attributeType === 'timedelta' || attributeType === 'duration' || 
-             attributeType === 'period' || attributeType === 'timespan') {
+    else if (attributeType === 'timedelta' || attributeType === 'duration' ||
+      attributeType === 'period' || attributeType === 'timespan') {
       return { isDateTime: true, type: 'duration' };
     }
-    
+
     return { isDateTime: false, type: null };
   };
 
   // Get enumeration values for this attribute
   const getEnumerationValues = () => {
     const { name: attributeName } = parseAttributeValue(value);
-    
+
     if (!attributeName) return [];
 
     const attributeType = getAttributeType(attributeName);
@@ -224,7 +237,7 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
   // Format value for date/time inputs
   const formatDateTimeValue = (value: string, type: string) => {
     if (!value || value.trim() === '') return '';
-    
+
     try {
       if (type === 'date') {
         // Try to parse various date formats
@@ -243,7 +256,7 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
         } else {
           date = new Date(value);
         }
-        
+
         if (!isNaN(date.getTime())) {
           return date.toISOString().split('T')[0];
         }
@@ -259,7 +272,7 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
         } else {
           date = new Date(value);
         }
-        
+
         if (!isNaN(date.getTime())) {
           const isoString = date.toISOString();
           return isoString.slice(0, 16); // Remove seconds and timezone
@@ -276,7 +289,7 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
     } catch (error) {
       console.warn('Error formatting date/time value:', error);
     }
-    
+
     return value;
   };
 
@@ -289,11 +302,11 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
   // Render duration input (for timedelta)
   const renderDurationInput = () => {
     return (
-      <ValueTextfield 
-        ref={onRefChange} 
-        gutter 
-        value={attributeValue} 
-        onChange={handleValueChange} 
+      <ValueTextfield
+        ref={onRefChange}
+        gutter
+        value={attributeValue}
+        onChange={handleValueChange}
         onSubmitKeyUp={onSubmitKeyUp}
         placeholder="e.g., 1d 2h 30m, P1DT2H30M, 1:30:00"
         title="Enter duration in formats like: '1d 2h 30m', 'P1DT2H30M' (ISO 8601), or 'HH:mm:ss'"
@@ -304,7 +317,7 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
   // Check if this is an enumeration attribute
   const isEnum = isEnumerationAttribute();
   const enumValues = isEnum ? getEnumerationValues() : [];
-  
+
   // Check if this is a date/time attribute
   const { isDateTime, type: dateTimeType } = isDateTimeAttribute();
 
@@ -336,21 +349,41 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
                   type={dateTimeType}
                   value={formatDateTimeValue(attributeValue, dateTimeType)}
                   onChange={handleDateTimeChange}
-                  placeholder={dateTimeType === 'date' ? 'YYYY-MM-DD' : 
-                              dateTimeType === 'datetime-local' ? 'YYYY-MM-DD HH:mm' : 
-                              dateTimeType === 'time' ? 'HH:mm' : 'value'}
+                  placeholder={dateTimeType === 'date' ? 'YYYY-MM-DD' :
+                    dateTimeType === 'datetime-local' ? 'YYYY-MM-DD HH:mm' :
+                      dateTimeType === 'time' ? 'HH:mm' : 'value'}
                 />
               )
-            ) : (
-              <ValueTextfield 
-                ref={onRefChange} 
-                gutter 
-                value={attributeValue} 
-                onChange={handleValueChange} 
-                onSubmitKeyUp={onSubmitKeyUp}
-                placeholder="value"
-              />
-            )}
+            ) : (() => {
+              // Check if this is a string type attribute
+              const isStringType = (element as any).attributeType === 'str' ||
+                (element as any).attributeType === 'string';
+              const attributeType = (element as any).attributeType || 'value';
+
+              const textfield = (
+                <ValueTextfield
+                  ref={onRefChange}
+                  gutter
+                  value={attributeValue}
+                  onChange={handleValueChange}
+                  onSubmitKeyUp={onSubmitKeyUp}
+                  placeholder={attributeType}
+                />
+              );
+
+              // Wrap with quotes if it's a string type
+              if (isStringType) {
+                return (
+                  <QuoteWrapper>
+                    <Quote>"</Quote>
+                    {textfield}
+                    <Quote>"</Quote>
+                  </QuoteWrapper>
+                );
+              }
+
+              return textfield;
+            })()}
           </AttributeInputContainer>
           <ColorButton onClick={toggleColor} />
           <Button color="link" tabIndex={-1} onClick={handleDelete}>

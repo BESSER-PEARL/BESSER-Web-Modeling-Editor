@@ -1,4 +1,5 @@
 import { toast } from 'react-toastify';
+import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constant';
 import { ApollonEditor } from '@besser/wme';
 
@@ -18,6 +19,18 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
   toast.dismiss();
   
   try {
+    const longToastStyle: CSSProperties = {
+      fontSize: "16px",
+      padding: "20px",
+      width: "100%",
+      boxSizing: "border-box",
+      whiteSpace: "pre-line",
+      maxHeight: "600px",
+      overflow: "auto",
+      overflowWrap: "anywhere",
+      wordBreak: "break-word"
+    };
+
     // Get model data from editor or use provided modelData (for quantum circuits)
     const model = modelData || editor?.model;
     
@@ -60,12 +73,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         position: "top-right",
         autoClose: false,
         style: {
-          fontSize: "16px",
-          padding: "20px",
-          width: "400px",
-          whiteSpace: "pre-line",
-          maxHeight: "600px",
-          overflow: "auto"
+          ...longToastStyle
         }
       });
       return { isValid: false, errors: errorData.errors || ['Validation failed'] };
@@ -90,12 +98,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         progress: undefined,
         theme: "dark",
         style: {
-          fontSize: "16px",
-          padding: "20px",
-          width: "400px",
-          whiteSpace: "pre-line",
-          maxHeight: "600px",
-          overflow: "auto"
+          ...longToastStyle
         }
       });
     }
@@ -113,12 +116,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         progress: undefined,
         theme: "dark",
         style: {
-          fontSize: "16px",
-          padding: "20px",
-          width: "400px",
-          whiteSpace: "pre-line",
-          maxHeight: "600px",
-          overflow: "auto"
+          ...longToastStyle
         }
       });
     }
@@ -136,12 +134,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         progress: undefined,
         theme: "dark",
         style: {
-          fontSize: "16px",
-          padding: "20px",
-          width: "400px",
-          whiteSpace: "pre-line",
-          maxHeight: "600px",
-          overflow: "auto"
+          ...longToastStyle
         }
       });
     }
@@ -159,12 +152,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         progress: undefined,
         theme: "dark",
         style: {
-          fontSize: "16px",
-          padding: "20px",
-          width: "400px",
-          whiteSpace: "pre-line",
-          maxHeight: "600px",
-          overflow: "auto"
+          ...longToastStyle
         }
       });
     }

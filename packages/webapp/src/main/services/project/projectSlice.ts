@@ -130,8 +130,11 @@ export const updateCurrentDiagramThunk = createAsyncThunk(
     const { currentProject, currentDiagramType } = state.project;
     
     if (!currentProject) {
-      throw new Error('No active project');
+      console.warn('updateCurrentDiagramThunk: No active project, skipping update');
+      return null;
     }
+    
+    // console.log('updateCurrentDiagramThunk: Saving to project', currentProject.id, 'diagram type:', currentDiagramType);
     
     const updatedDiagram: ProjectDiagram = {
       ...currentProject.diagrams[currentDiagramType],
@@ -146,9 +149,11 @@ export const updateCurrentDiagramThunk = createAsyncThunk(
     );
     
     if (!success) {
+      console.error('updateCurrentDiagramThunk: Failed to update diagram in storage');
       throw new Error('Failed to update diagram');
     }
     
+    // console.log('updateCurrentDiagramThunk: Successfully saved diagram');
     return updatedDiagram;
   }
 );
@@ -311,9 +316,11 @@ const projectSlice = createSlice({
       
       // Update current diagram
       .addCase(updateCurrentDiagramThunk.fulfilled, (state, action) => {
-        state.currentDiagram = action.payload;
-        if (state.currentProject) {
-          state.currentProject.diagrams[state.currentDiagramType] = action.payload;
+        if (action.payload) {
+          state.currentDiagram = action.payload;
+          if (state.currentProject) {
+            state.currentProject.diagrams[state.currentDiagramType] = action.payload;
+          }
         }
       })
       .addCase(updateCurrentDiagramThunk.rejected, (state, action) => {

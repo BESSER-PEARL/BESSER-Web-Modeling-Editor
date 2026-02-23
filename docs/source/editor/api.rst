@@ -96,9 +96,7 @@ All subscription methods return a numeric ID; pass the same ID to the matching
    Notified only at the end of an interaction (mouse up, delete). Helpful when
    you care about completed user actions rather than intermediate drag events.
 
-``subscribeToModelChangePatches`` /
-``subscribeToAllModelChangePatches`` /
-``subscribeToModelContinuousChangePatches``
+``subscribeToModelChangePatches`` / ``subscribeToAllModelChangePatches`` / ``subscribeToModelContinuousChangePatches``
    Emit JSON Patch objects describing changes. ``All`` delivers both continuous
    and discrete patches; ``Continuous`` surfaces high frequency updates during a
    drag; ``ModelChange`` limits to discrete updates. Use

@@ -1,4 +1,4 @@
-import { DeepPartial } from 'redux';
+﻿import { DeepPartial } from 'redux';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-element';
@@ -54,10 +54,20 @@ const SYMBOL_TO_VISIBILITY: Record<string, Visibility> = {
   '~': 'package',
 };
 
+export type MethodImplementationType =
+  | 'none'
+  | 'code'
+  | 'bal'
+  | 'state_machine'
+  | 'quantum_circuit';
+
 export interface IUMLClassifierMember extends IUMLElement {
   code?: string;
   visibility?: Visibility;
   attributeType?: string;
+  implementationType?: MethodImplementationType;
+  stateMachineId?: string;
+  quantumCircuitId?: string;
 }
 
 export abstract class UMLClassifierMember extends UMLElement implements IUMLClassifierMember {
@@ -76,6 +86,9 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   code: string = '';
   visibility: Visibility = 'public';
   attributeType: string = 'str';
+  implementationType: MethodImplementationType = 'none';
+  stateMachineId: string = '';
+  quantumCircuitId: string = '';
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
     super(values);
@@ -143,6 +156,9 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       code: this.code,
       visibility: this.visibility,
       attributeType: this.attributeType,
+      implementationType: this.implementationType,
+      stateMachineId: this.stateMachineId,
+      quantumCircuitId: this.quantumCircuitId,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
 
@@ -164,6 +180,16 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.attributeType = parsed.attributeType;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
+    }
+    
+    // Deserialize implementation type fields
+    this.implementationType = memberValues.implementationType || 'none';
+    this.stateMachineId = memberValues.stateMachineId || '';
+    this.quantumCircuitId = memberValues.quantumCircuitId || '';
+    
+    // Auto-detect implementation type if not set but code exists
+    if (this.implementationType === 'none' && this.code) {
+      this.implementationType = 'code';
     }
   }
 

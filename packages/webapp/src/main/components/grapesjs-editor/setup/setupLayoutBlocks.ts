@@ -5,6 +5,42 @@ import { Editor } from 'grapesjs';
  */
 export function setupLayoutBlocks(editor: Editor) {
   const bm = editor.BlockManager;
+  const domc = editor.DomComponents;
+  try {
+    const defaultType = domc.getType('default');
+    const defaultModel = defaultType?.model;
+    const defaultView = defaultType?.view;
+
+    if (defaultModel && defaultView) {
+      domc.addType('analytics-dashboard', {
+        model: defaultModel.extend(
+          {
+            defaults: {
+              ...defaultModel.prototype.defaults,
+              name: 'Analytics Dashboard',
+              stylable: ['background', 'background-color', 'padding', 'color'],
+              style: {
+                'background-color': '#4b3c82',
+                padding: '20px',
+              },
+              droppable: true,
+            },
+          },
+          {
+            isComponent(el: HTMLElement) {
+              const type = el?.getAttribute?.('data-gjs-type');
+              if (type === 'analytics-dashboard') return true;
+              const cls = el?.getAttribute?.('class') || '';
+              return cls.split(' ').includes('dashboard-container');
+            },
+          }
+        ),
+        view: defaultView,
+      });
+    }
+  } catch (error) {
+    console.warn('[LayoutBlocks] Unable to register analytics-dashboard type; using default wrapper.', error);
+  }
   
   // Container Block
   bm.add('container', {
@@ -431,7 +467,7 @@ export function setupLayoutBlocks(editor: Editor) {
     label: 'Analytics Dashboard',
     category: 'Templates',
     content: `
-      <div class="dashboard-container" style="padding: 20px; background: linear-gradient(135deg, rgb(75, 60, 130) 0%, rgb(90, 61, 145) 100%);">
+      <div data-gjs-type="analytics-dashboard" data-gjs-highlightable="true" style="padding: 20px; background-color: #4b3c82;">
         <div style="max-width: 1400px; margin: 0 auto;">
           <!-- Dashboard Header -->
           <div style="margin-bottom: 30px;">

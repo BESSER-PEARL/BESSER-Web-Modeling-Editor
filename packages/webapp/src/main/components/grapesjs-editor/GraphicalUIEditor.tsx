@@ -8,7 +8,7 @@ import gjsBlocksBasic from 'grapesjs-blocks-basic';
 // @ts-ignore
 import gjsPluginForms from 'grapesjs-plugin-forms';
 import './grapesjs-styles.css';
-import { getClassOptions } from './diagram-helpers';
+import { getClassOptions, getEndsByClassId, getClassMetadata as getClassMeta } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
 import { tableConfig } from './configs/tableConfig';
 import { metricCardConfig } from './configs/metricCardConfigs';
@@ -52,7 +52,7 @@ export const GraphicalUIEditor: React.FC = () => {
 
       // Handle editor load event
       editor.on('load', () => {
-        console.log('[GraphicalUIEditor] Editor ready, loading stored data');
+        // console.log('[GraphicalUIEditor] Editor ready, loading stored data');
         editor.StorageManager.load((data: unknown) => {
           if (data && Object.keys(data as Record<string, unknown>).length > 0) {
             console.log('[GraphicalUIEditor] Stored data loaded successfully');
@@ -64,7 +64,7 @@ export const GraphicalUIEditor: React.FC = () => {
 
       // Cleanup on unmount
       return () => {
-        console.log('[GraphicalUIEditor] Cleaning up...');
+        // console.log('[GraphicalUIEditor] Cleaning up...');
         
         // Clear save interval
         if (saveIntervalRef.current) {
@@ -198,10 +198,13 @@ function setupEditorFeatures(
   if (editor.Pages) {
     setupPageSystem(editor);
     setupPageRouting(editor);
-    addPagesButton(editor);
+    addAutoGenerateGUIButton(editor);
   } else {
     console.warn('[GraphicalUIEditor] Pages API not available');
   }
+  
+  setupSidebarButtonHoverLabels(editor);
+  setupAutoOpenTraitsPanel(editor);
   
   // Additional features
   setupDataBindingTraits(editor);
@@ -713,34 +716,541 @@ function setupKeyboardShortcuts(editor: Editor) {
 // ============================================
 
 /**
- * Add Pages button to the toolbar and remove preview button
+ * Add Auto-Generate GUI button to the devices panel
  */
-function addPagesButton(editor: Editor) {
+function addAutoGenerateGUIButton(editor: Editor) {
   editor.on('load', () => {
     const panelManager = editor.Panels;
     
-    // Remove preview button (eye icon)
+    // Remove preview button (eye icon) - moved here from removed addPagesButton
     try {
       const previewBtn = document.querySelector('[title="Preview"]');
       if (previewBtn) {
         previewBtn.remove();
-        // console.log('[Toolbar] Preview button removed');
       }
     } catch (error) {
       console.warn('[Toolbar] Could not remove preview button:', error);
     }
     
-    // Add button to open pages panel
-    panelManager.addButton('options', {
-      id: 'open-pages',
-      className: 'fa fa-file-text',
-      command: 'show-pages',
-      attributes: { title: 'Manage Pages' },
-      label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" /></svg>',
+    // Add button to devices panel (where monitor, tablet, cellphone icons are)
+    if (!panelManager.getButton('devices-c', 'auto-generate-gui')) {
+      panelManager.addButton('devices-c', {
+        id: 'auto-generate-gui',
+        className: 'fa fa-magic',
+        command: 'auto-generate-gui',
+        attributes: { title: 'Auto-Generate GUI from Class Diagram' },
+        label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" /></svg>',
+      });
+    }
+    
+  });
+  
+  // Define the command for auto-generating GUI
+  editor.Commands.add('auto-generate-gui', {
+    run(editor: Editor) {
+      
+      // Show custom confirmation modal
+      const modal = editor.Modal;
+      modal.setTitle('Auto-Generate GUI from Class Diagram');
+      
+      const modalContent = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; line-height: 1.5;">
+            This will clear your current GUI and generate a new one based on your Class Diagram.
+          </p>
+          
+          <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items-center; margin-bottom: 0.5rem;">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: #198754; margin-right: 0.5rem;">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+              </svg>
+              <strong style="font-size: 0.875rem;">Created automatically:</strong>
+            </div>
+            <ul style="margin: 0; padding-left: 1.5rem; color: #212529; font-size: 0.875rem; line-height: 1.8;">
+              <li>Navigation panel with links to each class</li>
+              <li>A page for each class with a data table</li>
+              <li>Method buttons for classes with methods</li>
+            </ul>
+          </div>
+          
+          <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items-center; color: #664d03;">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+              </svg>
+              <strong style="font-size: 0.875rem;">This action cannot be undone</strong>
+            </div>
+          </div>
+          
+          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; font-weight: 500;">
+            Are you sure you want to continue?
+          </p>
+          
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #dee2e6;">
+            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+              Cancel
+            </button>
+            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+              Generate GUI
+            </button>
+          </div>
+        </div>
+      `;
+      
+      modal.setContent(modalContent);
+      modal.open();
+      
+      // Add hover effects matching Bootstrap buttons
+      const confirmBtn = document.getElementById('modal-confirm-btn');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+      
+      if (confirmBtn) {
+        confirmBtn.onmouseover = () => {
+          confirmBtn.style.backgroundColor = '#0b5ed7';
+          confirmBtn.style.borderColor = '#0a58ca';
+        };
+        confirmBtn.onmouseout = () => {
+          confirmBtn.style.backgroundColor = '#0d6efd';
+          confirmBtn.style.borderColor = '#0d6efd';
+        };
+        confirmBtn.onclick = () => {
+          modal.close();
+          try {
+            autoGenerateGUIFromClassDiagram(editor);
+            // Show success notification using GrapesJS notification system
+            editor.runCommand('notifications:add', {
+              type: 'success',
+              message: '✓ GUI generated successfully! Created pages, tables, and method buttons for all classes.',
+              group: 'Auto-Generate'
+            });
+          } catch (error) {
+            console.error('[Auto-Generate] Error:', error);
+            editor.runCommand('notifications:add', {
+              type: 'error',
+              message: '✗ Error generating GUI: ' + (error as Error).message,
+              group: 'Auto-Generate'
+            });
+          }
+        };
+      }
+      
+      if (cancelBtn) {
+        cancelBtn.onmouseover = () => {
+          cancelBtn.style.backgroundColor = '#5c636a';
+          cancelBtn.style.borderColor = '#565e64';
+        };
+        cancelBtn.onmouseout = () => {
+          cancelBtn.style.backgroundColor = '#6c757d';
+          cancelBtn.style.borderColor = '#6c757d';
+        };
+        cancelBtn.onclick = () => {
+          modal.close();
+        };
+      }
+    }
+  });
+}
+
+/**
+ * Auto-generate GUI pages and components from the class diagram
+ */
+function autoGenerateGUIFromClassDiagram(editor: Editor) {
+  // Import helper functions (these are already available in the file)
+  const { getClassOptions, getClassMetadata, getMethodsByClassId } = require('./diagram-helpers');
+  
+  // Get all classes from the class diagram
+  const classes = getClassOptions();
+  
+  if (classes.length === 0) {
+    throw new Error('No classes found in the Class Diagram. Please create a class diagram first.');
+  }
+  
+  // Clear all existing pages
+  const pages = editor.Pages;
+  if (pages) {
+    const existingPages = pages.getAll();
+    existingPages.forEach((page: any) => {
+      pages.remove(page);
+    });
+  }
+  
+  // Create all pages and force render each one to ensure proper styling
+  const createdPages: any[] = [];
+  
+  classes.forEach((classOption: any, index: number) => {
+    const className = classOption.label;
+    const classId = classOption.value;
+    const pageName = className.toLowerCase().replace(/\s+/g, '-');
+    const pageRoute = `/${pageName}`;
+    
+    // Get class metadata (attributes and methods)
+    const classMetadata = getClassMetadata(classId);
+    const methods = getMethodsByClassId(classId);
+    
+    // Create the page with route_path
+    const page = pages.add({
+      id: `page-${pageName}-${index}`,
+      name: className,
     });
     
-    // console.log('[Pages] Button added to toolbar');
+    // Set the route_path on the page
+    if (page) {
+      page.set('route_path', pageRoute);
+    }
+    
+    // Store created page
+    createdPages.push({ page, className, classId, classMetadata, methods, index });
   });
+  
+  // Process each page sequentially with delays to ensure GrapesJS renders each one
+  // This ensures all pages get proper IDs and normalized styles
+  const processPages = async () => {
+    for (let i = 0; i < createdPages.length; i++) {
+      const { page, className, classId, classMetadata, methods, index } = createdPages[i];
+      
+      // Select the page to force GrapesJS to render it
+      pages.select(page);
+      
+      // Build the page components
+      buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
+      
+      // Wait for GrapesJS to process the page (render and assign IDs)
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // Trigger a canvas refresh to ensure components are processed
+      editor.refresh();
+    }
+    
+    // Return to the first page after all pages are processed
+    if (createdPages.length > 0) {
+      pages.select(createdPages[0].page);
+    }
+    
+    // Trigger a final save to persist all properly styled pages
+    setTimeout(() => {
+      editor.store();
+    }, 300);
+  };
+  
+  // Execute the async page processing
+  processPages();
+  
+}
+
+/**
+ * Build page components programmatically using GrapesJS API
+ */
+function buildPageComponents(
+  editor: Editor,
+  page: any,
+  className: string,
+  classId: string,
+  classMetadata: any,
+  methods: any[],
+  allClasses: any[],
+  pageCounter: number
+) {
+  const wrapper = page.getMainComponent();
+  
+  // Generate a unique table ID for this page using counter
+  const tableId = `table-${className.toLowerCase()}-${pageCounter}`;
+  
+  // Build navigation links
+  const navLinksComponents = allClasses.map(c => {
+    const isActive = c.label === className;
+    return {
+      tagName: 'a',
+      type: 'link',
+      attributes: { href: `/${c.label.toLowerCase()}` },
+      components: [{ type: 'textnode', content: c.label }],
+      style: {
+        color: 'white',
+        'text-decoration': 'none',
+        padding: '10px 15px',
+        display: 'block',
+        background: isActive ? 'rgba(255,255,255,0.2)' : 'transparent',
+        'border-radius': '4px',
+        'margin-bottom': '5px',
+      }
+    };
+  });
+  
+  // Create method buttons components
+  const methodButtonsComponents: any[] = [];
+  if (methods && methods.length > 0) {
+    methods.forEach((method, idx) => {
+      
+      // Create action-button component with proper traits
+      const buttonComponent = {
+        type: 'action-button',
+        attributes: {
+          class: 'action-button-component',
+          type: 'button',
+          'data-button-label': method.name,
+          'data-action-type': 'run-method',
+          'data-method-class': classId,
+          'data-method': method.id,
+          'data-instance-source': tableId,
+        },
+        // Set the traits as top-level properties (these will be read by the component's init)
+        'button-label': method.name,
+        'action-type': 'run-method',
+        'method-class': classId,
+        'method': method.id,
+        'instance-source': tableId,
+        'confirmation-required': false,
+        components: [{ type: 'textnode', content: method.name }],
+      };
+      
+      methodButtonsComponents.push(buttonComponent);
+    });
+  }
+  
+  // Build the page structure
+  const pageStructure = {
+    tagName: 'div',
+    style: {
+      display: 'flex',
+      height: '100vh',
+      'font-family': 'Arial, sans-serif',
+    },
+    components: [
+      // Left Navigation Panel
+      {
+        tagName: 'nav',
+        style: {
+          width: '250px',
+          background: 'linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%)',
+          color: 'white',
+          padding: '20px',
+          'overflow-y': 'auto',
+          display: 'flex',
+          'flex-direction': 'column',
+        },
+        components: [
+          // BESSER Title
+          {
+            tagName: 'h2',
+            type: 'text',
+            components: [{ type: 'textnode', content: 'BESSER' }],
+            style: {
+              'margin-top': '0',
+              'font-size': '24px',
+              'margin-bottom': '30px',
+              'font-weight': 'bold',
+            }
+          },
+          // Navigation links container
+          {
+            tagName: 'div',
+            style: {
+              display: 'flex',
+              'flex-direction': 'column',
+              flex: '1',
+            },
+            components: navLinksComponents,
+          },
+          // Copyright footer
+          {
+            tagName: 'div',
+            type: 'text',
+            components: [{ type: 'textnode', content: '© 2026 BESSER. All rights reserved.' }],
+            style: {
+              'margin-top': 'auto',
+              'padding-top': '20px',
+              'border-top': '1px solid rgba(255,255,255,0.2)',
+              'font-size': '11px',
+              opacity: '0.8',
+              'text-align': 'center',
+            }
+          }
+        ]
+      },
+      // Main Content Area
+      {
+        tagName: 'main',
+        style: {
+          flex: '1',
+          padding: '40px',
+          'overflow-y': 'auto',
+          background: '#f5f5f5',
+        },
+        components: [
+          // Page title
+          {
+            tagName: 'h1',
+            type: 'text',
+            components: [{ type: 'textnode', content: className }],
+            style: {
+              'margin-top': '0',
+              color: '#333',
+              'font-size': '32px',
+              'margin-bottom': '10px',
+            }
+          },
+          // Page description
+          {
+            tagName: 'p',
+            type: 'text',
+            components: [{ type: 'textnode', content: `Manage ${className} data` }],
+            style: {
+              color: '#666',
+              'margin-bottom': '30px',
+            }
+          },
+          // Table component with proper traits and PRE-GENERATED columns
+          (() => {
+            // Pre-generate columns from class metadata (same logic as in registerTableComponent)
+            const autoColumns: any[] = [];
+            
+            // Add Field columns from class attributes
+            if (classMetadata?.attributes?.length) {
+              classMetadata.attributes.forEach((attr: any) => {
+                autoColumns.push({
+                  field: attr.name,
+                  label: attr.name.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                  columnType: 'field',
+                  _expanded: false,
+                });
+              });
+            }
+            
+            // Add Lookup columns from class relationship ends
+            const classEnds = getEndsByClassId(classId);
+            if (classEnds?.length) {
+              classEnds.forEach((end: any) => {
+                const targetClassMetadata = getClassMeta(end.value);
+                const firstAttribute = targetClassMetadata?.attributes?.[0];
+                autoColumns.push({
+                  field: end.label || end.value,
+                  label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                  columnType: 'lookup',
+                  lookupEntity: end.value,
+                  lookupField: firstAttribute?.name || '',
+                  _expanded: false,
+                });
+              });
+            }
+            
+            const tableComponent = {
+              type: 'table',
+              attributes: {
+                class: 'table-component',
+                id: tableId,
+                'chart-title': `${className} List`,
+                'data-source': classId,
+                'show-header': 'true',
+                'striped-rows': 'false',
+                'show-pagination': 'true',
+                'action-buttons': 'true',
+                'rows-per-page': '5',
+                'filter': '',
+                'columns': autoColumns,  // Pre-generated columns!
+              },
+              // Set table traits as top-level properties (for the traits panel)
+              'chart-title': `${className} List`,
+              'data-source': classId,
+              'show-header': true,
+              'striped-rows': false,
+              'show-pagination': true,
+              'action-buttons': true,
+              'rows-per-page': 5,
+              'filter': '',
+              'columns': autoColumns,  // Pre-generated columns!
+            };
+            return tableComponent;
+          })(),
+          // Method buttons container
+          ...(methodButtonsComponents.length > 0 ? [{
+            tagName: 'div',
+            style: {
+              'margin-top': '20px',
+              display: 'flex',
+              gap: '10px',
+              'flex-wrap': 'wrap',
+            },
+            components: methodButtonsComponents,
+          }] : [])
+        ]
+      }
+    ]
+  };
+  
+  // Clear existing components and add the new structure
+  wrapper.components().reset();
+  wrapper.append(pageStructure);
+  
+  // Force the page to be selected to ensure components are properly initialized
+  editor.Pages?.select(page);
+  
+  // Initialize components after they are added and page is selected
+  setTimeout(() => {
+    try {
+      // Re-select the page to ensure we're working with the right context
+      editor.Pages?.select(page);
+      const pageWrapper = page.getMainComponent();
+      
+      // Find the table component by ID within this page
+      const tables = pageWrapper?.find(`#${tableId}`) || [];
+      const tableComp = tables[0];
+      
+      if (tableComp) {
+        
+        // Get the current data-source value
+        const currentDataSource = tableComp.get('data-source') || classId;
+        
+        // Force re-initialization by clearing and setting again
+        tableComp.set('data-source', '');
+        
+        setTimeout(() => {
+          tableComp.set('data-source', currentDataSource);
+          
+          // After table is initialized, initialize buttons
+          setTimeout(() => {
+            const buttons = pageWrapper?.find('.action-button-component') || [];
+            
+            buttons.forEach((buttonComp: any, btnIdx: number) => {
+              const methodClass = buttonComp.get('method-class');
+              const methodId = buttonComp.get('method');
+              const instanceSource = buttonComp.get('instance-source');
+              
+              // console.log(`[Auto-Generate] Initializing button ${btnIdx + 1}:`, {
+              //   methodClass,
+              //   methodId,
+              //   instanceSource,
+              //   expectedTableId: tableId
+              // });
+              
+              // Force the button to re-initialize its traits
+              buttonComp.set('method-class', '');
+              
+              setTimeout(() => {
+                buttonComp.set('method-class', methodClass);
+                
+                setTimeout(() => {
+                  if (methodId) {
+                    buttonComp.set('method', methodId);
+                  }
+                  
+                  setTimeout(() => {
+                    if (instanceSource) {
+                      buttonComp.set('instance-source', instanceSource);
+                      console.log(`[Auto-Generate] Button ${btnIdx + 1} instance-source set to: ${instanceSource}`);
+                    }
+                  }, 50);
+                }, 50);
+              }, 50);
+            });
+          }, 100);
+        }, 100);
+      } else {
+        console.warn(`[Auto-Generate] Table not found with id: ${tableId}`);
+      }
+    } catch (e) {
+      console.warn('[Auto-Generate] Could not trigger component initialization:', e);
+    }
+  }, 300);
+  
 }
 
 /**
@@ -754,11 +1264,14 @@ function setupPageRouting(editor: Editor) {
   
   editor.on('page:select', (page: any) => {
     if (!page) return;
-    const currentRoute = page.get('attributes')?.route || `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
+    // Use route_path as primary, fallback to attributes.route or auto-generated
+    const currentRoute = page.get('route_path') || 
+      page.get('attributes')?.route || 
+      `/${page.getName().toLowerCase().replace(/\s+/g, '-')}`;
     // console.log(`[Page Routing] Selected: ${page.getName()}, route: ${currentRoute}`);
   });
   
-  // Add command to edit page route
+  // Add command to edit page route (legacy - now handled in Pages panel)
   editor.Commands.add('edit-page-route', {
     run(editor: Editor) {
       const currentPage = editor.Pages.getSelected();
@@ -768,8 +1281,10 @@ function setupPageRouting(editor: Editor) {
       }
       
       const pageName = currentPage.getName();
-      const attrs: any = currentPage.get('attributes') || {};
-      const currentRoute = attrs.route || `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
+      const storedRoute = currentPage.get('route_path');
+      const currentRoute: string = (typeof storedRoute === 'string' && storedRoute) 
+        ? storedRoute 
+        : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
       
       const newRoute = prompt(
         `Edit route path for page "${pageName}":\n\nExamples:\n- /home\n- /users/:id\n- /products`, 
@@ -779,16 +1294,151 @@ function setupPageRouting(editor: Editor) {
       if (newRoute !== null && newRoute.trim()) {
         let route = newRoute.trim();
         if (!route.startsWith('/')) route = '/' + route;
+        // Clean the route
+        route = route.replace(/[^a-zA-Z0-9\-_\/:]/g, '');
         
-        attrs.route = route;
-        attrs['data-route'] = route;
-        currentPage.set('attributes', attrs);
+        currentPage.set('route_path', route);
         
         // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
         alert(`Route updated to: ${route}`);
       }
     }
   });
+}
+
+// ============================================
+// SIDEBAR HOVER LABELS
+// ============================================
+
+/**
+ * Add hover labels for GrapesJS sidebar buttons.
+ */
+function setupSidebarButtonHoverLabels(editor: Editor) {
+  editor.on('load', () => {
+    const labelOverrides: Record<string, string> = {
+      'open-blocks': 'Blocks',
+      'open-sm': 'Styles',
+      'open-tm': 'Traits',
+      'open-layers': 'Layers',
+      'open-pages-tab': 'Pages',
+    };
+    
+    const selector = '.gjs-pn-views .gjs-pn-btn, .gjs-pn-commands .gjs-pn-btn';
+    const measurementEl = createTooltipMeasurementElement();
+    
+    const updatePlacement = (button: HTMLElement, label: string) => {
+      measurementEl.textContent = label;
+      const tooltipWidth = measurementEl.getBoundingClientRect().width;
+      const rect = button.getBoundingClientRect();
+      const rightSpace = window.innerWidth - rect.right;
+      const leftSpace = rect.left;
+      const prefersRight = rightSpace >= tooltipWidth + 12;
+      const prefersLeft = leftSpace >= tooltipWidth + 12;
+      const placement = prefersRight ? 'right' : prefersLeft ? 'left' : 'right';
+      button.setAttribute('data-tooltip-placement', placement);
+    };
+    
+    document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
+      const label = resolveSidebarButtonLabel(button, labelOverrides);
+      if (!label) return;
+      
+      button.setAttribute('data-tooltip', label);
+      button.setAttribute('aria-label', label);
+      updatePlacement(button, label);
+      
+      button.addEventListener('mouseenter', () => updatePlacement(button, label));
+      button.addEventListener('focus', () => updatePlacement(button, label));
+      
+      if (button.getAttribute('title')) {
+        button.removeAttribute('title');
+      }
+    });
+    
+    const handleResize = () => {
+      document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
+        const label = button.getAttribute('data-tooltip');
+        if (!label) return;
+        updatePlacement(button, label);
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    editor.on('destroy', () => {
+      window.removeEventListener('resize', handleResize);
+    });
+  });
+}
+
+// ============================================
+// PANEL AUTO-SELECTION
+// ============================================
+
+/**
+ * Ensure Traits (Settings) panel opens when a component is selected.
+ */
+function setupAutoOpenTraitsPanel(editor: Editor) {
+  const openTraitsPanel = () => {
+    const panels = editor.Panels;
+    const traitsButton = panels?.getButton?.('views', 'open-tm');
+    const stylesButton = panels?.getButton?.('views', 'open-sm');
+
+    if (stylesButton?.get('active')) {
+      stylesButton.set('active', false);
+    }
+    if (traitsButton && !traitsButton.get('active')) {
+      traitsButton.set('active', true);
+    }
+    editor.runCommand('open-tm');
+  };
+
+  editor.on('load', () => {
+    openTraitsPanel();
+  });
+
+  editor.on('component:selected', (component: any) => {
+    if (!component) return;
+    // Let GrapesJS finish its own selection logic before forcing traits open.
+    setTimeout(openTraitsPanel, 0);
+  });
+}
+
+function createTooltipMeasurementElement(): HTMLDivElement {
+  let measurementEl = document.getElementById('gjs-tooltip-measure') as HTMLDivElement | null;
+  if (measurementEl) return measurementEl;
+  
+  measurementEl = document.createElement('div');
+  measurementEl.id = 'gjs-tooltip-measure';
+  measurementEl.style.position = 'fixed';
+  measurementEl.style.top = '-9999px';
+  measurementEl.style.left = '-9999px';
+  measurementEl.style.whiteSpace = 'nowrap';
+  measurementEl.style.fontSize = '11px';
+  measurementEl.style.lineHeight = '1';
+  measurementEl.style.padding = '6px 8px';
+  measurementEl.style.fontFamily = 'inherit';
+  measurementEl.style.fontWeight = '500';
+  measurementEl.style.visibility = 'hidden';
+  document.body.appendChild(measurementEl);
+  return measurementEl;
+}
+
+function resolveSidebarButtonLabel(
+  button: HTMLElement,
+  labelOverrides: Record<string, string>
+): string | null {
+  const existingLabel = button.getAttribute('data-tooltip')
+    || button.getAttribute('aria-label')
+    || button.getAttribute('title');
+  if (existingLabel) return existingLabel;
+  
+  const id = button.getAttribute('id');
+  if (!id) return null;
+  if (labelOverrides[id]) return labelOverrides[id];
+  
+  const cleaned = id.replace(/^open-/, '').replace(/-/g, ' ').trim();
+  if (!cleaned) return null;
+  
+  return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 // ============================================
@@ -862,7 +1512,7 @@ function setupCustomTraits(editor: Editor) {
   // Register columns-manager trait for tables
   registerColumnsManagerTrait(editor);
   
-  console.log('[Custom Traits] Registered columns-manager trait');
+  // console.log('[Custom Traits] Registered columns-manager trait');
 }
 
 // ============================================

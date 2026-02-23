@@ -39,8 +39,8 @@ import {
 export function QuantumEditorComponent(): JSX.Element {
     const circuitGridRef = useRef<HTMLDivElement>(null);
 
-    // Project context
-    const { currentProject } = useProject();
+    // Project context - also get currentDiagram to react to template loads
+    const { currentProject, currentDiagram } = useProject();
     
     // Persistence
     const { saveStatus, saveCircuit, loadCircuit } = useCircuitPersistence(currentProject);
@@ -59,6 +59,21 @@ export function QuantumEditorComponent(): JSX.Element {
         canUndo,
         canRedo,
     } = useUndoRedo(initialCircuit);
+
+    // React to external circuit updates (e.g., loading a template while on quantum editor)
+    // This is needed because templates update the storage directly via Redux thunks
+    useEffect(() => {
+        // Check if currentDiagram contains quantum circuit data that differs from current state
+        const model = currentDiagram?.model;
+        if (model && 'cols' in model && Array.isArray((model as any).cols)) {
+            // This is quantum circuit data - reload from storage
+            const newCircuit = loadCircuit();
+            // Only update if it's actually different (avoid infinite loops)
+            if (JSON.stringify(newCircuit) !== JSON.stringify(circuit)) {
+                setCircuit(newCircuit);
+            }
+        }
+    }, [currentDiagram]); // Only react to currentDiagram changes
 
     // Auto-save - pass project ID to prevent saving stale data during project switch
     useAutoSave(circuit, saveCircuit, currentProject?.id);
@@ -282,7 +297,7 @@ export function QuantumEditorComponent(): JSX.Element {
                     />
                     <Workspace>
                         <PaletteContainer>
-                            <GatePalette onDragStart={handleDragStart} onLoadCircuit={handleLoadCircuit} />
+                            <GatePalette onDragStart={handleDragStart} />
                         </PaletteContainer>
                         <CircuitContainer>
                             <CircuitGrid

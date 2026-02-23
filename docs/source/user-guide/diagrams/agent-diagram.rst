@@ -1,7 +1,8 @@
 Agent Diagrams
 ==============
 
-Agent diagrams are used to design conversational agents and their behaviors, supporting the definition of :doc:`agent models <../../../buml_language/model_types/agent>`.
+Agent diagrams are used to design conversational agents and their behaviors, supporting the definition of
+`agent models <https://besser.readthedocs.io/en/latest/buml_language/model_types/agent.html>`_.
 
 Agent States
 ------------

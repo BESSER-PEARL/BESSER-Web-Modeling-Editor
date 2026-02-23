@@ -1,4 +1,4 @@
-import { DeepPartial } from 'redux';
+﻿import { DeepPartial } from 'redux';
 import { Styles } from './components/theme/styles';
 import { UMLDiagramType } from './packages/diagram-type';
 import { UMLElementType } from './packages/uml-element-type';
@@ -95,11 +95,26 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
+export type MethodImplementationType =
+  | 'none'
+  | 'code'
+  | 'bal'
+  | 'state_machine'
+  | 'quantum_circuit';
+
+export type DiagramReference = {
+  id: string;
+  name: string;
+};
+
 export type UMLClassifierMember = UMLElement & {
   code?: string;
   visibility?: Visibility;
   attributeType?: string;
   attributeOperator?: '<' | '<=' | '==' | '>=' | '>';
+  implementationType?: MethodImplementationType;
+  stateMachineId?: string;
+  quantumCircuitId?: string;
 };
 
 export interface IUMLObjectName extends UMLClassifier {

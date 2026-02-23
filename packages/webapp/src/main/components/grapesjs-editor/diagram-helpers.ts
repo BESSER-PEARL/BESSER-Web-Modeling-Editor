@@ -277,6 +277,46 @@ export function getInheritedEndsByClassId(classId: string): { value: string; lab
 }
 
 /**
+ * Get attributes from related classes via relationships (e.g., "measure.value" for Metric->Measure)
+ * Returns options like { value: "relationshipRole.attributeId", label: "relationshipRole.attributeName" }
+ */
+export function getRelatedClassAttributeOptions(classId: string): { value: string; label: string }[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements || !classDiagram.relationships) {
+    return [];
+  }
+
+  const relatedOptions: { value: string; label: string }[] = [];
+  
+  // Get all relationships where this class is involved (direct and inherited)
+  const allEnds = getEndsByClassId(classId, true);
+  
+  // For each relationship end, get the attributes of the related class
+  allEnds.forEach(end => {
+    const relatedClassId = end.value;
+    const relationshipRole = end.label;
+    
+    if (!relationshipRole) return;
+    
+    // Get attributes of the related class (including inherited)
+    const relatedAttrs = getAttributeOptionsByClassId(relatedClassId);
+    const relatedInheritedAttrs = getInheritedAttributeOptionsByClassId(relatedClassId);
+    const allRelatedAttrs = [...relatedAttrs, ...relatedInheritedAttrs];
+    
+    // Create options like "measure.value"
+    allRelatedAttrs.forEach(attr => {
+      relatedOptions.push({
+        value: `${relationshipRole}.${attr.value}`,
+        label: `${relationshipRole}.${attr.label}`
+      });
+    });
+  });
+  
+  return relatedOptions;
+}
+
+/**
  * Get agent options from AgentDiagram - returns the entire diagram as an option
  */
 export function getAgentOptions(): { value: string; label: string }[] {
@@ -291,4 +331,168 @@ export function getAgentOptions(): { value: string; label: string }[] {
   
   console.warn('[diagram-helpers] No Agent diagram data available');
   return [];
+}
+
+/**
+ * Get methods for a specific class
+ */
+export interface MethodMetadata {
+  id: string;
+  name: string;
+  isInstanceMethod: boolean;
+  parameters: MethodParameter[];
+}
+
+export interface MethodParameter {
+  name: string;
+  type: string;
+  hasDefault: boolean;
+  defaultValue?: any;
+}
+
+export function getMethodsByClassId(classId: string): MethodMetadata[] {
+  const classDiagram = getClassDiagramModel();
+
+  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+    return [];
+  }
+
+  // Find class by name (classId might be a name now)
+  const classElement = Object.values(classDiagram.elements).find(
+    (element: any) => element?.type === 'Class' && (element?.id === classId || element?.name === classId)
+  );
+  
+  if (!classElement) {
+    return [];
+  }
+
+  return Object.values(classDiagram.elements)
+    .filter((element: any) => element?.type === 'ClassMethod' && element?.owner === (classElement as any).id)
+    .map((method: any) => {
+      // Parse method signature to extract parameters
+      const methodName = method.name || '';
+      const isInstanceMethod = methodName.includes('(self') || methodName.includes('(session');
+      
+      // Extract method name (before parentheses)
+      const nameMatch = methodName.match(/^([^(]+)/);
+      const cleanName = nameMatch ? nameMatch[1].trim() : methodName;
+      
+      // Extract parameters from signature like "method_name(param1: type1 = default1, param2: type2)"
+      const paramsMatch = methodName.match(/\(([^)]*)\)/);
+      const parameters: MethodParameter[] = [];
+      
+      if (paramsMatch && paramsMatch[1]) {
+        const paramString = paramsMatch[1];
+        const paramParts = paramString.split(',').map((p: string) => p.trim());
+        
+        for (const part of paramParts) {
+          // Skip 'self' and 'session' parameters
+          if (part.startsWith('self') || part.startsWith('session')) {
+            continue;
+          }
+          
+          // Parse "param_name: type = default" or "param_name: type" or "param_name"
+          const paramMatch = part.match(/^([^:=]+)(?::\s*([^=]+))?(?:=\s*(.+))?$/);
+          if (paramMatch) {
+            const paramName = paramMatch[1].trim();
+            const paramType = paramMatch[2]?.trim() || 'str';
+            const defaultValue = paramMatch[3]?.trim();
+            
+            parameters.push({
+              name: paramName,
+              type: paramType,
+              hasDefault: !!defaultValue,
+              defaultValue: defaultValue
+            });
+          }
+        }
+      }
+      
+      return {
+        id: method.id,
+        name: cleanName,
+        isInstanceMethod: isInstanceMethod,
+        parameters: parameters
+      };
+    });
+}
+
+/**
+ * Get method options for dropdown (formatted as value: label)
+ */
+export function getMethodOptions(classId: string): { value: string; label: string; isInstanceMethod: boolean }[] {
+  const methods = getMethodsByClassId(classId);
+  return methods.map(method => {
+    // Remove visibility prefix (+ or -) from method name
+    const cleanName = method.name.replace(/^[+-]\s*/, '');
+    return {
+      value: method.id,  // Store the method ID
+      label: cleanName,  // Show only the clean method name without (static) suffix
+      isInstanceMethod: method.isInstanceMethod
+    };
+  });
+}
+
+/**
+ * Get table options from the GrapesJS editor (current page only)
+ * Returns an array of { value: tableId, label: "TableTitle (table)" }
+ */
+export function getTableOptions(editor: any): { value: string; label: string }[] {
+  const options: Array<{ value: string; label: string }> = [
+    { value: '', label: '-- Select Source --' }
+  ];
+  
+  if (!editor) return options;
+  
+  try {
+    // Get the current page's main component instead of global wrapper
+    const currentPage = editor.Pages?.getSelected();
+    const pageWrapper = currentPage?.getMainComponent();
+    
+    if (!pageWrapper) return options;
+    
+    // Find all table components in the current page using both class selector and type check.
+    // The class selector works for manually dropped tables; the type-based walk
+    // catches auto-generated tables whose class may not survive serialization.
+    const tablesByClass = pageWrapper.find('.table-component') || [];
+    const seenIds = new Set<string>();
+
+    const processTable = (table: any) => {
+      try {
+        const attrs = table.getAttributes();
+        const title = attrs['chart-title'] || table.get('chart-title') || 'Untitled Table';
+        const tableId = attrs['id'] || table.getId();
+        if (seenIds.has(tableId)) return;
+        seenIds.add(tableId);
+
+        options.push({
+          value: tableId,
+          label: `${title} (table)`,
+        });
+      } catch (err) {
+        console.warn('[getTableOptions] Error processing table:', err);
+      }
+    };
+
+    // 1. Tables found by CSS class
+    tablesByClass.forEach(processTable);
+
+    // 2. Walk the component tree to find tables by GrapesJS component type
+    const walkComponents = (parent: any) => {
+      const children = parent.components?.() || parent.get?.('components');
+      if (!children) return;
+      children.forEach((child: any) => {
+        if (child.get('type') === 'table') {
+          processTable(child);
+        }
+        walkComponents(child);
+      });
+    };
+    walkComponents(pageWrapper);
+
+  } catch (err) {
+    console.warn('[getTableOptions] Error getting page wrapper:', err);
+  }
+  
+  return options;
 }

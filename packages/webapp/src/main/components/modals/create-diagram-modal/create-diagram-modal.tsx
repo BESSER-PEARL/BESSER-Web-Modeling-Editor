@@ -6,7 +6,6 @@ import posthog from 'posthog-js';
 import { useAppDispatch } from '../../store/hooks';
 import { createDiagram } from '../../../services/diagram/diagramSlice';
 import { useNavigate } from 'react-router-dom';
-import { setPreviewedDiagramIndex } from '../../../services/version-management/versionManagementSlice';
 
 const diagramsInBeta: string[] = ['BPMN'];
 
@@ -60,7 +59,6 @@ export const CreateDiagramModal: React.FC<ModalContentProps> = ({ close }) => {
 
   const createNewDiagram = (diagramType: UMLDiagramType) => {
     dispatch(createDiagram({ title, diagramType }));
-    dispatch(setPreviewedDiagramIndex(-1));
 
     posthog.capture('diagram_created', {
       title,

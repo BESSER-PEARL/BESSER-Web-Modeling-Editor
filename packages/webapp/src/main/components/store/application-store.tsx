@@ -6,8 +6,6 @@ import { projectReducer } from '../../services/project/projectSlice';
 
 import { errorReducer } from '../../services/error-management/errorManagementSlice';
 import { modalReducer } from '../../services/modal/modalSlice';
-import { shareReducer } from '../../services/share/shareSlice';
-import { versionManagementReducer } from '../../services/version-management/versionManagementSlice';
 
 const store = configureStore({
   reducer: {
@@ -15,8 +13,6 @@ const store = configureStore({
     project: projectReducer,
     errors: errorReducer,
     modal: modalReducer,
-    share: shareReducer,
-    versionManagement: versionManagementReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware(),
   devTools: process.env.NODE_ENV !== 'production', // Enable Redux DevTools in non-production environments

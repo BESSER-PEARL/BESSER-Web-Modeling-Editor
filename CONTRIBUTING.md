@@ -1,41 +1,73 @@
-# Contributing to this repository
+# Contributing to BESSER Web Modeling Editor
 
-First of all, thank you for your interest in contributing to our project!
+Thank you for your interest in contributing to the BESSER Web Modeling Editor (WME)!
 
-There are several ways in which you can contribute, beyond writing code. The goal of this document is to provide a high-level overview of how you can get involved and how your contribution will be considered.
+This repository hosts the WME frontend (webapp + server) and the core diagramming engine (`packages/editor`).
+The BESSER backend (metamodels, generators, editor backend) lives in
+https://github.com/BESSER-PEARL/BESSER.
 
-## Asking Questions 
+The WME repository is also vendored into the BESSER backend repo as a git submodule at
+`besser/utilities/web_modeling_editor/frontend`.
 
-Do you have a question? Feel free to [open an issue](https://github.com/BESSER-PEARL/BESSER_WME_standalone/issues/new/choose).
+## Asking questions and reporting issues
 
-Project maintainers will be eager to listen from you and help you out. Please, try to compose a clear and concise question. The more information you provide, the better we will be able to help you.
+If you have a question or found a bug, please open an issue at:
+https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/issues
 
-## Reporting Issues
+Before filing a new issue, search the open issues to avoid duplicates.
 
-Do you have you identified a reproducible problem in our code? or have a feature request? We want to hear about it! Please follow the next steps:
+## Local setup
 
-### Look For an Existing Issue
+Prerequisites: Node.js 20+ and npm.
 
-Sometimes the issue you want to report is being already addressed, or is planned to be addressed soon. Before you create a new issue, please do a search in [open issues](https://github.com/BESSER-PEARL/BESSER_WME_standalone/issues) to see if the issue or feature request has already been filed.
+### Clone the repository
 
-If you find your issue already exists, do not hesitate to make relevant comments and add your [reaction](https://github.com/blog/2119-add-reactions-to-pull-requests-issues-and-comments). Please, use a reaction in place of a "+1" comment, we believe it's easy: 👍 for upvoting and 👎 for downvoting.
+```bash
+git clone https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR.git
+cd BESSER-WEB-MODELING-EDITOR
+```
 
-If you cannot find an existing issue that describes your bug or feature, [create a new issue](https://github.com/BESSER-PEARL/BESSER_WME_standalone/issues/new/choose). The template will guide you on the issue reporting.
+### Install dependencies
 
-### Writing Good Bug Reports and Feature Requests
+```bash
+npm install
+```
 
-Whenever possible, we ask you to file a single issue per problem and feature request. Please do not enumerate multiple bugs or feature requests in the same issue, as it may be hard to track the progress.
+### Start the web application
 
-As you can imagine, the more information you can provide, the more likely someone will be successful at reproducing the issue and finding a fix.
+```bash
+npm run start:webapp
+```
 
-### Creating Pull Requests
+The dev server runs on http://localhost:8080 and, in development mode, expects the BESSER backend at
+http://localhost:9000/besser_api (see `packages/webapp/src/main/constant.ts`).
 
-If you feel brave enough to contribute directly code to the repository, you are more than welcome. Feel free to submit pull requests to this repository, which we will review according to the governance rules of the project.
+### Useful commands
 
-### Governance
+- `npm run start:webapp` - start the React webapp in development mode.
+- `npm run build:webapp` - build the webapp bundle.
+- `npm run start:server` - serve the built webapp with the standalone server.
+- `npm run lint` - run lint checks across workspaces.
 
-Any contribution you send to us will be addressed by the project maintainers following the governance rules described in the [GOVERNANCE.md](GOVERNANCE.md)
+## Pull requests
 
-# Thank You!
+1. Fork the repository and create a feature branch from `main`.
+2. Keep commits focused and update documentation when behavior changes.
+3. Run the relevant checks (`npm run lint`, `npm run build:webapp`).
+4. Open a pull request and describe the change clearly.
 
-Your contributions to open source, large or small, make great projects like this possible. Thank you for taking the time to contribute.
+## Changes that also impact the BESSER backend
+
+If your change touches both the WME frontend and the BESSER backend (for example, a new DSL with graphical notation):
+
+1. Implement and commit the frontend changes in this repository.
+2. Implement the backend changes in the BESSER repository.
+3. After the WME change is ready, update the git submodule pointer in the BESSER repo to the new WME commit.
+4. Link the two pull requests so reviewers can merge them in the right order.
+
+## Code of Conduct and Governance
+
+All contributions are handled according to our [Code of Conduct](CODE_OF_CONDUCT.md) and
+[GOVERNANCE.md](GOVERNANCE.md).
+
+Thank you for helping make BESSER better!

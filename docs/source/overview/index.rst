@@ -20,7 +20,8 @@ Downstream consumers can opt-in to the parts they need: embed the editor inside
 another product, run the web application as a standalone site, or deploy both
 behind the same server for a complete experience.
 
-Use the remainder of the overview section to get your local environment ready
+Use the remainder of the overview section to get your local environment ready.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:

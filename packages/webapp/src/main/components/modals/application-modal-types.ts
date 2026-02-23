@@ -12,12 +12,7 @@ export const ModalContentType = {
   StartFromSpreadsheetModal: 'StartFromSpreadsheetModal',
   ImportProjectModal: 'ImportProjectModal',
   CreateDiagramFromTemplateModal: 'CreateDiagramFromTemplateModal',
-  ShareModal: 'ShareModal',
-  CollaborationModal: 'CollaborationModal',
-  DeleteVersionModal: 'DeleteVersionModal',
-  RestoreVersionModal: 'RestoreVersionModal',
-  EditVersionInfoModal: 'EditVersionInfoModal',
-  CreateVersionModal: 'CreateVersionModal',
+  FeedbackModal: 'FeedbackModal',
 } as const;
 
 /**

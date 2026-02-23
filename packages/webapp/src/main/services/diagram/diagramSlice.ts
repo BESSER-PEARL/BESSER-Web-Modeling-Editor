@@ -103,6 +103,8 @@ export const updateDiagramThunk = createAsyncThunk(
     const state = getState() as any;
     const currentDiagram = state.diagram.diagram;
     
+    // console.log('updateDiagramThunk: Called with model', diagram.model ? 'present' : 'missing');
+    
     // Merge changes carefully
     const updatedDiagram = {
       ...currentDiagram,
@@ -131,8 +133,9 @@ export const updateDiagramThunk = createAsyncThunk(
       
       // Only update project if we have something to update
       if (Object.keys(projectUpdates).length > 0) {
+        // console.log('updateDiagramThunk: Dispatching to project system');
         await dispatch(updateCurrentDiagramThunk(projectUpdates));
-        // console.log('Successfully synced to project system');
+        // console.log('updateDiagramThunk: Successfully synced to project system');
       }
     } catch (error) {
       console.error('Project sync failed:', error);

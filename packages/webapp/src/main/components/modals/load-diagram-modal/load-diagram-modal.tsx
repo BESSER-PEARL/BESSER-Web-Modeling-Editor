@@ -9,7 +9,6 @@ import { ModalContentProps } from '../application-modal-types';
 import { loadDiagram } from '../../../services/diagram/diagramSlice';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useNavigate } from 'react-router-dom';
-import { setPreviewedDiagramIndex } from '../../../services/version-management/versionManagementSlice';
 
 export const LoadDiagramModal: React.FC<ModalContentProps> = ({ close }) => {
   const { diagram } = useAppSelector((state) => state.diagram);
@@ -26,7 +25,6 @@ export const LoadDiagramModal: React.FC<ModalContentProps> = ({ close }) => {
     const loadedDiagram = fromlocalStorage(id);
     if (loadedDiagram && loadedDiagram.model && editorContext?.editor) {
       dispatch(loadDiagram(loadedDiagram));
-      dispatch(setPreviewedDiagramIndex(-1));
       navigate('/', { relative: 'path' });
     }
     close();

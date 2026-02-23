@@ -34,7 +34,7 @@ standalone application uses. To integrate it into another React host:
 Example
 -------
 
-.. code-block:: typescript
+.. code-block:: tsx
 
    import { ApplicationStore } from 'packages/webapp/src/main/components/store/ApplicationStore';
    import { ApollonEditorComponent } from 'packages/webapp/src/main/components/apollon-editor-component/ApollonEditorComponent';

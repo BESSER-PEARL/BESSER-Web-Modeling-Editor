@@ -65,7 +65,7 @@ The content is organised around the main developer journeys:
 Project resources
 -----------------
 
-* Source: `<https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor>`_
+* Source: `<https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR>`_
 * Online editor: `<https://editor.besser-pearl.org>`_
 * BESSER platform: `<https://github.com/BESSER-PEARL/BESSER>`_
 

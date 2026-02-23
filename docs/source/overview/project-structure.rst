@@ -1,9 +1,10 @@
 Project Structure
 =================
 
-The repository is an npm workspace with four first-class packages and a handful
+The repository is an npm workspace with three first-class packages and a handful
 of supporting directories. The layout below assumes the current working
-directory is ``utilities/web_modeling_editor/frontend``.
+directory is the WME repo root (or ``besser/utilities/web_modeling_editor/frontend``
+when used as a submodule inside the BESSER repo).
 
 Top-level directories
 ---------------------
@@ -12,8 +13,8 @@ Top-level directories
    Sphinx project used to build this documentation set.
 
 ``packages/``
-   Workspace root containing the editor engine, the React web application, the
-   shared DTO library, and the Express server.
+   Workspace root containing the editor engine, the React web application, and
+   the Express server.
 
 ``build/``
    Output folder populated by the ``build:*`` scripts. Static web assets live
@@ -44,11 +45,6 @@ Workspace packages
    Express server that serves the compiled webapp, proxies diagram actions and
    persistence to either the filesystem or Redis, and exposes utilities such as
    SVG-to-PDF conversion.
-
-``packages/shared/``
-   A lightweight TypeScript library that holds DTOs shared between the webapp
-   and the server (for example, ``DiagramDTO`` and collaboration data
-   structures).
 
 Cross-package conventions
 -------------------------

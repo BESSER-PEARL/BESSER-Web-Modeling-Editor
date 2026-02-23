@@ -22,6 +22,7 @@ interface ColumnItem {
 
 export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
   editor.TraitManager.addType('columns-manager', {
+    noLabel: true,
     createInput({ trait, component }: { trait: any; component: GrapesJSComponent }) {
       const el = document.createElement('div');
       el.className = 'columns-manager-panel';
@@ -46,6 +47,17 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
       // Render the UI
       const render = () => {
         el.innerHTML = '';
+        
+        // Add a title for the section
+        const title = document.createElement('div');
+        title.textContent = 'Table Columns';
+        title.className = 'columns-title';
+        el.appendChild(title);
+        
+        // Add a horizontal line after the title
+        const hr = document.createElement('hr');
+        hr.className = 'columns-title-separator';
+        el.appendChild(hr);
 
         columns.forEach((col: ColumnItem, idx: number) => {
           const row = document.createElement('div');

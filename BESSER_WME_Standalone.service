@@ -3,11 +3,11 @@ Description=BESSER WME Standalone
 
 [Service]
 Type=simple
-User=apollon_standalone
-ExecStart=/usr/bin/node /opt/apollon/build/server/bundle.js
+User=besser_standalone
+ExecStart=/usr/bin/node /opt/besser/build/server/bundle.js
 Restart=always
 Environment=NODE_ENV=production
-WorkingDirectory=/opt/apollon/build/server/
+WorkingDirectory=/opt/besser/build/server/
 
 [Install]
 WantedBy=multi-user.target

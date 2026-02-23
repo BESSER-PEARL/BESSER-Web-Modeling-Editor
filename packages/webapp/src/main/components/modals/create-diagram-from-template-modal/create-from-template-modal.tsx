@@ -38,7 +38,7 @@ export const CreateFromTemplateModal: React.FC<ModalContentProps> = ({ close }) 
           await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
           console.log('Quantum template saved to project successfully');
           
-          // Switch to the quantum diagram type
+          // Switch to the quantum diagram type (this also updates Redux state which triggers re-render)
           await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' as SupportedDiagramType }));
           console.log('Switched to QuantumCircuitDiagram');
         } catch (error) {
@@ -47,11 +47,6 @@ export const CreateFromTemplateModal: React.FC<ModalContentProps> = ({ close }) 
       }
       
       close();
-      
-      // Force a page reload to ensure the template is properly rendered
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
       return;
     }
 

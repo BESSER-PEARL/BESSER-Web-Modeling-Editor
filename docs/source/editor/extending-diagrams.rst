@@ -1,3 +1,5 @@
+.. _editor-extending-diagrams:
+
 Extending Diagram Types
 =======================
 

@@ -32,7 +32,7 @@ The *File* menu contains the following options:
   :alt: File Menu
   :align: center
 
-- *New Project*: Creates a new project that can contain multiple related diagrams. Currently, :doc:`Structural models <./../buml_language/model_types/structural>` (via class diagrams), :doc:`Object models <./../buml_language/model_types/object>` (via object diagrams), :doc:`State Machine models <./../buml_language/model_types/state_machine>` (via state machine diagrams), and :doc:`Agent models <./../buml_language/model_types/agent>` (via agent diagrams) are supported. Additional model types will be added in the future.
+- *New Project*: Creates a new project that can contain multiple related diagrams. Currently, `Structural models <https://besser.readthedocs.io/en/latest/buml_language/model_types/structural.html>`_ (via class diagrams), `Object models <https://besser.readthedocs.io/en/latest/buml_language/model_types/object.html>`_ (via object diagrams), `State Machine models <https://besser.readthedocs.io/en/latest/buml_language/model_types/state_machine.html>`_ (via state machine diagrams), and `Agent models <https://besser.readthedocs.io/en/latest/buml_language/model_types/agent.html>`_ (via agent diagrams) are supported. Additional model types will be added in the future.
 - *Import Project*: Loads existing projects or provides ready-made example projects that you can modify according to your needs.
 - *Import Single Diagram to Project*: Allows you to import individual diagrams into your current project. This is useful when you want to add specific diagrams from other sources or restore previously saved diagrams.
 - *Load Template*: Imports a model template in JSON or B-UML format (`.json` or `.py` file, respectively) to start your project with predefined structures.
@@ -41,7 +41,7 @@ The *File* menu contains the following options:
 2. Generate Code Menu
 ~~~~~~~~~~~~~~~~~~~~~
 
-Once your model is complete, you can use the :doc:`BESSER code generators <../../generators>`.
+Once your model is complete, you can use the `BESSER code generators <https://besser.readthedocs.io/en/latest/generators.html>`_.
 The generated code will be downloaded to your machine.
 
 .. image:: ../images/wme/editor/generators_menu.png
@@ -60,8 +60,8 @@ For example, if two classes have the same name, the validation will fail as foll
   :alt: Quality Check
   :align: center
 
-4. Save & Share (Comming Soon
-~~~~~~~~~~~~~~~
+4. Save & Share (Coming Soon)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The editor allows you to save your diagram for future use and collaborate in real time. Simply click the **Save & Share**
 button in the top toolbar to generate a unique URL. Share this link with collaborators, and everyone can edit the diagram
@@ -82,7 +82,7 @@ This is the title of the diagram you are currently working on. You can change it
 7. Class Diagram / Object Diagram / State Machine Diagram / Agent Diagram and Project settings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As mentioned earlier, the WME supports :doc:`Structural models <./../buml_language/model_types/structural>` (via class diagrams), :doc:`Object models <./../buml_language/model_types/object>` (via object diagrams), :doc:`State Machine models <./../buml_language/model_types/state_machine>` (via state machine diagrams), and :doc:`Agent models <./../buml_language/model_types/agent>` (via agent diagrams).
+As mentioned earlier, the WME supports `Structural models <https://besser.readthedocs.io/en/latest/buml_language/model_types/structural.html>`_ (via class diagrams), `Object models <https://besser.readthedocs.io/en/latest/buml_language/model_types/object.html>`_ (via object diagrams), `State Machine models <https://besser.readthedocs.io/en/latest/buml_language/model_types/state_machine.html>`_ (via state machine diagrams), and `Agent models <https://besser.readthedocs.io/en/latest/buml_language/model_types/agent.html>`_ (via agent diagrams).
 This menu allows you to switch between these models **alternately**, while ensuring that all are saved, preventing any data loss when switching.
 The menu also allows you to access the project settings, where you can edit the project name, description, and other metadata.
 
@@ -96,3 +96,4 @@ on how to use the elements of each model.
 ~~~~~~~~~
 
 Finally, the canvas is the drawing area where you can design your model.
+

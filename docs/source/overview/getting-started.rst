@@ -18,7 +18,7 @@ Prerequisites
 -------------
 
 *   **For Docker**: `Docker Desktop <https://www.docker.com/products/docker-desktop/>`_.
-*   **For Source**: Node.js **22.10.0** or newer, npm 10, and Git.
+*   **For Source**: Node.js **20.0.0** or newer, npm 10, and Git.
 
 Deploy with Docker (Recommended)
 --------------------------------
@@ -45,8 +45,8 @@ Clone and install
 
 .. code-block:: bash
 
-   git clone https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor.git
-   cd BESSER-Web-Modeling-Editor/utilities/web_modeling_editor/frontend
+   git clone https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR.git
+   cd BESSER-WEB-MODELING-EDITOR
    npm install
 
 The project uses npm workspaces. `npm install` resolves dependencies for the
@@ -58,14 +58,19 @@ Run the web application locally
 There are two ways to start the UI depending on whether you need the Express
 server alongside the React dev server.
 
+.. note::
+   Code generation, validation, and BUML export rely on the BESSER backend at
+   ``http://localhost:9000/besser_api``. Start it from the BESSER repo when you
+   need those features.
+
 React development server only
    .. code-block:: bash
 
-      npm run start --workspace=webapp
+      npm run start:webapp
 
    This starts `webpack-dev-server` on http://localhost:8080 and hot-reloads
-   React components. API requests targeting ``/api`` will fail unless you run
-   the Express server separately.
+   React components. Requests targeting ``/api`` (the standalone server routes)
+   will fail unless you run the Express server separately.
 
 Integrated server + static assets
    .. code-block:: bash

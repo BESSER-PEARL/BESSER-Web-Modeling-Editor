@@ -22,7 +22,7 @@ Quick start
      enablePopups: true,
    });
 
-   await editor.nextRender;  # Wait until the internal store is ready
+   await editor.nextRender;  // Wait until the internal store is ready
 
    editor.subscribeToModelChange((model) => {
      console.log('Model updated', model);

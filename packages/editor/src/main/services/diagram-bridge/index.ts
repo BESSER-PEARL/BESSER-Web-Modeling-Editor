@@ -5,5 +5,6 @@ export {
   type IClassDiagramData,
   type IClassInfo,
   type IAttributeInfo,
-  type IAssociationInfo
+  type IAssociationInfo,
+  type IDiagramReference
 } from './diagram-bridge-service';

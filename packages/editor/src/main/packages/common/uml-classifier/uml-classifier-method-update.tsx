@@ -7,17 +7,11 @@ import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { MethodImplementationType } from './uml-classifier-member';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
-
-const Flex = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px;
-`;
 
 const MethodRow = styled.div`
   display: flex;
@@ -37,6 +31,16 @@ const VisibilityDropdown = styled(Dropdown)`
   flex-shrink: 0;
 `;
 
+const ImplementationTypeDropdown = styled(Dropdown)`
+  min-width: 140px;
+  flex-shrink: 0;
+`;
+
+const DiagramDropdown = styled(Dropdown)`
+  min-width: 150px;
+  flex-shrink: 0;
+`;
+
 const NameField = styled(Textfield)`
   flex: 1;
   min-width: 0;
@@ -48,15 +52,27 @@ const CodeButton = styled(Button)`
   min-width: 60px;
 `;
 
-const MethodNameLabel = styled.span`
-  flex: 1;
-  min-width: 0;
+const ImplementationRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
   padding: 4px 8px;
-  font-size: 13px;
+  background-color: ${(props) => props.theme.color.grayLight || '#f8f9fa'};
+  border-radius: 4px;
+`;
+
+const ImplementationLabel = styled.span`
+  font-size: 11px;
+  color: ${(props) => props.theme.color.gray || '#666'};
+`;
+
+const DiagramRefLabel = styled.span`
+  font-size: 12px;
+  padding: 4px 8px;
+  background-color: ${(props) => props.theme.color.primary || '#007bff'}20;
   color: ${(props) => props.theme.color.primary || '#007bff'};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  border-radius: 4px;
 `;
 
 const CodeEditorWrapper = styled.div`
@@ -101,21 +117,75 @@ const VISIBILITY_OPTIONS = [
   { symbol: '~', value: 'package', label: '~' },
 ];
 
+const IMPLEMENTATION_TYPE_OPTIONS: { value: MethodImplementationType; label: string; icon: string }[] = [
+  { value: 'none', label: 'None (UML)', icon: '' },
+  { value: 'code', label: 'Python Code', icon: '' },
+  { value: 'bal', label: 'BESSER Action Language', icon: '' },
+  { value: 'state_machine', label: 'State Machine', icon: '' },
+  { value: 'quantum_circuit', label: 'Quantum Circuit', icon: '' },
+];
+
+const CODE_BASED_IMPLEMENTATION_TYPES: MethodImplementationType[] = ['code', 'bal'];
+
+const getCodeTemplate = (implType: MethodImplementationType, methodName: string) => {
+  if (implType === 'bal') {
+    return `def ${methodName}() -> nothing {\n    // Add your implementation here\n}\n`;
+  }
+  return `def ${methodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+};
+
+// Available diagram references (these would be passed as props from the webapp in a real implementation)
+export interface DiagramReference {
+  id: string;
+  name: string;
+}
+
 type Props = {
   id: string;
   onRefChange: (instance: Textfield<any>) => void;
   value: string;
   code: string;
-  onChange: (id: string, values: { name?: string; code?: string; fillColor?: string; textColor?: string; lineColor?: string }) => void;
+  implementationType?: MethodImplementationType;
+  stateMachineId?: string;
+  quantumCircuitId?: string;
+  availableStateMachines?: DiagramReference[];
+  availableQuantumCircuits?: DiagramReference[];
+  onChange: (id: string, values: { 
+    name?: string; 
+    code?: string; 
+    implementationType?: MethodImplementationType;
+    stateMachineId?: string;
+    quantumCircuitId?: string;
+    fillColor?: string; 
+    textColor?: string; 
+    lineColor?: string 
+  }) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
 };
 
-const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp, onDelete, element }: Props) => {
+const UmlMethodUpdate = ({ 
+  id, 
+  onRefChange, 
+  value, 
+  code, 
+  implementationType = 'none',
+  stateMachineId = '',
+  quantumCircuitId = '',
+  availableStateMachines = [],
+  availableQuantumCircuits = [],
+  onChange, 
+  onSubmitKeyUp, 
+  onDelete, 
+  element 
+}: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
   const [codeEditorOpen, setCodeEditorOpen] = useState(code ? true : false); // Auto-open if code exists
   const [localCode, setLocalCode] = useState(code || '');
+  const [localImplType, setLocalImplType] = useState<MethodImplementationType>(
+    implementationType || (code ? 'code' : 'none')
+  );
 
   const toggleColor = () => {
     setColorOpen(!colorOpen);
@@ -129,7 +199,7 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
         const methodName = parseMethod(value).name || 'method_name';
         // Extract just the method name without parameters for the template
         const cleanMethodName = methodName.split('(')[0].trim() || 'new_method';
-        const template = `def ${cleanMethodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+        const template = getCodeTemplate(localImplType, cleanMethodName);
         setLocalCode(template);
         onChange(id, { code: template });
       }
@@ -179,12 +249,12 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
   const handleCodeChange = (editor: any, data: any, newCode: string) => {
     setLocalCode(newCode);
     
-    // Extract method name from Python code
+    // Extract method name from code-like definitions (Python and BAL).
     const methodMatch = newCode.match(/def\s+(\w+)\s*\([^)]*\)/);
     if (methodMatch && methodMatch[1]) {
       const extractedMethodName = methodMatch[1];
       // Extract return type if exists
-      const returnTypeMatch = newCode.match(/def\s+\w+\s*\([^)]*\)\s*->\s*([^:]+):/);
+      const returnTypeMatch = newCode.match(/def\s+\w+\s*\([^)]*\)\s*->\s*([^:{]+)\s*[:{]/);
       const returnType = returnTypeMatch ? returnTypeMatch[1].trim() : '';
       
       // Extract parameters
@@ -222,54 +292,167 @@ const UmlMethodUpdate = ({ id, onRefChange, value, code, onChange, onSubmitKeyUp
     onDelete(id)();
   };
 
+  const handleImplementationTypeChange = (newType: unknown) => {
+    const implType = newType as MethodImplementationType;
+    setLocalImplType(implType);
+    
+    // Clear related fields when switching types
+    if (implType === 'none') {
+      setLocalCode('');
+      setCodeEditorOpen(false);
+      onChange(id, { implementationType: implType, code: '', stateMachineId: '', quantumCircuitId: '' });
+    } else if (CODE_BASED_IMPLEMENTATION_TYPES.includes(implType)) {
+      onChange(id, { implementationType: implType, stateMachineId: '', quantumCircuitId: '' });
+      if (!localCode) {
+        const methodName = parseMethod(value).name || 'method_name';
+        const cleanMethodName = methodName.split('(')[0].trim() || 'new_method';
+        const template = getCodeTemplate(implType, cleanMethodName);
+        setLocalCode(template);
+        onChange(id, { code: template, implementationType: implType });
+      }
+      setCodeEditorOpen(true);
+    } else if (implType === 'state_machine') {
+      setLocalCode('');
+      setCodeEditorOpen(false);
+      onChange(id, { implementationType: implType, code: '', quantumCircuitId: '' });
+    } else if (implType === 'quantum_circuit') {
+      setLocalCode('');
+      setCodeEditorOpen(false);
+      onChange(id, { implementationType: implType, code: '', stateMachineId: '' });
+    }
+  };
+
+  const handleStateMachineChange = (smId: unknown) => {
+    onChange(id, { stateMachineId: smId as string });
+  };
+
+  const handleQuantumCircuitChange = (qcId: unknown) => {
+    onChange(id, { quantumCircuitId: qcId as string });
+  };
+
   const visibilityValue = VISIBILITY_OPTIONS.find(v => v.symbol === visibility)?.value || 'public';
-  const hasCode = localCode && localCode.trim().length > 0;
+  const hasCode = localCode.trim().length > 0;
+  const isBalImplementation = localImplType === 'bal';
+  const codeImplementationTitle = isBalImplementation
+    ? 'Method defined in BESSER Action Language code'
+    : 'Method defined in Python code';
+
+  // Determine display mode based on implementation type
+  const showCodeEditor = CODE_BASED_IMPLEMENTATION_TYPES.includes(localImplType);
+  const isSignatureLocked = showCodeEditor;
+  const showStateMachineSelector = localImplType === 'state_machine';
+  const showQuantumCircuitSelector = localImplType === 'quantum_circuit';
 
   return (
     <MethodRow>
       <ControlsRow>
-        {/* Show signature fields only when NOT in code mode */}
-        {!hasCode && (
-          <>
-            <VisibilityDropdown value={visibilityValue} onChange={handleVisibilityChange}>
-              {VISIBILITY_OPTIONS.map(vis => (
-                <Dropdown.Item key={vis.value} value={vis.value}>
-                  {vis.label}
-                </Dropdown.Item>
-              ))}
-            </VisibilityDropdown>
-            <NameField 
-              ref={onRefChange} 
-              value={name} 
-              onChange={handleNameChange} 
-              onSubmitKeyUp={onSubmitKeyUp}
-              placeholder="method(param: type): returnType or click Code →"
-            />
-          </>
-        )}
-        {/* Show method name label when in code mode */}
-        {hasCode && (
-          <MethodNameLabel title="Method defined in code below">
-            📝 {name.split('(')[0] || 'method'} (Python code)
-          </MethodNameLabel>
-        )}
-        <CodeButton 
-          color={hasCode ? "primary" : "link"} 
-          onClick={toggleCodeEditor}
-          title={hasCode ? "Edit Python code" : "Write Python implementation"}
-        >
-          {codeEditorOpen ? '▼ Code' : '▶ Code'}
-        </CodeButton>
+        <VisibilityDropdown value={visibilityValue} onChange={isSignatureLocked ? undefined : handleVisibilityChange}>
+          {VISIBILITY_OPTIONS.map(vis => (
+            <Dropdown.Item key={vis.value} value={vis.value}>
+              {vis.label}
+            </Dropdown.Item>
+          ))}
+        </VisibilityDropdown>
+        <NameField
+          ref={onRefChange}
+          value={name}
+          onChange={handleNameChange}
+          onSubmitKeyUp={onSubmitKeyUp}
+          placeholder="method(param: type): returnType"
+          readonly={isSignatureLocked}
+          readOnly={isSignatureLocked}
+          title={isSignatureLocked ? codeImplementationTitle : undefined}
+        />
+
         <ColorButton onClick={toggleColor} />
         <Button color="link" tabIndex={-1} onClick={handleDelete}>
           <TrashIcon />
         </Button>
       </ControlsRow>
+
+      {/* Implementation Type Selection Row */}
+      <ImplementationRow>
+        <ImplementationLabel>Type:</ImplementationLabel>
+        <ImplementationTypeDropdown 
+          value={localImplType} 
+          onChange={handleImplementationTypeChange}
+        >
+          {IMPLEMENTATION_TYPE_OPTIONS.map(opt => (
+            <Dropdown.Item key={opt.value} value={opt.value}>
+              {opt.icon} {opt.label}
+            </Dropdown.Item>
+          ))}
+        </ImplementationTypeDropdown>
+
+        {/* State Machine Selector */}
+        {showStateMachineSelector && (
+          <>
+            {availableStateMachines.length > 0 ? (
+              <DiagramDropdown 
+                value={stateMachineId} 
+                onChange={handleStateMachineChange}
+              >
+                {[
+                  <Dropdown.Item key="__placeholder__" value="">-- Select State Machine --</Dropdown.Item>,
+                  ...availableStateMachines.map(sm => (
+                    <Dropdown.Item key={sm.id} value={sm.id}>
+                      {sm.name}
+                    </Dropdown.Item>
+                  ))
+                ]}
+              </DiagramDropdown>
+            ) : (
+              <DiagramRefLabel title="Create a State Machine diagram in your project first">
+                No state machines available
+              </DiagramRefLabel>
+            )}
+          </>
+        )}
+
+        {/* Quantum Circuit Selector */}
+        {showQuantumCircuitSelector && (
+          <>
+            {availableQuantumCircuits.length > 0 ? (
+              <DiagramDropdown 
+                value={quantumCircuitId} 
+                onChange={handleQuantumCircuitChange}
+              >
+                {[
+                  <Dropdown.Item key="__placeholder__" value="">-- Select Quantum Circuit --</Dropdown.Item>,
+                  ...availableQuantumCircuits.map(qc => (
+                    <Dropdown.Item key={qc.id} value={qc.id}>
+                      {qc.name}
+                    </Dropdown.Item>
+                  ))
+                ]}
+              </DiagramDropdown>
+            ) : (
+              <DiagramRefLabel title="Create a Quantum Circuit diagram in your project first">
+                No quantum circuits available
+              </DiagramRefLabel>
+            )}
+          </>
+        )}
+
+        {/* Code toggle button when in code mode */}
+        {showCodeEditor && (
+          <CodeButton 
+            color={hasCode ? "primary" : "link"} 
+            onClick={toggleCodeEditor}
+            title={codeEditorOpen ? "Hide code editor" : "Show code editor"}
+          >
+            {codeEditorOpen ? 'Hide Editor' : 'Show Editor'}
+          </CodeButton>
+        )}
+      </ImplementationRow>
       
-      {codeEditorOpen && (
+      {/* Code Editor Panel */}
+      {codeEditorOpen && showCodeEditor && (
         <CodeEditorWrapper>
           <CodeEditorHeader>
-            <CodeEditorTitle>Python Implementation (full method definition)</CodeEditorTitle>
+            <CodeEditorTitle>
+              {isBalImplementation ? 'BESSER Action Language' : 'Python'} Implementation (full method definition)
+            </CodeEditorTitle>
             <div>
               {hasCode && (
                 <Button color="link" onClick={clearCode} style={{ padding: '2px 6px', fontSize: '10px', marginRight: '4px' }}>

@@ -297,6 +297,27 @@ input:checked + .slider:before {
   color: var(--apollon-background-inverse);
 }
 
+.Toastify__toast-container {
+  box-sizing: border-box;
+  width: min(420px, 90vw);
+  max-width: calc(100vw - 24px);
+  padding: 0;
+}
+
+.Toastify__toast-container--top-right {
+  right: max(12px, env(safe-area-inset-right));
+}
+
+.Toastify__toast {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.Toastify__toast-body {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .Toastify__close-button--light {
   color: var(--apollon-background-inverse);
 }
