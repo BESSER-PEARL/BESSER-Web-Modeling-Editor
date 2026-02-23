@@ -5,10 +5,11 @@ import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaC
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
-import { BACKEND_URL, localStorageAgentConfigurations } from '../../../constant';
+import { BACKEND_URL, DEFAULT_AGENT_CONFIGURATION_NAME, localStorageAgentConfigurations, SHOW_FULL_AGENT_CONFIGURATION } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
 import { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping, StoredUserProfile } from '../../../services/local-storage/local-storage-types';
 import { LocalStorageRepository } from '../../../services/local-storage/local-storage-repository';
+import { useNavigate } from 'react-router-dom';
 
 export const GenerateCodeMenu: React.FC = () => {
   // Modal for spoken language selection for agent diagrams
@@ -33,8 +34,10 @@ export const GenerateCodeMenu: React.FC = () => {
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<StoredAgentConfiguration[]>([]);
   const [storedAgentMappings, setStoredAgentMappings] = useState<Array<StoredAgentProfileConfigurationMapping & { userProfileLabel: string; agentConfigurationLabel: string }>>([]);
   const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
+  const [hasSavedAgentConfiguration, setHasSavedAgentConfiguration] = useState(true);
 
   const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
+  const navigate = useNavigate();
   const apollonEditor = useContext(ApollonEditorContext);
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
@@ -57,10 +60,14 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
+      const allSavedConfigurations = LocalStorageRepository.getAgentConfigurations();
+      setHasSavedAgentConfiguration(allSavedConfigurations.length > 0);
+
       const stored = localStorage.getItem(localStorageAgentConfigurations);
       if (!stored) {
         setStoredAgentConfigurations([]);
         setSelectedStoredAgentConfigIds([]);
+        setStoredAgentMappings([]);
         return;
       }
 
@@ -201,6 +208,10 @@ export const GenerateCodeMenu: React.FC = () => {
   const handleAgentGenerate = async () => {
     setLoadingAgent(true);
     try {
+      const effectiveAgentMode: 'original' | 'configuration' | 'personalization' = SHOW_FULL_AGENT_CONFIGURATION
+        ? agentMode
+        : 'original';
+
       // Build base agent config (from localStorage or languages selection)
       let baseConfig: AgentConfig;
       if (selectedAgentLanguages.length === 0) {
@@ -215,7 +226,7 @@ export const GenerateCodeMenu: React.FC = () => {
         } as any;
       }
  // If mode is personalization, load mapping and send it under personalizationrules
-      if (agentMode === 'personalization') {
+   if (effectiveAgentMode === 'personalization') {
         const profiles = LocalStorageRepository.getUserProfiles();
         const selectedMappings = storedAgentMappings.filter((entry) => selectedStoredAgentConfigIds.includes(entry.agentConfigurationId));
 
@@ -261,7 +272,7 @@ export const GenerateCodeMenu: React.FC = () => {
         } as any;
 
         await generateCode(editor!, 'agent', diagram.title, agentConfig);
-      } else if (agentMode === 'configuration') {
+      } else if (effectiveAgentMode === 'configuration') {
         if (storedAgentConfigurations.length === 0) {
           toast.error('No stored agent configurations available.');
           return;
@@ -561,6 +572,23 @@ export const GenerateCodeMenu: React.FC = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
+            {!hasSavedAgentConfiguration && (
+              <div className="mb-3 p-3 border rounded" style={{ background: 'var(--apollon-background-variant)' }}>
+                <div className="small text-muted mb-2">
+                  No saved configuration found. The agent will be generated with the default configuration.
+                </div>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => {
+                    setShowAgentLanguageModal(false);
+                    navigate('/agent-config');
+                  }}
+                >
+                  Configure agent technologies
+                </Button>
+              </div>
+            )}
             <Form.Group className="mb-3">
               <Form.Label>Source language (optional)</Form.Label>
               <Form.Select
@@ -611,15 +639,17 @@ export const GenerateCodeMenu: React.FC = () => {
               </div>
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Mode</Form.Label>
-              <div>
-                <Form.Check inline type="radio" id="mode-original" label="Original" name="agentMode" checked={agentMode === 'original'} onChange={() => setAgentMode('original')} />
-                <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
-                <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
-              </div>
-            </Form.Group>
-            {(agentMode === 'configuration' || agentMode === 'personalization') && (
+            {SHOW_FULL_AGENT_CONFIGURATION && (
+              <Form.Group className="mb-3">
+                <Form.Label>Mode</Form.Label>
+                <div>
+                  <Form.Check inline type="radio" id="mode-original" label="Original" name="agentMode" checked={agentMode === 'original'} onChange={() => setAgentMode('original')} />
+                  <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
+                  <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
+                </div>
+              </Form.Group>
+            )}
+            {SHOW_FULL_AGENT_CONFIGURATION && (agentMode === 'configuration' || agentMode === 'personalization') && (
               <Form.Group className="mb-3">
                 <Form.Label>{agentMode === 'personalization' ? 'Select profile → configuration mappings' : 'Select stored configurations'}</Form.Label>
                 {agentMode === 'personalization' ? (

@@ -16,7 +16,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { isUMLModel } from '../../types/project';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL, DEFAULT_AGENT_CONFIGURATION_NAME, SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
 import { setCreateNewEditor, updateDiagramThunk } from '../../services/diagram/diagramSlice';
 
 const defaultInterfaceStyle: InterfaceStyleSetting = {
@@ -33,7 +33,7 @@ const defaultVoiceStyle: VoiceStyleSetting = {
     speed: 1,
 };
 
-const defaultIntentRecognitionTechnology: IntentRecognitionTechnology = 'llm-based';
+const defaultIntentRecognitionTechnology: IntentRecognitionTechnology = 'classical';
 
 const PageContainer = styled.div`
   padding: 32px 40px;
@@ -266,8 +266,8 @@ export const AgentConfigScreen: React.FC = () => {
     const [initialLoad] = useState(loadInitialState);
     const initialConfig = initialLoad.config;
     const initialSavedConfigs = initialLoad.savedConfigs;
-    const initialLLMProvider: AgentLLMProvider = 'provider' in initialConfig.llm ? initialConfig.llm.provider : 'openai';
-    const initialLLMModelValue = 'provider' in initialConfig.llm ? initialConfig.llm.model : 'gpt-5';
+    const initialLLMProvider: AgentLLMProvider = 'provider' in initialConfig.llm ? initialConfig.llm.provider : '' as AgentLLMProvider;
+    const initialLLMModelValue = 'provider' in initialConfig.llm ? initialConfig.llm.model : '';
     const useCustomModelInitially = Boolean(initialLLMProvider && initialLLMModelValue && !knownLLMModels.includes(initialLLMModelValue));
     const derivedInitialModel = useCustomModelInitially ? 'other' : initialLLMModelValue;
     const derivedInitialCustomModel = useCustomModelInitially ? initialLLMModelValue : '';
@@ -344,6 +344,23 @@ export const AgentConfigScreen: React.FC = () => {
     const updateInterfaceStyle = (field: keyof InterfaceStyleSetting, value: InterfaceStyleSetting[keyof InterfaceStyleSetting]) => {
         setInterfaceStyle(prev => ({ ...prev, [field]: value }));
     };
+
+    const renderSelectLabel = (label: string, description: string) => (
+        <Form.Label style={{ cursor: 'help', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span
+                title={description}
+                style={{ cursor: 'help' }}
+            >
+                {label}
+            </span>
+            <span
+                title={description}
+                style={{ cursor: 'help', fontSize: '1.1em', color: '#007bff', userSelect: 'none' }}
+            >
+                <b>i</b>
+            </span>
+        </Form.Label>
+    );
 
     const refreshUserProfiles = useCallback(() => {
         const profiles = LocalStorageRepository.getUserProfiles()
@@ -577,7 +594,11 @@ export const AgentConfigScreen: React.FC = () => {
         },
     ) => {
         const trimmedName = configurationName.trim();
-        if (!trimmedName) {
+        const resolvedName = SHOW_FULL_AGENT_CONFIGURATION
+            ? trimmedName
+            : (trimmedName || DEFAULT_AGENT_CONFIGURATION_NAME);
+
+        if (SHOW_FULL_AGENT_CONFIGURATION && !trimmedName) {
             alert('Please provide a configuration name before saving.');
             return { ok: false, snapshotCaptured: false } as const;
         }
@@ -596,7 +617,7 @@ export const AgentConfigScreen: React.FC = () => {
             : null;
 
         try {
-            const savedEntry = LocalStorageRepository.saveAgentConfiguration(trimmedName, config, {
+            const savedEntry = LocalStorageRepository.saveAgentConfiguration(resolvedName, config, {
                 personalizedAgentModel: personalizedClone,
                 originalAgentModel: originalClone,
             });
@@ -776,77 +797,79 @@ export const AgentConfigScreen: React.FC = () => {
             
             <Form onSubmit={handleSubmit}>
                 <ContentGrid>
-                    <Section>
-                        <SectionTitle>Saved Configurations</SectionTitle>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Configuration Name</Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={configurationName}
-                                placeholder="Give this setup a name"
-                                onChange={e => setConfigurationName(e.target.value)}
-                            />
-                            {activeConfigId ? (
-                                <div className="mt-2 d-flex align-items-center gap-2">
-                                    <Badge bg="secondary">Active</Badge>
-                                    <span className="text-muted small">{activeConfigName || 'Unnamed configuration'}</span>
-                                </div>
-                            ) : (
-                                <Form.Text className="text-muted">Not linked to a saved configuration yet.</Form.Text>
-                            )}
-                        </Form.Group>
-                        
-                        <Form.Group className="mb-3">
-                            <Form.Label>Saved Configurations</Form.Label>
-                            <Form.Select
-                                value={selectedConfigId}
-                                onChange={e => setSelectedConfigId(e.target.value)}
-                                disabled={savedConfigs.length === 0}
-                            >
-                                <option value="">
-                                    {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
-                                </option>
-                                {savedConfigs.map((entry) => (
-                                    <option key={entry.id} value={entry.id}>
-                                        {entry.name}
+                    {SHOW_FULL_AGENT_CONFIGURATION && (
+                        <Section>
+                            <SectionTitle>Saved Configurations</SectionTitle>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Configuration Name</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={configurationName}
+                                    placeholder="Give this setup a name"
+                                    onChange={e => setConfigurationName(e.target.value)}
+                                />
+                                {activeConfigId ? (
+                                    <div className="mt-2 d-flex align-items-center gap-2">
+                                        <Badge bg="secondary">Active</Badge>
+                                        <span className="text-muted small">{activeConfigName || 'Unnamed configuration'}</span>
+                                    </div>
+                                ) : (
+                                    <Form.Text className="text-muted">Not linked to a saved configuration yet.</Form.Text>
+                                )}
+                            </Form.Group>
+                            
+                            <Form.Group className="mb-3">
+                                <Form.Label>Saved Configurations</Form.Label>
+                                <Form.Select
+                                    value={selectedConfigId}
+                                    onChange={e => setSelectedConfigId(e.target.value)}
+                                    disabled={savedConfigs.length === 0}
+                                >
+                                    <option value="">
+                                        {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
                                     </option>
-                                ))}
-                            </Form.Select>
-                            {selectedConfig && (
-                                <div className="mt-2 text-muted small">
-                                    Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
-                                </div>
-                            )}
-                        </Form.Group>
-                        
-                        <div className="d-flex flex-wrap gap-2 mt-3">
-                            <StyledButton
-                                variant="outline-primary"
-                                type="button"
-                                onClick={() => handleLoadSavedConfiguration()}
-                                disabled={!selectedConfigId}
-                            >
-                                Load Selected
-                            </StyledButton>
-                            <StyledButton
-                                variant="outline-danger"
-                                type="button"
-                                onClick={() => handleDeleteSavedConfiguration()}
-                                disabled={!selectedConfigId}
-                            >
-                                Delete
-                            </StyledButton>
-                        </div>
+                                    {savedConfigs.map((entry) => (
+                                        <option key={entry.id} value={entry.id}>
+                                            {entry.name}
+                                        </option>
+                                    ))}
+                                </Form.Select>
+                                {selectedConfig && (
+                                    <div className="mt-2 text-muted small">
+                                        Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
+                                    </div>
+                                )}
+                            </Form.Group>
+                            
+                            <div className="d-flex flex-wrap gap-2 mt-3">
+                                <StyledButton
+                                    variant="outline-primary"
+                                    type="button"
+                                    onClick={() => handleLoadSavedConfiguration()}
+                                    disabled={!selectedConfigId}
+                                >
+                                    Load Selected
+                                </StyledButton>
+                                <StyledButton
+                                    variant="outline-danger"
+                                    type="button"
+                                    onClick={() => handleDeleteSavedConfiguration()}
+                                    disabled={!selectedConfigId}
+                                >
+                                    Delete
+                                </StyledButton>
+                            </div>
 
-                        <ActionBar>
-                            <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
-                                {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
-                            </StyledButton>
-                            <StyledButton variant="primary" type="submit" disabled={isLoading}>
-                                Save Configuration
-                            </StyledButton>
-                        </ActionBar>
-                    </Section>
+                            <ActionBar>
+                                <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
+                                    {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
+                                </StyledButton>
+                                <StyledButton variant="primary" type="submit" disabled={isLoading}>
+                                    Save Configuration
+                                </StyledButton>
+                            </ActionBar>
+                        </Section>
+                    )}
                     
                     <Section>
                         <SectionTitle>Import / Export</SectionTitle>
@@ -868,9 +891,17 @@ export const AgentConfigScreen: React.FC = () => {
                         <Form.Text className="text-muted d-block mt-2">
                             Uploading replaces the current form values but does not auto-save.
                         </Form.Text>
+                        {!SHOW_FULL_AGENT_CONFIGURATION && (
+                            <ActionBar>
+                                <StyledButton variant="primary" type="submit" disabled={isLoading}>
+                                    Save Configuration
+                                </StyledButton>
+                            </ActionBar>
+                        )}
                     </Section>
                 </ContentGrid>
 
+                {SHOW_FULL_AGENT_CONFIGURATION && (
                 <ContentGrid style={{ marginTop: '24px' }}>
                     <Section>
                         <SectionTitle>Presentation</SectionTitle>
@@ -1286,7 +1317,7 @@ export const AgentConfigScreen: React.FC = () => {
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Platform</Form.Label>
+                                    {renderSelectLabel('Platform', 'Choose where the generated agent will run.')}
                                     <Form.Select value={agentPlatform} onChange={e => setAgentPlatform(e.target.value)}>
                                         <option value="websocket">WebSocket</option>
                                         <option value="streamlit">WebSocket with Streamlit interface</option>
@@ -1295,7 +1326,7 @@ export const AgentConfigScreen: React.FC = () => {
                                 </Form.Group>
    
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Intent recognition</Form.Label>
+                                    {renderSelectLabel('Intent recognition', 'Classical is free but usually less accurate. LLM-based generally performs best, but requires either an API key or sufficient compute resources.')}
                                     <Form.Select value={intentRecognitionTechnology} onChange={e => setIntentRecognitionTechnology(e.target.value as IntentRecognitionTechnology)}>
                                         <option value="classical">Classical</option>
                                         <option value="llm-based">LLM-based</option>
@@ -1305,20 +1336,7 @@ export const AgentConfigScreen: React.FC = () => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label style={{ cursor: 'help', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span
-                                            title="Required if you want the agent to automatically generate responses using LLMs."
-                                            style={{ cursor: 'help' }}
-                                        >
-                                            LLM Provider (optional)
-                                        </span>
-                                        <span
-                                            title="Required if you want the agent to automatically generate responses using LLMs."
-                                            style={{ cursor: 'help', fontSize: '1.1em', color: '#007bff', userSelect: 'none' }}
-                                        >
-                                            <b>i</b>
-                                        </span>
-                                    </Form.Label>
+                                    {renderSelectLabel('LLM Provider (optional)', 'Choose an LLM provider if you want automatic LLM-generated responses.')}
                                     <Form.Select value={llmProvider} onChange={e => { setLlmProvider(e.target.value as AgentLLMProvider); setLlmModel(''); }}>
                                         <option value="">None</option>
                                         <option value="openai">OpenAI</option>
@@ -1329,7 +1347,7 @@ export const AgentConfigScreen: React.FC = () => {
                                 </Form.Group>
                                 {(llmProvider === 'openai') && (
                                     <Form.Group className="mb-3">
-                                        <Form.Label>OpenAI Model</Form.Label>
+                                        {renderSelectLabel('OpenAI Model', 'Choose which OpenAI model should be used for generation.')}
                                         <Form.Select value={llmModel} onChange={e => { setLlmModel(e.target.value); if (e.target.value !== 'other') setCustomModel(''); }} disabled={!llmProvider}>
                                             <option value="">None</option>
                                             <option value="gpt-5">GPT-5</option>
@@ -1347,7 +1365,10 @@ export const AgentConfigScreen: React.FC = () => {
                                 )}
                                 {(llmProvider === 'huggingface' || llmProvider === 'huggingfaceapi' || llmProvider === 'replicate') && (
                                     <Form.Group className="mb-3">
-                                        <Form.Label>{llmProvider === 'huggingface' ? 'HuggingFace Model' : llmProvider === 'huggingfaceapi' ? 'HuggingFace API Model' : 'Replicate Model'}</Form.Label>
+                                        {renderSelectLabel(
+                                            llmProvider === 'huggingface' ? 'HuggingFace Model' : llmProvider === 'huggingfaceapi' ? 'HuggingFace API Model' : 'Replicate Model',
+                                            'Choose the model identifier to use with the selected provider.'
+                                        )}
                                         <Form.Select value={llmModel} onChange={e => { setLlmModel(e.target.value); if (e.target.value !== 'other') setCustomModel(''); }} disabled={!llmProvider}>
                                             <option value="">None</option>
                                             <option value="mistral-7b">Mistral-7B</option>
@@ -1379,6 +1400,88 @@ export const AgentConfigScreen: React.FC = () => {
                         </ActionBar>
                     </Section>
                 </ContentGrid>
+                )}
+
+                {!SHOW_FULL_AGENT_CONFIGURATION && (
+                    <ContentGrid style={{ marginTop: '24px' }}>
+                        <Section style={{ gridColumn: '1 / -1' }}>
+                            <SectionTitle>System Configuration</SectionTitle>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        {renderSelectLabel('Platform', 'Choose where the generated agent will run.')}
+                                        <Form.Select value={agentPlatform} onChange={e => setAgentPlatform(e.target.value)}>
+                                            <option value="websocket">WebSocket</option>
+                                            <option value="streamlit">WebSocket with Streamlit interface</option>
+                                            <option value="telegram">Telegram</option>
+                                        </Form.Select>
+                                    </Form.Group>
+
+                                    <Form.Group className="mb-3">
+                                        {renderSelectLabel('Intent recognition', 'Classical is free but usually less accurate. LLM-based generally performs best, but requires either an API key or sufficient compute resources.')}
+                                        <Form.Select value={intentRecognitionTechnology} onChange={e => setIntentRecognitionTechnology(e.target.value as IntentRecognitionTechnology)}>
+                                            <option value="classical">Classical</option>
+                                            <option value="llm-based">LLM-based</option>
+                                        </Form.Select>
+                                    </Form.Group>
+
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        {renderSelectLabel('LLM Provider (optional)', 'Choose an LLM provider if you want automatic LLM-generated responses.')}
+                                        <Form.Select value={llmProvider} onChange={e => { setLlmProvider(e.target.value as AgentLLMProvider); setLlmModel(''); }}>
+                                            <option value="">None</option>
+                                            <option value="openai">OpenAI</option>
+                                            <option value="huggingface">HuggingFace</option>
+                                            <option value="huggingfaceapi">HuggingFace API</option>
+                                            <option value="replicate">Replicate</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                    {(llmProvider === 'openai') && (
+                                        <Form.Group className="mb-3">
+                                            {renderSelectLabel('OpenAI Model', 'Choose which OpenAI model should be used for generation.')}
+                                            <Form.Select value={llmModel} onChange={e => { setLlmModel(e.target.value); if (e.target.value !== 'other') setCustomModel(''); }} disabled={!llmProvider}>
+                                                <option value="">None</option>
+                                                <option value="gpt-5">GPT-5</option>
+                                                <option value="gpt-5-mini">GPT-5 Mini</option>
+                                                <option value="gpt-5-nano">GPT-5 Nano</option>
+                                                <option value="other">Other</option>
+                                            </Form.Select>
+                                            {llmModel === 'other' && (
+                                                <Form.Group className="mt-2">
+                                                    <Form.Label>Custom Model Name</Form.Label>
+                                                    <Form.Control type="text" value={customModel} onChange={e => setCustomModel(e.target.value)} placeholder="Enter model name" />
+                                                </Form.Group>
+                                            )}
+                                        </Form.Group>
+                                    )}
+                                    {(llmProvider === 'huggingface' || llmProvider === 'huggingfaceapi' || llmProvider === 'replicate') && (
+                                        <Form.Group className="mb-3">
+                                            {renderSelectLabel(
+                                                llmProvider === 'huggingface' ? 'HuggingFace Model' : llmProvider === 'huggingfaceapi' ? 'HuggingFace API Model' : 'Replicate Model',
+                                                'Choose the model identifier to use with the selected provider.'
+                                            )}
+                                            <Form.Select value={llmModel} onChange={e => { setLlmModel(e.target.value); if (e.target.value !== 'other') setCustomModel(''); }} disabled={!llmProvider}>
+                                                <option value="">None</option>
+                                                <option value="mistral-7b">Mistral-7B</option>
+                                                <option value="falcon-40b">Falcon-40B</option>
+                                                <option value="llama-3-8b">Llama-3 8B</option>
+                                                <option value="bloom-176b">Bloom-176B</option>
+                                                <option value="other">Other</option>
+                                            </Form.Select>
+                                            {llmModel === 'other' && (
+                                                <Form.Group className="mt-2">
+                                                    <Form.Label>Custom Model Name</Form.Label>
+                                                    <Form.Control type="text" value={customModel} onChange={e => setCustomModel(e.target.value)} placeholder="Enter model name" />
+                                                </Form.Group>
+                                            )}
+                                        </Form.Group>
+                                    )}
+                                </Col>
+                            </Row>
+                        </Section>
+                    </ContentGrid>
+                )}
                     </Form>
         </PageContainer>
     );

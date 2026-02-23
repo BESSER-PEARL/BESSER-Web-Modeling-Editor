@@ -13,6 +13,7 @@ import factoryModel from '../../../templates/pattern/creational/factory.json';
 import observerModel from '../../../templates/pattern/behavioral/observer.json';
 import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
+import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
 // Could also be a static method on Template, which would be nicer.
 // However, because of circular dependency we decided to create a separate factory instead
@@ -80,6 +81,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           gymagent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+      case SoftwarePatternType.FAQ_RAG_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          faqRagAgent as any,
           SoftwarePatternCategory.AGENT,
         );
       case SoftwarePatternType.TRAFIC_LIGHT:

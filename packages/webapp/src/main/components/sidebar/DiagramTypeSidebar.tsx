@@ -164,11 +164,14 @@ const sidebarItems: SidebarItem[] = [
   { type: UMLDiagramType.ObjectDiagram, label: 'Object Diagram', icon: <Diagram2 size={20} /> },
   { type: UMLDiagramType.StateMachineDiagram, label: 'State Machine', icon: <ArrowRepeat size={20} /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent Diagram', icon: <Robot size={20} /> },
-  { type: UMLDiagramType.UserDiagram, label: 'User Diagram', icon: <Person size={20} /> },
+  // uncomment when User Diagram is completed
+  //{ type: UMLDiagramType.UserDiagram, label: 'User Diagram', icon: <Person size={20} /> },
   { type: 'graphical-ui-editor', label: 'Graphical UI', icon: <PencilSquare size={20} />, path: '/graphical-ui-editor' },
   { type: 'quantum-editor', label: 'Quantum Circuit', icon: <Cpu size={20} />, path: '/quantum-editor' },
   { type: 'settings', label: 'Project Settings', icon: <Gear size={20} />, path: '/project-settings' },
 ];
+
+const SHOW_AGENT_PERSONALIZATION_BUTTON = false;
 
 export const DiagramTypeSidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -305,21 +308,23 @@ export const DiagramTypeSidebar: React.FC = () => {
                       <Gear size={16} />
                     </SubItemButton>
                   </OverlayTrigger>
-                  <OverlayTrigger
-                    placement="right"
-                    overlay={<Tooltip id="tooltip-agent-personalization-2">Agent Personalization</Tooltip>}
-                  >
-                    <SubItemButton
-                      variant="link"
-                      $isActive={location.pathname === '/agent-personalization-2'}
-                      onClick={() => handleAgentSubItemClick('/agent-personalization-2')}
-                      title="Agent Personalization 2"
+                  {SHOW_AGENT_PERSONALIZATION_BUTTON && (
+                    <OverlayTrigger
+                      placement="right"
+                      overlay={<Tooltip id="tooltip-agent-personalization-2">Agent Personalization</Tooltip>}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" style={{ width: 16, height: 16 }}>
-                        <path fill="#020101" d="M19.235 13.234H4.765v3.494L0 11.964l4.765-4.765v3.494h14.47V7.199L24 11.964l-4.765 4.765z" />
-                      </svg>
-                    </SubItemButton>
-                  </OverlayTrigger>
+                      <SubItemButton
+                        variant="link"
+                        $isActive={location.pathname === '/agent-personalization-2'}
+                        onClick={() => handleAgentSubItemClick('/agent-personalization-2')}
+                        title="Agent Personalization 2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" style={{ width: 16, height: 16 }}>
+                          <path fill="#020101" d="M19.235 13.234H4.765v3.494L0 11.964l4.765-4.765v3.494h14.47V7.199L24 11.964l-4.765 4.765z" />
+                        </svg>
+                      </SubItemButton>
+                    </OverlayTrigger>
+                  )}
                 </SubItemsContainer>
               </AgentItemWrapper>
             ) : (
