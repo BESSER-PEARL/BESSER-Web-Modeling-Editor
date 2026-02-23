@@ -1,5 +1,4 @@
 ﻿import React, { ChangeEvent, useEffect, useState, useContext, useCallback, useRef } from 'react';
-﻿import React, { ChangeEvent, useEffect, useState, useContext } from 'react':
 import { Nav, Navbar,NavDropdown, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
@@ -32,13 +31,9 @@ import { GenerateCodeMenu } from './menues/generate-code-menu';
 import { DeployMenu } from './menues/deploy-menu';
 import { validateDiagram } from '../../services/validation/validateDiagram';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import { DiagramRepository } from '../../services/diagram/diagram-repository';
 import { displayError } from '../../services/error-management/errorManagementSlice';
-import { DiagramView } from 'shared';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
 import { StoredAgentConfiguration } from '../../services/local-storage/local-storage-types';
-import { UMLDiagramType } from '@besser/wme';
-import { displayError } from '../../services/error-management/errorManagementSlice';
 import { toast } from 'react-toastify';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
@@ -537,81 +532,6 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     }
   };
 
-  const openGitHubRepo = () => {
-    window.open('https://github.com/BESSER-PEARL/BESSER', '_blank');
-  };
-
-  const handleQuickShare = async () => {
-    if (!diagram || !isUMLModel(diagram.model) || Object.keys(diagram.model.elements).length === 0) {
-      dispatch(
-        displayError(
-          'Sharing diagram failed',
-          'You are trying to share an empty diagram. Please insert at least one element to the canvas before sharing.',
-        ),
-      );
-      return;
-    }
-
-    let token = diagram.token;
-    const diagramCopy = Object.assign({}, diagram);
-    diagramCopy.description = diagramCopy.description || 'Shared diagram';
-
-
-    try {
-      const res = await DiagramRepository.publishDiagramVersionOnServer(diagramCopy, diagram.token);
-      dispatch(updateDiagramThunk(res.diagram));
-      dispatch(setCreateNewEditor(true));
-      dispatch(setDisplayUnpublishedVersion(false));
-      token = res.diagramToken;
-
-      // Set collaborate view as the published type
-      LocalStorageRepository.setLastPublishedType(DiagramView.COLLABORATE);
-      LocalStorageRepository.setLastPublishedToken(token);
-      const currentProfile = userProfiles.find(p => p.id === currentProfileId);
-      // Generate and copy the link without the view parameter
-      const link = `${DEPLOYMENT_URL}/${token}`;
-      try {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(link);
-        } else {
-          const textArea = document.createElement('textarea');
-          textArea.value = link;
-          document.body.appendChild(textArea);
-          textArea.select();
-          try {
-            document.execCommand('copy');
-          } catch (err) {
-            console.error('Fallback: Oops, unable to copy', err);
-          }
-          document.body.removeChild(textArea);
-        }
-
-        toast.success(
-          'The collaboration link has been copied to your clipboard and can be shared by pasting the link.',
-          {
-            autoClose: 10000,
-          },
-        );
-
-        // Close sidebar if it's open
-        if (isSidebarOpen) {
-          dispatch(toggleSidebar());
-        }
-
-        // Navigate to the collaboration view using just the token
-        navigate(`/${token}`);
-      } catch (err) {
-        console.error('Failed to copy text: ', err);
-        toast.error('Failed to copy to clipboard. Please try again.');
-      }
-    } catch (error) {
-      dispatch(
-        displayError('Connection failed', 'Connection to the server failed. Please try again or report a problem.'),
-      );
-      console.error(error);
-    }
-  }; return (
-    <MainContent $isSidebarOpen={isSidebarOpen}>
   return (
     <>
       <Navbar className="navbar" variant="dark" expand="lg">
