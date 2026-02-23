@@ -9,7 +9,7 @@
  */
 
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { UMLDiagramType } from '@besser/wme';
 import { CircleHelp, X } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -26,7 +26,8 @@ import { AssistantClient, type AssistantActionPayload, type InjectionCommand } f
 import { UML_BOT_WS_URL } from '../../constant';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useProject } from '../../hooks/useProject';
-import { updateCurrentDiagramThunk } from '../../services/project/projectSlice';
+import { switchDiagramTypeThunk, updateCurrentDiagramThunk } from '../../services/project/projectSlice';
+import type { SupportedDiagramType } from '../../types/project';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import {
   UMLModelingService,
@@ -134,6 +135,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const currentDiagram = useAppSelector((state) => state.diagram);
   const { switchDiagramType, currentProject, currentDiagramType } = useProject();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isOnEditorPage = ['/', '/graphical-ui-editor', '/quantum-editor'].includes(location.pathname);
 
@@ -274,9 +276,32 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   const ensureTargetDiagramReady = async (targetType?: string): Promise<boolean> => {
     if (!targetType || targetType === currentDiagramTypeRef.current) return true;
+
+    // Handle non-UML diagram types (GUINoCodeDiagram, QuantumCircuitDiagram)
+    const isGuiDiagram = targetType === 'GUINoCodeDiagram';
+    const isQuantumDiagram = targetType === 'QuantumCircuitDiagram';
+    if (isGuiDiagram || isQuantumDiagram) {
+      try {
+        await dispatch(switchDiagramTypeThunk({ diagramType: targetType as SupportedDiagramType })).unwrap();
+      } catch {
+        return false;
+      }
+      if (isGuiDiagram && location.pathname !== '/graphical-ui-editor') {
+        navigate('/graphical-ui-editor');
+      }
+      if (isQuantumDiagram && location.pathname !== '/quantum-editor') {
+        navigate('/quantum-editor');
+      }
+      await waitForSwitchRender();
+      return true;
+    }
+
     const umlType = toUMLDiagramType(targetType as any);
     if (!umlType) return false;
     try {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
       switchDiagramType(umlType as UMLDiagramType);
       await waitForSwitchRender();
       return true;

@@ -274,7 +274,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         setIsGenerating(true);
 
         if (generatorType === 'web_app') {
-          let guiModel = currentProject.diagrams.GUINoCodeDiagram.model as GrapesJSProjectData | undefined;
+          // Always refresh from ProjectStorageRepository to pick up models
+          // loaded via the GrapesJS event bridge (which writes to localStorage
+          // but does NOT update the Redux store).
+          const freshProject =
+            ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+          let guiModel = freshProject.diagrams.GUINoCodeDiagram.model as GrapesJSProjectData | undefined;
 
           if (isGuiModelEmpty(guiModel)) {
             if (options?.autoGenerateGuiIfEmpty) {
