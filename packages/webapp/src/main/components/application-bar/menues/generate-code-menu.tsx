@@ -1,19 +1,16 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
-import React, { useContext, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Dropdown, NavDropdown, Modal, Form, Button, Alert } from 'react-bootstrap';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
 import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
 import posthog from 'posthog-js';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
 import { toast } from 'react-toastify';
-import { BACKEND_URL, DEFAULT_AGENT_CONFIGURATION_NAME, localStorageAgentConfigurations, SHOW_FULL_AGENT_CONFIGURATION } from '../../../constant';
+import { BACKEND_URL, localStorageAgentConfigurations, SHOW_FULL_AGENT_CONFIGURATION } from '../../../constant';
 import { UMLDiagramType } from '@besser/wme';
-import { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping, StoredUserProfile } from '../../../services/local-storage/local-storage-types';
+import { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../services/local-storage/local-storage-types';
 import { LocalStorageRepository } from '../../../services/local-storage/local-storage-repository';
-import { useNavigate } from 'react-router-dom';
 import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData } from '../../../types/project';
 
@@ -128,30 +125,27 @@ export const GenerateCodeMenu: React.FC = () => {
     }
   }, [showAgentLanguageModal]);
 
-  // Detect if we're on the Quantum Circuit editor page by checking the URL path
-  const isQuantumDiagram = /quantum-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
-  // Detect if we're on the GraphicalUIEditor GUI / No-Code editor page by checking the URL path
-  const isGUINoCodeDiagram = /graphical-ui-editor/.test(typeof window !== 'undefined' ? window.location.pathname : '');
   const isUserDiagram = currentDiagramType === UMLDiagramType.UserDiagram;
   // Helper to get model size metrics for analytics
- const getModelMetrics = () => {
-  if (!diagram?.model) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
-  const model = diagram.model as any;
-  
-  const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
-  const classesCount = model.elements 
-    ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length 
-    : 0;
-  
-  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
-  
-  return { 
-    elements_count: allElementsCount,
-    classes_count: classesCount,
-    relationships_count: relationshipsCount,
-    total_size: allElementsCount + relationshipsCount
+  const getModelMetrics = () => {
+    if (!diagram?.model) {
+      return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
+    }
+
+    const model = diagram.model as any;
+    const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
+    const classesCount = model.elements
+      ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length
+      : 0;
+    const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+
+    return {
+      elements_count: allElementsCount,
+      classes_count: classesCount,
+      relationships_count: relationshipsCount,
+      total_size: allElementsCount + relationshipsCount
+    };
   };
-};
 
   // Use React Router's useLocation for reliable path detection
   const location = useLocation();

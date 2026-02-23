@@ -182,7 +182,6 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const [agentConfigOptions, setAgentConfigOptions] = useState<StoredAgentConfiguration[]>([]);
   const [activeAgentConfigId, setActiveAgentConfigId] = useState<string>(LocalStorageRepository.getActiveAgentConfigurationId() || '');
   const baseAgentModelRef = useRef<UMLModel | null>(null);
-  const isSidebarOpen = useAppSelector(selectDisplaySidebar);
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
   const urlPath = window.location.pathname;
   const tokenInUrl = urlPath.substring(1); // This removes the leading "/"
