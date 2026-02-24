@@ -15,12 +15,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../store/hooks';
 import { useProject } from '../../hooks/useProject';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
 import {
   useGenerateCode,
   DjangoConfig,
@@ -33,6 +33,7 @@ import {
 import type { GenerationResult } from '../../services/generate-code/types';
 import { useDeployLocally } from '../../services/generate-code/useDeployLocally';
 import { GrapesJSProjectData, isUMLModel } from '../../types/project';
+import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { switchDiagramTypeThunk } from '../../services/project/projectSlice';
 import { validateDiagram } from '../../services/validation/validateDiagram';
@@ -479,12 +480,108 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   }, [jsonSchemaMode, executeGenerator]);
 
   const handleAgentGenerate = useCallback(async () => {
-    const config: AgentConfig = selectedAgentLanguages.length
-      ? { languages: { source: sourceLanguage, target: selectedAgentLanguages } }
-      : {};
-    await executeGenerator('agent', config);
+    let baseConfig: AgentConfig = {};
+
+    if (selectedAgentLanguages.length > 0) {
+      baseConfig = { languages: { source: sourceLanguage, target: selectedAgentLanguages } };
+    } else {
+      const stored = localStorage.getItem('agentConfig');
+      if (stored) {
+        try {
+          baseConfig = { ...JSON.parse(stored) } as AgentConfig;
+        } catch (error) {
+          console.warn('Failed to parse stored agentConfig payload:', error);
+        }
+      }
+    }
+
+    let finalConfig: AgentConfig = baseConfig;
+
+    if (SHOW_FULL_AGENT_CONFIGURATION) {
+      const storedAgentConfigurations = LocalStorageRepository.getAgentConfigurations().filter((entry) =>
+        Boolean(entry.personalizedAgentModel || entry.baseAgentModel || entry.originalAgentModel)
+      );
+
+      const activeConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
+      const selectedEntries = activeConfigId
+        ? storedAgentConfigurations.filter((entry) => entry.id === activeConfigId)
+        : storedAgentConfigurations.slice(0, 1);
+
+      if (selectedEntries.length > 0) {
+        const agentDiagramId = currentProject?.diagrams?.AgentDiagram?.id;
+        const baseModelSource = agentDiagramId ? LocalStorageRepository.getAgentBaseModel(agentDiagramId) : null;
+        const fallbackOriginal = selectedEntries.find((entry) => entry.originalAgentModel)?.originalAgentModel;
+        const agentDiagramModel = currentProject?.diagrams?.AgentDiagram?.model;
+        const currentAgentModel =
+          isUMLModel(agentDiagramModel) && agentDiagramModel.type === UMLDiagramType.AgentDiagram
+            ? agentDiagramModel
+            : null;
+        const baseModel = baseModelSource || fallbackOriginal || currentAgentModel;
+
+        const variations = selectedEntries
+          .map((entry) => {
+            const variantModel = entry.personalizedAgentModel || entry.baseAgentModel;
+            if (!variantModel) {
+              return null;
+            }
+            return {
+              name: entry.name,
+              model: JSON.parse(JSON.stringify(variantModel)),
+              config: JSON.parse(JSON.stringify(entry.config)),
+            };
+          })
+          .filter((entry): entry is { name: string; model: any; config: any } => Boolean(entry));
+
+        if (baseModel && variations.length > 0) {
+          finalConfig = {
+            ...baseConfig,
+            baseModel: JSON.parse(JSON.stringify(baseModel)),
+            variations,
+          };
+        }
+      }
+
+      const hasVariationPayload = Boolean(finalConfig.baseModel && finalConfig.variations?.length);
+
+      if (!hasVariationPayload) {
+        const profiles = LocalStorageRepository.getUserProfiles();
+        const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+        const personalizationMapping = mappings
+          .map((entry) => {
+            const profile = profiles.find((profileEntry) => profileEntry.id === entry.userProfileId);
+            const config = storedAgentConfigurations.find((configEntry) => configEntry.id === entry.agentConfigurationId);
+            const agentModel = config?.personalizedAgentModel || config?.baseAgentModel;
+
+            if (!profile || !profile.model || !config || !agentModel) {
+              return null;
+            }
+
+            return {
+              name: profile.name,
+              configuration: JSON.parse(JSON.stringify(config.config)),
+              user_profile: JSON.parse(JSON.stringify(profile.model)),
+              agent_model: JSON.parse(JSON.stringify(agentModel)),
+            };
+          })
+          .filter((entry): entry is {
+            name: string;
+            configuration: any;
+            user_profile: any;
+            agent_model: any;
+          } => Boolean(entry));
+
+        if (personalizationMapping.length > 0) {
+          finalConfig = {
+            ...baseConfig,
+            personalizationMapping,
+          };
+        }
+      }
+    }
+
+    await executeGenerator('agent', finalConfig);
     setConfigDialog('none');
-  }, [selectedAgentLanguages, sourceLanguage, executeGenerator]);
+  }, [currentProject, selectedAgentLanguages, sourceLanguage, executeGenerator]);
 
   const handleQiskitGenerate = useCallback(async () => {
     await executeGenerator('qiskit', {

@@ -5,9 +5,9 @@ import { toast } from 'react-toastify';
 import { validateDiagram } from '../validation/validateDiagram';
 import { BACKEND_URL } from '../../constant';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
-import { isGrapesJSProjectData } from '../../types/project';
 import { normalizeProjectName } from '../../utils/projectName';
 import type { GenerationResult } from './types';
+import type { AgentConfigurationPayload } from '../../types/agent-config';
 
 // Add type definitions
 export interface DjangoConfig {
@@ -38,6 +38,19 @@ export interface AgentConfig {
     source: string;
     target: string[];
   };
+  baseModel?: Record<string, any>;
+  variations?: Array<{
+    name: string;
+    model: Record<string, any>;
+    config: AgentConfigurationPayload | Record<string, any>;
+  }>;
+  personalizationMapping?: Array<{
+    name: string;
+    configuration: AgentConfigurationPayload | Record<string, any>;
+    user_profile: Record<string, any>;
+    agent_model: Record<string, any>;
+  }>;
+  [key: string]: any;
 }
 
 export type GeneratorConfig = {
