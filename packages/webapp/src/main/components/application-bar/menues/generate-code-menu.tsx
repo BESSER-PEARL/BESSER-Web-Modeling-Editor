@@ -283,6 +283,15 @@ export const GenerateCodeMenu: React.FC = () => {
   };
 
   const handleAgentGenerate = async () => {
+    if (loadingAgent) {
+      return;
+    }
+
+    if (!editor) {
+      toast.error('No diagram available to generate code from');
+      return;
+    }
+
     setLoadingAgent(true);
     try {
       const effectiveAgentMode: 'original' | 'configuration' | 'personalization' = SHOW_FULL_AGENT_CONFIGURATION
@@ -302,8 +311,10 @@ export const GenerateCodeMenu: React.FC = () => {
           }
         } as any;
       }
- // If mode is personalization, load mapping and send it under personalizationrules
-   if (effectiveAgentMode === 'personalization') {
+      let finalAgentConfig: AgentConfig = baseConfig;
+
+      // If mode is personalization, load mapping and send it under personalizationrules
+      if (effectiveAgentMode === 'personalization') {
         const profiles = LocalStorageRepository.getUserProfiles();
         const selectedMappings = storedAgentMappings.filter((entry) => selectedStoredAgentConfigIds.includes(entry.agentConfigurationId));
 
@@ -347,8 +358,7 @@ export const GenerateCodeMenu: React.FC = () => {
           ...baseConfig,
           personalizationMapping,
         } as any;
-
-        await generateCode(editor!, 'agent', diagram.title, agentConfig);
+        finalAgentConfig = agentConfig;
       } else if (effectiveAgentMode === 'configuration') {
         if (storedAgentConfigurations.length === 0) {
           toast.error('No stored agent configurations available.');
@@ -401,15 +411,10 @@ export const GenerateCodeMenu: React.FC = () => {
           baseModel: JSON.parse(JSON.stringify(baseModel)),
           variations,
         } as any;
-
-        await generateCode(editor!, 'agent', diagram.title, agentConfig);
-      } else {
-        // Send the configuration
-      await generateCode(editor!, 'agent', diagram.title);
+        finalAgentConfig = agentConfig;
       }
       
-      // Send the configuration
-      await generateCode(editor!, 'agent', diagram.title, baseConfig as AgentConfig);
+      await generateCode(editor, 'agent', diagram.title, finalAgentConfig as AgentConfig);
       posthog.capture('generator_used', {
         generator_type: 'agent',
         diagram_type: currentDiagramType,
