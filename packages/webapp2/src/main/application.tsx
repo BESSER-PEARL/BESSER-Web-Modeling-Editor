@@ -21,6 +21,9 @@ import { useProject } from './hooks/useProject';
 import { WorkspaceShell } from './components/sidebar/WorkspaceShell';
 import { ProjectHubDialog } from './components/home/ProjectHubDialog';
 import { ProjectSettingsPanel } from './components/project/ProjectSettingsPanel';
+import { AgentConfigurationPanel } from './components/agent/AgentConfigurationPanel';
+import { AgentPersonalizationRulesPanel } from './components/agent/AgentPersonalizationRulesPanel';
+import { AgentPersonalizationMappingPanel } from './components/agent/AgentPersonalizationMappingPanel';
 import { TemplateLibraryDialog } from './components/modals/TemplateLibraryDialog';
 import { ExportDialog } from './components/modals/ExportDialog';
 import { GeneratorConfigDialogs } from './components/modals/generator-config/GeneratorConfigDialogs';
@@ -96,6 +99,9 @@ function AppContentInner() {
           <Route path="/" element={<ApollonEditorComponent />} />
           <Route path="/graphical-ui-editor" element={<GraphicalUIEditor />} />
           <Route path="/quantum-editor" element={<QuantumEditorComponent />} />
+          <Route path="/agent-config" element={<AgentConfigurationPanel />} />
+          <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
+          <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />
           <Route path="/project-settings" element={<ProjectSettingsPanel />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

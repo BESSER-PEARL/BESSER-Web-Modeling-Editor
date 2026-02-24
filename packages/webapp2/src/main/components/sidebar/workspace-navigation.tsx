@@ -1,6 +1,7 @@
 import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
-import { Atom, Bot, Layers3, Network, PackageOpen, Repeat2, Settings } from 'lucide-react';
+import { Atom, Bot, Layers3, Network, PackageOpen, Repeat2, Settings, SlidersHorizontal } from 'lucide-react';
+import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../constant';
 
 export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React.ReactNode }> = [
   { type: UMLDiagramType.ClassDiagram, label: 'Class', icon: <Network className="h-4 w-4" /> },
@@ -9,11 +10,24 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React
   { type: UMLDiagramType.AgentDiagram, label: 'Agent', icon: <Bot className="h-4 w-4" /> },
 ];
 
-export const ROUTE_ITEMS = [
+const baseRouteItems = [
   { path: '/graphical-ui-editor', label: 'GUI', icon: <PackageOpen className="h-4 w-4" /> },
   { path: '/quantum-editor', label: 'Quantum', icon: <Atom className="h-4 w-4" /> },
-  { path: '/project-settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> },
+];
+
+const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
+  ? [
+    { path: '/agent-personalization', label: 'Agent Personalization', icon: <SlidersHorizontal className="h-4 w-4" /> },
+    { path: '/agent-personalization-2', label: 'Agent Mappings', icon: <SlidersHorizontal className="h-4 w-4" /> },
+  ]
+  : [];
+
+export const AGENT_ROUTE_ITEMS = [
+  { path: '/agent-config', label: 'Agent Config', icon: <SlidersHorizontal className="h-4 w-4" /> },
+  ...personalizationRouteItems,
 ] as const;
+
+export const ROUTE_ITEMS = [...baseRouteItems, { path: '/project-settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }] as const;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [

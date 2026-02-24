@@ -10,6 +10,8 @@ import teamOclModel from '../../../templates/pattern/structural/team_player_ocl.
 import dppModel from '../../../templates/pattern/structural/dpp.json';
 import aiSandboxModel from '../../../templates/pattern/structural/ai_sandbox.json';
 import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
+import gymagent from '../../../templates/pattern/agent/gymagent.json';
+import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
 import { EXAMPLE_CIRCUITS } from '../../../components/quantum-editor-component/exampleCircuits';
 import { serializeCircuit } from '../../../components/quantum-editor-component/utils';
@@ -64,11 +66,25 @@ export class TemplateFactory {
           aiSandboxModel as any,
           SoftwarePatternCategory.STRUCTURAL,
         );
-        case SoftwarePatternType.GREET_AGENT:
+      case SoftwarePatternType.GREET_AGENT:
         return new SoftwarePatternTemplate(
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           greetingagent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+      case SoftwarePatternType.GYM_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          gymagent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+      case SoftwarePatternType.FAQ_RAG_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          faqRagAgent as any,
           SoftwarePatternCategory.AGENT,
         );
       case SoftwarePatternType.TRAFIC_LIGHT:

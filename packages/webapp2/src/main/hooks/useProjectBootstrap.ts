@@ -4,7 +4,15 @@ import { localStorageLatestProject } from '../constant';
 import { useGitHubBumlImport } from '../services/import/useGitHubBumlImport';
 import type { BesserProject } from '../types/project';
 
-const KNOWN_ROUTES = ['/', '/project-settings', '/graphical-ui-editor', '/quantum-editor'];
+const KNOWN_ROUTES = [
+  '/',
+  '/project-settings',
+  '/graphical-ui-editor',
+  '/quantum-editor',
+  '/agent-config',
+  '/agent-personalization',
+  '/agent-personalization-2',
+];
 
 interface UseProjectBootstrapOptions {
   currentProject: BesserProject | null | undefined;

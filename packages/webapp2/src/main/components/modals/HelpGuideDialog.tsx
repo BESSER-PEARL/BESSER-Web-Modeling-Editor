@@ -334,6 +334,7 @@ const sections: GuideSection[] = [
             <ul className="list-disc space-y-1 pl-5">
               <li>Text reply: predefined response message.</li>
               <li>LLM reply: delegate response generation to an LLM.</li>
+              <li>RAG reply: answer using a retrieval-augmented knowledge source.</li>
               <li>Python code: execute custom behavior logic.</li>
             </ul>
           </div>
@@ -395,11 +396,31 @@ const sections: GuideSection[] = [
         body: (
           <p>
             Add intent elements and define intent names plus training sentences to improve recognition quality.
+            Intent descriptions help clarify the meaning and purpose of each intent.
           </p>
         ),
         image: {
           src: '/images/help/agent/help-agent-intent.png',
           alt: 'Define agent intents',
+          heightClass: 'max-h-80',
+        },
+      },
+      {
+        title: 'Agent Configuration',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Open Agent Config from the sidebar to configure model and runtime settings for generated agents.
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>Classical intent recognition: train a local model from defined intents.</li>
+              <li>LLM-based intent recognition: delegate intent classification to an LLM.</li>
+            </ul>
+          </div>
+        ),
+        image: {
+          src: '/images/help/agent/help-agent-configuration.png',
+          alt: 'Agent configuration',
           heightClass: 'max-h-80',
         },
       },

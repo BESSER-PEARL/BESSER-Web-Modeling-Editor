@@ -10,209 +10,256 @@
   "relationships": {}
 },
 "elements": {
-  "class_oho5ergc3_mjikkmod": {
-    "id": "class_oho5ergc3_mjikkmod",
-    "name": "Book",
-    "type": "Class",
-    "owner": null,
-    "bounds": {
-      "x": -460,
-      "y": -390,
-      "width": 240,
-      "height": 215
-    },
-    "attributes": [
-      "attr_a87fqdtdi_mjikkmod",
-      "attr_v6ve12d44_mjikkmod",
-      "attr_edi3c3l8k_mjikkmod",
-      "attr_mczftcqfb_mjikkmod",
-      "attr_785suq5yn_mjikkmod",
-      "attr_urp7jb0c0_mjikkmod"
-    ],
-    "methods": [
-      "method_rb01uirsh_mjikkmod"
-    ]
-  },
-  "attr_a87fqdtdi_mjikkmod": {
-    "id": "attr_a87fqdtdi_mjikkmod",
-    "name": "title",
-    "type": "ClassAttribute",
-    "owner": "class_oho5ergc3_mjikkmod",
-    "bounds": {
-      "x": -459.5,
-      "y": -349.5,
-      "width": 239,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "str"
-  },
-  "attr_v6ve12d44_mjikkmod": {
-    "id": "attr_v6ve12d44_mjikkmod",
-    "name": "pages",
-    "type": "ClassAttribute",
-    "owner": "class_oho5ergc3_mjikkmod",
-    "bounds": {
-      "x": -459.5,
-      "y": -324.5,
-      "width": 239,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "int"
-  },
-  "attr_edi3c3l8k_mjikkmod": {
-    "id": "attr_edi3c3l8k_mjikkmod",
-    "name": "stock",
-    "type": "ClassAttribute",
-    "owner": "class_oho5ergc3_mjikkmod",
-    "bounds": {
-      "x": -459.5,
-      "y": -299.5,
-      "width": 239,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "int"
-  },
-  "attr_mczftcqfb_mjikkmod": {
-    "id": "attr_mczftcqfb_mjikkmod",
-    "name": "price",
-    "type": "ClassAttribute",
-    "owner": "class_oho5ergc3_mjikkmod",
-    "bounds": {
-      "x": -459.5,
-      "y": -274.5,
-      "width": 239,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "float"
-  },
-  "attr_785suq5yn_mjikkmod": {
-    "id": "attr_785suq5yn_mjikkmod",
-    "name": "release",
-    "type": "ClassAttribute",
-    "owner": "class_oho5ergc3_mjikkmod",
-    "bounds": {
-      "x": -459.5,
-      "y": -249.5,
-      "width": 239,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "date"
-  },
-  "attr_urp7jb0c0_mjikkmod": {
-    "id": "attr_urp7jb0c0_mjikkmod",
-    "name": "time",
-    "type": "ClassAttribute",
-    "owner": "class_oho5ergc3_mjikkmod",
-    "bounds": {
-      "x": -459.5,
-      "y": -224.5,
-      "width": 239,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "time"
-  },
-  "method_rb01uirsh_mjikkmod": {
-    "id": "method_rb01uirsh_mjikkmod",
-    "name": "+ decrease_stock(qty: int)",
-    "type": "ClassMethod",
-    "owner": "class_oho5ergc3_mjikkmod",
-    "bounds": {
-      "x": -459.5,
-      "y": -199.5,
-      "width": 239,
-      "height": 25
-    },
-    "code": "def decrease_stock(self, qty: int):\n    \"\"\"\n    Decrease the available stock by the given quantity.\n\n    :param qty: Number of items to remove from stock\n    :raises ValueError: If qty is negative or exceeds available stock\n    \"\"\"\n    if qty <= 0:\n        raise ValueError(\"Quantity must be a positive integer\")\n\n    if qty > self.stock:\n        raise ValueError(\n            f\"Cannot decrease stock by {qty}. Only {self.stock} items available.\"\n        )\n\n    self.stock -= qty\n\n",
-    "visibility": "public",
-    "attributeType": "int): any"
-  },
-  "class_06blhjj3h_mjikkmod": {
-    "id": "class_06blhjj3h_mjikkmod",
-    "name": "Library",
-    "type": "Class",
-    "owner": null,
-    "bounds": {
-      "x": 10,
-      "y": -230,
-      "width": 350,
-      "height": 65
-    },
-    "attributes": [
-      "attr_eryfh37kl_mjikkmod"
-    ],
-    "methods": []
-  },
-  "attr_eryfh37kl_mjikkmod": {
-    "id": "attr_eryfh37kl_mjikkmod",
-    "name": "name",
-    "type": "ClassAttribute",
-    "owner": "class_06blhjj3h_mjikkmod",
-    "bounds": {
-      "x": 10.5,
-      "y": -189.5,
-      "width": 349,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "str"
-  },
-  "class_d3f0di6lb_mjikkmoe": {
-    "id": "class_d3f0di6lb_mjikkmoe",
-    "name": "Author",
-    "type": "Class",
-    "owner": null,
-    "bounds": {
-      "x": 50,
-      "y": -390,
-      "width": 220,
-      "height": 65
-    },
-    "attributes": [
-      "attr_p3zqpt65k_mjikkmoe"
-    ],
-    "methods": []
-  },
-  "attr_p3zqpt65k_mjikkmoe": {
-    "id": "attr_p3zqpt65k_mjikkmoe",
-    "name": "name",
-    "type": "ClassAttribute",
-    "owner": "class_d3f0di6lb_mjikkmoe",
-    "bounds": {
-      "x": 50.5,
-      "y": -349.5,
-      "width": 219,
-      "height": 25
-    },
-    "code": "",
-    "visibility": "public",
-    "attributeType": "str"
-  },
-  "0029e46f-be06-417b-8780-38d6311c029d": {
-    "id": "0029e46f-be06-417b-8780-38d6311c029d",
-    "name": "",
-    "type": "ClassOCLConstraint",
-    "owner": null,
-    "bounds": {
-      "x": -770,
-      "y": -340,
-      "width": 220,
-      "height": 90
-    },
-    "constraint": "context Book inv inv1: self.pages> 10"
-  }
+            "class_oho5ergc3_mjikkmod": {
+              "id": "class_oho5ergc3_mjikkmod",
+              "name": "Book",
+              "type": "Class",
+              "owner": null,
+              "bounds": {
+                "x": -460,
+                "y": -390,
+                "width": 240,
+                "height": 215
+              },
+              "attributes": [
+                "attr_a87fqdtdi_mjikkmod",
+                "attr_v6ve12d44_mjikkmod",
+                "attr_edi3c3l8k_mjikkmod",
+                "attr_mczftcqfb_mjikkmod",
+                "attr_785suq5yn_mjikkmod",
+                "attr_urp7jb0c0_mjikkmod"
+              ],
+              "methods": [
+                "method_rb01uirsh_mjikkmod"
+              ]
+            },
+            "attr_a87fqdtdi_mjikkmod": {
+              "id": "attr_a87fqdtdi_mjikkmod",
+              "name": "title",
+              "type": "ClassAttribute",
+              "owner": "class_oho5ergc3_mjikkmod",
+              "bounds": {
+                "x": -459.5,
+                "y": -349.5,
+                "width": 239,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "str",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "attr_v6ve12d44_mjikkmod": {
+              "id": "attr_v6ve12d44_mjikkmod",
+              "name": "pages",
+              "type": "ClassAttribute",
+              "owner": "class_oho5ergc3_mjikkmod",
+              "bounds": {
+                "x": -459.5,
+                "y": -324.5,
+                "width": 239,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "int",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "attr_edi3c3l8k_mjikkmod": {
+              "id": "attr_edi3c3l8k_mjikkmod",
+              "name": "stock",
+              "type": "ClassAttribute",
+              "owner": "class_oho5ergc3_mjikkmod",
+              "bounds": {
+                "x": -459.5,
+                "y": -299.5,
+                "width": 239,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "int",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "attr_mczftcqfb_mjikkmod": {
+              "id": "attr_mczftcqfb_mjikkmod",
+              "name": "price",
+              "type": "ClassAttribute",
+              "owner": "class_oho5ergc3_mjikkmod",
+              "bounds": {
+                "x": -459.5,
+                "y": -274.5,
+                "width": 239,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "float",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "attr_785suq5yn_mjikkmod": {
+              "id": "attr_785suq5yn_mjikkmod",
+              "name": "release",
+              "type": "ClassAttribute",
+              "owner": "class_oho5ergc3_mjikkmod",
+              "bounds": {
+                "x": -459.5,
+                "y": -249.5,
+                "width": 239,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "date",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "attr_urp7jb0c0_mjikkmod": {
+              "id": "attr_urp7jb0c0_mjikkmod",
+              "name": "time",
+              "type": "ClassAttribute",
+              "owner": "class_oho5ergc3_mjikkmod",
+              "bounds": {
+                "x": -459.5,
+                "y": -224.5,
+                "width": 239,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "time",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "method_rb01uirsh_mjikkmod": {
+              "id": "method_rb01uirsh_mjikkmod",
+              "name": "+ decrease_stock(qty: int)",
+              "type": "ClassMethod",
+              "owner": "class_oho5ergc3_mjikkmod",
+              "bounds": {
+                "x": -459.5,
+                "y": -199.5,
+                "width": 239,
+                "height": 25
+              },
+              "code": "def decrease_stock(self, qty: int):\n    \"\"\"\n    Decrease the available stock by the given quantity.\n\n    :param qty: Number of items to remove from stock\n    :raises ValueError: If qty is negative or exceeds available stock\n    \"\"\"\n    if qty <= 0:\n        raise ValueError(\"Quantity must be a positive integer\")\n\n    if qty > self.stock:\n        raise ValueError(\n            f\"Cannot decrease stock by {qty}. Only {self.stock} items available.\"\n        )\n\n    self.stock -= qty\n\n",
+              "visibility": "public",
+              "attributeType": "int): any",
+              "implementationType": "code",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "class_06blhjj3h_mjikkmod": {
+              "id": "class_06blhjj3h_mjikkmod",
+              "name": "Library",
+              "type": "Class",
+              "owner": null,
+              "bounds": {
+                "x": 10,
+                "y": -230,
+                "width": 350,
+                "height": 95
+              },
+              "attributes": [
+                "attr_eryfh37kl_mjikkmod"
+              ],
+              "methods": [
+                "35ef5329-889b-40f0-89ce-9836936fd8a9"
+              ]
+            },
+            "attr_eryfh37kl_mjikkmod": {
+              "id": "attr_eryfh37kl_mjikkmod",
+              "name": "name",
+              "type": "ClassAttribute",
+              "owner": "class_06blhjj3h_mjikkmod",
+              "bounds": {
+                "x": 10.5,
+                "y": -189.5,
+                "width": 349,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "str",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "35ef5329-889b-40f0-89ce-9836936fd8a9": {
+              "id": "35ef5329-889b-40f0-89ce-9836936fd8a9",
+              "name": "+ cheapest_book_by(author:Author): str",
+              "type": "ClassMethod",
+              "owner": "class_06blhjj3h_mjikkmod",
+              "bounds": {
+                "x": 10.5,
+                "y": -164.5,
+                "width": 349,
+                "height": 30
+              },
+              "code": "def cheapest_book_by(author:Author) -> str {\n    cheapest:Book = null;\n\tprice = 1000000000.0;\n\tfor(book in this.books){\n        if(book.authors.contains(author)\n\t\t\t&& book.price <= price){\n            cheapest = book;\n\t\t\tprice = book.price;\n\t\t}\n    }\n\treturn cheapest.title;\n}",
+              "visibility": "public",
+              "attributeType": "str",
+              "implementationType": "bal",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "class_d3f0di6lb_mjikkmoe": {
+              "id": "class_d3f0di6lb_mjikkmoe",
+              "name": "Author",
+              "type": "Class",
+              "owner": null,
+              "bounds": {
+                "x": 50,
+                "y": -390,
+                "width": 220,
+                "height": 65
+              },
+              "attributes": [
+                "attr_p3zqpt65k_mjikkmoe"
+              ],
+              "methods": []
+            },
+            "attr_p3zqpt65k_mjikkmoe": {
+              "id": "attr_p3zqpt65k_mjikkmoe",
+              "name": "name",
+              "type": "ClassAttribute",
+              "owner": "class_d3f0di6lb_mjikkmoe",
+              "bounds": {
+                "x": 50.5,
+                "y": -349.5,
+                "width": 219,
+                "height": 25
+              },
+              "code": "",
+              "visibility": "public",
+              "attributeType": "str",
+              "implementationType": "none",
+              "stateMachineId": "",
+              "quantumCircuitId": ""
+            },
+            "0029e46f-be06-417b-8780-38d6311c029d": {
+              "id": "0029e46f-be06-417b-8780-38d6311c029d",
+              "name": "",
+              "type": "ClassOCLConstraint",
+              "owner": null,
+              "bounds": {
+                "x": -770,
+                "y": -340,
+                "width": 220,
+                "height": 90
+              },
+              "constraint": "context Book inv inv1: self.pages> 10"
+            }
 },
 "relationships": {
   "rel_z26fdxrdq_mjikkmoe": {
