@@ -1,20 +1,19 @@
-import { ObjectElementType } from '..';
-import { UMLClassifierAttribute } from '../../common/uml-classifier/uml-classifier-attribute';
-import { UMLElementType } from '../../uml-element-type';
 import { DeepPartial } from 'redux';
 import * as Apollon from '../../../typings';
-import { UMLElement } from '../../../services/uml-element/uml-element';
-import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
+import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-element';
+import { UserModelElementType } from '..';
+import { UMLElementType } from '../../uml-element-type';
 
-export interface IUMLObjectAttribute extends IUMLElement {
-  attributeId?: string; // ID of the attribute from the library class
+export interface IUMLUserModelIcon extends IUMLElement {
+  icon?: string;
 }
 
-export class UMLObjectIcon extends UMLElement {
-  type: UMLElementType = ObjectElementType.ObjectIcon;
-  icon?: string; // Optional icon for the object
+export class UMLUserModelIcon extends UMLElement {
+  type: UMLElementType = UserModelElementType.UserModelIcon;
+  icon?: string;
+
   static features = {
     ...UMLElement.features,
     hoverable: false,
@@ -28,9 +27,10 @@ export class UMLObjectIcon extends UMLElement {
   constructor(values?: DeepPartial<IUMLElement & { icon?: string }>) {
     super(values);
     if (values?.icon) {
-      this.icon = values.icon
+      this.icon = values.icon;
     }
   }
+
   serialize() {
     return {
       ...super.serialize(),

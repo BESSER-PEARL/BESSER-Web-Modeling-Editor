@@ -1,6 +1,25 @@
+import { UMLDiagramType } from '@besser/wme';
 import { BesserProject, SupportedDiagramType } from '../../types/project';
-import { buildExportableProjectPayload } from './projectExportUtils';
+import { buildExportableProjectPayload, ProjectUserDiagramMap } from './projectExportUtils';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
+import { LocalStorageRepository } from '../local-storage/local-storage-repository';
+
+const collectStoredUserDiagrams = (): ProjectUserDiagramMap => {
+  const profiles = LocalStorageRepository.getUserProfiles();
+  const payload: ProjectUserDiagramMap = {};
+
+  profiles.forEach((profile) => {
+    if (profile.model?.type === UMLDiagramType.UserDiagram) {
+      payload[profile.name] = {
+        id: profile.id,
+        savedAt: profile.savedAt,
+        model: JSON.parse(JSON.stringify(profile.model)),
+      };
+    }
+  });
+
+  return payload;
+};
 
 // Simple download helper
 function downloadBlob(blob: Blob, filename: string) {
@@ -27,11 +46,16 @@ export async function exportProjectAsJson(
   console.log('[Export] Using project data:', projectToExport.id);
 
   const projectPayload = buildExportableProjectPayload(projectToExport, diagramTypes);
+  const userDiagramPayload = collectStoredUserDiagrams();
+
+  if (Object.keys(userDiagramPayload).length > 0) {
+    projectPayload.UserDiagrams = userDiagramPayload;
+  }
 
   const exportData = {
     project: projectPayload,
     exportedAt: new Date().toISOString(),
-    version: '2.0.0' // Updated version for V2 format
+    version: '2.0.0', // Updated version for V2 format
   };
 
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {

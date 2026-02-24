@@ -1,7 +1,6 @@
 import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import styled from 'styled-components';
-import { uuid } from '../../utils/uuid';
 
 import { setCreateNewEditor, updateDiagramThunk, selectCreatenewEditor } from '../../services/diagram/diagramSlice';
 import { ApollonEditorContext } from './apollon-editor-context';
@@ -22,7 +21,6 @@ const ApollonContainer = styled.div`
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ApollonEditor | null>(null);
-  const initializedRef = useRef<boolean>(false);
   const dispatch = useAppDispatch();
   const { diagram: reduxDiagram } = useAppSelector((state) => state.diagram);
   const options = useAppSelector((state) => state.diagram.editorOptions);
@@ -40,7 +38,6 @@ export const ApollonEditorComponent: React.FC = () => {
       }
       editorRef.current = null;
     }
-    initializedRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -70,30 +67,27 @@ export const ApollonEditorComponent: React.FC = () => {
   // Initialize editor on mount, cleanup on unmount
   useEffect(() => {
     const initEditor = async () => {
-      if (!containerRef.current || initializedRef.current) return;
-      
-      console.log('ApollonEditorComponent: Initializing editor');
-      initializedRef.current = true;
-
-      // Clean up any existing editor first
-      cleanupEditor();
+      if (!containerRef.current || editorRef.current) return;
 
       // Create new editor
-      editorRef.current = new ApollonEditor(containerRef.current, options);
-      await editorRef.current.nextRender;
+      const editor = new ApollonEditor(containerRef.current, options);
+      editorRef.current = editor;
+      await editor.nextRender;
+
+      // Ignore stale initialization runs when editor was replaced in the meantime
+      if (editorRef.current !== editor) return;
 
       // Load diagram model if available (only UML models)
       if (reduxDiagram?.model && isUMLModel(reduxDiagram.model)) {
-        console.log('ApollonEditorComponent: Loading existing model');
-        editorRef.current.model = reduxDiagram.model;
+        editor.model = reduxDiagram.model;
       }
 
       // Subscribe to model changes
-      editorRef.current.subscribeToModelChange((model: UMLModel) => {
+      editor.subscribeToModelChange((model: UMLModel) => {
         dispatch(updateDiagramThunk({ model }));
       });
 
-      setEditor!(editorRef.current);
+      setEditor(editor);
       dispatch(setCreateNewEditor(false));
     };
 
@@ -103,7 +97,7 @@ export const ApollonEditorComponent: React.FC = () => {
     return () => {
       // console.log('ApollonEditorComponent: Unmounting, cleaning up editor');
       cleanupEditor();
-      setEditor!(undefined);
+      setEditor(undefined);
     };
   }, []); // Only run on mount/unmount
 
@@ -116,30 +110,31 @@ export const ApollonEditorComponent: React.FC = () => {
       
       // Clean up existing editor
       cleanupEditor();
-      initializedRef.current = true;
 
       // Create new editor
-      editorRef.current = new ApollonEditor(containerRef.current, options);
-      await editorRef.current.nextRender;
+      const editor = new ApollonEditor(containerRef.current, options);
+      editorRef.current = editor;
+      await editor.nextRender;
+
+      // Ignore stale reinitialization runs when editor was replaced in the meantime
+      if (editorRef.current !== editor) return;
 
       // Load diagram model if available (only UML models)
       if (reduxDiagram?.model && isUMLModel(reduxDiagram.model)) {
-        editorRef.current.model = reduxDiagram.model;
+        editor.model = reduxDiagram.model;
       }
 
       // Subscribe to model changes
-      editorRef.current.subscribeToModelChange((model: UMLModel) => {
+      editor.subscribeToModelChange((model: UMLModel) => {
         dispatch(updateDiagramThunk({ model }));
       });
 
-      setEditor!(editorRef.current);
+      setEditor(editor);
       dispatch(setCreateNewEditor(false));
     };
 
     setupEditor();
-  }, [createNewEditor]);
+  }, [createNewEditor, cleanupEditor, dispatch, options, reduxDiagram?.model, setEditor]);
 
-  const key = reduxDiagram?.id || uuid();
-
-  return <ApollonContainer key={key} ref={containerRef} />;
+  return <ApollonContainer ref={containerRef} />;
 };

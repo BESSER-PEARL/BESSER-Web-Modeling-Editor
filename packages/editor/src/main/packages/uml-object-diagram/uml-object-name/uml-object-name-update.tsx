@@ -22,6 +22,9 @@ import { UMLObjectAttribute } from '../uml-object-attribute/uml-object-attribute
 import { UMLObjectMethod } from '../uml-object-method/uml-object-method';
 import { UMLObjectName } from './uml-object-name';
 import UMLObjectAttributeUpdate from '../uml-object-attribute/uml-object-attribute-update';
+import { UserModelElementType } from '../../user-modeling';
+import { UMLUserModelAttribute } from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute';
+import UMLUserModelAttributeUpdate from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
 
 const Flex = styled.div`
   display: flex;
@@ -198,12 +201,19 @@ class ObjectNameComponent extends Component<Props, State> {
   }
   render() {
     const { element, getById } = this.props;
+    const isUserModelElement = element.type === (UserModelElementType as any).UserModelName;
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
-    const attributes = children.filter((child) => child instanceof UMLObjectAttribute);
+    const attributes = children.filter((child): child is UMLObjectAttribute | UMLUserModelAttribute => {
+      if (isUserModelElement) {
+        return child.type === (UserModelElementType as any).UserModelAttribute;
+      }
+      return child instanceof UMLObjectAttribute;
+    });
     const methods = children.filter((child) => child instanceof UMLObjectMethod);
     const attributeRefs: (Textfield<string> | null)[] = [];
     const methodRefs: (Textfield<string> | null)[] = [];
     const availableClasses = this.getAvailableClasses();
+    const showClassSelection = !isUserModelElement && availableClasses.length > 0;
 
     return (
       <div>        <section>
@@ -218,7 +228,7 @@ class ObjectNameComponent extends Component<Props, State> {
             <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
               <TrashIcon />
             </Button>
-          </Flex>{availableClasses.length > 0 && (
+          </Flex>{showClassSelection && (
             <div style={{ marginTop: '8px' }}>
               <ClassSelectionFlex>
                 <Body style={{ marginRight: '0.5em' }}>Class:</Body>                
@@ -264,8 +274,12 @@ class ObjectNameComponent extends Component<Props, State> {
           <Divider />
         </section>
         <section>          <Header>{this.props.translate('popup.attributes')}</Header>
-          {attributes.map((attribute, index) => (
-            <UMLObjectAttributeUpdate
+          {attributes.map((attribute, index) => {
+            const AttributeComponent: React.ComponentType<any> = isUserModelElement
+              ? UMLUserModelAttributeUpdate
+              : UMLObjectAttributeUpdate;
+            return (
+            <AttributeComponent
               id={attribute.id}
               key={attribute.id}
               value={attribute.name}
@@ -278,10 +292,13 @@ class ObjectNameComponent extends Component<Props, State> {
                     })
               }
               onDelete={this.delete}
-              onRefChange={(ref) => (attributeRefs[index] = ref)}
+              onRefChange={(ref: Textfield<string> | null) => {
+                attributeRefs[index] = ref;
+              }}
               element={attribute}
             />
-          ))}
+          );
+          })}
           {/* <Textfield
             ref={this.newAttributeField}
             outline

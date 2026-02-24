@@ -39,7 +39,7 @@ type State = typeof initialState;
 
 const enhance = connect<StateProps, DispatchProps, UMLElementComponentProps, ModelState>(
   (state, props) => {
-    const isObjectDiagram = state.diagram.type === 'ObjectDiagram';
+    const isObjectDiagram = state.diagram.type === 'ObjectDiagram' || state.diagram.type === 'UserDiagram';
     return {
       hovered: state.hovered[0] === props.id,
       selected: state.selected.includes(props.id),

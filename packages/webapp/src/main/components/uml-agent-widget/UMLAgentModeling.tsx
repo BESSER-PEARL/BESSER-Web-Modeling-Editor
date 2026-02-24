@@ -439,14 +439,14 @@ const ConnectionStatusDot = styled.span<{ $status: ConnectionStatus }>`
   transition: background 0.2s ease;
 `;
 
-const DisclaimerModal = styled.div<{ isVisible: boolean }>`
+const DisclaimerModal = styled.div<{ $isVisible: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  display: ${props => props.isVisible ? 'flex' : 'none'};
+  display: ${props => props.$isVisible ? 'flex' : 'none'};
   align-items: center;
   justify-content: center;
   z-index: 10000;
@@ -1113,7 +1113,7 @@ export const UMLAgentModeling: React.FC = () => {
         onDownload={handleDownloadJson}
       />
 
-      <DisclaimerModal isVisible={showDisclaimer}>
+      <DisclaimerModal $isVisible={showDisclaimer}>
         <div className="disclaimer-content">
           <div className="disclaimer-header">
             <h3>

@@ -5,6 +5,7 @@ import { CommunicationRelationshipType } from './uml-communication-diagram';
 import { ComponentRelationshipType } from './uml-component-diagram';
 import { DeploymentRelationshipType } from './uml-deployment-diagram';
 import { ObjectRelationshipType } from './uml-object-diagram';
+import { UserModelRelationshipType } from './user-modeling';
 import { UseCaseRelationshipType } from './uml-use-case-diagram';
 import { PetriNetRelationshipType } from './uml-petri-net';
 import { ReachabilityGraphRelationshipType } from './uml-reachability-graph';
@@ -34,6 +35,7 @@ export type UMLRelationshipType =
   | keyof typeof BPMNRelationshipType
   | keyof typeof StateRelationshipType
   | keyof typeof AgentRelationshipType
+  | keyof typeof UserModelRelationshipType
   | keyof typeof GeneralRelationshipType;
 
 export const UMLRelationshipType = {
@@ -51,6 +53,7 @@ export const UMLRelationshipType = {
   ...BPMNRelationshipType,
   ...StateRelationshipType,
   ...AgentRelationshipType,
+  ...UserModelRelationshipType,
   ...GeneralRelationshipType,
 };
 
@@ -69,5 +72,5 @@ export const DefaultUMLRelationshipType: { [key in UMLDiagramType]: UMLRelations
   [UMLDiagramType.BPMN]: BPMNRelationshipType.BPMNFlow,
   [UMLDiagramType.StateMachineDiagram]: StateRelationshipType.StateTransition,
   [UMLDiagramType.AgentDiagram]: AgentRelationshipType.AgentStateTransition,
-  [UMLDiagramType.UserDiagram]: ObjectRelationshipType.ObjectLink,
+  [UMLDiagramType.UserDiagram]: UserModelRelationshipType.UserModelLink,
 };

@@ -30,6 +30,15 @@ export const localStorageCollaborationName = localStoragePrefix + 'collaboration
 export const localStorageCollaborationColor = localStoragePrefix + 'collaborationColor';
 export const localStorageUserThemePreference = localStoragePrefix + 'userThemePreference';
 export const localStorageSystemThemePreference = localStoragePrefix + 'systemThemePreference';
+export const localStorageUserProfiles = localStoragePrefix + 'userProfiles';
+export const localStorageAgentConfigurations = localStoragePrefix + 'agentConfigs';
+export const localStorageAgentProfileMappings = localStoragePrefix + 'agentProfileMappings';
+export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentActiveConfig';
+export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
+
+// feature flags
+export const SHOW_FULL_AGENT_CONFIGURATION = false;
+export const DEFAULT_AGENT_CONFIGURATION_NAME = 'Default Agent Configuration';
 
 // Project constants
 export const localStorageProjectPrefix = localStoragePrefix + 'project_';

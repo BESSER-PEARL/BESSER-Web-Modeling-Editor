@@ -24,6 +24,8 @@ export enum SoftwarePatternType {
   FACTORY = 'Factory',
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
+  GYM_AGENT = 'Gym Agent',
+  FAQ_RAG_AGENT = 'FAQ RAG Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
   // Quantum Circuit patterns
