@@ -21,7 +21,6 @@ const ApollonContainer = styled.div`
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ApollonEditor | null>(null);
-  const hasSkippedInitialCreateNewEditorRun = useRef<boolean>(false);
   const dispatch = useAppDispatch();
   const { diagram: reduxDiagram } = useAppSelector((state) => state.diagram);
   const options = useAppSelector((state) => state.diagram.editorOptions);
@@ -71,21 +70,24 @@ export const ApollonEditorComponent: React.FC = () => {
       if (!containerRef.current || editorRef.current) return;
 
       // Create new editor
-      editorRef.current = new ApollonEditor(containerRef.current, options);
-      await editorRef.current.nextRender;
+      const editor = new ApollonEditor(containerRef.current, options);
+      editorRef.current = editor;
+      await editor.nextRender;
+
+      // Ignore stale initialization runs when editor was replaced in the meantime
+      if (editorRef.current !== editor) return;
 
       // Load diagram model if available (only UML models)
       if (reduxDiagram?.model && isUMLModel(reduxDiagram.model)) {
-        console.log('ApollonEditorComponent: Loading existing model');
-        editorRef.current.model = reduxDiagram.model;
+        editor.model = reduxDiagram.model;
       }
 
       // Subscribe to model changes
-      editorRef.current.subscribeToModelChange((model: UMLModel) => {
+      editor.subscribeToModelChange((model: UMLModel) => {
         dispatch(updateDiagramThunk({ model }));
       });
 
-      setEditor!(editorRef.current);
+      setEditor(editor);
       dispatch(setCreateNewEditor(false));
     };
 
@@ -95,17 +97,12 @@ export const ApollonEditorComponent: React.FC = () => {
     return () => {
       // console.log('ApollonEditorComponent: Unmounting, cleaning up editor');
       cleanupEditor();
-      setEditor!(undefined);
+      setEditor(undefined);
     };
   }, []); // Only run on mount/unmount
 
   // Handle createNewEditor flag (for diagram type changes within the same view)
   useEffect(() => {
-    if (!hasSkippedInitialCreateNewEditorRun.current) {
-      hasSkippedInitialCreateNewEditorRun.current = true;
-      return;
-    }
-
     const setupEditor = async () => {
       if (!containerRef.current || !createNewEditor) return;
 
@@ -115,20 +112,24 @@ export const ApollonEditorComponent: React.FC = () => {
       cleanupEditor();
 
       // Create new editor
-      editorRef.current = new ApollonEditor(containerRef.current, options);
-      await editorRef.current.nextRender;
+      const editor = new ApollonEditor(containerRef.current, options);
+      editorRef.current = editor;
+      await editor.nextRender;
+
+      // Ignore stale reinitialization runs when editor was replaced in the meantime
+      if (editorRef.current !== editor) return;
 
       // Load diagram model if available (only UML models)
       if (reduxDiagram?.model && isUMLModel(reduxDiagram.model)) {
-        editorRef.current.model = reduxDiagram.model;
+        editor.model = reduxDiagram.model;
       }
 
       // Subscribe to model changes
-      editorRef.current.subscribeToModelChange((model: UMLModel) => {
+      editor.subscribeToModelChange((model: UMLModel) => {
         dispatch(updateDiagramThunk({ model }));
       });
 
-      setEditor!(editorRef.current);
+      setEditor(editor);
       dispatch(setCreateNewEditor(false));
     };
 
