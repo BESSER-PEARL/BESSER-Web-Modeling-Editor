@@ -1,7 +1,6 @@
 import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import styled from 'styled-components';
-import { uuid } from '../../utils/uuid';
 
 import { setCreateNewEditor, updateDiagramThunk, selectCreatenewEditor } from '../../services/diagram/diagramSlice';
 import { ApollonEditorContext } from './apollon-editor-context';
@@ -22,7 +21,7 @@ const ApollonContainer = styled.div`
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ApollonEditor | null>(null);
-  const initializedRef = useRef<boolean>(false);
+  const hasSkippedInitialCreateNewEditorRun = useRef<boolean>(false);
   const dispatch = useAppDispatch();
   const { diagram: reduxDiagram } = useAppSelector((state) => state.diagram);
   const options = useAppSelector((state) => state.diagram.editorOptions);
@@ -40,7 +39,6 @@ export const ApollonEditorComponent: React.FC = () => {
       }
       editorRef.current = null;
     }
-    initializedRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -70,13 +68,7 @@ export const ApollonEditorComponent: React.FC = () => {
   // Initialize editor on mount, cleanup on unmount
   useEffect(() => {
     const initEditor = async () => {
-      if (!containerRef.current || initializedRef.current) return;
-      
-      console.log('ApollonEditorComponent: Initializing editor');
-      initializedRef.current = true;
-
-      // Clean up any existing editor first
-      cleanupEditor();
+      if (!containerRef.current || editorRef.current) return;
 
       // Create new editor
       editorRef.current = new ApollonEditor(containerRef.current, options);
@@ -109,6 +101,11 @@ export const ApollonEditorComponent: React.FC = () => {
 
   // Handle createNewEditor flag (for diagram type changes within the same view)
   useEffect(() => {
+    if (!hasSkippedInitialCreateNewEditorRun.current) {
+      hasSkippedInitialCreateNewEditorRun.current = true;
+      return;
+    }
+
     const setupEditor = async () => {
       if (!containerRef.current || !createNewEditor) return;
 
@@ -116,7 +113,6 @@ export const ApollonEditorComponent: React.FC = () => {
       
       // Clean up existing editor
       cleanupEditor();
-      initializedRef.current = true;
 
       // Create new editor
       editorRef.current = new ApollonEditor(containerRef.current, options);
@@ -137,9 +133,7 @@ export const ApollonEditorComponent: React.FC = () => {
     };
 
     setupEditor();
-  }, [createNewEditor]);
+  }, [createNewEditor, cleanupEditor, dispatch, options, reduxDiagram?.model, setEditor]);
 
-  const key = reduxDiagram?.id || uuid();
-
-  return <ApollonContainer key={key} ref={containerRef} />;
+  return <ApollonContainer ref={containerRef} />;
 };
