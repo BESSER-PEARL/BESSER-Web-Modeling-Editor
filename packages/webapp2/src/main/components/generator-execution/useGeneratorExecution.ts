@@ -130,20 +130,62 @@ function triggerAssistantGuiAutoGenerate(timeoutMs = 25000): Promise<{ ok: boole
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
+/**
+ * Props bag passed from useGeneratorExecution → <GeneratorConfigDialogs />.
+ *
+ * Grouped by generator:
+ *  - Dialog control          – which modal is open
+ *  - Django                  – project/app names, Docker flag
+ *  - SQL / SQLAlchemy        – dialect / DBMS selection
+ *  - JSON Schema             – regular vs smart-data mode
+ *  - Agent                   – spoken languages, advanced config & personalization
+ *  - Qiskit                  – backend type and shot count
+ *  - Execution callbacks     – one per generator to trigger code generation
+ */
 export interface GeneratorConfigState {
+  // ── Dialog control ───────────────────────────────────────────────────────
+  /** Which config dialog is currently visible ('none' when closed). */
   configDialog: ConfigDialog;
+  /** Open or close a config dialog by key. */
   setConfigDialog: (d: ConfigDialog) => void;
+
+  // ── Django ───────────────────────────────────────────────────────────────
   djangoProjectName: string;
   djangoAppName: string;
   useDocker: boolean;
+
+  // ── SQL ──────────────────────────────────────────────────────────────────
   sqlDialect: SQLConfig['dialect'];
+
+  // ── SQLAlchemy ───────────────────────────────────────────────────────────
   sqlAlchemyDbms: SQLAlchemyConfig['dbms'];
+
+  // ── JSON Schema ──────────────────────────────────────────────────────────
   jsonSchemaMode: JSONSchemaConfig['mode'];
+
+  // ── Agent ────────────────────────────────────────────────────────────────
+  /** Source language for the agent (e.g. 'english'). 'none' = not set. */
   sourceLanguage: string;
+  /** Language currently picked in the dropdown but not yet added. */
   pendingAgentLanguage: string;
+  /** Languages the agent will be translated to. */
   selectedAgentLanguages: string[];
+  /** Whether at least one agent configuration exists in localStorage. */
+  hasSavedAgentConfiguration: boolean;
+  /** Advanced mode selector (visible only when SHOW_FULL_AGENT_CONFIGURATION). */
+  agentMode: 'original' | 'configuration' | 'personalization';
+  /** Stored agent configurations loaded from localStorage. */
+  storedAgentConfigurations: any[];
+  /** Profile → configuration mappings for personalization mode. */
+  storedAgentMappings: any[];
+  /** IDs of the currently selected stored configurations / mappings. */
+  selectedStoredAgentConfigIds: string[];
+
+  // ── Qiskit ───────────────────────────────────────────────────────────────
   qiskitBackend: QiskitConfig['backend'];
   qiskitShots: number;
+
+  // ── Field change handlers ────────────────────────────────────────────────
   onDjangoProjectNameChange: (v: string) => void;
   onDjangoAppNameChange: (v: string) => void;
   onUseDockerChange: (v: boolean) => void;
@@ -155,6 +197,11 @@ export interface GeneratorConfigState {
   onSelectedAgentLanguagesChange: (v: string[]) => void;
   onQiskitBackendChange: (v: QiskitConfig['backend']) => void;
   onQiskitShotsChange: (v: number) => void;
+  onAgentModeChange: (v: 'original' | 'configuration' | 'personalization') => void;
+  onStoredAgentConfigToggle: (id: string) => void;
+
+  // ── Execution callbacks (one per generator) ──────────────────────────────
+  /** Validate inputs, call the backend, and close the dialog on success. */
   onDjangoGenerate: () => void;
   onDjangoDeploy: () => void;
   onSqlGenerate: () => void;
@@ -216,6 +263,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [pendingAgentLanguage, setPendingAgentLanguage] = useState('none');
   const [qiskitBackend, setQiskitBackend] = useState<QiskitConfig['backend']>('aer_simulator');
   const [qiskitShots, setQiskitShots] = useState<number>(1024);
+  const [hasSavedAgentConfiguration, setHasSavedAgentConfiguration] = useState(true);
+  const [agentMode, setAgentMode] = useState<'original' | 'configuration' | 'personalization'>('original');
+  const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
+  const [storedAgentMappings, setStoredAgentMappings] = useState<any[]>([]);
+  const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
 
   // Auto-derive Django project/app names from current project
   useEffect(() => {
@@ -225,6 +277,53 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     setDjangoProjectName(projectName);
     setDjangoAppName(appName === projectName ? `${appName}_app` : appName);
   }, [currentProject?.id, currentProject?.name, activeDiagram?.title]);
+
+  // Load agent configurations when dialog opens
+  useEffect(() => {
+    if (configDialog !== 'agent') return;
+
+    try {
+      const allSavedConfigurations = LocalStorageRepository.getAgentConfigurations();
+      setHasSavedAgentConfiguration(allSavedConfigurations.length > 0);
+
+      if (SHOW_FULL_AGENT_CONFIGURATION) {
+        const usableConfigs = allSavedConfigurations.filter((entry) =>
+          Boolean(entry.personalizedAgentModel || entry.baseAgentModel)
+        );
+        setStoredAgentConfigurations(usableConfigs);
+
+        const profiles = LocalStorageRepository.getUserProfiles();
+        const profileNameById = profiles.reduce<Record<string, string>>((acc, profile) => {
+          acc[profile.id] = profile.name;
+          return acc;
+        }, {});
+
+        const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+        const enrichedMappings = mappings
+          .filter((mapping) => usableConfigs.some((cfg) => cfg.id === mapping.agentConfigurationId))
+          .map((mapping) => {
+            const config = usableConfigs.find((cfg) => cfg.id === mapping.agentConfigurationId);
+            return {
+              ...mapping,
+              userProfileLabel: profileNameById[mapping.userProfileId] || mapping.userProfileName || 'Unknown profile',
+              agentConfigurationLabel: config?.name || mapping.agentConfigurationName || 'Unknown configuration',
+            };
+          });
+
+        setStoredAgentMappings(enrichedMappings);
+
+        // Auto-select first config or mapping
+        if (usableConfigs.length > 0) {
+          setSelectedStoredAgentConfigIds([usableConfigs[0].id]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load agent configurations:', error);
+      setStoredAgentConfigurations([]);
+      setStoredAgentMappings([]);
+      setSelectedStoredAgentConfigIds([]);
+    }
+  }, [configDialog]);
 
   // ── Core execution ─────────────────────────────────────────────────────────
 
@@ -593,6 +692,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   // ── Return ─────────────────────────────────────────────────────────────────
 
+  const handleStoredAgentConfigToggle = useCallback((id: string) => {
+    setSelectedStoredAgentConfigIds((prev) =>
+      prev.includes(id) ? prev.filter((entryId) => entryId !== id) : [...prev, id]
+    );
+  }, []);
+
   const configState: GeneratorConfigState = {
     configDialog,
     setConfigDialog,
@@ -607,6 +712,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     selectedAgentLanguages,
     qiskitBackend,
     qiskitShots,
+    hasSavedAgentConfiguration,
+    agentMode,
+    storedAgentConfigurations,
+    storedAgentMappings,
+    selectedStoredAgentConfigIds,
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
@@ -618,6 +728,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onSelectedAgentLanguagesChange: setSelectedAgentLanguages,
     onQiskitBackendChange: setQiskitBackend,
     onQiskitShotsChange: setQiskitShots,
+    onAgentModeChange: setAgentMode,
+    onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
     onDjangoGenerate: () => void handleDjangoGenerate(),
     onDjangoDeploy: () => void handleDjangoDeploy(),
     onSqlGenerate: () => void handleSqlGenerate(),

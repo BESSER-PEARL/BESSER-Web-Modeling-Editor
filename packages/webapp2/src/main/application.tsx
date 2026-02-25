@@ -115,21 +115,39 @@ function AppContentInner() {
         editor={editor}
         currentDiagramTitle={activeDiagramTitle}
       />
+
+      {/*
+       * Generator configuration dialogs (Django, SQL, SQLAlchemy, JSON Schema,
+       * Agent, Qiskit). All state lives in the useGeneratorExecution hook;
+       * configState is the props bag that wires every field, change handler,
+       * and execution callback into the presentational dialog component.
+       */}
       <GeneratorConfigDialogs
+        // ── Dialog control ───────────────────────────────────────────
         configDialog={configState.configDialog}
         setConfigDialog={configState.setConfigDialog}
         isLocalEnvironment={isLocalEnvironment}
+        // ── Django config ────────────────────────────────────────────
         djangoProjectName={configState.djangoProjectName}
         djangoAppName={configState.djangoAppName}
         useDocker={configState.useDocker}
+        // ── SQL / SQLAlchemy / JSON Schema config ────────────────────
         sqlDialect={configState.sqlDialect}
         sqlAlchemyDbms={configState.sqlAlchemyDbms}
         jsonSchemaMode={configState.jsonSchemaMode}
+        // ── Agent config (languages + advanced/personalization) ──────
         sourceLanguage={configState.sourceLanguage}
         pendingAgentLanguage={configState.pendingAgentLanguage}
         selectedAgentLanguages={configState.selectedAgentLanguages}
+        hasSavedAgentConfiguration={configState.hasSavedAgentConfiguration}
+        agentMode={configState.agentMode}
+        storedAgentConfigurations={configState.storedAgentConfigurations}
+        storedAgentMappings={configState.storedAgentMappings}
+        selectedStoredAgentConfigIds={configState.selectedStoredAgentConfigIds}
+        // ── Qiskit config ────────────────────────────────────────────
         qiskitBackend={configState.qiskitBackend}
         qiskitShots={configState.qiskitShots}
+        // ── Field change handlers ────────────────────────────────────
         onDjangoProjectNameChange={configState.onDjangoProjectNameChange}
         onDjangoAppNameChange={configState.onDjangoAppNameChange}
         onUseDockerChange={configState.onUseDockerChange}
@@ -141,6 +159,9 @@ function AppContentInner() {
         onSelectedAgentLanguagesChange={configState.onSelectedAgentLanguagesChange}
         onQiskitBackendChange={configState.onQiskitBackendChange}
         onQiskitShotsChange={configState.onQiskitShotsChange}
+        onAgentModeChange={configState.onAgentModeChange}
+        onStoredAgentConfigToggle={configState.onStoredAgentConfigToggle}
+        // ── Execution callbacks (validate → generate → close dialog) ─
         onDjangoGenerate={configState.onDjangoGenerate}
         onDjangoDeploy={configState.onDjangoDeploy}
         onSqlGenerate={configState.onSqlGenerate}
