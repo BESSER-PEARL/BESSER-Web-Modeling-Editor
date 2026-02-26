@@ -568,7 +568,7 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      await generateCode(editor, 'json', diagram.title);
+      await generateCode(editor, 'jsonobject', diagram.title);
     } catch (error) {
       console.error('Error in JSON Object generation:', error);
       toast.error('JSON Object generation failed');
