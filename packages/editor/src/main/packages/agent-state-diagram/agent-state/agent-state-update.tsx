@@ -32,6 +32,7 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
+import { LayouterRepository } from '../../../services/layouter/layouter-repository';
 
 
 const Flex = styled.div`
@@ -86,6 +87,7 @@ interface DispatchProps {
   update: typeof UMLElementRepository.update;
   remove: typeof UMLElementRepository.delete; // Renamed to avoid conflict with reserved keywords
   getById: (id: string) => UMLElement | null;
+  layout: typeof LayouterRepository.layout;
 }
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext;
@@ -108,6 +110,7 @@ const enhance = compose<ComponentClass<OwnProps>>(
       update: UMLElementRepository.update,
       remove: UMLElementRepository.delete, // Updated to match the renamed property
       getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
+      layout: LayouterRepository.layout,
     },
   ),
 );
@@ -119,6 +122,24 @@ class StateUpdate extends Component<Props, State> {
   private actionTypeRef = createRef<HTMLInputElement>();
   bodyReplyType = "text";
   fallbackBodyReplyType = "text";
+  private layoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+  componentWillUnmount() {
+    if (this.layoutTimer) {
+      clearTimeout(this.layoutTimer);
+    }
+  }
+
+  private scheduleLayout = () => {
+    if (this.layoutTimer) {
+      clearTimeout(this.layoutTimer);
+    }
+    this.layoutTimer = setTimeout(() => {
+      this.props.layout();
+      this.layoutTimer = null;
+    }, 300);
+  };
+
   private toggleColor = () => {
     this.setState((state) => ({
       colorOpen: !state.colorOpen,
@@ -379,22 +400,21 @@ class StateUpdate extends Component<Props, State> {
                 <CodeMirror
                   value={bodies.find((body) => body.replyType === "code")!.name}
                   options={{
-                    mode: 'python', // Enable Python syntax highlighting
-                    theme: 'material', // Use the Material theme
-                    lineNumbers: true, // Show line numbers
+                    mode: 'python',
+                    theme: 'material',
+                    lineNumbers: true,
                     tabSize: 4,
                     indentWithTabs: true,
                   }}
                   onBeforeChange={(editor, data, value) => {
                     const body = bodies.find((body) => body.replyType === "code")!;
-                    this.props.update(body.id, { name: value }); // Update the backend with the new value
+                    this.props.update(body.id, { name: value });
+                    this.scheduleLayout();
                   }}
                   onChange={(editor, data, value) => {
                     const body = bodies.find((body) => body.replyType === "code")!;
                     if (value.trim()) {
                       this.props.update(body.id, { name: value });
-                    } else {
-
                     }
                   }}
                 />
@@ -582,22 +602,21 @@ class StateUpdate extends Component<Props, State> {
                 <CodeMirror
                   value={fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code")!.name}
                   options={{
-                    mode: 'python', // Enable Python syntax highlighting
-                    theme: 'material', // Use the Material theme
-                    lineNumbers: true, // Show line numbers
+                    mode: 'python',
+                    theme: 'material',
+                    lineNumbers: true,
                     tabSize: 4,
                     indentWithTabs: true,
                   }}
                   onBeforeChange={(editor, data, value) => {
                     const fallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code")!;
-                    this.props.update(fallbackBody.id, { name: value }); // Update the backend with the new value
+                    this.props.update(fallbackBody.id, { name: value });
+                    this.scheduleLayout();
                   }}
                   onChange={(editor, data, value) => {
                     const fallbackBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === "code")!;
                     if (value.trim()) {
                       this.props.update(fallbackBody.id, { name: value });
-                    } else {
-
                     }
                   }}
                 />

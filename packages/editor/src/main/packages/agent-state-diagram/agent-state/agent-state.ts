@@ -82,7 +82,12 @@ export class AgentState extends UMLContainer implements IUMLState {
     const initialWidth = Math.round(this.bounds.width / radix) * radix;
     const computedWidth = [this, ...bodies, ...fallbackBodies].reduce(
       (current, child, index) => {
-        const measured = Text.size(layer, child.name, index === 0 ? { fontWeight: 'bold' } : undefined).width + 60;
+        const styles = index === 0 ? { fontWeight: 'bold' } : undefined;
+        const lines = child.name.split('\n');
+        const maxLineWidth = lines.reduce((max, line) => {
+          return Math.max(max, Text.size(layer, line, styles).width);
+        }, 0);
+        const measured = maxLineWidth + 60;
         const rounded = Math.round(measured / radix) * radix;
         return Math.max(current, rounded);
       },
