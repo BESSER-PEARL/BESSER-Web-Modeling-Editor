@@ -11,7 +11,7 @@ import { ModalContentType } from '../modals/application-modal-types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCreateNewEditor, setDisplayUnpublishedVersion, updateDiagramThunk } from '../../services/diagram/diagramSlice';
 import { showModal } from '../../services/modal/modalSlice';
-import { LayoutTextSidebarReverse, Github, Share, House, BoxArrowRight } from 'react-bootstrap-icons';
+import { LayoutTextSidebarReverse, Github, Share, BoxArrowRight } from 'react-bootstrap-icons';
 
 // Custom Sidebar Icon SVG component
 const SidebarIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
@@ -540,11 +540,6 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-            <Nav.Item className="me-3">
-              <Nav.Link onClick={onOpenHome} title="Home">
-                <House size={20} />
-              </Nav.Link>
-            </Nav.Item>
             <FileMenu />
             {/* <ClassDiagramImporter /> */}
             {/* Ensure all diagram types have access to GenerateCodeMenu and Quality Check */}
