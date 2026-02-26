@@ -113,12 +113,17 @@ class ObjectNameComponent extends Component<Props, State> {
     if (className && selectedClass && selectedClass.attributes.length > 0) {
       // Create object attributes based on class attributes with proper format
       // Note: selectedClass.attributes already includes inherited attributes from parent classes
-      selectedClass.attributes.forEach((attr: { id: string, name: string }) => {
+      selectedClass.attributes.forEach((attr: { id: string, name: string, type?: string, defaultValue?: any }) => {
         const attribute = new UMLObjectAttribute();
-        // Format: "attributeName = " to show that it needs a value
-        attribute.name = `${attr.name} = `;
-        // Store the attribute ID from the library
+        const defaultVal = attr.defaultValue !== undefined && attr.defaultValue !== null
+          ? String(attr.defaultValue)
+          : '';
+        attribute.name = `${attr.name} = ${defaultVal}`;
+        // Store the attribute ID and type from the library
         (attribute as any).attributeId = attr.id;
+        if (attr.type) {
+          attribute.attributeType = attr.type;
+        }
         create(attribute, element.id);
       });
     }

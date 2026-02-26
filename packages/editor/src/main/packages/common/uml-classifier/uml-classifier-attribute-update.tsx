@@ -119,6 +119,7 @@ type AttributeValues = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  defaultValue?: any;
   fillColor?: string;
   textColor?: string;
   lineColor?: string;
@@ -131,6 +132,7 @@ type Props = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  defaultValue?: any;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
@@ -179,6 +181,7 @@ const UmlAttributeUpdate = ({
   visibility: propVisibility,
   attributeType: propAttributeType,
   isOptional: propIsOptional,
+  defaultValue: propDefaultValue,
   onChange,
   onSubmitKeyUp,
   onDelete,
@@ -242,6 +245,7 @@ const UmlAttributeUpdate = ({
   }
 
   const isOptional = propIsOptional || false;
+  const defaultValue = propDefaultValue;
 
   // Get available enumerations from the model
   const enumerations = availableEnumerations;
@@ -254,6 +258,7 @@ const UmlAttributeUpdate = ({
       visibility: vis,
       attributeType,
       isOptional,
+      defaultValue,
     });
   };
 
@@ -264,6 +269,7 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional,
+      defaultValue,
     });
   };
 
@@ -274,6 +280,7 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType: typeStr,
       isOptional,
+      defaultValue,
     });
   };
 
@@ -283,6 +290,17 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional: checked,
+      defaultValue,
+    });
+  };
+
+  const handleDefaultValueChange = (newDefaultValue: string) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      isOptional,
+      defaultValue: newDefaultValue || undefined,
     });
   };
 
@@ -327,6 +345,8 @@ const UmlAttributeUpdate = ({
         textColor
         isOptional={isOptional}
         onOptionalChange={handleOptionalChange}
+        defaultValue={defaultValue}
+        onDefaultValueChange={handleDefaultValueChange}
       />
     </AttributeRow>
   );

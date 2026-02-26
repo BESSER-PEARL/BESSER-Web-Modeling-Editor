@@ -116,6 +116,7 @@ export type UMLClassifierMember = UMLElement & {
   stateMachineId?: string;
   quantumCircuitId?: string;
   isOptional?: boolean;
+  defaultValue?: any;
 };
 
 export interface IUMLObjectName extends UMLClassifier {

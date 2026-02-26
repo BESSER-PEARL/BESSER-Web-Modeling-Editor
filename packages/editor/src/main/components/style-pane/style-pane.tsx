@@ -25,6 +25,8 @@ type OwnProps = {
   showIcon?: boolean;
   isOptional?: boolean;
   onOptionalChange?: (checked: boolean) => void;
+  defaultValue?: any;
+  onDefaultValueChange?: (value: string) => void;
 };
 
 type StateProps = {};
@@ -125,7 +127,7 @@ class StylePaneComponent extends Component<Props, State> {
 
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, defaultValue, onDefaultValueChange } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
@@ -144,6 +146,20 @@ class StylePaneComponent extends Component<Props, State> {
                 style={{ cursor: 'pointer', width: '18px', height: '18px' }}
               />
             </Row>
+            <Divider />
+          </>
+        )}
+        {onDefaultValueChange && (
+          <>
+            <FieldRow>
+              <label>Default</label>
+              <Textfield
+                value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+                onChange={onDefaultValueChange}
+                placeholder="Enter default value..."
+                size="sm"
+              />
+            </FieldRow>
             <Divider />
           </>
         )}

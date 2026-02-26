@@ -31,6 +31,7 @@ export interface IAttributeInfo {
   name: string;
   type: string;
   visibility: string;
+  defaultValue?: any;
 }
 
 /**
@@ -305,6 +306,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
               name: this.cleanAttributeName(attribute.name),
               type: attribute.attributeType || 'str',
               visibility: attribute.visibility || 'public',
+              defaultValue: attribute.defaultValue,
               sourceClass: currentClass.name,
               isInherited: isInherited
             };
@@ -343,7 +345,8 @@ export class DiagramBridgeService implements IDiagramBridgeService {
           id: attr.id,
           name: attr.name,
           type: attr.type,
-          visibility: attr.visibility
+          visibility: attr.visibility,
+          defaultValue: attr.defaultValue
         });
       }
     });

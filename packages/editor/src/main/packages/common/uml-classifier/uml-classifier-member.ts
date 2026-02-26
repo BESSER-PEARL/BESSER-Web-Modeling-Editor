@@ -69,6 +69,7 @@ export interface IUMLClassifierMember extends IUMLElement {
   stateMachineId?: string;
   quantumCircuitId?: string;
   isOptional?: boolean;
+  defaultValue?: any;
 }
 
 export abstract class UMLClassifierMember extends UMLElement implements IUMLClassifierMember {
@@ -91,6 +92,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   stateMachineId: string = '';
   quantumCircuitId: string = '';
   isOptional: boolean = false;
+  defaultValue: any = undefined;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
     super(values);
@@ -108,7 +110,10 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
         return this.name;
       }
       const optionalMarker = this.isOptional ? '?' : '';
-      return `${visSymbol} ${this.name}${optionalMarker}: ${this.attributeType}`;
+      const defaultSuffix = (this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== '')
+        ? ` = ${this.defaultValue}`
+        : '';
+      return `${visSymbol} ${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
     }
     // Fallback to name for backward compatibility or simple display
     return this.name;
@@ -163,6 +168,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       stateMachineId: this.stateMachineId,
       quantumCircuitId: this.quantumCircuitId,
       isOptional: this.isOptional,
+      defaultValue: this.defaultValue,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
 
@@ -187,6 +193,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }
+    this.defaultValue = memberValues.defaultValue !== undefined ? memberValues.defaultValue : undefined;
     
     // Deserialize implementation type fields
     this.implementationType = memberValues.implementationType || 'none';
