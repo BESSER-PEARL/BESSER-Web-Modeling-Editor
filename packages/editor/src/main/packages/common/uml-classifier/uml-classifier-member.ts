@@ -68,6 +68,7 @@ export interface IUMLClassifierMember extends IUMLElement {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  isOptional?: boolean;
 }
 
 export abstract class UMLClassifierMember extends UMLElement implements IUMLClassifierMember {
@@ -89,6 +90,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   implementationType: MethodImplementationType = 'none';
   stateMachineId: string = '';
   quantumCircuitId: string = '';
+  isOptional: boolean = false;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
     super(values);
@@ -105,7 +107,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       if (/^[+\-#~]\s/.test(this.name)) {
         return this.name;
       }
-      return `${visSymbol} ${this.name}: ${this.attributeType}`;
+      const optionalMarker = this.isOptional ? '?' : '';
+      return `${visSymbol} ${this.name}${optionalMarker}: ${this.attributeType}`;
     }
     // Fallback to name for backward compatibility or simple display
     return this.name;
@@ -159,6 +162,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       implementationType: this.implementationType,
       stateMachineId: this.stateMachineId,
       quantumCircuitId: this.quantumCircuitId,
+      isOptional: this.isOptional,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
 
@@ -173,11 +177,13 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       // New format - use separate properties, name is already set by super.deserialize()
       this.visibility = memberValues.visibility || 'public';
       this.attributeType = memberValues.attributeType || 'str';
+      this.isOptional = memberValues.isOptional || false;
     } else {
       // Legacy format - parse from name to extract visibility and type
       const parsed = UMLClassifierMember.parseNameFormat(this.name);
       this.visibility = parsed.visibility;
       this.attributeType = parsed.attributeType;
+      this.isOptional = false;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }

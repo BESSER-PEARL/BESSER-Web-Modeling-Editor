@@ -23,6 +23,8 @@ type OwnProps = {
   showDescription?: boolean;
   showUri?: boolean;
   showIcon?: boolean;
+  isOptional?: boolean;
+  onOptionalChange?: (checked: boolean) => void;
 };
 
 type StateProps = {};
@@ -123,13 +125,28 @@ class StylePaneComponent extends Component<Props, State> {
 
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
 
     return (
       <Container>
+        {onOptionalChange && (
+          <>
+            <Row>
+              <label htmlFor={`optional-${element?.id}`} style={{ cursor: 'pointer', margin: 0 }}>Optional</label>
+              <input
+                id={`optional-${element?.id}`}
+                type="checkbox"
+                checked={isOptional || false}
+                onChange={(e) => onOptionalChange(e.target.checked)}
+                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+              />
+            </Row>
+            <Divider />
+          </>
+        )}
         {showDescription && (
           <>
             <FieldRow>
