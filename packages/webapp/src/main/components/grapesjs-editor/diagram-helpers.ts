@@ -32,7 +32,7 @@ export function getClassOptions(): { value: string; label: string }[] {
   }
 
   return Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'Class')
+    .filter((element: any) => (element?.type === 'Class' || element?.type === 'AbstractClass'))
     .map((element: any) => ({ value: element.id, label: element.name }));
 }
 
@@ -98,7 +98,7 @@ export function getClassMetadata(classId: string, includeInherited: boolean = tr
   }
 
   const classElement = Object.values(classDiagram.elements).find(
-    (el: any) => el?.type === 'Class' && el?.id === classId
+    (el: any) => (el?.type === 'Class' || el?.type === 'AbstractClass') && el?.id === classId
   ) as any;
 
   if (!classElement) {
@@ -359,7 +359,7 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
 
   // Find class by name (classId might be a name now)
   const classElement = Object.values(classDiagram.elements).find(
-    (element: any) => element?.type === 'Class' && (element?.id === classId || element?.name === classId)
+    (element: any) => (element?.type === 'Class' || element?.type === 'AbstractClass') && (element?.id === classId || element?.name === classId)
   );
   
   if (!classElement) {

@@ -77,10 +77,13 @@ const composeIconObjectPreview = (
           icon: instanceObject.icon, // Use the class icon
         });
       }
-      // Create attributes based on the class attributes with empty values
+      // Create attributes based on the class attributes, pre-filling default values
       classInfo.attributes.forEach((attr, index) => {
+        const defaultVal = attr.defaultValue !== undefined && attr.defaultValue !== null
+          ? String(attr.defaultValue)
+          : '';
         const objectAttribute = new UMLObjectAttribute({
-          name: `${attr.name} = `,
+          name: `${attr.name} = ${defaultVal}`,
           attributeType: attr.type, // Store type for UI formatting
           owner: instanceObject.id,
           bounds: {
@@ -188,8 +191,11 @@ const composeNormalObjectPreview = (
       }
 
       classInfo.attributes.forEach((attr, index) => {
+        const defaultVal = attr.defaultValue !== undefined && attr.defaultValue !== null
+          ? String(attr.defaultValue)
+          : '';
         const objectAttribute = new UMLObjectAttribute({
-          name: `${attr.name} = `,
+          name: `${attr.name} = ${defaultVal}`,
           attributeType: attr.type, // Store type for UI formatting
           owner: instanceObject.id,
           bounds: {

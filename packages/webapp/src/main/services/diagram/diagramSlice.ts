@@ -77,13 +77,20 @@ const getInitialDiagram = (): Diagram => {
     console.warn('Error loading project for initial diagram:', error);
   }
 
-  // If no project found, create a default diagram
-  // This should only happen during development or if there's an issue with project creation
-  console.warn('No project found - creating default diagram. This might indicate a project setup issue.');
+  // If no project exists yet (for example in a fresh private session), bootstrap an in-memory diagram.
+  console.info('No project found yet - bootstrapping an in-memory default diagram.');
   return { 
     id: uuid(), 
     title: 'UMLClassDiagram', 
-    model: undefined, 
+    model: {
+      version: '3.0.0',
+      type: UMLDiagramType.ClassDiagram,
+      size: { width: 1400, height: 740 },
+      elements: {},
+      relationships: {},
+      interactive: { elements: {}, relationships: {} },
+      assessments: {},
+    }, 
     lastUpdate: new Date().toISOString() 
   };
 };
@@ -93,7 +100,7 @@ const initialState = {
   editorOptions: getInitialEditorOptions(),
   loading: false,
   error: null,
-  createNewEditor: true,
+  createNewEditor: false,
   displayUnpublishedVersion: true,
 };
 

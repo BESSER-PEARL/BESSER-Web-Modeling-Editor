@@ -412,20 +412,49 @@ function setupProjectStorageIntegration(
       // console.log('[Storage] Editor fully loaded, auto-save enabled');
       
       let saveTimeout: NodeJS.Timeout | null = null;
-      
+      let isEditingText = false;
+      let pendingSaveDuringEdit = false;
+
+      // Fix #437: Track when user is editing text inline (RTE = Rich Text Editor)
+      // to avoid auto-save resetting the cursor position
+      editor.on('rte:enable', () => {
+        isEditingText = true;
+        // Cancel any pending save to prevent cursor reset
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+          saveTimeout = null;
+          pendingSaveDuringEdit = true;
+        }
+      });
+
+      editor.on('rte:disable', () => {
+        isEditingText = false;
+        // Save any pending changes now that editing is done
+        if (pendingSaveDuringEdit) {
+          pendingSaveDuringEdit = false;
+          debouncedSave();
+        }
+      });
+
       // Safe save function that checks if editor is ready
       const safeSave = () => {
         if (!isEditorReady) {
           console.log('[Storage] Editor not ready, skipping save');
           return;
         }
-        
+
+        // Fix #437: Defer save while user is editing text to avoid cursor reset
+        if (isEditingText) {
+          pendingSaveDuringEdit = true;
+          return;
+        }
+
         // Check if editor and its internals are still available
         if (!editor || !(editor as any).em || !(editor as any).em.storables) {
           console.log('[Storage] Editor not available or destroyed, skipping save');
           return;
         }
-        
+
         try {
           // console.log('[Storage] Auto-saving changes...');
           editor.store();
@@ -433,13 +462,13 @@ function setupProjectStorageIntegration(
           console.error('[Storage] Auto-save error:', error);
         }
       };
-      
+
       // Debounced save function to avoid too many saves
       const debouncedSave = () => {
         if (saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(safeSave, 2000); // Wait 2 seconds after last change
       };
-      
+
       // Auto-save on changes
       editor.on('component:add component:remove component:update', debouncedSave);
       editor.on('page:add page:remove page:update', debouncedSave);

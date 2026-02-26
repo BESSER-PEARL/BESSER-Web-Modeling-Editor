@@ -1,7 +1,17 @@
+import { UMLModel } from '@besser/wme';
 import { BesserProject, ProjectDiagram, SupportedDiagramType } from '../../types/project';
+
+export type ExportedUserDiagramEntry = {
+  id: string;
+  savedAt: string;
+  model: UMLModel;
+};
+
+export type ProjectUserDiagramMap = Record<string, ExportedUserDiagramEntry>;
 
 export type ExportableProjectPayload = Omit<BesserProject, 'diagrams'> & {
   diagrams: Record<string, ProjectDiagram>;
+  UserDiagrams?: ProjectUserDiagramMap;
 };
 
 export const buildExportableProjectPayload = (

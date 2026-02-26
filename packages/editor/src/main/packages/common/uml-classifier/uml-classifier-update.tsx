@@ -177,6 +177,8 @@ class ClassifierUpdate extends Component<Props, State> {
                 value={attribute.name}
                 visibility={attrMember.visibility}
                 attributeType={attrMember.attributeType}
+                isOptional={attrMember.isOptional}
+                defaultValue={attrMember.defaultValue}
                 onChange={this.props.update}
                 onSubmitKeyUp={() =>
                   index === attributes.length - 1
@@ -350,7 +352,8 @@ class ClassifierUpdate extends Component<Props, State> {
       bounds: element.bounds,
       ownedElements: element.ownedElements,
     });
-    update(element.id, instance);
+    const { id: _ignoredId, ...values } = instance.serialize();
+    update(element.id, values as Partial<UMLElement>);
   };
 
   private delete = (id: string) => () => {
