@@ -135,7 +135,7 @@ export const GenerateCodeMenu: React.FC = () => {
     const model = diagram.model as any;
     const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
     const classesCount = model.elements
-      ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length
+      ? Object.values(model.elements).filter((el: any) => el.type === 'Class' || el.type === 'AbstractClass').length
       : 0;
     const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
 
