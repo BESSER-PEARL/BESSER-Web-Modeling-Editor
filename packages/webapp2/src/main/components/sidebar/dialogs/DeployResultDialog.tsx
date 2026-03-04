@@ -22,7 +22,9 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Repository Created Successfully</DialogTitle>
+          <DialogTitle>
+            {deploymentResult?.message?.includes('updated') ? 'Repository Updated Successfully' : 'Repository Created Successfully'}
+          </DialogTitle>
           <DialogDescription>
             Continue with one-click Render deployment or inspect the generated repository.
           </DialogDescription>
