@@ -28,7 +28,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      port: 8081,
+      port: 8080,
+      hmr: {
+        host: 'localhost',
+      },
+      watch: {
+        usePolling: true,
+        interval: 300,
+      },
     },
   };
 });
