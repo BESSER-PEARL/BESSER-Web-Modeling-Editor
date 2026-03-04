@@ -21,6 +21,7 @@ import {
 } from '../../types/agent-config';
 import { isUMLModel } from '../../types/project';
 import { useProject } from '../../hooks/useProject';
+import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
 
 const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
@@ -225,6 +226,15 @@ export const AgentConfigurationPanel: React.FC = () => {
 
     LocalStorageRepository.setActiveAgentConfigurationId(saved.id);
     localStorage.setItem(LEGACY_AGENT_CONFIG_KEY, JSON.stringify(payload));
+
+    // Persist agent config into the diagram so it travels with the project
+    if (currentProject) {
+      const agentDiagram = currentProject.diagrams.AgentDiagram;
+      ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+        ...agentDiagram,
+        config: payload as unknown as Record<string, unknown>,
+      });
+    }
 
     setConfigurationName(saved.name);
     setSelectedConfigId(saved.id);
