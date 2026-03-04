@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../constant';
+import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 
 // Re-export from github service for backward compatibility
 export { useGitHubAuth, type GitHubAuthStatus } from '../github/useGitHubAuth';
@@ -45,8 +46,26 @@ export const useDeployToGitHub = () => {
       setDeploymentResult(null);
 
       try {
+        // Get active agent configuration to include in the deploy request
+        // Without this, agent diagrams deploy without LLM/IC config and crash
+        const activeConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
+        const agentConfig = activeConfigId
+          ? LocalStorageRepository.loadAgentConfiguration(activeConfigId)?.config ?? null
+          : null;
+
+        // Default agent config: websocket+streamlit, LLM-based IC, OpenAI gpt-5-nano
+        const defaultAgentConfig = {
+          agentPlatform: 'streamlit',
+          intentRecognitionTechnology: 'llm-based',
+          llm: { provider: 'openai', model: 'gpt-5-nano' },
+        };
+
         const requestBody = {
           ...projectData,
+          settings: {
+            ...(projectData.settings || {}),
+            config: agentConfig ?? defaultAgentConfig,
+          },
           deploy_config: {
             repo_name: repoName,
             description: description,
