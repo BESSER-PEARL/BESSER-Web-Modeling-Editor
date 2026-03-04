@@ -374,6 +374,7 @@ export const registerLayoutComponents = (editor: any) => {
           {
             tagName: 'div',
             attributes: { class: 'card-header' },
+            editable: true,
             style: {
               padding: '16px',
               'border-bottom': '1px solid #e0e0e0',
@@ -385,6 +386,7 @@ export const registerLayoutComponents = (editor: any) => {
           {
             tagName: 'div',
             attributes: { class: 'card-body' },
+            editable: true,
             style: {
               padding: '16px',
               'flex-grow': '1',
@@ -394,6 +396,7 @@ export const registerLayoutComponents = (editor: any) => {
           {
             tagName: 'div',
             attributes: { class: 'card-footer' },
+            editable: true,
             style: {
               padding: '16px',
               'border-top': '1px solid #e0e0e0',

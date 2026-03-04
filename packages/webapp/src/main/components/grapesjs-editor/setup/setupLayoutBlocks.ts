@@ -142,20 +142,6 @@ export function setupLayoutBlocks(editor: Editor) {
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="6" y1="9" x2="18" y2="9" stroke="currentColor" stroke-width="2"/><line x1="6" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="17" r="1.5" fill="currentColor"/></svg>',
   });
   
-  // Card Layout
-  bm.add('card', {
-    label: 'Card',
-    category: 'Layout',
-    content: `
-      <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; margin: 20px;">
-        <h3 style="margin-top: 0; color: #333;">Card Title</h3>
-        <p style="color: #666; line-height: 1.6;">This is a card component. Add your content here. Cards are great for organizing information.</p>
-        <button style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 15px;">Learn More</button>
-      </div>
-    `,
-    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.5"/></svg>',
-  });
-  
   // Split Section (50/50)
   bm.add('split-section', {
     label: 'Split Section',
