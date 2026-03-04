@@ -1,6 +1,7 @@
 import { updateDiagramThunk } from '../../../services/diagram/diagramSlice';
 import type { AppDispatch } from '../../../store/store';
-import { ConverterFactory, DiagramType } from './converters';
+import { ConverterFactory } from './converters';
+import type { DiagramType } from './shared-types';
 import { ModifierFactory, ModelModification } from './modifiers';
 
 // Re-export ModelModification for backward compatibility
@@ -233,7 +234,6 @@ export class UMLModelingService {
 
     for (const mod of modifications) {
       if (!modifier.canHandle(mod.action)) {
-        console.warn(`[UMLModelingService] Skipping unsupported action '${mod.action}' in batch`);
         continue;
       }
       latestModel = modifier.applyModification(latestModel, mod);
@@ -255,13 +255,6 @@ export class UMLModelingService {
       const currentModel = this.getCurrentModel();
       let updatedModel: BESSERModel;
 
-      console.log('[UMLModelingService] injectToEditor called:',
-        'type=', update.type,
-        'replaceExisting=', update.replaceExisting,
-        'currentElements=', Object.keys(currentModel.elements || {}).length,
-        'newDataElements=', Object.keys(update.data?.elements || {}).length,
-      );
-
       switch (update.type) {
         case 'single_element':
           updatedModel = this.mergeElementIntoModel(currentModel, update.data);
@@ -277,10 +270,6 @@ export class UMLModelingService {
         default:
           throw new Error(`Unknown update type: ${update.type}`);
       }
-
-      console.debug('[UMLModelingService] Injecting model update:', update.type,
-        'elements:', Object.keys(updatedModel.elements || {}).length,
-      );
 
       // Persist to Redux store first, then update editor
       await this.dispatch(updateDiagramThunk({
@@ -331,10 +320,6 @@ export class UMLModelingService {
     if (Object.keys(mergedModel.elements).length === 0) {
       throw new Error('Model payload does not include any elements to render');
     }
-
-    console.debug('[UMLModelingService] Replacing model:',
-      'elements:', Object.keys(mergedModel.elements).length,
-    );
 
     // Persist to Redux store first, then update editor
     await this.dispatch(updateDiagramThunk({
@@ -625,10 +610,4 @@ export class UMLModelingService {
     };
   }
 
-  /**
-   * Generate unique ID
-   */
-  private generateUniqueId(prefix: string = 'id'): string {
-    return `${prefix}_${Math.random().toString(36).substr(2, 9)}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 3)}`;
-  }
 }

@@ -178,7 +178,7 @@ export function MessageInput({
 
   return (
     <div
-      className="relative flex w-full"
+      className="relative flex w-full overflow-hidden"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -213,8 +213,8 @@ export function MessageInput({
               : omit(props, ["allowAttachments"]))}
           />
 
-          {props.allowAttachments && (
-            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-scroll py-3">
+          {showFileList && (
+            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-auto py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <div className="flex space-x-3">
                 <AnimatePresence mode="popLayout">
                   {props.files?.map((file) => {

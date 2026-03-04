@@ -54,6 +54,7 @@ export class ModifierFactory {
     return this.modifiers.has(diagramType as DiagramType);
   }
 
+
   /**
    * Check if a specific action is supported for a diagram type
    */

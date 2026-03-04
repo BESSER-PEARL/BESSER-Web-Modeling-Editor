@@ -144,11 +144,15 @@ export class AssistantClient {
   private isConnected = false;
   private connectingPromise: Promise<void> | null = null;
   private reconnectAttempts = 0;
-  private readonly maxReconnectAttempts = 5;
-  private readonly reconnectDelay = 3000;
+  private readonly baseReconnectDelay = 2000;
+  private readonly maxReconnectDelay = 30000;
+  private readonly maxReconnectAttempts = 8;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private queueDrainTimers: ReturnType<typeof setTimeout>[] = [];
   private shouldReconnect = true;
+  private responseTimeout: ReturnType<typeof setTimeout> | null = null;
+  private readonly responseTimeoutMs = 45000;
 
   private readonly clientMode: AssistantClientMode;
   private readonly sessionId: string;
@@ -231,7 +235,12 @@ export class AssistantClient {
 
   disconnect(options: { allowReconnect?: boolean; clearQueue?: boolean } = {}): void {
     this.shouldReconnect = options.allowReconnect ?? false;
+    this.clearResponseTimer();
     if (this.ws) {
+      this.ws.onopen = null;
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+      this.ws.onmessage = null;
       try {
         this.ws.close();
       } catch (error) {
@@ -243,6 +252,8 @@ export class AssistantClient {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+    this.queueDrainTimers.forEach(clearTimeout);
+    this.queueDrainTimers = [];
     this.connectingPromise = null;
     this.isConnected = false;
     this.reconnectAttempts = 0;
@@ -393,9 +404,11 @@ export class AssistantClient {
     }
     this.ws.send(JSON.stringify(this.buildWirePayload(payload)));
     this.onTypingHandler?.(true);
+    this.startResponseTimer();
   }
 
   private handleMessage(event: MessageEvent): void {
+    this.clearResponseTimer();
     try {
       const payload = JSON.parse(event.data) as AgentResponse;
       this.onTypingHandler?.(false);
@@ -403,7 +416,6 @@ export class AssistantClient {
       const directAction = this.extractActionPayload(payload);
       if (directAction) {
         if (isInjectionCommand(directAction)) {
-          console.log('[AssistantClient] Injection command detected:', directAction.action, 'replaceExisting=', (directAction as any).replaceExisting, 'keys=', Object.keys(directAction));
           this.onInjectionHandler?.({
             ...directAction,
             message:
@@ -503,10 +515,32 @@ export class AssistantClient {
       return;
     }
     this.reconnectAttempts += 1;
+    const delay = Math.min(this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
       this.connect().catch((error) => console.error('Assistant reconnect failed', error));
-    }, this.reconnectDelay);
+    }, delay);
+  }
+
+  private startResponseTimer(): void {
+    this.clearResponseTimer();
+    this.responseTimeout = setTimeout(() => {
+      this.onTypingHandler?.(false);
+      this.onMessageHandler?.({
+        id: createMessageId(),
+        action: 'agent_error',
+        message: 'The assistant is taking too long to respond. Please try again.',
+        isUser: false,
+        timestamp: new Date(),
+      });
+    }, this.responseTimeoutMs);
+  }
+
+  private clearResponseTimer(): void {
+    if (this.responseTimeout) {
+      clearTimeout(this.responseTimeout);
+      this.responseTimeout = null;
+    }
   }
 
   private processMessageQueue(): void {
@@ -514,11 +548,15 @@ export class AssistantClient {
       return;
     }
 
+    // Clear any lingering drain timers from a previous cycle.
+    this.queueDrainTimers.forEach(clearTimeout);
+    this.queueDrainTimers = [];
+
     const queued = [...this.messageQueue];
     this.messageQueue = [];
 
     queued.forEach((item, index) => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         // Re-check connection state before each deferred send.
         if (!this.isConnected || !this.ws) {
           // Re-queue the message so it's not silently lost.
@@ -532,6 +570,7 @@ export class AssistantClient {
           this.messageQueue.push(item);
         }
       }, index * 1000);
+      this.queueDrainTimers.push(timer);
     });
   }
 }

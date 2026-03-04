@@ -41,6 +41,7 @@ export class ConverterFactory {
   }
 
   static isSupported(diagramType: string): diagramType is DiagramType {
+    this.initialize();
     return this.converters.has(diagramType as DiagramType);
   }
 }

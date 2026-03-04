@@ -3,6 +3,9 @@
  * Central export point for all services used by the AssistantWorkspaceDrawer
  */
 
+export { generateUniqueId } from './shared-types';
+export type { DiagramType } from './shared-types';
+
 export { UMLModelingService } from './UMLModelingService';
 export type {
   ClassSpec,
@@ -20,14 +23,8 @@ export type {
   RateLimiterOptions,
 } from './RateLimiterService';
 
-export { UIService } from './UIService';
-export type {
-  ChatMessage,
-  MessageDisplayConfig,
-} from './UIService';
-
 export { ConverterFactory } from './converters';
-export type { DiagramType, DiagramConverter, DiagramPosition } from './converters';
+export type { DiagramConverter, DiagramPosition } from './converters';
 export { QuantumCircuitConverter } from './converters/QuantumCircuitConverter';
 export { GUIDiagramConverter } from './converters/GUIDiagramConverter';
 

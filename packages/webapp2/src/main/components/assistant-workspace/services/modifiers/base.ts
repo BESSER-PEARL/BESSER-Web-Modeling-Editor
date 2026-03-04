@@ -4,14 +4,9 @@
  */
 
 import { BESSERModel } from '../UMLModelingService';
+import { DiagramType, generateUniqueId } from '../shared-types';
 
-export type DiagramType =
-  | 'ClassDiagram'
-  | 'ObjectDiagram'
-  | 'StateMachineDiagram'
-  | 'AgentDiagram'
-  | 'QuantumCircuitDiagram'
-  | 'GUINoCodeDiagram';
+export type { DiagramType };
 
 export interface ModificationTarget {
   classId?: string;
@@ -106,14 +101,14 @@ export class ModifierHelpers {
    * Generate unique ID
    */
   static generateUniqueId(prefix: string = 'id'): string {
-    return `${prefix}_${Math.random().toString(36).substr(2, 9)}_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 3)}`;
+    return generateUniqueId(prefix);
   }
 
   /**
    * Deep clone model
    */
   static cloneModel(model: BESSERModel): BESSERModel {
-    return JSON.parse(JSON.stringify(model));
+    return structuredClone(model);
   }
 
   /**

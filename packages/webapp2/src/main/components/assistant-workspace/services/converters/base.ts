@@ -3,13 +3,9 @@
  * Handles conversion from simplified specs to Apollon format for all diagram types
  */
 
-export type DiagramType =
-  | 'ClassDiagram'
-  | 'ObjectDiagram'
-  | 'StateMachineDiagram'
-  | 'AgentDiagram'
-  | 'QuantumCircuitDiagram'
-  | 'GUINoCodeDiagram';
+import { DiagramType } from '../shared-types';
+
+export type { DiagramType };
 
 export interface DiagramPosition {
   x: number;
@@ -82,9 +78,5 @@ export const extractSpecPosition = (spec: any): DiagramPosition | undefined => {
   };
 };
 
-/**
- * Generate unique ID
- */
-export function generateUniqueId(prefix: string = 'id'): string {
-  return `${prefix}_${Math.random().toString(36).substr(2, 9)}_${Date.now().toString(36)}`;
-}
+// Re-export from shared module
+export { generateUniqueId } from '../shared-types';
