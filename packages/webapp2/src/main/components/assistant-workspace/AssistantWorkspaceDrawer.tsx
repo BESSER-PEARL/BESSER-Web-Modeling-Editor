@@ -6,14 +6,15 @@
  */
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown, Boxes, WandSparkles, Workflow } from 'lucide-react';
+import { ChevronDown, Boxes, WandSparkles, Workflow, MessageSquarePlus } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
-import { useAssistantLogic } from './useAssistantLogic';
+import { useAssistantLogic, type ConnectionStatus } from './useAssistantLogic';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -36,7 +37,7 @@ interface DragState {
   moved: number;
 }
 
-const HANDLE_HEIGHT = 36;
+const HANDLE_HEIGHT = 48;
 const FALLBACK_CLOSED_OFFSET = -640;
 const VELOCITY_SNAP_THRESHOLD = 0.35;
 const POSITION_SNAP_THRESHOLD = 0.45;
@@ -70,7 +71,6 @@ const ALL_STARTER_PROMPTS = [
 /** Pick N random prompts from the pool, deterministic per session. */
 function pickRandomPrompts(pool: string[], count: number): string[] {
   const shuffled = [...pool];
-  // Fisher-Yates (seeded by current minute so it changes occasionally but not every render)
   let seed = Math.floor(Date.now() / 60_000);
   for (let i = shuffled.length - 1; i > 0; i--) {
     seed = (seed * 16807 + 0) % 2147483647;
@@ -82,7 +82,42 @@ function pickRandomPrompts(pool: string[], count: number): string[] {
 
 const STARTER_PROMPTS = pickRandomPrompts(ALL_STARTER_PROMPTS, 5);
 
+/* ------------------------------------------------------------------ */
+/*  Helper functions                                                   */
+/* ------------------------------------------------------------------ */
+
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+const getConnectionDotClass = (status: ConnectionStatus): string => {
+  switch (status) {
+    case 'connected':
+      return 'bg-emerald-500';
+    case 'connecting':
+    case 'reconnecting':
+    case 'closing':
+      return 'bg-amber-500 animate-pulse';
+    default:
+      return 'bg-red-500';
+  }
+};
+
+const getConnectionLabel = (status: ConnectionStatus): string => {
+  switch (status) {
+    case 'connected':
+      return 'Connected';
+    case 'connecting':
+      return 'Connecting\u2026';
+    case 'reconnecting':
+      return 'Reconnecting\u2026';
+    case 'closing':
+      return 'Closing\u2026';
+    case 'closed':
+    case 'disconnected':
+      return 'Disconnected';
+    default:
+      return 'Unknown';
+  }
+};
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -120,9 +155,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     setInputValue,
     isGenerating,
     connectionStatus,
+    rateLimitStatus,
     messageListContainerRef,
     handleSubmit,
     stopGenerating,
+    clearConversation,
   } = useAssistantLogic({
     isActive: open,
     switchDiagram,
@@ -278,6 +315,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     };
   }, [isDragging]);
 
+  /* ---- Computed values ---- */
+
+  const rateLimitColor =
+    rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
+      ? 'text-red-500'
+      : rateLimitStatus.requestsLastMinute >= 6
+        ? 'text-amber-500'
+        : 'text-muted-foreground';
+
   /* ---- Render helpers ---- */
 
   const renderComposer = (className: string) => (
@@ -325,12 +371,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       >
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col border-t border-border bg-background pb-10 transition-opacity duration-200',
+            'flex min-h-0 flex-1 flex-col border-t border-border bg-background pb-12 transition-opacity duration-200',
             (open || isDragging) ? 'pointer-events-auto' : 'pointer-events-none',
             openProgress < 0.02 && !open && !isDragging && 'opacity-0',
           )}
         >
           {!hasConversation ? (
+            /* ================================================================ */
+            /*  Welcome Screen                                                   */
+            /* ================================================================ */
             <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-6 sm:px-8">
               <div className="pointer-events-none absolute -left-24 top-8 h-56 w-56 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10" />
               <div className="pointer-events-none absolute -right-20 bottom-10 h-64 w-64 rounded-full bg-emerald-200/35 blur-3xl dark:bg-emerald-500/10" />
@@ -349,40 +398,36 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         <span
                           className={cn(
                             'inline-block h-2 w-2 rounded-full',
-                            connectionStatus === 'connected' && 'bg-emerald-500',
-                            (connectionStatus === 'connecting' || connectionStatus === 'reconnecting') && 'bg-amber-400 animate-pulse',
-                            (connectionStatus === 'disconnected' || connectionStatus === 'closed') && 'bg-red-400',
+                            getConnectionDotClass(connectionStatus),
                           )}
                         />
-                        {connectionStatus === 'connected'
-                          ? 'Connected'
-                          : connectionStatus === 'connecting'
-                            ? 'Connecting\u2026'
-                            : connectionStatus === 'reconnecting'
-                              ? 'Reconnecting\u2026'
-                              : 'Disconnected'}
+                        {getConnectionLabel(connectionStatus)}
                       </span>
                     </p>
                   </div>
                 </div>
               </div>
 
+              {/* Step-numbered feature cards */}
               <div className="relative mx-auto grid w-full max-w-5xl gap-3 pb-6 sm:grid-cols-3">
-                <div className="rounded-2xl border border-sky-200/70 bg-sky-50/75 p-4 dark:border-sky-900/60 dark:bg-sky-950/20">
+                <div className="group relative rounded-2xl border border-sky-200/70 bg-sky-50/75 p-4 transition-shadow hover:shadow-md dark:border-sky-900/60 dark:bg-sky-950/20">
+                  <span className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-[11px] font-bold text-white shadow-sm">1</span>
                   <div className="mb-3 inline-flex rounded-lg bg-sky-500/15 p-2 text-sky-700 dark:text-sky-300">
                     <WandSparkles className="h-4 w-4" />
                   </div>
                   <p className="text-sm font-semibold">Describe your system</p>
                   <p className="mt-1 text-xs text-muted-foreground">Tell me about your domain in plain language — classes, entities, and workflows get created automatically.</p>
                 </div>
-                <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/75 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                <div className="group relative rounded-2xl border border-emerald-200/70 bg-emerald-50/75 p-4 transition-shadow hover:shadow-md dark:border-emerald-900/60 dark:bg-emerald-950/20">
+                  <span className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white shadow-sm">2</span>
                   <div className="mb-3 inline-flex rounded-lg bg-emerald-500/15 p-2 text-emerald-700 dark:text-emerald-300">
                     <Boxes className="h-4 w-4" />
                   </div>
                   <p className="text-sm font-semibold">Refine iteratively</p>
                   <p className="mt-1 text-xs text-muted-foreground">Add attributes, relationships, states, and GUI pages — ask for changes in natural language.</p>
                 </div>
-                <div className="rounded-2xl border border-violet-200/70 bg-violet-50/75 p-4 dark:border-violet-900/60 dark:bg-violet-950/20">
+                <div className="group relative rounded-2xl border border-violet-200/70 bg-violet-50/75 p-4 transition-shadow hover:shadow-md dark:border-violet-900/60 dark:bg-violet-950/20">
+                  <span className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-[11px] font-bold text-white shadow-sm">3</span>
                   <div className="mb-3 inline-flex rounded-lg bg-violet-500/15 p-2 text-violet-700 dark:text-violet-300">
                     <Workflow className="h-4 w-4" />
                   </div>
@@ -408,27 +453,52 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <div className="rounded-2xl border border-border/80 bg-background/90 p-3 shadow-lg backdrop-blur sm:p-4">
                     {renderComposer('w-full')}
                   </div>
+                  <p className="mt-2 text-center text-[10px] text-muted-foreground/60">
+                    Press <kbd className="rounded border border-border/60 bg-muted/50 px-1 py-0.5 font-mono text-[9px]">Esc</kbd> to close
+                  </p>
                 </div>
               </div>
             </div>
           ) : (
+            /* ================================================================ */
+            /*  Chat View                                                        */
+            /* ================================================================ */
             <>
+              {/* Message list */}
               <div ref={messageListContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-6 sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
                 </div>
               </div>
-              <div className="border-t border-border bg-background px-4 py-3 sm:px-8">
-                <div className="mx-auto w-full max-w-4xl">{renderComposer('w-full')}</div>
+
+              {/* Action bar + input composer */}
+              <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-8">
+                <div className="mx-auto w-full max-w-4xl">
+                  <div className="mb-2 flex items-center justify-end gap-2">
+                    <span className={cn('text-[11px]', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 px-2.5 text-xs"
+                      onClick={clearConversation}
+                      title="Start a new conversation"
+                    >
+                      <MessageSquarePlus className="h-3.5 w-3.5" />
+                      New Chat
+                    </Button>
+                  </div>
+                  {renderComposer('w-full')}
+                </div>
               </div>
             </>
           )}
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-10 items-end justify-center pb-1">
+        {/* Drag handle */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-12 items-end justify-center pb-1">
           <div
             className={cn(
-              'pointer-events-auto inline-flex cursor-row-resize touch-none select-none items-center gap-2 rounded-full border border-border/80 bg-background/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-md backdrop-blur',
+              'pointer-events-auto inline-flex cursor-row-resize touch-none select-none items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-md backdrop-blur transition-shadow hover:shadow-lg',
               openProgress > 0.75 && 'shadow-sm',
             )}
             onPointerDown={handlePointerDown}
@@ -436,6 +506,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             aria-label={open ? 'Push up to close assistant workspace' : 'Pull down to open assistant workspace'}
             tabIndex={0}
           >
+            {/* Visual grab lines */}
+            <div className="flex flex-col items-center gap-[3px]">
+              <span className="block h-[2px] w-5 rounded-full bg-current opacity-40" />
+              <span className="block h-[2px] w-3.5 rounded-full bg-current opacity-25" />
+            </div>
             <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', openProgress > 0.75 && 'rotate-180')} />
             <span>{openProgress > 0.75 ? 'Push up' : 'Pull down assistant'}</span>
           </div>

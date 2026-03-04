@@ -65,6 +65,7 @@ export interface UseAssistantLogicReturn {
     options?: { experimental_attachments?: FileList },
   ) => Promise<void>;
   stopGenerating: () => void;
+  clearConversation: () => void;
 
   /* services (exposed for edge cases) */
   assistantClient: AssistantClient;
@@ -673,6 +674,12 @@ export function useAssistantLogic({
 
   const stopGenerating = () => setIsGenerating(false);
 
+  const clearConversation = () => {
+    setMessages([]);
+    setIsGenerating(false);
+    setInputValue('');
+  };
+
   return {
     messages,
     inputValue,
@@ -683,6 +690,7 @@ export function useAssistantLogic({
     messageListContainerRef: messageListContainerRef as React.RefObject<HTMLDivElement>,
     handleSubmit,
     stopGenerating,
+    clearConversation,
     assistantClient,
   };
 }
