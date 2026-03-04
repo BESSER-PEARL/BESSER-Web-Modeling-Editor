@@ -1,35 +1,38 @@
-const processEnv = typeof process !== 'undefined' ? process.env : undefined;
-const runtimeEnv = import.meta.env;
-
-const readEnv = (key: string): string | undefined => {
-  const viteValue = runtimeEnv[key as keyof ImportMetaEnv];
-  if (typeof viteValue === 'string' && viteValue.length > 0) {
-    return viteValue;
-  }
-  const processValue = processEnv?.[key];
-  if (typeof processValue === 'string' && processValue.length > 0) {
-    return processValue;
-  }
+/**
+ * Read an environment variable at build time.
+ *
+ * Vite's `define` replaces **static** `process.env.X` references with literal
+ * strings during the build.  A dynamic lookup like `process.env[key]` is NOT
+ * replaced, so each variable must be accessed by its full static name.
+ *
+ * The helper below checks the Vite-injected value first, then falls back to
+ * `import.meta.env` (useful during SSR or when `VITE_`-prefixed vars are used).
+ */
+const _env = (viteValue: string | undefined, metaValue: string | undefined): string | undefined => {
+  if (typeof viteValue === 'string' && viteValue.length > 0) return viteValue;
+  if (typeof metaValue === 'string' && metaValue.length > 0) return metaValue;
   return undefined;
 };
 
-export const APPLICATION_SERVER_VERSION = readEnv('APPLICATION_SERVER_VERSION');
-export const DEPLOYMENT_URL = readEnv('DEPLOYMENT_URL');
-export const BACKEND_URL = runtimeEnv.DEV ? 'http://localhost:9000/besser_api' : readEnv('BACKEND_URL');
-export const SENTRY_DSN = readEnv('SENTRY_DSN');
-export const POSTHOG_HOST = readEnv('POSTHOG_HOST');
-export const POSTHOG_KEY = readEnv('POSTHOG_KEY');
+export const APPLICATION_SERVER_VERSION = _env(process.env.APPLICATION_SERVER_VERSION, import.meta.env.VITE_APPLICATION_SERVER_VERSION);
+export const DEPLOYMENT_URL = _env(process.env.DEPLOYMENT_URL, import.meta.env.VITE_DEPLOYMENT_URL);
+export const BACKEND_URL = import.meta.env.DEV
+  ? 'http://localhost:9000/besser_api'
+  : _env(process.env.BACKEND_URL, import.meta.env.VITE_BACKEND_URL);
+export const SENTRY_DSN = _env(process.env.SENTRY_DSN, import.meta.env.VITE_SENTRY_DSN);
+export const POSTHOG_HOST = _env(process.env.POSTHOG_HOST, import.meta.env.VITE_POSTHOG_HOST);
+export const POSTHOG_KEY = _env(process.env.POSTHOG_KEY, import.meta.env.VITE_POSTHOG_KEY);
 export const BASE_URL = `${DEPLOYMENT_URL}/api`;
 export const NO_HTTP_URL = DEPLOYMENT_URL?.split('//')[1] || '';
 export const WS_PROTOCOL = DEPLOYMENT_URL?.startsWith('https') ? 'wss' : 'ws';
 
-const defaultBotWsUrl = runtimeEnv.DEV
+const defaultBotWsUrl = import.meta.env.DEV
   ? 'ws://localhost:8765'
   : DEPLOYMENT_URL
     ? `${WS_PROTOCOL}://${NO_HTTP_URL}`
     : 'ws://localhost:8765';
 
-export const UML_BOT_WS_URL = readEnv('UML_BOT_WS_URL') || defaultBotWsUrl;
+export const UML_BOT_WS_URL = _env(process.env.UML_BOT_WS_URL, import.meta.env.VITE_UML_BOT_WS_URL) || defaultBotWsUrl;
 
 // prefixes
 export const localStoragePrefix = 'besser_';

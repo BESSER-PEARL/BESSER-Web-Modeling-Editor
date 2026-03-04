@@ -92,12 +92,26 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
   }
 };
 
+/**
+ * Generate a UUID, with fallback for insecure contexts (plain HTTP).
+ * `crypto.randomUUID()` is only available in secure contexts (HTTPS or localhost).
+ */
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  // Fallback using crypto.getRandomValues (available in all modern browsers)
+  return (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: number) =>
+    (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16),
+  );
+};
+
 // Default diagram factory
 export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
   // For Quantum Circuit diagram
   if (diagramKind === 'quantum') {
     return {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       title,
       model: {
         cols: [],
@@ -117,7 +131,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
     // ========================================
     // The GUI diagram starts with one empty page - users can drag blocks from Templates category
     return {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       title,
       model: {
         pages: [
@@ -155,7 +169,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
 
   // For UML diagrams
   return {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     title,
     model: {
       version: '3.0.0' as const,
@@ -211,7 +225,7 @@ export const createDefaultProject = (
   description: string,
   owner: string
 ): BesserProject => {
-  const projectId = crypto.randomUUID();
+  const projectId = generateUUID();
 
   return {
     id: projectId,
