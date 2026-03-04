@@ -212,6 +212,36 @@ export const Connectable = {
         if (validRelationships.length) {
           // Use type assertion to satisfy TypeScript
           dispatch(UMLElementCommonRepository.create(validRelationships as IUMLElement[]));
+
+          // Auto-fill context class name for OCL constraints when a ClassOCLLink is created
+          for (const rel of validRelationships) {
+            if (rel && rel.type === UMLRelationshipType.ClassOCLLink) {
+              const relationship = rel as IUMLRelationship;
+              const sourceEl = dispatch(UMLElementCommonRepository.getById(relationship.source.element));
+              const targetEl = dispatch(UMLElementCommonRepository.getById(relationship.target.element));
+
+              // Determine which is the constraint and which is the class
+              let constraintEl: IUMLElement | null = null;
+              let classEl: IUMLElement | null = null;
+
+              if (sourceEl?.type === UMLElementType.ClassOCLConstraint) {
+                constraintEl = sourceEl;
+                classEl = targetEl;
+              } else if (targetEl?.type === UMLElementType.ClassOCLConstraint) {
+                constraintEl = targetEl;
+                classEl = sourceEl;
+              }
+
+              // Auto-fill the constraint text if it doesn't already have a context clause
+              const currentConstraint = (constraintEl as any)?.constraint || '';
+              const hasContext = currentConstraint.trimStart().startsWith('context ');
+              if (constraintEl && classEl && !hasContext) {
+                dispatch(UMLElementCommonRepository.update<any>(constraintEl.id, {
+                  constraint: `context ${classEl.name} inv : `,
+                }));
+              }
+            }
+          }
         }
 
         if (!source) {

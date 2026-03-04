@@ -39,7 +39,9 @@ export const useDeployToGitHub = () => {
       repoName: string,
       description: string,
       isPrivate: boolean,
-      githubSession: string
+      githubSession: string,
+      useExisting: boolean = false,
+      commitMessage: string = ''
     ): Promise<DeployToGitHubResult | null> => {
       console.log('Starting GitHub deployment...');
       setIsDeploying(true);
@@ -70,6 +72,8 @@ export const useDeployToGitHub = () => {
             repo_name: repoName,
             description: description,
             is_private: isPrivate,
+            use_existing: useExisting,
+            ...(commitMessage ? { commit_message: commitMessage } : {}),
           },
         };
 
@@ -91,7 +95,7 @@ export const useDeployToGitHub = () => {
         setDeploymentResult(result);
 
         if (result.success) {
-          toast.success(`Repository created: ${result.repo_name}`);
+          toast.success(useExisting ? `Repository updated: ${result.repo_name}` : `Repository created: ${result.repo_name}`);
         } else {
           toast.error('Deployment failed');
         }
