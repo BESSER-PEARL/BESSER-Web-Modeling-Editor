@@ -53,19 +53,12 @@ const ALL_STARTER_PROMPTS = [
   'Design a social media platform with users, posts, and comments',
   'Model a restaurant ordering system with menus, orders, and tables',
   'Create a project management tool with tasks, teams, and sprints',
-  // State Machines
-  'Create an order processing state machine with payment and shipping states',
-  'Design a user authentication flow with login, MFA, and session states',
-  'Model a document approval workflow with review and publish stages',
-  'Build a support ticket lifecycle from creation to resolution',
   // GUI
   'Generate a web app for hotel booking',
   'Design a dashboard for inventory management',
-  'Create a modern landing page for a SaaS product',
   // Multi-diagram
   'Create a library management platform',
   'Build a complete task management application with models and UI',
-  'Design an API for IoT monitoring',
 ];
 
 /** Pick N random prompts from the pool, deterministic per session. */
