@@ -6,12 +6,12 @@ import { CommunityMenu } from './menues/community-menu';
 import { ThemeSwitcherMenu } from './menues/theme-switcher-menu';
 import styled from 'styled-components';
 import { appVersion } from '../../application-constants';
-import { APPLICATION_SERVER_VERSION, DEPLOYMENT_URL } from '../../constant';
+import { APPLICATION_SERVER_VERSION, DEPLOYMENT_URL, BACKEND_URL } from '../../constant';
 import { ModalContentType } from '../modals/application-modal-types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setCreateNewEditor, setDisplayUnpublishedVersion, updateDiagramThunk } from '../../services/diagram/diagramSlice';
 import { showModal } from '../../services/modal/modalSlice';
-import { LayoutTextSidebarReverse, Github, Share, BoxArrowRight } from 'react-bootstrap-icons';
+import { LayoutTextSidebarReverse, Github, Share, BoxArrowRight, StarFill, Star } from 'react-bootstrap-icons';
 
 // Custom Sidebar Icon SVG component
 const SidebarIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
@@ -145,6 +145,33 @@ const GitHubButton = styled.div`
   }
 `;
 
+const StarButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(255, 215, 0, 0.15);
+    border-color: rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+  }
+
+  &.starred {
+    color: #ffd700;
+    border-color: rgba(255, 215, 0, 0.3);
+  }
+`;
+
 const SidebarToggleButton = styled.button`
   display: flex;
   align-items: center;
@@ -196,7 +223,37 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const isAgentGenerated = isAgentDiagram && diagram?.model && isUMLModel(diagram.model);
   const activeAgentConfigName = agentConfigOptions.find((entry) => entry.id === activeAgentConfigId)?.name;
   const agentConfigDropdownLabel = activeAgentConfigName ? `Agent Config: ${activeAgentConfigName}` : 'Agent Configuration: Original';
-  const { isAuthenticated, username, login: githubLogin, logout: githubLogout, isLoading: githubLoading } = useGitHubAuth();
+  const { isAuthenticated, username, githubSession, login: githubLogin, logout: githubLogout, isLoading: githubLoading } = useGitHubAuth();
+  const [hasStarred, setHasStarred] = useState(false);
+  const [starLoading, setStarLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !githubSession) return;
+    fetch(`${BACKEND_URL}/github/star/status?session_id=${githubSession}`)
+      .then((res) => res.json())
+      .then((data) => { if (data.starred) setHasStarred(true); })
+      .catch(() => {});
+  }, [isAuthenticated, githubSession]);
+
+  const handleToggleStar = async () => {
+    if (!githubSession || starLoading) return;
+    setStarLoading(true);
+    try {
+      const method = hasStarred ? 'DELETE' : 'PUT';
+      const res = await fetch(
+        `${BACKEND_URL}/github/star?session_id=${githubSession}`,
+        { method }
+      );
+      if (res.ok) {
+        setHasStarred(!hasStarred);
+        if (!hasStarred) toast.success('Thanks for starring BESSER!');
+      }
+    } catch {
+      toast.error('Failed to update star');
+    } finally {
+      setStarLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (diagram?.title) {
@@ -627,8 +684,17 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
               <span className="github-user">
                 <Github size={16} style={{ transform: 'translateY(-1px)' }} /> {username}
               </span>
-              <button 
-                className="github-btn logout" 
+              <StarButton
+                className={hasStarred ? 'starred' : ''}
+                onClick={handleToggleStar}
+                disabled={starLoading}
+                title={hasStarred ? 'Unstar BESSER on GitHub' : 'Star BESSER on GitHub'}
+              >
+                {hasStarred ? <StarFill size={14} /> : <Star size={14} />}
+                {hasStarred ? 'Starred' : 'Star'}
+              </StarButton>
+              <button
+                className="github-btn logout"
                 onClick={githubLogout}
                 title="Sign out from GitHub"
               >
