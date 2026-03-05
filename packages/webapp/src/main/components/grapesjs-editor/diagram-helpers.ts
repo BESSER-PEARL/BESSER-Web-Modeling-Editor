@@ -158,18 +158,33 @@ export function getEndsByClassId(classId: string, includeInherited: boolean = tr
     return [];
   }
 
-  // Get direct association ends
+
+  // Get direct association ends, filtering out OCL constraint associations
   const directEnds = Object.values(classDiagram.relationships)
     .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
     .map((relationship: any) => {
+      let otherElementId: string | null = null;
+      let role: string | null = null;
       if (relationship?.source?.element === classId) {
-        return { value: relationship.target.element, label: relationship.target.role };
+        otherElementId = relationship.target.element;
+        role = relationship.target.role;
+      } else if (relationship?.target?.element === classId) {
+        otherElementId = relationship.source.element;
+        role = relationship.source.role;
       }
-
-      if (relationship?.target?.element === classId) {
-        return { value: relationship.source.element, label: relationship.source.role };
+      if (otherElementId) {
+        // Check if the other element is an OCL constraint
+        const otherElement = classDiagram.elements?.[otherElementId];
+        if (otherElement?.type === 'ClassOCLConstraint') {
+          return null;
+        }
+        // If role (end name) is missing, use the class name as label
+        let label = role;
+        if (!label || label.trim() === '') {
+          label = otherElement?.name || '';
+        }
+        return { value: otherElementId, label };
       }
-
       return null;
     })
     .filter((end): end is { value: string; label: string } => end !== null);
