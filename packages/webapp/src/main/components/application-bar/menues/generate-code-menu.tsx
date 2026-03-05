@@ -193,8 +193,14 @@ export const GenerateCodeMenu: React.FC = () => {
       }
       
       // web_app generator doesn't need the apollon editor - it uses project data
+      // Include the active agent configuration so the agent sub-generator receives IC/LLM settings
       try {
-        await generateCode(null, 'web_app', diagram.title);
+        const activeAgentConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
+        const activeAgentConfig = activeAgentConfigId
+          ? LocalStorageRepository.loadAgentConfiguration(activeAgentConfigId)?.config ?? null
+          : null;
+        const webAppConfig = activeAgentConfig ? { agentConfig: activeAgentConfig } : undefined;
+        await generateCode(null, 'web_app', diagram.title, webAppConfig);
         posthog.capture('generator_used', {
           generator_type: 'web_app',
           diagram_type: currentDiagramType,

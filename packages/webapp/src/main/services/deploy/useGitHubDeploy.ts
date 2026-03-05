@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../constant';
+import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 
 // Re-export from github service for backward compatibility
 export { useGitHubAuth, type GitHubAuthStatus } from '../github/useGitHubAuth';
@@ -38,19 +39,40 @@ export const useDeployToGitHub = () => {
       repoName: string,
       description: string,
       isPrivate: boolean,
-      githubSession: string
+      githubSession: string,
+      useExisting: boolean = false,
+      commitMessage: string = ''
     ): Promise<DeployToGitHubResult | null> => {
       console.log('Starting GitHub deployment...');
       setIsDeploying(true);
       setDeploymentResult(null);
 
       try {
+        // Get active agent configuration to include in the deploy request
+        // Without this, agent diagrams deploy without LLM/IC config and crash
+        const activeConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
+        const agentConfig = activeConfigId
+          ? LocalStorageRepository.loadAgentConfiguration(activeConfigId)?.config ?? null
+          : null;
+
+        // Default agent config: websocket+streamlit, classical IC (no API key needed)
+        const defaultAgentConfig = {
+          agentPlatform: 'streamlit',
+          intentRecognitionTechnology: 'classical',
+        };
+
         const requestBody = {
           ...projectData,
+          settings: {
+            ...(projectData.settings || {}),
+            config: agentConfig ?? defaultAgentConfig,
+          },
           deploy_config: {
             repo_name: repoName,
             description: description,
             is_private: isPrivate,
+            use_existing: useExisting,
+            ...(commitMessage ? { commit_message: commitMessage } : {}),
           },
         };
 
@@ -72,7 +94,7 @@ export const useDeployToGitHub = () => {
         setDeploymentResult(result);
 
         if (result.success) {
-          toast.success(`Repository created: ${result.repo_name}`);
+          toast.success(useExisting ? `Repository updated: ${result.repo_name}` : `Repository created: ${result.repo_name}`);
         } else {
           toast.error('Deployment failed');
         }
