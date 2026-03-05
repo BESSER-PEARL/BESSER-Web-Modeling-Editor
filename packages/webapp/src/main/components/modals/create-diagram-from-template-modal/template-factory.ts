@@ -5,7 +5,6 @@ import {
 } from './software-pattern/software-pattern-types';
 import { UMLDiagramType } from '@besser/wme';
 import libraryModel from '../../../templates/pattern/structural/Library.json';
-import libraryCompleteModel from '../../../templates/pattern/structural/Library_Complete.json';
 import teamOclModel from '../../../templates/pattern/structural/team_player_ocl.json';
 import dppModel from '../../../templates/pattern/structural/dpp.json';
 import aiSandboxModel from '../../../templates/pattern/structural/ai_sandbox.json';
@@ -13,6 +12,7 @@ import commandModel from '../../../templates/pattern/behavioral/command.json';
 import factoryModel from '../../../templates/pattern/creational/factory.json';
 import observerModel from '../../../templates/pattern/behavioral/observer.json';
 import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
+import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
@@ -39,13 +39,6 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.ClassDiagram,
           libraryModel as any,
-          SoftwarePatternCategory.STRUCTURAL,
-        );
-      case SoftwarePatternType.LIBRARY_COMPLETE:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          UMLDiagramType.ClassDiagram,
-          libraryCompleteModel as any,
           SoftwarePatternCategory.STRUCTURAL,
         );
       case SoftwarePatternType.TEAMOCL:
@@ -95,6 +88,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           greetingagent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+        case SoftwarePatternType.LIBRARY_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          libraryAgent as any,
           SoftwarePatternCategory.AGENT,
         );
       case SoftwarePatternType.GYM_AGENT:
