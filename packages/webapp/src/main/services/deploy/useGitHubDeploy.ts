@@ -55,11 +55,10 @@ export const useDeployToGitHub = () => {
           ? LocalStorageRepository.loadAgentConfiguration(activeConfigId)?.config ?? null
           : null;
 
-        // Default agent config: websocket+streamlit, LLM-based IC, OpenAI gpt-5-nano
+        // Default agent config: websocket+streamlit, classical IC (no API key needed)
         const defaultAgentConfig = {
           agentPlatform: 'streamlit',
-          intentRecognitionTechnology: 'llm-based',
-          llm: { provider: 'openai', model: 'gpt-5-nano' },
+          intentRecognitionTechnology: 'classical',
         };
 
         const requestBody = {
