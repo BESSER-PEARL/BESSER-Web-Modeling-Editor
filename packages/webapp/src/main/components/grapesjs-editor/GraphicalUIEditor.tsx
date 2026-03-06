@@ -203,6 +203,9 @@ function setupEditorFeatures(
     console.warn('[GraphicalUIEditor] Pages API not available');
   }
   
+  setupSidebarButtonHoverLabels(editor);
+  setupAutoOpenTraitsPanel(editor);
+  
   // Additional features
   setupDataBindingTraits(editor);
   setupCustomTraits(editor);
@@ -409,20 +412,49 @@ function setupProjectStorageIntegration(
       // console.log('[Storage] Editor fully loaded, auto-save enabled');
       
       let saveTimeout: NodeJS.Timeout | null = null;
-      
+      let isEditingText = false;
+      let pendingSaveDuringEdit = false;
+
+      // Fix #437: Track when user is editing text inline (RTE = Rich Text Editor)
+      // to avoid auto-save resetting the cursor position
+      editor.on('rte:enable', () => {
+        isEditingText = true;
+        // Cancel any pending save to prevent cursor reset
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+          saveTimeout = null;
+          pendingSaveDuringEdit = true;
+        }
+      });
+
+      editor.on('rte:disable', () => {
+        isEditingText = false;
+        // Save any pending changes now that editing is done
+        if (pendingSaveDuringEdit) {
+          pendingSaveDuringEdit = false;
+          debouncedSave();
+        }
+      });
+
       // Safe save function that checks if editor is ready
       const safeSave = () => {
         if (!isEditorReady) {
           console.log('[Storage] Editor not ready, skipping save');
           return;
         }
-        
+
+        // Fix #437: Defer save while user is editing text to avoid cursor reset
+        if (isEditingText) {
+          pendingSaveDuringEdit = true;
+          return;
+        }
+
         // Check if editor and its internals are still available
         if (!editor || !(editor as any).em || !(editor as any).em.storables) {
           console.log('[Storage] Editor not available or destroyed, skipping save');
           return;
         }
-        
+
         try {
           // console.log('[Storage] Auto-saving changes...');
           editor.store();
@@ -430,13 +462,13 @@ function setupProjectStorageIntegration(
           console.error('[Storage] Auto-save error:', error);
         }
       };
-      
+
       // Debounced save function to avoid too many saves
       const debouncedSave = () => {
         if (saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(safeSave, 2000); // Wait 2 seconds after last change
       };
-      
+
       // Auto-save on changes
       editor.on('component:add component:remove component:update', debouncedSave);
       editor.on('page:add page:remove page:update', debouncedSave);
@@ -730,13 +762,15 @@ function addAutoGenerateGUIButton(editor: Editor) {
     }
     
     // Add button to devices panel (where monitor, tablet, cellphone icons are)
-    panelManager.addButton('devices-c', {
-      id: 'auto-generate-gui',
-      className: 'fa fa-magic',
-      command: 'auto-generate-gui',
-      attributes: { title: 'Auto-Generate GUI from Class Diagram' },
-      label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" /></svg>',
-    });
+    if (!panelManager.getButton('devices-c', 'auto-generate-gui')) {
+      panelManager.addButton('devices-c', {
+        id: 'auto-generate-gui',
+        className: 'fa fa-magic',
+        command: 'auto-generate-gui',
+        attributes: { title: 'Auto-Generate GUI from Class Diagram' },
+        label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" /></svg>',
+      });
+    }
     
   });
   
@@ -1049,7 +1083,7 @@ function buildPageComponents(
           {
             tagName: 'div',
             type: 'text',
-            components: [{ type: 'textnode', content: '© 2025 BESSER. All rights reserved.' }],
+            components: [{ type: 'textnode', content: '© 2026 BESSER. All rights reserved.' }],
             style: {
               'margin-top': 'auto',
               'padding-top': '20px',
@@ -1299,6 +1333,141 @@ function setupPageRouting(editor: Editor) {
       }
     }
   });
+}
+
+// ============================================
+// SIDEBAR HOVER LABELS
+// ============================================
+
+/**
+ * Add hover labels for GrapesJS sidebar buttons.
+ */
+function setupSidebarButtonHoverLabels(editor: Editor) {
+  editor.on('load', () => {
+    const labelOverrides: Record<string, string> = {
+      'open-blocks': 'Blocks',
+      'open-sm': 'Styles',
+      'open-tm': 'Traits',
+      'open-layers': 'Layers',
+      'open-pages-tab': 'Pages',
+    };
+    
+    const selector = '.gjs-pn-views .gjs-pn-btn, .gjs-pn-commands .gjs-pn-btn';
+    const measurementEl = createTooltipMeasurementElement();
+    
+    const updatePlacement = (button: HTMLElement, label: string) => {
+      measurementEl.textContent = label;
+      const tooltipWidth = measurementEl.getBoundingClientRect().width;
+      const rect = button.getBoundingClientRect();
+      const rightSpace = window.innerWidth - rect.right;
+      const leftSpace = rect.left;
+      const prefersRight = rightSpace >= tooltipWidth + 12;
+      const prefersLeft = leftSpace >= tooltipWidth + 12;
+      const placement = prefersRight ? 'right' : prefersLeft ? 'left' : 'right';
+      button.setAttribute('data-tooltip-placement', placement);
+    };
+    
+    document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
+      const label = resolveSidebarButtonLabel(button, labelOverrides);
+      if (!label) return;
+      
+      button.setAttribute('data-tooltip', label);
+      button.setAttribute('aria-label', label);
+      updatePlacement(button, label);
+      
+      button.addEventListener('mouseenter', () => updatePlacement(button, label));
+      button.addEventListener('focus', () => updatePlacement(button, label));
+      
+      if (button.getAttribute('title')) {
+        button.removeAttribute('title');
+      }
+    });
+    
+    const handleResize = () => {
+      document.querySelectorAll<HTMLElement>(selector).forEach((button) => {
+        const label = button.getAttribute('data-tooltip');
+        if (!label) return;
+        updatePlacement(button, label);
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    editor.on('destroy', () => {
+      window.removeEventListener('resize', handleResize);
+    });
+  });
+}
+
+// ============================================
+// PANEL AUTO-SELECTION
+// ============================================
+
+/**
+ * Ensure Traits (Settings) panel opens when a component is selected.
+ */
+function setupAutoOpenTraitsPanel(editor: Editor) {
+  const openTraitsPanel = () => {
+    const panels = editor.Panels;
+    const traitsButton = panels?.getButton?.('views', 'open-tm');
+    const stylesButton = panels?.getButton?.('views', 'open-sm');
+
+    if (stylesButton?.get('active')) {
+      stylesButton.set('active', false);
+    }
+    if (traitsButton && !traitsButton.get('active')) {
+      traitsButton.set('active', true);
+    }
+    editor.runCommand('open-tm');
+  };
+
+  editor.on('load', () => {
+    openTraitsPanel();
+  });
+
+  editor.on('component:selected', (component: any) => {
+    if (!component) return;
+    // Let GrapesJS finish its own selection logic before forcing traits open.
+    setTimeout(openTraitsPanel, 0);
+  });
+}
+
+function createTooltipMeasurementElement(): HTMLDivElement {
+  let measurementEl = document.getElementById('gjs-tooltip-measure') as HTMLDivElement | null;
+  if (measurementEl) return measurementEl;
+  
+  measurementEl = document.createElement('div');
+  measurementEl.id = 'gjs-tooltip-measure';
+  measurementEl.style.position = 'fixed';
+  measurementEl.style.top = '-9999px';
+  measurementEl.style.left = '-9999px';
+  measurementEl.style.whiteSpace = 'nowrap';
+  measurementEl.style.fontSize = '11px';
+  measurementEl.style.lineHeight = '1';
+  measurementEl.style.padding = '6px 8px';
+  measurementEl.style.fontFamily = 'inherit';
+  measurementEl.style.fontWeight = '500';
+  measurementEl.style.visibility = 'hidden';
+  document.body.appendChild(measurementEl);
+  return measurementEl;
+}
+
+function resolveSidebarButtonLabel(
+  button: HTMLElement,
+  labelOverrides: Record<string, string>
+): string | null {
+  const existingLabel = button.getAttribute('data-tooltip')
+    || button.getAttribute('aria-label')
+    || button.getAttribute('title');
+  if (existingLabel) return existingLabel;
+  
+  const id = button.getAttribute('id');
+  if (!id) return null;
+  if (labelOverrides[id]) return labelOverrides[id];
+  
+  const cleaned = id.replace(/^open-/, '').replace(/-/g, ' ').trim();
+  if (!cleaned) return null;
+  
+  return cleaned.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 // ============================================

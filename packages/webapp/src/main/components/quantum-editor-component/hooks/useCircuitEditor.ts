@@ -3,7 +3,7 @@ import { Circuit, Gate, CircuitColumn } from '../types';
 import { GATES } from '../constants';
 import { trimCircuit } from '../utils';
 import { useUndoRedo } from './useUndoRedo';
-import { GATE_SIZE, WIRE_SPACING } from '../layout-constants';
+import { GATE_SIZE, WIRE_SPACING, LEFT_MARGIN, TOP_MARGIN } from '../layout-constants';
 
 interface UseCircuitEditorOptions {
     initialCircuit: Circuit;
@@ -13,6 +13,8 @@ interface UseCircuitEditorOptions {
 interface DragState {
     gate: string;
     offset: { x: number; y: number };
+    originalPos?: { col: number; row: number };
+    originalGate?: Gate;
 }
 
 interface PreviewPosition {
@@ -38,7 +40,7 @@ export interface CircuitEditorState {
     draggedGate: DragState | null;
     mousePos: { x: number; y: number };
     previewPosition: PreviewPosition | null;
-    handleDragStart: (gateType: string, e: React.MouseEvent) => void;
+    handleDragStart: (gateType: string, e: React.MouseEvent, originalPos?: { col: number; row: number }, originalGate?: Gate) => void;
     handleMouseMove: (e: React.MouseEvent, gridRef: React.RefObject<HTMLDivElement>) => void;
     handleMouseUp: () => void;
 
@@ -104,7 +106,7 @@ export function useCircuitEditor({
     }, [copiedGate]);
 
     // Drag and drop handlers
-    const handleDragStart = useCallback((gateType: string, e: React.MouseEvent) => {
+    const handleDragStart = useCallback((gateType: string, e: React.MouseEvent, originalPos?: { col: number; row: number }, originalGate?: Gate) => {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         setDraggedGate({
             gate: gateType,
@@ -112,6 +114,8 @@ export function useCircuitEditor({
                 x: e.clientX - rect.left,
                 y: e.clientY - rect.top,
             },
+            originalPos,
+            originalGate,
         });
         setSelectedGate(null);
     }, []);
@@ -120,18 +124,21 @@ export function useCircuitEditor({
         if (!draggedGate || !gridRef.current) return;
 
         const rect = gridRef.current.getBoundingClientRect();
-        const relativeX = e.clientX - rect.left + gridRef.current.scrollLeft;
-        const relativeY = e.clientY - rect.top + gridRef.current.scrollTop;
 
         setMousePos({
             x: e.clientX - rect.left,
             y: e.clientY - rect.top,
         });
 
-        const LEFT_MARGIN = 60;
-        const TOP_MARGIN = 20;
-        const col = Math.floor((relativeX - LEFT_MARGIN) / (GATE_SIZE + 4));
-        const row = Math.floor((relativeY - TOP_MARGIN) / WIRE_SPACING);
+        // Adjust for drag offset to get the center of the gate (matching useCircuitDragDrop)
+        const gateCenterX = e.clientX - draggedGate.offset.x + GATE_SIZE / 2;
+        const gateCenterY = e.clientY - draggedGate.offset.y + GATE_SIZE / 2;
+
+        const x = gateCenterX - rect.left - LEFT_MARGIN + gridRef.current.scrollLeft;
+        const y = gateCenterY - rect.top - TOP_MARGIN + gridRef.current.scrollTop;
+
+        const col = Math.floor(x / WIRE_SPACING);
+        const row = Math.floor(y / WIRE_SPACING);
 
         const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
         const gateHeight = gateDefinition?.height || 1;
@@ -168,6 +175,23 @@ export function useCircuitEditor({
                 return prev;
             }
 
+            // If moving an existing gate, remove it from the original position first
+            if (draggedGate.originalPos) {
+                const origCol = draggedGate.originalPos.col;
+                const origRow = draggedGate.originalPos.row;
+                if (newColumns[origCol]) {
+                    const oldGates = [...newColumns[origCol].gates];
+                    const oldGate = oldGates[origRow];
+                    const oldHeight = oldGate?.height || 1;
+                    for (let i = 0; i < oldHeight; i++) {
+                        if (origRow + i < oldGates.length) {
+                            oldGates[origRow + i] = null;
+                        }
+                    }
+                    newColumns[origCol] = { gates: oldGates };
+                }
+            }
+
             while (newColumns.length <= previewPosition.col) {
                 newColumns.push({ gates: Array(prev.qubitCount).fill(null) });
             }
@@ -181,7 +205,12 @@ export function useCircuitEditor({
                 }
             }
 
-            const newGate: Gate = {
+            // Preserve original gate properties (including nestedCircuit) when moving
+            const newGate: Gate = draggedGate.originalGate ? {
+                ...gateDefinition,
+                ...draggedGate.originalGate,
+                id: `${draggedGate.gate}-${Date.now()}-${Math.random()}`,
+            } : {
                 ...gateDefinition,
                 id: `${draggedGate.gate}-${Date.now()}-${Math.random()}`,
             };

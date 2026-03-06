@@ -13,7 +13,6 @@ export enum SoftwarePatternCategory {
 export enum SoftwarePatternType {
   // Structural patterns
   LIBRARY = 'Library',
-  LIBRARY_COMPLETE = 'Library Complete',
   TEAMOCL = 'Team Player with OCL',
   DPP = 'Digital Product Passport ',
   AISANDBOX = 'AI Sandbox',
@@ -24,6 +23,9 @@ export enum SoftwarePatternType {
   FACTORY = 'Factory',
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
+  LIBRARY_AGENT = 'Library Agent',
+  GYM_AGENT = 'Gym Agent',
+  FAQ_RAG_AGENT = 'FAQ RAG Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
   // Quantum Circuit patterns

@@ -13,13 +13,6 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
 
-const Flex = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 4px;
-`;
-
 const MethodRow = styled.div`
   display: flex;
   flex-direction: column;
@@ -57,17 +50,6 @@ const CodeButton = styled(Button)`
   padding: 4px 8px;
   font-size: 12px;
   min-width: 60px;
-`;
-
-const MethodNameLabel = styled.span`
-  flex: 1;
-  min-width: 0;
-  padding: 4px 8px;
-  font-size: 13px;
-  color: ${(props) => props.theme.color.primary || '#007bff'};
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const ImplementationRow = styled.div`
@@ -136,11 +118,21 @@ const VISIBILITY_OPTIONS = [
 ];
 
 const IMPLEMENTATION_TYPE_OPTIONS: { value: MethodImplementationType; label: string; icon: string }[] = [
-  { value: 'none', label: 'None (UML)', icon: '📋' },
-  { value: 'code', label: 'Python Code', icon: '📝' },
+  { value: 'none', label: 'None (UML)', icon: '' },
+  { value: 'code', label: 'Python Code', icon: '' },
+  { value: 'bal', label: 'BESSER Action Language', icon: '' },
   { value: 'state_machine', label: 'State Machine', icon: '' },
   { value: 'quantum_circuit', label: 'Quantum Circuit', icon: '' },
 ];
+
+const CODE_BASED_IMPLEMENTATION_TYPES: MethodImplementationType[] = ['code', 'bal'];
+
+const getCodeTemplate = (implType: MethodImplementationType, methodName: string) => {
+  if (implType === 'bal') {
+    return `def ${methodName}() -> nothing {\n    // Add your implementation here\n}\n`;
+  }
+  return `def ${methodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+};
 
 // Available diagram references (these would be passed as props from the webapp in a real implementation)
 export interface DiagramReference {
@@ -207,7 +199,7 @@ const UmlMethodUpdate = ({
         const methodName = parseMethod(value).name || 'method_name';
         // Extract just the method name without parameters for the template
         const cleanMethodName = methodName.split('(')[0].trim() || 'new_method';
-        const template = `def ${cleanMethodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+        const template = getCodeTemplate(localImplType, cleanMethodName);
         setLocalCode(template);
         onChange(id, { code: template });
       }
@@ -257,12 +249,12 @@ const UmlMethodUpdate = ({
   const handleCodeChange = (editor: any, data: any, newCode: string) => {
     setLocalCode(newCode);
     
-    // Extract method name from Python code
+    // Extract method name from code-like definitions (Python and BAL).
     const methodMatch = newCode.match(/def\s+(\w+)\s*\([^)]*\)/);
     if (methodMatch && methodMatch[1]) {
       const extractedMethodName = methodMatch[1];
       // Extract return type if exists
-      const returnTypeMatch = newCode.match(/def\s+\w+\s*\([^)]*\)\s*->\s*([^:]+):/);
+      const returnTypeMatch = newCode.match(/def\s+\w+\s*\([^)]*\)\s*->\s*([^:{]+)\s*[:{]/);
       const returnType = returnTypeMatch ? returnTypeMatch[1].trim() : '';
       
       // Extract parameters
@@ -309,12 +301,12 @@ const UmlMethodUpdate = ({
       setLocalCode('');
       setCodeEditorOpen(false);
       onChange(id, { implementationType: implType, code: '', stateMachineId: '', quantumCircuitId: '' });
-    } else if (implType === 'code') {
+    } else if (CODE_BASED_IMPLEMENTATION_TYPES.includes(implType)) {
       onChange(id, { implementationType: implType, stateMachineId: '', quantumCircuitId: '' });
       if (!localCode) {
         const methodName = parseMethod(value).name || 'method_name';
         const cleanMethodName = methodName.split('(')[0].trim() || 'new_method';
-        const template = `def ${cleanMethodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`;
+        const template = getCodeTemplate(implType, cleanMethodName);
         setLocalCode(template);
         onChange(id, { code: template, implementationType: implType });
       }
@@ -339,58 +331,38 @@ const UmlMethodUpdate = ({
   };
 
   const visibilityValue = VISIBILITY_OPTIONS.find(v => v.symbol === visibility)?.value || 'public';
-  const hasCode = localCode && localCode.trim().length > 0;
-  const currentImplOption = IMPLEMENTATION_TYPE_OPTIONS.find(opt => opt.value === localImplType);
+  const hasCode = localCode.trim().length > 0;
+  const isBalImplementation = localImplType === 'bal';
+  const codeImplementationTitle = isBalImplementation
+    ? 'Method defined in BESSER Action Language code'
+    : 'Method defined in Python code';
 
   // Determine display mode based on implementation type
-  const showCodeEditor = localImplType === 'code';
+  const showCodeEditor = CODE_BASED_IMPLEMENTATION_TYPES.includes(localImplType);
+  const isSignatureLocked = showCodeEditor;
   const showStateMachineSelector = localImplType === 'state_machine';
   const showQuantumCircuitSelector = localImplType === 'quantum_circuit';
-  const showSignatureFields = localImplType === 'none' || (!hasCode && localImplType === 'code');
 
   return (
     <MethodRow>
       <ControlsRow>
-        {/* Show visibility and name fields for signature-based methods */}
-        {showSignatureFields && (
-          <>
-            <VisibilityDropdown value={visibilityValue} onChange={handleVisibilityChange}>
-              {VISIBILITY_OPTIONS.map(vis => (
-                <Dropdown.Item key={vis.value} value={vis.value}>
-                  {vis.label}
-                </Dropdown.Item>
-              ))}
-            </VisibilityDropdown>
-            <NameField 
-              ref={onRefChange} 
-              value={name} 
-              onChange={handleNameChange} 
-              onSubmitKeyUp={onSubmitKeyUp}
-              placeholder="method(param: type): returnType"
-            />
-          </>
-        )}
-        
-        {/* Show method name label when in code mode with code */}
-        {hasCode && localImplType === 'code' && (
-          <MethodNameLabel title="Method defined in Python code">
-            Python Code {name.split('(')[0] || 'method'}
-          </MethodNameLabel>
-        )}
-
-        {/* Show method name label for state machine reference */}
-        {showStateMachineSelector && (
-          <MethodNameLabel title="Method behavior defined by state machine">
-           StateMachine {name.split('(')[0] || 'method'}
-          </MethodNameLabel>
-        )}
-
-        {/* Show method name label for quantum circuit reference */}
-        {showQuantumCircuitSelector && (
-          <MethodNameLabel title="Method behavior defined by quantum circuit">
-            QuantumCircuit {name.split('(')[0] || 'method'}
-          </MethodNameLabel>
-        )}
+        <VisibilityDropdown value={visibilityValue} onChange={isSignatureLocked ? undefined : handleVisibilityChange}>
+          {VISIBILITY_OPTIONS.map(vis => (
+            <Dropdown.Item key={vis.value} value={vis.value}>
+              {vis.label}
+            </Dropdown.Item>
+          ))}
+        </VisibilityDropdown>
+        <NameField
+          ref={onRefChange}
+          value={name}
+          onChange={handleNameChange}
+          onSubmitKeyUp={onSubmitKeyUp}
+          placeholder="method(param: type): returnType"
+          readonly={isSignatureLocked}
+          readOnly={isSignatureLocked}
+          title={isSignatureLocked ? codeImplementationTitle : undefined}
+        />
 
         <ColorButton onClick={toggleColor} />
         <Button color="link" tabIndex={-1} onClick={handleDelete}>
@@ -400,7 +372,7 @@ const UmlMethodUpdate = ({
 
       {/* Implementation Type Selection Row */}
       <ImplementationRow>
-        <ImplementationLabel>Implementation:</ImplementationLabel>
+        <ImplementationLabel>Type:</ImplementationLabel>
         <ImplementationTypeDropdown 
           value={localImplType} 
           onChange={handleImplementationTypeChange}
@@ -469,7 +441,7 @@ const UmlMethodUpdate = ({
             onClick={toggleCodeEditor}
             title={codeEditorOpen ? "Hide code editor" : "Show code editor"}
           >
-            {codeEditorOpen ? '▼ Code' : '▶ Code'}
+            {codeEditorOpen ? 'Hide Editor' : 'Show Editor'}
           </CodeButton>
         )}
       </ImplementationRow>
@@ -478,7 +450,9 @@ const UmlMethodUpdate = ({
       {codeEditorOpen && showCodeEditor && (
         <CodeEditorWrapper>
           <CodeEditorHeader>
-            <CodeEditorTitle>Python Implementation (full method definition)</CodeEditorTitle>
+            <CodeEditorTitle>
+              {isBalImplementation ? 'BESSER Action Language' : 'Python'} Implementation (full method definition)
+            </CodeEditorTitle>
             <div>
               {hasCode && (
                 <Button color="link" onClick={clearCode} style={{ padding: '2px 6px', fontSize: '10px', marginRight: '4px' }}>

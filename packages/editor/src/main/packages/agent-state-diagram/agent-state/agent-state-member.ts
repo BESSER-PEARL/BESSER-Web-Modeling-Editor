@@ -22,11 +22,14 @@ export abstract class AgentStateMember extends UMLElement {
 
   bounds: IBoundary = { ...this.bounds, height: computeDimension(1.0, 30) };
   replyType: string = "text";
+  ragDatabaseName: string = '';
   
   constructor(values?: DeepPartial<IUMLElement>) {
     super(values);
     assign<IUMLElement>(this, values);
-    
+    if ((values as any)?.ragDatabaseName !== undefined) {
+      this.ragDatabaseName = (values as any).ragDatabaseName ?? '';
+    }
   }
 
 
@@ -44,10 +47,11 @@ export abstract class AgentStateMember extends UMLElement {
       textColor: this.textColor,
       assessmentNote: this.assessmentNote,
       replyType: this.replyType,
+      ragDatabaseName: this.ragDatabaseName,
     };
   }
 
-    deserialize<T extends Apollon.UMLModelElement>(values: T & { replyType : string }) {
+    deserialize<T extends Apollon.UMLModelElement>(values: T & { replyType: string; ragDatabaseName?: string }) {
       this.id = values.id;
       this.name = values.name;
       this.type = values.type;
@@ -59,12 +63,28 @@ export abstract class AgentStateMember extends UMLElement {
       this.textColor = values.textColor;
       this.assessmentNote = values.assessmentNote;
       this.replyType = values.replyType;
+      this.ragDatabaseName = values.ragDatabaseName ?? '';
     }
 
   render(layer: ILayer): ILayoutable[] {
     const radix = 10;
-    const width = Text.size(layer, this.name).width + 20;
-    this.bounds.width = Math.max(this.bounds.width, Math.round(width / radix) * radix);
+
+    if (this.replyType === 'code') {
+      const lines = this.name.split('\n');
+      const lineHeight = 14;
+      const padding = 12;
+      let maxWidth = 0;
+      for (const line of lines) {
+        const w = Text.size(layer, line).width + 30;
+        maxWidth = Math.max(maxWidth, w);
+      }
+      this.bounds.width = Math.max(this.bounds.width, Math.round(maxWidth / radix) * radix);
+      this.bounds.height = Math.max(computeDimension(1.0, 30), lines.length * lineHeight + padding);
+    } else {
+      const width = Text.size(layer, this.name).width + 20;
+      this.bounds.width = Math.max(this.bounds.width, Math.round(width / radix) * radix);
+    }
+
     return [this];
   }
 } 

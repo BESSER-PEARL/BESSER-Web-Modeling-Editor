@@ -32,7 +32,7 @@ export function getClassOptions(): { value: string; label: string }[] {
   }
 
   return Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'Class')
+    .filter((element: any) => (element?.type === 'Class' || element?.type === 'AbstractClass'))
     .map((element: any) => ({ value: element.id, label: element.name }));
 }
 
@@ -98,7 +98,7 @@ export function getClassMetadata(classId: string, includeInherited: boolean = tr
   }
 
   const classElement = Object.values(classDiagram.elements).find(
-    (el: any) => el?.type === 'Class' && el?.id === classId
+    (el: any) => (el?.type === 'Class' || el?.type === 'AbstractClass') && el?.id === classId
   ) as any;
 
   if (!classElement) {
@@ -158,18 +158,33 @@ export function getEndsByClassId(classId: string, includeInherited: boolean = tr
     return [];
   }
 
-  // Get direct association ends
+
+  // Get direct association ends, filtering out OCL constraint associations
   const directEnds = Object.values(classDiagram.relationships)
     .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
     .map((relationship: any) => {
+      let otherElementId: string | null = null;
+      let role: string | null = null;
       if (relationship?.source?.element === classId) {
-        return { value: relationship.target.element, label: relationship.target.role };
+        otherElementId = relationship.target.element;
+        role = relationship.target.role;
+      } else if (relationship?.target?.element === classId) {
+        otherElementId = relationship.source.element;
+        role = relationship.source.role;
       }
-
-      if (relationship?.target?.element === classId) {
-        return { value: relationship.source.element, label: relationship.source.role };
+      if (otherElementId) {
+        // Check if the other element is an OCL constraint
+        const otherElement = classDiagram.elements?.[otherElementId];
+        if (otherElement?.type === 'ClassOCLConstraint') {
+          return null;
+        }
+        // If role (end name) is missing, use the class name as label
+        let label = role;
+        if (!label || label.trim() === '') {
+          label = otherElement?.name || '';
+        }
+        return { value: otherElementId, label };
       }
-
       return null;
     })
     .filter((end): end is { value: string; label: string } => end !== null);
@@ -359,7 +374,7 @@ export function getMethodsByClassId(classId: string): MethodMetadata[] {
 
   // Find class by name (classId might be a name now)
   const classElement = Object.values(classDiagram.elements).find(
-    (element: any) => element?.type === 'Class' && (element?.id === classId || element?.name === classId)
+    (element: any) => (element?.type === 'Class' || element?.type === 'AbstractClass') && (element?.id === classId || element?.name === classId)
   );
   
   if (!classElement) {
@@ -451,26 +466,45 @@ export function getTableOptions(editor: any): { value: string; label: string }[]
     
     if (!pageWrapper) return options;
     
-    // Find all table components in the current page only
-    const tables = pageWrapper.find('[class*="table-component"]');
-    
-    if (!tables) return options;
-    
-    tables.forEach((table: any) => {
+    // Find all table components in the current page using both class selector and type check.
+    // The class selector works for manually dropped tables; the type-based walk
+    // catches auto-generated tables whose class may not survive serialization.
+    const tablesByClass = pageWrapper.find('.table-component') || [];
+    const seenIds = new Set<string>();
+
+    const processTable = (table: any) => {
       try {
         const attrs = table.getAttributes();
-        const title = attrs['chart-title'] || 'Untitled Table';
-        // Use the id attribute instead of component ID
+        const title = attrs['chart-title'] || table.get('chart-title') || 'Untitled Table';
         const tableId = attrs['id'] || table.getId();
-        
+        if (seenIds.has(tableId)) return;
+        seenIds.add(tableId);
+
         options.push({
-          value: tableId,  // Store the table's id attribute as the value
-          label: `${title} (table)`  // Display the title with "(table)" suffix
+          value: tableId,
+          label: `${title} (table)`,
         });
       } catch (err) {
         console.warn('[getTableOptions] Error processing table:', err);
       }
-    });
+    };
+
+    // 1. Tables found by CSS class
+    tablesByClass.forEach(processTable);
+
+    // 2. Walk the component tree to find tables by GrapesJS component type
+    const walkComponents = (parent: any) => {
+      const children = parent.components?.() || parent.get?.('components');
+      if (!children) return;
+      children.forEach((child: any) => {
+        if (child.get('type') === 'table') {
+          processTable(child);
+        }
+        walkComponents(child);
+      });
+    };
+    walkComponents(pageWrapper);
+
   } catch (err) {
     console.warn('[getTableOptions] Error getting page wrapper:', err);
   }

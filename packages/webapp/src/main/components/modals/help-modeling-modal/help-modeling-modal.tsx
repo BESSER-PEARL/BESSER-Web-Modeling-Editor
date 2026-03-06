@@ -317,11 +317,12 @@ export const HelpModelingModal: React.FC<ModalContentProps> = ({ close }) => {
                 <td>
                   To edit the body of an agent state, double-click on the agent state element. This will open a popup where you can define the body of the agent state.
                   In the agent diagram, you can define three types of actions: 
-                    <ul>
-                  <li>Text reply: simple reply messages which cause the agent to send a predefined text message to the user</li>
-                  <li> LLM reply: will forward the user message to a Large Language Model and let it take care of responding and </li>
-                <li> Python code will allow users to take care of defining the function to be executed when the state is reached using a python syntax</li>
-                </ul>
+                      <ul>
+                    <li>Text reply: simple reply messages which cause the agent to send a predefined text message to the user</li>
+                    <li> LLM reply: will forward the user message to a Large Language Model and let it take care of responding </li>
+                    <li> RAG reply: will forward the user's message to a Retrieval-Augmented Generation (RAG) system and let it take care of responding based on the chosen RAG database</li>
+                  <li> Python code will allow users to take care of defining the function to be executed when the state is reached using a python syntax</li>
+                  </ul>
                 </td>
               
                 <td>
@@ -366,10 +367,22 @@ export const HelpModelingModal: React.FC<ModalContentProps> = ({ close }) => {
               <tr>
                 <th>Defining Intents</th>
                 <td>
-                  To define the intents your agent is supposed to recognize, drag and drop the intent element from the left panel onto the canvas. You can then double-click on the intent element to open a popup where you can define the intent name and its training sentences. The training sentences are the phrases that users might say to trigger this intent.
+                  To define the intents your agent is supposed to recognize, drag and drop the intent element from the left panel onto the canvas. You can then double-click on the intent element to open a popup where you can define the intent name and its training sentences. The training sentences are the phrases that users might say to trigger this intent. The description is used to describe the purpose or idea behind the intent.
                 </td>
                 <td>
                   <img width="400" src="/images/help/agent/help-agent-intent.png" alt="Image not found" />
+                </td>
+              </tr>
+            <tr>
+                <th>Agent configuration</th>
+                
+                 To configure the agent's settings, such as the underlying LLM model or RAG database, you can select the agent configuration page in the sidebar. Here, you can select which technologies and techniques the agent should use:
+                    <ul>
+                  <li>Classical intent-recognition: a local tensorflow model will be trained using the defined intents</li>
+                  <li> LLM-based intent-recognition: an (external or internal) LLM will be used to recognize intents </li>
+                </ul>
+                <td>
+                  <img width="400" src="/images/help/agent/help-agent-configuration.png" alt="Image not found" />
                 </td>
               </tr>
 

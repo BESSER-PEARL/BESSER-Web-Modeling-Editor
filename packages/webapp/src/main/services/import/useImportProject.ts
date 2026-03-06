@@ -46,6 +46,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'StateMachineDiagram',
     'AgentDiagram',
     'NNDiagram',
+    'UserDiagram',
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram'
   ];
@@ -56,6 +57,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
     NNDiagram: UMLDiagramType.NNDiagram,
+    UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
     QuantumCircuitDiagram: null,
   };
@@ -66,6 +68,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
     NNDiagram: 'NN Diagram',
+    UserDiagram: 'User Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
     QuantumCircuitDiagram: 'Quantum Circuit'
   };

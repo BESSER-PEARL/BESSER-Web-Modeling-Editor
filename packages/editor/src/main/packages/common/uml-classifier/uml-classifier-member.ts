@@ -1,4 +1,4 @@
-import { DeepPartial } from 'redux';
+﻿import { DeepPartial } from 'redux';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-element';
@@ -54,7 +54,12 @@ const SYMBOL_TO_VISIBILITY: Record<string, Visibility> = {
   '~': 'package',
 };
 
-export type MethodImplementationType = 'none' | 'code' | 'state_machine' | 'quantum_circuit';
+export type MethodImplementationType =
+  | 'none'
+  | 'code'
+  | 'bal'
+  | 'state_machine'
+  | 'quantum_circuit';
 
 export interface IUMLClassifierMember extends IUMLElement {
   code?: string;
@@ -63,6 +68,8 @@ export interface IUMLClassifierMember extends IUMLElement {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  isOptional?: boolean;
+  defaultValue?: any;
 }
 
 export abstract class UMLClassifierMember extends UMLElement implements IUMLClassifierMember {
@@ -84,6 +91,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   implementationType: MethodImplementationType = 'none';
   stateMachineId: string = '';
   quantumCircuitId: string = '';
+  isOptional: boolean = false;
+  defaultValue: any = undefined;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
     super(values);
@@ -100,7 +109,11 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       if (/^[+\-#~]\s/.test(this.name)) {
         return this.name;
       }
-      return `${visSymbol} ${this.name}: ${this.attributeType}`;
+      const optionalMarker = this.isOptional ? '?' : '';
+      const defaultSuffix = (this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== '')
+        ? ` = ${this.defaultValue}`
+        : '';
+      return `${visSymbol} ${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
     }
     // Fallback to name for backward compatibility or simple display
     return this.name;
@@ -154,6 +167,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       implementationType: this.implementationType,
       stateMachineId: this.stateMachineId,
       quantumCircuitId: this.quantumCircuitId,
+      isOptional: this.isOptional,
+      defaultValue: this.defaultValue,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
 
@@ -168,14 +183,17 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       // New format - use separate properties, name is already set by super.deserialize()
       this.visibility = memberValues.visibility || 'public';
       this.attributeType = memberValues.attributeType || 'str';
+      this.isOptional = memberValues.isOptional || false;
     } else {
       // Legacy format - parse from name to extract visibility and type
       const parsed = UMLClassifierMember.parseNameFormat(this.name);
       this.visibility = parsed.visibility;
       this.attributeType = parsed.attributeType;
+      this.isOptional = false;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }
+    this.defaultValue = memberValues.defaultValue !== undefined ? memberValues.defaultValue : undefined;
     
     // Deserialize implementation type fields
     this.implementationType = memberValues.implementationType || 'none';

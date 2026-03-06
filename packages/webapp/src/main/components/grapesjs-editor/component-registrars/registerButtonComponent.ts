@@ -73,7 +73,7 @@ export const registerButtonComponent = (editor: any) => {
         this.on('change:action-type', this.updateTraitVisibility);
         this.on('change:confirmation-required', this.updateTraitVisibility);
         this.on('change:method-class', this.updateMethodOptions);
-        this.on('change:button-label change:button-style change:action-type', this.updateButton);
+        this.on('change:button-label change:button-style change:action-type change:method change:method-class change:instance-source change:entity-class change:target-screen change:confirmation-required change:confirmation-message', this.updateButton);
         
         // Set up traits with proper visibility from the start
         this.updateTraitVisibility();
@@ -282,7 +282,7 @@ export const registerButtonComponent = (editor: any) => {
         const targetScreen = this.get('target-screen') || '';
         const entityClass = this.get('entity-class') || '';
         const methodClass = this.get('method-class') || '';
-        const methodName = this.get('method-name') || '';
+        const methodName = this.get('method') || '';
         const instanceSource = this.get('instance-source') || '';
         const confirmRequired = this.get('confirmation-required') || false;
         const confirmMessage = this.get('confirmation-message') || 'Are you sure?';

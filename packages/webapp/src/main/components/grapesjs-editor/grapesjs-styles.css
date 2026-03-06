@@ -239,6 +239,53 @@
   background-color: #e8e8e8 !important;
 }
 
+/* Sidebar hover labels */
+.gjs-pn-views,
+.gjs-pn-commands {
+  overflow: visible !important;
+}
+
+.gjs-pn-views .gjs-pn-btn,
+.gjs-pn-commands .gjs-pn-btn {
+  position: relative;
+}
+
+.gjs-pn-views .gjs-pn-btn[data-tooltip]::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background: #1f2937;
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10;
+}
+
+.gjs-pn-views .gjs-pn-btn[data-tooltip][data-tooltip-placement="left"]::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip][data-tooltip-placement="left"]::after {
+  left: auto;
+  right: calc(100% + 8px);
+  transform: translateY(-50%) translateX(4px);
+}
+
+.gjs-pn-views .gjs-pn-btn[data-tooltip]:hover::after,
+.gjs-pn-views .gjs-pn-btn[data-tooltip]:focus-visible::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip]:hover::after,
+.gjs-pn-commands .gjs-pn-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
 /* Clean inputs like the webapp */
 .gjs-sm-property input,
 .gjs-sm-property select,

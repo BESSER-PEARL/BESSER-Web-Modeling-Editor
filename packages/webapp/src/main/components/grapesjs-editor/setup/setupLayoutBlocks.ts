@@ -5,6 +5,42 @@ import { Editor } from 'grapesjs';
  */
 export function setupLayoutBlocks(editor: Editor) {
   const bm = editor.BlockManager;
+  const domc = editor.DomComponents;
+  try {
+    const defaultType = domc.getType('default');
+    const defaultModel = defaultType?.model;
+    const defaultView = defaultType?.view;
+
+    if (defaultModel && defaultView) {
+      domc.addType('analytics-dashboard', {
+        model: defaultModel.extend(
+          {
+            defaults: {
+              ...defaultModel.prototype.defaults,
+              name: 'Analytics Dashboard',
+              stylable: ['background', 'background-color', 'padding', 'color'],
+              style: {
+                'background-color': '#4b3c82',
+                padding: '20px',
+              },
+              droppable: true,
+            },
+          },
+          {
+            isComponent(el: HTMLElement) {
+              const type = el?.getAttribute?.('data-gjs-type');
+              if (type === 'analytics-dashboard') return true;
+              const cls = el?.getAttribute?.('class') || '';
+              return cls.split(' ').includes('dashboard-container');
+            },
+          }
+        ),
+        view: defaultView,
+      });
+    }
+  } catch (error) {
+    console.warn('[LayoutBlocks] Unable to register analytics-dashboard type; using default wrapper.', error);
+  }
   
   // Container Block
   bm.add('container', {
@@ -104,20 +140,6 @@ export function setupLayoutBlocks(editor: Editor) {
       </section>
     `,
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="6" y1="9" x2="18" y2="9" stroke="currentColor" stroke-width="2"/><line x1="6" y1="13" x2="14" y2="13" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="17" r="1.5" fill="currentColor"/></svg>',
-  });
-  
-  // Card Layout
-  bm.add('card', {
-    label: 'Card',
-    category: 'Layout',
-    content: `
-      <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; margin: 20px;">
-        <h3 style="margin-top: 0; color: #333;">Card Title</h3>
-        <p style="color: #666; line-height: 1.6;">This is a card component. Add your content here. Cards are great for organizing information.</p>
-        <button style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 15px;">Learn More</button>
-      </div>
-    `,
-    media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="11" x2="21" y2="11" stroke="currentColor" stroke-width="1.5"/></svg>',
   });
   
   // Split Section (50/50)
@@ -431,7 +453,7 @@ export function setupLayoutBlocks(editor: Editor) {
     label: 'Analytics Dashboard',
     category: 'Templates',
     content: `
-      <div class="dashboard-container" style="padding: 20px; background: linear-gradient(135deg, rgb(75, 60, 130) 0%, rgb(90, 61, 145) 100%);">
+      <div data-gjs-type="analytics-dashboard" data-gjs-highlightable="true" style="padding: 20px; background-color: #4b3c82;">
         <div style="max-width: 1400px; margin: 0 auto;">
           <!-- Dashboard Header -->
           <div style="margin-bottom: 30px;">

@@ -16,6 +16,7 @@ import { BPMNElementType } from './bpmn';
 import { StateElementType } from './uml-state-diagram';
 import { AgentElementType } from './agent-state-diagram';
 import { NNElementType } from './nn-diagram';
+import { UserModelElementType } from './user-modeling';
 
 export type UMLElementType =
   | keyof typeof ClassElementType
@@ -34,7 +35,8 @@ export type UMLElementType =
   | keyof typeof BPMNElementType
   | keyof typeof StateElementType
   | keyof typeof AgentElementType
-  | keyof typeof NNElementType;
+  | keyof typeof NNElementType
+  | keyof typeof UserModelElementType;
 
 export const UMLElementType = {
   ...ClassElementType,
@@ -54,6 +56,7 @@ export const UMLElementType = {
   ...StateElementType,
   ...AgentElementType,
   ...NNElementType,
+  ...UserModelElementType,
 };
 
 export const UMLElementsForDiagram: { [key in UMLDiagramType]: any } = {
@@ -73,7 +76,7 @@ export const UMLElementsForDiagram: { [key in UMLDiagramType]: any } = {
     [UMLDiagramType.StateMachineDiagram]: StateElementType,
     [UMLDiagramType.AgentDiagram]: AgentElementType,
     [UMLDiagramType.NNDiagram]: NNElementType,
-    [UMLDiagramType.UserDiagram]: ObjectElementType, // Use ObjectElementType for UserDiagram as well
+    [UMLDiagramType.UserDiagram]: UserModelElementType,
   },
   // ...ColorLegendElementType,
   // ...CommentsElementType,

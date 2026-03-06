@@ -18,7 +18,6 @@ export abstract class AgentIntentMember extends UMLElement {
     droppable: false,
     updatable: false,
   };
-
   bounds: IBoundary = { ...this.bounds, height: computeDimension(1.0, 30) };
 
   constructor(values?: DeepPartial<IUMLElement>) {

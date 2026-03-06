@@ -158,14 +158,17 @@ function createAndAppendPagesPanel(editor: Editor) {
   container.innerHTML = `
     <div class="gjs-pages-header">
       <span class="gjs-pages-title">Pages</span>
+    </div>
+    <div class="gjs-pages-search-container">
+      <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="Search pages..." />
+    </div>
+    <div class="gjs-pages-actions">
       <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="Add new page">
         <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
           <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
         </svg>
+        <span>Add Page</span>
       </button>
-    </div>
-    <div class="gjs-pages-search-container">
-      <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="Search pages..." />
     </div>
     <div id="gjs-pages-list" class="gjs-pages-list"></div>
   `;
@@ -572,7 +575,7 @@ function addPagesPanelCSS() {
     
     .gjs-pages-header {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
       padding: 10px 12px;
       background: #f5f5f5;
@@ -587,28 +590,38 @@ function addPagesPanelCSS() {
       letter-spacing: 0.5px;
     }
     
+    .gjs-pages-actions {
+      padding: 8px 12px;
+      border-bottom: 1px solid #eee;
+    }
+    
     .gjs-pages-add-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
+      gap: 6px;
+      width: 100%;
+      height: 34px;
       background: #0066cc;
       border: none;
       border-radius: 4px;
       color: white;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
     }
     
     .gjs-pages-add-btn:hover {
       background: #0052a3;
-      transform: scale(1.05);
+    }
+    
+    .gjs-pages-add-btn svg {
+      flex-shrink: 0;
     }
     
     .gjs-pages-search-container {
       padding: 8px 12px;
-      border-bottom: 1px solid #eee;
     }
     
     .gjs-pages-search {

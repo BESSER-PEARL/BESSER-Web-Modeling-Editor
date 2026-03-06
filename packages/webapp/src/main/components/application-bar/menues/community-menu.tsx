@@ -6,7 +6,7 @@ import { useAppDispatch } from '../../store/hooks';
 import { showModal } from '../../../services/modal/modalSlice';
 
 const githubRepoURL = 'https://github.com/BESSER-PEARL/BESSER';
-const contributingGuideURL = 'https://github.com/BESSER-PEARL/BESSER/blob/main/CONTRIBUTING.md';
+const contributingGuideURL = 'https://github.com/BESSER-PEARL/BESSER/blob/master/CONTRIBUTING.md';
 const userEvaluationSurveyURL = 'https://docs.google.com/forms/d/e/1FAIpQLSdhYVFFu8xiFkoV4u6Pgjf5F7-IS_W7aTj34N5YS2L143vxoQ/viewform';
 
 export const CommunityMenu: React.FC = () => {

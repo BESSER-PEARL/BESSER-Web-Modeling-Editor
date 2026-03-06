@@ -15,6 +15,9 @@ import { SidebarLayout } from './components/sidebar/SidebarLayout';
 import { HomeModal } from './components/home/HomeModal';
 import { ProjectSettingsScreen } from './components/project/ProjectSettingsScreen';
 import { useProject } from './hooks/useProject';
+import { AgentConfigScreen } from './components/agent/AgentConfigScreen';
+import { AgentPersonalizationConfigScreen } from './components/agent/AgentPersonalizationConfigScreen';
+import { AgentPersonalizationMappingScreen } from './components/agent/AgentPersonalizationMappingScreen';
 import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
@@ -48,7 +51,8 @@ function AppContentInner() {
     location.pathname !== '/graphical-ui-editor' &&
     location.pathname !== '/quantum-editor' &&
     location.pathname !== '/agent-config' &&
-    location.pathname !== '/agent-personalization';
+    location.pathname !== '/agent-personalization' &&
+    location.pathname !== '/agent-personalization-2'; 
 
   const handleSetEditor = (newEditor: ApollonEditor | undefined) => {
     setEditor(newEditor);
@@ -163,7 +167,34 @@ function AppContentInner() {
             </SidebarLayout>
           }
         />
+        {/* Agent configuration route */}
+        <Route 
+          path="/agent-config" 
+          element={
+            <SidebarLayout>
+              <AgentConfigScreen />
+            </SidebarLayout>
+          } 
+        />
 
+        {/* Agent personalization route */}
+        <Route 
+          path="/agent-personalization" 
+          element={
+            <SidebarLayout>
+              <AgentPersonalizationConfigScreen />
+            </SidebarLayout>
+          } 
+        />
+        {/* Agent personalization v2 route */}
+        <Route 
+          path="/agent-personalization-2" 
+          element={
+            <SidebarLayout>
+              <AgentPersonalizationMappingScreen />
+            </SidebarLayout>
+          } 
+        />
         {/* Quantum Circuit Editor route */}
         <Route
           path="/quantum-editor"

@@ -8,12 +8,13 @@ import { IUMLElement } from '../../../services/uml-element/uml-element';
 
 export interface IUMLObjectAttribute extends IUMLElement {
   attributeId?: string; // ID of the attribute from the library class
-  attributeType?: string; // Type of the attribute (str, int, float, etc.)
+  attributeType?: string; // Type of the attribute (str, int, float, etc.) - optional in interface for deserialization
 }
 
 export class UMLObjectAttribute extends UMLClassifierAttribute {
   type: UMLElementType = ObjectElementType.ObjectAttribute;
   attributeId?: string; // Store the ID of the attribute from the library class
+  attributeType: string = 'str'; // Type of the attribute (str, int, float, etc.)
 
   /**
    * Override displayName to return just the name without visibility and type
@@ -36,6 +37,7 @@ export class UMLObjectAttribute extends UMLClassifierAttribute {
     return {
       ...super.serialize(),
       attributeId: this.attributeId,
+      attributeType: this.attributeType,
     };
   }
 
@@ -43,6 +45,9 @@ export class UMLObjectAttribute extends UMLClassifierAttribute {
     super.deserialize(values, children);
     if ('attributeId' in values && typeof values.attributeId === 'string') {
       this.attributeId = values.attributeId;
+    }
+    if ('attributeType' in values && typeof values.attributeType === 'string') {
+      this.attributeType = values.attributeType;
     }
   }
 }
