@@ -68,8 +68,23 @@ export abstract class AgentStateMember extends UMLElement {
 
   render(layer: ILayer): ILayoutable[] {
     const radix = 10;
-    const width = Text.size(layer, this.name).width + 20;
-    this.bounds.width = Math.max(this.bounds.width, Math.round(width / radix) * radix);
+
+    if (this.replyType === 'code') {
+      const lines = this.name.split('\n');
+      const lineHeight = 14;
+      const padding = 12;
+      let maxWidth = 0;
+      for (const line of lines) {
+        const w = Text.size(layer, line).width + 30;
+        maxWidth = Math.max(maxWidth, w);
+      }
+      this.bounds.width = Math.max(this.bounds.width, Math.round(maxWidth / radix) * radix);
+      this.bounds.height = Math.max(computeDimension(1.0, 30), lines.length * lineHeight + padding);
+    } else {
+      const width = Text.size(layer, this.name).width + 20;
+      this.bounds.width = Math.max(this.bounds.width, Math.round(width / radix) * radix);
+    }
+
     return [this];
   }
 } 

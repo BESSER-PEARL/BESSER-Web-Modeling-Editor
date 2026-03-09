@@ -189,7 +189,7 @@
                 "element": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
               },
               "isManuallyLayouted": false,
-              "condition": "when_intent_matched",
+              "condition": "auto",
               "conditionValue": ""
             },
             "b8e27aba-df6f-4816-afb5-0bb39ebc1fda": {

@@ -118,6 +118,8 @@ type AttributeValues = {
   name?: string;
   visibility?: Visibility;
   attributeType?: string;
+  isOptional?: boolean;
+  defaultValue?: any;
   fillColor?: string;
   textColor?: string;
   lineColor?: string;
@@ -129,6 +131,8 @@ type Props = {
   value: string;
   visibility?: Visibility;
   attributeType?: string;
+  isOptional?: boolean;
+  defaultValue?: any;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
@@ -176,6 +180,8 @@ const UmlAttributeUpdate = ({
   value,
   visibility: propVisibility,
   attributeType: propAttributeType,
+  isOptional: propIsOptional,
+  defaultValue: propDefaultValue,
   onChange,
   onSubmitKeyUp,
   onDelete,
@@ -238,34 +244,63 @@ const UmlAttributeUpdate = ({
     attributeType = parsed.attributeType;
   }
 
+  const isOptional = propIsOptional || false;
+  const defaultValue = propDefaultValue;
+
   // Get available enumerations from the model
   const enumerations = availableEnumerations;
   const allTypes = [...PRIMITIVE_TYPES, ...enumerations];
 
   const handleVisibilityChange = (newVisibility: unknown) => {
     const vis = newVisibility as Visibility;
-    onChange(id, { 
+    onChange(id, {
       name: attrName,
       visibility: vis,
-      attributeType
+      attributeType,
+      isOptional,
+      defaultValue,
     });
   };
 
   const handleNameChange = (newName: string | number) => {
     const nameStr = String(newName);
-    onChange(id, { 
+    onChange(id, {
       name: nameStr,
       visibility,
-      attributeType
+      attributeType,
+      isOptional,
+      defaultValue,
     });
   };
 
   const handleTypeChange = (newType: unknown) => {
     const typeStr = String(newType);
-    onChange(id, { 
+    onChange(id, {
       name: attrName,
       visibility,
-      attributeType: typeStr
+      attributeType: typeStr,
+      isOptional,
+      defaultValue,
+    });
+  };
+
+  const handleOptionalChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      isOptional: checked,
+      defaultValue,
+    });
+  };
+
+  const handleDefaultValueChange = (newDefaultValue: string) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      isOptional,
+      defaultValue: newDefaultValue || undefined,
     });
   };
 
@@ -302,7 +337,17 @@ const UmlAttributeUpdate = ({
           <TrashIcon />
         </Button>
       </ControlsRow>
-      <StylePane open={colorOpen} element={element} onColorChange={onChange} fillColor textColor />
+      <StylePane
+        open={colorOpen}
+        element={element}
+        onColorChange={onChange}
+        fillColor
+        textColor
+        isOptional={isOptional}
+        onOptionalChange={handleOptionalChange}
+        defaultValue={defaultValue}
+        onDefaultValueChange={handleDefaultValueChange}
+      />
     </AttributeRow>
   );
 };;

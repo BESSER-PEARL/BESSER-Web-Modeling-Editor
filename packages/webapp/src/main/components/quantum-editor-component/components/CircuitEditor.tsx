@@ -42,10 +42,10 @@ const CircuitContainer = styled.div`
     position: relative;
 `;
 
-const DragGhost = styled.div<{ $x: number; $y: number }>`
+const DragGhost = styled.div<{ $x: number; $y: number; $offsetX: number; $offsetY: number; $gridLeft: number; $gridTop: number }>`
     position: fixed;
-    left: ${props => props.$x}px;
-    top: ${props => props.$y}px;
+    left: ${props => props.$gridLeft + props.$x - props.$offsetX}px;
+    top: ${props => props.$gridTop + props.$y - props.$offsetY}px;
     pointer-events: none;
     z-index: 1000;
     opacity: 0.8;
@@ -175,8 +175,12 @@ export function CircuitEditor({
                     {/* Drag ghost */}
                     {editor.draggedGate && (
                         <DragGhost
-                            $x={editor.mousePos.x + (circuitGridRef.current?.getBoundingClientRect().left || 0)}
-                            $y={editor.mousePos.y + (circuitGridRef.current?.getBoundingClientRect().top || 0)}
+                            $x={editor.mousePos.x}
+                            $y={editor.mousePos.y}
+                            $offsetX={editor.draggedGate?.offset.x || 0}
+                            $offsetY={editor.draggedGate?.offset.y || 0}
+                            $gridLeft={circuitGridRef.current?.getBoundingClientRect().left || 0}
+                            $gridTop={circuitGridRef.current?.getBoundingClientRect().top || 0}
                         >
                             <Gate gate={GATES.find((g) => g.type === editor.draggedGate?.gate)!} isDragging />
                         </DragGhost>

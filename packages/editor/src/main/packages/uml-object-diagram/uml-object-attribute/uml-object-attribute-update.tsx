@@ -102,13 +102,15 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
   };
 
   // Extract the type from the attribute name (e.g., "attribute: EX" -> "EX")
+  // Falls back to the element's stored attributeType property
   const getAttributeType = (attributeName: string): string => {
     // Parse attribute name like "attribute: EX" to get the type "EX"
     const colonIndex = attributeName.lastIndexOf(':');
     if (colonIndex !== -1) {
       return attributeName.substring(colonIndex + 1).trim();
     }
-    return '';
+    // Fall back to stored attributeType from class diagram bridge
+    return (element as any).attributeType || '';
   };
 
   // Check if this attribute is of enumeration type

@@ -135,7 +135,7 @@ export const GenerateCodeMenu: React.FC = () => {
     const model = diagram.model as any;
     const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
     const classesCount = model.elements
-      ? Object.values(model.elements).filter((el: any) => el.type === 'Class').length
+      ? Object.values(model.elements).filter((el: any) => el.type === 'Class' || el.type === 'AbstractClass').length
       : 0;
     const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
 
@@ -193,8 +193,14 @@ export const GenerateCodeMenu: React.FC = () => {
       }
       
       // web_app generator doesn't need the apollon editor - it uses project data
+      // Include the active agent configuration so the agent sub-generator receives IC/LLM settings
       try {
-        await generateCode(null, 'web_app', diagram.title);
+        const activeAgentConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
+        const activeAgentConfig = activeAgentConfigId
+          ? LocalStorageRepository.loadAgentConfiguration(activeAgentConfigId)?.config ?? null
+          : null;
+        const webAppConfig = activeAgentConfig ? { agentConfig: activeAgentConfig } : undefined;
+        await generateCode(null, 'web_app', diagram.title, webAppConfig);
         posthog.capture('generator_used', {
           generator_type: 'web_app',
           diagram_type: currentDiagramType,
@@ -568,7 +574,7 @@ export const GenerateCodeMenu: React.FC = () => {
     }
 
     try {
-      await generateCode(editor, 'json', diagram.title);
+      await generateCode(editor, 'jsonobject', diagram.title);
     } catch (error) {
       console.error('Error in JSON Object generation:', error);
       toast.error('JSON Object generation failed');
