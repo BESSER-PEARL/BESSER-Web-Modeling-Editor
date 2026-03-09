@@ -8,8 +8,11 @@ import { useProject } from '../../hooks/useProject';
 import { ProjectDiagram, SupportedDiagramType } from '../../types/project';
 import { useExportPNG } from '../../services/export/useExportPng';
 import { useExportSVG } from '../../services/export/useExportSvg';
+import { useExportBUML } from '../../services/export/useExportBuml';
+import { useExportJSON } from '../../services/export/useExportJson';
 import { exportProjectById } from '../../services/export/useExportProjectJSON';
 import { exportProjectAsSingleBUMLFile } from '../../services/export/useExportProjectBUML';
+import { useAppSelector } from '../../store/hooks';
 
 interface ExportDialogProps {
   open: boolean;
@@ -18,7 +21,7 @@ interface ExportDialogProps {
   currentDiagramTitle: string;
 }
 
-type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML';
+type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML';
 
 const diagramLabels: Record<SupportedDiagramType, string> = {
   ClassDiagram: 'Class Diagram',
@@ -33,8 +36,11 @@ const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
 
 export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, editor, currentDiagramTitle }) => {
   const { currentProject } = useProject();
+  const diagram = useAppSelector((state) => state.diagram.diagram);
   const exportAsSVG = useExportSVG();
   const exportAsPNG = useExportPNG();
+  const exportAsBUML = useExportBUML();
+  const exportAsJSON = useExportJSON();
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
 
   const diagramEntries = useMemo<[SupportedDiagramType, ProjectDiagram][]>(
@@ -65,10 +71,11 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
   const handleExport = async (format: ExportFormat) => {
     const isImageExport = format === 'SVG' || format === 'PNG' || format === 'PNG_WHITE';
+    const isSingleDiagramExport = format === 'SINGLE_JSON' || format === 'SINGLE_BUML';
     const normalizedTitle = currentDiagramTitle.trim() || 'Diagram';
 
-    if (isImageExport && !editor) {
-      toast.error('Open a UML diagram to export SVG/PNG.');
+    if ((isImageExport || isSingleDiagramExport) && !editor) {
+      toast.error('Open a UML diagram first.');
       return;
     }
 
@@ -93,6 +100,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
         await exportProjectById(currentProject, selectedDiagrams);
       } else if (format === 'BUML') {
         await exportProjectAsSingleBUMLFile(currentProject, selectedDiagrams);
+      } else if (format === 'SINGLE_BUML') {
+        await exportAsBUML(editor!, normalizedTitle);
+      } else if (format === 'SINGLE_JSON') {
+        if (diagram) exportAsJSON(editor!, diagram);
       }
 
       onOpenChange(false);
@@ -178,11 +189,19 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <FileImage className="h-4 w-4" />
                 Export PNG (Transparent)
               </Button>
+              <Button variant="outline" onClick={() => handleExport('SINGLE_JSON')} className="justify-start gap-2">
+                <FileJson2 className="h-4 w-4" />
+                Export Diagram as JSON
+              </Button>
+              <Button variant="outline" onClick={() => handleExport('SINGLE_BUML')} className="justify-start gap-2">
+                <FileCode2 className="h-4 w-4" />
+                Export Diagram as B-UML
+              </Button>
             </div>
 
             {!editor && (
               <p className="mt-3 text-xs text-amber-700">
-                SVG/PNG requires a UML diagram view. JSON/B-UML export is still available.
+                Current diagram exports require a UML diagram view. Use project-level export instead.
               </p>
             )}
           </section>

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../constant';
 import { normalizeProjectName } from '../../utils/projectName';
+import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 
 // Re-export from github service for backward compatibility
 export { useGitHubAuth, type GitHubAuthStatus } from '../github/useGitHubAuth';
@@ -48,11 +49,16 @@ export const useDeployToGitHub = () => {
       setDeploymentResult(null);
 
       try {
-        // Default agent config used as fallback for old projects without diagram-level config
+        // Get active agent configuration to include in the deploy request
+        const activeConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
+        const agentConfig = activeConfigId
+          ? LocalStorageRepository.loadAgentConfiguration(activeConfigId)?.config ?? null
+          : null;
+
+        // Default agent config: websocket+streamlit, classical IC (no API key needed)
         const defaultAgentConfig = {
           agentPlatform: 'streamlit',
-          intentRecognitionTechnology: 'llm-based',
-          llm: { provider: 'openai', model: 'gpt-5-nano' },
+          intentRecognitionTechnology: 'classical',
         };
 
         const requestBody = {
@@ -60,7 +66,7 @@ export const useDeployToGitHub = () => {
           name: normalizeProjectName(projectData?.name || 'project'),
           settings: {
             ...(projectData.settings || {}),
-            config: defaultAgentConfig,
+            config: agentConfig ?? defaultAgentConfig,
           },
           deploy_config: {
             repo_name: repoName,
