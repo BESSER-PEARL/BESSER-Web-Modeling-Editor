@@ -1,4 +1,4 @@
-﻿import React, { ChangeEvent, useEffect, useState, useContext, useCallback, useRef } from 'react';
+import React, { ChangeEvent, useEffect, useState, useContext, useCallback, useRef } from 'react';
 import { Nav, Navbar,NavDropdown, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { FileMenu } from './menues/file-menu';
 import { HelpMenu } from './menues/help-menu';
@@ -48,6 +48,7 @@ type UserProfileSummary = {
 };
 import { useGitHubAuth } from '../../services/github/useGitHubAuth';
 import { GitHubSidebar } from '../github-sidebar';
+import { ExternalDbConnectionModal } from '../modals/external-db-modal/ExternalDbConnectionModal';
 
 const DiagramTitle = styled.input`
   font-size: 1rem;
@@ -210,6 +211,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
   const [activeAgentConfigId, setActiveAgentConfigId] = useState<string>(LocalStorageRepository.getActiveAgentConfigurationId() || '');
   const baseAgentModelRef = useRef<UMLModel | null>(null);
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
+  const [showExternalDbModal, setShowExternalDbModal] = useState(false);
   const urlPath = window.location.pathname;
   const tokenInUrl = urlPath.substring(1); // This removes the leading "/"
   const currentType = useAppSelector((state) => state.diagram.editorOptions.type);
@@ -608,6 +610,11 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
                   <Nav.Link onClick={handleQualityCheck}>Quality Check</Nav.Link>
                 </Nav.Item>
               )}
+              {APPLICATION_SERVER_VERSION && (
+                <Nav.Item>
+                  <Nav.Link onClick={() => setShowExternalDbModal(true)}>External DB</Nav.Link>
+                </Nav.Item>
+              )}
             </>
 
             {/* {APPLICATION_SERVER_VERSION && (
@@ -733,6 +740,8 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
         isOpen={isGitHubSidebarOpen} 
         onClose={() => setIsGitHubSidebarOpen(false)} 
       />
+
+      <ExternalDbConnectionModal show={showExternalDbModal} onHide={() => setShowExternalDbModal(false)} />
     </>
   );
 };
