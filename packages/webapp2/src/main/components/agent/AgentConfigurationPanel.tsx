@@ -42,11 +42,11 @@ const defaultAgentConfig = (): AgentConfigurationPayload => ({
     font: 'sans',
     lineSpacing: 1.5,
     alignment: 'left',
-    color: '#111827',
+    color: 'var(--apollon-primary-contrast)',
     contrast: 'medium',
   },
   voiceStyle: {
-    gender: 'ambiguous',
+    gender: 'male',
     speed: 1,
   },
   avatar: null,
@@ -55,6 +55,11 @@ const defaultAgentConfig = (): AgentConfigurationPayload => ({
   userProfileName: null,
   intentRecognitionTechnology: 'classical',
 });
+
+const knownLLMModels = ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'mistral-7b', 'falcon-40b', 'llama-3-8b', 'bloom-176b'];
+
+const baseTextModality = ['text'];
+const speechEnabledModality = ['text', 'speech'];
 
 const normalizeConfig = (raw: Partial<AgentConfigurationPayload> | null | undefined): AgentConfigurationPayload => {
   const base = defaultAgentConfig();
@@ -69,12 +74,12 @@ const normalizeConfig = (raw: Partial<AgentConfigurationPayload> | null | undefi
   return {
     ...base,
     ...raw,
-    inputModalities: Array.isArray(raw.inputModalities) && raw.inputModalities.length > 0
-      ? raw.inputModalities
-      : base.inputModalities,
-    outputModalities: Array.isArray(raw.outputModalities) && raw.outputModalities.length > 0
-      ? raw.outputModalities
-      : base.outputModalities,
+    inputModalities: Array.isArray(raw.inputModalities) && raw.inputModalities.includes('speech')
+      ? [...speechEnabledModality]
+      : [...baseTextModality],
+    outputModalities: Array.isArray(raw.outputModalities) && raw.outputModalities.includes('speech')
+      ? [...speechEnabledModality]
+      : [...baseTextModality],
     interfaceStyle: {
       ...base.interfaceStyle,
       ...(raw.interfaceStyle || {}),
@@ -90,8 +95,6 @@ const normalizeConfig = (raw: Partial<AgentConfigurationPayload> | null | undefi
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-const modalityOptions = ['text', 'voice', 'image', 'video'];
-
 export const AgentConfigurationPanel: React.FC = () => {
   const { currentProject } = useProject();
   const [configurationName, setConfigurationName] = useState(DEFAULT_CONFIG_NAME);
@@ -100,6 +103,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [selectedMappingConfigId, setSelectedMappingConfigId] = useState('');
   const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
+  const [customModel, setCustomModel] = useState('');
 
   const [config, setConfig] = useState<AgentConfigurationPayload>(() => {
     const stored = localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
@@ -182,6 +186,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   };
 
   const setLlmModel = (model: string) => {
+    if (model !== 'other') {
+      setCustomModel('');
+    }
     setConfig((previous) => {
       const provider = (previous.llm as any)?.provider as AgentLLMProvider | undefined;
       if (!provider) {
@@ -191,26 +198,29 @@ export const AgentConfigurationPanel: React.FC = () => {
     });
   };
 
-  const toggleModality = (kind: 'input' | 'output', value: string) => {
-    if (kind === 'input') {
-      const next = config.inputModalities.includes(value)
-        ? config.inputModalities.filter((entry) => entry !== value)
-        : [...config.inputModalities, value];
-      updateConfig('inputModalities', next.length > 0 ? next : ['text']);
-      return;
-    }
+  const handleInputSpeechToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateConfig('inputModalities', e.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
+  };
 
-    const next = config.outputModalities.includes(value)
-      ? config.outputModalities.filter((entry) => entry !== value)
-      : [...config.outputModalities, value];
-    updateConfig('outputModalities', next.length > 0 ? next : ['text']);
+  const handleOutputSpeechToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    updateConfig('outputModalities', e.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
   };
 
   const handleSaveConfiguration = () => {
     const resolvedName = configurationName.trim() || DEFAULT_CONFIG_NAME;
 
+    // Resolve "other" model to the custom model name
+    const resolvedLlm = (() => {
+      const provider = (config.llm as any)?.provider as AgentLLMProvider | undefined;
+      const model = (config.llm as any)?.model as string | undefined;
+      if (!provider) return {};
+      const resolvedModel = model === 'other' ? customModel : (model || '');
+      return { provider, model: resolvedModel };
+    })();
+
     const payload: AgentConfigurationPayload = {
       ...config,
+      llm: resolvedLlm,
       userProfileName: config.adaptContentToUserProfile ? config.userProfileName : null,
     };
 
@@ -257,11 +267,23 @@ export const AgentConfigurationPanel: React.FC = () => {
       return;
     }
 
+    const normalized = normalizeConfig(selected.config);
     setConfigurationName(selected.name);
-    setConfig(normalizeConfig(selected.config));
+    setConfig(normalized);
     LocalStorageRepository.setActiveAgentConfigurationId(selected.id);
     localStorage.setItem(LEGACY_AGENT_CONFIG_KEY, JSON.stringify(selected.config));
     setActiveConfigId(selected.id);
+
+    // Restore custom model if the saved model is not in the known list
+    const loadedModel = (normalized.llm as any)?.model as string | undefined;
+    const loadedProvider = (normalized.llm as any)?.provider as AgentLLMProvider | undefined;
+    if (loadedProvider && loadedModel && !knownLLMModels.includes(loadedModel)) {
+      setCustomModel(loadedModel);
+      setConfig((prev) => ({ ...prev, llm: { provider: loadedProvider, model: 'other' } }));
+    } else {
+      setCustomModel('');
+    }
+
     toast.success(`Loaded "${selected.name}".`);
   };
 
@@ -427,9 +449,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                   value={config.agentPlatform}
                   onChange={(event) => updateConfig('agentPlatform', event.target.value)}
                 >
-                  <option value="streamlit">Streamlit</option>
-                  <option value="gradio">Gradio</option>
-                  <option value="web">Web</option>
+                  <option value="websocket">WebSocket</option>
+                  <option value="streamlit">WebSocket with Streamlit interface</option>
+                  <option value="telegram">Telegram</option>
                 </select>
               </div>
               <div className="space-y-1.5">
@@ -456,8 +478,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     onChange={(event) => updateConfig('responseTiming', event.target.value)}
                   >
                     <option value="instant">Instant</option>
-                    <option value="normal">Normal</option>
-                    <option value="deliberate">Deliberate</option>
+                    <option value="delayed">Simulated Thinking</option>
                   </select>
                 </div>
               )}
@@ -494,40 +515,32 @@ export const AgentConfigurationPanel: React.FC = () => {
               )}
             </div>
 
-            {SHOW_FULL_AGENT_CONFIGURATION && (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Input Modalities</Label>
-                  <div className="grid gap-1.5 sm:grid-cols-2">
-                    {modalityOptions.map((option) => (
-                      <label key={`in-${option}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          checked={config.inputModalities.includes(option)}
-                          onChange={() => toggleModality('input', option)}
-                        />
-                        {option}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Output Modalities</Label>
-                  <div className="grid gap-1.5 sm:grid-cols-2">
-                    {modalityOptions.map((option) => (
-                      <label key={`out-${option}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          checked={config.outputModalities.includes(option)}
-                          onChange={() => toggleModality('output', option)}
-                        />
-                        {option}
-                      </label>
-                    ))}
-                  </div>
-                </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Input Modalities</Label>
+                <p className="text-xs text-muted-foreground">Text input is always enabled.</p>
+                <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={config.inputModalities.includes('speech')}
+                    onChange={handleInputSpeechToggle}
+                  />
+                  Enable speech input
+                </label>
               </div>
-            )}
+              <div className="space-y-2">
+                <Label>Output Modalities</Label>
+                <p className="text-xs text-muted-foreground">Text output is always enabled.</p>
+                <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={config.outputModalities.includes('speech')}
+                    onChange={handleOutputSpeechToggle}
+                  />
+                  Enable speech output
+                </label>
+              </div>
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
@@ -545,15 +558,67 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <option value="replicate">Replicate</option>
                 </select>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="llm-model">LLM Model</Label>
-                <Input
-                  id="llm-model"
-                  value={llmModel}
-                  onChange={(event) => setLlmModel(event.target.value)}
-                  placeholder="e.g. gpt-5-mini"
-                />
-              </div>
+              {llmProvider === 'openai' && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="llm-model">OpenAI Model</Label>
+                  <select
+                    id="llm-model"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={knownLLMModels.includes(llmModel) || llmModel === '' ? llmModel : 'other'}
+                    onChange={(event) => setLlmModel(event.target.value)}
+                    disabled={!llmProvider}
+                  >
+                    <option value="">None</option>
+                    <option value="gpt-5">GPT-5</option>
+                    <option value="gpt-5-mini">GPT-5 Mini</option>
+                    <option value="gpt-5-nano">GPT-5 Nano</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {llmModel === 'other' && (
+                    <div className="mt-2 space-y-1.5">
+                      <Label htmlFor="custom-model">Custom Model Name</Label>
+                      <Input
+                        id="custom-model"
+                        value={customModel}
+                        onChange={(event) => setCustomModel(event.target.value)}
+                        placeholder="Enter model name"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              {(llmProvider === 'huggingface' || llmProvider === 'huggingfaceapi' || llmProvider === 'replicate') && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="llm-model">
+                    {llmProvider === 'huggingface' ? 'HuggingFace Model' : llmProvider === 'huggingfaceapi' ? 'HuggingFace API Model' : 'Replicate Model'}
+                  </Label>
+                  <select
+                    id="llm-model"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={knownLLMModels.includes(llmModel) || llmModel === '' ? llmModel : 'other'}
+                    onChange={(event) => setLlmModel(event.target.value)}
+                    disabled={!llmProvider}
+                  >
+                    <option value="">None</option>
+                    <option value="mistral-7b">Mistral-7B</option>
+                    <option value="falcon-40b">Falcon-40B</option>
+                    <option value="llama-3-8b">Llama-3 8B</option>
+                    <option value="bloom-176b">Bloom-176B</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {llmModel === 'other' && (
+                    <div className="mt-2 space-y-1.5">
+                      <Label htmlFor="custom-model">Custom Model Name</Label>
+                      <Input
+                        id="custom-model"
+                        value={customModel}
+                        onChange={(event) => setCustomModel(event.target.value)}
+                        placeholder="Enter model name"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {SHOW_FULL_AGENT_CONFIGURATION && (

@@ -19,7 +19,7 @@
     "packages/webapp2"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run start:webapp2\" \"npm run start:server\"",
+    "dev": "npm run start --workspace=webapp2",
     "start": "concurrently \"npm run start:webapp2\" \"npm run start:server\"",
     "start:webapp": "npm run start --workspace=webapp",
     "start:webapp2": "npm run start --workspace=webapp2",
