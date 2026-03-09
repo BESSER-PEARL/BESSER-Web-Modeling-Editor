@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Card, Form, Button, Row, Col, Badge } from 'react-bootstrap';
+import { Accordion, Form, Button, Row, Col, Badge } from 'react-bootstrap';
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
@@ -87,12 +87,6 @@ const Section = styled.div`
   }
 `;
 
-const StackedSectionColumn = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-`;
-
 const SectionTitle = styled.h5`
   color: var(--apollon-primary-contrast);
   margin: 0 0 20px 0;
@@ -111,19 +105,65 @@ const SectionTitle = styled.h5`
   }
 `;
 
-const AgentCard = styled.div`
-  width: 100%;
-  background-color: var(--apollon-background);
+const SectionDescription = styled.p`
+    margin: 0 0 18px 0;
+    color: var(--apollon-secondary);
+    font-size: 0.95rem;
 `;
 
-const CardHeader = styled.div`
-  display: none;
+const OverviewAccordion = styled(Accordion)`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .accordion-item {
+        border: 1px solid var(--apollon-switch-box-border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--apollon-background);
+    }
+
+    .accordion-button {
+        background: var(--apollon-background);
+        color: var(--apollon-primary-contrast);
+        box-shadow: none;
+        padding: 18px 20px;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: rgba(0, 123, 255, 0.06);
+        color: var(--apollon-primary-contrast);
+        box-shadow: none;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+    }
+
+    .accordion-body {
+        padding: 20px;
+        border-top: 1px solid var(--apollon-switch-box-border-color);
+        background: var(--apollon-background);
+    }
 `;
 
-const CardBody = styled.div`
-  padding: 0;
-  background-color: var(--apollon-background);
-  color: var(--apollon-primary-contrast);
+const AccordionHeaderContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+`;
+
+const AccordionHeaderTitle = styled.span`
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--apollon-primary-contrast);
+`;
+
+const AccordionHeaderDescription = styled.span`
+    font-size: 0.9rem;
+    color: var(--apollon-secondary);
+    text-align: left;
 `;
 
 const ActionBar = styled.div`
@@ -371,6 +411,7 @@ export const AgentConfigScreen: React.FC = () => {
     const [useAbbreviations, setUseAbbreviations] = useState<boolean>(initialConfig.useAbbreviations);
     const [adaptContentToUserProfile, setAdaptContentToUserProfile] = useState<boolean>(initialConfig.adaptContentToUserProfile);
     const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(initialConfig.intentRecognitionTechnology);
+    const [activeCustomizationSection, setActiveCustomizationSection] = useState<string | null>(null);
 
     const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
 
@@ -859,407 +900,315 @@ export const AgentConfigScreen: React.FC = () => {
             
             <Form onSubmit={handleSubmit}>
                 <ContentGrid style={{ marginTop: '24px' }}>
-                    <Section>
-                        <SectionTitle>Presentation</SectionTitle>
-                        <Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Language</Form.Label>
-                                    <Form.Select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}>
-                                        <option value="original">Original</option>
-                                        <option value="english">English</option>
-                                        <option value="french">French</option>
-                                        <option value="german">German</option>
-                                        <option value="spanish">Spanish</option>
-                                        <option value="luxembourgish">Luxembourgish</option>
-                                        <option value="portuguese">Portuguese</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Style</Form.Label>
-                                    <div className="d-flex gap-3">
-                                        <Form.Check
-                                            type="radio"
-                                            label="Original"
-                                            name="agentStyle"
-                                            id="agentStyleOriginal"
-                                            value="original"
-                                            checked={agentStyle === 'original'}
-                                            onChange={e => setAgentStyle(e.target.value)}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Formal"
-                                            name="agentStyle"
-                                            id="agentStyleFormal"
-                                            value="formal"
-                                            checked={agentStyle === 'formal'}
-                                            onChange={e => setAgentStyle(e.target.value)}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Informal"
-                                            name="agentStyle"
-                                            id="agentStyleInformal"
-                                            value="informal"
-                                            checked={agentStyle === 'informal'}
-                                            onChange={e => setAgentStyle(e.target.value)}
-                                        />
-                                    </div>
-                                </Form.Group>
-                            </Col>
-                            <Row></Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Abbreviations</Form.Label>
-                                    <Form.Check
-                                        type="switch"
-                                        label="Use abbreviations"
-                                        checked={useAbbreviations}
-                                        onChange={e => setUseAbbreviations(e.target.checked)}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Language Complexity</Form.Label>
-                                    <div className="d-flex flex-column gap-2">
-                                        <Form.Check
-                                            type="radio"
-                                            label="Original"
-                                            name="languageComplexity"
-                                            id="languageComplexityOriginal"
-                                            value="original"
-                                            checked={languageComplexity === 'original'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Simple"
-                                            name="languageComplexity"
-                                            id="languageComplexitySimple"
-                                            value="simple"
-                                            checked={languageComplexity === 'simple'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Medium"
-                                            name="languageComplexity"
-                                            id="languageComplexityMedium"
-                                            value="medium"
-                                            checked={languageComplexity === 'medium'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Complex"
-                                            name="languageComplexity"
-                                            id="languageComplexityComplex"
-                                            value="complex"
-                                            checked={languageComplexity === 'complex'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                    </div>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row className="mb-2">
-                            <Col>
-                                <Form.Label className="fw-semibold">Style of text in interface</Form.Label>
-                            </Col>
-                        </Row>
-                        <Row className="mb-3">
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Size (px)</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        min={10}
-                                        max={32}
-                                        value={interfaceStyle.size}
-                                        onChange={e => updateInterfaceStyle('size', Number(e.target.value))}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Font</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.font}
-                                        onChange={e => updateInterfaceStyle('font', e.target.value as InterfaceStyleSetting['font'])}
-                                    >
-                                        <option value="sans">Sans</option>
-                                        <option value="serif">Serif</option>
-                                        <option value="monospace">Monospace</option>
-                                        <option value="neutral">Neutral</option>
-                                        <option value="grotesque">Grotesque</option>
-                                        <option value="condensed">Condensed</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Line Spacing</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        min={1}
-                                        max={3}
-                                        step={0.1}
-                                        value={interfaceStyle.lineSpacing}
-                                        onChange={e => updateInterfaceStyle('lineSpacing', Number(e.target.value))}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row className="mb-4">
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Alignment</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.alignment}
-                                        onChange={e => updateInterfaceStyle('alignment', e.target.value as InterfaceStyleSetting['alignment'])}
-                                    >
-                                        <option value="left">Left</option>
-                                        <option value="center">Center</option>
-                                        <option value="justify">Justify</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Color</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.color}
-                                        onChange={e => updateInterfaceStyle('color', e.target.value)}
-                                    >
-                                        <option value="var(--apollon-primary-contrast)">Default Contrast</option>
-                                        <option value="#000000">Black</option>
-                                        <option value="#ffffff">White</option>
-                                        <option value="#1a73e8">Blue</option>
-                                        <option value="#34a853">Green</option>
-                                        <option value="#fbbc05">Yellow</option>
-                                        <option value="#db4437">Red</option>
-                                        <option value="#6a1b9a">Purple</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Contrast</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.contrast}
-                                        onChange={e => updateInterfaceStyle('contrast', e.target.value as InterfaceStyleSetting['contrast'])}
-                                    >
-                                        <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="high">High</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Sentence Length</Form.Label>
-                                    <div className="d-flex gap-3">
-                                        <Form.Check
-                                            type="radio"
-                                            label="Original"
-                                            name="sentenceLength"
-                                            id="sentenceLengthOriginal"
-                                            value="original"
-                                            checked={sentenceLength === 'original'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Concise"
-                                            name="sentenceLength"
-                                            id="sentenceLengthConcise"
-                                            value="concise"
-                                            checked={sentenceLength === 'concise'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Verbose"
-                                            name="sentenceLength"
-                                            id="sentenceLengthVerbose"
-                                            value="verbose"
-                                            checked={sentenceLength === 'verbose'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
-                                        />
-                                    </div>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-
-                        {outputModalities.includes('speech') && (
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Style of voice</Form.Label>
-                                        <div className="d-flex flex-column gap-2">
-                                            <Form.Select
-                                                value={voiceStyle.gender}
-                                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                                                    setVoiceStyle(prev => ({ ...prev, gender: e.target.value as VoiceStyleSetting['gender'] }))
-                                                }
-                                            >
-                                                <option value="male">Male</option>
-                                                <option value="female">Female</option>
-                                                <option value="ambiguous">Ambiguous</option>
-                                            </Form.Select>
-
-                                            <Form.Group>
-                                                <Form.Label>Voice speed ({voiceStyle.speed.toFixed(1)}x)</Form.Label>
-                                                <Form.Range
-                                                    min={0.5}
-                                                    max={2}
-                                                    step={0.05}
-                                                    value={voiceStyle.speed}
-                                                    onChange={e => setVoiceStyle(prev => ({ ...prev, speed: Number(e.target.value) }))}
+                    <Section style={{ gridColumn: '1 / -1' }}>
+                        <SectionTitle>Personalization Overview</SectionTitle>
+                        <SectionDescription>
+                            Review what each area controls, then open one panel at a time to make focused changes without losing track of the overall setup.
+                        </SectionDescription>
+                        <OverviewAccordion
+                            activeKey={activeCustomizationSection ?? undefined}
+                            onSelect={(eventKey) => setActiveCustomizationSection(typeof eventKey === 'string' ? eventKey : null)}
+                        >
+                            <Accordion.Item eventKey="presentation">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Presentation</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Adjust how the agent sounds and looks, including language, tone, text style, voice, and avatar.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Language</Form.Label>
+                                                <Form.Select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}>
+                                                    <option value="original">Original</option>
+                                                    <option value="english">English</option>
+                                                    <option value="french">French</option>
+                                                    <option value="german">German</option>
+                                                    <option value="spanish">Spanish</option>
+                                                    <option value="luxembourgish">Luxembourgish</option>
+                                                    <option value="portuguese">Portuguese</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Style</Form.Label>
+                                                <div className="d-flex gap-3">
+                                                    <Form.Check
+                                                        type="radio"
+                                                        label="Original"
+                                                        name="agentStyle"
+                                                        id="agentStyleOriginal"
+                                                        value="original"
+                                                        checked={agentStyle === 'original'}
+                                                        onChange={e => setAgentStyle(e.target.value)}
+                                                    />
+                                                    <Form.Check
+                                                        type="radio"
+                                                        label="Formal"
+                                                        name="agentStyle"
+                                                        id="agentStyleFormal"
+                                                        value="formal"
+                                                        checked={agentStyle === 'formal'}
+                                                        onChange={e => setAgentStyle(e.target.value)}
+                                                    />
+                                                    <Form.Check
+                                                        type="radio"
+                                                        label="Informal"
+                                                        name="agentStyle"
+                                                        id="agentStyleInformal"
+                                                        value="informal"
+                                                        checked={agentStyle === 'informal'}
+                                                        onChange={e => setAgentStyle(e.target.value)}
+                                                    />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                        <Row></Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Abbreviations</Form.Label>
+                                                <Form.Check
+                                                    type="switch"
+                                                    label="Use abbreviations"
+                                                    checked={useAbbreviations}
+                                                    onChange={e => setUseAbbreviations(e.target.checked)}
                                                 />
                                             </Form.Group>
-                                        </div>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        )}
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Language Complexity</Form.Label>
+                                                <div className="d-flex flex-column gap-2">
+                                                    <Form.Check type="radio" label="Original" name="languageComplexity" id="languageComplexityOriginal" value="original" checked={languageComplexity === 'original'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                    <Form.Check type="radio" label="Simple" name="languageComplexity" id="languageComplexitySimple" value="simple" checked={languageComplexity === 'simple'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                    <Form.Check type="radio" label="Medium" name="languageComplexity" id="languageComplexityMedium" value="medium" checked={languageComplexity === 'medium'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                    <Form.Check type="radio" label="Complex" name="languageComplexity" id="languageComplexityComplex" value="complex" checked={languageComplexity === 'complex'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-2">
+                                        <Col>
+                                            <Form.Label className="fw-semibold">Style of text in interface</Form.Label>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-3">
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Size (px)</Form.Label>
+                                                <Form.Control type="number" min={10} max={32} value={interfaceStyle.size} onChange={e => updateInterfaceStyle('size', Number(e.target.value))} />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Font</Form.Label>
+                                                <Form.Select value={interfaceStyle.font} onChange={e => updateInterfaceStyle('font', e.target.value as InterfaceStyleSetting['font'])}>
+                                                    <option value="sans">Sans</option>
+                                                    <option value="serif">Serif</option>
+                                                    <option value="monospace">Monospace</option>
+                                                    <option value="neutral">Neutral</option>
+                                                    <option value="grotesque">Grotesque</option>
+                                                    <option value="condensed">Condensed</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Line Spacing</Form.Label>
+                                                <Form.Control type="number" min={1} max={3} step={0.1} value={interfaceStyle.lineSpacing} onChange={e => updateInterfaceStyle('lineSpacing', Number(e.target.value))} />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-4">
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Alignment</Form.Label>
+                                                <Form.Select value={interfaceStyle.alignment} onChange={e => updateInterfaceStyle('alignment', e.target.value as InterfaceStyleSetting['alignment'])}>
+                                                    <option value="left">Left</option>
+                                                    <option value="center">Center</option>
+                                                    <option value="justify">Justify</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Color</Form.Label>
+                                                <Form.Select value={interfaceStyle.color} onChange={e => updateInterfaceStyle('color', e.target.value)}>
+                                                    <option value="var(--apollon-primary-contrast)">Default Contrast</option>
+                                                    <option value="#000000">Black</option>
+                                                    <option value="#ffffff">White</option>
+                                                    <option value="#1a73e8">Blue</option>
+                                                    <option value="#34a853">Green</option>
+                                                    <option value="#fbbc05">Yellow</option>
+                                                    <option value="#db4437">Red</option>
+                                                    <option value="#6a1b9a">Purple</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Contrast</Form.Label>
+                                                <Form.Select value={interfaceStyle.contrast} onChange={e => updateInterfaceStyle('contrast', e.target.value as InterfaceStyleSetting['contrast'])}>
+                                                    <option value="low">Low</option>
+                                                    <option value="medium">Medium</option>
+                                                    <option value="high">High</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Sentence Length</Form.Label>
+                                                <div className="d-flex gap-3">
+                                                    <Form.Check type="radio" label="Original" name="sentenceLength" id="sentenceLengthOriginal" value="original" checked={sentenceLength === 'original'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')} />
+                                                    <Form.Check type="radio" label="Concise" name="sentenceLength" id="sentenceLengthConcise" value="concise" checked={sentenceLength === 'concise'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')} />
+                                                    <Form.Check type="radio" label="Verbose" name="sentenceLength" id="sentenceLengthVerbose" value="verbose" checked={sentenceLength === 'verbose'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
 
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label className="d-flex align-items-center gap-2">
-                                        2D Avatar
-                                    </Form.Label>
-                                    {avatarData && (
-                                        <div className="d-flex flex-column gap-2">
-                                            <img
-                                                src={avatarData}
-                                                alt="Agent avatar"
-                                                style={{ width: 128, height: 128, objectFit: 'cover', borderRadius: '50%', border: '1px solid var(--apollon-switch-box-border-color)' }}
-                                            />
-                                            <Button variant="outline-danger" size="sm" onClick={handleAvatarRemove}>
-                                                Remove avatar
-                                            </Button>
-                                        </div>
+                                    {outputModalities.includes('speech') && (
+                                        <Row>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Style of voice</Form.Label>
+                                                    <div className="d-flex flex-column gap-2">
+                                                        <Form.Select value={voiceStyle.gender} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVoiceStyle(prev => ({ ...prev, gender: e.target.value as VoiceStyleSetting['gender'] }))}>
+                                                            <option value="male">Male</option>
+                                                            <option value="female">Female</option>
+                                                            <option value="ambiguous">Ambiguous</option>
+                                                        </Form.Select>
+                                                        <Form.Group>
+                                                            <Form.Label>Voice speed ({voiceStyle.speed.toFixed(1)}x)</Form.Label>
+                                                            <Form.Range min={0.5} max={2} step={0.05} value={voiceStyle.speed} onChange={e => setVoiceStyle(prev => ({ ...prev, speed: Number(e.target.value) }))} />
+                                                        </Form.Group>
+                                                    </div>
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
                                     )}
-                                    <Form.Control
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleAvatarUpload}
-                                        className="mt-2"
-                                    />
+
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label className="d-flex align-items-center gap-2">2D Avatar</Form.Label>
+                                                {avatarData && (
+                                                    <div className="d-flex flex-column gap-2">
+                                                        <img src={avatarData} alt="Agent avatar" style={{ width: 128, height: 128, objectFit: 'cover', borderRadius: '50%', border: '1px solid var(--apollon-switch-box-border-color)' }} />
+                                                        <Button variant="outline-danger" size="sm" onClick={handleAvatarRemove}>Remove avatar</Button>
+                                                    </div>
+                                                )}
+                                                <Form.Control type="file" accept="image/*" onChange={handleAvatarUpload} className="mt-2" />
+                                                <Form.Text className="text-muted">Upload an image for your agent avatar; it will be stored as base64 when saving the configuration.</Form.Text>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
+
+                            <Accordion.Item eventKey="modality">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Modality</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Choose how people interact with the agent, including optional speech input and speech output.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Input Modalities</Form.Label>
+                                                <Form.Text className="text-muted d-block mb-2">Text input is always enabled.</Form.Text>
+                                                <div>
+                                                    <Form.Check type="checkbox" label="Enable speech input" value="speech" checked={inputModalities.includes('speech')} onChange={handleInputSpeechToggle} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Output Modalities</Form.Label>
+                                                <Form.Text className="text-muted d-block mb-2">Text output is always enabled.</Form.Text>
+                                                <div>
+                                                    <Form.Check type="checkbox" label="Enable speech output" value="speech" checked={outputModalities.includes('speech')} onChange={handleOutputSpeechToggle} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
+
+                            <Accordion.Item eventKey="content">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Content</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Personalize generated replies based on a saved user profile when that context should shape the response.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Form.Group className="mb-3">
+                                        <Form.Check type="switch" id="adaptContentToUserProfile" label="Adapt content to user profile" checked={adaptContentToUserProfile} onChange={e => handleAdaptContentToggle(e.target.checked)} />
+                                    </Form.Group>
+                                    {adaptContentToUserProfile && (
+                                        <Form.Group className="mb-3">
+                                            <Form.Label>Select user profile</Form.Label>
+                                            <Form.Select value={selectedUserProfileName || ''} onChange={e => setSelectedUserProfileName(e.target.value)}>
+                                                <option value="">None</option>
+                                                {userProfiles.map((profile) => (
+                                                    <option key={profile.id} value={profile.name}>{profile.name}</option>
+                                                ))}
+                                            </Form.Select>
+                                            {userProfiles.length === 0 && (
+                                                <Form.Text className="text-muted">No saved user profiles available. Save one from the user diagram screen first.</Form.Text>
+                                            )}
+                                        </Form.Group>
+                                    )}
                                     <Form.Text className="text-muted">
-                                        Upload an image for your agent avatar; it will be stored as base64 when saving the configuration.
+                                        Enable this option to tailor generated responses to the active user profile. This option requires user profiles to be defined. You'll have then to select a profile and attributes you think are relevant for the agent to consider when adapting responses.
                                     </Form.Text>
-                                </Form.Group>
-                            </Col>
-                        </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
 
+                            <Accordion.Item eventKey="behavior">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Behavior</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Define how the agent delivers responses, from immediate replies to a more deliberate simulated-thinking rhythm.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Response Timing</Form.Label>
+                                                <Form.Select value={responseTiming} onChange={e => setResponseTiming(e.target.value)}>
+                                                    <option value="instant">Instant</option>
+                                                    <option value="delayed">Simulated Thinking</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
+                        </OverviewAccordion>
                     </Section>
-                    <StackedSectionColumn>
-                        <Section>
-                            <SectionTitle>Modality</SectionTitle>
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Input Modalities</Form.Label>
-                                        <Form.Text className="text-muted d-block mb-2">
-                                            Text input is always enabled.
-                                        </Form.Text>
-                                        <div>
-                                            <Form.Check
-                                                type="checkbox"
-                                                label="Enable speech input"
-                                                value="speech"
-                                                checked={inputModalities.includes('speech')}
-                                                onChange={handleInputSpeechToggle}
-                                            />
-                                        </div>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Output Modalities</Form.Label>
-                                        <Form.Text className="text-muted d-block mb-2">
-                                            Text output is always enabled.
-                                        </Form.Text>
-                                        <div>
-                                            <Form.Check
-                                                type="checkbox"
-                                                label="Enable speech output"
-                                                value="speech"
-                                                checked={outputModalities.includes('speech')}
-                                                onChange={handleOutputSpeechToggle}
-                                            />
-                                        </div>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Section>
 
-                        <Section>
-                            <SectionTitle>Content</SectionTitle>
-                            <Form.Group className="mb-3">
-                                <Form.Check
-                                    type="switch"
-                                    id="adaptContentToUserProfile"
-                                    label="Adapt content to user profile"
-                                    checked={adaptContentToUserProfile}
-                                    onChange={e => handleAdaptContentToggle(e.target.checked)}
-                                />
-                            </Form.Group>
-                            {adaptContentToUserProfile && (
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Select user profile</Form.Label>
-                                    <Form.Select
-                                        value={selectedUserProfileName || ''}
-                                        onChange={e => setSelectedUserProfileName(e.target.value)}
-                                    >
-                                        <option value="">None</option>
-                                        {userProfiles.map((profile) => (
-                                            <option key={profile.id} value={profile.name}>
-                                                {profile.name}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                    {userProfiles.length === 0 && (
-                                        <Form.Text className="text-muted">
-                                            No saved user profiles available. Save one from the user diagram screen first.
-                                        </Form.Text>
-                                    )}
-                                </Form.Group>
-                            )}
-                            <Form.Text className="text-muted">
-                                Enable this option to tailor generated responses to the active user profile. This option requires user profiles to be defined. You'll have then to select a profile and attributes you think are relevant for the agent to consider when adapting responses.
-                            </Form.Text>
-                        </Section>
-
-                        <Section>
-                            <SectionTitle>Behavior</SectionTitle>
-                            <Row>
-                                <Col md={4}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Response Timing</Form.Label>
-                                        <Form.Select value={responseTiming} onChange={e => setResponseTiming(e.target.value)}>
-                                            <option value="instant">Instant</option>
-                                            <option value="delayed">Simulated Thinking</option>
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Section>
-                    </StackedSectionColumn>
-                  
                     <Section style={{ gridColumn: '1 / -1' }}>
                         <SectionTitle>System Configuration</SectionTitle>
                         <Row>
