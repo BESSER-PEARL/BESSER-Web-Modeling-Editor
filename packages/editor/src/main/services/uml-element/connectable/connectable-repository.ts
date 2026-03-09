@@ -6,7 +6,7 @@ import { UMLElementCommonRepository } from '../uml-element-common-repository';
 import { Direction, IUMLElementPort } from '../uml-element-port';
 import { ConnectableActionTypes, ConnectEndAction, ConnectStartAction } from './connectable-types';
 import { UMLElements } from '../../../packages/uml-elements';
-import { UMLElementType } from '../../..';
+import { UMLElementType } from '../../../packages/uml-element-type';
 import { UMLRelationshipCommonRepository } from '../../uml-relationship/uml-relationship-common-repository';
 import { IUMLRelationship, UMLRelationship } from '../../uml-relationship/uml-relationship';
 import { IUMLElement } from '../uml-element';
