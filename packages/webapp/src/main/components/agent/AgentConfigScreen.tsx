@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Card, Form, Button, Row, Col, Badge } from 'react-bootstrap';
 import styled from 'styled-components';
+import { toast } from 'react-toastify';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
 import { StoredAgentConfiguration, StoredUserProfile } from '../../services/local-storage/local-storage-types';
 import {
@@ -149,6 +150,11 @@ const StyledButton = styled(Button)`
 const configKey = 'agentConfig';
 const AGENT_CONFIG_CHANGED_EVENT = 'agent-configurations-changed';
 
+const baseTextModality = ['text'];
+const speechEnabledModality = ['text', 'speech'];
+
+type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
+
 const createDefaultConfig = (): AgentConfigurationPayload => ({
     agentLanguage: 'original',
     inputModalities: ['text'],
@@ -168,8 +174,16 @@ const createDefaultConfig = (): AgentConfigurationPayload => ({
     intentRecognitionTechnology: defaultIntentRecognitionTechnology,
 });
 
+const normalizeAgentLanguage = (value?: string): string => {
+    if (!value || value === 'none') {
+        return 'original';
+    }
+
+    return value;
+};
+
 const normalizeModalityList = (value?: string[]): string[] =>
-    Array.isArray(value) && value.length > 0 ? value : ['text'];
+    Array.isArray(value) && value.includes('speech') ? [...speechEnabledModality] : [...baseTextModality];
 
 const normalizeInterfaceStyle = (value?: InterfaceStyleSetting): InterfaceStyleSetting => ({
     ...defaultInterfaceStyle,
@@ -201,7 +215,7 @@ const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & 
     const normalizedProfileName = typeof raw.userProfileName === 'string' ? raw.userProfileName.trim() : '';
 
     return {
-        agentLanguage: raw.agentLanguage || 'original',
+        agentLanguage: normalizeAgentLanguage(raw.agentLanguage),
         inputModalities: normalizeModalityList(raw.inputModalities),
         outputModalities: normalizeModalityList(raw.outputModalities),
         agentPlatform: raw.agentPlatform || 'streamlit',
@@ -218,6 +232,65 @@ const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & 
         userProfileName: normalizedProfileName || null,
         intentRecognitionTechnology,
     };
+};
+
+const areArraysEqual = (left: unknown[], right: unknown[]): boolean => {
+    if (left.length !== right.length) {
+        return false;
+    }
+
+    return left.every((value, index) => deepEqual(value, right[index]));
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const deepEqual = (left: unknown, right: unknown): boolean => {
+    if (left === right) {
+        return true;
+    }
+
+    if (Array.isArray(left) && Array.isArray(right)) {
+        return areArraysEqual(left, right);
+    }
+
+    if (isPlainObject(left) && isPlainObject(right)) {
+        const leftKeys = Object.keys(left);
+        const rightKeys = Object.keys(right);
+
+        if (leftKeys.length !== rightKeys.length) {
+            return false;
+        }
+
+        return leftKeys.every((key) => deepEqual(left[key], right[key]));
+    }
+
+    return false;
+};
+
+const hasLLMConfiguration = (value: AgentConfigurationPayload['llm']): value is AgentLLMConfiguration =>
+    'provider' in value && Boolean(value.provider);
+
+const buildSparseGenerationConfig = (config: AgentConfigurationPayload): Partial<AgentConfigurationPayload> => {
+    const defaults = createDefaultConfig();
+    const normalizedConfig: AgentConfigurationPayload = {
+        ...config,
+        agentLanguage: normalizeAgentLanguage(config.agentLanguage),
+        inputModalities: normalizeModalityList(config.inputModalities),
+        outputModalities: normalizeModalityList(config.outputModalities),
+        llm: hasLLMConfiguration(config.llm) ? config.llm : {},
+    };
+
+    const sparseConfig: Partial<AgentConfigurationPayload> = {};
+    const configKeys = Object.keys(normalizedConfig) as Array<keyof AgentConfigurationPayload>;
+
+    configKeys.forEach((key) => {
+        if (!deepEqual(normalizedConfig[key], defaults[key])) {
+            (sparseConfig as any)[key] = normalizedConfig[key];
+        }
+    });
+
+    return sparseConfig;
 };
 
 const loadInitialState = () => {
@@ -300,22 +373,13 @@ export const AgentConfigScreen: React.FC = () => {
     const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(initialConfig.intentRecognitionTechnology);
 
     const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
-    const handleInputModalityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setInputModalities((prev: string[]) =>
-            prev.includes(value)
-                ? prev.filter(m => m !== value)
-                : [...prev, value]
-        );
+
+    const handleInputSpeechToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputModalities(e.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
     };
 
-    const handleOutputModalityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setOutputModalities((prev: string[]) =>
-            prev.includes(value)
-                ? prev.filter(m => m !== value)
-                : [...prev, value]
-        );
+    const handleOutputSpeechToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setOutputModalities(e.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
     };
 
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -499,9 +563,9 @@ export const AgentConfigScreen: React.FC = () => {
     }, [selectedConfigId, refreshSavedConfigurations, activeConfigId]);
 
     const getConfigObject = (): AgentConfigurationPayload => ({
-        agentLanguage,
-        inputModalities: [...inputModalities],
-        outputModalities: [...outputModalities],
+        agentLanguage: normalizeAgentLanguage(agentLanguage),
+        inputModalities: normalizeModalityList(inputModalities),
+        outputModalities: normalizeModalityList(outputModalities),
         agentPlatform,
         responseTiming,
         agentStyle,
@@ -651,7 +715,7 @@ export const AgentConfigScreen: React.FC = () => {
         if (!result?.ok || !result.savedEntry) {
             return;
         }
-        alert(`Configuration "${result.savedEntry.name}" saved!`);
+        toast.success(`Configuration "${result.savedEntry.name}" saved.`);
     };
 
     const handleSaveAndApply = async () => {
@@ -680,7 +744,7 @@ export const AgentConfigScreen: React.FC = () => {
             return;
         }
 
-        const requestConfig: AgentConfigurationPayload & { userProfileModel?: UMLModel } = { ...config };
+        const requestConfig: AgentTransformationConfig = buildSparseGenerationConfig(config);
         if (config.adaptContentToUserProfile && config.userProfileName) {
             const trimmedProfileName = config.userProfileName.trim();
             if (trimmedProfileName) {
@@ -739,7 +803,7 @@ export const AgentConfigScreen: React.FC = () => {
             });
             if (result.ok) {
                 window.dispatchEvent(new Event(AGENT_CONFIG_CHANGED_EVENT));
-                alert('Configuration transformed, saved, and applied successfully!');
+                toast.success('Configuration transformed, saved, and applied successfully.');
                 setSelectedConfigId(result.savedEntry?.id || activeConfigId || '');
             } else {
                 alert('Failed to save configuration locally.');
@@ -910,7 +974,7 @@ export const AgentConfigScreen: React.FC = () => {
                                 <Form.Group className="mb-3">
                                     <Form.Label>Language</Form.Label>
                                     <Form.Select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}>
-                                        <option value="none">Original</option>
+                                        <option value="original">Original</option>
                                         <option value="english">English</option>
                                         <option value="french">French</option>
                                         <option value="german">German</option>
@@ -1217,20 +1281,16 @@ export const AgentConfigScreen: React.FC = () => {
                                 <Col md={6}>
                                     <Form.Group className="mb-3">
                                         <Form.Label>Input Modalities</Form.Label>
+                                        <Form.Text className="text-muted d-block mb-2">
+                                            Text input is always enabled.
+                                        </Form.Text>
                                         <div>
                                             <Form.Check
                                                 type="checkbox"
-                                                label="Text"
-                                                value="text"
-                                                checked={inputModalities.includes('text')}
-                                                onChange={handleInputModalityChange}
-                                            />
-                                            <Form.Check
-                                                type="checkbox"
-                                                label="Speech"
+                                                label="Enable speech input"
                                                 value="speech"
                                                 checked={inputModalities.includes('speech')}
-                                                onChange={handleInputModalityChange}
+                                                onChange={handleInputSpeechToggle}
                                             />
                                         </div>
                                     </Form.Group>
@@ -1238,20 +1298,16 @@ export const AgentConfigScreen: React.FC = () => {
                                 <Col md={6}>
                                     <Form.Group className="mb-3">
                                         <Form.Label>Output Modalities</Form.Label>
+                                        <Form.Text className="text-muted d-block mb-2">
+                                            Text output is always enabled.
+                                        </Form.Text>
                                         <div>
                                             <Form.Check
                                                 type="checkbox"
-                                                label="Text"
-                                                value="text"
-                                                checked={outputModalities.includes('text')}
-                                                onChange={handleOutputModalityChange}
-                                            />
-                                            <Form.Check
-                                                type="checkbox"
-                                                label="Speech"
+                                                label="Enable speech output"
                                                 value="speech"
                                                 checked={outputModalities.includes('speech')}
-                                                onChange={handleOutputModalityChange}
+                                                onChange={handleOutputSpeechToggle}
                                             />
                                         </div>
                                     </Form.Group>
@@ -1404,6 +1460,42 @@ export const AgentConfigScreen: React.FC = () => {
 
                 {!SHOW_FULL_AGENT_CONFIGURATION && (
                     <ContentGrid style={{ marginTop: '24px' }}>
+                        <Section>
+                            <SectionTitle>Modality</SectionTitle>
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Input</Form.Label>
+                                        <Form.Text className="text-muted d-block mb-2">
+                                            Text input is always enabled.
+                                        </Form.Text>
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="Enable speech input"
+                                            value="speech"
+                                            checked={inputModalities.includes('speech')}
+                                            onChange={handleInputSpeechToggle}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Output</Form.Label>
+                                        <Form.Text className="text-muted d-block mb-2">
+                                            Text output is always enabled.
+                                        </Form.Text>
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="Enable speech output"
+                                            value="speech"
+                                            checked={outputModalities.includes('speech')}
+                                            onChange={handleOutputSpeechToggle}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Section>
+
                         <Section style={{ gridColumn: '1 / -1' }}>
                             <SectionTitle>System Configuration</SectionTitle>
                             <Row>
