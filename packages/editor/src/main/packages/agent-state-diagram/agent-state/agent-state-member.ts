@@ -23,6 +23,10 @@ export abstract class AgentStateMember extends UMLElement {
   bounds: IBoundary = { ...this.bounds, height: computeDimension(1.0, 30) };
   replyType: string = "text";
   ragDatabaseName: string = '';
+  dbSelectionType: string = 'default';
+  dbCustomName: string = '';
+  dbQueryMode: string = 'llm_query';
+  dbSqlQuery: string = '';
   
   constructor(values?: DeepPartial<IUMLElement>) {
     super(values);
@@ -30,12 +34,24 @@ export abstract class AgentStateMember extends UMLElement {
     if ((values as any)?.ragDatabaseName !== undefined) {
       this.ragDatabaseName = (values as any).ragDatabaseName ?? '';
     }
+    if ((values as any)?.dbSelectionType !== undefined) {
+      this.dbSelectionType = (values as any).dbSelectionType ?? 'default';
+    }
+    if ((values as any)?.dbCustomName !== undefined) {
+      this.dbCustomName = (values as any).dbCustomName ?? '';
+    }
+    if ((values as any)?.dbQueryMode !== undefined) {
+      this.dbQueryMode = (values as any).dbQueryMode ?? 'llm_query';
+    }
+    if ((values as any)?.dbSqlQuery !== undefined) {
+      this.dbSqlQuery = (values as any).dbSqlQuery ?? '';
+    }
   }
 
 
   /** Serializes an `UMLElement` to an `Apollon.UMLElement` */
   serialize(children?: UMLElement[]): Apollon.AgentModelElement {
-    return {
+    const serialized: Apollon.AgentModelElement = {
       id: this.id,
       name: this.name,
       type: this.type,
@@ -47,11 +63,30 @@ export abstract class AgentStateMember extends UMLElement {
       textColor: this.textColor,
       assessmentNote: this.assessmentNote,
       replyType: this.replyType,
-      ragDatabaseName: this.ragDatabaseName,
     };
+
+    if (this.replyType === 'rag') {
+      serialized.ragDatabaseName = this.ragDatabaseName;
+    }
+
+    if (this.replyType === 'db_reply') {
+      serialized.dbSelectionType = this.dbSelectionType;
+      serialized.dbCustomName = this.dbCustomName;
+      serialized.dbQueryMode = this.dbQueryMode;
+      serialized.dbSqlQuery = this.dbSqlQuery;
+    }
+
+    return serialized;
   }
 
-    deserialize<T extends Apollon.UMLModelElement>(values: T & { replyType: string; ragDatabaseName?: string }) {
+    deserialize<T extends Apollon.UMLModelElement>(values: T & {
+      replyType: string;
+      ragDatabaseName?: string;
+      dbSelectionType?: string;
+      dbCustomName?: string;
+      dbQueryMode?: string;
+      dbSqlQuery?: string;
+    }) {
       this.id = values.id;
       this.name = values.name;
       this.type = values.type;
@@ -64,6 +99,10 @@ export abstract class AgentStateMember extends UMLElement {
       this.assessmentNote = values.assessmentNote;
       this.replyType = values.replyType;
       this.ragDatabaseName = values.ragDatabaseName ?? '';
+      this.dbSelectionType = values.dbSelectionType ?? 'default';
+      this.dbCustomName = values.dbCustomName ?? '';
+      this.dbQueryMode = values.dbQueryMode ?? 'llm_query';
+      this.dbSqlQuery = values.dbSqlQuery ?? '';
     }
 
   render(layer: ILayer): ILayoutable[] {
