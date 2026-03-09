@@ -13,13 +13,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAppDispatch } from '../../store/hooks';
-import { setCreateNewEditor, updateDiagram } from '../../services/diagram/diagramSlice';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   switchDiagramTypeThunk,
-  updateCurrentDiagramThunk,
   updateQuantumDiagramThunk,
 } from '../../services/project/projectSlice';
+import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
+import { toSupportedDiagramType } from '../../types/project';
 import { QuantumCircuitData } from '../../types/project';
 import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
 import {
@@ -85,6 +85,8 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
     [templates, selectedTemplateType],
   );
 
+  const currentProject = useAppSelector((state) => state.project.currentProject);
+
   const handleLoadTemplate = async () => {
     if (!selectedTemplate) {
       return;
@@ -99,18 +101,21 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         navigate('/quantum-editor');
       } else {
         const umlType = selectedTemplate.diagramType as UMLDiagramType;
+        const supportedType = toSupportedDiagramType(umlType);
 
-        await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
-        await dispatch(updateCurrentDiagramThunk({ model: selectedTemplate.diagram as any, title: selectedTemplate.type }));
-
-        dispatch(
-          updateDiagram({
+        // Save the template model to storage BEFORE switching diagram type,
+        // so switchDiagramTypeThunk reads the template (not a stale model)
+        if (currentProject) {
+          const existingDiagram = currentProject.diagrams[supportedType];
+          ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
+            ...existingDiagram,
             title: selectedTemplate.type,
             model: selectedTemplate.diagram as any,
             lastUpdate: new Date().toISOString(),
-          }),
-        );
-        dispatch(setCreateNewEditor(true));
+          });
+        }
+
+        await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
         navigate('/');
       }
 
