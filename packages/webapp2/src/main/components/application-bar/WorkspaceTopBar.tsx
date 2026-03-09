@@ -42,6 +42,9 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
   onGitHubLogin,
   onGitHubLogout,
   onOpenGitHubSidebar,
+  hasStarred,
+  starLoading,
+  onToggleStar,
   onOpenDeployDialog,
   onOpenHelpDialog,
   onOpenAboutDialog,
@@ -121,11 +124,14 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
             isAuthenticated={isAuthenticated}
             username={username}
             githubLoading={githubLoading}
+            hasStarred={hasStarred}
+            starLoading={starLoading}
             onQualityCheck={onQualityCheck}
             onToggleTheme={onToggleTheme}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
             onOpenGitHubSidebar={onOpenGitHubSidebar}
+            onToggleStar={onToggleStar}
           />
         </div>
       </div>

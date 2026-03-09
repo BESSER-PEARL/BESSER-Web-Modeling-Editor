@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { BACKEND_URL } from '../../constant';
 import { useProject } from '../../hooks/useProject';
 import { toUMLDiagramType, type SupportedDiagramType } from '../../types/project';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -125,6 +126,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
   const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
+  const [hasStarred, setHasStarred] = useState(false);
+  const [starLoading, setStarLoading] = useState(false);
 
   const [assistantImportMode, setAssistantImportMode] = useState<AssistantImportMode>(null);
   const [assistantApiKey, setAssistantApiKey] = useState('');
@@ -158,6 +161,31 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   useEffect(() => {
     setDiagramTitleDraft(diagram?.title ?? '');
   }, [diagram?.id, diagram?.title]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !githubSession) return;
+    fetch(`${BACKEND_URL}/github/star/status?session_id=${githubSession}`)
+      .then((res) => res.json())
+      .then((data) => { if (data.starred) setHasStarred(true); })
+      .catch(() => {});
+  }, [isAuthenticated, githubSession]);
+
+  const handleToggleStar = async () => {
+    if (!githubSession || starLoading) return;
+    setStarLoading(true);
+    try {
+      const method = hasStarred ? 'DELETE' : 'PUT';
+      const res = await fetch(`${BACKEND_URL}/github/star?session_id=${githubSession}`, { method });
+      if (res.ok) {
+        setHasStarred(!hasStarred);
+        if (!hasStarred) toast.success('Thanks for starring BESSER!');
+      }
+    } catch {
+      toast.error('Failed to update star');
+    } finally {
+      setStarLoading(false);
+    }
+  };
 
   /* ---- Assistant-driven export (JSON / BUML) ---- */
   useEffect(() => {
@@ -664,6 +692,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
         onOpenGitHubSidebar={() => setIsGitHubSidebarOpen((previous) => !previous)}
+        hasStarred={hasStarred}
+        starLoading={starLoading}
+        onToggleStar={handleToggleStar}
         onOpenDeployDialog={handleOpenDeployDialog}
         onOpenHelpDialog={() => setIsHelpDialogOpen(true)}
         onOpenAboutDialog={() => setIsAboutDialogOpen(true)}

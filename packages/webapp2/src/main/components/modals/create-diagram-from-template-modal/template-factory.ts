@@ -12,6 +12,7 @@ import aiSandboxModel from '../../../templates/pattern/structural/ai_sandbox.jso
 import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
+import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
 import { EXAMPLE_CIRCUITS } from '../../../components/quantum-editor-component/exampleCircuits';
 import { serializeCircuit } from '../../../components/quantum-editor-component/utils';
@@ -85,6 +86,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           faqRagAgent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+      case SoftwarePatternType.LIBRARY_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          libraryAgent as any,
           SoftwarePatternCategory.AGENT,
         );
       case SoftwarePatternType.TRAFIC_LIGHT:

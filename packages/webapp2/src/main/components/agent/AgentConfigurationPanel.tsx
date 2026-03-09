@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { BACKEND_URL } from '../../constant';
+import { useAppDispatch } from '../../store/hooks';
+import { updateDiagramThunk } from '../../services/diagram/diagramSlice';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
 import {
   StoredAgentConfiguration,
@@ -95,9 +98,24 @@ const normalizeConfig = (raw: Partial<AgentConfigurationPayload> | null | undefi
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
+const deepEqual = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+const buildSparseConfig = (config: AgentConfigurationPayload): Partial<AgentConfigurationPayload> => {
+  const defaults = defaultAgentConfig();
+  const sparse: Record<string, unknown> = {};
+  for (const key of Object.keys(config) as (keyof AgentConfigurationPayload)[]) {
+    if (!deepEqual(config[key], defaults[key])) {
+      sparse[key] = config[key];
+    }
+  }
+  return sparse as Partial<AgentConfigurationPayload>;
+};
+
 export const AgentConfigurationPanel: React.FC = () => {
+  const dispatch = useAppDispatch();
   const { currentProject } = useProject();
   const [configurationName, setConfigurationName] = useState(DEFAULT_CONFIG_NAME);
+  const [isApplying, setIsApplying] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [selectedConfigId, setSelectedConfigId] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
@@ -252,6 +270,77 @@ export const AgentConfigurationPanel: React.FC = () => {
     setActiveConfigId(saved.id);
     refreshData();
     toast.success(`Agent configuration "${saved.name}" saved.`);
+  };
+
+  const handleSaveAndApply = async () => {
+    if (!currentAgentModel) {
+      toast.error('No Agent Diagram model found in the project.');
+      return;
+    }
+
+    // First save locally
+    handleSaveConfiguration();
+
+    // Build sparse config (only values differing from defaults)
+    const resolvedLlm = (() => {
+      const provider = (config.llm as any)?.provider as AgentLLMProvider | undefined;
+      const model = (config.llm as any)?.model as string | undefined;
+      if (!provider) return {};
+      const resolvedModel = model === 'other' ? customModel : (model || '');
+      return { provider, model: resolvedModel };
+    })();
+
+    const fullConfig: AgentConfigurationPayload = {
+      ...config,
+      llm: resolvedLlm,
+      userProfileName: config.adaptContentToUserProfile ? config.userProfileName : null,
+    };
+
+    const sparseConfig = buildSparseConfig(fullConfig);
+
+    // Optionally include user profile model
+    const requestConfig: Record<string, unknown> = { ...sparseConfig };
+    if (fullConfig.adaptContentToUserProfile && fullConfig.userProfileName && currentUserModel) {
+      requestConfig.userProfileModel = cloneModel(currentUserModel);
+    }
+
+    const payload = {
+      id: currentAgentDiagram?.id,
+      title: currentAgentDiagram?.title || configurationName,
+      model: currentAgentModel,
+      lastUpdate: currentAgentDiagram?.lastUpdate,
+      generator: 'agent',
+      config: requestConfig,
+    };
+
+    setIsApplying(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/transform_agent_model_json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        toast.error(`Backend error: ${errorText}`);
+        return;
+      }
+
+      const data = await res.json();
+      const personalizedModel = data.model;
+
+      if (personalizedModel) {
+        const snapshotModel = cloneModel(personalizedModel);
+        dispatch(updateDiagramThunk({ model: snapshotModel }));
+        toast.success('Configuration transformed, saved, and applied successfully.');
+      }
+    } catch (err) {
+      console.error('Save & Apply failed:', err);
+      toast.error('Failed to apply configuration.');
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   const handleLoadConfiguration = () => {
@@ -652,6 +741,9 @@ export const AgentConfigurationPanel: React.FC = () => {
 
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleSaveConfiguration}>Save Configuration</Button>
+              <Button onClick={handleSaveAndApply} disabled={isApplying || !currentAgentModel}>
+                {isApplying ? 'Applying...' : 'Save & Apply Configuration'}
+              </Button>
               {SHOW_FULL_AGENT_CONFIGURATION && (
                 <Button
                   variant="outline"

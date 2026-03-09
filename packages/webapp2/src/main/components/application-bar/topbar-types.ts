@@ -35,6 +35,9 @@ export interface WorkspaceTopBarProps {
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
   onOpenGitHubSidebar: () => void;
+  hasStarred: boolean;
+  starLoading: boolean;
+  onToggleStar: () => void;
   onOpenDeployDialog: () => void;
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;

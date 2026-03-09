@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Github, LogOut, Moon, Sun } from 'lucide-react';
+import { ChevronDown, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,11 +17,14 @@ interface TopBarUtilitiesProps {
   isAuthenticated: boolean;
   username?: string;
   githubLoading: boolean;
+  hasStarred: boolean;
+  starLoading: boolean;
   onQualityCheck: () => void;
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
   onOpenGitHubSidebar: () => void;
+  onToggleStar: () => void;
 }
 
 export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
@@ -31,11 +34,14 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   isAuthenticated,
   username,
   githubLoading,
+  hasStarred,
+  starLoading,
   onQualityCheck,
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
   onOpenGitHubSidebar,
+  onToggleStar,
 }) => {
   return (
     <>
@@ -53,6 +59,19 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
       >
         {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       </Button>
+
+      {isAuthenticated && (
+        <Button
+          variant="outline"
+          className={`gap-1.5 ${outlineButtonClass} ${hasStarred ? 'text-yellow-500 hover:text-yellow-600' : ''}`}
+          onClick={onToggleStar}
+          disabled={starLoading}
+          title={hasStarred ? 'Unstar BESSER on GitHub' : 'Star BESSER on GitHub'}
+        >
+          <Star className={`h-4 w-4 ${hasStarred ? 'fill-current' : ''}`} />
+          {hasStarred ? 'Starred' : 'Star'}
+        </Button>
+      )}
 
       {isAuthenticated ? (
         <>
