@@ -26,6 +26,7 @@ export abstract class AgentStateMember extends UMLElement {
   dbSelectionType: string = 'default';
   dbCustomName: string = '';
   dbQueryMode: string = 'llm_query';
+  dbOperation: string = 'any';
   dbSqlQuery: string = '';
   
   constructor(values?: DeepPartial<IUMLElement>) {
@@ -42,6 +43,9 @@ export abstract class AgentStateMember extends UMLElement {
     }
     if ((values as any)?.dbQueryMode !== undefined) {
       this.dbQueryMode = (values as any).dbQueryMode ?? 'llm_query';
+    }
+    if ((values as any)?.dbOperation !== undefined) {
+      this.dbOperation = (values as any).dbOperation ?? 'any';
     }
     if ((values as any)?.dbSqlQuery !== undefined) {
       this.dbSqlQuery = (values as any).dbSqlQuery ?? '';
@@ -73,6 +77,7 @@ export abstract class AgentStateMember extends UMLElement {
       serialized.dbSelectionType = this.dbSelectionType;
       serialized.dbCustomName = this.dbCustomName;
       serialized.dbQueryMode = this.dbQueryMode;
+      serialized.dbOperation = this.dbOperation;
       serialized.dbSqlQuery = this.dbSqlQuery;
     }
 
@@ -85,6 +90,7 @@ export abstract class AgentStateMember extends UMLElement {
       dbSelectionType?: string;
       dbCustomName?: string;
       dbQueryMode?: string;
+      dbOperation?: string;
       dbSqlQuery?: string;
     }) {
       this.id = values.id;
@@ -102,6 +108,7 @@ export abstract class AgentStateMember extends UMLElement {
       this.dbSelectionType = values.dbSelectionType ?? 'default';
       this.dbCustomName = values.dbCustomName ?? '';
       this.dbQueryMode = values.dbQueryMode ?? 'llm_query';
+      this.dbOperation = values.dbOperation ?? 'any';
       this.dbSqlQuery = values.dbSqlQuery ?? '';
     }
 

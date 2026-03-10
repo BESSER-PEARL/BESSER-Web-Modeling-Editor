@@ -96,6 +96,7 @@ type DbReplyValues = {
   dbSelectionType: string;
   dbCustomName: string;
   dbQueryMode: string;
+  dbOperation: string;
   dbSqlQuery: string;
 };
 
@@ -349,6 +350,7 @@ class StateUpdate extends Component<Props, State> {
                         defaultDbReplyValues.dbSelectionType ?? 'default',
                         defaultDbReplyValues.dbCustomName ?? '',
                         defaultDbReplyValues.dbQueryMode ?? 'llm_query',
+                        defaultDbReplyValues.dbOperation ?? 'any',
                       ),
                     );
                   }
@@ -594,6 +596,7 @@ class StateUpdate extends Component<Props, State> {
                         defaultDbReplyValues.dbSelectionType ?? 'default',
                         defaultDbReplyValues.dbCustomName ?? '',
                         defaultDbReplyValues.dbQueryMode ?? 'llm_query',
+                        defaultDbReplyValues.dbOperation ?? 'any',
                       ),
                     );
                   }
@@ -743,27 +746,35 @@ class StateUpdate extends Component<Props, State> {
     dbSelectionType: 'default',
     dbCustomName: '',
     dbQueryMode: 'llm_query',
+    dbOperation: 'any',
     dbSqlQuery: '',
   });
 
-  private getDbDisplayName = (dbSelectionType: string, dbCustomName: string, dbQueryMode: string): string => {
+  private getDbDisplayName = (
+    dbSelectionType: string,
+    dbCustomName: string,
+    dbQueryMode: string,
+    dbOperation: string,
+  ): string => {
     const customDatabaseName = (dbCustomName || '').trim();
     const databaseLabel = dbSelectionType === 'custom'
       ? (customDatabaseName.length ? customDatabaseName : 'custom database')
       : 'Default database';
     const modeLabel = dbQueryMode === 'sql' ? 'SQL' : 'LLM query';
+    const operationLabel = dbOperation === 'any' ? 'Any' : dbOperation.toUpperCase();
 
-    return `DB action using ${databaseLabel} (${modeLabel})`;
+    return `DB action using ${databaseLabel} (${modeLabel}, ${operationLabel})`;
   };
 
   private updateDbReply = (member: AgentStateMember, values: Partial<AgentStateMember>) => {
     const dbSelectionType = values.dbSelectionType ?? member.dbSelectionType ?? 'default';
     const dbCustomName = values.dbCustomName ?? member.dbCustomName ?? '';
     const dbQueryMode = values.dbQueryMode ?? member.dbQueryMode ?? 'llm_query';
+    const dbOperation = values.dbOperation ?? member.dbOperation ?? 'any';
 
     this.props.update<AgentStateMember>(member.id, {
       ...values,
-      name: this.getDbDisplayName(dbSelectionType, dbCustomName, dbQueryMode),
+      name: this.getDbDisplayName(dbSelectionType, dbCustomName, dbQueryMode, dbOperation),
     });
   };
 
@@ -777,6 +788,7 @@ class StateUpdate extends Component<Props, State> {
         defaultDbReplyValues.dbSelectionType ?? 'default',
         defaultDbReplyValues.dbCustomName ?? '',
         defaultDbReplyValues.dbQueryMode ?? 'llm_query',
+        defaultDbReplyValues.dbOperation ?? 'any',
       );
       this.create(Clazz, 'db_reply', defaultDbReplyValues)(displayName);
       return <p>Configuring database action...</p>;
@@ -784,9 +796,11 @@ class StateUpdate extends Component<Props, State> {
 
     const dbSelectionType = member.dbSelectionType || 'default';
     const dbQueryMode = member.dbQueryMode || 'llm_query';
+    const dbOperation = member.dbOperation || 'any';
 
     return (
       <>
+        <p>Select a Database</p>
         <Dropdown
           value={dbSelectionType}
           onChange={(value) => {
@@ -799,7 +813,7 @@ class StateUpdate extends Component<Props, State> {
         >
           {[
             <Dropdown.Item value="default" key="db-default">
-              Default
+              Default (using the app DB)
             </Dropdown.Item>,
             <Dropdown.Item value="custom" key="db-custom">
               Custom
@@ -815,6 +829,36 @@ class StateUpdate extends Component<Props, State> {
             onChange={(value) => this.updateDbReply(member, { dbCustomName: value })}
           />
         ) : null}
+
+        <div>
+          <label>DB operation</label>
+          <Dropdown
+            value={dbOperation}
+            onChange={(value) => {
+              const allowedOperations = ['any', 'select', 'insert', 'update', 'delete'];
+              const nextOperation = allowedOperations.includes(value) ? value : 'any';
+              this.updateDbReply(member, { dbOperation: nextOperation });
+            }}
+          >
+            {[
+              <Dropdown.Item value="any" key="db-operation-any">
+                Any
+              </Dropdown.Item>,
+              <Dropdown.Item value="select" key="db-operation-select">
+                SELECT
+              </Dropdown.Item>,
+              <Dropdown.Item value="insert" key="db-operation-insert">
+                INSERT
+              </Dropdown.Item>,
+              <Dropdown.Item value="update" key="db-operation-update">
+                UPDATE
+              </Dropdown.Item>,
+              <Dropdown.Item value="delete" key="db-operation-delete">
+                DELETE
+              </Dropdown.Item>,
+            ]}
+          </Dropdown>
+        </div>
 
         <div>
           <label>
