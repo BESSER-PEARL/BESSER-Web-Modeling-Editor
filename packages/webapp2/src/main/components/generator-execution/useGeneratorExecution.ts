@@ -32,7 +32,7 @@ import {
 } from '../../services/generate-code/useGenerateCode';
 import type { GenerationResult } from '../../services/generate-code/types';
 import { useDeployLocally } from '../../services/generate-code/useDeployLocally';
-import { GrapesJSProjectData, isUMLModel } from '../../types/project';
+import { GrapesJSProjectData, isUMLModel, getActiveDiagram } from '../../types/project';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { switchDiagramTypeThunk } from '../../services/project/projectSlice';
@@ -243,7 +243,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     !BACKEND_URL || BACKEND_URL.includes('localhost') || BACKEND_URL.includes('127.0.0.1');
 
   const activeDiagram = currentProject
-    ? currentProject.diagrams[currentProject.currentDiagramType]
+    ? getActiveDiagram(currentProject, currentProject.currentDiagramType)
     : undefined;
   const activeDiagramTitle = activeDiagram?.title || currentProject?.name || 'Diagram';
 
@@ -339,8 +339,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         return { ok: false, error: 'Could not switch to GUI diagram for auto-generation.' };
       }
 
-      if (location.pathname !== '/graphical-ui-editor') {
-        navigate('/graphical-ui-editor');
+      if (location.pathname !== '/') {
+        navigate('/');
       }
 
       const ready = await waitForGuiEditorReady(12000);
@@ -379,7 +379,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           // but does NOT update the Redux store).
           const freshProject =
             ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-          let guiModel = freshProject.diagrams.GUINoCodeDiagram.model as GrapesJSProjectData | undefined;
+          let guiModel = getActiveDiagram(freshProject, 'GUINoCodeDiagram').model as GrapesJSProjectData | undefined;
 
           if (isGuiModelEmpty(guiModel)) {
             if (options?.autoGenerateGuiIfEmpty) {
@@ -390,7 +390,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
               }
               const refreshedProject =
                 ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-              guiModel = refreshedProject.diagrams.GUINoCodeDiagram.model as GrapesJSProjectData | undefined;
+              guiModel = getActiveDiagram(refreshedProject, 'GUINoCodeDiagram').model as GrapesJSProjectData | undefined;
             }
 
             if (isGuiModelEmpty(guiModel)) {
@@ -607,10 +607,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         : storedAgentConfigurations.slice(0, 1);
 
       if (selectedEntries.length > 0) {
-        const agentDiagramId = currentProject?.diagrams?.AgentDiagram?.id;
+        const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+        const agentDiagramId = activeAgentDiagram?.id;
         const baseModelSource = agentDiagramId ? LocalStorageRepository.getAgentBaseModel(agentDiagramId) : null;
         const fallbackOriginal = selectedEntries.find((entry) => entry.originalAgentModel)?.originalAgentModel;
-        const agentDiagramModel = currentProject?.diagrams?.AgentDiagram?.model;
+        const agentDiagramModel = activeAgentDiagram?.model;
         const currentAgentModel =
           isUMLModel(agentDiagramModel) && agentDiagramModel.type === UMLDiagramType.AgentDiagram
             ? agentDiagramModel

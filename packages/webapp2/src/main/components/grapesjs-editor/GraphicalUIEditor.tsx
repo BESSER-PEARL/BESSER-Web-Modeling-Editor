@@ -25,7 +25,7 @@ import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate } from '../../types/project';
+import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram } from '../../types/project';
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
@@ -99,7 +99,7 @@ export const GraphicalUIEditor: React.FC = () => {
           if (project) {
             const normalized = normalizeToGrapesJSProjectData(model);
             ProjectStorageRepository.updateDiagram(project.id, 'GUINoCodeDiagram', {
-              ...project.diagrams.GUINoCodeDiagram,
+              ...getActiveDiagram(project, 'GUINoCodeDiagram'),
               model: normalized,
               lastUpdate: new Date().toISOString(),
             });
@@ -390,7 +390,7 @@ function setupProjectStorageIntegration(
     async load() {
       try {
         const project = ProjectStorageRepository.getCurrentProject();
-        const model = project?.diagrams?.GUINoCodeDiagram?.model;
+        const model = project ? getActiveDiagram(project, 'GUINoCodeDiagram')?.model : undefined;
 
         // If model exists and has valid GrapesJS data with pages, load it
         if (isGrapesJSProjectData(model)) {
@@ -409,7 +409,7 @@ function setupProjectStorageIntegration(
               project.id,
               'GUINoCodeDiagram',
               {
-                ...project.diagrams.GUINoCodeDiagram,
+                ...getActiveDiagram(project, 'GUINoCodeDiagram'),
                 model: defaultTemplate,
                 lastUpdate: new Date().toISOString(),
               }
@@ -453,7 +453,7 @@ function setupProjectStorageIntegration(
           project.id,
           'GUINoCodeDiagram',
           {
-            ...project.diagrams.GUINoCodeDiagram,
+            ...getActiveDiagram(project, 'GUINoCodeDiagram'),
             model: grapesData,
             lastUpdate: new Date().toISOString(),
           }

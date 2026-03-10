@@ -5,7 +5,7 @@ import { BesserProject, SupportedDiagramType } from '../../types/project';
 import { ApollonEditor, diagramBridge, UMLDiagramType } from '@besser/wme';
 import { validateDiagram } from '../validation/validateDiagram';
 import { toUMLDiagramType } from '../../types/project';
-import { buildExportableProjectPayload } from './projectExportUtils';
+import { flattenProjectForBackend } from './projectExportUtils';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 
 async function convertDiagramModelToBUML(diagram: any, diagramTitle: string, project?: BesserProject): Promise<string> {
@@ -36,8 +36,8 @@ async function convertDiagramModelToBUML(diagram: any, diagramTitle: string, pro
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        elements: modelData,
-        diagramTitle: diagramTitle,
+        title: diagramTitle,
+        model: modelData,
       }),
     });
 
@@ -186,7 +186,7 @@ export async function exportProjectAsSingleBUMLFile(
 
   console.log('[BUML Export] Using project data:', projectToUse.id);
 
-  const projectToExport = buildExportableProjectPayload(projectToUse, diagramTypes);
+  const projectToExport = flattenProjectForBackend(projectToUse, diagramTypes);
 
   try {
     const response = await fetch(`${BACKEND_URL}/export-project_as_buml`, {

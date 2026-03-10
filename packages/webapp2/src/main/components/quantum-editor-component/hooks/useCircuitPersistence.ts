@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Circuit } from '../types';
 import { serializeCircuit, deserializeCircuit } from '../utils';
 import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
-import { QuantumCircuitData, isQuantumCircuitData, BesserProject } from '../../../types/project';
+import { QuantumCircuitData, isQuantumCircuitData, BesserProject, getActiveDiagram } from '../../../types/project';
 
 export type SaveStatus = 'saved' | 'saving' | 'error';
 
@@ -59,7 +59,7 @@ export function useCircuitPersistence(
                 project.id,
                 'QuantumCircuitDiagram',
                 {
-                    ...project.diagrams.QuantumCircuitDiagram,
+                    ...getActiveDiagram(project, 'QuantumCircuitDiagram'),
                     model: quantumData,
                     lastUpdate: new Date().toISOString(),
                 }
@@ -83,7 +83,8 @@ export function useCircuitPersistence(
             const project = currentProject?.id
                 ? ProjectStorageRepository.loadProject(currentProject.id)
                 : ProjectStorageRepository.getCurrentProject();
-            const model = project?.diagrams?.QuantumCircuitDiagram?.model;
+            const quantumDiagram = project ? getActiveDiagram(project, 'QuantumCircuitDiagram') : undefined;
+            const model = quantumDiagram?.model;
 
             if (isQuantumCircuitData(model) && model.cols.length > 0) {
                 return deserializeCircuit(model);

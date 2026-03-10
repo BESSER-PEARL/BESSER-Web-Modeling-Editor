@@ -1,5 +1,5 @@
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { isUMLModel } from '../../types/project';
+import { isUMLModel, getActiveDiagram } from '../../types/project';
 import { ClassMetadata, AttributeMetadata, isNumericType, isStringType } from './utils/classBindingHelpers';
 
 /**
@@ -15,12 +15,14 @@ function stripVisibility(name: string): string {
 
 function getClassDiagramModel() {
   const project = ProjectStorageRepository.getCurrentProject();
-  return project?.diagrams?.ClassDiagram?.model;
+  if (!project) return undefined;
+  return getActiveDiagram(project, 'ClassDiagram')?.model;
 }
 
 function getAgentDiagramModel() {
   const project = ProjectStorageRepository.getCurrentProject();
-  return project?.diagrams?.AgentDiagram?.model;
+  if (!project) return undefined;
+  return getActiveDiagram(project, 'AgentDiagram')?.model;
 }
 
 export function getClassOptions(): { value: string; label: string }[] {
@@ -322,13 +324,17 @@ export function getRelatedClassAttributeOptions(classId: string): { value: strin
 export function getAgentOptions(): { value: string; label: string }[] {
   // Get the project to access AgentDiagram
   const project = ProjectStorageRepository.getCurrentProject();
-  const agentDiagramData = project?.diagrams?.AgentDiagram;
-  
+  if (!project) {
+    console.warn('[diagram-helpers] No project available');
+    return [];
+  }
+  const agentDiagramData = getActiveDiagram(project, 'AgentDiagram');
+
   if (agentDiagramData?.title) {
     // Return the diagram title as the agent identifier (entire diagram, not individual states)
     return [{ value: agentDiagramData.title, label: agentDiagramData.title }];
   }
-  
+
   console.warn('[diagram-helpers] No Agent diagram data available');
   return [];
 }

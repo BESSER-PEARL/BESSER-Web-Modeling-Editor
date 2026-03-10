@@ -3,7 +3,7 @@ import { settingsService } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Download } from 'lucide-react';
 import { useProject } from '../../hooks/useProject';
-import { SupportedDiagramType } from '../../types/project';
+import { SupportedDiagramType, ProjectDiagram } from '../../types/project';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,10 +35,13 @@ export const ProjectSettingsPanel: React.FC = () => {
 
   const diagrams = useMemo(() => {
     if (!currentProject) return [];
-    return Object.entries(currentProject.diagrams).map(([type, diagram]) => ({
-      type: type as SupportedDiagramType,
-      diagram,
-    }));
+    return Object.entries(currentProject.diagrams).flatMap(([type, diagramArr]) =>
+      (diagramArr as ProjectDiagram[]).map((diagram, index) => ({
+        type: type as SupportedDiagramType,
+        diagram,
+        index,
+      })),
+    );
   }, [currentProject]);
 
   const handleProjectField = (field: 'name' | 'description' | 'owner', value: string) => {
@@ -137,8 +140,8 @@ export const ProjectSettingsPanel: React.FC = () => {
             <div className="space-y-3">
               <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Diagrams</h3>
               <div className="grid gap-3">
-                {diagrams.map(({ type, diagram }) => (
-                  <div key={type} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/20 p-3">
+                {diagrams.map(({ type, diagram, index }) => (
+                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/20 p-3">
                     <div>
                       <p className="text-sm font-medium">{diagram.title}</p>
                       <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>

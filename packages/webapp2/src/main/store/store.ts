@@ -1,12 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { diagramReducer } from '../services/diagram/diagramSlice';
-import { projectReducer } from '../services/project/projectSlice';
+import { workspaceReducer } from '../services/workspace/workspaceSlice';
 import { errorReducer } from '../services/error-management/errorManagementSlice';
 
 export const store = configureStore({
   reducer: {
-    diagram: diagramReducer,
-    project: projectReducer,
+    workspace: workspaceReducer,
     errors: errorReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware(),
@@ -14,4 +12,4 @@ export const store = configureStore({
 });
 
 export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch; 
+export type AppDispatch = typeof store.dispatch;

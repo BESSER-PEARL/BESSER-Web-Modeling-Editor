@@ -10,14 +10,13 @@ interface WorkspaceContext {
 }
 
 export const getWorkspaceContext = (pathname: string, currentDiagramType?: string): WorkspaceContext => {
-  const isQuantumContext = pathname === '/quantum-editor' || currentDiagramType === 'QuantumCircuitDiagram';
-  const isGuiContext = pathname === '/graphical-ui-editor' || currentDiagramType === 'GUINoCodeDiagram';
-  const isClassContext = pathname === '/' && (
+  const isQuantumContext = currentDiagramType === 'QuantumCircuitDiagram';
+  const isGuiContext = currentDiagramType === 'GUINoCodeDiagram';
+  const isClassContext =
     currentDiagramType === 'ClassDiagram'
     || currentDiagramType === 'ObjectDiagram'
-    || currentDiagramType === 'StateMachineDiagram'
-  );
-  const isAgentContext = pathname === '/' && currentDiagramType === 'AgentDiagram';
+    || currentDiagramType === 'StateMachineDiagram';
+  const isAgentContext = currentDiagramType === 'AgentDiagram';
 
   const generatorMenuMode: GeneratorMenuMode = isQuantumContext
     ? 'quantum'

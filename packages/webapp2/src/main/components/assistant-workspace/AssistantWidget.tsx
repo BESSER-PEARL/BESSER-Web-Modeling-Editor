@@ -9,7 +9,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UMLDiagramType } from '@besser/wme';
 import { CircleHelp, X } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -20,10 +19,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useAppDispatch } from '../../store/hooks';
-import { useProject } from '../../hooks/useProject';
 import { switchDiagramTypeThunk } from '../../services/project/projectSlice';
 import type { SupportedDiagramType } from '../../types/project';
-import { toUMLDiagramType } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
 import { useAssistantLogic, type ConnectionStatus } from './useAssistantLogic';
@@ -79,41 +76,20 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const dispatch = useAppDispatch();
-  const { switchDiagramType } = useProject();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isOnEditorPage = ['/', '/graphical-ui-editor', '/quantum-editor'].includes(location.pathname);
+  const isOnEditorPage = location.pathname === '/';
 
-  /* ---- Widget-specific diagram switching (route-aware) ---- */
+  /* ---- Widget-specific diagram switching ---- */
 
   const switchDiagram = async (targetType: string): Promise<boolean> => {
-    const isGuiDiagram = targetType === 'GUINoCodeDiagram';
-    const isQuantumDiagram = targetType === 'QuantumCircuitDiagram';
-
-    if (isGuiDiagram || isQuantumDiagram) {
-      try {
-        await dispatch(switchDiagramTypeThunk({ diagramType: targetType as SupportedDiagramType })).unwrap();
-      } catch {
-        return false;
-      }
-      if (isGuiDiagram && location.pathname !== '/graphical-ui-editor') {
-        navigate('/graphical-ui-editor');
-      }
-      if (isQuantumDiagram && location.pathname !== '/quantum-editor') {
-        navigate('/quantum-editor');
-      }
-      return true;
+    if (location.pathname !== '/') {
+      navigate('/');
     }
 
-    const umlType = toUMLDiagramType(targetType as any);
-    if (!umlType) return false;
-
     try {
-      if (location.pathname !== '/') {
-        navigate('/');
-      }
-      switchDiagramType(umlType as UMLDiagramType);
+      await dispatch(switchDiagramTypeThunk({ diagramType: targetType as SupportedDiagramType })).unwrap();
       return true;
     } catch {
       return false;

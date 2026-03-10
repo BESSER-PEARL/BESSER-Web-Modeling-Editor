@@ -1,4 +1,5 @@
 import { UMLDiagramType } from '@besser/wme';
+import type { SupportedDiagramType } from '../../types/project';
 import type { GeneratorMenuMode, GeneratorType } from '../sidebar/workspace-types';
 
 export interface WorkspaceTopBarProps {
@@ -42,7 +43,9 @@ export interface WorkspaceTopBarProps {
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;
   onOpenFeedback: () => void;
+  activeDiagramType: SupportedDiagramType;
   onSwitchUml: (type: UMLDiagramType) => void;
+  onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;
   onProjectNameDraftChange: (value: string) => void;
   onProjectRename: () => void;

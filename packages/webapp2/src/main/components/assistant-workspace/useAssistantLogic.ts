@@ -25,7 +25,7 @@ import {
   RateLimiterService,
   type RateLimitStatus,
 } from './services';
-import { isUMLModel } from '../../types/project';
+import { isUMLModel, ProjectDiagram } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
 
@@ -154,7 +154,7 @@ export function useAssistantLogic({
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
   const { editor } = useContext(ApollonEditorContext);
-  const currentDiagram = useAppSelector((state) => state.diagram);
+  const activeDiagram = useAppSelector((state) => state.workspace.activeDiagram);
   const { currentProject, currentDiagramType } = useProject();
 
   /* ---- stable refs for callbacks ---- */
@@ -169,7 +169,7 @@ export function useAssistantLogic({
   switchDiagramRef.current = switchDiagram;
   currentProjectRef.current = currentProject;
   currentDiagramTypeRef.current = currentDiagramType;
-  currentModelRef.current = currentDiagram?.diagram?.model;
+  currentModelRef.current = activeDiagram?.model;
 
   /* ---- singleton services ---- */
 
@@ -207,10 +207,10 @@ export function useAssistantLogic({
   }, [dispatch, editor, modelingService]);
 
   useEffect(() => {
-    if (modelingService && currentDiagram?.diagram?.model && isUMLModel(currentDiagram.diagram.model)) {
-      modelingService.updateCurrentModel(currentDiagram.diagram.model);
+    if (modelingService && activeDiagram?.model && isUMLModel(activeDiagram.model)) {
+      modelingService.updateCurrentModel(activeDiagram.model);
     }
-  }, [currentDiagram, modelingService]);
+  }, [activeDiagram, modelingService]);
 
   /* ---- auto-scroll on new messages ---- */
 
@@ -225,24 +225,29 @@ export function useAssistantLogic({
   function buildWorkspaceContext() {
     const project = currentProjectRef.current;
     const activeType = currentDiagramTypeRef.current || 'ClassDiagram';
-    const activeDiagram = project?.diagrams?.[activeType as keyof typeof project.diagrams];
-    const projectModel = activeDiagram?.model;
+    const diagrams = project?.diagrams?.[activeType as keyof typeof project.diagrams];
+    const activeIndex = project?.currentDiagramIndices?.[activeType as keyof typeof project.currentDiagramIndices] ?? 0;
+    const currentDiag = Array.isArray(diagrams) ? diagrams[activeIndex] : undefined;
+    const projectModel = currentDiag?.model;
     const editorModel = isUMLModel(currentModelRef.current) ? currentModelRef.current : undefined;
     const activeModel = isUmlDiagramType(activeType)
       ? modelingServiceRef.current?.getCurrentModel() || editorModel || projectModel
       : projectModel;
 
     const diagramSummaries = project
-      ? Object.entries(project.diagrams).map(([diagramType, diagram]) => ({
-          diagramType,
-          diagramId: diagram.id,
-          title: diagram.title,
-        }))
+      ? Object.entries(project.diagrams).flatMap(([diagramType, diagramArr]) =>
+          (diagramArr as ProjectDiagram[]).map((d, i) => ({
+            diagramType,
+            diagramId: d.id,
+            title: d.title,
+            index: i,
+          })),
+        )
       : [];
 
     return {
       activeDiagramType: activeType,
-      activeDiagramId: activeDiagram?.id,
+      activeDiagramId: currentDiag?.id,
       activeModel,
       projectSnapshot: project || undefined,
       diagramSummaries,

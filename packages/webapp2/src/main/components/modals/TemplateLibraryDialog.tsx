@@ -19,7 +19,7 @@ import {
   updateQuantumDiagramThunk,
 } from '../../services/project/projectSlice';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../types/project';
+import { toSupportedDiagramType, getActiveDiagram } from '../../types/project';
 import { QuantumCircuitData } from '../../types/project';
 import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
 import {
@@ -85,7 +85,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
     [templates, selectedTemplateType],
   );
 
-  const currentProject = useAppSelector((state) => state.project.currentProject);
+  const currentProject = useAppSelector((state) => state.workspace.project);
 
   const handleLoadTemplate = async () => {
     if (!selectedTemplate) {
@@ -98,7 +98,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       if (!selectedTemplate.isUMLDiagram && selectedTemplate.diagramType === 'QuantumCircuitDiagram') {
         await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
         await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
-        navigate('/quantum-editor');
+        navigate('/');
       } else {
         const umlType = selectedTemplate.diagramType as UMLDiagramType;
         const supportedType = toSupportedDiagramType(umlType);
@@ -106,7 +106,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         // Save the template model to storage BEFORE switching diagram type,
         // so switchDiagramTypeThunk reads the template (not a stale model)
         if (currentProject) {
-          const existingDiagram = currentProject.diagrams[supportedType];
+          const existingDiagram = getActiveDiagram(currentProject, supportedType);
           ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
             ...existingDiagram,
             title: selectedTemplate.type,

@@ -1,5 +1,16 @@
 import { UMLDiagramType } from '@besser/wme';
-import { BesserProject, ProjectDiagram, createDefaultProject, isProject, SupportedDiagramType, toSupportedDiagramType } from '../../types/project';
+import {
+  BesserProject,
+  ProjectDiagram,
+  createDefaultProject,
+  createEmptyDiagram,
+  getActiveDiagram,
+  isProject,
+  MAX_DIAGRAMS_PER_TYPE,
+  SupportedDiagramType,
+  toSupportedDiagramType,
+  toUMLDiagramType,
+} from '../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constant';
 
 export class ProjectStorageRepository {
@@ -88,19 +99,26 @@ export class ProjectStorageRepository {
   }
   
   // Update specific diagram within project
-  static updateDiagram(projectId: string, diagramType: SupportedDiagramType, diagram: ProjectDiagram): boolean {
+  static updateDiagram(projectId: string, diagramType: SupportedDiagramType, diagram: ProjectDiagram, diagramIndex?: number): boolean {
     const project = this.loadProject(projectId);
     if (!project) {
       console.error(`Project not found: ${projectId}`);
       return false;
     }
-    
-    // Update the specific diagram
-    project.diagrams[diagramType] = {
+
+    const index = diagramIndex ?? (project.currentDiagramIndices[diagramType] ?? 0);
+    const diagrams = project.diagrams[diagramType];
+
+    if (index < 0 || index >= diagrams.length) {
+      console.error(`Diagram index ${index} out of bounds for ${diagramType}`);
+      return false;
+    }
+
+    diagrams[index] = {
       ...diagram,
       lastUpdate: new Date().toISOString(),
     };
-    
+
     this.saveProject(project);
     return true;
   }
@@ -112,11 +130,11 @@ export class ProjectStorageRepository {
       console.error(`Project not found: ${projectId}`);
       return null;
     }
-    
+
     project.currentDiagramType = newType;
     this.saveProject(project);
-    
-    return project.diagrams[newType];
+
+    return getActiveDiagram(project, newType);
   }
   
   // Get current active diagram
@@ -125,8 +143,85 @@ export class ProjectStorageRepository {
     if (!project) {
       return null;
     }
-    
-    return project.diagrams[project.currentDiagramType];
+
+    return getActiveDiagram(project, project.currentDiagramType);
+  }
+
+  // Add a new diagram to a type (returns index, or null if at limit)
+  static addDiagram(projectId: string, diagramType: SupportedDiagramType, title?: string): { index: number; diagram: ProjectDiagram } | null {
+    const project = this.loadProject(projectId);
+    if (!project) {
+      return null;
+    }
+
+    const diagrams = project.diagrams[diagramType];
+    if (diagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
+      return null;
+    }
+
+    const umlType = toUMLDiagramType(diagramType);
+    const kind = diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+    const defaultTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
+    const diagram = createEmptyDiagram(defaultTitle, umlType, kind);
+
+    diagrams.push(diagram);
+    const newIndex = diagrams.length - 1;
+    project.currentDiagramIndices[diagramType] = newIndex;
+
+    this.saveProject(project);
+    return { index: newIndex, diagram };
+  }
+
+  // Remove a diagram by index (cannot remove the last one)
+  static removeDiagram(projectId: string, diagramType: SupportedDiagramType, diagramIndex: number): boolean {
+    const project = this.loadProject(projectId);
+    if (!project) {
+      return false;
+    }
+
+    const diagrams = project.diagrams[diagramType];
+    if (diagrams.length <= 1 || diagramIndex < 0 || diagramIndex >= diagrams.length) {
+      return false;
+    }
+
+    diagrams.splice(diagramIndex, 1);
+
+    // Adjust active index
+    const currentIndex = project.currentDiagramIndices[diagramType];
+    if (currentIndex >= diagrams.length) {
+      project.currentDiagramIndices[diagramType] = diagrams.length - 1;
+    } else if (currentIndex > diagramIndex) {
+      project.currentDiagramIndices[diagramType] = currentIndex - 1;
+    }
+
+    this.saveProject(project);
+    return true;
+  }
+
+  // Switch active diagram index within a type
+  static switchDiagramIndex(projectId: string, diagramType: SupportedDiagramType, index: number): ProjectDiagram | null {
+    const project = this.loadProject(projectId);
+    if (!project) {
+      return null;
+    }
+
+    const diagrams = project.diagrams[diagramType];
+    if (index < 0 || index >= diagrams.length) {
+      return null;
+    }
+
+    project.currentDiagramIndices[diagramType] = index;
+    this.saveProject(project);
+    return diagrams[index];
+  }
+
+  // Get all diagrams for a type
+  static getDiagramsForType(projectId: string, diagramType: SupportedDiagramType): ProjectDiagram[] {
+    const project = this.loadProject(projectId);
+    if (!project) {
+      return [];
+    }
+    return project.diagrams[diagramType];
   }
   
   // Delete project

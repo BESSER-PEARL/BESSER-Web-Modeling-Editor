@@ -7,8 +7,6 @@ import type { BesserProject } from '../types/project';
 const KNOWN_ROUTES = [
   '/',
   '/project-settings',
-  '/graphical-ui-editor',
-  '/quantum-editor',
   '/agent-config',
   '/agent-personalization',
   '/agent-personalization-2',

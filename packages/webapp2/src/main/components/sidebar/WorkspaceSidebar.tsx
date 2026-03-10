@@ -1,6 +1,7 @@
 import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
-import { AGENT_ROUTE_ITEMS, ROUTE_ITEMS, UML_ITEMS, SidebarToggleIcon, navButtonClass } from './workspace-navigation';
+import type { SupportedDiagramType } from '../../types/project';
+import { AGENT_ROUTE_ITEMS, NON_UML_EDITOR_ITEMS, ROUTE_ITEMS, UML_ITEMS, SidebarToggleIcon, navButtonClass } from './workspace-navigation';
 
 interface WorkspaceSidebarProps {
   isDarkTheme: boolean;
@@ -12,7 +13,9 @@ interface WorkspaceSidebarProps {
   sidebarToggleTextClass: string;
   locationPath: string;
   activeUmlType: UMLDiagramType;
+  activeDiagramType: SupportedDiagramType;
   onSwitchUml: (type: UMLDiagramType) => void;
+  onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;
   onToggleExpanded: () => void;
 }
@@ -27,7 +30,9 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   sidebarToggleTextClass,
   locationPath,
   activeUmlType,
+  activeDiagramType,
   onSwitchUml,
+  onSwitchDiagramType,
   onNavigate,
   onToggleExpanded,
 }) => {
@@ -97,6 +102,22 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
               })}
             </div>
           </div>
+        );
+      })}
+
+      {NON_UML_EDITOR_ITEMS.map((item) => {
+        const active = locationPath === '/' && activeDiagramType === item.type;
+        return (
+          <button
+            key={item.type}
+            type="button"
+            className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+            onClick={() => onSwitchDiagramType(item.type)}
+            title={item.label}
+          >
+            {item.icon}
+            {isSidebarExpanded && <span>{item.label}</span>}
+          </button>
         );
       })}
 

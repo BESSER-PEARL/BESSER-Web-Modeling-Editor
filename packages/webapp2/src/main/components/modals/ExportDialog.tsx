@@ -4,8 +4,9 @@ import { Download, FileCode2, FileImage, FileJson2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { UMLModel } from '@besser/wme';
 import { useProject } from '../../hooks/useProject';
-import { ProjectDiagram, SupportedDiagramType } from '../../types/project';
+import { ProjectDiagram, SupportedDiagramType, getActiveDiagram, isUMLModel } from '../../types/project';
 import { useExportPNG } from '../../services/export/useExportPng';
 import { useExportSVG } from '../../services/export/useExportSvg';
 import { useExportBUML } from '../../services/export/useExportBuml';
@@ -36,7 +37,7 @@ const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
 
 export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, editor, currentDiagramTitle }) => {
   const { currentProject } = useProject();
-  const diagram = useAppSelector((state) => state.diagram.diagram);
+  const diagram = useAppSelector((state) => state.workspace.activeDiagram);
   const exportAsSVG = useExportSVG();
   const exportAsPNG = useExportPNG();
   const exportAsBUML = useExportBUML();
@@ -44,10 +45,17 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
 
   const diagramEntries = useMemo<[SupportedDiagramType, ProjectDiagram][]>(
-    () =>
-      currentProject
-        ? (Object.entries(currentProject.diagrams) as [SupportedDiagramType, ProjectDiagram][])
-        : [],
+    () => {
+      if (!currentProject) return [];
+      return Object.entries(currentProject.diagrams).flatMap(
+        ([type, diagrams]) => {
+          const arr = diagrams as ProjectDiagram[];
+          const idx = currentProject.currentDiagramIndices[type as SupportedDiagramType] ?? 0;
+          const active = arr[idx] ?? arr[0];
+          return active ? [[type as SupportedDiagramType, active] as [SupportedDiagramType, ProjectDiagram]] : [];
+        }
+      );
+    },
     [currentProject]
   );
 
@@ -101,9 +109,17 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       } else if (format === 'BUML') {
         await exportProjectAsSingleBUMLFile(currentProject, selectedDiagrams);
       } else if (format === 'SINGLE_BUML') {
-        await exportAsBUML(editor!, normalizedTitle);
+        // For ObjectDiagram, include the reference class diagram data
+        let refData: UMLModel | undefined;
+        if (editor!.model?.type === 'ObjectDiagram' && currentProject) {
+          const classDiagram = getActiveDiagram(currentProject, 'ClassDiagram');
+          if (isUMLModel(classDiagram?.model)) {
+            refData = classDiagram.model;
+          }
+        }
+        await exportAsBUML(editor!, normalizedTitle, refData);
       } else if (format === 'SINGLE_JSON') {
-        if (diagram) exportAsJSON(editor!, diagram);
+        if (diagram) exportAsJSON(editor!, diagram as any);
       }
 
       onOpenChange(false);

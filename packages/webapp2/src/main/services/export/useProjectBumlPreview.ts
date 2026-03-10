@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { BACKEND_URL } from '../../constant';
 import { BesserProject } from '../../types/project';
-import { buildExportableProjectPayload } from './projectExportUtils';
+import { flattenProjectForBackend } from './projectExportUtils';
 
 export const useProjectBumlPreview = () => {
   return useCallback(async (project: BesserProject) => {
@@ -9,7 +9,7 @@ export const useProjectBumlPreview = () => {
       throw new Error('No project is available for BUML preview.');
     }
 
-    const projectPayload = buildExportableProjectPayload(project);
+    const projectPayload = flattenProjectForBackend(project);
 
     const response = await fetch(`${BACKEND_URL}/export-project_as_buml`, {
       method: 'POST',

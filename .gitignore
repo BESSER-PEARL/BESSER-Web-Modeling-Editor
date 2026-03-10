@@ -107,3 +107,4 @@ build
 /diagrams/
 .DS_Store
 .run/
+packages/webapp2/dist/*

@@ -6,6 +6,7 @@ import { validateDiagram } from '../validation/validateDiagram';
 import { BACKEND_URL } from '../../constant';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../utils/projectName';
+import { flattenProjectForBackend } from '../export/projectExportUtils';
 import type { GenerationResult } from './types';
 import type { AgentConfigurationPayload } from '../../types/agent-config';
 
@@ -187,12 +188,15 @@ export const useGenerateCode = () => {
         return { ok: false, error: 'No project available for code generation' };
       }
 
+      // Flatten diagram arrays to single diagrams for backend compatibility
+      const flatProject = flattenProjectForBackend(currentProject);
+
       // Add generator and config to project settings
       const projectWithSettings = {
-        ...currentProject,
+        ...flatProject,
         name: normalizeProjectName(currentProject.name || 'project'),
         settings: {
-          ...currentProject.settings,
+          ...flatProject.settings,
           generator: generatorType,
           config: config
         }

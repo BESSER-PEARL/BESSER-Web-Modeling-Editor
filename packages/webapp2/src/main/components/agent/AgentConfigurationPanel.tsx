@@ -22,7 +22,7 @@ import {
   AgentSentenceLength,
   IntentRecognitionTechnology,
 } from '../../types/agent-config';
-import { isUMLModel } from '../../types/project';
+import { isUMLModel, getActiveDiagram } from '../../types/project';
 import { useProject } from '../../hooks/useProject';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
@@ -139,8 +139,8 @@ export const AgentConfigurationPanel: React.FC = () => {
   const [storedProfiles, setStoredProfiles] = useState<StoredUserProfile[]>([]);
   const [storedMappings, setStoredMappings] = useState<StoredAgentProfileConfigurationMapping[]>([]);
 
-  const currentAgentDiagram = currentProject?.diagrams?.AgentDiagram;
-  const currentUserDiagram = currentProject?.diagrams?.UserDiagram;
+  const currentAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+  const currentUserDiagram = undefined; // UserDiagram not yet supported in project structure
 
   const currentAgentModel = useMemo(() => {
     const model = currentAgentDiagram?.model;
@@ -257,7 +257,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
     // Persist agent config into the diagram so it travels with the project
     if (currentProject) {
-      const agentDiagram = currentProject.diagrams.AgentDiagram;
+      const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
       ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
         ...agentDiagram,
         config: payload as unknown as Record<string, unknown>,

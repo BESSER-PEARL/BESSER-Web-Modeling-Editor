@@ -16,7 +16,7 @@ import { ProjectStorageRepository } from '../../services/storage/ProjectStorageR
 import { useImportDiagramToProjectWorkflow } from '../../services/import/useImportDiagram';
 import { useImportDiagramPictureFromImage } from '../../services/import/useImportDiagramPicture';
 import { useImportDiagramFromKG } from '../../services/import/useImportDiagramKG';
-import { buildExportableProjectPayload } from '../../services/export/projectExportUtils';
+import { buildExportableProjectPayload, flattenProjectForBackend } from '../../services/export/projectExportUtils';
 import { useProjectBumlPreview } from '../../services/export/useProjectBumlPreview';
 import {
   appVersion,
@@ -32,6 +32,7 @@ import { FeedbackDialog } from '../modals/FeedbackDialog';
 import { HelpGuideDialog } from '../modals/HelpGuideDialog';
 import { WorkspaceTopBar } from '../application-bar/WorkspaceTopBar';
 import { AssistantWorkspaceDrawer } from '../assistant-workspace/AssistantWorkspaceDrawer';
+import { DiagramTabs } from '../diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import {
   AboutDialog,
@@ -104,7 +105,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const diagram = useAppSelector((state) => state.diagram.diagram);
+  const diagram = useAppSelector((state) => state.workspace.activeDiagram);
   const { currentProject, currentDiagramType, switchDiagramType, updateProject } = useProject();
   const {
     isAuthenticated,
@@ -282,80 +283,51 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     ? 'text-xs font-semibold text-slate-200'
     : 'text-xs font-semibold text-slate-700';
 
-  const handleSwitchUml = (type: UMLDiagramType) => {
-    const wasOnDifferentRoute = location.pathname !== '/';
-    if (wasOnDifferentRoute) {
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
+
+  const handleSwitchDiagramType = (type: SupportedDiagramType) => {
+    if (location.pathname !== '/') {
       navigate('/');
     }
-    // Don't skip the switch when returning from a non-UML route (GUI, Quantum,
-    // Settings) because activeUmlType is a fallback value in that case, not the
-    // truly active diagram type.
-    if (!wasOnDifferentRoute && activeUmlType === type) {
+    dispatch(switchDiagramTypeThunk({ diagramType: type }));
+  };
+
+  const handleSwitchUml = (type: UMLDiagramType) => {
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+    // Don't skip the switch when the active UML type already matches AND we're on /
+    if (location.pathname === '/' && activeUmlType === type && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram') {
       return;
     }
     switchDiagramType(type);
   };
 
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
-    const isGuiDiagram = diagramType === 'GUINoCodeDiagram';
-    const isQuantumDiagram = diagramType === 'QuantumCircuitDiagram';
-
-    if (isGuiDiagram || isQuantumDiagram) {
-      try {
-        await dispatch(switchDiagramTypeThunk({ diagramType: diagramType as SupportedDiagramType })).unwrap();
-      } catch {
-        toast.error(`Could not switch to ${diagramType}.`);
-        return false;
-      }
-
-      if (isGuiDiagram && location.pathname !== '/graphical-ui-editor') {
-        navigate('/graphical-ui-editor');
-      }
-      if (isQuantumDiagram && location.pathname !== '/quantum-editor') {
-        navigate('/quantum-editor');
-      }
-
-      await new Promise<void>((resolve) => {
-        if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
-          setTimeout(resolve, 0);
-          return;
-        }
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => resolve());
-        });
-      });
-
-      return true;
-    }
-
-    const umlType = toUMLDiagramType(diagramType as any);
-    if (!umlType) {
-      toast.info(`${diagramType} is not available.`);
-      return false;
-    }
-
+    // Navigate to editor view if on a different page
     if (location.pathname !== '/') {
       navigate('/');
     }
 
-    if (activeUmlType !== umlType) {
-      try {
-        await dispatch(switchDiagramTypeThunk({ diagramType: umlType })).unwrap();
-      } catch {
-        toast.error(`Could not switch to ${diagramType}.`);
-        return false;
-      }
-
-      await new Promise<void>((resolve) => {
-        if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
-          setTimeout(resolve, 0);
-          return;
-        }
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => resolve());
-        });
-      });
+    try {
+      const supported = diagramType as SupportedDiagramType;
+      await dispatch(switchDiagramTypeThunk({ diagramType: supported })).unwrap();
+    } catch {
+      toast.error(`Could not switch to ${diagramType}.`);
+      return false;
     }
+
+    await new Promise<void>((resolve) => {
+      if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+        setTimeout(resolve, 0);
+        return;
+      }
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
 
     return true;
   };
@@ -640,7 +612,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
     const projectForDeploy = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
     const result = await deployToGitHub(
-      projectForDeploy,
+      flattenProjectForBackend(projectForDeploy),
       sanitizeRepoName(githubRepoName),
       githubRepoDescription.trim() || 'Web application generated by BESSER',
       githubRepoPrivate,
@@ -699,8 +671,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenHelpDialog={() => setIsHelpDialogOpen(true)}
         onOpenAboutDialog={() => setIsAboutDialogOpen(true)}
         onOpenFeedback={() => setIsFeedbackDialogOpen(true)}
+        activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
         onSwitchUml={handleSwitchUml}
-        onNavigate={navigate}
+        onSwitchDiagramType={handleSwitchDiagramType}
+        onNavigate={handleNavigate}
         onProjectNameDraftChange={setProjectNameDraft}
         onProjectRename={handleProjectRename}
         onDiagramTitleDraftChange={setDiagramTitleDraft}
@@ -718,12 +692,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           sidebarToggleTextClass={sidebarToggleTextClass}
           locationPath={location.pathname}
           activeUmlType={activeUmlType}
+          activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
           onSwitchUml={handleSwitchUml}
-          onNavigate={navigate}
+          onSwitchDiagramType={handleSwitchDiagramType}
+          onNavigate={handleNavigate}
           onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
         />
 
-        <main className="relative min-h-0 flex-1 overflow-hidden">{children}</main>
+        <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <DiagramTabs />
+          <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
+        </main>
 
         <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
 

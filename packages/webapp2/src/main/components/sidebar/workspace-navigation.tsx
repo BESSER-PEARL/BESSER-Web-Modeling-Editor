@@ -2,6 +2,7 @@ import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { Atom, Bot, Layers3, Network, PackageOpen, Repeat2, Settings, SlidersHorizontal } from 'lucide-react';
 import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../constant';
+import type { SupportedDiagramType } from '../../types/project';
 
 export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React.ReactNode }> = [
   { type: UMLDiagramType.ClassDiagram, label: 'Class', icon: <Network className="h-4 w-4" /> },
@@ -10,9 +11,9 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React
   { type: UMLDiagramType.AgentDiagram, label: 'Agent', icon: <Bot className="h-4 w-4" /> },
 ];
 
-const baseRouteItems = [
-  { path: '/graphical-ui-editor', label: 'GUI', icon: <PackageOpen className="h-4 w-4" /> },
-  { path: '/quantum-editor', label: 'Quantum', icon: <Atom className="h-4 w-4" /> },
+export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; icon: React.ReactNode }> = [
+  { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PackageOpen className="h-4 w-4" /> },
+  { type: 'QuantumCircuitDiagram', label: 'Quantum', icon: <Atom className="h-4 w-4" /> },
 ];
 
 const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
@@ -27,7 +28,7 @@ export const AGENT_ROUTE_ITEMS = [
   ...personalizationRouteItems,
 ] as const;
 
-export const ROUTE_ITEMS = [...baseRouteItems, { path: '/project-settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }] as const;
+export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }] as const;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [

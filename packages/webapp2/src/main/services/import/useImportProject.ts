@@ -1,4 +1,4 @@
-import { BesserProject, createEmptyDiagram, SupportedDiagramType } from '../../types/project';
+import { BesserProject, createEmptyDiagram, SupportedDiagramType, getActiveDiagram } from '../../types/project';
 import { Diagram } from '../diagram/diagramSlice';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { BACKEND_URL } from '../../constant';
@@ -72,13 +72,17 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     QuantumCircuitDiagram: 'quantum',
   };
 
-  // Ensure all diagram types exist
+  // Ensure all diagram types exist as arrays
   allDiagramTypes.forEach(diagramType => {
-    if (!project.diagrams[diagramType]) {
+    const existing = project.diagrams[diagramType];
+    if (!existing) {
       const umlType = diagramTypeToUMLType[diagramType];
       const title = diagramTitles[diagramType];
       const kind = diagramKinds[diagramType];
-      project.diagrams[diagramType] = createEmptyDiagram(title, umlType, kind);
+      (project.diagrams as any)[diagramType] = [createEmptyDiagram(title, umlType, kind)];
+    } else if (!Array.isArray(existing)) {
+      // Migrate single diagram to array
+      (project.diagrams as any)[diagramType] = [existing];
     }
   });
 
@@ -157,22 +161,25 @@ function isGUIModelEmpty(guiModel: any): boolean {
 // Store imported project using the project storage system
 function storeImportedProject(project: BesserProject): void {
   // Check if the imported GUI model is empty
-  const importedGUIModel = project.diagrams?.GUINoCodeDiagram?.model;
+  const importedGUIDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
+  const importedGUIModel = importedGUIDiagram?.model;
 
   if (isGUIModelEmpty(importedGUIModel)) {
     // Try to get the current project's GUI model
     const currentProject = ProjectStorageRepository.getCurrentProject();
 
-    if (currentProject?.diagrams?.GUINoCodeDiagram?.model) {
-      // Keep the existing GUI model if it's not empty
-      const existingGUIModel = currentProject.diagrams.GUINoCodeDiagram.model;
-      if (!isGUIModelEmpty(existingGUIModel)) {
+    if (currentProject) {
+      const existingGUIDiagram = getActiveDiagram(currentProject, 'GUINoCodeDiagram');
+      if (existingGUIDiagram?.model && !isGUIModelEmpty(existingGUIDiagram.model)) {
         console.log('Imported GUI model is empty, keeping existing GUI model');
-        project.diagrams.GUINoCodeDiagram = {
-          ...project.diagrams.GUINoCodeDiagram,
-          model: existingGUIModel,
-          lastUpdate: currentProject.diagrams.GUINoCodeDiagram.lastUpdate
-        };
+        const guiIndex = project.currentDiagramIndices?.GUINoCodeDiagram ?? 0;
+        if (project.diagrams.GUINoCodeDiagram[guiIndex]) {
+          project.diagrams.GUINoCodeDiagram[guiIndex] = {
+            ...project.diagrams.GUINoCodeDiagram[guiIndex],
+            model: existingGUIDiagram.model,
+            lastUpdate: existingGUIDiagram.lastUpdate,
+          };
+        }
       }
     }
   }

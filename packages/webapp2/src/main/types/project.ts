@@ -2,6 +2,13 @@ import { UMLDiagramType, UMLModel } from '@besser/wme';
 // Supported diagram types in projects
 export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
 
+export const MAX_DIAGRAMS_PER_TYPE = 5;
+export const PROJECT_SCHEMA_VERSION = 2;
+
+export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
+  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram',
+];
+
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
   pages: any[];
@@ -36,18 +43,20 @@ export type ProjectDiagramModel = UMLModel | GrapesJSProjectData;
 export interface BesserProject {
   id: string;
   type: 'Project';
+  schemaVersion: number;
   name: string;
   description: string;
   owner: string;
   createdAt: string;
-  currentDiagramType: SupportedDiagramType; // Which diagram is currently active
+  currentDiagramType: SupportedDiagramType; // Which diagram type is currently active
+  currentDiagramIndices: Record<SupportedDiagramType, number>; // Active diagram index per type
   diagrams: {
-    ClassDiagram: ProjectDiagram;
-    ObjectDiagram: ProjectDiagram;
-    StateMachineDiagram: ProjectDiagram;
-    AgentDiagram: ProjectDiagram;
-    GUINoCodeDiagram: ProjectDiagram;
-    QuantumCircuitDiagram: ProjectDiagram;
+    ClassDiagram: ProjectDiagram[];
+    ObjectDiagram: ProjectDiagram[];
+    StateMachineDiagram: ProjectDiagram[];
+    AgentDiagram: ProjectDiagram[];
+    GUINoCodeDiagram: ProjectDiagram[];
+    QuantumCircuitDiagram: ProjectDiagram[];
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -55,6 +64,49 @@ export interface BesserProject {
     collaborationEnabled: boolean;
   };
 }
+
+// Helper to get the active diagram for a type
+export const getActiveDiagram = (project: BesserProject, type: SupportedDiagramType): ProjectDiagram => {
+  const index = project.currentDiagramIndices[type] ?? 0;
+  const diagrams = project.diagrams[type];
+  return diagrams[index] ?? diagrams[0];
+};
+
+// Default indices (all zeros)
+const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
+  ClassDiagram: 0,
+  ObjectDiagram: 0,
+  StateMachineDiagram: 0,
+  AgentDiagram: 0,
+  GUINoCodeDiagram: 0,
+  QuantumCircuitDiagram: 0,
+});
+
+// Migrate v1 project (single diagram per type) to v2 (array per type)
+export const migrateProjectToV2 = (project: any): BesserProject => {
+  if (project.schemaVersion >= PROJECT_SCHEMA_VERSION) {
+    return project as BesserProject;
+  }
+
+  const migrated = { ...project };
+  migrated.schemaVersion = PROJECT_SCHEMA_VERSION;
+  migrated.currentDiagramIndices = project.currentDiagramIndices ?? defaultDiagramIndices();
+
+  // Wrap each single diagram in an array if not already
+  for (const type of ALL_DIAGRAM_TYPES) {
+    const value = migrated.diagrams[type];
+    if (value && !Array.isArray(value)) {
+      migrated.diagrams[type] = [value];
+    } else if (!value) {
+      // Create empty diagram for missing types
+      const umlType = toUMLDiagramType(type);
+      const kind = type === 'GUINoCodeDiagram' ? 'gui' : type === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+      migrated.diagrams[type] = [createEmptyDiagram(type.replace('Diagram', ' Diagram'), umlType, kind)];
+    }
+  }
+
+  return migrated as BesserProject;
+};
 
 // Helper to convert UMLDiagramType to SupportedDiagramType
 export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramType => {
@@ -230,18 +282,20 @@ export const createDefaultProject = (
   return {
     id: projectId,
     type: 'Project',
+    schemaVersion: PROJECT_SCHEMA_VERSION,
     name,
     description,
     owner,
     createdAt: new Date().toISOString(),
     currentDiagramType: 'ClassDiagram',
+    currentDiagramIndices: defaultDiagramIndices(),
     diagrams: {
-      ClassDiagram: createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram),
-      ObjectDiagram: createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram),
-      StateMachineDiagram: createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram),
-      AgentDiagram: createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram),
-      GUINoCodeDiagram: createEmptyDiagram('GUI Diagram', null, 'gui'),
-      QuantumCircuitDiagram: createEmptyDiagram('Quantum Circuit', null, 'quantum'),
+      ClassDiagram: [createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram)],
+      ObjectDiagram: [createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram)],
+      StateMachineDiagram: [createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram)],
+      AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
+      GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
+      QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -275,7 +329,13 @@ export const isProject = (obj: any): obj is BesserProject => {
 
   // Add QuantumCircuitDiagram if missing (for backward compatibility with older projects)
   if (!obj.diagrams.QuantumCircuitDiagram) {
-    obj.diagrams.QuantumCircuitDiagram = createEmptyDiagram('Quantum Circuit', null, 'quantum');
+    obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
+  }
+
+  // Auto-migrate v1 (single diagram per type) to v2 (array per type)
+  if (!obj.schemaVersion || obj.schemaVersion < PROJECT_SCHEMA_VERSION) {
+    const migrated = migrateProjectToV2(obj);
+    Object.assign(obj, migrated);
   }
 
   return true;

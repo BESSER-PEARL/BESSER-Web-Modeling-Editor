@@ -9,10 +9,9 @@ import {
   POSTHOG_HOST,
   POSTHOG_KEY,
 } from './constant';
+import { getActiveDiagram } from './types/project';
 import { ApollonEditorProvider } from './components/apollon-editor-component/apollon-editor-context';
-import { ApollonEditorComponent } from './components/apollon-editor-component/ApollonEditorComponent';
-import { GraphicalUIEditor } from './components/grapesjs-editor';
-import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
+import { EditorView } from './components/editor-view/EditorView';
 import { ErrorPanel } from './components/error-handling/error-panel';
 import { AssistantWidget } from './components/assistant-workspace/AssistantWidget';
 import { CookieConsentBanner, hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
@@ -65,7 +64,7 @@ function AppContentInner() {
     currentProject?.currentDiagramType,
   );
 
-  const activeDiagram = currentProject ? currentProject.diagrams[currentProject.currentDiagramType] : undefined;
+  const activeDiagram = currentProject ? getActiveDiagram(currentProject, currentProject.currentDiagramType) : undefined;
   const activeDiagramTitle = activeDiagram?.title || currentProject?.name || 'Diagram';
 
   // All generator config state, execution handlers, and quality-check logic
@@ -96,9 +95,7 @@ function AppContentInner() {
         onAssistantGenerate={handleAssistantGenerate}
       >
         <Routes>
-          <Route path="/" element={<ApollonEditorComponent />} />
-          <Route path="/graphical-ui-editor" element={<GraphicalUIEditor />} />
-          <Route path="/quantum-editor" element={<QuantumEditorComponent />} />
+          <Route path="/" element={<EditorView />} />
           <Route path="/agent-config" element={<AgentConfigurationPanel />} />
           <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
           <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />

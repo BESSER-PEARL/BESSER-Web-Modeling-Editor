@@ -98,6 +98,16 @@ const stripRedundantProjectMetadata = (projectSnapshot: unknown): any | undefine
 
   const cleanedDiagrams: Record<string, any> = {};
   Object.entries(snapshot.diagrams).forEach(([diagramType, diagramPayload]) => {
+    // Handle array of diagrams (v2 schema)
+    if (Array.isArray(diagramPayload)) {
+      cleanedDiagrams[diagramType] = diagramPayload.map((d: any) => {
+        if (!isObject(d)) return d;
+        const cleaned = { ...d } as Record<string, any>;
+        delete cleaned.lastUpdate;
+        return cleaned;
+      });
+      return;
+    }
     if (!isObject(diagramPayload)) {
       cleanedDiagrams[diagramType] = diagramPayload;
       return;
@@ -129,7 +139,11 @@ const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWor
     isObject(compacted.projectSnapshot.diagrams) &&
     typeof compacted.activeDiagramType === 'string'
   ) {
-    const activeDiagramPayload = compacted.projectSnapshot.diagrams[compacted.activeDiagramType];
+    const diagramsForType = compacted.projectSnapshot.diagrams[compacted.activeDiagramType];
+    // Handle both array (v2) and single object (v1) formats
+    const activeDiagramPayload = Array.isArray(diagramsForType)
+      ? diagramsForType[compacted.projectSnapshot.currentDiagramIndices?.[compacted.activeDiagramType] ?? 0]
+      : diagramsForType;
     const activeSnapshotModel = isObject(activeDiagramPayload) ? activeDiagramPayload.model : undefined;
     if (activeSnapshotModel && compacted.activeModel === activeSnapshotModel) {
       delete compacted.activeModel;

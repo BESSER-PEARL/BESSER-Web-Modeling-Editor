@@ -49,7 +49,9 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
   onOpenHelpDialog,
   onOpenAboutDialog,
   onOpenFeedback,
+  activeDiagramType,
   onSwitchUml,
+  onSwitchDiagramType,
   onNavigate,
   onProjectNameDraftChange,
   onProjectRename,
@@ -138,8 +140,10 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
       <MobileNavigation
         locationPath={locationPath}
         activeUmlType={activeUmlType}
+        activeDiagramType={activeDiagramType}
         isDarkTheme={isDarkTheme}
         onSwitchUml={onSwitchUml}
+        onSwitchDiagramType={onSwitchDiagramType}
         onNavigate={onNavigate}
       />
     </header>

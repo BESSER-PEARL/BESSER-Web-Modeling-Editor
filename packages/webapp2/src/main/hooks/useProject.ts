@@ -22,12 +22,12 @@ import {
 export const useProject = () => {
   const dispatch = useAppDispatch();
   
-  // Redux state selectors
-  const currentProject = useAppSelector(state => state.project.currentProject);
-  const currentDiagram = useAppSelector(state => state.project.currentDiagram);
-  const currentDiagramType = useAppSelector(state => state.project.currentDiagramType);
-  const loading = useAppSelector(state => state.project.loading);
-  const error = useAppSelector(state => state.project.error);
+  // Redux state selectors (unified workspace slice)
+  const currentProject = useAppSelector(selectCurrentProject);
+  const currentDiagram = useAppSelector(selectCurrentDiagram);
+  const currentDiagramType = useAppSelector(selectCurrentDiagramType);
+  const loading = useAppSelector(selectLoading);
+  const error = useAppSelector(selectError);
   
   // Actions
   const createProject = useCallback(async (name: string, description: string, owner: string) => {
