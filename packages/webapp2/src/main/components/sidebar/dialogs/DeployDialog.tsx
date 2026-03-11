@@ -58,7 +58,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
         <div className="space-y-4">
           {useExistingRepo && linkedRepo ? (
             <>
-              <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                 <div>
                   <p className="font-medium">
                     Previously deployed to:{' '}
@@ -117,7 +117,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
                 />
               </label>
               {repoPrivate && (
-                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                   Private repositories may require manual Render permission setup.
                 </p>
               )}

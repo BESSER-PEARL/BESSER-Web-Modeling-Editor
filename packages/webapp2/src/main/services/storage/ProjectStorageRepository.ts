@@ -12,6 +12,7 @@ import {
   toUMLDiagramType,
 } from '../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constant';
+import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
 
 export class ProjectStorageRepository {
 
@@ -91,6 +92,9 @@ export class ProjectStorageRepository {
 
       // Notify listeners (Redux sync, etc.)
       this.notifyChange();
+
+      // Check localStorage quota and warn if approaching limit
+      checkLocalStorageQuota();
 
       // console.log('Project saved successfully:', project.name);
     } catch (error) {

@@ -86,7 +86,7 @@ function buildInitialState(): WorkspaceState {
 
   const activeDiagramType = project?.currentDiagramType ?? 'ClassDiagram';
   const activeDiagramIndex = project?.currentDiagramIndices[activeDiagramType] ?? 0;
-  const activeDiagram = project ? getActiveDiagram(project, activeDiagramType) : null;
+  const activeDiagram = project ? (getActiveDiagram(project, activeDiagramType) ?? null) : null;
 
   return {
     project,
@@ -431,7 +431,7 @@ const workspaceSlice = createSlice({
         state.project = p;
         state.activeDiagramType = p.currentDiagramType;
         state.activeDiagramIndex = p.currentDiagramIndices[p.currentDiagramType] ?? 0;
-        state.activeDiagram = getActiveDiagram(p, p.currentDiagramType);
+        state.activeDiagram = getActiveDiagram(p, p.currentDiagramType) ?? null;
         state.editorOptions = deriveEditorOptions(state.editorOptions, p.currentDiagramType);
         state.editorRevision += 1;
       })
@@ -446,7 +446,7 @@ const workspaceSlice = createSlice({
         state.project = p;
         state.activeDiagramType = p.currentDiagramType;
         state.activeDiagramIndex = 0;
-        state.activeDiagram = getActiveDiagram(p, p.currentDiagramType);
+        state.activeDiagram = getActiveDiagram(p, p.currentDiagramType) ?? null;
         state.editorOptions = deriveEditorOptions(state.editorOptions, p.currentDiagramType);
         state.editorRevision += 1;
       })
@@ -456,7 +456,12 @@ const workspaceSlice = createSlice({
       })
 
       // ── Switch diagram type ───────────────────────────────────
+      .addCase(switchDiagramTypeThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(switchDiagramTypeThunk.fulfilled, (state, action) => {
+        state.loading = false;
         const { diagram, diagramType } = action.payload;
         state.activeDiagram = diagram;
         state.activeDiagramType = diagramType;
@@ -466,6 +471,7 @@ const workspaceSlice = createSlice({
         if (state.project) state.project.currentDiagramType = diagramType;
       })
       .addCase(switchDiagramTypeThunk.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.error.message || 'Failed to switch diagram type';
       })
 
@@ -541,7 +547,7 @@ const workspaceSlice = createSlice({
         const { project, diagramType } = action.payload;
         state.project = project;
         state.activeDiagramIndex = project.currentDiagramIndices[diagramType] ?? 0;
-        state.activeDiagram = getActiveDiagram(project, diagramType);
+        state.activeDiagram = getActiveDiagram(project, diagramType) ?? null;
         state.editorRevision += 1;
       })
       .addCase(removeDiagramThunk.rejected, (state, action) => {

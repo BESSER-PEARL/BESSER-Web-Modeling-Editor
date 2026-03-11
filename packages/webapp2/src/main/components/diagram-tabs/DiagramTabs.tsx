@@ -101,7 +101,10 @@ export const DiagramTabs: React.FC = () => {
   );
 
   // Read the active diagram's persisted references (ID-based)
-  const activeDiagram = diagrams[currentIndex];
+  // Clamp the index to prevent out-of-bounds access when diagrams array
+  // shrinks (e.g. after deletion) before Redux state catches up.
+  const safeIndex = diagrams.length > 0 ? Math.min(currentIndex, diagrams.length - 1) : 0;
+  const activeDiagram = diagrams[safeIndex];
   const [classRefId, setClassRefId] = useState<string>(
     () => activeDiagram?.references?.ClassDiagram ?? classDiagrams[0]?.id ?? '',
   );
@@ -138,10 +141,10 @@ export const DiagramTabs: React.FC = () => {
     setClassRefId(newId);
     dispatch(updateDiagramReferencesThunk({
       diagramType: currentDiagramType,
-      diagramIndex: currentIndex,
+      diagramIndex: safeIndex,
       references: { ClassDiagram: newId },
     }));
-  }, [dispatch, currentDiagramType, currentIndex]);
+  }, [dispatch, currentDiagramType, safeIndex]);
 
   const showTabs = diagrams.length > 0;
   const [refsCollapsed, setRefsCollapsed] = useState(false);
@@ -163,11 +166,11 @@ export const DiagramTabs: React.FC = () => {
 
   const handleSwitchTab = useCallback(
     (index: number) => {
-      if (index !== currentIndex) {
+      if (index !== safeIndex) {
         dispatch(switchDiagramIndexThunk({ diagramType: currentDiagramType, index }));
       }
     },
-    [dispatch, currentDiagramType, currentIndex],
+    [dispatch, currentDiagramType, safeIndex],
   );
 
   const handleAddDiagram = useCallback(() => {
@@ -226,7 +229,7 @@ export const DiagramTabs: React.FC = () => {
       <div className="flex items-center gap-0 px-1">
         <div className="flex items-end gap-px py-1 pl-1">
           {diagrams.map((diagram: ProjectDiagram, index: number) => {
-            const isActive = index === currentIndex;
+            const isActive = index === safeIndex;
             const isRenaming = renamingIndex === index;
 
             return (

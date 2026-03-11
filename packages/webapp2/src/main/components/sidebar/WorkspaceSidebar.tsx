@@ -231,6 +231,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         onClick={onToggleExpanded}
         className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-between gap-2' : 'justify-center'}`}
         title={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+        aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
       >
         <span className="inline-flex rotate-180">
           <SidebarToggleIcon size={18} />

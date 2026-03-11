@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
+const MAX_UNDO_HISTORY = 100;
+
 interface HistoryState<T> {
     past: T[];
     present: T;
@@ -79,7 +81,7 @@ export function useUndoRedo<T>(initialState: T, resetKey?: string) {
             const newFuture = future.slice(1);
 
             return {
-                past: [...past, present],
+                past: [...past.slice(-(MAX_UNDO_HISTORY - 1)), present],
                 present: next,
                 future: newFuture
             };
@@ -95,7 +97,7 @@ export function useUndoRedo<T>(initialState: T, resetKey?: string) {
             if (nextState === present) return currentState;
 
             return {
-                past: [...past, present],
+                past: [...past.slice(-(MAX_UNDO_HISTORY - 1)), present],
                 present: nextState,
                 future: [] // Clear future on new action
             };

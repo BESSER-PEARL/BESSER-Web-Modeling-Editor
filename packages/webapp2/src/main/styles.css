@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,26 +6,27 @@
 
 :root {
   --font-geist-sans: 'Sora';
+  --font-display: 'Instrument Serif', 'Georgia', serif;
   --radius: 0.85rem;
   --background: 48 30% 97%;
-  --foreground: 214 28% 12%;
+  --foreground: 220 25% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 214 28% 12%;
+  --card-foreground: 220 25% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 214 28% 12%;
-  --primary: 200 73% 22%;
+  --popover-foreground: 220 25% 10%;
+  --primary: 192 80% 20%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 156 22% 91%;
-  --secondary-foreground: 214 30% 16%;
-  --muted: 210 24% 94%;
-  --muted-foreground: 215 15% 40%;
-  --accent: 180 33% 91%;
+  --secondary: 160 18% 92%;
+  --secondary-foreground: 220 28% 14%;
+  --muted: 210 22% 94%;
+  --muted-foreground: 215 12% 44%;
+  --accent: 170 30% 92%;
   --accent-foreground: 215 28% 17%;
-  --destructive: 7 72% 52%;
+  --destructive: 4 76% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 210 20% 84%;
-  --input: 210 25% 88%;
-  --ring: 199 88% 35%;
+  --border: 210 18% 86%;
+  --input: 210 22% 89%;
+  --ring: 192 82% 32%;
   --app-shell-topbar-height: 64px;
 
   --quantum-editor-bg: #ffffff;
@@ -42,6 +43,24 @@
 }
 
 [data-theme='dark'] {
+  --background: 222 30% 7%;
+  --foreground: 210 20% 92%;
+  --card: 222 28% 10%;
+  --card-foreground: 210 20% 92%;
+  --popover: 222 28% 10%;
+  --popover-foreground: 210 20% 92%;
+  --primary: 192 80% 42%;
+  --primary-foreground: 222 30% 7%;
+  --secondary: 220 20% 18%;
+  --secondary-foreground: 210 20% 90%;
+  --muted: 220 20% 16%;
+  --muted-foreground: 215 12% 58%;
+  --accent: 200 25% 18%;
+  --accent-foreground: 210 20% 92%;
+  --border: 220 16% 22%;
+  --input: 220 18% 20%;
+  --ring: 192 82% 42%;
+
   --quantum-editor-bg: #0f172a;
   --quantum-editor-surface: #1e293b;
   --quantum-editor-muted-surface: #334155;
@@ -80,6 +99,14 @@ body {
   background:
     radial-gradient(140% 110% at 0% 0%, #d7eee4 0%, #f6f7f1 48%, #f7fbff 100%),
     linear-gradient(140deg, #f9fafb 0%, #f6f9ff 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme='dark'] body {
+  background:
+    radial-gradient(100% 100% at 0% 0%, #0c1929 0%, #0d1117 50%, #09101a 100%),
+    linear-gradient(140deg, #0b1120 0%, #0d1117 100%);
 }
 
 button,
@@ -93,10 +120,81 @@ select {
   min-height: calc(100vh - var(--app-shell-topbar-height));
 }
 
+/* ---- Grain / noise texture overlay utility ---- */
+.grain-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+[data-theme='dark'] .grain-overlay::before {
+  opacity: 0.05;
+}
+
+/* ---- Display typography utility ---- */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* ---- Glass card utility ---- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+[data-theme='dark'] .glass-card {
+  background: rgba(15, 23, 42, 0.65);
+  border-color: rgba(148, 163, 184, 0.1);
+}
+
+/* ---- Toasts ---- */
 .Toastify__toast-container {
   width: min(420px, 90vw);
 }
 
 .Toastify__toast {
   border-radius: 12px;
+  backdrop-filter: blur(12px);
+}
+
+/* ---- Improved focus rings ---- */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ---- Smooth scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.18);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.32);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.28);
 }

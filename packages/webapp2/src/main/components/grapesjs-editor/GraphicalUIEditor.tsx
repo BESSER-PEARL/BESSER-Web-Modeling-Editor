@@ -52,7 +52,9 @@ export const GraphicalUIEditor: React.FC = () => {
 
       // Store editor reference
       editorRef.current = editor;
-      (window as any).editor = editor;
+      if (import.meta.env.DEV) {
+        (window as any).editor = editor;
+      }
 
       // Setup all editor features
       const cleanup = setupEditorFeatures(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
@@ -215,7 +217,9 @@ export const GraphicalUIEditor: React.FC = () => {
           editorRef.current.destroy();
           editorRef.current = null;
         }
-        delete (window as any).editor;
+        if (import.meta.env.DEV) {
+          delete (window as any).editor;
+        }
 
         console.log('[GraphicalUIEditor] Cleanup complete');
       };

@@ -320,18 +320,23 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', !canClose && '[&>button]:hidden')}>
-        <DialogHeader className="border-b border-border/80 px-6 pt-6">
+        <DialogHeader className="border-b border-border/60 px-6 pt-6 pb-4">
           <div className="flex items-start justify-between gap-3">
-            <div className={cn(step === 'start' && 'flex items-start gap-3')}>
+            <div className={cn(step === 'start' && 'flex items-start gap-3.5')}>
               {step === 'start' && (
-                <img src="/images/logo.png" alt="BESSER" className="h-7 w-auto shrink-0 brightness-0 dark:invert" />
+                <img src="/images/logo.png" alt="BESSER" className="mt-0.5 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
               )}
               <div>
-                <DialogTitle className="text-xl">{currentStepInfo.title}</DialogTitle>
-                <DialogDescription>{currentStepInfo.description}</DialogDescription>
+                <DialogTitle className={cn(
+                  'text-xl tracking-tight',
+                  step === 'start' && 'font-display text-2xl',
+                )}>
+                  {currentStepInfo.title}
+                </DialogTitle>
+                <DialogDescription className="mt-1">{currentStepInfo.description}</DialogDescription>
               </div>
             </div>
-            <Badge variant="secondary" className="shrink-0">
+            <Badge variant="secondary" className="shrink-0 rounded-full font-mono text-[10px] tracking-wider">
               {currentStepInfo.badge}
             </Badge>
           </div>
@@ -356,65 +361,72 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         <div className="max-h-[75vh] overflow-y-auto p-6">
           {step === 'start' && (
             <div className="space-y-5">
-              <div className="rounded-2xl border border-border/70 bg-[radial-gradient(120%_130%_at_0%_0%,rgba(14,116,144,0.10)_0%,rgba(16,185,129,0.10)_40%,rgba(248,250,252,0.05)_100%)] p-5">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Start Your Modeling Workspace</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {/* Hero banner */}
+              <div className="grain-overlay relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-teal-50/80 via-background to-emerald-50/50 p-5 dark:from-teal-950/20 dark:via-background dark:to-emerald-950/15">
+                <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-teal-300/15 blur-2xl dark:bg-teal-500/8" />
+                <div className="relative z-[2]">
+                  <p className="text-sm font-semibold tracking-tight text-foreground">Start Your Modeling Workspace</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     BESSER (Better Smart Software Faster) is an open-source model-driven platform for UML design,
                     generation, and deployment. Choose a path below to bootstrap your project quickly.
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              {/* Action cards */}
+              <div className="grid gap-3 md:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setStep('create')}
-                  className="rounded-xl border border-border/80 bg-card p-5 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-elevation-2"
                 >
-                  <div className="mb-3 inline-flex rounded-md bg-primary/10 p-2 text-primary">
+                  <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-primary/5 transition-transform duration-300 group-hover:scale-150" />
+                  <div className="relative mb-3 inline-flex rounded-xl bg-primary/8 p-2.5 text-primary ring-1 ring-primary/10">
                     <Plus className="h-4 w-4" />
                   </div>
-                  <p className="text-sm font-semibold">Create Blank</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Start from scratch with all editors available.</p>
+                  <p className="text-sm font-semibold tracking-tight">Create Blank</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Start from scratch with all editors available.</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setStep('spreadsheet')}
-                  className="rounded-xl border border-border/80 bg-card p-5 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/30 hover:shadow-elevation-2"
                 >
-                  <div className="mb-3 inline-flex rounded-md bg-primary/10 p-2 text-primary">
+                  <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-emerald-500/5 transition-transform duration-300 group-hover:scale-150" />
+                  <div className="relative mb-3 inline-flex rounded-xl bg-emerald-500/8 p-2.5 text-emerald-700 ring-1 ring-emerald-500/10 dark:text-emerald-400">
                     <FileSpreadsheet className="h-4 w-4" />
                   </div>
-                  <p className="text-sm font-semibold">From Spreadsheet</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Auto-generate a class diagram from CSV/XLSX files.</p>
+                  <p className="text-sm font-semibold tracking-tight">From Spreadsheet</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Auto-generate a class diagram from CSV/XLSX files.</p>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setStep('import')}
-                  className="rounded-xl border border-border/80 bg-card p-5 text-left shadow-sm transition hover:border-primary/40 hover:bg-primary/5"
+                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-violet-400/30 hover:shadow-elevation-2"
                 >
-                  <div className="mb-3 inline-flex rounded-md bg-primary/10 p-2 text-primary">
+                  <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full bg-violet-500/5 transition-transform duration-300 group-hover:scale-150" />
+                  <div className="relative mb-3 inline-flex rounded-xl bg-violet-500/8 p-2.5 text-violet-700 ring-1 ring-violet-500/10 dark:text-violet-400">
                     <Upload className="h-4 w-4" />
                   </div>
-                  <p className="text-sm font-semibold">Import Project</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Load an exported `.json` or `.py` project.</p>
+                  <p className="text-sm font-semibold tracking-tight">Import Project</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Load an exported `.json` or `.py` project.</p>
                 </button>
               </div>
 
-              <div className="rounded-xl border border-border/80 bg-muted/20 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold">Existing Projects</p>
-                  <Badge variant="secondary">{projects.length}</Badge>
+              {/* Existing projects */}
+              <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
+                <div className="mb-2.5 flex items-center justify-between">
+                  <p className="text-sm font-semibold tracking-tight">Existing Projects</p>
+                  <Badge variant="secondary" className="rounded-full font-mono text-[10px]">{projects.length}</Badge>
                 </div>
                 {projects.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {projects.slice(0, 3).map((project) => (
                       <div
                         key={project.id}
-                        className="flex items-center gap-2 rounded-md border border-border/70 bg-background px-2 py-1.5 transition hover:border-primary/40 hover:bg-primary/5"
+                        className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-all duration-200 hover:border-primary/30 hover:bg-primary/3 hover:shadow-elevation-1"
                       >
                         <button
                           type="button"
@@ -422,15 +434,16 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                           onClick={() => void handleOpenProject(project.id)}
                           disabled={isBusy}
                         >
-                          <span className="truncate text-sm">{project.name}</span>
-                          <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="truncate text-sm font-medium">{project.name}</span>
+                          <FolderOpen className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary" />
                         </button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="h-7 w-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                           onClick={() => void handleDeleteProject(project.id, project.name)}
                           disabled={isBusy}
+                          aria-label={`Delete project ${project.name}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -439,7 +452,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="mt-1 h-8 px-2 text-xs"
+                      className="mt-1.5 h-8 px-2 text-xs font-medium text-primary hover:text-primary"
                       onClick={() => setStep('open')}
                     >
                       View all projects
@@ -451,7 +464,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               </div>
 
               {!canClose && (
-                <div className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                <div className="rounded-xl border border-amber-300/50 bg-gradient-to-r from-amber-50 to-orange-50/50 px-4 py-2.5 text-xs font-medium text-amber-800 dark:border-amber-800/50 dark:from-amber-950/30 dark:to-orange-950/20 dark:text-amber-200">
                   Create, import, or open a project to enter the workspace.
                 </div>
               )}
@@ -460,20 +473,20 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'create' && (
             <div className="space-y-5">
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setStep('start')}>
-                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+                <ArrowLeft className="h-3.5 w-3.5" />
                 Back
               </Button>
 
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-                <Card className="shadow-none">
+                <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
-                    <CardTitle className="text-lg">Project Details</CardTitle>
+                    <CardTitle className="text-lg tracking-tight">Project Details</CardTitle>
                     <CardDescription>Give your workspace a name and description.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="project-name">Name</Label>
+                      <Label htmlFor="project-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
                       <Input
                         id="project-name"
                         value={form.name}
@@ -482,7 +495,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="project-owner">Owner</Label>
+                      <Label htmlFor="project-owner" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Owner</Label>
                       <Input
                         id="project-owner"
                         value={form.owner}
@@ -491,7 +504,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="project-description">Description</Label>
+                      <Label htmlFor="project-description" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</Label>
                       <Textarea
                         id="project-description"
                         value={form.description}
@@ -499,22 +512,22 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         className="min-h-24"
                       />
                     </div>
-                    <Button onClick={() => void handleCreateProject()} disabled={isBusy} className="w-full gap-2">
+                    <Button onClick={() => void handleCreateProject()} disabled={isBusy} className="w-full gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2">
                       <Sparkles className="h-4 w-4" />
                       Create Project
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="shadow-none">
+                <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
-                    <CardTitle className="text-base">Recent Projects</CardTitle>
+                    <CardTitle className="text-base tracking-tight">Recent Projects</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
+                  <CardContent className="space-y-1.5">
                     {projects.slice(0, 5).map((project) => (
                       <div
                         key={project.id}
-                        className="flex items-center gap-2 rounded-md border border-border/70 bg-muted/20 px-2 py-1.5 text-sm transition hover:border-primary/40 hover:bg-primary/5"
+                        className="group flex items-center gap-2 rounded-lg border border-border/40 bg-muted/15 px-3 py-2 text-sm transition-all duration-200 hover:border-primary/30 hover:bg-primary/3 hover:shadow-elevation-1"
                       >
                         <button
                           type="button"
@@ -522,15 +535,16 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                           onClick={() => void handleOpenProject(project.id)}
                           disabled={isBusy}
                         >
-                          <span className="truncate">{project.name}</span>
-                          <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="truncate font-medium">{project.name}</span>
+                          <FolderOpen className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary" />
                         </button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-7 w-7 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="h-7 w-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                           onClick={() => void handleDeleteProject(project.id, project.name)}
                           disabled={isBusy}
+                          aria-label={`Delete project ${project.name}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -545,24 +559,27 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'import' && (
             <div className="space-y-5">
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setStep('start')}>
-                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+                <ArrowLeft className="h-3.5 w-3.5" />
                 Back
               </Button>
 
-              <Card className="shadow-none">
+              <Card className="border-border/50 shadow-elevation-1">
                 <CardHeader>
-                  <CardTitle className="text-lg">Import Project File</CardTitle>
+                  <CardTitle className="text-lg tracking-tight">Import Project File</CardTitle>
                   <CardDescription>Supported formats: `.json`, `.py`.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="rounded-lg border border-dashed border-border/80 bg-muted/20 p-5 text-center">
-                    <p className="text-sm text-muted-foreground">Select a file and continue editing immediately.</p>
+                  <div className="grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed border-border/50 bg-gradient-to-b from-muted/20 to-muted/8 p-8 text-center">
+                    <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-2xl" />
+                    <Upload className="relative z-[2] mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">Drop a file here or click below to browse</p>
+                    <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">JSON or Python project files</p>
                   </div>
                   <Button
                     variant="outline"
                     onClick={() => importFileInputRef.current?.click()}
-                    className="w-full gap-2"
+                    className="w-full gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2"
                     disabled={isBusy}
                   >
                     <Upload className="h-4 w-4" />
@@ -575,20 +592,20 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'spreadsheet' && (
             <div className="space-y-5">
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setStep('start')}>
-                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+                <ArrowLeft className="h-3.5 w-3.5" />
                 Back
               </Button>
 
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-                <Card className="shadow-none">
+                <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
-                    <CardTitle className="text-lg">Spreadsheet Input</CardTitle>
+                    <CardTitle className="text-lg tracking-tight">Spreadsheet Input</CardTitle>
                     <CardDescription>Create project metadata and upload source files.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="spreadsheet-project-name">Name</Label>
+                      <Label htmlFor="spreadsheet-project-name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</Label>
                       <Input
                         id="spreadsheet-project-name"
                         value={spreadsheetForm.name}
@@ -599,7 +616,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="spreadsheet-project-owner">Owner</Label>
+                      <Label htmlFor="spreadsheet-project-owner" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Owner</Label>
                       <Input
                         id="spreadsheet-project-owner"
                         value={spreadsheetForm.owner}
@@ -610,7 +627,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="spreadsheet-project-description">Description</Label>
+                      <Label htmlFor="spreadsheet-project-description" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description</Label>
                       <Textarea
                         id="spreadsheet-project-description"
                         value={spreadsheetForm.description}
@@ -621,14 +638,14 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       />
                     </div>
 
-                    <div className="rounded-lg border border-dashed border-border/80 bg-muted/20 p-4">
+                    <div className="rounded-xl border-2 border-dashed border-border/50 bg-muted/10 p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-semibold">Source Files</p>
-                        <Badge variant="secondary">{spreadsheetFiles.length}</Badge>
+                        <p className="text-sm font-semibold tracking-tight">Source Files</p>
+                        <Badge variant="secondary" className="rounded-full font-mono text-[10px]">{spreadsheetFiles.length}</Badge>
                       </div>
                       <Button
                         variant="outline"
-                        className="w-full gap-2"
+                        className="w-full gap-2 shadow-elevation-1"
                         onClick={() => spreadsheetFileInputRef.current?.click()}
                         disabled={isBusy}
                       >
@@ -640,33 +657,42 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                           {spreadsheetFiles.map((file) => (
                             <div
                               key={`${file.name}-${file.size}`}
-                              className="flex items-center justify-between rounded-md border border-border/70 bg-background px-2.5 py-1.5 text-xs"
+                              className="flex items-center justify-between rounded-lg border border-border/40 bg-background/80 px-3 py-2 text-xs"
                             >
-                              <span className="truncate">{file.name}</span>
-                              <span className="text-muted-foreground">{readableFileSize(file.size)}</span>
+                              <span className="truncate font-medium">{file.name}</span>
+                              <span className="font-mono text-[10px] text-muted-foreground">{readableFileSize(file.size)}</span>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy} className="w-full gap-2">
+                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy} className="w-full gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2">
                       <Sparkles className="h-4 w-4" />
                       Create From Spreadsheet
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="shadow-none">
+                <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
-                    <CardTitle className="text-base">How It Works</CardTitle>
+                    <CardTitle className="text-base tracking-tight">How It Works</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-xs text-muted-foreground">
-                    <p>1. Project is created first.</p>
-                    <p>2. Spreadsheet files are converted to a class diagram.</p>
-                    <p>3. Generated class diagram is imported into the project automatically.</p>
-                    <p className="pt-2">
-                      Accepted formats: `.csv`, `.xlsx`, `.xls`.
+                  <CardContent className="space-y-3 text-xs text-muted-foreground">
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">1</span>
+                      <p>Project is created first with your metadata.</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">2</span>
+                      <p>Spreadsheet files are converted to a class diagram.</p>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">3</span>
+                      <p>Generated class diagram is imported into the project automatically.</p>
+                    </div>
+                    <p className="mt-1 rounded-lg bg-muted/30 px-3 py-2 font-mono text-[10px] tracking-wide">
+                      Accepted: .csv, .xlsx, .xls
                     </p>
                   </CardContent>
                 </Card>

@@ -27,6 +27,7 @@ export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ApollonEditor | null>(null);
   const modelSubscriptionRef = useRef<number | null>(null);
+  const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setupRunRef = useRef(0);
   const lastHandledRevisionRef = useRef(0);
   const dispatch = useAppDispatch();
@@ -65,6 +66,11 @@ export const ApollonEditorComponent: React.FC = () => {
 
   // Cleanup function
   const cleanupEditor = useCallback(async () => {
+    // Clear any pending debounced save
+    if (debouncedSaveRef.current) {
+      clearTimeout(debouncedSaveRef.current);
+      debouncedSaveRef.current = null;
+    }
     const editor = editorRef.current;
     editorRef.current = null;
     if (!editor) return;
@@ -132,9 +138,12 @@ export const ApollonEditorComponent: React.FC = () => {
         nextEditor.model = currentDiagram.model;
       }
 
-      // Subscribe to model changes
+      // Subscribe to model changes (debounced to avoid excessive localStorage writes on every keystroke)
       modelSubscriptionRef.current = nextEditor.subscribeToModelChange((model: UMLModel) => {
-        dispatch(updateDiagramModelThunk({ model }));
+        if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
+        debouncedSaveRef.current = setTimeout(() => {
+          dispatch(updateDiagramModelThunk({ model }));
+        }, 300);
       });
 
       setEditor!(nextEditor);

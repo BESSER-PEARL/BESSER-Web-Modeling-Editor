@@ -108,35 +108,40 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Help Us Improve BESSER</DialogTitle>
+          <DialogTitle className="font-display text-2xl tracking-tight">Help Us Improve BESSER</DialogTitle>
           <DialogDescription>Share your feedback about the editor and generation workflow.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5">
-          <div className="space-y-2">
-            <Label>How satisfied are you with your experience?</Label>
-            <div className="grid gap-2 md:grid-cols-3">
+          <div className="space-y-2.5">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">How satisfied are you with your experience?</Label>
+            <div className="grid gap-2.5 md:grid-cols-3">
               {satisfactionOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => setSatisfaction(option.value)}
-                  className={`rounded-lg border px-3 py-3 text-left transition ${buttonClass(satisfaction === option.value)}`}
+                  className={`group relative overflow-hidden rounded-xl border px-4 py-4 text-left transition-all duration-200 ${
+                    satisfaction === option.value
+                      ? 'border-primary/40 bg-primary/6 shadow-elevation-1 ring-1 ring-primary/15'
+                      : 'border-border/50 bg-background text-muted-foreground hover:-translate-y-px hover:border-primary/25 hover:shadow-elevation-1'
+                  }`}
                 >
-                  <p className="text-sm font-semibold">{option.label}</p>
-                  <p className="mt-1 text-xs opacity-80">{option.helper}</p>
+                  <div className="pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-full bg-primary/4 transition-transform duration-300 group-hover:scale-[2]" />
+                  <p className="relative text-sm font-semibold tracking-tight text-foreground">{option.label}</p>
+                  <p className="relative mt-1 text-xs opacity-70">{option.helper}</p>
                 </button>
               ))}
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="feedback-category">Category</Label>
+            <Label htmlFor="feedback-category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</Label>
             <select
               id="feedback-category"
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
             >
               {categories.map((option) => (
                 <option key={option.value || 'none'} value={option.value}>
@@ -147,7 +152,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="feedback-message">
+            <Label htmlFor="feedback-message" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Feedback <span className="text-destructive">*</span>
             </Label>
             <Textarea
@@ -160,7 +165,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="feedback-email">Email (optional)</Label>
+            <Label htmlFor="feedback-email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email (optional)</Label>
             <Input
               id="feedback-email"
               type="email"
@@ -168,15 +173,15 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
               onChange={(event) => setEmail(event.target.value)}
               placeholder="your.email@example.com"
             />
-            <p className="text-xs text-muted-foreground">Leave your email if you want follow-up from the team.</p>
+            <p className="text-[11px] text-muted-foreground/70">Leave your email if you want follow-up from the team.</p>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting} className="rounded-lg">
             Cancel
           </Button>
-          <Button onClick={() => void handleSubmit()} disabled={!canSubmit}>
+          <Button onClick={() => void handleSubmit()} disabled={!canSubmit} className="rounded-lg shadow-elevation-1 transition-shadow hover:shadow-elevation-2">
             {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
           </Button>
         </DialogFooter>

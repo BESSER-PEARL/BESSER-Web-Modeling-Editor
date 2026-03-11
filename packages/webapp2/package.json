@@ -11,7 +11,10 @@
     "lint:css": "stylelint \"src/**/*.ts\"",
     "build": "npm run clean && vite build --outDir ../../build/webapp2",
     "build:local": "npm run clean && vite build --mode local --outDir ../../build/webapp2",
-    "preview": "vite preview --host 0.0.0.0 --port 8081"
+    "preview": "vite preview --host 0.0.0.0 --port 8081",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -64,6 +67,9 @@
   },
   "devDependencies": {
     "@stylelint/postcss-css-in-js": "0.38.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.3.0",
     "@types/react": "18.2.79",
     "@types/react-dom": "18.2.25",
@@ -76,6 +82,7 @@
     "@vitejs/plugin-react": "^5.0.1",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.34.0",
+    "jsdom": "^28.1.0",
     "postcss": "^8.5.6",
     "rimraf": "6.0.1",
     "stylelint-config-styled-components": "0.1.1",
@@ -83,6 +90,7 @@
     "tailwindcss": "^3.4.17",
     "typescript": "5.6.3",
     "vite": "^7.1.5",
-    "vite-plugin-svgr": "^4.5.0"
+    "vite-plugin-svgr": "^4.5.0",
+    "vitest": "^4.0.18"
   }
 }

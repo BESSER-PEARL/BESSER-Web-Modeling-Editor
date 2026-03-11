@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown, Boxes, WandSparkles, Workflow, MessageSquarePlus } from 'lucide-react';
+import { ChevronDown, MessageSquarePlus } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -339,12 +339,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   return (
     <>
+      {/* Backdrop overlay */}
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 z-30 bg-slate-950/70 transition-opacity duration-200',
+          'pointer-events-none absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-300',
           (open || isDragging) && openProgress > 0.02 && 'pointer-events-auto',
         )}
-        style={{ opacity: openProgress * 0.65 }}
+        style={{ opacity: openProgress * 0.75 }}
         onClick={() => onOpenChange(false)}
       />
 
@@ -364,121 +365,157 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       >
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col border-t border-border bg-background pb-12 transition-opacity duration-200',
+            'flex min-h-0 flex-1 flex-col border-t border-border/30 bg-background pb-12 shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.12)] transition-opacity duration-300',
             (open || isDragging) ? 'pointer-events-auto' : 'pointer-events-none',
             openProgress < 0.02 && !open && !isDragging && 'opacity-0',
           )}
         >
           {!hasConversation ? (
             /* ================================================================ */
-            /*  Welcome Screen                                                   */
+            /*  Welcome Screen — Main Landing                                    */
             /* ================================================================ */
-            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-6 sm:px-8">
-              <div className="pointer-events-none absolute -left-24 top-8 h-56 w-56 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10" />
-              <div className="pointer-events-none absolute -right-20 bottom-10 h-64 w-64 rounded-full bg-emerald-200/35 blur-3xl dark:bg-emerald-500/10" />
-              <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(to_right,rgba(100,116,139,0.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(100,116,139,0.22)_1px,transparent_1px)] [background-size:56px_56px]" />
+            <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden">
+              {/* Background layer */}
+              <div className="pointer-events-none absolute inset-0 opacity-[0.025] [background-image:radial-gradient(circle,rgba(15,23,42,0.8)_0.8px,transparent_0.8px)] [background-size:20px_20px] dark:opacity-[0.04] dark:[background-image:radial-gradient(circle,rgba(148,163,184,0.5)_0.8px,transparent_0.8px)]" />
+              <div className="pointer-events-none absolute -left-40 -top-20 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-teal-200/20 via-cyan-100/10 to-transparent blur-[80px] dark:from-teal-500/5 dark:via-cyan-400/3" />
+              <div className="pointer-events-none absolute -bottom-20 -right-32 h-[350px] w-[350px] rounded-full bg-gradient-to-tl from-emerald-100/15 to-transparent blur-[80px] dark:from-emerald-500/4" />
 
-              <div className="relative flex min-h-[30%] w-full items-start justify-center pt-3 sm:min-h-[33%] sm:pt-8">
-                <div className="w-full max-w-4xl text-center">
-                  <img src="/images/logo.png" alt="BESSER" className="mx-auto h-14 w-auto brightness-0 dark:invert sm:h-16" />
-                  <div className="mt-6 space-y-3">
-                    <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                      Welcome to the BESSER Web Modeling Assistant
-                    </h2>
-                    <p className="mx-auto max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                      Describe your idea in natural language and shape it into a model-ready project.{' '}
-                      <span className="inline-flex items-center gap-1.5 font-medium">
-                        <span
-                          className={cn(
-                            'inline-block h-2 w-2 rounded-full',
-                            getConnectionDotClass(connectionStatus),
-                          )}
-                        />
-                        {getConnectionLabel(connectionStatus)}
-                      </span>
+              {/* Top spacer — pushes content to vertical center */}
+              <div className="flex-[1_1_14%] min-h-6" />
+
+              {/* Content column */}
+              <div className="relative z-10 w-full max-w-2xl px-6 sm:px-8">
+
+                {/* Brand mark */}
+                <div className="animate-fade-up flex items-center justify-center" style={{ animationDelay: '0ms' }}>
+                  <img
+                    src="/images/logo.png"
+                    alt="BESSER"
+                    className="h-9 w-auto brightness-0 opacity-60 dark:invert sm:h-10"
+                  />
+                </div>
+
+                {/* Headline */}
+                <h1
+                  className="animate-fade-up mt-7 text-center font-display text-[2.25rem] leading-[1.12] tracking-tight sm:text-[2.75rem] lg:text-5xl"
+                  style={{ animationDelay: '70ms' }}
+                >
+                  What would you like to{' '}
+                  <em className="font-display italic text-primary">model</em> today?
+                </h1>
+
+                {/* Subtitle + connection */}
+                <p
+                  className="animate-fade-up mt-4 text-center text-sm leading-relaxed text-muted-foreground sm:text-[15px]"
+                  style={{ animationDelay: '130ms' }}
+                >
+                  Describe your system in natural language. Get diagrams, interfaces, and production code.
+                  <span className="ml-2.5 inline-flex items-center gap-1.5 text-xs font-medium">
+                    <span className={cn('inline-block h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+                    <span className="text-muted-foreground/70">{getConnectionLabel(connectionStatus)}</span>
+                  </span>
+                </p>
+
+                {/* Chat input — hero element */}
+                <div
+                  className="animate-fade-up mt-9"
+                  style={{ animationDelay: '200ms' }}
+                >
+                  <div className="glass-card rounded-2xl p-3 shadow-elevation-3 ring-1 ring-border/20 sm:p-4">
+                    {renderComposer('w-full')}
+                  </div>
+                </div>
+
+                {/* Starter prompt pills */}
+                <div
+                  className="animate-fade-up mt-4 flex flex-wrap justify-center gap-1.5"
+                  style={{ animationDelay: '300ms' }}
+                >
+                  {STARTER_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => setInputValue(prompt)}
+                      className="rounded-full border border-border/40 bg-background/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground/80 backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-primary/25 hover:bg-primary/4 hover:text-foreground hover:shadow-sm dark:border-slate-700/40 dark:bg-slate-900/40"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Gradient divider */}
+                <div
+                  className="animate-fade-up mx-auto mt-10 h-px w-full max-w-xs bg-gradient-to-r from-transparent via-border/40 to-transparent"
+                  style={{ animationDelay: '380ms' }}
+                />
+
+                {/* Capability indicators — minimal, informational */}
+                <div
+                  className="animate-fade-up mt-7 flex items-start justify-center gap-0"
+                  style={{ animationDelay: '430ms' }}
+                >
+                  <div className="flex-1 text-center">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/80">6 Diagram Types</p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                      Class, Object, State Machine, Agent, GUI, Quantum
+                    </p>
+                  </div>
+                  <div className="mx-4 mt-1 h-6 w-px bg-border/30 sm:mx-6" />
+                  <div className="flex-1 text-center">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/80">Visual Interfaces</p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                      GUI screens and layouts from descriptions
+                    </p>
+                  </div>
+                  <div className="mx-4 mt-1 h-6 w-px bg-border/30 sm:mx-6" />
+                  <div className="flex-1 text-center">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/80">Code Generation</p>
+                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                      Django, React, Flutter, SQL, and 10+ targets
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Step-numbered feature cards */}
-              <div className="relative mx-auto grid w-full max-w-5xl gap-3 pb-6 sm:grid-cols-3">
-                <div className="group relative rounded-2xl border border-sky-200/70 bg-sky-50/75 p-4 transition-shadow hover:shadow-md dark:border-sky-900/60 dark:bg-sky-950/20">
-                  <span className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-[11px] font-bold text-white shadow-sm">1</span>
-                  <div className="mb-3 inline-flex rounded-lg bg-sky-500/15 p-2 text-sky-700 dark:text-sky-300">
-                    <WandSparkles className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm font-semibold">Describe your system</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Tell me about your domain in plain language — classes, entities, and workflows get created automatically.</p>
-                </div>
-                <div className="group relative rounded-2xl border border-emerald-200/70 bg-emerald-50/75 p-4 transition-shadow hover:shadow-md dark:border-emerald-900/60 dark:bg-emerald-950/20">
-                  <span className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-[11px] font-bold text-white shadow-sm">2</span>
-                  <div className="mb-3 inline-flex rounded-lg bg-emerald-500/15 p-2 text-emerald-700 dark:text-emerald-300">
-                    <Boxes className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm font-semibold">Refine iteratively</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Add attributes, relationships, states, and GUI pages — ask for changes in natural language.</p>
-                </div>
-                <div className="group relative rounded-2xl border border-violet-200/70 bg-violet-50/75 p-4 transition-shadow hover:shadow-md dark:border-violet-900/60 dark:bg-violet-950/20">
-                  <span className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-violet-600 text-[11px] font-bold text-white shadow-sm">3</span>
-                  <div className="mb-3 inline-flex rounded-lg bg-violet-500/15 p-2 text-violet-700 dark:text-violet-300">
-                    <Workflow className="h-4 w-4" />
-                  </div>
-                  <p className="text-sm font-semibold">Generate code</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Export to Django, React, Flutter, SQL, or deploy as a full-stack web app.</p>
-                </div>
-              </div>
-
-              <div className="relative flex min-h-0 flex-1 items-center justify-center pb-6 sm:pb-10">
-                <div className="w-full max-w-2xl space-y-3">
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {STARTER_PROMPTS.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => setInputValue(prompt)}
-                        className="rounded-full border border-border/80 bg-background/90 px-3 py-1 text-xs font-medium text-muted-foreground transition hover:border-slate-400 hover:text-foreground dark:hover:border-slate-500"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="rounded-2xl border border-border/80 bg-background/90 p-3 shadow-lg backdrop-blur sm:p-4">
-                    {renderComposer('w-full')}
-                  </div>
-                  <p className="mt-2 text-center text-[10px] text-muted-foreground/60">
-                    Press <kbd className="rounded border border-border/60 bg-muted/50 px-1 py-0.5 font-mono text-[9px]">Esc</kbd> to close
-                  </p>
-                </div>
-              </div>
+              {/* Bottom spacer + footer */}
+              <div className="flex-[1_1_8%] min-h-4" />
+              <p className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={{ animationDelay: '500ms' }}>
+                Press <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> to close
+              </p>
             </div>
           ) : (
             /* ================================================================ */
             /*  Chat View                                                        */
             /* ================================================================ */
             <>
-              {/* Message list */}
-              <div ref={messageListContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-6 sm:px-8">
+              {/* Messages */}
+              <div ref={messageListContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
                 </div>
               </div>
 
-              {/* Action bar + input composer */}
-              <div className="shrink-0 border-t border-border bg-background px-4 py-3 sm:px-8">
+              {/* Bottom bar */}
+              <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
-                  <div className="mb-2 flex items-center justify-end gap-2">
-                    <span className={cn('text-[11px]', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1.5 px-2.5 text-xs"
-                      onClick={clearConversation}
-                      title="Start a new conversation"
-                    >
-                      <MessageSquarePlus className="h-3.5 w-3.5" />
-                      New Chat
-                    </Button>
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+                      <span className={cn('h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+                      <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
+                        onClick={clearConversation}
+                        title="Start a new conversation"
+                      >
+                        <MessageSquarePlus className="h-3.5 w-3.5" />
+                        New Chat
+                      </Button>
+                    </div>
                   </div>
                   {renderComposer('w-full')}
                 </div>
@@ -491,20 +528,19 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-12 items-end justify-center pb-1">
           <div
             className={cn(
-              'pointer-events-auto inline-flex cursor-row-resize touch-none select-none items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-md backdrop-blur transition-shadow hover:shadow-lg',
-              openProgress > 0.75 && 'shadow-sm',
+              'pointer-events-auto inline-flex cursor-row-resize touch-none select-none items-center gap-2 rounded-full border border-border/40 bg-background/90 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70 shadow-elevation-2 backdrop-blur-md transition-all duration-200 hover:border-primary/25 hover:text-muted-foreground hover:shadow-elevation-3',
+              openProgress > 0.75 && 'shadow-elevation-1',
             )}
             onPointerDown={handlePointerDown}
             role="button"
             aria-label={open ? 'Push up to close assistant workspace' : 'Pull down to open assistant workspace'}
             tabIndex={0}
           >
-            {/* Visual grab lines */}
-            <div className="flex flex-col items-center gap-[3px]">
-              <span className="block h-[2px] w-5 rounded-full bg-current opacity-40" />
-              <span className="block h-[2px] w-3.5 rounded-full bg-current opacity-25" />
+            <div className="flex flex-col items-center gap-[2.5px]">
+              <span className="block h-[1.5px] w-5 rounded-full bg-current opacity-30" />
+              <span className="block h-[1.5px] w-3 rounded-full bg-current opacity-18" />
             </div>
-            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-200', openProgress > 0.75 && 'rotate-180')} />
+            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-300 ease-out', openProgress > 0.75 && 'rotate-180')} />
             <span>{openProgress > 0.75 ? 'Push up' : 'Pull down assistant'}</span>
           </div>
         </div>

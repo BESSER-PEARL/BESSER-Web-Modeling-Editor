@@ -151,57 +151,57 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
         {/* ── Chat card ── */}
         <Card
           className={cn(
-            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl transition-all duration-300 sm:w-[480px] lg:w-[520px]',
+            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-elevation-3 transition-all duration-300 sm:w-[480px] lg:w-[520px]',
             isVisible ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border bg-slate-900 px-4 py-3 text-white dark:bg-slate-100 dark:text-slate-900">
+          <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-4 py-3.5 text-white dark:from-slate-800 dark:via-slate-800 dark:to-slate-700">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-white ring-1 ring-black/10">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white/95 shadow-sm ring-1 ring-white/20">
                 <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-6 w-6 object-contain" />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none">BESSER Modeling Assistant</p>
-                <p className="mt-1 text-xs opacity-80">AI modeling support</p>
+                <p className="text-sm font-semibold leading-none tracking-tight">Modeling Assistant</p>
+                <p className="mt-1 text-[11px] font-medium text-white/60">by BESSER</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-full text-white hover:bg-white/15 hover:text-white dark:text-slate-900 dark:hover:bg-slate-300"
+                className="h-7 w-7 rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
                 onClick={() => setShowDisclaimer(true)}
                 title="Privacy and data processing"
+                aria-label="Privacy and data processing"
               >
-                <CircleHelp className="h-4 w-4" />
+                <CircleHelp className="h-3.5 w-3.5" />
               </Button>
-              <span className={cn('h-2.5 w-2.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+              <span className={cn('h-2 w-2 rounded-full ring-2 ring-current/15', getConnectionDotClass(connectionStatus))} />
             </div>
           </div>
 
           {/* Message list */}
-          <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-900/40">
+          <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white p-4 dark:from-slate-900/60 dark:to-slate-950/40">
             <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
           </div>
 
           {/* Status bar */}
-          <Separator />
-          <div className="flex items-center justify-between bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+          <div className="flex items-center justify-between border-t border-border/40 bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground backdrop-blur-sm">
             <div className="flex items-center gap-2">
-              <span className={cn('h-2 w-2 rounded-full', getConnectionDotClass(connectionStatus))} />
-              <span>{getConnectionLabel(connectionStatus)}</span>
+              <span className={cn('h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+              <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className={rateLimitColor}>{rateLimitStatus.requestsLastMinute}/8 req/min</span>
-              <span>{messages.length} message{messages.length === 1 ? '' : 's'}</span>
+            <div className="flex items-center gap-3 font-mono text-[10px] tracking-wide">
+              <span className={rateLimitColor}>{rateLimitStatus.requestsLastMinute}/8</span>
+              <span className="text-muted-foreground/50">|</span>
+              <span>{messages.length} msg{messages.length === 1 ? '' : 's'}</span>
             </div>
           </div>
 
           {/* Input */}
-          <Separator />
-          <div className="bg-background p-3">
+          <div className="border-t border-border/30 bg-background p-3">
             <ChatForm className="w-full" isPending={isGenerating} handleSubmit={handleSubmit}>
               {({ files, setFiles }) => (
                 <MessageInput
@@ -223,14 +223,20 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
         <Button
           type="button"
           size="icon"
-          className="h-14 w-14 rounded-full border border-slate-300 bg-white text-slate-900 shadow-lg transition-transform hover:scale-105 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          className={cn(
+            'group h-14 w-14 rounded-2xl border bg-white text-slate-900 shadow-elevation-3 transition-all duration-300 hover:scale-105 hover:shadow-glow dark:bg-slate-900 dark:text-slate-100',
+            isVisible
+              ? 'border-slate-300/80 dark:border-slate-600'
+              : 'border-slate-200/80 dark:border-slate-700',
+          )}
           onClick={() => setIsVisible((p) => !p)}
           title={isVisible ? 'Close assistant' : 'Open assistant'}
+          aria-label={isVisible ? 'Close assistant' : 'Open assistant'}
         >
           {isVisible ? (
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
           ) : (
-            <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-10 w-10 rounded-full" />
+            <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-10 w-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
           )}
         </Button>
       </div>

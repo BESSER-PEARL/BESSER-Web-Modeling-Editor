@@ -31,7 +31,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
         </DialogHeader>
         {deploymentResult && (
           <div className="space-y-4">
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
               <p className="font-medium">
                 {deploymentResult.owner}/{deploymentResult.repo_name}
               </p>

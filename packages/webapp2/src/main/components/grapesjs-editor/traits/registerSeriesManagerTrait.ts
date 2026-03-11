@@ -82,8 +82,15 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
         series = [];
       }
 
+    // Track React roots created for palette dropdowns so they can be
+    // properly unmounted before the next render (prevents memory leaks).
+    let paletteRoots: Array<{ unmount: () => void }> = [];
+
     // Render the UI
     const render = () => {
+  // Unmount any previously mounted palette dropdown React roots
+  paletteRoots.forEach(root => { try { root.unmount(); } catch {} });
+  paletteRoots = [];
   el.innerHTML = '';
   // Add a title for the section
   const title = document.createElement('div');
@@ -313,7 +320,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
             }
             // Mount React PaletteDropdown
             import('./mountPaletteDropdown').then(({ mountPaletteDropdown }) => {
-              mountPaletteDropdown({
+              const paletteRoot = mountPaletteDropdown({
                 container: colorInputContainer,
                 palettes: paletteSets,
                 value: selectedPaletteIdx,
@@ -330,6 +337,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
                   update();
                 },
               });
+              paletteRoots.push(paletteRoot);
             });
           } else {
             // Improved stylish hex input + color preview + popover color picker

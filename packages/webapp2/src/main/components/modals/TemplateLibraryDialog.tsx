@@ -43,12 +43,12 @@ const categoryOrder: SoftwarePatternCategory[] = [
 ];
 
 const categoryColor: Record<SoftwarePatternCategory, string> = {
-  [SoftwarePatternCategory.STRUCTURAL]: 'bg-sky-100 text-sky-900',
-  [SoftwarePatternCategory.BEHAVIORAL]: 'bg-emerald-100 text-emerald-900',
-  [SoftwarePatternCategory.CREATIONAL]: 'bg-amber-100 text-amber-900',
-  [SoftwarePatternCategory.STATE_MACHINE]: 'bg-indigo-100 text-indigo-900',
-  [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900',
-  [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900',
+  [SoftwarePatternCategory.STRUCTURAL]: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
+  [SoftwarePatternCategory.BEHAVIORAL]: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
+  [SoftwarePatternCategory.CREATIONAL]: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
+  [SoftwarePatternCategory.STATE_MACHINE]: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
+  [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
+  [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
 };
 
 export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ open, onOpenChange }) => {

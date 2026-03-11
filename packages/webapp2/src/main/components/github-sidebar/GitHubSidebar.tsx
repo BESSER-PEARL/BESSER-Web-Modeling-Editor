@@ -57,9 +57,9 @@ type LinkStep = 'select' | 'configure';
 type SidebarState = 'synced' | 'pending' | 'error';
 
 const statusClass: Record<SidebarState, string> = {
-  synced: 'border border-emerald-200 bg-emerald-50 text-emerald-800',
-  pending: 'border border-amber-200 bg-amber-50 text-amber-800',
-  error: 'border border-red-200 bg-red-50 text-red-800',
+  synced: 'border border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+  pending: 'border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  error: 'border border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
 const spinner = <Loader2 className="h-4 w-4 animate-spin" />;
@@ -272,6 +272,17 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
     checkChanges().catch(console.error);
   }, [isOpen, linkedRepo, isAuthenticated, githubSession, currentProject, checkForChanges]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleSave = useCallback(async () => {
     if (!linkedRepo || !currentProject || !githubSession) {
@@ -798,11 +809,11 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" className="gap-1" onClick={() => void handleSave()} disabled={isLoading}>
+            <Button size="sm" className="gap-1" onClick={() => { handleSave().catch(console.error); }} disabled={isLoading}>
               <CloudUpload className="h-3.5 w-3.5" />
               Push
             </Button>
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => void handleLoad()} disabled={isLoading}>
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => { handleLoad().catch(console.error); }} disabled={isLoading}>
               <CloudDownload className="h-3.5 w-3.5" />
               Pull
             </Button>
@@ -828,6 +839,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             className="ml-auto h-7 w-7"
             onClick={() => linkedRepo && githubSession && fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath)}
             disabled={isLoading}
+            aria-label="Refresh commit history"
           >
             {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           </Button>
@@ -966,6 +978,9 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       />
 
       <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="GitHub Sync"
         className={cn(
           'absolute bottom-0 right-0 top-0 z-50 w-[380px] max-w-[96vw] border-l border-border/70 bg-background shadow-xl transition-all duration-200',
           isOpen
@@ -978,7 +993,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             <Github className="h-4 w-4" />
             GitHub Sync
           </h3>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} aria-label="Close GitHub sidebar">
             <X className="h-4 w-4" />
           </Button>
         </header>
@@ -996,7 +1011,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {linkStep === 'configure' && (
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setLinkStep('select')}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setLinkStep('select')} aria-label="Go back to repository selection">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
               )}
@@ -1019,7 +1034,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                     <li key={repo.id}>
                       <button
                         type="button"
-                        onClick={() => void handleSelectRepo(repo)}
+                        onClick={() => { handleSelectRepo(repo).catch(console.error); }}
                         className="w-full px-3 py-2.5 text-left hover:bg-muted/40"
                       >
                         <div className="flex items-center gap-2 text-sm font-medium">
@@ -1107,21 +1122,21 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => void handleCheckFileExists()}
+                  onClick={() => { handleCheckFileExists().catch(console.error); }}
                   disabled={isCheckingFile || !linkFileName}
                 >
                   {isCheckingFile ? spinner : 'Check if file exists'}
                 </Button>
 
                 {fileExists === true && (
-                  <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                     <p>File already exists in repository. Choose how to proceed:</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => void handleConfirmLink()} className="gap-1">
+                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink().catch(console.error); }} className="gap-1">
                         <CloudDownload className="h-4 w-4" />
                         Load & link (recommended)
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => void handleConfirmLink(true)}>
+                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink(true).catch(console.error); }}>
                         Link without loading (may overwrite)
                       </Button>
                     </div>
@@ -1129,7 +1144,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                 )}
 
                 {fileExists === false && (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                     File path is available. Click "Link Repository" to continue.
                   </div>
                 )}
@@ -1142,7 +1157,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               Cancel
             </Button>
             {linkStep === 'configure' && (
-              <Button onClick={() => void handleConfirmLink()} disabled={!linkFileName}>
+              <Button onClick={() => { handleConfirmLink().catch(console.error); }} disabled={!linkFileName}>
                 {fileExists ? 'Load & Link' : 'Link Repository'}
               </Button>
             )}
@@ -1174,7 +1189,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         onRepoPrivateChange={setIsRepoPrivate}
         onFileNameChange={(value) => setCreateFileName(value.replace(/\s+/g, '_'))}
         onFolderPathChange={setCreateFolderPath}
-        onCreate={() => void handleCreateRepo()}
+        onCreate={() => { handleCreateRepo().catch(console.error); }}
       />
 
       <CommitDialog
@@ -1183,7 +1198,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         message={commitMessage}
         onOpenChange={setShowCommitModal}
         onMessageChange={setCommitMessage}
-        onCommit={() => void handleConfirmSave()}
+        onCommit={() => { handleConfirmSave().catch(console.error); }}
       />
 
       <RestoreVersionDialog
@@ -1197,7 +1212,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             setSelectedCommit(null);
           }
         }}
-        onRestore={() => void handleRestoreCommit()}
+        onRestore={() => { handleRestoreCommit().catch(console.error); }}
       />
 
       <CreateGistDialog
@@ -1208,7 +1223,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         onOpenChange={setShowGistModal}
         onDescriptionChange={setGistDescription}
         onPublicChange={setIsGistPublic}
-        onCreate={() => void handleCreateGist()}
+        onCreate={() => { handleCreateGist().catch(console.error); }}
       />
     </>
   );

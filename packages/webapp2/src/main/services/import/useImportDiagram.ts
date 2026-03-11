@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useAppDispatch } from '../../store/hooks';
 import { uuid } from '../../utils/uuid';
-import { ProjectDiagram, isUMLModel, toSupportedDiagramType } from '../../types/project';
+import { ProjectDiagram, isUMLModel, toSupportedDiagramType, MAX_DIAGRAMS_PER_TYPE } from '../../types/project';
 import { bumpEditorRevision, loadProjectThunk } from '../workspace/workspaceSlice';
 import { displayError } from '../error-management/errorManagementSlice';
 import { useNavigate } from 'react-router-dom';
@@ -110,10 +110,11 @@ export const useImportDiagramToProject = () => {
         lastUpdate: new Date().toISOString()
       };
 
-      // Update the active diagram in the array (preserving the array structure)
+      // Add the imported diagram as a new entry (never overwrite existing diagrams)
       const existingDiagrams = currentProject.diagrams[diagramType] ?? [];
-      const activeIndex = currentProject.currentDiagramIndices?.[diagramType] ?? 0;
-      const updatedDiagrams = [...existingDiagrams];
+      if (existingDiagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
+        throw new Error(`Cannot import: maximum of ${MAX_DIAGRAMS_PER_TYPE} ${diagramType} diagrams per project has been reached.`);
+      }
       const newDiagram = {
         id: newId,
         title: importedDiagram.title,
@@ -122,18 +123,19 @@ export const useImportDiagramToProject = () => {
         description: importedDiagram.description || `Imported ${diagramType} diagram`
       };
 
-      if (updatedDiagrams.length === 0) {
-        updatedDiagrams.push(newDiagram);
-      } else {
-        updatedDiagrams[Math.min(activeIndex, updatedDiagrams.length - 1)] = newDiagram;
-      }
+      const updatedDiagrams = [...existingDiagrams, newDiagram];
+      const newIndex = updatedDiagrams.length - 1;
 
       const updatedProject = {
         ...currentProject,
         diagrams: {
           ...currentProject.diagrams,
           [diagramType]: updatedDiagrams,
-        }
+        },
+        currentDiagramIndices: {
+          ...currentProject.currentDiagramIndices,
+          [diagramType]: newIndex,
+        },
       };
 
       // Save to localStorage and reload the project into Redux to keep them in sync

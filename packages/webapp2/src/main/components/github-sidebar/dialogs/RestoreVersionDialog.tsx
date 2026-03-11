@@ -40,7 +40,7 @@ export const RestoreVersionDialog: React.FC<RestoreVersionDialogProps> = ({
           </div>
         )}
 
-        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
           <AlertTriangle className="h-4 w-4" />
           Restore this commit?
         </div>

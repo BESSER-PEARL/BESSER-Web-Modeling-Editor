@@ -146,39 +146,41 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[86vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2.5 font-display text-2xl tracking-tight">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
+              <Download className="h-4 w-4" />
+            </div>
             Export Project
           </DialogTitle>
           <DialogDescription>Export full project files or current diagram assets.</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <section className="flex flex-col rounded-xl border border-slate-300/70 bg-slate-50/90 p-4">
-            <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <FileJson2 className="h-4 w-4" />
+          <section className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-background p-4 shadow-elevation-1">
+            <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold tracking-tight">
+              <FileJson2 className="h-4 w-4 text-primary" />
               Multiple Diagrams
             </h3>
-            <p className="mb-3 text-xs text-slate-600">Export selected diagrams as JSON or B-UML.</p>
+            <p className="mb-3 text-xs text-muted-foreground">Export selected diagrams as JSON or B-UML.</p>
 
             {diagramEntries.length > 0 ? (
               <>
-                <div className="max-h-44 space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-white p-3">
+                <div className="max-h-44 space-y-1.5 overflow-y-auto rounded-lg border border-border/40 bg-background/80 p-3">
                   {diagramEntries.map(([type, projectDiagram]) => (
-                    <label key={type} className="flex items-start gap-2 text-sm text-slate-700">
+                    <label key={type} className="flex cursor-pointer items-start gap-2.5 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-muted/30">
                       <input
                         type="checkbox"
-                        className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-slate-800"
+                        className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
                         checked={selectedDiagrams.includes(type)}
                         onChange={() => toggleDiagramSelection(type)}
                       />
-                      <span>{projectDiagram.title || diagramLabels[type]}</span>
+                      <span className="font-medium">{projectDiagram.title || diagramLabels[type]}</span>
                     </label>
                   ))}
                 </div>
 
                 <div className="mt-4 grid gap-2">
-                  <Button onClick={() => handleExport('JSON')} className="justify-start gap-2">
+                  <Button onClick={() => handleExport('JSON')} className="justify-start gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2">
                     <FileJson2 className="h-4 w-4" />
                     Export as JSON
                   </Button>
@@ -189,48 +191,48 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 </div>
               </>
             ) : (
-              <p className="rounded-md border border-dashed border-slate-300 bg-white px-3 py-4 text-xs text-slate-500">
+              <p className="rounded-lg border-2 border-dashed border-border/40 bg-muted/10 px-3 py-5 text-center text-xs text-muted-foreground">
                 No diagrams available in the current project.
               </p>
             )}
           </section>
 
-          <section className="flex flex-col rounded-xl border border-slate-300/70 bg-slate-50/90 p-4">
-            <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <FileImage className="h-4 w-4" />
+          <section className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-background p-4 shadow-elevation-1">
+            <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold tracking-tight">
+              <FileImage className="h-4 w-4 text-violet-600 dark:text-violet-400" />
               Current Diagram
             </h3>
-            <p className="mb-3 text-xs text-slate-600">Export the current UML diagram as image assets.</p>
+            <p className="mb-3 text-xs text-muted-foreground">Export the current UML diagram as image assets.</p>
 
-            <div className="mb-4 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+            <div className="mb-4 rounded-lg border border-border/40 bg-background/80 px-3 py-2.5 text-sm font-medium">
               {currentDiagramTitle || 'Untitled diagram'}
             </div>
 
             <div className="grid gap-2">
-              <Button variant="outline" onClick={() => handleExport('SVG')} className="justify-start gap-2">
+              <Button variant="outline" onClick={() => handleExport('SVG')} className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-all hover:shadow-elevation-2">
                 <FileCode2 className="h-4 w-4" />
                 Export as SVG
               </Button>
-              <Button variant="outline" onClick={() => handleExport('PNG_WHITE')} className="justify-start gap-2">
+              <Button variant="outline" onClick={() => handleExport('PNG_WHITE')} className="justify-start gap-2 border-border/50">
                 <FileImage className="h-4 w-4" />
                 Export PNG (White)
               </Button>
-              <Button variant="outline" onClick={() => handleExport('PNG')} className="justify-start gap-2">
+              <Button variant="outline" onClick={() => handleExport('PNG')} className="justify-start gap-2 border-border/50">
                 <FileImage className="h-4 w-4" />
                 Export PNG (Transparent)
               </Button>
-              <Button variant="outline" onClick={() => handleExport('SINGLE_JSON')} className="justify-start gap-2">
+              <Button variant="outline" onClick={() => handleExport('SINGLE_JSON')} className="justify-start gap-2 border-border/50">
                 <FileJson2 className="h-4 w-4" />
                 Export Diagram as JSON
               </Button>
-              <Button variant="outline" onClick={() => handleExport('SINGLE_BUML')} className="justify-start gap-2">
+              <Button variant="outline" onClick={() => handleExport('SINGLE_BUML')} className="justify-start gap-2 border-border/50">
                 <FileCode2 className="h-4 w-4" />
                 Export Diagram as B-UML
               </Button>
             </div>
 
             {!editor && (
-              <p className="mt-3 text-xs text-amber-700">
+              <p className="mt-3 rounded-lg border border-amber-300/40 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
                 Current diagram exports require a UML diagram view. Use project-level export instead.
               </p>
             )}
