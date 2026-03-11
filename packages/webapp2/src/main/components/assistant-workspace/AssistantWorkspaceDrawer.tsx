@@ -378,16 +378,16 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             /*  Welcome Screen — Main Landing                                    */
             /* ================================================================ */
             <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden">
-              {/* ---- Background: animated gradient orbs using #397C95 palette ---- */}
+              {/* ---- Background: animated gradient orbs using brand palette ---- */}
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 {/* Subtle dot grid */}
-                <div className="absolute inset-0 opacity-[0.03] [background-image:radial-gradient(circle,rgba(57,124,149,0.5)_0.8px,transparent_0.8px)] [background-size:24px_24px] dark:opacity-[0.05] dark:[background-image:radial-gradient(circle,rgba(91,184,212,0.3)_0.8px,transparent_0.8px)]" />
+                <div className="absolute inset-0 opacity-[0.03] [background-image:radial-gradient(circle,hsl(var(--brand)/0.5)_0.8px,transparent_0.8px)] [background-size:24px_24px] dark:opacity-[0.05]" />
                 {/* Primary brand orb — top left, large */}
-                <div className="drawer-orb-1 absolute -left-10 -top-10 h-[550px] w-[550px] rounded-full blur-[100px]" style={{ background: 'radial-gradient(circle, rgba(57,124,149,0.25) 0%, rgba(57,124,149,0.08) 50%, transparent 70%)' }} />
+                <div className="drawer-orb-1 absolute -left-10 -top-10 h-[550px] w-[550px] rounded-full blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(var(--brand) / 0.25) 0%, hsl(var(--brand) / 0.08) 50%, transparent 70%)' }} />
                 {/* Secondary orb — right side */}
-                <div className="drawer-orb-2 absolute right-0 top-[15%] h-[450px] w-[450px] rounded-full blur-[90px]" style={{ background: 'radial-gradient(circle, rgba(74,155,184,0.2) 0%, rgba(44,106,130,0.06) 50%, transparent 70%)' }} />
+                <div className="drawer-orb-2 absolute right-0 top-[15%] h-[450px] w-[450px] rounded-full blur-[90px]" style={{ background: 'radial-gradient(circle, hsl(var(--brand-light) / 0.2) 0%, hsl(var(--brand-dark) / 0.06) 50%, transparent 70%)' }} />
                 {/* Bottom accent orb */}
-                <div className="drawer-orb-3 absolute -bottom-20 left-[20%] h-[400px] w-[400px] rounded-full blur-[80px]" style={{ background: 'radial-gradient(circle, rgba(57,124,149,0.15) 0%, rgba(91,175,204,0.05) 50%, transparent 70%)' }} />
+                <div className="drawer-orb-3 absolute -bottom-20 left-[20%] h-[400px] w-[400px] rounded-full blur-[80px]" style={{ background: 'radial-gradient(circle, hsl(var(--brand) / 0.15) 0%, hsl(var(--brand-light) / 0.05) 50%, transparent 70%)' }} />
                 {/* Warm contrast — subtle amber far right */}
                 <div className="drawer-orb-2 absolute -right-20 top-[5%] h-[300px] w-[300px] rounded-full bg-gradient-to-bl from-amber-100/12 to-transparent blur-[70px] dark:from-amber-500/5" />
               </div>
@@ -397,8 +397,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 {/* Left floating cards */}
                 <div className="floating-card absolute left-[4%] top-[18%] rotate-[-6deg] rounded-xl border border-brand/15 bg-white/40 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/30" style={{ '--float-duration': '7s', '--float-delay': '0s', '--float-rotate': '-6deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
-                      <Layers className="h-3 w-3" style={{ color: '#397C95' }} />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Layers className="h-3 w-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Class Diagram</span>
                   </div>
@@ -408,10 +408,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </div>
                 </div>
 
-                <div className="floating-card absolute left-[6%] top-[48%] rotate-[-3deg] rounded-xl border border-brand/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/25" style={{ '--float-duration': '8s', '--float-delay': '1.5s', '--float-rotate': '-3deg' } as React.CSSProperties}>
+                <div className="floating-card absolute left-[6%] top-[48%] rotate-[-3deg] rounded-xl border border-brand/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/25" style={{ '--float-duration': '8s', '--float-delay': '1.5s', '--float-rotate': '-3deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
-                      <svg className="h-3 w-3" style={{ color: '#397C95' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <svg className="h-3 w-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">State Machine</span>
                   </div>
@@ -422,10 +422,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </div>
                 </div>
 
-                <div className="floating-card absolute bottom-[22%] left-[3%] rotate-[2deg] rounded-xl border border-brand/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3s', '--float-rotate': '2deg' } as React.CSSProperties}>
+                <div className="floating-card absolute bottom-[22%] left-[3%] rotate-[2deg] rounded-xl border border-brand/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3s', '--float-rotate': '2deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
-                      <Code2 className="h-3 w-3" style={{ color: '#397C95' }} />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Code2 className="h-3 w-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Django</span>
                   </div>
@@ -438,8 +438,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 {/* Right floating cards */}
                 <div className="floating-card absolute right-[4%] top-[15%] rotate-[5deg] rounded-xl border border-brand/15 bg-white/40 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/30" style={{ '--float-duration': '8s', '--float-delay': '0.5s', '--float-rotate': '5deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
-                      <Palette className="h-3 w-3" style={{ color: '#397C95' }} />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Palette className="h-3 w-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">GUI Design</span>
                   </div>
@@ -449,10 +449,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </div>
                 </div>
 
-                <div className="floating-card absolute right-[5%] top-[44%] rotate-[3deg] rounded-xl border border-brand/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/25" style={{ '--float-duration': '7s', '--float-delay': '2s', '--float-rotate': '3deg' } as React.CSSProperties}>
+                <div className="floating-card absolute right-[5%] top-[44%] rotate-[3deg] rounded-xl border border-brand/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/25" style={{ '--float-duration': '7s', '--float-delay': '2s', '--float-rotate': '3deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
-                      <svg className="h-3 w-3" style={{ color: '#397C95' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <svg className="h-3 w-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Object Diagram</span>
                   </div>
@@ -462,10 +462,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </div>
                 </div>
 
-                <div className="floating-card absolute bottom-[20%] right-[3%] rotate-[-4deg] rounded-xl border border-brand/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3.5s', '--float-rotate': '-4deg' } as React.CSSProperties}>
+                <div className="floating-card absolute bottom-[20%] right-[3%] rotate-[-4deg] rounded-xl border border-brand/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3.5s', '--float-rotate': '-4deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
-                      <Sparkles className="h-3 w-3" style={{ color: '#397C95' }} />
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Sparkles className="h-3 w-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">React App</span>
                   </div>
@@ -489,7 +489,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     alt="BESSER"
                     className="h-9 w-auto brightness-0 opacity-70 dark:invert sm:h-10"
                   />
-                  <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ring-1" style={{ background: 'rgba(57,124,149,0.08)', color: '#397C95', ringColor: 'rgba(57,124,149,0.2)' }}>
+                  <span className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20">
                     <Sparkles className="h-3 w-3" />
                     AI-Powered
                   </span>
@@ -536,7 +536,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       key={prompt}
                       type="button"
                       onClick={() => setInputValue(prompt)}
-                      className="rounded-full border border-brand/15 bg-white/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-brand/30 hover:bg-brand/5 hover:text-foreground hover:shadow-sm dark:bg-slate-800/40 dark:hover:border-[#5BB8D4]/25 dark:hover:bg-[#5BB8D4]/8"
+                      className="rounded-full border border-brand/15 bg-white/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-brand/30 hover:bg-brand/5 hover:text-foreground hover:shadow-sm dark:bg-slate-800/40 dark:hover:border-brand/25 dark:hover:bg-brand/8"
                     >
                       {prompt}
                     </button>
@@ -548,9 +548,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   className="animate-fade-up mt-10 grid grid-cols-3 gap-3"
                   style={{ animationDelay: '400ms' }}
                 >
-                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/30">
-                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, rgba(57,124,149,0.06) 0%, transparent 100%)' }} />
-                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg ring-1" style={{ background: 'rgba(57,124,149,0.1)', color: '#397C95', ringColor: 'rgba(57,124,149,0.15)' }}>
+                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                       <Layers className="h-4 w-4" />
                     </div>
                     <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">6 Diagram Types</p>
@@ -558,9 +558,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       Class, Object, State Machine, Agent, GUI, Quantum
                     </p>
                   </div>
-                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/30">
-                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, rgba(57,124,149,0.06) 0%, transparent 100%)' }} />
-                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg ring-1" style={{ background: 'rgba(57,124,149,0.1)', color: '#397C95', ringColor: 'rgba(57,124,149,0.15)' }}>
+                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                       <Palette className="h-4 w-4" />
                     </div>
                     <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Visual Interfaces</p>
@@ -568,9 +568,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       GUI screens and layouts from descriptions
                     </p>
                   </div>
-                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/30">
-                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, rgba(57,124,149,0.06) 0%, transparent 100%)' }} />
-                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg ring-1" style={{ background: 'rgba(57,124,149,0.1)', color: '#397C95', ringColor: 'rgba(57,124,149,0.15)' }}>
+                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                       <Code2 className="h-4 w-4" />
                     </div>
                     <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Code Generation</p>
@@ -635,7 +635,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               'pointer-events-auto flex cursor-row-resize touch-none select-none items-center gap-2 rounded-b-lg px-4 py-1.5 transition-all duration-200',
               openProgress > 0.5
                 ? 'bg-background/90 shadow-sm backdrop-blur-sm'
-                : 'bg-white/80 shadow-[0_2px_8px_-2px_rgba(57,124,149,0.15)] backdrop-blur-sm hover:bg-white/95 hover:shadow-[0_3px_12px_-2px_rgba(57,124,149,0.2)] dark:bg-slate-800/80 dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)] dark:hover:bg-slate-800/95',
+                : 'bg-white/80 shadow-[0_2px_8px_-2px_hsl(var(--brand)/0.15)] backdrop-blur-sm hover:bg-white/95 hover:shadow-[0_3px_12px_-2px_hsl(var(--brand)/0.2)] dark:bg-slate-800/80 dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)] dark:hover:bg-slate-800/95',
             )}
             onPointerDown={handlePointerDown}
             role="button"
@@ -643,9 +643,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             tabIndex={0}
           >
             <div className="flex flex-col items-center gap-[2px]">
-              <span className="block h-[1.5px] w-4 rounded-full bg-[#397C95]/20 dark:bg-[#5BB8D4]/15" />
-              <span className="block h-[1.5px] w-3 rounded-full bg-[#397C95]/15 dark:bg-[#5BB8D4]/10" />
-              <span className="block h-[1.5px] w-2 rounded-full bg-brand/10 dark:bg-[#5BB8D4]/8" />
+              <span className="block h-[1.5px] w-4 rounded-full bg-brand/20" />
+              <span className="block h-[1.5px] w-3 rounded-full bg-brand/15" />
+              <span className="block h-[1.5px] w-2 rounded-full bg-brand/10" />
             </div>
             <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
               {openProgress > 0.75 ? 'Push up' : 'Pull down assistant'}
