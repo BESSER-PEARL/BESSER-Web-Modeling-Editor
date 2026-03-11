@@ -1,5 +1,4 @@
 import React, { useRef, useCallback, CSSProperties } from 'react';
-import styled from 'styled-components';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Circuit, InitialState } from '../types';
@@ -10,47 +9,6 @@ import { GatePalette } from './GatePalette';
 import { Gate } from './Gate';
 import { TooltipProvider } from './Tooltip';
 import { GATES } from '../constants';
-
-const EditorContainer = styled.div`
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-    background-color: var(--quantum-editor-bg, #ffffff);
-    color: var(--quantum-editor-text, #0f172a);
-`;
-
-const Workspace = styled.div`
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-`;
-
-const PaletteContainer = styled.div<{ $compact?: boolean }>`
-    width: ${props => props.$compact ? '220px' : '280px'};
-    min-width: ${props => props.$compact ? '200px' : '250px'};
-    border-right: 1px solid var(--quantum-editor-border, #d5dde8);
-    overflow-y: auto;
-    padding: 16px;
-    background-color: var(--quantum-editor-surface, #f8fafc);
-`;
-
-const CircuitContainer = styled.div`
-    flex: 1;
-    overflow: auto;
-    padding: 20px;
-    position: relative;
-    background-color: var(--quantum-editor-bg, #ffffff);
-`;
-
-const DragGhost = styled.div<{ $x: number; $y: number }>`
-    position: fixed;
-    left: ${props => props.$x}px;
-    top: ${props => props.$y}px;
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.8;
-`;
 
 export interface CircuitEditorProps {
     // Option 1: Pass an external editor state (for advanced use with shared state)
@@ -142,17 +100,20 @@ export function CircuitEditor({
     return (
         <TooltipProvider>
             <DndProvider backend={HTML5Backend}>
-                <EditorContainer
+                <div
+                    className="flex flex-col h-full w-full bg-[var(--quantum-editor-bg,#ffffff)] text-[var(--quantum-editor-text,#0f172a)]"
                     style={style}
                     onMouseMove={handleMouseMove}
                     onMouseUp={editor.handleMouseUp}
                     onMouseLeave={editor.handleMouseUp}
                 >
-                    <Workspace>
-                        <PaletteContainer $compact={compactPalette}>
+                    <div className="flex flex-1 overflow-hidden">
+                        <div
+                            className={`${compactPalette ? 'w-[220px] min-w-[200px]' : 'w-[280px] min-w-[250px]'} border-r border-[var(--quantum-editor-border,#d5dde8)] overflow-y-auto p-4 bg-[var(--quantum-editor-surface,#f8fafc)]`}
+                        >
                             <GatePalette onDragStart={editor.handleDragStart} />
-                        </PaletteContainer>
-                        <CircuitContainer>
+                        </div>
+                        <div className="flex-1 overflow-auto p-5 relative bg-[var(--quantum-editor-bg,#ffffff)]">
                             <CircuitGrid
                                 ref={circuitGridRef}
                                 circuit={editor.circuit}
@@ -170,19 +131,22 @@ export function CircuitEditor({
                                 selectedGate={editor.selectedGate}
                                 previewPosition={editor.previewPosition}
                             />
-                        </CircuitContainer>
-                    </Workspace>
-                    
+                        </div>
+                    </div>
+
                     {/* Drag ghost */}
                     {editor.draggedGate && (
-                        <DragGhost
-                            $x={editor.mousePos.x + (circuitGridRef.current?.getBoundingClientRect().left || 0)}
-                            $y={editor.mousePos.y + (circuitGridRef.current?.getBoundingClientRect().top || 0)}
+                        <div
+                            className="fixed pointer-events-none z-[1000] opacity-80"
+                            style={{
+                                left: editor.mousePos.x + (circuitGridRef.current?.getBoundingClientRect().left || 0),
+                                top: editor.mousePos.y + (circuitGridRef.current?.getBoundingClientRect().top || 0),
+                            }}
                         >
                             <Gate gate={GATES.find((g) => g.type === editor.draggedGate?.gate)!} isDragging />
-                        </DragGhost>
+                        </div>
                     )}
-                </EditorContainer>
+                </div>
             </DndProvider>
         </TooltipProvider>
     );

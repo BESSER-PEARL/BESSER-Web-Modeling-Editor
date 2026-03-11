@@ -1,9 +1,10 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import styled from 'styled-components';
 import hljs from 'highlight.js/lib/core';
 import jsonLang from 'highlight.js/lib/languages/json';
 import pythonLang from 'highlight.js/lib/languages/python';
+import { cn } from '@/lib/utils';
+import './json-viewer-modal.css';
 
 if (!hljs.getLanguage('json')) {
   hljs.registerLanguage('json', jsonLang);
@@ -12,322 +13,6 @@ if (!hljs.getLanguage('json')) {
 if (!hljs.getLanguage('python')) {
   hljs.registerLanguage('python', pythonLang);
 }
-
-const ModalOverlay = styled.div<{ $isVisible: boolean }>`
-  position: fixed;
-  inset: 0;
-  display: ${props => (props.$isVisible ? 'flex' : 'none')};
-  align-items: center;
-  justify-content: center;
-  z-index: 99999;
-  padding: 20px;
-  background: rgba(2, 6, 23, 0.76);
-  backdrop-filter: blur(2px);
-`;
-
-const ModalContent = styled.div`
-  width: min(960px, 92vw);
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: 14px;
-  border: 1px solid #1f2a44;
-  background: linear-gradient(180deg, #0f172a 0%, #0b1326 100%);
-  box-shadow: 0 28px 70px rgba(2, 6, 23, 0.68);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 18px 22px;
-  border-bottom: 1px solid #1f2a44;
-
-  h3 {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    color: #e2e8f0;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-`;
-
-const ModalSubtitle = styled.span`
-  color: #93a7c7;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-`;
-
-const CloseButton = styled.button`
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: 1px solid #314062;
-  background: #111d33;
-  color: #b6c3db;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #4f6696;
-    background: #172741;
-    color: #e2e8f0;
-  }
-`;
-
-const ModalBody = styled.div`
-  flex: 1;
-  overflow: auto;
-  padding: 16px 22px 20px;
-`;
-
-const TabSwitcher = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-
-  button {
-    flex: 1;
-    border: 1px solid #304364;
-    background: #0f1b33;
-    color: #b6c3db;
-    border-radius: 999px;
-    padding: 8px 12px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  button:hover {
-    border-color: #4f6696;
-    color: #dbe7ff;
-  }
-
-  button.active {
-    border-color: #60a5fa;
-    color: #f8fbff;
-    background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
-    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28);
-  }
-`;
-
-const PlaceholderBox = styled.div`
-  border-radius: 10px;
-  border: 1px dashed #314062;
-  background: #0e1a32;
-  color: #93a7c7;
-  padding: 22px;
-  font-size: 14px;
-  text-align: center;
-`;
-
-const ErrorBox = styled.div`
-  border-radius: 10px;
-  border: 1px solid #ef4444;
-  background: rgba(127, 29, 29, 0.4);
-  color: #fecaca;
-  padding: 16px;
-  font-size: 14px;
-  font-weight: 600;
-`;
-
-const CodeBlock = styled.pre`
-  margin: 0;
-  border-radius: 12px;
-  border: 1px solid #263754;
-  background: radial-gradient(120% 120% at 0% 0%, #0f1b33 0%, #0b1326 58%, #090f20 100%);
-  color: #dbe5ff;
-  padding: 18px;
-  font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.65;
-  white-space: pre;
-  overflow: auto;
-
-  code {
-    display: block;
-    min-width: max-content;
-    background: transparent;
-    color: inherit;
-  }
-
-  .hljs-keyword,
-  .hljs-selector-tag,
-  .hljs-literal {
-    color: #ff7ab2;
-  }
-
-  .hljs-string,
-  .hljs-title,
-  .hljs-name,
-  .hljs-attr {
-    color: #a6da95;
-  }
-
-  .hljs-number,
-  .hljs-symbol,
-  .hljs-bullet {
-    color: #f5a97f;
-  }
-
-  .hljs-built_in,
-  .hljs-type,
-  .hljs-attribute {
-    color: #8aadf4;
-  }
-
-  .hljs-comment,
-  .hljs-quote {
-    color: #7f8aa3;
-    font-style: italic;
-  }
-
-  .hljs-variable,
-  .hljs-template-variable,
-  .hljs-selector-attr {
-    color: #eed49f;
-  }
-
-  .hljs-function,
-  .hljs-title.function_ {
-    color: #7dc4e4;
-  }
-`;
-
-const JsonTreeBlock = styled.div`
-  margin: 0;
-  border-radius: 12px;
-  border: 1px solid #263754;
-  background: radial-gradient(120% 120% at 0% 0%, #0f1b33 0%, #0b1326 58%, #090f20 100%);
-  color: #dbe5ff;
-  padding: 18px;
-  font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
-  line-height: 1.65;
-  overflow: auto;
-`;
-
-const JsonLine = styled.div<{ $depth: number }>`
-  display: flex;
-  align-items: baseline;
-  white-space: nowrap;
-  padding-left: ${props => `${props.$depth * 16}px`};
-`;
-
-const JsonLineButton = styled.button`
-  border: none;
-  background: transparent;
-  color: inherit;
-  margin: 0;
-  padding: 0;
-  font: inherit;
-  line-height: inherit;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: baseline;
-  min-width: 0;
-  text-align: left;
-
-  &:hover {
-    opacity: 0.92;
-  }
-`;
-
-const JsonChevron = styled.span`
-  display: inline-block;
-  width: 14px;
-  margin-right: 4px;
-  color: #93a7c7;
-  text-align: center;
-`;
-
-const JsonChevronSpacer = styled(JsonChevron)`
-  color: transparent;
-`;
-
-const JsonPunctuation = styled.span`
-  color: #dbe5ff;
-`;
-
-const JsonCollapsedHint = styled.span`
-  color: #7f8aa3;
-`;
-
-const JsonKeyToken = styled.span`
-  color: #7dc4e4;
-`;
-
-const JsonStringToken = styled.span`
-  color: #a6da95;
-`;
-
-const JsonNumberToken = styled.span`
-  color: #f5a97f;
-`;
-
-const JsonBooleanToken = styled.span`
-  color: #ff7ab2;
-`;
-
-const JsonNullToken = styled.span`
-  color: #ff7ab2;
-`;
-
-const ModalFooter = styled.div`
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  padding: 16px 22px 18px;
-  border-top: 1px solid #1f2a44;
-
-  button {
-    padding: 9px 14px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .primary-button {
-    border-color: #60a5fa;
-    background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
-    color: #f8fbff;
-  }
-
-  .primary-button:not(:disabled):hover {
-    box-shadow: 0 8px 18px rgba(14, 165, 233, 0.3);
-  }
-
-  .secondary-button {
-    border-color: #314062;
-    background: #111d33;
-    color: #d4def3;
-  }
-
-  .secondary-button:not(:disabled):hover {
-    border-color: #4f6696;
-    background: #172741;
-  }
-`;
 
 interface JsonViewerModalProps {
   isVisible: boolean;
@@ -384,9 +69,9 @@ const HighlightedCode: React.FC<{ code: string; language: SupportedLanguage }> =
   const highlightedMarkup = React.useMemo(() => highlightCode(code, language), [code, language]);
 
   return (
-    <CodeBlock>
+    <pre className="jvm-code-block m-0 rounded-xl p-[18px] text-[13px] leading-[1.65] whitespace-pre overflow-auto">
       <code className="hljs" dangerouslySetInnerHTML={{ __html: highlightedMarkup }} />
-    </CodeBlock>
+    </pre>
   );
 };
 
@@ -398,18 +83,18 @@ const buildJsonPath = (parentPath: string, key: string | number): string =>
 
 const renderJsonPrimitive = (value: JsonPrimitive): React.ReactNode => {
   if (typeof value === 'string') {
-    return <JsonStringToken>{JSON.stringify(value)}</JsonStringToken>;
+    return <span className="text-[#a6da95]">{JSON.stringify(value)}</span>;
   }
 
   if (typeof value === 'number') {
-    return <JsonNumberToken>{value}</JsonNumberToken>;
+    return <span className="text-[#f5a97f]">{value}</span>;
   }
 
   if (typeof value === 'boolean') {
-    return <JsonBooleanToken>{value ? 'true' : 'false'}</JsonBooleanToken>;
+    return <span className="text-[#ff7ab2]">{value ? 'true' : 'false'}</span>;
   }
 
-  return <JsonNullToken>null</JsonNullToken>;
+  return <span className="text-[#ff7ab2]">null</span>;
 };
 
 const renderJsonKey = (propertyKey?: string): React.ReactNode => {
@@ -419,8 +104,8 @@ const renderJsonKey = (propertyKey?: string): React.ReactNode => {
 
   return (
     <>
-      <JsonKeyToken>{JSON.stringify(propertyKey)}</JsonKeyToken>
-      <JsonPunctuation>: </JsonPunctuation>
+      <span className="text-[#7dc4e4]">{JSON.stringify(propertyKey)}</span>
+      <span className="text-[#dbe5ff]">{': '}</span>
     </>
   );
 };
@@ -436,12 +121,12 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
 }) => {
   if (!isJsonContainer(value)) {
     return (
-      <JsonLine $depth={depth}>
-        <JsonChevronSpacer aria-hidden="true" />
+      <div className="flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
+        <span className="inline-block w-3.5 mr-1 text-center text-transparent" aria-hidden="true" />
         {renderJsonKey(propertyKey)}
         {renderJsonPrimitive(value)}
-        {!isLast && <JsonPunctuation>,</JsonPunctuation>}
-      </JsonLine>
+        {!isLast && <span className="text-[#dbe5ff]">,</span>}
+      </div>
     );
   }
 
@@ -457,36 +142,39 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
 
   if (!hasChildren) {
     return (
-      <JsonLine $depth={depth}>
-        <JsonChevronSpacer aria-hidden="true" />
+      <div className="flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
+        <span className="inline-block w-3.5 mr-1 text-center text-transparent" aria-hidden="true" />
         {renderJsonKey(propertyKey)}
-        <JsonPunctuation>{openToken}{closeToken}</JsonPunctuation>
-        {!isLast && <JsonPunctuation>,</JsonPunctuation>}
-      </JsonLine>
+        <span className="text-[#dbe5ff]">{openToken}{closeToken}</span>
+        {!isLast && <span className="text-[#dbe5ff]">,</span>}
+      </div>
     );
   }
 
   return (
     <>
-      <JsonLine $depth={depth}>
-        <JsonLineButton
+      <div className="flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
+        <button
           type="button"
           onClick={() => onToggle(path)}
           aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${sectionName}`}
+          className="border-none bg-transparent text-inherit m-0 p-0 font-[inherit] leading-[inherit] cursor-pointer inline-flex items-baseline min-w-0 text-left hover:opacity-[0.92]"
         >
-          <JsonChevron aria-hidden="true">{isCollapsed ? '>' : 'v'}</JsonChevron>
+          <span className="inline-block w-3.5 mr-1 text-[#93a7c7] text-center" aria-hidden="true">
+            {isCollapsed ? '>' : 'v'}
+          </span>
           {renderJsonKey(propertyKey)}
-          <JsonPunctuation>{openToken}</JsonPunctuation>
+          <span className="text-[#dbe5ff]">{openToken}</span>
           {isCollapsed && (
             <>
-              <JsonPunctuation> </JsonPunctuation>
-              <JsonCollapsedHint>...</JsonCollapsedHint>
-              <JsonPunctuation> {closeToken}</JsonPunctuation>
+              <span className="text-[#dbe5ff]"> </span>
+              <span className="text-[#7f8aa3]">...</span>
+              <span className="text-[#dbe5ff]"> {closeToken}</span>
             </>
           )}
-        </JsonLineButton>
-        {isCollapsed && !isLast && <JsonPunctuation>,</JsonPunctuation>}
-      </JsonLine>
+        </button>
+        {isCollapsed && !isLast && <span className="text-[#dbe5ff]">,</span>}
+      </div>
 
       {!isCollapsed && (
         <>
@@ -506,11 +194,11 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
               />
             );
           })}
-          <JsonLine $depth={depth}>
-            <JsonChevronSpacer aria-hidden="true" />
-            <JsonPunctuation>{closeToken}</JsonPunctuation>
-            {!isLast && <JsonPunctuation>,</JsonPunctuation>}
-          </JsonLine>
+          <div className="flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
+            <span className="inline-block w-3.5 mr-1 text-center text-transparent" aria-hidden="true" />
+            <span className="text-[#dbe5ff]">{closeToken}</span>
+            {!isLast && <span className="text-[#dbe5ff]">,</span>}
+          </div>
         </>
       )}
     </>
@@ -552,7 +240,7 @@ const JsonTreeViewer: React.FC<{ rawJson: string }> = ({ rawJson }) => {
   }
 
   return (
-    <JsonTreeBlock>
+    <div className="jvm-tree-block m-0 rounded-xl p-[18px] text-[13px] leading-[1.65] overflow-auto">
       <JsonTreeNode
         value={parsed.value}
         path="root"
@@ -561,7 +249,7 @@ const JsonTreeViewer: React.FC<{ rawJson: string }> = ({ rawJson }) => {
         collapsedPaths={collapsedPaths}
         onToggle={togglePath}
       />
-    </JsonTreeBlock>
+    </div>
   );
 };
 
@@ -604,58 +292,89 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
   const headerTitle = isBumlView ? bumlLabel : 'Project JSON Preview';
 
   return createPortal(
-    <ModalOverlay $isVisible={isVisible} onClick={onClose}>
-      <ModalContent onClick={(event) => event.stopPropagation()}>
-        <ModalHeader>
-          <h3>
+    <div
+      className="jvm-overlay fixed inset-0 flex items-center justify-center z-[99999] p-5"
+      onClick={onClose}
+    >
+      <div
+        className="jvm-content flex flex-col overflow-hidden rounded-[14px] border"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="jvm-header flex items-center justify-between gap-4 px-[22px] py-[18px]">
+          <h3 className="m-0 flex flex-col gap-1 text-[#e2e8f0] text-lg font-bold leading-tight">
             {headerTitle}
-            <ModalSubtitle>{diagramType}</ModalSubtitle>
+            <span className="text-[#93a7c7] text-xs font-medium tracking-[0.01em]">
+              {diagramType}
+            </span>
           </h3>
-          <CloseButton onClick={onClose} aria-label="Close preview modal">
+          <button
+            className="jvm-close-btn w-[34px] h-[34px] inline-flex items-center justify-center rounded-lg border text-lg cursor-pointer transition-all duration-200 ease-in-out"
+            onClick={onClose}
+            aria-label="Close preview modal"
+          >
             x
-          </CloseButton>
-        </ModalHeader>
+          </button>
+        </div>
 
-        <ModalBody>
+        {/* Body */}
+        <div className="flex-1 overflow-auto px-[22px] pt-4 pb-5">
           {enableBumlView && (
-            <TabSwitcher>
+            <div className="flex gap-2 mb-3.5">
               <button
                 type="button"
-                className={activeTab === 'json' ? 'active' : ''}
+                className={cn(
+                  'jvm-tab-btn flex-1 rounded-full py-2 px-3 text-xs font-bold tracking-[0.04em] cursor-pointer transition-all duration-200 ease-in-out',
+                  activeTab === 'json' && 'active',
+                )}
                 onClick={() => handleTabChange('json')}
               >
                 JSON
               </button>
               <button
                 type="button"
-                className={activeTab === 'buml' ? 'active' : ''}
+                className={cn(
+                  'jvm-tab-btn flex-1 rounded-full py-2 px-3 text-xs font-bold tracking-[0.04em] cursor-pointer transition-all duration-200 ease-in-out',
+                  activeTab === 'buml' && 'active',
+                )}
                 onClick={() => handleTabChange('buml')}
               >
                 B-UML
               </button>
-            </TabSwitcher>
+            </div>
           )}
 
           {isBumlView ? (
             <>
-              {isBumlLoading && <PlaceholderBox>Generating B-UML preview...</PlaceholderBox>}
-              {!isBumlLoading && bumlError && <ErrorBox>{bumlError}</ErrorBox>}
+              {isBumlLoading && (
+                <div className="jvm-placeholder rounded-[10px] p-[22px] text-sm text-center">
+                  Generating B-UML preview...
+                </div>
+              )}
+              {!isBumlLoading && bumlError && (
+                <div className="jvm-error rounded-[10px] p-4 text-sm font-semibold">
+                  {bumlError}
+                </div>
+              )}
               {!isBumlLoading && !bumlError && bumlData && <HighlightedCode code={bumlData} language="python" />}
               {!isBumlLoading && !bumlError && !bumlData && (
-                <PlaceholderBox>No B-UML preview is available yet.</PlaceholderBox>
+                <div className="jvm-placeholder rounded-[10px] p-[22px] text-sm text-center">
+                  No B-UML preview is available yet.
+                </div>
               )}
             </>
           ) : (
             <JsonTreeViewer rawJson={jsonData} />
           )}
-        </ModalBody>
+        </div>
 
-        <ModalFooter>
+        {/* Footer */}
+        <div className="jvm-footer flex gap-2.5 justify-end px-[22px] pt-4 pb-[18px]">
           {isBumlView ? (
             <>
               {onRequestBuml && (
                 <button
-                  className="secondary-button"
+                  className="jvm-footer-btn secondary-button rounded-lg py-[9px] px-3.5 text-[13px] font-bold cursor-pointer"
                   onClick={onRequestBuml}
                   disabled={isBumlLoading}
                 >
@@ -664,7 +383,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
               )}
               {onDownloadBuml && (
                 <button
-                  className="secondary-button"
+                  className="jvm-footer-btn secondary-button rounded-lg py-[9px] px-3.5 text-[13px] font-bold cursor-pointer"
                   onClick={onDownloadBuml}
                   disabled={isBumlLoading || !bumlData}
                 >
@@ -673,7 +392,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
               )}
               {onCopyBuml && (
                 <button
-                  className="primary-button"
+                  className="jvm-footer-btn primary-button rounded-lg py-[9px] px-3.5 text-[13px] font-bold cursor-pointer"
                   onClick={onCopyBuml}
                   disabled={isBumlLoading || !bumlData}
                 >
@@ -683,17 +402,23 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
             </>
           ) : (
             <>
-              <button className="secondary-button" onClick={onDownload}>
+              <button
+                className="jvm-footer-btn secondary-button rounded-lg py-[9px] px-3.5 text-[13px] font-bold cursor-pointer"
+                onClick={onDownload}
+              >
                 Download JSON
               </button>
-              <button className="primary-button" onClick={onCopy}>
+              <button
+                className="jvm-footer-btn primary-button rounded-lg py-[9px] px-3.5 text-[13px] font-bold cursor-pointer"
+                onClick={onCopy}
+              >
                 Copy JSON
               </button>
             </>
           )}
-        </ModalFooter>
-      </ModalContent>
-    </ModalOverlay>,
+        </div>
+      </div>
+    </div>,
     document.body,
   );
 };

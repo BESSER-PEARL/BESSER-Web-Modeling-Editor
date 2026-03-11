@@ -1,6 +1,5 @@
 import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
-import styled from 'styled-components';
 
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -11,17 +10,6 @@ import {
   selectEditorOptions,
   selectEditorRevision,
 } from '../../services/workspace/workspaceSlice';
-
-const ApollonContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  background-color: var(--apollon-background, #ffffff);
-`;
 
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -152,5 +140,11 @@ export const ApollonEditorComponent: React.FC = () => {
     setupEditor().catch(console.error);
   }, [editorRevision, cleanupEditor, destroyEditorDeferred, dispatch, setEditor]);
 
-  return <ApollonContainer ref={containerRef} />;
+  return (
+    <div
+      ref={containerRef}
+      className="flex flex-col grow overflow-hidden w-full h-full min-h-0"
+      style={{ backgroundColor: 'var(--apollon-background, #ffffff)' }}
+    />
+  );
 };

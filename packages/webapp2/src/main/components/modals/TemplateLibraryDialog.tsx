@@ -133,7 +133,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-5xl">
         <DialogHeader className="border-b border-border/70 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5" />
+            <Sparkles className="h-5 w-5 text-[#397C95] dark:text-[#5BB8D4]" />
             Load Template
           </DialogTitle>
           <DialogDescription>
@@ -153,8 +153,8 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                   className={[
                     'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all',
                     isActive
-                      ? 'border-primary/40 bg-primary/10 text-foreground'
-                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-foreground',
+                      ? 'border-[#397C95]/30 bg-[#397C95]/10 text-foreground dark:border-[#5BB8D4]/30 dark:bg-[#397C95]/20'
+                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-[#397C95]/[0.04] hover:text-foreground dark:hover:bg-[#5BB8D4]/[0.04]',
                   ].join(' ')}
                 >
                   <span>{category}</span>
@@ -174,14 +174,14 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                       key={template.type}
                       className={[
                         'cursor-pointer border transition-all',
-                        selected ? 'border-primary/50 bg-primary/5 shadow-sm' : 'hover:border-border/90 hover:bg-muted/20',
+                        selected ? 'border-[#397C95]/30 bg-[#397C95]/[0.05] shadow-sm dark:border-[#5BB8D4]/30 dark:bg-[#397C95]/[0.08]' : 'hover:border-border/90 hover:bg-[#397C95]/[0.04] dark:hover:bg-[#5BB8D4]/[0.04]',
                       ].join(' ')}
                       onClick={() => setSelectedTemplateType(template.type)}
                     >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center justify-between text-base">
                           <span>{template.type}</span>
-                          {selected && <Check className="h-4 w-4 text-primary" />}
+                          {selected && <Check className="h-4 w-4 text-[#397C95] dark:text-[#5BB8D4]" />}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
@@ -200,7 +200,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleLoadTemplate} disabled={!selectedTemplate || isLoading}>
+              <Button onClick={handleLoadTemplate} disabled={!selectedTemplate || isLoading} className="bg-[#397C95] text-white hover:bg-[#2C6A82]">
                 {isLoading ? 'Loading...' : 'Load Template'}
               </Button>
             </div>

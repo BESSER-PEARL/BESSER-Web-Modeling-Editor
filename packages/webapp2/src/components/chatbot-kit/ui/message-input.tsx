@@ -204,7 +204,7 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-24 text-sm ring-offset-background transition-[border] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              "z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-24 text-sm ring-offset-background transition-all placeholder:text-muted-foreground focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
               showFileList && "pb-16",
               className
             )}
@@ -249,7 +249,7 @@ export function MessageInput({
             type="button"
             size="icon"
             variant="outline"
-            className="h-8 w-8"
+            className="h-8 w-8 hover:border-primary/40 hover:text-primary"
             aria-label="Attach a file"
             onClick={async () => {
               const files = await showFileUploadDialog()
@@ -263,7 +263,7 @@ export function MessageInput({
           <Button
             type="button"
             variant="outline"
-            className={cn("h-8 w-8", isListening && "text-primary")}
+            className={cn("h-8 w-8 hover:border-primary/40 hover:text-primary", isListening && "border-primary/40 text-primary bg-primary/5")}
             aria-label="Voice input"
             size="icon"
             onClick={toggleListening}
@@ -275,7 +275,7 @@ export function MessageInput({
           <Button
             type="button"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
             aria-label="Stop generating"
             onClick={stop}
           >
@@ -285,7 +285,7 @@ export function MessageInput({
           <Button
             type="submit"
             size="icon"
-            className="h-8 w-8 transition-opacity"
+            className="h-8 w-8 bg-[#397C95] text-white transition-opacity hover:bg-[#2C6A82] disabled:opacity-40 dark:bg-[#5BB8D4] dark:text-[#0d1117] dark:hover:bg-[#4AA8C4]"
             aria-label="Send message"
             disabled={props.value === "" || isGenerating}
           >
@@ -317,7 +317,7 @@ function FileUploadOverlay({ isDragging }: FileUploadOverlayProps) {
     <AnimatePresence>
       {isDragging && (
         <motion.div
-          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center space-x-2 rounded-xl border border-dashed border-border bg-background text-sm text-muted-foreground"
+          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center space-x-2 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 text-sm text-muted-foreground"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

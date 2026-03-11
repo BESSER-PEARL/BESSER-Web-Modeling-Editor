@@ -1,133 +1,8 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import { cn } from '@/lib/utils';
 import { Gate } from './Gate';
 import { TOOLBOX_GROUPS, GATES } from '../constants';
 import { GateType } from '../types';
-
-const PaletteWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-`;
-
-const PaletteHeader = styled.div`
-  padding: 12px;
-  border-bottom: 1px solid var(--quantum-editor-border, #d5dde8);
-  background-color: var(--quantum-editor-surface, #f8fafc);
-  position: relative;
-  z-index: 10;
-`;
-
-const PaletteContent = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--quantum-editor-border, #d5dde8);
-    border-radius: 3px;
-
-    &:hover {
-      background-color: var(--quantum-editor-muted-text, #64748b);
-    }
-  }
-`;
-
-const GroupContainer = styled.div`
-  margin-bottom: 16px;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const GroupTitle = styled.div`
-  font-size: 12px;
-  color: var(--quantum-editor-muted-text, #64748b);
-  margin-bottom: 5px;
-  text-transform: uppercase;
-  font-weight: bold;
-`;
-
-const GatesGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-`;
-
-const SelectWrapper = styled.div`
-  position: relative;
-  width: 100%;
-
-  &::after {
-    content: '▼';
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 10px;
-    color: var(--quantum-editor-muted-text, #64748b);
-    pointer-events: none;
-  }
-`;
-
-const SelectInput = styled.select`
-  width: 100%;
-  display: flex;
-  height: 40px;
-  border-radius: 6px;
-  border: 1px solid var(--quantum-editor-border, #d5dde8);
-  background-color: var(--quantum-editor-bg, #ffffff);
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--quantum-editor-text, #0f172a);
-  cursor: pointer;
-  transition: all 200ms ease;
-  appearance: none;
-  padding-right: 32px;
-
-  &:hover {
-    border-color: var(--quantum-editor-muted-text, #64748b);
-    background-color: var(--quantum-editor-surface, #f8fafc);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--quantum-editor-primary, #0284c7);
-    box-shadow: 0 0 0 3px var(--quantum-editor-primary-soft, rgba(2, 132, 199, 0.16));
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-    background-color: var(--quantum-editor-muted-surface, #f1f5f9);
-  }
-
-  option {
-    padding: 8px 12px;
-    color: var(--quantum-editor-text, #0f172a);
-    background-color: var(--quantum-editor-bg, #ffffff);
-
-    &:hover {
-      background-color: var(--quantum-editor-surface, #f8fafc);
-    }
-
-    &:checked {
-      background-color: var(--quantum-editor-primary, #0284c7);
-      color: #ffffff;
-    }
-  }
-`;
 
 interface GatePaletteProps {
     onDragStart?: (gate: GateType, e: React.MouseEvent) => void;
@@ -140,26 +15,58 @@ export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
     const filteredGroups = TOOLBOX_GROUPS.filter(group => group.toolbox === selectedToolbox);
 
     return (
-        <PaletteWrapper>
-            <PaletteHeader>
+        <div className="flex flex-col h-full overflow-hidden">
+            <div
+                className={cn(
+                    'p-3 relative z-10',
+                    'border-b border-[var(--quantum-editor-border,#d5dde8)]',
+                    'bg-[var(--quantum-editor-surface,#f8fafc)]'
+                )}
+            >
                 {/* Toolbox Select */}
-                <SelectWrapper>
-                    <SelectInput
+                <div className="quantum-editor-select-wrapper relative w-full">
+                    <select
                         id="toolbox-select"
                         value={selectedToolbox}
                         onChange={(e) => setSelectedToolbox(e.target.value)}
+                        className={cn(
+                            'w-full flex h-10 rounded-md pr-8 px-3 py-2 text-sm font-medium cursor-pointer appearance-none',
+                            'border border-[var(--quantum-editor-border,#d5dde8)]',
+                            'bg-[var(--quantum-editor-bg,#ffffff)]',
+                            'text-[var(--quantum-editor-text,#0f172a)]',
+                            'transition-all duration-200 ease-in-out',
+                            'hover:border-[var(--quantum-editor-muted-text,#64748b)]',
+                            'hover:bg-[var(--quantum-editor-surface,#f8fafc)]',
+                            'focus:outline-none focus:border-[var(--quantum-editor-primary,#0284c7)]',
+                            'focus:shadow-[0_0_0_3px_var(--quantum-editor-primary-soft,rgba(2,132,199,0.16))]',
+                            'disabled:cursor-not-allowed disabled:opacity-50',
+                            'disabled:bg-[var(--quantum-editor-muted-surface,#f1f5f9)]'
+                        )}
                     >
                         <option value="Toolbox">Toolbox 1</option>
                         <option value="Toolbox2">Toolbox 2</option>
-                    </SelectInput>
-                </SelectWrapper>
-            </PaletteHeader>
+                    </select>
+                </div>
+            </div>
 
-            <PaletteContent>
-                {filteredGroups.map(group => (
-                    <GroupContainer key={group.name}>
-                        <GroupTitle>{group.name}</GroupTitle>
-                        <GatesGrid>
+            <div className="quantum-editor-palette-content flex-1 overflow-y-auto p-3">
+                {filteredGroups.map((group, index) => (
+                    <div
+                        key={group.name}
+                        className={cn(
+                            'mb-4',
+                            index === filteredGroups.length - 1 && 'mb-0'
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                'text-xs uppercase font-bold mb-[5px]',
+                                'text-[var(--quantum-editor-muted-text,#64748b)]'
+                            )}
+                        >
+                            {group.name}
+                        </div>
+                        <div className="flex flex-wrap gap-[5px]">
                             {group.gates.map(gateType => {
                                 const gate = getGate(gateType);
                                 if (!gate) return null;
@@ -171,10 +78,10 @@ export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
                                     />
                                 );
                             })}
-                        </GatesGrid>
-                    </GroupContainer>
+                        </div>
+                    </div>
                 ))}
-            </PaletteContent>
-        </PaletteWrapper>
+            </div>
+        </div>
     );
 };

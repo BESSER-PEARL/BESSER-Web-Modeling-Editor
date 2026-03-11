@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { settingsService } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Download } from 'lucide-react';
@@ -6,11 +6,13 @@ import { useProject } from '../../hooks/useProject';
 import { SupportedDiagramType, ProjectDiagram } from '../../types/project';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { FormField } from '@/components/ui/form-field';
+import { validateProjectName } from '../../utils/validation';
+import { useFieldValidation } from '../../hooks/useFieldValidation';
 
 const colorByType: Record<SupportedDiagramType, string> = {
   ClassDiagram: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
@@ -44,10 +46,16 @@ export const ProjectSettingsPanel: React.FC = () => {
     );
   }, [currentProject]);
 
-  const handleProjectField = (field: 'name' | 'description' | 'owner', value: string) => {
+  // ── Inline validation for project name ─────────────────────────────────
+  const settingsValidators = useMemo(() => ({
+    name: () => validateProjectName(currentProject?.name ?? ''),
+  }), [currentProject?.name]);
+  const settingsValidation = useFieldValidation(settingsValidators);
+
+  const handleProjectField = useCallback((field: 'name' | 'description' | 'owner', value: string) => {
     if (!currentProject) return;
     updateProject({ [field]: value });
-  };
+  }, [currentProject, updateProject]);
 
   const handleExportProject = async () => {
     if (!currentProject) return;
@@ -108,40 +116,43 @@ export const ProjectSettingsPanel: React.FC = () => {
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <Card>
+        <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
           <CardHeader>
-            <CardTitle>Project Settings</CardTitle>
+            <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">Project Settings</CardTitle>
             <CardDescription>Update metadata, inspect diagrams and manage export for the active project.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="settings-name">Project Name</Label>
-                <Input id="settings-name" value={currentProject.name} onChange={(event) => handleProjectField('name', event.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="settings-owner">Owner</Label>
+              <FormField label="Project Name" htmlFor="settings-name" required error={settingsValidation.getError('name')}>
+                <Input
+                  id="settings-name"
+                  value={currentProject.name}
+                  onChange={(event) => handleProjectField('name', event.target.value)}
+                  onBlur={() => settingsValidation.markTouched('name')}
+                  className={settingsValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+                />
+              </FormField>
+              <FormField label="Owner" htmlFor="settings-owner">
                 <Input id="settings-owner" value={currentProject.owner} onChange={(event) => handleProjectField('owner', event.target.value)} />
-              </div>
+              </FormField>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="settings-description">Description</Label>
+            <FormField label="Description" htmlFor="settings-description">
               <Textarea
                 id="settings-description"
                 value={currentProject.description}
                 onChange={(event) => handleProjectField('description', event.target.value)}
                 className="min-h-24"
               />
-            </div>
+            </FormField>
 
             <Separator />
 
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Diagrams</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#397C95] dark:text-[#5BB8D4]">Diagrams</h3>
               <div className="grid gap-3">
                 {diagrams.map(({ type, diagram, index }) => (
-                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/20 p-3">
+                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#397C95]/10 bg-[#397C95]/[0.02] p-3 dark:border-[#5BB8D4]/10 dark:bg-[#5BB8D4]/[0.02]">
                     <div>
                       <p className="text-sm font-medium">{diagram.title}</p>
                       <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
@@ -155,18 +166,18 @@ export const ProjectSettingsPanel: React.FC = () => {
             <Separator />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-border/60 p-3">
+              <div className="rounded-lg border border-[#397C95]/10 p-3 dark:border-[#5BB8D4]/10">
                 <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground">Created</p>
                 <p className="mt-1 text-sm font-medium">{new Date(currentProject.createdAt).toLocaleString()}</p>
               </div>
-              <div className="rounded-lg border border-border/60 p-3">
+              <div className="rounded-lg border border-[#397C95]/10 p-3 dark:border-[#5BB8D4]/10">
                 <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground">Current Diagram</p>
                 <p className="mt-1 text-sm font-medium">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
               </div>
             </div>
 
-            <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
-              <h3 className="text-sm font-semibold">Display Settings</h3>
+            <div className="space-y-3 rounded-lg border border-[#397C95]/10 bg-[#397C95]/[0.02] p-4 dark:border-[#5BB8D4]/10 dark:bg-[#5BB8D4]/[0.02]">
+              <h3 className="text-sm font-semibold text-[#397C95] dark:text-[#5BB8D4]">Display Settings</h3>
               <label className="flex items-start justify-between gap-4 text-sm">
                 <div>
                   <p className="font-medium">Show Instanced Objects</p>
@@ -174,6 +185,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </div>
                 <input
                   type="checkbox"
+                  className="accent-[#397C95] dark:accent-[#5BB8D4]"
                   checked={showInstancedObjects}
                   onChange={(event) => {
                     setShowInstancedObjects(event.target.checked);
@@ -189,6 +201,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </div>
                 <input
                   type="checkbox"
+                  className="accent-[#397C95] dark:accent-[#5BB8D4]"
                   checked={showAssociationNames}
                   onChange={(event) => {
                     setShowAssociationNames(event.target.checked);
@@ -200,7 +213,7 @@ export const ProjectSettingsPanel: React.FC = () => {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={handleExportProject} disabled={isExporting} className="gap-2">
+              <Button onClick={handleExportProject} disabled={isExporting} className="gap-2 bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">
                 <Download className="h-4 w-4" />
                 {isExporting ? 'Exporting...' : 'Export Project'}
               </Button>

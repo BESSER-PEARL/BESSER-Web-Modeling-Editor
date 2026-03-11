@@ -29,7 +29,7 @@ interface HelpGuideDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const sharedLinkClass = 'font-medium text-primary underline-offset-4 hover:underline';
+const sharedLinkClass = 'font-medium text-[#397C95] dark:text-[#5BB8D4] underline-offset-4 hover:underline';
 const DOCS_URL = 'https://besser.readthedocs.io/en/latest/';
 
 const sections: GuideSection[] = [
@@ -485,7 +485,7 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
       <DialogContent className="!flex !gap-0 h-[92vh] w-[96vw] max-w-[1500px] flex-col overflow-hidden p-0">
         <DialogHeader className="border-b border-border/70 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
+            <BookOpen className="h-5 w-5 text-[#397C95] dark:text-[#5BB8D4]" />
             How The Editor Works
           </DialogTitle>
           <DialogDescription>Complete modeling guide with examples and visuals.</DialogDescription>
@@ -504,8 +504,8 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
                 className={cn(
                   'flex w-full items-center rounded-md border px-3 py-2 text-left text-sm transition',
                   section.id === activeSection
-                    ? 'border-primary/40 bg-primary/10 font-semibold text-foreground'
-                    : 'border-border/70 bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground',
+                    ? 'border-[#397C95]/30 bg-[#397C95]/10 font-semibold text-foreground dark:border-[#5BB8D4]/30 dark:bg-[#397C95]/20'
+                    : 'border-border/70 bg-background text-muted-foreground hover:border-[#397C95]/30 hover:text-foreground dark:hover:border-[#5BB8D4]/30',
                 )}
               >
                 {section.label}
@@ -515,7 +515,7 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
 
           <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <Layers className="h-4 w-4 text-primary" />
+              <Layers className="h-4 w-4 text-[#397C95] dark:text-[#5BB8D4]" />
               <h3 className="text-base font-semibold">{selectedSection.label}</h3>
             </div>
             <p className="mb-4 text-sm text-muted-foreground">{selectedSection.summary}</p>

@@ -1,213 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import styled from 'styled-components';
+import { cn } from '@/lib/utils';
 import { Circuit, Gate, InitialState } from '../types';
 import { CircuitEditor } from './CircuitEditor';
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-`;
-
-const ModalContent = styled.div`
-  background: var(--quantum-editor-bg, #ffffff);
-  color: var(--quantum-editor-text, #0f172a);
-  border: 1px solid var(--quantum-editor-border, #d5dde8);
-  border-radius: 8px;
-  box-shadow: var(--quantum-editor-tooltip-shadow, 0 12px 28px rgba(2, 6, 23, 0.18));
-  width: 85vw;
-  max-width: 1400px;
-  min-width: 900px;
-  max-height: 85vh;
-  min-height: 600px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
-
-const ModalHeader = styled.div`
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--quantum-editor-border, #d5dde8);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background: var(--quantum-editor-surface, #f8fafc);
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const ModalTitle = styled.h2`
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--quantum-editor-text, #0f172a);
-`;
-
-const NameInput = styled.input`
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--quantum-editor-border, #d5dde8);
-  border-radius: 4px;
-  font-size: 14px;
-  font-family: inherit;
-  color: var(--quantum-editor-text, #0f172a);
-  background: var(--quantum-editor-bg, #ffffff);
-
-  &::placeholder {
-    color: var(--quantum-editor-muted-text, #64748b);
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: var(--quantum-editor-primary, #0284c7);
-    box-shadow: 0 0 0 3px var(--quantum-editor-primary-soft, rgba(2, 132, 199, 0.16));
-  }
-`;
-
-const ModalBody = styled.div`
-  padding: 20px;
-  overflow: auto;
-  flex: 1;
-  display: flex;
-  gap: 20px;
-  background: var(--quantum-editor-bg, #ffffff);
-`;
-
-const ModalFooter = styled.div`
-  padding: 16px 20px;
-  border-top: 1px solid var(--quantum-editor-border, #d5dde8);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  background: var(--quantum-editor-surface, #f8fafc);
-`;
-
-const QubitControls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--quantum-editor-text, #0f172a);
-`;
-
-const QubitButton = styled.button`
-  padding: 4px 12px;
-  border: 1px solid var(--quantum-editor-border, #d5dde8);
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  color: var(--quantum-editor-text, #0f172a);
-  background: var(--quantum-editor-bg, #ffffff);
-  transition: all 0.2s;
-
-  &:hover:not(:disabled) {
-    background: var(--quantum-editor-surface, #f8fafc);
-    border-color: var(--quantum-editor-muted-text, #64748b);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 12px;
-`;
-
-const Button = styled.button<{ $primary?: boolean }>`
-  padding: 8px 16px;
-  border: 1px solid ${props => props.$primary ? 'transparent' : 'var(--quantum-editor-border, #d5dde8)'};
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  background-color: ${props =>
-    props.$primary ? 'var(--quantum-editor-primary, #0284c7)' : 'var(--quantum-editor-muted-surface, #f1f5f9)'};
-  color: ${props => props.$primary ? '#ffffff' : 'var(--quantum-editor-text, #0f172a)'};
-
-  &:hover {
-    background-color: ${props =>
-      props.$primary ? '#0ea5e9' : 'var(--quantum-editor-surface, #f8fafc)'};
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: 1px solid transparent;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  color: var(--quantum-editor-muted-text, #64748b);
-
-  &:hover {
-    border-color: var(--quantum-editor-border, #d5dde8);
-    background-color: var(--quantum-editor-surface, #f8fafc);
-    color: var(--quantum-editor-text, #0f172a);
-  }
-`;
-
-const ColorRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const ColorLabel = styled.span`
-  font-size: 14px;
-  color: var(--quantum-editor-muted-text, #64748b);
-`;
-
-const ColorList = styled.div`
-  display: flex;
-  gap: 6px;
-`;
-
-const ColorSwatch = styled.button<{ $selected: boolean; $swatch: string }>`
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: ${props => props.$swatch};
-  border: ${props =>
-    props.$selected ? '2px solid var(--quantum-editor-text, #0f172a)' : '1px solid var(--quantum-editor-border, #d5dde8)'};
-`;
-
-const ColorPicker = styled.input`
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid var(--quantum-editor-border, #d5dde8);
-  border-radius: 4px;
-  cursor: pointer;
-  background: var(--quantum-editor-bg, #ffffff);
-`;
 
 interface NestedCircuitModalProps {
   gate: Gate;
@@ -230,7 +24,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
   useEffect(() => {
     setGateName(gate.label || '');
     setGateColor(gate.backgroundColor || '#FFE8CC');
-    
+
     if (gate.nestedCircuit) {
       setCircuit(gate.nestedCircuit);
     } else {
@@ -274,7 +68,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
 
   const handleRemoveQubit = useCallback(() => {
     if (circuit.qubitCount <= 1) return;
-    
+
     setCircuit((prev) => {
       const newQubitCount = prev.qubitCount - 1;
       const newColumns = prev.columns.map(col => ({
@@ -291,47 +85,64 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
   }, [circuit.qubitCount]);
 
   return (
-    <ModalOverlay onClick={handleOverlayClick}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>
-          <HeaderRow>
-            <ModalTitle>
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000] p-5"
+      onClick={handleOverlayClick}
+    >
+      <div
+        className="bg-[var(--quantum-editor-bg,#ffffff)] text-[var(--quantum-editor-text,#0f172a)] border border-[var(--quantum-editor-border,#d5dde8)] rounded-lg shadow-[var(--quantum-editor-tooltip-shadow,0_12px_28px_rgba(2,6,23,0.18))] w-[85vw] max-w-[1400px] min-w-[900px] max-h-[85vh] min-h-[600px] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-5 py-4 border-b border-[var(--quantum-editor-border,#d5dde8)] flex flex-col gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
+          <div className="flex justify-between items-center">
+            <h2 className="m-0 text-lg font-semibold text-[var(--quantum-editor-text,#0f172a)]">
               Edit Function Gate
-            </ModalTitle>
-            <CloseButton onClick={onClose} title="Close">
+            </h2>
+            <button
+              className="bg-transparent border border-transparent text-2xl cursor-pointer p-0 w-8 h-8 flex items-center justify-center rounded text-[var(--quantum-editor-muted-text,#64748b)] hover:border-[var(--quantum-editor-border,#d5dde8)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] hover:text-[var(--quantum-editor-text,#0f172a)]"
+              onClick={onClose}
+              title="Close"
+            >
               ×
-            </CloseButton>
-          </HeaderRow>
-          <NameInput
+            </button>
+          </div>
+          <input
             type="text"
+            className="w-full px-3 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-[inherit] text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] placeholder:text-[var(--quantum-editor-muted-text,#64748b)] focus:outline-none focus:border-[var(--quantum-editor-primary,#0284c7)] focus:shadow-[0_0_0_3px_var(--quantum-editor-primary-soft,rgba(2,132,199,0.16))]"
             placeholder="Enter gate name (e.g., Bell State, QFT)"
             value={gateName}
             onChange={(e) => setGateName(e.target.value)}
             autoFocus
           />
-          <ColorRow>
-            <ColorLabel>Gate Color:</ColorLabel>
-            <ColorList>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--quantum-editor-muted-text,#64748b)]">Gate Color:</span>
+            <div className="flex gap-1.5">
               {['#FFE8CC', '#E8F4FF', '#E8FFE8', '#FFE8E8', '#F0E8FF', '#FFF8E8', '#E8FFFF', '#FFE8F4'].map((color) => (
-                <ColorSwatch
+                <button
                   key={color}
                   onClick={() => setGateColor(color)}
-                  $swatch={color}
-                  $selected={gateColor === color}
+                  className={cn(
+                    'w-6 h-6 p-0 rounded cursor-pointer',
+                    gateColor === color
+                      ? 'border-2 border-[var(--quantum-editor-text,#0f172a)]'
+                      : 'border border-[var(--quantum-editor-border,#d5dde8)]'
+                  )}
+                  style={{ backgroundColor: color }}
                   title={color}
                 />
               ))}
-              <ColorPicker
+              <input
                 type="color"
+                className="w-6 h-6 p-0 border border-[var(--quantum-editor-border,#d5dde8)] rounded cursor-pointer bg-[var(--quantum-editor-bg,#ffffff)]"
                 value={gateColor}
                 onChange={(e) => setGateColor(e.target.value)}
                 title="Custom color"
               />
-            </ColorList>
-          </ColorRow>
-        </ModalHeader>
-        
-        <ModalBody>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 overflow-auto flex-1 flex gap-5 bg-[var(--quantum-editor-bg,#ffffff)]">
           <CircuitEditor
             initialCircuit={circuit}
             onCircuitChange={handleCircuitChange}
@@ -340,24 +151,43 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
             compactPalette={true}
             style={{ flex: 1, minHeight: '400px' }}
           />
-        </ModalBody>
-        
-        <ModalFooter>
-          <QubitControls>
+        </div>
+
+        <div className="px-5 py-4 border-t border-[var(--quantum-editor-border,#d5dde8)] flex justify-between items-center gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
+          <div className="flex items-center gap-2 text-sm text-[var(--quantum-editor-text,#0f172a)]">
             <span>Qubits: {circuit.qubitCount}</span>
-            <QubitButton onClick={handleRemoveQubit} disabled={circuit.qubitCount <= 1} title="Remove qubit">
+            <button
+              className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-all duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleRemoveQubit}
+              disabled={circuit.qubitCount <= 1}
+              title="Remove qubit"
+            >
               −
-            </QubitButton>
-            <QubitButton onClick={handleAddQubit} title="Add qubit">
+            </button>
+            <button
+              className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-all duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleAddQubit}
+              title="Add qubit"
+            >
               +
-            </QubitButton>
-          </QubitControls>
-          <ButtonGroup>
-            <Button onClick={onClose}>Cancel</Button>
-            <Button $primary onClick={handleSave}>Save Circuit</Button>
-          </ButtonGroup>
-        </ModalFooter>
-      </ModalContent>
-    </ModalOverlay>
+            </button>
+          </div>
+          <div className="flex gap-3">
+            <button
+              className="px-4 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-muted-surface,#f1f5f9)] text-[var(--quantum-editor-text,#0f172a)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] active:translate-y-px"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 border border-transparent rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-primary,#0284c7)] text-white hover:bg-[#0ea5e9] active:translate-y-px"
+              onClick={handleSave}
+            >
+              Save Circuit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

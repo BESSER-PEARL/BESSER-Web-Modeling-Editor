@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown, MessageSquarePlus } from 'lucide-react';
+import { ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -37,10 +37,13 @@ interface DragState {
   moved: number;
 }
 
-const HANDLE_HEIGHT = 48;
+const HANDLE_HEIGHT = 28;
 const FALLBACK_CLOSED_OFFSET = -640;
 const VELOCITY_SNAP_THRESHOLD = 0.35;
 const POSITION_SNAP_THRESHOLD = 0.45;
+
+/** Toggle floating decoration cards on the sides of the welcome screen. */
+const SHOW_FLOATING_CARDS = false;
 
 /** All available starter prompts — a random subset is displayed each session. */
 const ALL_STARTER_PROMPTS = [
@@ -365,7 +368,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       >
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col border-t border-border/30 bg-background pb-12 shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.12)] transition-opacity duration-300',
+            'flex min-h-0 flex-1 flex-col bg-background shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] transition-opacity duration-300',
             (open || isDragging) ? 'pointer-events-auto' : 'pointer-events-none',
             openProgress < 0.02 && !open && !isDragging && 'opacity-0',
           )}
@@ -375,36 +378,133 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             /*  Welcome Screen — Main Landing                                    */
             /* ================================================================ */
             <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden">
-              {/* Background layer */}
-              <div className="pointer-events-none absolute inset-0 opacity-[0.025] [background-image:radial-gradient(circle,rgba(15,23,42,0.8)_0.8px,transparent_0.8px)] [background-size:20px_20px] dark:opacity-[0.04] dark:[background-image:radial-gradient(circle,rgba(148,163,184,0.5)_0.8px,transparent_0.8px)]" />
-              <div className="pointer-events-none absolute -left-40 -top-20 h-[400px] w-[400px] rounded-full bg-gradient-to-br from-teal-200/20 via-cyan-100/10 to-transparent blur-[80px] dark:from-teal-500/5 dark:via-cyan-400/3" />
-              <div className="pointer-events-none absolute -bottom-20 -right-32 h-[350px] w-[350px] rounded-full bg-gradient-to-tl from-emerald-100/15 to-transparent blur-[80px] dark:from-emerald-500/4" />
+              {/* ---- Background: animated gradient orbs using #397C95 palette ---- */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                {/* Subtle dot grid */}
+                <div className="absolute inset-0 opacity-[0.03] [background-image:radial-gradient(circle,rgba(57,124,149,0.5)_0.8px,transparent_0.8px)] [background-size:24px_24px] dark:opacity-[0.05] dark:[background-image:radial-gradient(circle,rgba(91,184,212,0.3)_0.8px,transparent_0.8px)]" />
+                {/* Primary brand orb — top left, large */}
+                <div className="drawer-orb-1 absolute -left-10 -top-10 h-[550px] w-[550px] rounded-full blur-[100px]" style={{ background: 'radial-gradient(circle, rgba(57,124,149,0.25) 0%, rgba(57,124,149,0.08) 50%, transparent 70%)' }} />
+                {/* Secondary orb — right side */}
+                <div className="drawer-orb-2 absolute right-0 top-[15%] h-[450px] w-[450px] rounded-full blur-[90px]" style={{ background: 'radial-gradient(circle, rgba(74,155,184,0.2) 0%, rgba(44,106,130,0.06) 50%, transparent 70%)' }} />
+                {/* Bottom accent orb */}
+                <div className="drawer-orb-3 absolute -bottom-20 left-[20%] h-[400px] w-[400px] rounded-full blur-[80px]" style={{ background: 'radial-gradient(circle, rgba(57,124,149,0.15) 0%, rgba(91,175,204,0.05) 50%, transparent 70%)' }} />
+                {/* Warm contrast — subtle amber far right */}
+                <div className="drawer-orb-2 absolute -right-20 top-[5%] h-[300px] w-[300px] rounded-full bg-gradient-to-bl from-amber-100/12 to-transparent blur-[70px] dark:from-amber-500/5" />
+              </div>
+
+              {/* ---- Floating side decorations (hidden on small screens) ---- */}
+              {SHOW_FLOATING_CARDS && <div className="pointer-events-none absolute inset-0 hidden lg:block">
+                {/* Left floating cards */}
+                <div className="floating-card absolute left-[4%] top-[18%] rotate-[-6deg] rounded-xl border border-[#397C95]/15 bg-white/40 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/10 dark:bg-slate-800/30" style={{ '--float-duration': '7s', '--float-delay': '0s', '--float-rotate': '-6deg' } as React.CSSProperties}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
+                      <Layers className="h-3 w-3" style={{ color: '#397C95' }} />
+                    </div>
+                    <span className="text-[11px] font-semibold text-foreground/60">Class Diagram</span>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <div className="h-1.5 w-20 rounded-full bg-[#397C95]/10" />
+                    <div className="h-1.5 w-14 rounded-full bg-[#397C95]/7" />
+                  </div>
+                </div>
+
+                <div className="floating-card absolute left-[6%] top-[48%] rotate-[-3deg] rounded-xl border border-[#397C95]/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/25" style={{ '--float-duration': '8s', '--float-delay': '1.5s', '--float-rotate': '-3deg' } as React.CSSProperties}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
+                      <svg className="h-3 w-3" style={{ color: '#397C95' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                    </div>
+                    <span className="text-[11px] font-semibold text-foreground/60">State Machine</span>
+                  </div>
+                  <div className="mt-2 flex gap-1.5">
+                    <div className="h-4 w-4 rounded-full border border-[#397C95]/15 bg-[#397C95]/5" />
+                    <div className="h-1.5 w-10 self-center rounded-full bg-[#397C95]/10" />
+                    <div className="h-4 w-4 rounded border border-[#397C95]/15 bg-[#397C95]/5" />
+                  </div>
+                </div>
+
+                <div className="floating-card absolute bottom-[22%] left-[3%] rotate-[2deg] rounded-xl border border-[#397C95]/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3s', '--float-rotate': '2deg' } as React.CSSProperties}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
+                      <Code2 className="h-3 w-3" style={{ color: '#397C95' }} />
+                    </div>
+                    <span className="text-[11px] font-semibold text-foreground/60">Django</span>
+                  </div>
+                  <div className="mt-2 space-y-1 font-mono text-[9px] text-muted-foreground/40">
+                    <div>class Model:</div>
+                    <div className="pl-2">name = CharField()</div>
+                  </div>
+                </div>
+
+                {/* Right floating cards */}
+                <div className="floating-card absolute right-[4%] top-[15%] rotate-[5deg] rounded-xl border border-[#397C95]/15 bg-white/40 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/10 dark:bg-slate-800/30" style={{ '--float-duration': '8s', '--float-delay': '0.5s', '--float-rotate': '5deg' } as React.CSSProperties}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
+                      <Palette className="h-3 w-3" style={{ color: '#397C95' }} />
+                    </div>
+                    <span className="text-[11px] font-semibold text-foreground/60">GUI Design</span>
+                  </div>
+                  <div className="mt-2 flex gap-1">
+                    <div className="h-6 w-10 rounded border border-[#397C95]/12 bg-[#397C95]/5" />
+                    <div className="h-6 flex-1 rounded border border-[#397C95]/12 bg-[#397C95]/3" />
+                  </div>
+                </div>
+
+                <div className="floating-card absolute right-[5%] top-[44%] rotate-[3deg] rounded-xl border border-[#397C95]/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/25" style={{ '--float-duration': '7s', '--float-delay': '2s', '--float-rotate': '3deg' } as React.CSSProperties}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
+                      <svg className="h-3 w-3" style={{ color: '#397C95' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <span className="text-[11px] font-semibold text-foreground/60">Object Diagram</span>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <div className="h-1.5 w-16 rounded-full bg-[#397C95]/10" />
+                    <div className="h-1.5 w-12 rounded-full bg-[#397C95]/7" />
+                  </div>
+                </div>
+
+                <div className="floating-card absolute bottom-[20%] right-[3%] rotate-[-4deg] rounded-xl border border-[#397C95]/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3.5s', '--float-rotate': '-4deg' } as React.CSSProperties}>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: 'rgba(57,124,149,0.12)' }}>
+                      <Sparkles className="h-3 w-3" style={{ color: '#397C95' }} />
+                    </div>
+                    <span className="text-[11px] font-semibold text-foreground/60">React App</span>
+                  </div>
+                  <div className="mt-2 space-y-1 font-mono text-[9px] text-muted-foreground/40">
+                    <div>{'<Dashboard />'}</div>
+                    <div>{'<UserTable />'}</div>
+                  </div>
+                </div>
+              </div>}
 
               {/* Top spacer — pushes content to vertical center */}
-              <div className="flex-[1_1_14%] min-h-6" />
+              <div className="flex-[1_1_10%] min-h-6" />
 
               {/* Content column */}
               <div className="relative z-10 w-full max-w-2xl px-6 sm:px-8">
 
-                {/* Brand mark */}
-                <div className="animate-fade-up flex items-center justify-center" style={{ animationDelay: '0ms' }}>
+                {/* Brand mark + AI badge */}
+                <div className="animate-fade-up flex items-center justify-center gap-3" style={{ animationDelay: '0ms' }}>
                   <img
                     src="/images/logo.png"
                     alt="BESSER"
-                    className="h-9 w-auto brightness-0 opacity-60 dark:invert sm:h-10"
+                    className="h-9 w-auto brightness-0 opacity-70 dark:invert sm:h-10"
                   />
+                  <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ring-1" style={{ background: 'rgba(57,124,149,0.08)', color: '#397C95', ringColor: 'rgba(57,124,149,0.2)' }}>
+                    <Sparkles className="h-3 w-3" />
+                    AI-Powered
+                  </span>
                 </div>
 
-                {/* Headline */}
+                {/* Headline — gradient "model" text */}
                 <h1
                   className="animate-fade-up mt-7 text-center font-display text-[2.25rem] leading-[1.12] tracking-tight sm:text-[2.75rem] lg:text-5xl"
                   style={{ animationDelay: '70ms' }}
                 >
                   What would you like to{' '}
-                  <em className="font-display italic text-primary">model</em> today?
+                  <em className="gradient-text-model font-display italic not-italic">model</em> today?
                 </h1>
 
-                {/* Subtitle + connection */}
+                {/* Subtitle + connection status */}
                 <p
                   className="animate-fade-up mt-4 text-center text-sm leading-relaxed text-muted-foreground sm:text-[15px]"
                   style={{ animationDelay: '130ms' }}
@@ -416,19 +516,19 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </span>
                 </p>
 
-                {/* Chat input — hero element */}
+                {/* Chat input — animated gradient border */}
                 <div
                   className="animate-fade-up mt-9"
                   style={{ animationDelay: '200ms' }}
                 >
-                  <div className="glass-card rounded-2xl p-3 shadow-elevation-3 ring-1 ring-border/20 sm:p-4">
+                  <div className="input-card-glow rounded-2xl p-3 shadow-elevation-3 sm:p-4">
                     {renderComposer('w-full')}
                   </div>
                 </div>
 
                 {/* Starter prompt pills */}
                 <div
-                  className="animate-fade-up mt-4 flex flex-wrap justify-center gap-1.5"
+                  className="animate-fade-up mt-5 flex flex-wrap justify-center gap-2"
                   style={{ animationDelay: '300ms' }}
                 >
                   {STARTER_PROMPTS.map((prompt) => (
@@ -436,40 +536,44 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       key={prompt}
                       type="button"
                       onClick={() => setInputValue(prompt)}
-                      className="rounded-full border border-border/40 bg-background/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground/80 backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-primary/25 hover:bg-primary/4 hover:text-foreground hover:shadow-sm dark:border-slate-700/40 dark:bg-slate-900/40"
+                      className="rounded-full border border-[#397C95]/15 bg-white/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-[#397C95]/30 hover:bg-[#397C95]/5 hover:text-foreground hover:shadow-sm dark:border-[#5BB8D4]/10 dark:bg-slate-800/40 dark:hover:border-[#5BB8D4]/25 dark:hover:bg-[#5BB8D4]/8"
                     >
                       {prompt}
                     </button>
                   ))}
                 </div>
 
-                {/* Gradient divider */}
+                {/* Capability cards — three branded cards */}
                 <div
-                  className="animate-fade-up mx-auto mt-10 h-px w-full max-w-xs bg-gradient-to-r from-transparent via-border/40 to-transparent"
-                  style={{ animationDelay: '380ms' }}
-                />
-
-                {/* Capability indicators — minimal, informational */}
-                <div
-                  className="animate-fade-up mt-7 flex items-start justify-center gap-0"
-                  style={{ animationDelay: '430ms' }}
+                  className="animate-fade-up mt-10 grid grid-cols-3 gap-3"
+                  style={{ animationDelay: '400ms' }}
                 >
-                  <div className="flex-1 text-center">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/80">6 Diagram Types</p>
+                  <div className="capability-card group relative overflow-hidden rounded-xl border border-[#397C95]/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/30">
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, rgba(57,124,149,0.06) 0%, transparent 100%)' }} />
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg ring-1" style={{ background: 'rgba(57,124,149,0.1)', color: '#397C95', ringColor: 'rgba(57,124,149,0.15)' }}>
+                      <Layers className="h-4 w-4" />
+                    </div>
+                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">6 Diagram Types</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
                       Class, Object, State Machine, Agent, GUI, Quantum
                     </p>
                   </div>
-                  <div className="mx-4 mt-1 h-6 w-px bg-border/30 sm:mx-6" />
-                  <div className="flex-1 text-center">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/80">Visual Interfaces</p>
+                  <div className="capability-card group relative overflow-hidden rounded-xl border border-[#397C95]/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/30">
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, rgba(57,124,149,0.06) 0%, transparent 100%)' }} />
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg ring-1" style={{ background: 'rgba(57,124,149,0.1)', color: '#397C95', ringColor: 'rgba(57,124,149,0.15)' }}>
+                      <Palette className="h-4 w-4" />
+                    </div>
+                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Visual Interfaces</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
                       GUI screens and layouts from descriptions
                     </p>
                   </div>
-                  <div className="mx-4 mt-1 h-6 w-px bg-border/30 sm:mx-6" />
-                  <div className="flex-1 text-center">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-foreground/80">Code Generation</p>
+                  <div className="capability-card group relative overflow-hidden rounded-xl border border-[#397C95]/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:border-[#5BB8D4]/8 dark:bg-slate-800/30">
+                    <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, rgba(57,124,149,0.06) 0%, transparent 100%)' }} />
+                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg ring-1" style={{ background: 'rgba(57,124,149,0.1)', color: '#397C95', ringColor: 'rgba(57,124,149,0.15)' }}>
+                      <Code2 className="h-4 w-4" />
+                    </div>
+                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Code Generation</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
                       Django, React, Flutter, SQL, and 10+ targets
                     </p>
@@ -524,24 +628,28 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
           )}
         </div>
 
-        {/* Drag handle */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-12 items-end justify-center pb-1">
+        {/* Centered drag handle notch — hangs from app bar */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-7 items-start justify-center">
           <div
             className={cn(
-              'pointer-events-auto inline-flex cursor-row-resize touch-none select-none items-center gap-2 rounded-full border border-border/40 bg-background/90 px-5 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70 shadow-elevation-2 backdrop-blur-md transition-all duration-200 hover:border-primary/25 hover:text-muted-foreground hover:shadow-elevation-3',
-              openProgress > 0.75 && 'shadow-elevation-1',
+              'pointer-events-auto flex cursor-row-resize touch-none select-none items-center gap-2 rounded-b-lg px-4 py-1.5 transition-all duration-200',
+              openProgress > 0.5
+                ? 'bg-background/90 shadow-sm backdrop-blur-sm'
+                : 'bg-white/80 shadow-[0_2px_8px_-2px_rgba(57,124,149,0.15)] backdrop-blur-sm hover:bg-white/95 hover:shadow-[0_3px_12px_-2px_rgba(57,124,149,0.2)] dark:bg-slate-800/80 dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)] dark:hover:bg-slate-800/95',
             )}
             onPointerDown={handlePointerDown}
             role="button"
-            aria-label={open ? 'Push up to close assistant workspace' : 'Pull down to open assistant workspace'}
+            aria-label={open ? 'Push up to close assistant' : 'Pull down to open assistant'}
             tabIndex={0}
           >
-            <div className="flex flex-col items-center gap-[2.5px]">
-              <span className="block h-[1.5px] w-5 rounded-full bg-current opacity-30" />
-              <span className="block h-[1.5px] w-3 rounded-full bg-current opacity-18" />
+            <div className="flex flex-col items-center gap-[2px]">
+              <span className="block h-[1.5px] w-4 rounded-full bg-[#397C95]/20 dark:bg-[#5BB8D4]/15" />
+              <span className="block h-[1.5px] w-3 rounded-full bg-[#397C95]/15 dark:bg-[#5BB8D4]/10" />
+              <span className="block h-[1.5px] w-2 rounded-full bg-[#397C95]/10 dark:bg-[#5BB8D4]/8" />
             </div>
-            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-300 ease-out', openProgress > 0.75 && 'rotate-180')} />
-            <span>{openProgress > 0.75 ? 'Push up' : 'Pull down assistant'}</span>
+            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
+              {openProgress > 0.75 ? 'Push up' : 'Pull down assistant'}
+            </span>
           </div>
         </div>
       </section>

@@ -1,4 +1,5 @@
 ﻿import { Editor } from 'grapesjs';
+import { globalConfirm } from '../../../services/confirm/globalConfirm';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
@@ -477,20 +478,31 @@ function updatePagesList(editor: Editor) {
         updatePagesList(editor);
       });
       
-      item.querySelector('.delete-page-btn')?.addEventListener('click', (e) => {
+      item.querySelector('.delete-page-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        
+
         // Prevent deleting the last page
         const totalPages = editor.Pages.getAll().length;
         if (totalPages <= 1) {
-          alert('Cannot delete the last page. At least one page is required.');
+          await globalConfirm({
+            title: 'Cannot Delete Page',
+            description: 'Cannot delete the last page. At least one page is required.',
+            confirmLabel: 'OK',
+            cancelLabel: 'OK',
+          });
           return;
         }
-        
-        if (confirm('Delete page "' + page.getName() + '"?')) {
+
+        const confirmed = await globalConfirm({
+          title: 'Delete Page',
+          description: 'Delete page "' + page.getName() + '"?',
+          confirmLabel: 'Delete',
+          variant: 'danger',
+        });
+        if (confirmed) {
           // If deleting the selected page, select another one first
           const isSelected = editor.Pages.getSelected()?.getId() === page.getId();
-          
+
           if (isSelected) {
             const allPages = editor.Pages.getAll();
             const currentIndex = allPages.findIndex((p: any) => p.getId() === page.getId());
@@ -499,7 +511,7 @@ function updatePagesList(editor: Editor) {
               editor.Pages.select(nextPage);
             }
           }
-          
+
           editor.Pages.remove(page);
           updatePagesList(editor);
           console.log(`[Pages] Deleted page: ${page.getName()}`);

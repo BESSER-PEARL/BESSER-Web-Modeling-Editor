@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { CloudUpload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { FormField } from '@/components/ui/form-field';
+import { validateRequired } from '../../../utils/validation';
+import { useFieldValidation } from '../../../hooks/useFieldValidation';
 
 interface CommitDialogProps {
   open: boolean;
@@ -22,30 +24,43 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   onMessageChange,
   onCommit,
 }) => {
+  const validators = useMemo(() => ({
+    message: () => validateRequired(message, 'Commit message'),
+  }), [message]);
+  const validation = useFieldValidation(validators);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    onOpenChange(nextOpen);
+    if (!nextOpen) {
+      validation.resetTouched();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Push to GitHub</DialogTitle>
           <DialogDescription>Write a commit message for your changes.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-1.5">
-          <Label>Commit Message</Label>
+        <FormField label="Commit Message" required error={validation.getError('message')}>
           <Textarea
             rows={2}
             placeholder="Describe your changes..."
             value={message}
             onChange={(event) => onMessageChange(event.target.value)}
+            onBlur={() => validation.markTouched('message')}
             autoFocus
+            className={validation.getError('message') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
           />
-        </div>
+        </FormField>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onCommit} disabled={isSaving || !message.trim()} className="gap-2">
+          <Button onClick={onCommit} disabled={isSaving || !validation.isValid} className="gap-2">
             {isSaving ? 'Pushing...' : <CloudUpload className="h-4 w-4" />}
             Push
           </Button>

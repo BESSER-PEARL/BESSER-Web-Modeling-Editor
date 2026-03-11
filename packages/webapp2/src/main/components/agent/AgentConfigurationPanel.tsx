@@ -29,6 +29,8 @@ import { SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
 
 const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
 const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
+/** Whether we have already migrated the legacy localStorage key for this session. */
+let legacyMigrated = false;
 
 const defaultAgentConfig = (): AgentConfigurationPayload => ({
   agentLanguage: 'original',
@@ -123,17 +125,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const [activeConfigId, setActiveConfigId] = useState<string | null>(null);
   const [customModel, setCustomModel] = useState('');
 
-  const [config, setConfig] = useState<AgentConfigurationPayload>(() => {
-    const stored = localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
-    if (!stored) {
-      return defaultAgentConfig();
-    }
-    try {
-      return normalizeConfig(JSON.parse(stored));
-    } catch {
-      return defaultAgentConfig();
-    }
-  });
+  const [config, setConfig] = useState<AgentConfigurationPayload>(() => defaultAgentConfig());
 
   const [storedConfigurations, setStoredConfigurations] = useState<StoredAgentConfiguration[]>([]);
   const [storedProfiles, setStoredProfiles] = useState<StoredUserProfile[]>([]);
@@ -187,13 +179,38 @@ export const AgentConfigurationPanel: React.FC = () => {
     refreshData();
   }, [currentProject?.id]);
 
-  // Reload the config form from the project's agent diagram when the project changes
+  // Reload the config form from the project's agent diagram when the project changes.
+  // Falls back to the legacy localStorage key for one-time migration.
   useEffect(() => {
     if (!currentProject) return;
     const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
     const diagramConfig = agentDiagram?.config as Partial<AgentConfigurationPayload> | undefined;
-    if (diagramConfig && Object.keys(diagramConfig).length > 0) {
-      const normalized = normalizeConfig(diagramConfig);
+
+    let sourceConfig: Partial<AgentConfigurationPayload> | undefined = diagramConfig;
+
+    // One-time migration: if the project diagram has no config yet, pull from legacy localStorage
+    if ((!sourceConfig || Object.keys(sourceConfig).length === 0) && !legacyMigrated) {
+      try {
+        const legacyRaw = localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+        if (legacyRaw) {
+          sourceConfig = JSON.parse(legacyRaw) as Partial<AgentConfigurationPayload>;
+          // Persist into the project diagram so we never need localStorage again
+          if (agentDiagram) {
+            ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+              ...agentDiagram,
+              config: sourceConfig as unknown as Record<string, unknown>,
+            });
+          }
+          localStorage.removeItem(LEGACY_AGENT_CONFIG_KEY);
+        }
+      } catch {
+        // Corrupt legacy data — ignore it
+      }
+      legacyMigrated = true;
+    }
+
+    if (sourceConfig && Object.keys(sourceConfig).length > 0) {
+      const normalized = normalizeConfig(sourceConfig);
       setConfig(normalized);
       // Restore custom model if the saved model is not in the known list
       const loadedModel = (normalized.llm as any)?.model as string | undefined;
@@ -274,15 +291,16 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
 
     LocalStorageRepository.setActiveAgentConfigurationId(saved.id);
-    localStorage.setItem(LEGACY_AGENT_CONFIG_KEY, JSON.stringify(payload));
 
     // Persist agent config into the diagram so it travels with the project
     if (currentProject) {
       const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
-      ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
-        ...agentDiagram,
-        config: payload as unknown as Record<string, unknown>,
-      });
+      if (agentDiagram) {
+        ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+          ...agentDiagram,
+          config: payload as unknown as Record<string, unknown>,
+        });
+      }
       // Redux sync happens automatically via useStorageSync
     }
 
@@ -382,8 +400,18 @@ export const AgentConfigurationPanel: React.FC = () => {
     setConfigurationName(selected.name);
     setConfig(normalized);
     LocalStorageRepository.setActiveAgentConfigurationId(selected.id);
-    localStorage.setItem(LEGACY_AGENT_CONFIG_KEY, JSON.stringify(selected.config));
     setActiveConfigId(selected.id);
+
+    // Persist loaded config into the project diagram (single source of truth)
+    if (currentProject) {
+      const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
+      if (agentDiagram) {
+        ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+          ...agentDiagram,
+          config: selected.config as unknown as Record<string, unknown>,
+        });
+      }
+    }
 
     // Restore custom model if the saved model is not in the known list
     const loadedModel = (normalized.llm as any)?.model as string | undefined;
@@ -437,8 +465,19 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
 
     LocalStorageRepository.setActiveAgentConfigurationId(selected.id);
-    localStorage.setItem(LEGACY_AGENT_CONFIG_KEY, JSON.stringify(selected.config));
     setActiveConfigId(selected.id);
+
+    // Persist the active config into the project diagram (single source of truth)
+    if (currentProject) {
+      const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
+      if (agentDiagram) {
+        ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+          ...agentDiagram,
+          config: selected.config as unknown as Record<string, unknown>,
+        });
+      }
+    }
+
     toast.success(`"${selected.name}" is now active.`);
   };
 
@@ -493,9 +532,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <Card>
+        <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
           <CardHeader>
-            <CardTitle>Agent Configuration</CardTitle>
+            <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">Agent Configuration</CardTitle>
             <CardDescription>
               {SHOW_FULL_AGENT_CONFIGURATION
                 ? 'Configure generation settings for Agent Diagram and manage profile-based personalization mappings.'
@@ -510,7 +549,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <Label htmlFor="saved-config">Saved Configurations</Label>
                     <select
                       id="saved-config"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                       value={selectedConfigId}
                       onChange={(event) => setSelectedConfigId(event.target.value)}
                     >
@@ -556,7 +595,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Label htmlFor="agent-platform">Platform</Label>
                 <select
                   id="agent-platform"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                   value={config.agentPlatform}
                   onChange={(event) => updateConfig('agentPlatform', event.target.value)}
                 >
@@ -569,7 +608,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Label htmlFor="intent-tech">Intent Recognition</Label>
                 <select
                   id="intent-tech"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                   value={config.intentRecognitionTechnology}
                   onChange={(event) =>
                     updateConfig('intentRecognitionTechnology', event.target.value as IntentRecognitionTechnology)
@@ -584,7 +623,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="response-timing">Response Timing</Label>
                   <select
                     id="response-timing"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                     value={config.responseTiming}
                     onChange={(event) => updateConfig('responseTiming', event.target.value)}
                   >
@@ -598,7 +637,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="language-complexity">Language Complexity</Label>
                   <select
                     id="language-complexity"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                     value={config.languageComplexity}
                     onChange={(event) => updateConfig('languageComplexity', event.target.value as AgentLanguageComplexity)}
                   >
@@ -614,7 +653,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="sentence-length">Sentence Length</Label>
                   <select
                     id="sentence-length"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                     value={config.sentenceLength}
                     onChange={(event) => updateConfig('sentenceLength', event.target.value as AgentSentenceLength)}
                   >
@@ -633,6 +672,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
+                    className="accent-[#397C95] dark:accent-[#5BB8D4]"
                     checked={config.inputModalities.includes('speech')}
                     onChange={handleInputSpeechToggle}
                   />
@@ -645,6 +685,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
+                    className="accent-[#397C95] dark:accent-[#5BB8D4]"
                     checked={config.outputModalities.includes('speech')}
                     onChange={handleOutputSpeechToggle}
                   />
@@ -658,7 +699,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Label htmlFor="llm-provider">LLM Provider</Label>
                 <select
                   id="llm-provider"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                   value={llmProvider}
                   onChange={(event) => setLlmProvider(event.target.value as AgentLLMProvider)}
                 >
@@ -674,7 +715,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="llm-model">OpenAI Model</Label>
                   <select
                     id="llm-model"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                     value={knownLLMModels.includes(llmModel) || llmModel === '' ? llmModel : 'other'}
                     onChange={(event) => setLlmModel(event.target.value)}
                     disabled={!llmProvider}
@@ -705,7 +746,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   </Label>
                   <select
                     id="llm-model"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                     value={knownLLMModels.includes(llmModel) || llmModel === '' ? llmModel : 'other'}
                     onChange={(event) => setLlmModel(event.target.value)}
                     disabled={!llmProvider}
@@ -737,13 +778,14 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
+                    className="accent-[#397C95] dark:accent-[#5BB8D4]"
                     checked={config.adaptContentToUserProfile}
                     onChange={(event) => updateConfig('adaptContentToUserProfile', event.target.checked)}
                   />
                   Adapt content to user profile
                 </label>
                 <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                   value={config.userProfileName ?? ''}
                   onChange={(event) => updateConfig('userProfileName', event.target.value || null)}
                   disabled={!config.adaptContentToUserProfile}
@@ -762,19 +804,27 @@ export const AgentConfigurationPanel: React.FC = () => {
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleSaveConfiguration}>Save Configuration</Button>
-              <Button onClick={handleSaveAndApply} disabled={isApplying || !currentAgentModel}>
+              <Button onClick={handleSaveConfiguration} className="bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">Save Configuration</Button>
+              <Button onClick={handleSaveAndApply} disabled={isApplying || !currentAgentModel} className="bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">
                 {isApplying ? 'Applying...' : 'Save & Apply Configuration'}
               </Button>
-              {SHOW_FULL_AGENT_CONFIGURATION && (
+              {SHOW_FULL_AGENT_CONFIGURATION && currentProject && (
                 <Button
                   variant="outline"
                   onClick={() => {
-                    localStorage.setItem(LEGACY_AGENT_CONFIG_KEY, JSON.stringify(config));
-                    toast.success('Current editor values stored as default agentConfig.');
+                    const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
+                    if (agentDiagram) {
+                      ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+                        ...agentDiagram,
+                        config: config as unknown as Record<string, unknown>,
+                      });
+                      toast.success('Current editor values stored as project default.');
+                    } else {
+                      toast.error('No Agent Diagram found in the project.');
+                    }
                   }}
                 >
-                  Save as Local Default
+                  Save as Project Default
                 </Button>
               )}
             </div>
@@ -782,9 +832,9 @@ export const AgentConfigurationPanel: React.FC = () => {
         </Card>
 
         {SHOW_FULL_AGENT_CONFIGURATION && (
-          <Card>
+          <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
             <CardHeader>
-              <CardTitle>User Profiles</CardTitle>
+              <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">User Profiles</CardTitle>
               <CardDescription>
                 Save the project User Diagram as named profiles and map them to agent configurations.
               </CardDescription>
@@ -801,7 +851,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleSaveUserProfile} className="w-full">
+                  <Button onClick={handleSaveUserProfile} className="w-full bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">
                     Save User Profile
                   </Button>
                 </div>
@@ -818,7 +868,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="map-profile">User Profile</Label>
                   <select
                     id="map-profile"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                     value={selectedProfileId}
                     onChange={(event) => setSelectedProfileId(event.target.value)}
                   >
@@ -834,7 +884,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="map-config">Agent Configuration</Label>
                   <select
                     id="map-config"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                     value={selectedMappingConfigId}
                     onChange={(event) => setSelectedMappingConfigId(event.target.value)}
                   >
@@ -860,7 +910,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   storedMappings.map((mapping) => (
                     <div
                       key={mapping.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/70 px-3 py-2 text-sm"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#397C95]/10 px-3 py-2 text-sm dark:border-[#5BB8D4]/10"
                     >
                       <div>
                         <span className="font-medium">{mapping.userProfileName}</span>

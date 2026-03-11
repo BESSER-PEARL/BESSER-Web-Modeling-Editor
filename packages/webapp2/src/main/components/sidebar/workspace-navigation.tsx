@@ -103,16 +103,16 @@ export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', icon
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [
-    `group flex w-auto items-center rounded-lg border px-2.5 py-2 text-left text-sm transition-all md:w-full ${
+    `group flex w-auto items-center rounded-lg border px-2.5 py-2 text-left text-sm transition-all duration-150 md:w-full ${
       expanded ? 'justify-start gap-2' : 'justify-center'
     }`,
     isActive
       ? isDark
-        ? 'border-sky-400/50 bg-sky-500/15 text-slate-100 shadow-sm'
-        : 'border-primary/50 bg-primary/15 text-foreground shadow-sm'
+        ? 'border-[#5BB8D4]/40 bg-[#397C95]/20 text-[#5BB8D4] shadow-sm'
+        : 'border-[#397C95]/30 bg-[#397C95]/10 text-[#2C6A82] shadow-sm'
       : isDark
-        ? 'border-transparent text-slate-300 hover:border-slate-600 hover:bg-slate-800/70 hover:text-slate-100'
-        : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground',
+        ? 'border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-800/60 hover:text-slate-200'
+        : 'border-transparent text-slate-500 hover:border-[#397C95]/12 hover:bg-[#397C95]/[0.04] hover:text-slate-700',
   ].join(' ');
 }
 

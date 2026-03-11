@@ -49,6 +49,7 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
   onOpenHelpDialog,
   onOpenAboutDialog,
   onOpenFeedback,
+  onOpenKeyboardShortcuts,
   activeDiagramType,
   onSwitchUml,
   onSwitchDiagramType,
@@ -59,7 +60,7 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
   onDiagramRename,
 }) => {
   return (
-    <header className={`relative z-20 px-4 py-3 backdrop-blur-md sm:px-6 ${headerBackgroundClass}`}>
+    <header className={`relative z-20 px-4 py-3 sm:px-6 ${headerBackgroundClass}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -119,6 +120,7 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
             onOpenFeedback={onOpenFeedback}
             onOpenHelpDialog={onOpenHelpDialog}
             onOpenAboutDialog={onOpenAboutDialog}
+            onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
           />
           <TopBarUtilities
             showQualityCheck={showQualityCheck}

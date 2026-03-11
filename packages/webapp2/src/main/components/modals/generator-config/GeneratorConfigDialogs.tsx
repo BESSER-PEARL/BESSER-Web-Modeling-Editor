@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,11 +12,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FormField } from '@/components/ui/form-field';
 import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from '../../../services/generate-code/useGenerateCode';
 import type { ConfigDialog } from '../../../services/generate-code/generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../services/local-storage/local-storage-types';
 import type { WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../../generator-execution/useGeneratorExecution';
+import { validateProjectName, validateNumberRange } from '../../../utils/validation';
+import { useFieldValidation } from '../../../hooks/useFieldValidation';
 
 /**
  * Props for the <GeneratorConfigDialogs /> component.
@@ -60,11 +63,11 @@ interface GeneratorConfigDialogsProps {
   pendingAgentLanguage: string;
   /** Languages the agent will be translated to. */
   selectedAgentLanguages: string[];
-  /** Whether at least one agent configuration exists in localStorage. */
+  /** Whether at least one saved agent configuration preset exists. */
   hasSavedAgentConfiguration: boolean;
   /** Advanced mode selector (visible only when SHOW_FULL_AGENT_CONFIGURATION). */
   agentMode: 'original' | 'configuration' | 'personalization';
-  /** Stored agent configurations loaded from localStorage. */
+  /** Stored agent configuration presets. */
   storedAgentConfigurations: StoredAgentConfiguration[];
   /** Profile → configuration mappings for personalization mode. */
   storedAgentMappings: Array<StoredAgentProfileConfigurationMapping & { userProfileLabel: string; agentConfigurationLabel: string }>;
@@ -154,33 +157,57 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onWebAppGenerate,
 }) => {
   const navigate = useNavigate();
+
+  // ── Django inline validation ──────────────────────────────────────────
+  const djangoValidators = useMemo(() => ({
+    projectName: () => validateProjectName(djangoProjectName),
+    appName: () => validateProjectName(djangoAppName),
+  }), [djangoProjectName, djangoAppName]);
+  const djangoValidation = useFieldValidation(djangoValidators);
+
+  // ── Qiskit inline validation ──────────────────────────────────────────
+  const qiskitValidators = useMemo(() => ({
+    shots: () => validateNumberRange(qiskitShots, 1, 100000, 'Shots'),
+  }), [qiskitShots]);
+  const qiskitValidation = useFieldValidation(qiskitValidators);
+
   return (
     <>
-      <Dialog open={configDialog === 'django'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
+      <Dialog
+        open={configDialog === 'django'}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog(setConfigDialog);
+            djangoValidation.resetTouched();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Django Project Configuration</DialogTitle>
             <DialogDescription>Configure names and containerization options for Django generation.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="django-project-name">Project Name</Label>
+            <FormField label="Project Name" htmlFor="django-project-name" required error={djangoValidation.getError('projectName')}>
               <Input
                 id="django-project-name"
                 value={djangoProjectName}
                 onChange={(event) => onDjangoProjectNameChange(event.target.value.replace(/\s/g, '_'))}
+                onBlur={() => djangoValidation.markTouched('projectName')}
                 placeholder="my_django_project"
+                className={djangoValidation.getError('projectName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="django-app-name">App Name</Label>
+            </FormField>
+            <FormField label="App Name" htmlFor="django-app-name" required error={djangoValidation.getError('appName')}>
               <Input
                 id="django-app-name"
                 value={djangoAppName}
                 onChange={(event) => onDjangoAppNameChange(event.target.value.replace(/\s/g, '_'))}
+                onBlur={() => djangoValidation.markTouched('appName')}
                 placeholder="my_app"
+                className={djangoValidation.getError('appName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
               />
-            </div>
+            </FormField>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm">
               Include Docker containerization
               <input type="checkbox" checked={useDocker} onChange={(event) => onUseDockerChange(event.target.checked)} />
@@ -190,9 +217,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               Cancel
             </Button>
-            <Button onClick={onDjangoGenerate}>Generate</Button>
+            <Button onClick={onDjangoGenerate} disabled={!djangoValidation.isValid}>Generate</Button>
             {isLocalEnvironment && (
-              <Button variant="secondary" onClick={onDjangoDeploy}>
+              <Button variant="secondary" onClick={onDjangoDeploy} disabled={!djangoValidation.isValid}>
                 Deploy
               </Button>
             )}
@@ -508,7 +535,15 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={configDialog === 'qiskit'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
+      <Dialog
+        open={configDialog === 'qiskit'}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog(setConfigDialog);
+            qiskitValidation.resetTouched();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Qiskit Backend Configuration</DialogTitle>
@@ -528,8 +563,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="qiskit-shots">Number of Shots</Label>
+            <FormField label="Number of Shots" htmlFor="qiskit-shots" required error={qiskitValidation.getError('shots')}>
               <Input
                 id="qiskit-shots"
                 type="number"
@@ -537,14 +571,16 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                 max={100000}
                 value={qiskitShots}
                 onChange={(event) => onQiskitShotsChange(Math.max(1, Number(event.target.value || 1024)))}
+                onBlur={() => qiskitValidation.markTouched('shots')}
+                className={qiskitValidation.getError('shots') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
               />
-            </div>
+            </FormField>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               Cancel
             </Button>
-            <Button onClick={onQiskitGenerate}>Generate</Button>
+            <Button onClick={onQiskitGenerate} disabled={!qiskitValidation.isValid}>Generate</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

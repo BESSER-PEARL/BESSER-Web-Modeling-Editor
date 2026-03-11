@@ -172,9 +172,9 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <Card>
+        <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
           <CardHeader>
-            <CardTitle>Agent Personalization Rules</CardTitle>
+            <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">Agent Personalization Rules</CardTitle>
             <CardDescription>
               Define rules that map user profile attributes to agent behavior settings.
             </CardDescription>
@@ -211,10 +211,10 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                 const enumValues = property?.enumValues || [];
 
                 return (
-                  <div key={entry.feature} className="rounded-lg border border-border/70 p-4">
+                  <div key={entry.feature} className="rounded-lg border border-[#397C95]/10 p-4 dark:border-[#5BB8D4]/10">
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold">{entry.feature}</p>
+                        <p className="text-sm font-semibold text-[#397C95] dark:text-[#5BB8D4]">{entry.feature}</p>
                         <p className="text-xs text-muted-foreground">{entry.rules.length} rule(s)</p>
                       </div>
                       <Button variant="outline" onClick={() => addRule(entry.feature)}>
@@ -227,11 +227,11 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                     ) : (
                       <div className="space-y-3">
                         {entry.rules.map((rule) => (
-                          <div key={rule.id} className="grid gap-3 rounded-md border border-border/60 p-3 md:grid-cols-5">
+                          <div key={rule.id} className="grid gap-3 rounded-md border border-[#397C95]/8 bg-[#397C95]/[0.015] p-3 md:grid-cols-5 dark:border-[#5BB8D4]/8 dark:bg-[#5BB8D4]/[0.015]">
                             <div className="space-y-1.5">
                               <Label>Operator</Label>
                               <select
-                                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                                 value={rule.operator}
                                 onChange={(event) => updateRule(entry.feature, rule.id, { operator: event.target.value as Operator })}
                               >
@@ -280,7 +280,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                                 </div>
                               ) : enumValues.length > 0 ? (
                                 <select
-                                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                                   value={Array.isArray(rule.value) ? String(rule.value[0] || '') : String(rule.value || '')}
                                   onChange={(event) => updateRule(entry.feature, rule.id, { value: event.target.value })}
                                 >
@@ -309,7 +309,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                             <div className="space-y-1.5">
                               <Label>Target</Label>
                               <select
-                                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                                 value={rule.target}
                                 onChange={(event) => updateRule(entry.feature, rule.id, { target: event.target.value as TargetField })}
                               >
@@ -322,7 +322,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                             <div className="space-y-1.5">
                               <Label>Target Value</Label>
                               <select
-                                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                                 value={rule.targetValue}
                                 onChange={(event) => updateRule(entry.feature, rule.id, { targetValue: event.target.value })}
                               >

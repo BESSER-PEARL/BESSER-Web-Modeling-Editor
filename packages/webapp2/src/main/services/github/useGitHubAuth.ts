@@ -22,11 +22,13 @@ export const useGitHubAuth = () => {
     const usernameFromUrl = urlParams.get('username');
     const error = urlParams.get('error');
 
+    const controller = new AbortController();
+
     if (error) {
       toast.error(`GitHub authentication failed: ${error}`);
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-      return;
+      return () => controller.abort();
     }
 
     if (sessionFromUrl && usernameFromUrl) {
@@ -47,14 +49,16 @@ export const useGitHubAuth = () => {
 
       if (storedSession && storedUsername) {
         // Verify session is still valid
-        verifySession(storedSession);
+        verifySession(storedSession, controller.signal);
       }
     }
+
+    return () => controller.abort();
   }, []);
 
-  const verifySession = async (session: string) => {
+  const verifySession = async (session: string, signal?: AbortSignal) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/github/auth/status?session_id=${session}`);
+      const response = await fetch(`${BACKEND_URL}/github/auth/status?session_id=${session}`, { signal });
       const data: GitHubAuthStatus = await response.json();
 
       if (data.success && data.username) {
@@ -66,6 +70,9 @@ export const useGitHubAuth = () => {
         logout();
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
       console.error('Failed to verify GitHub session:', error);
       logout();
     }

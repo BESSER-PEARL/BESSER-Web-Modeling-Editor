@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../constant';
 import { normalizeProjectName } from '../../utils/projectName';
-import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 
 // Re-export from github service for backward compatibility
 export { useGitHubAuth, type GitHubAuthStatus } from '../github/useGitHubAuth';
@@ -49,11 +48,11 @@ export const useDeployToGitHub = () => {
       setDeploymentResult(null);
 
       try {
-        // Get active agent configuration to include in the deploy request
-        const activeConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
-        const agentConfig = activeConfigId
-          ? LocalStorageRepository.loadAgentConfiguration(activeConfigId)?.config ?? null
-          : null;
+        // Read agent config from the project diagram data (single source of truth)
+        const agentDiagrams = projectData?.diagrams?.AgentDiagram;
+        const activeAgentIndex = projectData?.currentDiagramIndices?.AgentDiagram ?? 0;
+        const activeAgentDiagram = Array.isArray(agentDiagrams) ? agentDiagrams[activeAgentIndex] ?? agentDiagrams[0] : null;
+        const agentConfig = activeAgentDiagram?.config ?? null;
 
         // Default agent config: websocket+streamlit, classical IC (no API key needed)
         const defaultAgentConfig = {

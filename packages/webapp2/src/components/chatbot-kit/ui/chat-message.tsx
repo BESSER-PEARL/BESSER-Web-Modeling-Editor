@@ -17,7 +17,7 @@ const chatBubbleVariants = cva(
   {
     variants: {
       isUser: {
-        true: "bg-primary text-primary-foreground",
+        true: "bg-[#397C95] text-white dark:bg-[#5BB8D4] dark:text-[#0d1117]",
         false: "bg-muted text-foreground",
       },
       animation: {
@@ -210,7 +210,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             <div className={cn(chatBubbleVariants({ isUser, animation }))}>
               <MarkdownRenderer>{part.text}</MarkdownRenderer>
               {actions ? (
-                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
                   {actions}
                 </div>
               ) : null}
@@ -252,7 +252,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <div className={cn(chatBubbleVariants({ isUser, animation }))}>
         <MarkdownRenderer>{content}</MarkdownRenderer>
         {actions ? (
-          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
             {actions}
           </div>
         ) : null}
@@ -291,7 +291,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
-        className="group w-full overflow-hidden rounded-lg border bg-muted/50"
+        className="group w-full overflow-hidden rounded-lg border border-border/60 bg-muted/50"
       >
         <div className="flex items-center p-2">
           <CollapsibleTrigger asChild>
@@ -340,7 +340,7 @@ function ToolCall({
           return (
             <div
               key={index}
-              className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
+              className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
             >
               <Ban className="h-4 w-4" />
               <span>
@@ -361,9 +361,9 @@ function ToolCall({
             return (
               <div
                 key={index}
-                className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
+                className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground"
               >
-                <Terminal className="h-4 w-4" />
+                <Terminal className="h-4 w-4 text-primary/70" />
                 <span>
                   Calling{" "}
                   <span className="font-mono">
@@ -373,17 +373,17 @@ function ToolCall({
                   </span>
                   ...
                 </span>
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
               </div>
             )
           case "result":
             return (
               <div
                 key={index}
-                className="flex flex-col gap-1.5 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
+                className="flex flex-col gap-1.5 rounded-lg border border-border/60 bg-muted/50 px-3 py-2 text-sm"
               >
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Code2 className="h-4 w-4" />
+                  <Code2 className="h-4 w-4 text-primary/60" />
                   <span>
                     Result from{" "}
                     <span className="font-mono">

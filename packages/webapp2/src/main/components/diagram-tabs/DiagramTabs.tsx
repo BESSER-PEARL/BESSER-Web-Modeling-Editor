@@ -221,10 +221,10 @@ export const DiagramTabs: React.FC = () => {
 
   const hasReferences = needsClassRef;
 
-  const selectClasses = "h-6 min-w-[120px] rounded-md border border-slate-200/80 bg-white/90 px-2 text-[11px] font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:border-slate-600 dark:focus:border-slate-500 dark:focus:ring-slate-600";
+  const selectClasses = "h-6 min-w-[120px] rounded-md border border-[#397C95]/15 bg-white/90 px-2 text-[11px] font-medium text-slate-600 shadow-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-1 focus:ring-[#397C95]/20 dark:border-[#397C95]/20 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20";
 
   return (
-    <div className="border-b border-slate-300/50 bg-gradient-to-r from-slate-50/80 to-white/60 backdrop-blur-sm dark:border-slate-700/50 dark:from-slate-900/80 dark:to-slate-800/60">
+    <div className="border-b border-[#397C95]/12 bg-gradient-to-r from-slate-50/80 to-white/60 backdrop-blur-sm dark:border-[#397C95]/15 dark:from-slate-900/80 dark:to-slate-800/60">
       {/* Top row: tabs */}
       <div className="flex items-center gap-0 px-1">
         <div className="flex items-end gap-px py-1 pl-1">
@@ -241,8 +241,8 @@ export const DiagramTabs: React.FC = () => {
                 className={[
                   'group relative flex cursor-pointer select-none items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
                   isActive
-                    ? 'bg-white text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.05)] dark:bg-slate-800 dark:text-slate-100 dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.06)]'
-                    : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-200',
+                    ? 'border-b-2 border-[#397C95] bg-white text-[#2C6A82] shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_rgba(57,124,149,0.1)] dark:border-[#5BB8D4] dark:bg-slate-800 dark:text-[#5BB8D4] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_0_0_1px_rgba(91,184,212,0.12)]'
+                    : 'text-slate-500 hover:bg-[#397C95]/[0.04] hover:text-slate-700 dark:text-slate-400 dark:hover:bg-[#397C95]/[0.06] dark:hover:text-slate-200',
                 ].join(' ')}
                 onClick={() => handleSwitchTab(index)}
                 onDoubleClick={() => handleStartRename(index)}
@@ -260,7 +260,7 @@ export const DiagramTabs: React.FC = () => {
                   />
                 ) : (
                   <>
-                    <FileText className={`h-3 w-3 shrink-0 ${isActive ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'}`} />
+                    <FileText className={`h-3 w-3 shrink-0 ${isActive ? 'text-[#397C95] dark:text-[#5BB8D4]' : 'text-slate-400 dark:text-slate-500'}`} />
                     <span className="max-w-[140px] truncate">{diagram.title}</span>
                   </>
                 )}
@@ -287,7 +287,7 @@ export const DiagramTabs: React.FC = () => {
           {/* Add button */}
           {diagrams.length < MAX_DIAGRAMS_PER_TYPE && (
             <button
-              className="ml-0.5 flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100/80 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-slate-300"
+              className="ml-0.5 flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-[#397C95]/[0.06] hover:text-[#397C95] dark:text-slate-500 dark:hover:bg-[#397C95]/10 dark:hover:text-[#5BB8D4]"
               onClick={handleAddDiagram}
               aria-label="Add new diagram"
               title="Add new diagram"

@@ -66,17 +66,17 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
               type="file"
               accept={isImageMode ? 'image/png, image/jpeg' : '.ttl,.rdf,.json'}
               onChange={onFileChange}
-              className="block w-full cursor-pointer rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+              className="block w-full cursor-pointer rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground/80"
             />
-            {error && <p className="text-xs text-red-600">{error}</p>}
-            {selectedFile && <p className="text-xs text-slate-600">Selected: {selectedFile.name}</p>}
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            {selectedFile && <p className="text-xs text-muted-foreground">Selected: {selectedFile.name}</p>}
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>
             Cancel
           </Button>
-          <Button onClick={onImport} disabled={!canImport}>
+          <Button onClick={onImport} disabled={!canImport} className="bg-[#397C95] text-white hover:bg-[#2C6A82]">
             {isImporting ? 'Importing...' : 'Import'}
           </Button>
         </DialogFooter>

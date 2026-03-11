@@ -75,9 +75,9 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <Card>
+        <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
           <CardHeader>
-            <CardTitle>Agent Personalization Mappings</CardTitle>
+            <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">Agent Personalization Mappings</CardTitle>
             <CardDescription>
               Link stored user profiles to stored agent configurations.
             </CardDescription>
@@ -88,7 +88,7 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
                 <Label htmlFor="mapping-profile">User Profile</Label>
                 <select
                   id="mapping-profile"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                   value={selectedProfileId}
                   onChange={(event) => setSelectedProfileId(event.target.value)}
                 >
@@ -104,7 +104,7 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
                 <Label htmlFor="mapping-configuration">Agent Configuration</Label>
                 <select
                   id="mapping-configuration"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
                   value={selectedConfigurationId}
                   onChange={(event) => setSelectedConfigurationId(event.target.value)}
                 >
@@ -119,7 +119,7 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleCreateMapping} disabled={!selectedProfile || !selectedConfiguration}>
+              <Button onClick={handleCreateMapping} disabled={!selectedProfile || !selectedConfiguration} className="bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">
                 Save Mapping
               </Button>
               <Button variant="outline" onClick={refreshData}>
@@ -136,7 +136,7 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
                 mappings.map((mapping) => (
                   <div
                     key={mapping.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/70 px-3 py-2 text-sm"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#397C95]/10 px-3 py-2 text-sm dark:border-[#5BB8D4]/10"
                   >
                     <div>
                       <span className="font-medium">{mapping.userProfileName}</span>

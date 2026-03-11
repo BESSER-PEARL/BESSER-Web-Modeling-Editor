@@ -27,6 +27,7 @@ import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram } from '../../types/project';
 import { downloadFile } from '../../utils/download';
+import { globalConfirm } from '../../services/confirm/globalConfirm';
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
@@ -725,8 +726,14 @@ function setupCommands(editor: Editor) {
   
   // Clear canvas command
   editor.Commands.add('clear-canvas', {
-    run(editor: Editor) {
-      if (confirm('Are you sure you want to clear the entire canvas? This cannot be undone.')) {
+    async run(editor: Editor) {
+      const confirmed = await globalConfirm({
+        title: 'Clear Canvas',
+        description: 'Are you sure you want to clear the entire canvas? This cannot be undone.',
+        confirmLabel: 'Clear',
+        variant: 'danger',
+      });
+      if (confirmed) {
         editor.DomComponents.clear();
         editor.CssComposer.clear();
       }

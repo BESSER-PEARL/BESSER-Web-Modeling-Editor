@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users } from 'lucide-react';
+import { Keyboard, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { bugReportURL } from '../../../constant';
 import {
@@ -16,6 +16,7 @@ interface CommunityMenuProps {
   onOpenFeedback: () => void;
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;
+  onOpenKeyboardShortcuts: () => void;
 }
 
 const COMMUNITY_URLS = {
@@ -29,6 +30,7 @@ export const CommunityMenu: React.FC<CommunityMenuProps> = ({
   onOpenFeedback,
   onOpenHelpDialog,
   onOpenAboutDialog,
+  onOpenKeyboardShortcuts,
 }) => {
   const openExternalUrl = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -56,6 +58,11 @@ export const CommunityMenu: React.FC<CommunityMenuProps> = ({
           Help
         </DropdownMenuLabel>
         <DropdownMenuItem onClick={onOpenHelpDialog}>How does this editor work?</DropdownMenuItem>
+        <DropdownMenuItem onClick={onOpenKeyboardShortcuts}>
+          <Keyboard className="mr-2 h-4 w-4" />
+          Keyboard Shortcuts
+          <span className="ml-auto text-xs text-muted-foreground">?</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={onOpenAboutDialog}>About BESSER</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -19,14 +19,14 @@ export function CopyButton({ content, copyMessage }: CopyButtonProps) {
     <Button
       variant="ghost"
       size="icon"
-      className="relative h-6 w-6"
+      className="relative h-6 w-6 hover:text-primary"
       aria-label="Copy to clipboard"
       onClick={handleCopy}
     >
       <div className="absolute inset-0 flex items-center justify-center">
         <Check
           className={cn(
-            "h-4 w-4 transition-transform ease-in-out",
+            "h-4 w-4 text-primary transition-transform ease-in-out",
             isCopied ? "scale-100" : "scale-0"
           )}
         />

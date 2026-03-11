@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { PostHogProvider } from 'posthog-js/react';
 import { ToastContainer } from 'react-toastify';
@@ -13,23 +13,47 @@ import { getActiveDiagram } from './types/project';
 import { ApollonEditorProvider } from './components/apollon-editor-component/apollon-editor-context';
 import { EditorView } from './components/editor-view/EditorView';
 import { ErrorPanel } from './components/error-handling/error-panel';
-import { AssistantWidget } from './components/assistant-workspace/AssistantWidget';
 import { CookieConsentBanner, hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
 import { ApplicationStore } from './store/application-store';
 import { useProject } from './hooks/useProject';
 import { WorkspaceShell } from './components/sidebar/WorkspaceShell';
-import { ProjectHubDialog } from './components/home/ProjectHubDialog';
-import { ProjectSettingsPanel } from './components/project/ProjectSettingsPanel';
-import { AgentConfigurationPanel } from './components/agent/AgentConfigurationPanel';
-import { AgentPersonalizationRulesPanel } from './components/agent/AgentPersonalizationRulesPanel';
-import { AgentPersonalizationMappingPanel } from './components/agent/AgentPersonalizationMappingPanel';
-import { TemplateLibraryDialog } from './components/modals/TemplateLibraryDialog';
-import { ExportDialog } from './components/modals/ExportDialog';
-import { GeneratorConfigDialogs } from './components/modals/generator-config/GeneratorConfigDialogs';
 import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from './utils/workspaceContext';
 import { useGeneratorExecution } from './components/generator-execution/useGeneratorExecution';
+import { SuspenseFallback } from './components/loading/SuspenseFallback';
+import { GlobalConfirmProvider } from './services/confirm/GlobalConfirmProvider';
+
+// Lazy-loaded route-level components (only fetched when their route is visited)
+const AgentConfigurationPanel = React.lazy(() =>
+  import('./components/agent/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
+);
+const AgentPersonalizationRulesPanel = React.lazy(() =>
+  import('./components/agent/AgentPersonalizationRulesPanel').then((m) => ({ default: m.AgentPersonalizationRulesPanel })),
+);
+const AgentPersonalizationMappingPanel = React.lazy(() =>
+  import('./components/agent/AgentPersonalizationMappingPanel').then((m) => ({ default: m.AgentPersonalizationMappingPanel })),
+);
+const ProjectSettingsPanel = React.lazy(() =>
+  import('./components/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
+);
+
+// Lazy-loaded dialogs (only fetched when opened)
+const ProjectHubDialog = React.lazy(() =>
+  import('./components/home/ProjectHubDialog').then((m) => ({ default: m.ProjectHubDialog })),
+);
+const TemplateLibraryDialog = React.lazy(() =>
+  import('./components/modals/TemplateLibraryDialog').then((m) => ({ default: m.TemplateLibraryDialog })),
+);
+const ExportDialog = React.lazy(() =>
+  import('./components/modals/ExportDialog').then((m) => ({ default: m.ExportDialog })),
+);
+const GeneratorConfigDialogs = React.lazy(() =>
+  import('./components/modals/generator-config/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
+);
+const AssistantWidget = React.lazy(() =>
+  import('./components/assistant-workspace/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
+);
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -98,24 +122,32 @@ function AppContentInner() {
         isGenerating={isGenerating}
         onAssistantGenerate={handleAssistantGenerate}
       >
-        <Routes>
-          <Route path="/" element={<EditorView />} />
-          <Route path="/agent-config" element={<AgentConfigurationPanel />} />
-          <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
-          <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />
-          <Route path="/project-settings" element={<ProjectSettingsPanel />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<SuspenseFallback />}>
+          <Routes>
+            <Route path="/" element={<EditorView />} />
+            <Route path="/agent-config" element={<AgentConfigurationPanel />} />
+            <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
+            <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />
+            <Route path="/project-settings" element={<ProjectSettingsPanel />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </WorkspaceShell>
 
-      <ProjectHubDialog open={showProjectHub} onOpenChange={setShowProjectHub} />
-      <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />
-      <ExportDialog
-        open={showExportDialog}
-        onOpenChange={setShowExportDialog}
-        editor={editor}
-        currentDiagramTitle={activeDiagramTitle}
-      />
+      <Suspense fallback={null}>
+        <ProjectHubDialog open={showProjectHub} onOpenChange={setShowProjectHub} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <ExportDialog
+          open={showExportDialog}
+          onOpenChange={setShowExportDialog}
+          editor={editor}
+          currentDiagramTitle={activeDiagramTitle}
+        />
+      </Suspense>
 
       {/*
        * Generator configuration dialogs (Django, SQL, SQLAlchemy, JSON Schema,
@@ -123,6 +155,7 @@ function AppContentInner() {
        * configState is the props bag that wires every field, change handler,
        * and execution callback into the presentational dialog component.
        */}
+      <Suspense fallback={null}>
       <GeneratorConfigDialogs
         // ── Dialog control ───────────────────────────────────────────
         configDialog={configState.configDialog}
@@ -174,10 +207,14 @@ function AppContentInner() {
         onQiskitGenerate={configState.onQiskitGenerate}
         onWebAppGenerate={configState.onWebAppGenerate}
       />
+      </Suspense>
 
       <ErrorPanel />
-      <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
+      <Suspense fallback={null}>
+        <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
+      </Suspense>
       <ToastContainer />
+      <GlobalConfirmProvider />
     </ApollonEditorProvider>
   );
 }

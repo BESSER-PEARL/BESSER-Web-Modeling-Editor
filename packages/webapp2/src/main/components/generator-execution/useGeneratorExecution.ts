@@ -275,11 +275,11 @@ export interface GeneratorConfigState {
   pendingAgentLanguage: string;
   /** Languages the agent will be translated to. */
   selectedAgentLanguages: string[];
-  /** Whether at least one agent configuration exists in localStorage. */
+  /** Whether at least one saved agent configuration preset exists. */
   hasSavedAgentConfiguration: boolean;
   /** Advanced mode selector (visible only when SHOW_FULL_AGENT_CONFIGURATION). */
   agentMode: 'original' | 'configuration' | 'personalization';
-  /** Stored agent configurations loaded from localStorage. */
+  /** Stored agent configuration presets. */
   storedAgentConfigurations: any[];
   /** Profile → configuration mappings for personalization mode. */
   storedAgentMappings: any[];
@@ -717,13 +717,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     if (selectedAgentLanguages.length > 0) {
       baseConfig = { languages: { source: sourceLanguage, target: selectedAgentLanguages } };
     } else {
-      const stored = localStorage.getItem('agentConfig');
-      if (stored) {
-        try {
-          baseConfig = { ...JSON.parse(stored) } as AgentConfig;
-        } catch (error) {
-          console.warn('Failed to parse stored agentConfig payload:', error);
-        }
+      // Read agent config from the project diagram (single source of truth)
+      const activeAgentDiagramForConfig = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+      const diagramConfig = activeAgentDiagramForConfig?.config;
+      if (diagramConfig && Object.keys(diagramConfig).length > 0) {
+        baseConfig = { ...diagramConfig } as AgentConfig;
       }
     }
 

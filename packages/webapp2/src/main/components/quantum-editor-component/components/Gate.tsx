@@ -1,80 +1,106 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import { cn } from '@/lib/utils';
 import { Gate as GateType } from '../types';
 import { GATE_SIZE, WIRE_SPACING, COLORS } from '../layout-constants';
 import { useTooltip } from './Tooltip';
 
-const GateContainer = styled.div<{ $width: number, $height: number, $isControl: boolean, $backgroundColor?: string, $noBorder?: boolean }>`
-  position: relative;
-  width: ${props => props.$width}px;
-  height: ${props => props.$height}px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  justify-content: center;
-  background-color: ${props => props.$isControl || props.$noBorder ? 'transparent' : (props.$backgroundColor || COLORS.GATE_FILL)};
-  border: ${props => props.$isControl || props.$noBorder ? 'none' : `1px solid ${COLORS.STROKE}`};
-  border-radius: ${props => props.$isControl ? '50%' : '2px'};
-  cursor: pointer;
-  user-select: none;
-  font-family: sans-serif;
-  font-size: 14px;
-  font-weight: bold;
-  color: #000;
-  transition: background-color 0.1s;
+interface GateContainerProps {
+  width: number;
+  height: number;
+  isControl: boolean;
+  backgroundColor?: string;
+  noBorder?: boolean;
+  children?: React.ReactNode;
+  onMouseDown?: (e: React.MouseEvent) => void;
+  onDoubleClick?: (e: React.MouseEvent) => void;
+  onMouseEnter?: (e: React.MouseEvent) => void;
+  onMouseLeave?: () => void;
+  style?: React.CSSProperties;
+}
 
-  &:hover {
-    background-color: ${props => props.$isControl ? 'transparent' : COLORS.HIGHLIGHTED_GATE_FILL};
-  }
-`;
+function GateContainer({
+  width,
+  height,
+  isControl,
+  backgroundColor,
+  noBorder,
+  children,
+  onMouseDown,
+  onDoubleClick,
+  onMouseEnter,
+  onMouseLeave,
+  style,
+}: GateContainerProps) {
+  const isTransparent = isControl || noBorder;
 
-const ControlDot = styled.div<{ $isAntiControl: boolean }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background-color: ${props =>
-    props.$isAntiControl ? 'var(--quantum-editor-bg, #ffffff)' : 'var(--quantum-editor-wire, #1f2937)'};
-  border: ${props =>
-    props.$isAntiControl ? '2px solid var(--quantum-editor-wire, #1f2937)' : 'none'};
-`;
+  return (
+    <div
+      className={cn(
+        'relative flex items-center justify-center cursor-pointer select-none font-sans text-sm font-bold text-black transition-colors duration-100',
+        isControl ? 'rounded-full' : 'rounded-sm',
+        !isTransparent && 'border border-[var(--quantum-editor-stroke,black)] hover:bg-[var(--quantum-editor-highlighted-gate-fill,#FB7)]',
+        isTransparent && 'border-none bg-transparent hover:bg-transparent',
+      )}
+      style={{
+        width: `${width}px`,
+        height: `${height}px`,
+        ...(!isTransparent
+          ? { backgroundColor: backgroundColor || COLORS.GATE_FILL }
+          : {}),
+        ...style,
+      }}
+      onMouseDown={onMouseDown}
+      onDoubleClick={onDoubleClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </div>
+  );
+}
 
-const ResizeTab = styled.div<{ $show: boolean }>`
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 16px;
-  height: 16px;
-  background-color: ${COLORS.HIGHLIGHTED_GATE_FILL};
-  border: 1px solid ${COLORS.STROKE};
-  border-radius: 2px;
-  cursor: ns-resize;
-  display: ${props => props.$show ? 'flex' : 'none'};
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  z-index: 10;
+function ControlDot({ isAntiControl }: { isAntiControl: boolean }) {
+  return (
+    <div
+      className={cn(
+        'size-3 rounded-full',
+        isAntiControl
+          ? 'bg-[var(--quantum-editor-bg,#ffffff)] border-2 border-[var(--quantum-editor-wire,#1f2937)]'
+          : 'bg-[var(--quantum-editor-wire,#1f2937)] border-none',
+      )}
+    />
+  );
+}
 
-  &:hover {
-    background-color: #ffcc7a;
-  }
+function ResizeTab({
+  show,
+  onMouseDown,
+}: {
+  show: boolean;
+  onMouseDown: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'absolute -bottom-0.5 -right-0.5 size-4 rounded-sm cursor-ns-resize items-center justify-center text-[10px] z-10',
+        'bg-[var(--quantum-editor-highlighted-gate-fill,#FB7)] border border-[var(--quantum-editor-stroke,black)]',
+        'hover:bg-[#ffcc7a]',
+        "after:content-['⇕'] after:text-[var(--quantum-editor-text,#0f172a)]",
+        show ? 'flex' : 'hidden',
+      )}
+      onMouseDown={onMouseDown}
+    />
+  );
+}
 
-  &::after {
-    content: '⇕';
-    color: var(--quantum-editor-text, #0f172a);
-  }
-`;
-
-const NestedIndicator = styled.div`
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #4CAF50;
-  border: 1px solid var(--quantum-editor-bg, #ffffff);
-  z-index: 10;
-`;
+function NestedIndicator() {
+  return (
+    <div
+      className="absolute top-0.5 right-0.5 size-2 rounded-full bg-[#4CAF50] border border-[var(--quantum-editor-bg,#ffffff)] z-10"
+      title="Nested circuit configured"
+    />
+  );
+}
 
 interface GateProps {
   gate: GateType;
@@ -99,8 +125,8 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
     if (isDragging) return;
     setShowResizeTab(true);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const tooltip = isFunctionGate 
-      ? `${gate.label} - Double-click to edit nested circuit${hasNestedCircuit ? ' (configured)' : ' (empty)'}` 
+    const tooltip = isFunctionGate
+      ? `${gate.label} - Double-click to edit nested circuit${hasNestedCircuit ? ' (configured)' : ' (empty)'}`
       : (gate.description || '');
     showTooltip(rect.right + 5, rect.top, gate.label || gate.type, tooltip);
   };
@@ -142,10 +168,10 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
   if (gate.drawer) {
     return (
       <GateContainer
-        $width={width}
-        $height={height}
-        $isControl={isControl}
-        $noBorder={gate.noBorder}
+        width={width}
+        height={height}
+        isControl={isControl}
+        noBorder={gate.noBorder}
         onMouseDown={onMouseDown}
         onDoubleClick={isFunctionGate ? onDoubleClick : undefined}
         onMouseEnter={handleMouseEnter}
@@ -153,10 +179,10 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
         style={{ opacity: isDragging ? 0.5 : 1, cursor: isFunctionGate ? 'pointer' : 'grab' }}
       >
         {gate.drawer({ rect: { x: 0, y: 0, width, height } })}
-        {hasNestedCircuit && <NestedIndicator title="Nested circuit configured" />}
+        {hasNestedCircuit && <NestedIndicator />}
         {canResize && (
           <ResizeTab
-            $show={showResizeTab}
+            show={showResizeTab}
             onMouseDown={handleResizeMouseDown}
           />
         )}
@@ -168,15 +194,15 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
   if (isControl) {
     return (
       <GateContainer
-        $width={GATE_SIZE}
-        $height={GATE_SIZE}
-        $isControl={true}
+        width={GATE_SIZE}
+        height={GATE_SIZE}
+        isControl={true}
         onMouseDown={onMouseDown}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         style={{ opacity: isDragging ? 0.5 : 1 }}
       >
-        <ControlDot $isAntiControl={isAntiControl} />
+        <ControlDot isAntiControl={isAntiControl} />
       </GateContainer>
     );
   }
@@ -184,10 +210,10 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
   // Default gate rendering with symbol
   return (
     <GateContainer
-      $width={width}
-      $height={height}
-      $isControl={false}
-      $backgroundColor={gate.backgroundColor}
+      width={width}
+      height={height}
+      isControl={false}
+      backgroundColor={gate.backgroundColor}
       onMouseDown={onMouseDown}
       onDoubleClick={isFunctionGate ? onDoubleClick : undefined}
       onMouseEnter={handleMouseEnter}
@@ -195,10 +221,10 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
       style={{ opacity: isDragging ? 0.5 : 1, cursor: isFunctionGate ? 'pointer' : 'grab' }}
     >
       {isFunctionGate ? gate.label : (gate.symbol || gate.label)}
-      {hasNestedCircuit && <NestedIndicator title="Nested circuit configured" />}
+      {hasNestedCircuit && <NestedIndicator />}
       {canResize && (
         <ResizeTab
-          $show={showResizeTab}
+          show={showResizeTab}
           onMouseDown={handleResizeMouseDown}
         />
       )}

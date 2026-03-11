@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
@@ -7,7 +7,6 @@ import { toUMLDiagramType, type SupportedDiagramType } from '../../types/project
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateDiagramModelThunk, switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
 import { useGitHubAuth } from '../../services/github/useGitHubAuth';
-import { GitHubSidebar } from '../github-sidebar';
 import { isDarkThemeEnabled, toggleTheme } from '../../utils/theme-switcher';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { useImportDiagramToProjectWorkflow } from '../../services/import/useImportDiagram';
@@ -23,10 +22,7 @@ import { getWorkspaceContext } from '../../utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../utils/download';
 import type { GenerationResult } from '../../services/generate-code/types';
 import { JsonViewerModal } from '../modals/json-viewer-modal/json-viewer-modal';
-import { FeedbackDialog } from '../modals/FeedbackDialog';
-import { HelpGuideDialog } from '../modals/HelpGuideDialog';
 import { WorkspaceTopBar } from '../application-bar/WorkspaceTopBar';
-import { AssistantWorkspaceDrawer } from '../assistant-workspace/AssistantWorkspaceDrawer';
 import { DiagramTabs } from '../diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import {
@@ -41,6 +37,26 @@ import { useAssistantImport } from './hooks/useAssistantImport';
 import { useProjectPreview } from './hooks/useProjectPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
+
+// Lazy-loaded heavy panels and dialogs (only fetched when opened)
+const GitHubSidebar = React.lazy(() =>
+  import('../github-sidebar').then((m) => ({ default: m.GitHubSidebar })),
+);
+const AssistantWorkspaceDrawer = React.lazy(() =>
+  import('../assistant-workspace/AssistantWorkspaceDrawer').then((m) => ({ default: m.AssistantWorkspaceDrawer })),
+);
+const FeedbackDialog = React.lazy(() =>
+  import('../modals/FeedbackDialog').then((m) => ({ default: m.FeedbackDialog })),
+);
+const HelpGuideDialog = React.lazy(() =>
+  import('../modals/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
+);
+const KeyboardShortcutsDialog = React.lazy(() =>
+  import('../modals/KeyboardShortcutsDialog').then((m) => ({ default: m.KeyboardShortcutsDialog })),
+);
+
+// The keyboard toggle hook must be imported eagerly (it registers a global listener).
+import { useKeyboardShortcutsToggle } from '../modals/KeyboardShortcutsDialog';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -176,7 +192,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setIsAboutDialogOpen,
     isFeedbackDialogOpen,
     setIsFeedbackDialogOpen,
+    isKeyboardShortcutsOpen,
+    setIsKeyboardShortcutsOpen,
   } = useDialogStates();
+
+  // Global keyboard shortcut listener: ? or Ctrl+/ opens the shortcuts overlay
+  const openKeyboardShortcuts = useCallback(() => setIsKeyboardShortcutsOpen(true), [setIsKeyboardShortcutsOpen]);
+  useKeyboardShortcutsToggle(openKeyboardShortcuts);
 
   // Refs to avoid stale closures in event listeners
   const currentProjectRef = useRef(currentProject);
@@ -236,29 +258,29 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     ? 'bg-[radial-gradient(120%_120%_at_0%_0%,#0f172a_0%,#111827_45%,#0b1220_100%)] text-slate-100'
     : 'bg-[radial-gradient(120%_120%_at_0%_0%,#d2e7df_0%,#f8f7f2_45%,#f7fafc_100%)] text-foreground';
   const headerBackgroundClass = isDarkTheme
-    ? 'border-b border-slate-700/70 bg-[linear-gradient(105deg,rgba(15,23,42,0.95)_0%,rgba(17,24,39,0.92)_45%,rgba(30,41,59,0.96)_100%)]'
-    : 'border-b border-slate-300/60 bg-[linear-gradient(105deg,rgba(240,249,255,0.95)_0%,rgba(252,255,245,0.92)_45%,rgba(237,246,255,0.96)_100%)]';
+    ? 'border-b border-slate-700/70 bg-[linear-gradient(105deg,#0f172a_0%,#111827_45%,#1e293b_100%)]'
+    : 'border-b border-[#397C95]/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
   const topPanelClass = isDarkTheme ? 'border-slate-700/80 bg-slate-900/70' : 'border-slate-300/60 bg-white/70';
   const topPanelIconClass = isDarkTheme ? 'text-slate-300' : 'text-slate-600';
   const diagramBadgeClass = isDarkTheme
-    ? 'hidden bg-slate-800 text-slate-200 xl:inline-flex'
-    : 'hidden bg-slate-100 text-slate-600 xl:inline-flex';
+    ? 'hidden bg-[#397C95]/20 text-[#5BB8D4] xl:inline-flex'
+    : 'hidden bg-[#397C95]/8 text-[#397C95] xl:inline-flex';
   const outlineButtonClass = isDarkTheme
-    ? 'border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800'
-    : 'border-slate-300 bg-white/75';
+    ? 'border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800 hover:border-slate-600'
+    : 'border-slate-300/80 bg-white/80 hover:border-[#397C95]/25 hover:bg-[#397C95]/[0.03]';
   const primaryGenerateClass = isDarkTheme
-    ? 'gap-2 bg-sky-700 text-white hover:bg-sky-600'
-    : 'gap-2 bg-slate-900 text-white hover:bg-slate-800';
+    ? 'gap-2 bg-[#397C95] text-white hover:bg-[#2C6A82] shadow-sm'
+    : 'gap-2 bg-[#397C95] text-white hover:bg-[#2C6A82] shadow-sm';
   const sidebarBaseClass = isDarkTheme
-    ? 'hidden shrink-0 border-r border-slate-700/70 bg-slate-950/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-2'
-    : 'hidden shrink-0 border-r border-slate-300/60 bg-white/60 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-2';
+    ? 'hidden shrink-0 border-r border-slate-700/70 bg-slate-950/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5'
+    : 'hidden shrink-0 border-r border-slate-200/70 bg-white/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5';
   const sidebarTitleClass = isDarkTheme
-    ? 'px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400'
-    : 'px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500';
-  const sidebarDividerClass = isDarkTheme ? 'my-2 border-t border-slate-700/80' : 'my-2 border-t border-slate-300/70';
+    ? 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500'
+    : 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400';
+  const sidebarDividerClass = isDarkTheme ? 'my-2 border-t border-slate-700/60' : 'my-2 border-t border-slate-200/80';
   const sidebarToggleClass = isDarkTheme
-    ? 'mt-auto flex items-center rounded-lg border border-slate-700/80 bg-slate-900/80 p-2 transition hover:border-slate-600 hover:bg-slate-800'
-    : 'mt-auto flex items-center rounded-lg border border-slate-300/70 bg-white/80 p-2 transition hover:border-slate-400 hover:bg-white';
+    ? 'mt-auto flex items-center rounded-lg border border-slate-700/60 bg-slate-900/70 p-2 transition-all duration-150 hover:border-slate-600 hover:bg-slate-800'
+    : 'mt-auto flex items-center rounded-lg border border-slate-200/80 bg-white/70 p-2 transition-all duration-150 hover:border-[#397C95]/20 hover:bg-[#397C95]/[0.03]';
   const sidebarToggleTextClass = isDarkTheme
     ? 'text-xs font-semibold text-slate-200'
     : 'text-xs font-semibold text-slate-700';
@@ -401,6 +423,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenHelpDialog={() => setIsHelpDialogOpen(true)}
         onOpenAboutDialog={() => setIsAboutDialogOpen(true)}
         onOpenFeedback={() => setIsFeedbackDialogOpen(true)}
+        onOpenKeyboardShortcuts={openKeyboardShortcuts}
         activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
         onSwitchUml={handleSwitchUml}
         onSwitchDiagramType={handleSwitchDiagramType}
@@ -411,7 +434,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onDiagramRename={handleDiagramRename}
       />
 
-      <div className="relative flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <WorkspaceSidebar
           isDarkTheme={isDarkTheme}
           isSidebarExpanded={isSidebarExpanded}
@@ -435,14 +458,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
         </main>
 
-        <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
+        <Suspense fallback={null}>
+          <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
+        </Suspense>
 
-        <AssistantWorkspaceDrawer
-          open={isAssistantWorkspaceOpen}
-          onOpenChange={setIsAssistantWorkspaceOpen}
-          onTriggerGenerator={onAssistantGenerate}
-          onSwitchDiagram={handleAssistantSwitchDiagram}
-        />
+        <Suspense fallback={null}>
+          <AssistantWorkspaceDrawer
+            open={isAssistantWorkspaceOpen}
+            onOpenChange={setIsAssistantWorkspaceOpen}
+            onTriggerGenerator={onAssistantGenerate}
+            onSwitchDiagram={handleAssistantSwitchDiagram}
+          />
+        </Suspense>
       </div>
 
       <AssistantImportDialog
@@ -479,9 +506,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onDownloadBuml={handleDownloadProjectBumlPreview}
       />
 
-      <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+      <Suspense fallback={null}>
+        <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+      </Suspense>
 
-      <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
+      <Suspense fallback={null}>
+        <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
+      </Suspense>
 
       <DeployDialog
         open={isDeployDialogOpen}

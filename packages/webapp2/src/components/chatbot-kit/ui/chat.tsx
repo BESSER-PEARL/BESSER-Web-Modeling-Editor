@@ -165,7 +165,7 @@ export function Chat({
           <Button
             size="icon"
             variant="ghost"
-            className="h-6 w-6"
+            className="h-6 w-6 hover:text-primary"
             onClick={() => onRateResponse(message.id, "thumbs-up")}
           >
             <ThumbsUp className="h-4 w-4" />
@@ -173,7 +173,7 @@ export function Chat({
           <Button
             size="icon"
             variant="ghost"
-            className="h-6 w-6"
+            className="h-6 w-6 hover:text-destructive"
             onClick={() => onRateResponse(message.id, "thumbs-down")}
           >
             <ThumbsDown className="h-4 w-4" />
@@ -262,7 +262,7 @@ export function ChatMessages({
           <div className="sticky bottom-0 left-0 flex w-full justify-end">
             <Button
               onClick={scrollToBottom}
-              className="pointer-events-auto h-8 w-8 rounded-full ease-in-out animate-in fade-in-0 slide-in-from-bottom-1"
+              className="pointer-events-auto h-8 w-8 rounded-full border border-border/60 bg-background shadow-sm ease-in-out animate-in fade-in-0 slide-in-from-bottom-1 hover:border-primary/40 hover:text-primary"
               size="icon"
               variant="ghost"
             >

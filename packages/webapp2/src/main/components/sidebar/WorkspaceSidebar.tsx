@@ -41,9 +41,7 @@ const GenBadge: React.FC<{ info: { generators: string[]; label: string }; isStat
   if (isStateMachine) {
     return (
       <span
-        className={`ml-auto flex items-center gap-0.5 text-[10px] leading-none ${
-          isDark ? 'text-slate-500' : 'text-slate-400'
-        }`}
+        className="ml-auto flex items-center gap-0.5 text-[10px] leading-none text-muted-foreground/70"
         title={info.label}
       >
         <Link2 className="h-2.5 w-2.5" />
@@ -56,7 +54,7 @@ const GenBadge: React.FC<{ info: { generators: string[]; label: string }; isStat
 
   return (
     <span
-      className={`ml-auto text-[10px] leading-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+      className="ml-auto text-[10px] leading-none text-muted-foreground/70"
       title={info.label}
     >
       {count} gen.
@@ -86,7 +84,9 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
   onNavigate,
   onToggleExpanded,
 }) => {
-  const isAgentEditorActive = locationPath === '/' && activeUmlType === UMLDiagramType.AgentDiagram;
+  // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
+  const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
+  const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
   const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath);
   const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
   const agentContainerClass = showAgentSubItems
@@ -112,7 +112,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     <aside className={`${sidebarBaseClass} ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
       {isSidebarExpanded && <p className={sidebarTitleClass}>Editors</p>}
       {UML_ITEMS.map((item) => {
-        const active = locationPath === '/' && activeUmlType === item.type;
+        const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
         const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
         const supported = toSupportedDiagramType(item.type);
         const count = countMap[item.type] ?? 0;

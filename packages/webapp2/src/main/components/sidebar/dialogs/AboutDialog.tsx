@@ -26,14 +26,14 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
           <DialogTitle>About BESSER</DialogTitle>
           <DialogDescription>Runtime versions and project resources.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-2 text-sm text-slate-700">
+        <div className="space-y-2 text-sm text-foreground/80">
           <p>
-            <span className="font-semibold">Web Editor:</span> {appVersion}
+            <span className="font-semibold text-[#397C95] dark:text-[#5BB8D4]">Web Editor:</span> {appVersion}
           </p>
           <p>
-            <span className="font-semibold">BESSER Library:</span> {libraryVersion}
+            <span className="font-semibold text-[#397C95] dark:text-[#5BB8D4]">BESSER Library:</span> {libraryVersion}
           </p>
-          <p className="pt-1 text-xs text-slate-600">
+          <p className="pt-1 text-xs text-muted-foreground">
             BESSER provides model-driven engineering tooling for UML-based design, code generation, and deployment.
           </p>
         </div>
