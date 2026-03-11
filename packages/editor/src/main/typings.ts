@@ -170,13 +170,54 @@ export type UMLStateTransition = UMLRelationship & {
 
 export type AgentStateTransition = UMLRelationship & {
   params?: string | string[];
-  condition?: string;
+  transitionType?: 'predefined' | 'custom';
+  predefined?: {
+    predefinedType?: string;
+    intentName?: string;
+    fileType?: string;
+    conditionValue?:
+      | string
+      | { variable: string; operator: string; targetValue: string };
+  };
+  custom?: {
+    event?:
+      | 'None'
+      | 'DummyEvent'
+      | 'WildcardEvent'
+      | 'ReceiveMessageEvent'
+      | 'ReceiveTextEvent'
+      | 'ReceiveJSONEvent'
+      | 'ReceiveFileEvent';
+    condition?: string[];
+  };
+  predefinedType?: string;
+  event?:
+    | 'None'
+    | 'DummyEvent'
+    | 'WildcardEvent'
+    | 'ReceiveMessageEvent'
+    | 'ReceiveTextEvent'
+    | 'ReceiveJSONEvent'
+    | 'ReceiveFileEvent';
+  condition?: string | string[];
   intentName?: string;
   variable?: string;
   operator?: string;
   targetValue?: string;
-  conditionValue?: string | { variable: string; operator: string; targetValue: string }
+  conditionValue?:
+    | string
+    | { variable: string; operator: string; targetValue: string }
+    | { events: string[]; conditions: string[] };
   fileType?: string;
+  customEvent?:
+    | 'None'
+    | 'DummyEvent'
+    | 'WildcardEvent'
+    | 'ReceiveMessageEvent'
+    | 'ReceiveTextEvent'
+    | 'ReceiveJSONEvent'
+    | 'ReceiveFileEvent';
+  customConditions?: string[];
 };
 
 export type UMLDeploymentNode = UMLElement & {
