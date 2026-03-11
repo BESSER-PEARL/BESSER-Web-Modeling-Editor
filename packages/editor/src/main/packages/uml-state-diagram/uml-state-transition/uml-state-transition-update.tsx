@@ -125,6 +125,10 @@ class StateTransitionUpdate extends Component<Props, State> {
           <Textfield value={element.name} onChange={this.rename} autoFocus />
         </section>
         <section>
+          <Header>Guard</Header>
+          <Textfield value={element.guard} onChange={this.updateGuard} placeholder="Guard expression" />
+        </section>
+        <section>
           <Flex>
             <Header>Parameters</Header>
             <Button color="link" onClick={this.addParam}>
@@ -161,6 +165,10 @@ class StateTransitionUpdate extends Component<Props, State> {
 
   private rename = (name: string) => {
     this.props.update<UMLStateTransition>(this.props.element.id, { name });
+  };
+
+  private updateGuard = (guard: string) => {
+    this.props.update<UMLStateTransition>(this.props.element.id, { guard });
   };
 }
 

@@ -66,6 +66,7 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
           <button
             type="button"
             onClick={onOpenProjectHub}
+            aria-label="Open project hub"
             className="group flex items-center p-0 text-left transition-opacity hover:opacity-85"
           >
             <img

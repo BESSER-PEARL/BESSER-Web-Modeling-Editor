@@ -19,6 +19,7 @@ import { ApollonEditor, UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../store/hooks';
+import { notifyError } from '../../utils/notifyError';
 import { useProject } from '../../hooks/useProject';
 import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
 import {
@@ -868,14 +869,14 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onQiskitShotsChange: setQiskitShots,
     onAgentModeChange: setAgentMode,
     onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
-    onDjangoGenerate: () => { handleDjangoGenerate().catch(console.error); },
-    onDjangoDeploy: () => { handleDjangoDeploy().catch(console.error); },
-    onSqlGenerate: () => { handleSqlGenerate().catch(console.error); },
-    onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(console.error); },
-    onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(console.error); },
-    onAgentGenerate: () => { handleAgentGenerate().catch(console.error); },
-    onQiskitGenerate: () => { handleQiskitGenerate().catch(console.error); },
-    onWebAppGenerate: () => { handleWebAppGenerate().catch(console.error); },
+    onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError('Django generation')); },
+    onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError('Django deployment')); },
+    onSqlGenerate: () => { handleSqlGenerate().catch(notifyError('SQL generation')); },
+    onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(notifyError('SQLAlchemy generation')); },
+    onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(notifyError('JSON Schema generation')); },
+    onAgentGenerate: () => { handleAgentGenerate().catch(notifyError('Agent generation')); },
+    onQiskitGenerate: () => { handleQiskitGenerate().catch(notifyError('Qiskit generation')); },
+    onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError('Web App generation')); },
   };
 
   return {

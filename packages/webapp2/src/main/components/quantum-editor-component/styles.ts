@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Z_INDEX } from '../../constants/z-index';
 
 /* -------------------------------------------------------------------------- */
 /*  Prop interfaces (kept identical so consuming code never breaks)           */
@@ -196,8 +197,9 @@ export const DragGhost = React.forwardRef<HTMLDivElement, DragGhostProps>(
   ({ $x, $y, $offsetX, $offsetY, className, style, ...props }, ref) =>
     React.createElement('div', {
       ref,
-      className: cn('fixed pointer-events-none z-[1000]', className),
+      className: cn('fixed pointer-events-none', className),
       style: {
+        zIndex: Z_INDEX.POPOVER,
         left: $x - $offsetX,
         top: $y - $offsetY,
         ...style,
@@ -250,7 +252,7 @@ export const DropdownMenu = React.forwardRef<HTMLDivElement, DropdownMenuProps>(
     React.createElement('div', {
       ref,
       className: cn(
-        'absolute top-full left-0 min-w-[280px] max-h-[400px] overflow-y-auto rounded mt-1 z-[1000]',
+        'absolute top-full left-0 min-w-[280px] max-h-[400px] overflow-y-auto rounded mt-1 z-10',
         'bg-[var(--quantum-editor-bg,#ffffff)]',
         'border border-[var(--quantum-editor-border,#d5dde8)]',
         'shadow-[var(--quantum-editor-tooltip-shadow,0_12px_28px_rgba(2,6,23,0.18))]',
@@ -336,7 +338,7 @@ export const DropdownOverlay = React.forwardRef<HTMLDivElement, DropdownOverlayP
     React.createElement('div', {
       ref,
       className: cn(
-        'fixed inset-0 z-[999]',
+        'fixed inset-0 z-[9]',
         $isOpen ? 'block' : 'hidden',
         className,
       ),

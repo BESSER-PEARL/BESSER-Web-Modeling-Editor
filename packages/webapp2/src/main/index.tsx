@@ -1,22 +1,28 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 import { RoutedApplication } from './application';
+import { OfflineBanner } from './components/offline-banner/OfflineBanner';
 import { setTheme } from './utils/theme-switcher';
 import { LocalStorageRepository } from './services/local-storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
-import { NO_HTTP_URL, SENTRY_DSN } from './constant';
+import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './constant';
+import { runStorageMigrations } from './utils/storage-migration';
+import { initLazyAnalytics } from './services/analytics/lazy-analytics';
+import { hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
 
 import './styles.css';
 
-if (SENTRY_DSN) {
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: NO_HTTP_URL,
-    tracesSampleRate: 0.5,
-  });
+// Run localStorage schema migrations before anything else reads stored data
+runStorageMigrations();
 
-  Sentry.setTag('package', 'webapp2');
-}
+// Defer Sentry + PostHog initialization until the browser is idle.
+// This removes ~40KB+ of synchronous JS from the critical render path.
+initLazyAnalytics({
+  sentryDsn: SENTRY_DSN,
+  sentryEnvironment: NO_HTTP_URL,
+  posthogKey: POSTHOG_KEY,
+  posthogHost: POSTHOG_HOST,
+  hasUserConsented,
+});
 const themePreference = LocalStorageRepository.getUserThemePreference();
 
 if (themePreference === 'dark') {
@@ -30,4 +36,9 @@ if (themePreference === 'dark') {
 
 const container = document.getElementById('root') as HTMLElement;
 const root = createRoot(container);
-root.render(<RoutedApplication />);
+root.render(
+  <>
+    <RoutedApplication />
+    <OfflineBanner />
+  </>,
+);

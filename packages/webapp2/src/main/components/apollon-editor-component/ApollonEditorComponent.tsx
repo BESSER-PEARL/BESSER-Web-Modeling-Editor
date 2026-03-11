@@ -9,7 +9,10 @@ import {
   selectActiveDiagram,
   selectEditorOptions,
   selectEditorRevision,
+  selectStateMachineDiagrams,
+  selectQuantumCircuitDiagrams,
 } from '../../services/workspace/workspaceSlice';
+import { notifyError } from '../../utils/notifyError';
 
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,12 +25,8 @@ export const ApollonEditorComponent: React.FC = () => {
   const reduxDiagram = useAppSelector(selectActiveDiagram);
   const options = useAppSelector(selectEditorOptions);
   const editorRevision = useAppSelector(selectEditorRevision);
-  const stateMachineDiagrams = useAppSelector(
-    (state) => state.workspace.project?.diagrams.StateMachineDiagram,
-  );
-  const quantumCircuitDiagrams = useAppSelector(
-    (state) => state.workspace.project?.diagrams.QuantumCircuitDiagram,
-  );
+  const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
+  const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
   const { setEditor } = useContext(ApollonEditorContext);
 
   // Stable refs so the setup effect can read current values without
@@ -90,7 +89,7 @@ export const ApollonEditorComponent: React.FC = () => {
   useEffect(() => {
     return () => {
       setupRunRef.current += 1;
-      cleanupEditor().catch(console.error);
+      cleanupEditor().catch(notifyError('Editor cleanup'));
       setEditor!(undefined);
     };
   }, [cleanupEditor, setEditor]);
@@ -137,7 +136,7 @@ export const ApollonEditorComponent: React.FC = () => {
       setEditor!(nextEditor);
     };
 
-    setupEditor().catch(console.error);
+    setupEditor().catch(notifyError('Editor setup'));
   }, [editorRevision, cleanupEditor, destroyEditorDeferred, dispatch, setEditor]);
 
   return (

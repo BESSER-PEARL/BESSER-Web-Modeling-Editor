@@ -127,6 +127,7 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                         e.stopPropagation();
                         onAddQubit();
                     }}
+                    aria-label="Add qubit"
                     title="Add qubit"
                 >
                     + Qubit

@@ -55,6 +55,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         variant="outline"
         className={`${outlineButtonClass} px-2.5`}
         onClick={onToggleTheme}
+        aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
         title={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

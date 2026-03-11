@@ -1,6 +1,7 @@
 import React, { useRef, useCallback, CSSProperties } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { Z_INDEX } from '../../../constants/z-index';
 import { Circuit, InitialState } from '../types';
 import { useCircuitEditor, CircuitEditorState } from '../hooks/useCircuitEditor';
 import { useCircuitKeyboard } from '../hooks/useCircuitKeyboard';
@@ -137,8 +138,9 @@ export function CircuitEditor({
                     {/* Drag ghost */}
                     {editor.draggedGate && (
                         <div
-                            className="fixed pointer-events-none z-[1000] opacity-80"
+                            className="fixed pointer-events-none opacity-80"
                             style={{
+                                zIndex: Z_INDEX.POPOVER,
                                 left: editor.mousePos.x + (circuitGridRef.current?.getBoundingClientRect().left || 0),
                                 top: editor.mousePos.y + (circuitGridRef.current?.getBoundingClientRect().top || 0),
                             }}

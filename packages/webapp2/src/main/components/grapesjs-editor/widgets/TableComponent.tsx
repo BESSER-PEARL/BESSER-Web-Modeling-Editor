@@ -207,6 +207,7 @@ export const TableComponent: React.FC<TableComponentProps> = ({
                         }}
                         type="button"
                         title="Edit"
+                        aria-label="Edit row"
                         onClick={() => {}}
                       >
                         {/* Modern pencil icon */}
@@ -223,6 +224,7 @@ export const TableComponent: React.FC<TableComponentProps> = ({
                         }}
                         type="button"
                         title="Remove"
+                        aria-label="Remove row"
                         onClick={() => {}}
                       >
                         {/* Modern trash icon */}

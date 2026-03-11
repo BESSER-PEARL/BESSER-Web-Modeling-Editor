@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Z_INDEX } from '../../../constants/z-index';
 
 interface PaletteDropdownProps {
   palettes: string[][];
@@ -63,7 +64,7 @@ export const PaletteDropdown: React.FC<PaletteDropdownProps> = ({ palettes, valu
             border: '1px solid #ccc',
             borderRadius: 4,
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            zIndex: 1000,
+            zIndex: Z_INDEX.DROPDOWN,
             padding: 4,
           }}
         >

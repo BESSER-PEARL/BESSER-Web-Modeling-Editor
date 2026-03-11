@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { Z_INDEX } from '../../../constants/z-index';
 
 interface TooltipData {
     visible: boolean;
@@ -45,8 +46,9 @@ export const TooltipProvider: React.FC<{ children: ReactNode }> = ({ children })
             {children}
             {tooltip.visible && (
                 <div
-                    className="fixed p-2 rounded-md border border-[var(--quantum-editor-border,#d5dde8)] bg-[var(--quantum-editor-surface,#f8fafc)] text-[var(--quantum-editor-text,#0f172a)] z-[1000] pointer-events-none max-w-[300px]"
+                    className="fixed p-2 rounded-md border border-[var(--quantum-editor-border,#d5dde8)] bg-[var(--quantum-editor-surface,#f8fafc)] text-[var(--quantum-editor-text,#0f172a)] pointer-events-none max-w-[300px]"
                     style={{
+                        zIndex: Z_INDEX.DROPDOWN,
                         left: tooltip.x + 15,
                         top: tooltip.y + 15,
                         boxShadow: 'var(--quantum-editor-tooltip-shadow, 0 12px 28px rgba(2, 6, 23, 0.18))',

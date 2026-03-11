@@ -532,9 +532,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
+        <Card className="border-brand/10">
           <CardHeader>
-            <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">Agent Configuration</CardTitle>
+            <CardTitle className="text-brand">Agent Configuration</CardTitle>
             <CardDescription>
               {SHOW_FULL_AGENT_CONFIGURATION
                 ? 'Configure generation settings for Agent Diagram and manage profile-based personalization mappings.'
@@ -549,7 +549,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <Label htmlFor="saved-config">Saved Configurations</Label>
                     <select
                       id="saved-config"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                       value={selectedConfigId}
                       onChange={(event) => setSelectedConfigId(event.target.value)}
                     >
@@ -595,7 +595,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Label htmlFor="agent-platform">Platform</Label>
                 <select
                   id="agent-platform"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                   value={config.agentPlatform}
                   onChange={(event) => updateConfig('agentPlatform', event.target.value)}
                 >
@@ -608,7 +608,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Label htmlFor="intent-tech">Intent Recognition</Label>
                 <select
                   id="intent-tech"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                   value={config.intentRecognitionTechnology}
                   onChange={(event) =>
                     updateConfig('intentRecognitionTechnology', event.target.value as IntentRecognitionTechnology)
@@ -623,7 +623,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="response-timing">Response Timing</Label>
                   <select
                     id="response-timing"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={config.responseTiming}
                     onChange={(event) => updateConfig('responseTiming', event.target.value)}
                   >
@@ -637,7 +637,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="language-complexity">Language Complexity</Label>
                   <select
                     id="language-complexity"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={config.languageComplexity}
                     onChange={(event) => updateConfig('languageComplexity', event.target.value as AgentLanguageComplexity)}
                   >
@@ -653,7 +653,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="sentence-length">Sentence Length</Label>
                   <select
                     id="sentence-length"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={config.sentenceLength}
                     onChange={(event) => updateConfig('sentenceLength', event.target.value as AgentSentenceLength)}
                   >
@@ -672,7 +672,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
-                    className="accent-[#397C95] dark:accent-[#5BB8D4]"
+                    className="accent-brand"
                     checked={config.inputModalities.includes('speech')}
                     onChange={handleInputSpeechToggle}
                   />
@@ -685,7 +685,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                   <input
                     type="checkbox"
-                    className="accent-[#397C95] dark:accent-[#5BB8D4]"
+                    className="accent-brand"
                     checked={config.outputModalities.includes('speech')}
                     onChange={handleOutputSpeechToggle}
                   />
@@ -699,7 +699,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Label htmlFor="llm-provider">LLM Provider</Label>
                 <select
                   id="llm-provider"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                   value={llmProvider}
                   onChange={(event) => setLlmProvider(event.target.value as AgentLLMProvider)}
                 >
@@ -715,7 +715,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="llm-model">OpenAI Model</Label>
                   <select
                     id="llm-model"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={knownLLMModels.includes(llmModel) || llmModel === '' ? llmModel : 'other'}
                     onChange={(event) => setLlmModel(event.target.value)}
                     disabled={!llmProvider}
@@ -746,7 +746,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   </Label>
                   <select
                     id="llm-model"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={knownLLMModels.includes(llmModel) || llmModel === '' ? llmModel : 'other'}
                     onChange={(event) => setLlmModel(event.target.value)}
                     disabled={!llmProvider}
@@ -778,14 +778,14 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    className="accent-[#397C95] dark:accent-[#5BB8D4]"
+                    className="accent-brand"
                     checked={config.adaptContentToUserProfile}
                     onChange={(event) => updateConfig('adaptContentToUserProfile', event.target.checked)}
                   />
                   Adapt content to user profile
                 </label>
                 <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                   value={config.userProfileName ?? ''}
                   onChange={(event) => updateConfig('userProfileName', event.target.value || null)}
                   disabled={!config.adaptContentToUserProfile}
@@ -804,8 +804,8 @@ export const AgentConfigurationPanel: React.FC = () => {
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleSaveConfiguration} className="bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">Save Configuration</Button>
-              <Button onClick={handleSaveAndApply} disabled={isApplying || !currentAgentModel} className="bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">
+              <Button onClick={handleSaveConfiguration} className="bg-brand text-brand-foreground hover:bg-brand-dark">Save Configuration</Button>
+              <Button onClick={handleSaveAndApply} disabled={isApplying || !currentAgentModel} className="bg-brand text-brand-foreground hover:bg-brand-dark">
                 {isApplying ? 'Applying...' : 'Save & Apply Configuration'}
               </Button>
               {SHOW_FULL_AGENT_CONFIGURATION && currentProject && (
@@ -832,9 +832,9 @@ export const AgentConfigurationPanel: React.FC = () => {
         </Card>
 
         {SHOW_FULL_AGENT_CONFIGURATION && (
-          <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
+          <Card className="border-brand/10">
             <CardHeader>
-              <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">User Profiles</CardTitle>
+              <CardTitle className="text-brand">User Profiles</CardTitle>
               <CardDescription>
                 Save the project User Diagram as named profiles and map them to agent configurations.
               </CardDescription>
@@ -851,7 +851,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleSaveUserProfile} className="w-full bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">
+                  <Button onClick={handleSaveUserProfile} className="w-full bg-brand text-brand-foreground hover:bg-brand-dark">
                     Save User Profile
                   </Button>
                 </div>
@@ -868,7 +868,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="map-profile">User Profile</Label>
                   <select
                     id="map-profile"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={selectedProfileId}
                     onChange={(event) => setSelectedProfileId(event.target.value)}
                   >
@@ -884,7 +884,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="map-config">Agent Configuration</Label>
                   <select
                     id="map-config"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-[#397C95]/30 focus:border-[#397C95]/40 focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:hover:border-[#5BB8D4]/30 dark:focus:border-[#5BB8D4]/40 dark:focus:ring-[#5BB8D4]/20"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={selectedMappingConfigId}
                     onChange={(event) => setSelectedMappingConfigId(event.target.value)}
                   >

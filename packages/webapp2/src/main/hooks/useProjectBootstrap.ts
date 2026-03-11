@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { localStorageLatestProject } from '../constant';
 import { useGitHubBumlImport } from '../services/import/useGitHubBumlImport';
+import { notifyError } from '../utils/notifyError';
 import type { BesserProject } from '../types/project';
 
 const KNOWN_ROUTES = [
@@ -67,7 +68,7 @@ export const useProjectBootstrap = ({
       setHasCheckedForProject(true);
     };
 
-    checkForLatestProject().catch(console.error);
+    checkForLatestProject().catch(notifyError('Loading latest project'));
   }, [loadProject, hasCheckedForProject, hasTokenInUrl]);
 
   useEffect(() => {
@@ -90,7 +91,7 @@ export const useProjectBootstrap = ({
       setSearchParams(nextSearchParams, { replace: true });
     };
 
-    importBumlProject().catch(console.error);
+    importBumlProject().catch(notifyError('Importing B-UML project'));
 
     return () => {
       isCancelled = true;

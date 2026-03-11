@@ -32,8 +32,9 @@ export const useGitHubAuth = () => {
     }
 
     if (sessionFromUrl && usernameFromUrl) {
-      // Store session
-      localStorage.setItem('github_session', sessionFromUrl);
+      // Store session token in sessionStorage (sensitive, tab-scoped)
+      sessionStorage.setItem('github_session', sessionFromUrl);
+      // Username is non-sensitive; keep in localStorage for convenience
       localStorage.setItem('github_username', usernameFromUrl);
       setGithubSession(sessionFromUrl);
       setUsername(usernameFromUrl);
@@ -43,8 +44,8 @@ export const useGitHubAuth = () => {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
-      // Check for existing session in localStorage
-      const storedSession = localStorage.getItem('github_session');
+      // Check for existing session in sessionStorage (tab-scoped)
+      const storedSession = sessionStorage.getItem('github_session');
       const storedUsername = localStorage.getItem('github_username');
 
       if (storedSession && storedUsername) {
@@ -99,8 +100,8 @@ export const useGitHubAuth = () => {
       }
     }
 
-    // Clear local state
-    localStorage.removeItem('github_session');
+    // Clear local state — session token lives in sessionStorage
+    sessionStorage.removeItem('github_session');
     localStorage.removeItem('github_username');
     setGithubSession(null);
     setUsername(null);

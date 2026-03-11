@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createSelector, PayloadAction } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 
 export type ApollonError = {
@@ -35,3 +35,17 @@ const errorSlice = createSlice({
 export const { displayError, dismissError } = errorSlice.actions;
 
 export const errorReducer = errorSlice.reducer;
+
+// ── Selectors ──────────────────────────────────────────────────────────
+
+export const selectErrors = (state: { errors: ApollonError[] }) => state.errors;
+
+export const selectHasErrors = createSelector(
+  selectErrors,
+  (errors) => errors.length > 0,
+);
+
+export const selectErrorCount = createSelector(
+  selectErrors,
+  (errors) => errors.length,
+);

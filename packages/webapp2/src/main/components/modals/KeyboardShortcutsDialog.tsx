@@ -19,6 +19,7 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
     label: 'General',
     shortcuts: [
+      { keys: `${modKey}+K`, description: 'Open command palette' },
       { keys: `${modKey}+Z`, description: 'Undo' },
       { keys: `${modKey}+Y`, description: 'Redo' },
       { keys: `${modKey}+Shift+Z`, description: 'Redo (alternative)' },

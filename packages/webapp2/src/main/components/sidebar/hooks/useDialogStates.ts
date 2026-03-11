@@ -5,6 +5,7 @@ export function useDialogStates() {
   const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [isKeyboardShortcutsOpen, setIsKeyboardShortcutsOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   return {
     isHelpDialogOpen,
@@ -15,5 +16,7 @@ export function useDialogStates() {
     setIsFeedbackDialogOpen,
     isKeyboardShortcutsOpen,
     setIsKeyboardShortcutsOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
   };
 }

@@ -1,6 +1,6 @@
 import React, { Suspense, useCallback, useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { PostHogProvider } from 'posthog-js/react';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { LazyPostHogProvider } from './services/analytics/LazyPostHogProvider';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -22,7 +22,10 @@ import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from './utils/workspaceContext';
 import { useGeneratorExecution } from './components/generator-execution/useGeneratorExecution';
 import { SuspenseFallback } from './components/loading/SuspenseFallback';
+import { GeneratingOverlay } from './components/loading/GeneratingOverlay';
 import { GlobalConfirmProvider } from './services/confirm/GlobalConfirmProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { NotFound } from './components/NotFound';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>
@@ -122,14 +125,14 @@ function AppContentInner() {
         isGenerating={isGenerating}
         onAssistantGenerate={handleAssistantGenerate}
       >
-        <Suspense fallback={<SuspenseFallback />}>
+        <Suspense fallback={<SuspenseFallback showSkeleton />}>
           <Routes>
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
             <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
             <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </WorkspaceShell>
@@ -213,6 +216,7 @@ function AppContentInner() {
       <Suspense fallback={null}>
         <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
       </Suspense>
+      <GeneratingOverlay visible={isGenerating} />
       <ToastContainer />
       <GlobalConfirmProvider />
     </ApollonEditorProvider>
@@ -229,12 +233,14 @@ function AppContent() {
 
 export function RoutedApplication() {
   return (
-    <PostHogProvider apiKey={POSTHOG_KEY} options={postHogOptions}>
-      <ApplicationStore>
-        <AppContent />
-        <CookieConsentBanner />
-      </ApplicationStore>
-    </PostHogProvider>
+    <ErrorBoundary>
+      <LazyPostHogProvider apiKey={POSTHOG_KEY} options={postHogOptions}>
+        <ApplicationStore>
+          <AppContent />
+          <CookieConsentBanner />
+        </ApplicationStore>
+      </LazyPostHogProvider>
+    </ErrorBoundary>
   );
 }
 

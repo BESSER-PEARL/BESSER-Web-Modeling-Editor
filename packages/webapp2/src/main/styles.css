@@ -27,6 +27,10 @@
   --border: 210 18% 86%;
   --input: 210 22% 89%;
   --ring: 192 82% 32%;
+  --brand: 193 45% 40%;
+  --brand-light: 193 45% 50%;
+  --brand-dark: 193 45% 30%;
+  --brand-foreground: 0 0% 100%;
   --app-shell-topbar-height: 64px;
 
   --quantum-editor-bg: #ffffff;
@@ -60,6 +64,10 @@
   --border: 220 16% 22%;
   --input: 220 18% 20%;
   --ring: 192 82% 42%;
+  --brand: 195 52% 64%;
+  --brand-light: 195 55% 72%;
+  --brand-dark: 195 50% 54%;
+  --brand-foreground: 222 30% 7%;
 
   --quantum-editor-bg: #0f172a;
   --quantum-editor-surface: #1e293b;
@@ -385,4 +393,16 @@ select {
 
 [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.28);
+}
+
+/* ---- Offline banner slide-down animation ---- */
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import posthog from 'posthog-js';
 import { Check, ChevronDown, ChevronRight, Shield } from 'lucide-react';
+import { applyConsentToPostHog } from '../../services/analytics/lazy-analytics';
 import { cn } from '@/lib/utils';
+import { Z_INDEX } from '../../constants/z-index';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -25,14 +26,6 @@ interface ConsentData {
   timestamp: string;
   version: string;
 }
-
-const applyConsentToPostHog = (status: ConsentStatus): void => {
-  if (status === 'accepted') {
-    posthog.opt_in_capturing();
-    return;
-  }
-  posthog.opt_out_capturing();
-};
 
 export const getConsentStatus = (): ConsentData | null => {
   try {
@@ -282,7 +275,7 @@ export const CookieConsentBanner: React.FC = () => {
       {isMounted &&
         isVisible &&
         createPortal(
-          <div className="pointer-events-none fixed inset-x-0 bottom-3 z-[2147483647] flex justify-center px-3">
+          <div className="pointer-events-none fixed inset-x-0 bottom-3 flex justify-center px-3" style={{ zIndex: Z_INDEX.OVERLAY }}>
             <Card className="pointer-events-auto w-full max-w-[470px] border-border/80 bg-background/95 shadow-2xl backdrop-blur">
               <div className="space-y-2.5 p-3.5">
                 <div className="flex items-start gap-2.5">

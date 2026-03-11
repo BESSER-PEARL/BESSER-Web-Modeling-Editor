@@ -333,17 +333,20 @@ export class ProjectStorageRepository {
       // Remove project data
       const projectKey = `${localStorageProjectPrefix}${projectId}`;
       localStorage.removeItem(projectKey);
-      
+
       // Update projects list
       const projectsList = this.getProjectsList();
       const updatedList = projectsList.filter(id => id !== projectId);
       localStorage.setItem(localStorageProjectsList, JSON.stringify(updatedList));
-      
+
       // Clear latest project if it was deleted
       const latestProjectId = localStorage.getItem(localStorageLatestProject);
       if (latestProjectId === projectId) {
         localStorage.removeItem(localStorageLatestProject);
       }
+
+      // Clean up GitHub-related metadata for this project
+      this.cleanupGitHubMetadata(projectId);
 
       // Notify listeners (Redux sync, etc.)
       this.notifyChange();
@@ -353,6 +356,45 @@ export class ProjectStorageRepository {
       console.error('Error deleting project:', error);
       throw new Error('Failed to delete project');
     }
+  }
+
+  /**
+   * Remove orphaned GitHub metadata entries for a deleted project.
+   * Cleans up besser_github_linked_repos, besser_github_auto_commit,
+   * and besser_deploy_linked_ keys.
+   */
+  private static cleanupGitHubMetadata(projectId: string): void {
+    // Clean up linked repos entry
+    try {
+      const linkedReposRaw = localStorage.getItem('besser_github_linked_repos');
+      if (linkedReposRaw) {
+        const links = JSON.parse(linkedReposRaw);
+        if (links && typeof links === 'object' && projectId in links) {
+          delete links[projectId];
+          localStorage.setItem('besser_github_linked_repos', JSON.stringify(links));
+        }
+      }
+    } catch {
+      // If data is corrupt, remove the entire key to prevent further issues
+      localStorage.removeItem('besser_github_linked_repos');
+    }
+
+    // Clean up auto-commit settings entry
+    try {
+      const autoCommitRaw = localStorage.getItem('besser_github_auto_commit');
+      if (autoCommitRaw) {
+        const settings = JSON.parse(autoCommitRaw);
+        if (settings && typeof settings === 'object' && projectId in settings) {
+          delete settings[projectId];
+          localStorage.setItem('besser_github_auto_commit', JSON.stringify(settings));
+        }
+      }
+    } catch {
+      localStorage.removeItem('besser_github_auto_commit');
+    }
+
+    // Clean up deploy linked repo entry (per-project key)
+    localStorage.removeItem(`besser_deploy_linked_${projectId}`);
   }
   
   // Helper: Update projects list

@@ -78,7 +78,10 @@ export const useGitHubStorage = () => {
   const saveLinkedRepo = useCallback((projectId: string, link: LinkedRepository) => {
     try {
       const stored = localStorage.getItem(GITHUB_LINKED_REPOS_KEY);
-      const links = stored ? JSON.parse(stored) : {};
+      let links: Record<string, LinkedRepository> = {};
+      if (stored) {
+        try { links = JSON.parse(stored); } catch { links = {}; }
+      }
       links[projectId] = link;
       localStorage.setItem(GITHUB_LINKED_REPOS_KEY, JSON.stringify(links));
       setLinkedRepo(link);
@@ -94,7 +97,8 @@ export const useGitHubStorage = () => {
     try {
       const stored = localStorage.getItem(GITHUB_LINKED_REPOS_KEY);
       if (stored) {
-        const links = JSON.parse(stored);
+        let links: Record<string, unknown>;
+        try { links = JSON.parse(stored); } catch { links = {}; }
         delete links[projectId];
         localStorage.setItem(GITHUB_LINKED_REPOS_KEY, JSON.stringify(links));
       }

@@ -61,7 +61,10 @@ export const useAutoCommit = ({
 
         try {
             const stored = localStorage.getItem(AUTO_COMMIT_SETTINGS_KEY);
-            const allSettings = stored ? JSON.parse(stored) : {};
+            let allSettings: Record<string, AutoCommitSettings> = {};
+            if (stored) {
+                try { allSettings = JSON.parse(stored); } catch { allSettings = {}; }
+            }
             allSettings[projectId] = newSettings;
             localStorage.setItem(AUTO_COMMIT_SETTINGS_KEY, JSON.stringify(allSettings));
             setSettings(newSettings);

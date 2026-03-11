@@ -274,8 +274,8 @@ export const DiagramTabs: React.FC = () => {
                         : 'invisible text-slate-400 hover:bg-slate-200 hover:text-red-500 group-hover:visible dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-red-400',
                     ].join(' ')}
                     onClick={(e) => handleRemoveDiagram(e, index)}
-                    aria-label={`Close diagram ${diagram.title}`}
-                    title="Close diagram"
+                    aria-label={`Close tab ${diagram.title}`}
+                    title="Close tab"
                   >
                     <X className="h-3 w-3" />
                   </button>

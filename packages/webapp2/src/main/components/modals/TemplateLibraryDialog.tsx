@@ -17,6 +17,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   switchDiagramTypeThunk,
   updateQuantumDiagramThunk,
+  selectProject,
 } from '../../services/workspace/workspaceSlice';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { toSupportedDiagramType, getActiveDiagram } from '../../types/project';
@@ -85,7 +86,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
     [templates, selectedTemplateType],
   );
 
-  const currentProject = useAppSelector((state) => state.workspace.project);
+  const currentProject = useAppSelector(selectProject);
 
   const handleLoadTemplate = async () => {
     if (!selectedTemplate) {

@@ -295,7 +295,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
       >
         <div className="flex items-center p-2">
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" aria-label="Toggle reasoning details">
               <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
               <span>Thinking</span>
             </button>

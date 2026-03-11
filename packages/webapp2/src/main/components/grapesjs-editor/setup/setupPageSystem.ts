@@ -164,7 +164,7 @@ function createAndAppendPagesPanel(editor: Editor) {
       <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="Search pages..." />
     </div>
     <div class="gjs-pages-actions">
-      <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="Add new page">
+      <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="Add new page" aria-label="Add new page">
         <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
           <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
         </svg>
@@ -261,22 +261,22 @@ function updatePagesList(editor: Editor) {
           <span class="gjs-page-route">${pageRoute}</span>
         </div>
         <div class="gjs-page-actions">
-          <button class="gjs-page-btn route-page-btn" title="Edit URL route">
+          <button class="gjs-page-btn route-page-btn" title="Edit URL route" aria-label="Edit URL route">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C6.22,11.88 6.22,7.12 9.17,4.17C12.12,1.22 16.88,1.22 19.83,4.17C22.78,7.12 22.78,11.88 19.83,14.83C19.44,15.22 18.8,15.22 18.41,14.83C18,14.44 18,13.8 18.41,13.41C20.59,11.23 20.59,7.77 18.41,5.59C16.23,3.41 12.77,3.41 10.59,5.59C8.41,7.77 8.41,11.23 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C17.78,12.12 17.78,16.88 14.83,19.83C11.88,22.78 7.12,22.78 4.17,19.83C1.22,16.88 1.22,12.12 4.17,9.17C4.56,8.78 5.2,8.78 5.59,9.17C6,9.56 6,10.2 5.59,10.59C3.41,12.77 3.41,16.23 5.59,18.41C7.77,20.59 11.23,20.59 13.41,18.41C15.59,16.23 15.59,12.77 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn rename-page-btn" title="Rename page">
+          <button class="gjs-page-btn rename-page-btn" title="Rename page" aria-label="Rename page">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn duplicate-page-btn" title="Duplicate page">
+          <button class="gjs-page-btn duplicate-page-btn" title="Duplicate page" aria-label="Duplicate page">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn delete-page-btn" title="Delete page">
+          <button class="gjs-page-btn delete-page-btn" title="Delete page" aria-label="Delete page">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
             </svg>

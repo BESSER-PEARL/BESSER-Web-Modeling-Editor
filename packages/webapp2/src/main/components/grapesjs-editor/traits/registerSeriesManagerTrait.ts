@@ -1,5 +1,6 @@
 
 import './seriesManagerPanel.css';
+import { Z_INDEX } from '../../../constants/z-index';
 import {
   getAttributeOptionsByClassId,
   getClassOptions,
@@ -385,7 +386,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
               closePopover();
               popover = document.createElement('div');
               popover.style.position = 'absolute';
-              popover.style.zIndex = '1000';
+              popover.style.zIndex = String(Z_INDEX.DROPDOWN);
               popover.style.bottom = '38px';
               popover.style.background = '#fff';
               popover.style.border = '1.5px solid #3182ce';

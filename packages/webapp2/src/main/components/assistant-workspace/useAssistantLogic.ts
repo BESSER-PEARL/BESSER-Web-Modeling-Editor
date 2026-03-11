@@ -13,7 +13,7 @@ import { AssistantClient, type AssistantActionPayload, type InjectionCommand } f
 import { UML_BOT_WS_URL } from '../../constant';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useProject } from '../../hooks/useProject';
-import { updateDiagramModelThunk } from '../../services/workspace/workspaceSlice';
+import { updateDiagramModelThunk, selectActiveDiagram } from '../../services/workspace/workspaceSlice';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import {
   UMLModelingService,
@@ -154,7 +154,7 @@ export function useAssistantLogic({
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
   const { editor } = useContext(ApollonEditorContext);
-  const activeDiagram = useAppSelector((state) => state.workspace.activeDiagram);
+  const activeDiagram = useAppSelector(selectActiveDiagram);
   const { currentProject, currentDiagramType } = useProject();
 
   /* ---- stable refs for callbacks ---- */

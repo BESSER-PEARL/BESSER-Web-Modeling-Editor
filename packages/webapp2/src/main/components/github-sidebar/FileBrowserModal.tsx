@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { GitHubContentItem } from '../../services/github/useGitHubStorage';
+import { notifyError } from '../../utils/notifyError';
 
 interface FileBrowserModalProps {
   show: boolean;
@@ -66,13 +67,13 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
 
     setCurrentPath(initialPath);
     setSelectedItem(null);
-    loadContents(initialPath).catch(console.error);
+    loadContents(initialPath).catch(notifyError('Loading directory contents'));
   }, [show, initialPath]);
 
   const openPath = (path: string) => {
     setCurrentPath(path);
     setSelectedItem(null);
-    loadContents(path).catch(console.error);
+    loadContents(path).catch(notifyError('Loading directory contents'));
   };
 
   const handleItemClick = (item: GitHubContentItem) => {

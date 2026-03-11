@@ -631,6 +631,7 @@ export const workspaceReducer = workspaceSlice.reducer;
 
 // ── Selectors ──────────────────────────────────────────────────────────
 
+// Base selectors (direct state access — no memoization needed for primitives/references)
 export const selectProject = (state: { workspace: WorkspaceState }) => state.workspace.project;
 export const selectActiveDiagram = (state: { workspace: WorkspaceState }) => state.workspace.activeDiagram;
 export const selectActiveDiagramType = (state: { workspace: WorkspaceState }) => state.workspace.activeDiagramType;
@@ -640,21 +641,68 @@ export const selectEditorRevision = (state: { workspace: WorkspaceState }) => st
 export const selectWorkspaceLoading = (state: { workspace: WorkspaceState }) => state.workspace.loading;
 export const selectWorkspaceError = (state: { workspace: WorkspaceState }) => state.workspace.error;
 
-export const selectUMLDiagramType = (state: { workspace: WorkspaceState }) =>
-  toUMLDiagramType(state.workspace.activeDiagramType) ?? UMLDiagramType.ClassDiagram;
+// Derived selectors (memoized to avoid unnecessary re-renders)
 
 const EMPTY_DIAGRAMS: ProjectDiagram[] = [];
+
+export const selectProjectId = createSelector(selectProject, (project) => project?.id);
+
+export const selectDiagrams = createSelector(
+  selectProject,
+  (project) => project?.diagrams,
+);
+
+export const selectClassDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.ClassDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectObjectDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.ObjectDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectStateMachineDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.StateMachineDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectAgentDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.AgentDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectGUIDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.GUINoCodeDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectQuantumCircuitDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.QuantumCircuitDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectUMLDiagramType = createSelector(
+  selectActiveDiagramType,
+  (activeDiagramType) => toUMLDiagramType(activeDiagramType) ?? UMLDiagramType.ClassDiagram,
+);
+
 export const selectDiagramsForActiveType = createSelector(
-  [(state: { workspace: WorkspaceState }) => state.workspace.project?.diagrams,
-   (state: { workspace: WorkspaceState }) => state.workspace.activeDiagramType],
+  [selectDiagrams, selectActiveDiagramType],
   (diagrams, activeDiagramType) => diagrams?.[activeDiagramType] ?? EMPTY_DIAGRAMS,
 );
 
-export const selectIsUMLEditor = (state: { workspace: WorkspaceState }) =>
-  toUMLDiagramType(state.workspace.activeDiagramType) !== null;
+export const selectIsUMLEditor = createSelector(
+  selectActiveDiagramType,
+  (activeDiagramType) => toUMLDiagramType(activeDiagramType) !== null,
+);
 
-export const selectIsGUIEditor = (state: { workspace: WorkspaceState }) =>
-  state.workspace.activeDiagramType === 'GUINoCodeDiagram';
+export const selectIsGUIEditor = createSelector(
+  selectActiveDiagramType,
+  (activeDiagramType) => activeDiagramType === 'GUINoCodeDiagram',
+);
 
-export const selectIsQuantumEditor = (state: { workspace: WorkspaceState }) =>
-  state.workspace.activeDiagramType === 'QuantumCircuitDiagram';
+export const selectIsQuantumEditor = createSelector(
+  selectActiveDiagramType,
+  (activeDiagramType) => activeDiagramType === 'QuantumCircuitDiagram',
+);

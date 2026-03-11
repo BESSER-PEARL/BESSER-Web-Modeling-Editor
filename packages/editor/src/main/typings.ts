@@ -161,6 +161,7 @@ export interface UMLReply extends UMLElement {
 
 export type UMLStateTransition = UMLRelationship & {
   params?: string | string[];
+  guard?: string;
 };
 
 export type AgentStateTransition = UMLRelationship & {

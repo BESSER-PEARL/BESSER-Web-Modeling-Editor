@@ -116,9 +116,9 @@ export const ProjectSettingsPanel: React.FC = () => {
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <Card className="border-[#397C95]/10 dark:border-[#5BB8D4]/10">
+        <Card className="border-brand/10">
           <CardHeader>
-            <CardTitle className="text-[#397C95] dark:text-[#5BB8D4]">Project Settings</CardTitle>
+            <CardTitle className="text-brand">Project Settings</CardTitle>
             <CardDescription>Update metadata, inspect diagrams and manage export for the active project.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -149,10 +149,10 @@ export const ProjectSettingsPanel: React.FC = () => {
             <Separator />
 
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#397C95] dark:text-[#5BB8D4]">Diagrams</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand">Diagrams</h3>
               <div className="grid gap-3">
                 {diagrams.map(({ type, diagram, index }) => (
-                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#397C95]/10 bg-[#397C95]/[0.02] p-3 dark:border-[#5BB8D4]/10 dark:bg-[#5BB8D4]/[0.02]">
+                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#397C95]/10 bg-brand/[0.02] p-3">
                     <div>
                       <p className="text-sm font-medium">{diagram.title}</p>
                       <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
@@ -177,7 +177,7 @@ export const ProjectSettingsPanel: React.FC = () => {
             </div>
 
             <div className="space-y-3 rounded-lg border border-[#397C95]/10 bg-[#397C95]/[0.02] p-4 dark:border-[#5BB8D4]/10 dark:bg-[#5BB8D4]/[0.02]">
-              <h3 className="text-sm font-semibold text-[#397C95] dark:text-[#5BB8D4]">Display Settings</h3>
+              <h3 className="text-sm font-semibold text-brand">Display Settings</h3>
               <label className="flex items-start justify-between gap-4 text-sm">
                 <div>
                   <p className="font-medium">Show Instanced Objects</p>
@@ -185,7 +185,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </div>
                 <input
                   type="checkbox"
-                  className="accent-[#397C95] dark:accent-[#5BB8D4]"
+                  className="accent-brand"
                   checked={showInstancedObjects}
                   onChange={(event) => {
                     setShowInstancedObjects(event.target.checked);
@@ -201,7 +201,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </div>
                 <input
                   type="checkbox"
-                  className="accent-[#397C95] dark:accent-[#5BB8D4]"
+                  className="accent-brand"
                   checked={showAssociationNames}
                   onChange={(event) => {
                     setShowAssociationNames(event.target.checked);
@@ -213,7 +213,7 @@ export const ProjectSettingsPanel: React.FC = () => {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={handleExportProject} disabled={isExporting} className="gap-2 bg-[#397C95] text-white hover:bg-[#2C6A82] dark:bg-[#5BB8D4] dark:text-slate-900 dark:hover:bg-[#4AA8C4]">
+              <Button onClick={handleExportProject} disabled={isExporting} className="gap-2 bg-brand text-brand-foreground hover:bg-brand-dark">
                 <Download className="h-4 w-4" />
                 {isExporting ? 'Exporting...' : 'Export Project'}
               </Button>

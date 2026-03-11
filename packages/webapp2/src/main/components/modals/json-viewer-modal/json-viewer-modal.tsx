@@ -4,6 +4,7 @@ import hljs from 'highlight.js/lib/core';
 import jsonLang from 'highlight.js/lib/languages/json';
 import pythonLang from 'highlight.js/lib/languages/python';
 import { cn } from '@/lib/utils';
+import { Z_INDEX } from '../../../constants/z-index';
 import './json-viewer-modal.css';
 
 if (!hljs.getLanguage('json')) {
@@ -293,7 +294,8 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
 
   return createPortal(
     <div
-      className="jvm-overlay fixed inset-0 flex items-center justify-center z-[99999] p-5"
+      className="jvm-overlay fixed inset-0 flex items-center justify-center p-5"
+      style={{ zIndex: Z_INDEX.MODAL }}
       onClick={onClose}
     >
       <div

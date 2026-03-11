@@ -24,6 +24,7 @@ import type { SupportedDiagramType } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
 import { useAssistantLogic, type ConnectionStatus } from './useAssistantLogic';
+import { Z_INDEX } from '../../constants/z-index';
 
 /* ------------------------------------------------------------------ */
 /*  Constants & helpers                                                */
@@ -147,7 +148,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   return (
     <>
       {/* ── Floating widget container ── */}
-      <div className="fixed bottom-5 right-4 z-[1000] md:right-16">
+      <div className="fixed bottom-5 right-4 md:right-16" style={{ zIndex: Z_INDEX.NOTIFICATION }}>
         {/* ── Chat card ── */}
         <Card
           className={cn(

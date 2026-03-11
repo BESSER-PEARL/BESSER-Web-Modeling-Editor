@@ -2,10 +2,11 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { Menu, X } from 'lucide-react';
 import { useProject } from '../../hooks/useProject';
 import { toUMLDiagramType, type SupportedDiagramType } from '../../types/project';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateDiagramModelThunk, switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
+import { updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } from '../../services/workspace/workspaceSlice';
 import { useGitHubAuth } from '../../services/github/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../utils/theme-switcher';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
@@ -57,6 +58,7 @@ const KeyboardShortcutsDialog = React.lazy(() =>
 
 // The keyboard toggle hook must be imported eagerly (it registers a global listener).
 import { useKeyboardShortcutsToggle } from '../modals/KeyboardShortcutsDialog';
+import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../command-palette/CommandPalette';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -97,7 +99,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const diagram = useAppSelector((state) => state.workspace.activeDiagram);
+  const diagram = useAppSelector(selectActiveDiagram);
   const { currentProject, currentDiagramType, switchDiagramType, updateProject } = useProject();
   const {
     isAuthenticated,
@@ -111,6 +113,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   // Local UI state
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
@@ -194,11 +197,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setIsFeedbackDialogOpen,
     isKeyboardShortcutsOpen,
     setIsKeyboardShortcutsOpen,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
   } = useDialogStates();
 
   // Global keyboard shortcut listener: ? or Ctrl+/ opens the shortcuts overlay
   const openKeyboardShortcuts = useCallback(() => setIsKeyboardShortcutsOpen(true), [setIsKeyboardShortcutsOpen]);
   useKeyboardShortcutsToggle(openKeyboardShortcuts);
+
+  // Global keyboard shortcut listener: Ctrl+K / Cmd+K opens the command palette
+  const openCommandPalette = useCallback(() => setIsCommandPaletteOpen(true), [setIsCommandPaletteOpen]);
+  useCommandPaletteShortcut(openCommandPalette);
 
   // Refs to avoid stale closures in event listeners
   const currentProjectRef = useRef(currentProject);
@@ -285,6 +294,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     ? 'text-xs font-semibold text-slate-200'
     : 'text-xs font-semibold text-slate-700';
 
+  // Mobile drawer sidebar uses the same styles but is always flex (never hidden)
+  const mobileSidebarBaseClass = isDarkTheme
+    ? 'flex shrink-0 flex-col gap-1.5 border-r border-slate-700/70 bg-slate-950/65 p-2.5 backdrop-blur-sm'
+    : 'flex shrink-0 flex-col gap-1.5 border-r border-slate-200/70 bg-white/65 p-2.5 backdrop-blur-sm';
+
+  const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
+
   const handleNavigate = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);
@@ -306,6 +322,22 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
     switchDiagramType(type);
   }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType]);
+
+  // Wrappers that close mobile drawer after navigating
+  const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
+    handleSwitchUml(type);
+    setIsMobileDrawerOpen(false);
+  }, [handleSwitchUml]);
+
+  const handleMobileSwitchDiagramType = useCallback((type: SupportedDiagramType) => {
+    handleSwitchDiagramType(type);
+    setIsMobileDrawerOpen(false);
+  }, [handleSwitchDiagramType]);
+
+  const handleMobileNavigate = useCallback((path: string) => {
+    handleNavigate(path);
+    setIsMobileDrawerOpen(false);
+  }, [handleNavigate]);
 
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
     // Navigate to editor view if on a different page
@@ -380,6 +412,24 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
   };
 
+  // Command palette actions
+  const commandPaletteActions = useMemo(
+    () =>
+      buildDefaultActions({
+        onSwitchToClassDiagram: () => handleSwitchUml(UMLDiagramType.ClassDiagram),
+        onSwitchToStateMachine: () => handleSwitchUml(UMLDiagramType.StateMachineDiagram),
+        onSwitchToObjectDiagram: () => handleSwitchUml(UMLDiagramType.ObjectDiagram),
+        onSwitchToGUIEditor: () => handleSwitchDiagramType('GUINoCodeDiagram'),
+        onSwitchToAgentDiagram: () => handleSwitchUml(UMLDiagramType.AgentDiagram),
+        onSwitchToQuantumCircuit: () => handleSwitchDiagramType('QuantumCircuitDiagram'),
+        onGoToSettings: () => handleNavigate('/project-settings'),
+        onExportJSON: () => onExportProject(),
+        onExportBUML: () => onExportProject(),
+        onQualityCheck,
+      }),
+    [handleSwitchUml, handleSwitchDiagramType, handleNavigate, onExportProject, onQualityCheck],
+  );
+
   return (
     <div className={`flex h-screen flex-col overflow-hidden ${shellBackgroundClass}`}>
       <WorkspaceTopBar
@@ -433,6 +483,67 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onDiagramTitleDraftChange={setDiagramTitleDraft}
         onDiagramRename={handleDiagramRename}
       />
+
+      {/* Mobile hamburger button - visible only below md breakpoint */}
+      <button
+        type="button"
+        className="md:hidden fixed top-2 left-2 z-50 p-2 rounded-lg bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700"
+        onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
+        aria-label={isMobileDrawerOpen ? 'Close navigation' : 'Open navigation'}
+      >
+        {isMobileDrawerOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Mobile slide-in drawer overlay */}
+      <div
+        className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
+          isMobileDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={closeMobileDrawer}
+          aria-hidden="true"
+        />
+        {/* Drawer panel */}
+        <div
+          className={`relative h-full w-64 shadow-xl overflow-y-auto transition-transform duration-300 ${
+            isMobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+          } ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}
+        >
+          {/* Close button inside drawer */}
+          <div className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}>
+            <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>Navigation</span>
+            <button
+              type="button"
+              className={`p-1 rounded ${isDarkTheme ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+              onClick={closeMobileDrawer}
+              aria-label="Close navigation"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          {/* Sidebar content rendered expanded for mobile */}
+          <WorkspaceSidebar
+            isDarkTheme={isDarkTheme}
+            isSidebarExpanded={true}
+            sidebarBaseClass={mobileSidebarBaseClass}
+            sidebarTitleClass={sidebarTitleClass}
+            sidebarDividerClass={sidebarDividerClass}
+            sidebarToggleClass={sidebarToggleClass}
+            sidebarToggleTextClass={sidebarToggleTextClass}
+            locationPath={location.pathname}
+            activeUmlType={activeUmlType}
+            activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
+            project={currentProject}
+            onSwitchUml={handleMobileSwitchUml}
+            onSwitchDiagramType={handleMobileSwitchDiagramType}
+            onNavigate={handleMobileNavigate}
+            onToggleExpanded={closeMobileDrawer}
+          />
+        </div>
+      </div>
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <WorkspaceSidebar
@@ -551,6 +662,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenChange={setIsAboutDialogOpen}
         onOpenWmeRepository={() => openExternalUrl(besserWMERepositoryLink)}
         onOpenLibraryRepository={() => openExternalUrl(besserLibraryRepositoryLink)}
+      />
+
+      <CommandPalette
+        open={isCommandPaletteOpen}
+        onOpenChange={setIsCommandPaletteOpen}
+        actions={commandPaletteActions}
       />
     </div>
   );

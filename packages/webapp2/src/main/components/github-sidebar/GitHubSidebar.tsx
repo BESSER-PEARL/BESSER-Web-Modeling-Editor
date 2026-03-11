@@ -46,6 +46,7 @@ import { toast } from 'react-toastify';
 import { FileBrowserModal } from './FileBrowserModal';
 import { CommitDialog, CreateGistDialog, CreateRepositoryDialog, RestoreVersionDialog } from './dialogs';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
+import { notifyError } from '../../utils/notifyError';
 import { BesserProject } from '../../types/project';
 
 interface GitHubSidebarProps {
@@ -239,13 +240,13 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
   useEffect(() => {
     if (showLinkModal && isAuthenticated && githubSession) {
-      fetchRepositories(githubSession).catch(console.error);
+      fetchRepositories(githubSession).catch(notifyError('Fetching repositories'));
     }
   }, [showLinkModal, isAuthenticated, githubSession, fetchRepositories]);
 
   useEffect(() => {
     if (isOpen && linkedRepo && isAuthenticated && githubSession) {
-      fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath).catch(console.error);
+      fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath).catch(notifyError('Fetching commits'));
     }
   }, [isOpen, linkedRepo, isAuthenticated, githubSession, fetchCommits]);
 
@@ -270,7 +271,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       }
     };
 
-    checkChanges().catch(console.error);
+    checkChanges().catch(notifyError('Checking for changes'));
   }, [isOpen, linkedRepo, isAuthenticated, githubSession, currentProject, checkForChanges]);
 
   useEffect(() => {
@@ -809,11 +810,11 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" className="gap-1" onClick={() => { handleSave().catch(console.error); }} disabled={isLoading}>
+            <Button size="sm" className="gap-1" onClick={() => { handleSave().catch(notifyError('GitHub push')); }} disabled={isLoading}>
               <CloudUpload className="h-3.5 w-3.5" />
               Push
             </Button>
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => { handleLoad().catch(console.error); }} disabled={isLoading}>
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => { handleLoad().catch(notifyError('GitHub pull')); }} disabled={isLoading}>
               <CloudDownload className="h-3.5 w-3.5" />
               Pull
             </Button>
@@ -1034,7 +1035,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                     <li key={repo.id}>
                       <button
                         type="button"
-                        onClick={() => { handleSelectRepo(repo).catch(console.error); }}
+                        onClick={() => { handleSelectRepo(repo).catch(notifyError('Selecting repository')); }}
                         className="w-full px-3 py-2.5 text-left hover:bg-muted/40"
                       >
                         <div className="flex items-center gap-2 text-sm font-medium">
@@ -1122,7 +1123,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { handleCheckFileExists().catch(console.error); }}
+                  onClick={() => { handleCheckFileExists().catch(notifyError('Checking file existence')); }}
                   disabled={isCheckingFile || !linkFileName}
                 >
                   {isCheckingFile ? spinner : 'Check if file exists'}
@@ -1132,11 +1133,11 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                   <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                     <p>File already exists in repository. Choose how to proceed:</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink().catch(console.error); }} className="gap-1">
+                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink().catch(notifyError('Linking repository')); }} className="gap-1">
                         <CloudDownload className="h-4 w-4" />
                         Load & link (recommended)
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink(true).catch(console.error); }}>
+                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink(true).catch(notifyError('Linking repository')); }}>
                         Link without loading (may overwrite)
                       </Button>
                     </div>
@@ -1157,7 +1158,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               Cancel
             </Button>
             {linkStep === 'configure' && (
-              <Button onClick={() => { handleConfirmLink().catch(console.error); }} disabled={!linkFileName}>
+              <Button onClick={() => { handleConfirmLink().catch(notifyError('Linking repository')); }} disabled={!linkFileName}>
                 {fileExists ? 'Load & Link' : 'Link Repository'}
               </Button>
             )}
@@ -1189,7 +1190,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         onRepoPrivateChange={setIsRepoPrivate}
         onFileNameChange={(value) => setCreateFileName(value.replace(/\s+/g, '_'))}
         onFolderPathChange={setCreateFolderPath}
-        onCreate={() => { handleCreateRepo().catch(console.error); }}
+        onCreate={() => { handleCreateRepo().catch(notifyError('Creating repository')); }}
       />
 
       <CommitDialog
@@ -1198,7 +1199,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         message={commitMessage}
         onOpenChange={setShowCommitModal}
         onMessageChange={setCommitMessage}
-        onCommit={() => { handleConfirmSave().catch(console.error); }}
+        onCommit={() => { handleConfirmSave().catch(notifyError('Committing to GitHub')); }}
       />
 
       <RestoreVersionDialog
@@ -1212,7 +1213,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             setSelectedCommit(null);
           }
         }}
-        onRestore={() => { handleRestoreCommit().catch(console.error); }}
+        onRestore={() => { handleRestoreCommit().catch(notifyError('Restoring commit')); }}
       />
 
       <CreateGistDialog
@@ -1223,7 +1224,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         onOpenChange={setShowGistModal}
         onDescriptionChange={setGistDescription}
         onPublicChange={setIsGistPublic}
-        onCreate={() => { handleCreateGist().catch(console.error); }}
+        onCreate={() => { handleCreateGist().catch(notifyError('Creating gist')); }}
       />
     </>
   );

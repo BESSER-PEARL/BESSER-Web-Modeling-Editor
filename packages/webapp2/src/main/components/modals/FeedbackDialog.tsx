@@ -37,8 +37,8 @@ const satisfactionOptions: Array<{ value: Satisfaction; label: string; helper: s
 
 const buttonClass = (selected: boolean): string =>
   selected
-    ? 'border-[#397C95]/30 bg-[#397C95]/10 text-foreground dark:border-[#5BB8D4]/30 dark:bg-[#397C95]/20'
-    : 'border-border/70 bg-background text-muted-foreground hover:border-[#397C95]/40 hover:text-foreground dark:hover:border-[#5BB8D4]/40';
+    ? 'border-brand/30 bg-brand/10 text-foreground'
+    : 'border-border/70 bg-background text-muted-foreground hover:border-brand/40 hover:text-foreground';
 
 export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChange }) => {
   const [satisfaction, setSatisfaction] = useState<Satisfaction | null>(null);
@@ -137,11 +137,11 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
                   onClick={() => setSatisfaction(option.value)}
                   className={`group relative overflow-hidden rounded-xl border px-4 py-4 text-left transition-all duration-200 ${
                     satisfaction === option.value
-                      ? 'border-[#397C95]/40 bg-[#397C95]/[0.06] shadow-elevation-1 ring-1 ring-[#397C95]/15 dark:border-[#5BB8D4]/40 dark:bg-[#397C95]/[0.06] dark:ring-[#5BB8D4]/15'
-                      : 'border-border/50 bg-background text-muted-foreground hover:-translate-y-px hover:border-[#397C95]/25 hover:shadow-elevation-1 dark:hover:border-[#5BB8D4]/25'
+                      ? 'border-brand/40 bg-brand/[0.06] shadow-elevation-1 ring-1 ring-brand/15'
+                      : 'border-border/50 bg-background text-muted-foreground hover:-translate-y-px hover:border-brand/25 hover:shadow-elevation-1'
                   }`}
                 >
-                  <div className="pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-full bg-[#397C95]/[0.04] transition-transform duration-300 group-hover:scale-[2] dark:bg-[#5BB8D4]/[0.04]" />
+                  <div className="pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-full bg-brand/[0.04] transition-transform duration-300 group-hover:scale-[2]" />
                   <p className="relative text-sm font-semibold tracking-tight text-foreground">{option.label}</p>
                   <p className="relative mt-1 text-xs opacity-70">{option.helper}</p>
                 </button>
@@ -155,7 +155,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
               id="feedback-category"
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm transition-colors focus:border-[#397C95] focus:outline-none focus:ring-2 focus:ring-[#397C95]/20 dark:focus:border-[#5BB8D4] dark:focus:ring-[#5BB8D4]/20"
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
             >
               {categories.map((option) => (
                 <option key={option.value || 'none'} value={option.value}>
@@ -193,7 +193,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting} className="rounded-lg">
             Cancel
           </Button>
-          <Button onClick={() => void handleSubmit()} disabled={!canSubmit} className="rounded-lg bg-[#397C95] text-white shadow-elevation-1 transition-shadow hover:bg-[#2C6A82] hover:shadow-elevation-2">
+          <Button onClick={() => void handleSubmit()} disabled={!canSubmit} className="rounded-lg bg-brand text-brand-foreground shadow-elevation-1 transition-shadow hover:bg-brand-dark hover:shadow-elevation-2">
             {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
           </Button>
         </DialogFooter>

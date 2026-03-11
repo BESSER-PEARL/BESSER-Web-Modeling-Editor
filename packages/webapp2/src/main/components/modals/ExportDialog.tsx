@@ -14,6 +14,7 @@ import { useExportJSON } from '../../services/export/useExportJson';
 import { exportProjectById } from '../../services/export/useExportProjectJSON';
 import { exportProjectAsSingleBUMLFile } from '../../services/export/useExportProjectBUML';
 import { useAppSelector } from '../../store/hooks';
+import { selectActiveDiagram } from '../../services/workspace/workspaceSlice';
 
 interface ExportDialogProps {
   open: boolean;
@@ -37,7 +38,7 @@ const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
 
 export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, editor, currentDiagramTitle }) => {
   const { currentProject } = useProject();
-  const diagram = useAppSelector((state) => state.workspace.activeDiagram);
+  const diagram = useAppSelector(selectActiveDiagram);
   const exportAsSVG = useExportSVG();
   const exportAsPNG = useExportPNG();
   const exportAsBUML = useExportBUML();

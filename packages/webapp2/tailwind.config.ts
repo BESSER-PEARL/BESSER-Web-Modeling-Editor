@@ -42,6 +42,12 @@ const config: Config = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+  			brand: {
+  				DEFAULT: 'hsl(var(--brand))',
+  				light: 'hsl(var(--brand-light))',
+  				dark: 'hsl(var(--brand-dark))',
+  				foreground: 'hsl(var(--brand-foreground))'
+  			},
   			shiki: {
   				light: 'var(--shiki-light)',
   				'light-bg': 'var(--shiki-light-bg)',

@@ -518,6 +518,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                       onClick={() =>
                         onSelectedAgentLanguagesChange(selectedAgentLanguages.filter((entry) => entry !== language))
                       }
+                      aria-label={`Remove ${language} language`}
                     >
                       {language.charAt(0).toUpperCase() + language.slice(1)} ✕
                     </button>
