@@ -34,14 +34,15 @@ export const registerMapComponent = (editor: any, config: MapConfig) => {
         const latitude = parseFloat(this.get('map-latitude')) || config.defaultLatitude;
         const longitude = parseFloat(this.get('map-longitude')) || config.defaultLongitude;
         const zoom = parseInt(this.get('map-zoom')) || 12;
-        
+
         const view = this.getView();
         if (view && view.el) {
           const container = view.el;
-          container.innerHTML = '';
-          
-          const root = ReactDOM.createRoot(container);
-          root.render(
+          if (!view.__reactRoot) {
+            container.innerHTML = '';
+            view.__reactRoot = ReactDOM.createRoot(container);
+          }
+          view.__reactRoot.render(
             React.createElement(config.component, {
               title,
               latitude,
@@ -58,9 +59,11 @@ export const registerMapComponent = (editor: any, config: MapConfig) => {
         const latitude = parseFloat(model.get('map-latitude')) || config.defaultLatitude;
         const longitude = parseFloat(model.get('map-longitude')) || config.defaultLongitude;
         const zoom = parseInt(model.get('map-zoom')) || 12;
-        
-        const root = ReactDOM.createRoot(el);
-        root.render(
+
+        if (!(this as any).__reactRoot) {
+          (this as any).__reactRoot = ReactDOM.createRoot(el);
+        }
+        (this as any).__reactRoot.render(
           React.createElement(config.component, {
             title,
             latitude,
@@ -68,6 +71,12 @@ export const registerMapComponent = (editor: any, config: MapConfig) => {
             zoom,
           })
         );
+      },
+      removed() {
+        if ((this as any).__reactRoot) {
+          (this as any).__reactRoot.unmount();
+          (this as any).__reactRoot = null;
+        }
       },
     },
     isComponent: (el: any) => {

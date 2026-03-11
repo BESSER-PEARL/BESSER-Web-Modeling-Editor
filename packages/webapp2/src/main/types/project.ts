@@ -3,7 +3,7 @@ import { UMLDiagramType, UMLModel } from '@besser/wme';
 export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 2;
+export const PROJECT_SCHEMA_VERSION = 3;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram',
@@ -35,9 +35,12 @@ export interface ProjectDiagram {
   lastUpdate: string;
   description?: string;
   config?: Record<string, unknown>;  // agent LLM/platform/IC config
+  /** Per-diagram cross-references: maps a diagram type to the ID of the diagram this depends on.
+   *  E.g. a GUINoCodeDiagram may reference a specific ClassDiagram and AgentDiagram by their UUID. */
+  references?: Partial<Record<SupportedDiagramType, string>>;
 }
 
-export type ProjectDiagramModel = UMLModel | GrapesJSProjectData;
+export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData;
 
 // New centralized project structure
 export interface BesserProject {
@@ -66,10 +69,40 @@ export interface BesserProject {
 }
 
 // Helper to get the active diagram for a type
-export const getActiveDiagram = (project: BesserProject, type: SupportedDiagramType): ProjectDiagram => {
-  const index = project.currentDiagramIndices[type] ?? 0;
+export const getActiveDiagram = (project: BesserProject, type: SupportedDiagramType): ProjectDiagram | undefined => {
   const diagrams = project.diagrams[type];
+  if (!diagrams || diagrams.length === 0) return undefined;
+  const index = project.currentDiagramIndices[type] ?? 0;
   return diagrams[index] ?? diagrams[0];
+};
+
+/**
+ * Get a diagram that another diagram references.
+ * Reads `fromDiagram.references[refType]` (a diagram ID), falls back to
+ * `currentDiagramIndices[refType]` (index-based).
+ *
+ * Example: `getReferencedDiagram(project, activeGUI, 'ClassDiagram')` returns the
+ * ClassDiagram that this specific GUI diagram is linked to.
+ */
+export const getReferencedDiagram = (
+  project: BesserProject,
+  fromDiagram: ProjectDiagram | undefined,
+  refType: SupportedDiagramType,
+): ProjectDiagram | undefined => {
+  const diagrams = project.diagrams[refType];
+  if (!diagrams || diagrams.length === 0) return undefined;
+
+  // Look up by ID (stable across deletions/reordering)
+  const refId = fromDiagram?.references?.[refType];
+  if (refId) {
+    const found = diagrams.find(d => d.id === refId);
+    if (found) return found;
+    // Referenced diagram was deleted — fall through to default
+  }
+
+  // Fallback: use global active index
+  const fallbackIndex = project.currentDiagramIndices[refType] ?? 0;
+  return diagrams[Math.min(fallbackIndex, diagrams.length - 1)];
 };
 
 // Default indices (all zeros)
@@ -84,12 +117,12 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
 
 // Migrate v1 project (single diagram per type) to v2 (array per type)
 export const migrateProjectToV2 = (project: any): BesserProject => {
-  if (project.schemaVersion >= PROJECT_SCHEMA_VERSION) {
+  if (project.schemaVersion >= 2) {
     return project as BesserProject;
   }
 
   const migrated = { ...project };
-  migrated.schemaVersion = PROJECT_SCHEMA_VERSION;
+  migrated.schemaVersion = 2;
   migrated.currentDiagramIndices = project.currentDiagramIndices ?? defaultDiagramIndices();
 
   // Wrap each single diagram in an array if not already
@@ -305,7 +338,7 @@ export const createDefaultProject = (
   };
 };
 
-// Type guards
+// Type guard — pure check, no mutation
 export const isProject = (obj: any): obj is BesserProject => {
   if (!obj || typeof obj !== 'object' || obj.type !== 'Project') {
     return false;
@@ -315,7 +348,6 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
-  // Check for required diagram types (QuantumCircuitDiagram is optional for backward compatibility)
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
@@ -323,22 +355,90 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.AgentDiagram &&
     obj.diagrams.GUINoCodeDiagram;
 
-  if (!hasRequiredDiagrams) {
-    return false;
-  }
+  return !!hasRequiredDiagrams;
+};
 
-  // Add QuantumCircuitDiagram if missing (for backward compatibility with older projects)
+// Migrate/normalize a project object (called after isProject check, mutates in place)
+export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
+  // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
   }
 
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)
-  if (!obj.schemaVersion || obj.schemaVersion < PROJECT_SCHEMA_VERSION) {
-    const migrated = migrateProjectToV2(obj);
-    Object.assign(obj, migrated);
+  if (!obj.schemaVersion || obj.schemaVersion < 2) {
+    obj = migrateProjectToV2(obj);
   }
 
-  return true;
+  // Migrate v2 → v3: convert index-based references to ID-based and populate defaults
+  if (!obj.schemaVersion || obj.schemaVersion < 3) {
+    obj = migrateReferencesToIds(obj);
+  }
+
+  return obj;
+};
+
+/**
+ * Migrate v2 → v3: convert old index-based `references` (numbers) to ID-based (strings),
+ * and populate default references on diagrams that should have them.
+ */
+const migrateReferencesToIds = (project: BesserProject): BesserProject => {
+  const indices = project.currentDiagramIndices ?? defaultDiagramIndices();
+
+  // Types that should have cross-references to ClassDiagram
+  const classRefTypes: SupportedDiagramType[] = ['GUINoCodeDiagram', 'ObjectDiagram'];
+  // GUI also references AgentDiagram
+  const agentRefTypes: SupportedDiagramType[] = ['GUINoCodeDiagram'];
+
+  for (const diagramType of ALL_DIAGRAM_TYPES) {
+    const diagrams = project.diagrams[diagramType];
+    if (!diagrams) continue;
+
+    for (const diagram of diagrams) {
+      // Convert any existing numeric references to IDs
+      if (diagram.references) {
+        const converted: Partial<Record<SupportedDiagramType, string>> = {};
+        for (const [refType, refValue] of Object.entries(diagram.references)) {
+          const targetType = refType as SupportedDiagramType;
+          if (typeof refValue === 'number') {
+            // Old index-based reference — resolve to ID
+            const targetDiagrams = project.diagrams[targetType];
+            if (targetDiagrams && targetDiagrams.length > 0) {
+              const safeIdx = Math.min(refValue, targetDiagrams.length - 1);
+              converted[targetType] = targetDiagrams[safeIdx].id;
+            }
+          } else if (typeof refValue === 'string') {
+            // Already ID-based
+            converted[targetType] = refValue;
+          }
+        }
+        diagram.references = converted;
+      }
+
+      // Populate default ClassDiagram reference if missing
+      if (classRefTypes.includes(diagramType) && !diagram.references?.ClassDiagram) {
+        const classDiagrams = project.diagrams.ClassDiagram;
+        if (classDiagrams && classDiagrams.length > 0) {
+          const classIdx = indices.ClassDiagram ?? 0;
+          const safeIdx = Math.min(classIdx, classDiagrams.length - 1);
+          diagram.references = { ...diagram.references, ClassDiagram: classDiagrams[safeIdx].id };
+        }
+      }
+
+      // Populate default AgentDiagram reference if missing
+      if (agentRefTypes.includes(diagramType) && !diagram.references?.AgentDiagram) {
+        const agentDiagrams = project.diagrams.AgentDiagram;
+        if (agentDiagrams && agentDiagrams.length > 0) {
+          const agentIdx = indices.AgentDiagram ?? 0;
+          const safeIdx = Math.min(agentIdx, agentDiagrams.length - 1);
+          diagram.references = { ...diagram.references, AgentDiagram: agentDiagrams[safeIdx].id };
+        }
+      }
+    }
+  }
+
+  project.schemaVersion = 3;
+  return project;
 };
 
 export const isUMLModel = (model: unknown): model is UMLModel => {
@@ -361,14 +461,9 @@ export const isGrapesJSProjectData = (model: unknown): model is GrapesJSProjectD
   }
 
   const candidate = model as any;
-  // More lenient check - only require at least one of the expected properties to exist
-  return (
-    candidate.pages !== undefined ||
-    candidate.styles !== undefined ||
-    candidate.assets !== undefined ||
-    candidate.symbols !== undefined ||
-    (candidate.version !== undefined && !candidate.qubitCount)
-  );
+  // Require pages array (the defining feature of GrapesJS data)
+  // This avoids false positives with UMLModel which also has 'version'
+  return Array.isArray(candidate.pages);
 };
 
 export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitData => {

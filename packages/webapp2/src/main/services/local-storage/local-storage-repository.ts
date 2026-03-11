@@ -1,5 +1,4 @@
 import {
-  LocalStorageDiagramListItem,
   StoredAgentConfiguration,
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
@@ -9,27 +8,13 @@ import {
   localStorageAgentConfigurations,
   localStorageAgentProfileMappings,
   localStorageActiveAgentConfiguration,
-  localStorageCollaborationColor,
-  localStorageCollaborationName,
-  localStorageDiagramPrefix,
-  localStorageDiagramsList,
-  localStorageLatest,
   localStorageSystemThemePreference,
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constant';
-import { Diagram } from '../diagram/diagramSlice';
-import { UMLDiagramType, UMLModel } from '@besser/wme';
-import { isUMLModel } from '../../types/project';
+import { UMLModel } from '@besser/wme';
 import { uuid } from '../../utils/uuid';
 import { AgentConfigurationPayload } from '../../types/agent-config';
-
-type LocalDiagramEntry = {
-  id: string;
-  title: string;
-  type: UMLDiagramType;
-  lastUpdate: string;
-};
 
 type AgentBaseModelMap = Record<string, UMLModel>;
 
@@ -109,63 +94,6 @@ const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
 };
 
 export const LocalStorageRepository = {
-  storeDiagram: (diagram: Diagram) => {
-    localStorage.setItem(localStorageDiagramPrefix + diagram.id, JSON.stringify(diagram));
-    localStorage.setItem(localStorageLatest, diagram.id);
-
-    const localDiagramEntry: LocalDiagramEntry = {
-      id: diagram.id,
-      title: diagram.title,
-      type: isUMLModel(diagram.model) ? diagram.model.type : UMLDiagramType.ClassDiagram,
-      lastUpdate: new Date().toISOString(),
-    };
-
-    const localStorageListJson = localStorage.getItem(localStorageDiagramsList);
-    let localDiagrams: LocalDiagramEntry[] = localStorageListJson ? JSON.parse(localStorageListJson) : [];
-
-    localDiagrams = localDiagrams.filter((entry) => entry.id !== diagram.id);
-    localDiagrams.push(localDiagramEntry);
-
-    localStorage.setItem(localStorageDiagramsList, JSON.stringify(localDiagrams));
-  },
-
-  getStoredDiagrams: () => {
-    const localStorageDiagramList = window.localStorage.getItem(localStorageDiagramsList);
-    let localDiagrams: LocalStorageDiagramListItem[] = [];
-    if (localStorageDiagramList) {
-      localDiagrams = JSON.parse(localStorageDiagramList);
-      localDiagrams.sort(
-        (first: LocalStorageDiagramListItem, second: LocalStorageDiagramListItem) =>
-          (new Date(first.lastUpdate).getTime() - new Date(second.lastUpdate).getTime()) * -1,
-      );
-    }
-    return localDiagrams;
-  },
-
-  setCollaborationName: (name: string) => {
-    window.localStorage.setItem(localStorageCollaborationName, name);
-  },
-
-  setCollaborationColor: (color: string) => {
-    window.localStorage.setItem(localStorageCollaborationColor, color);
-  },
-
-  setLastPublishedToken: (token: string) => {
-    window.localStorage.setItem('last_published_token', token);
-  },
-
-  getLastPublishedToken: () => {
-    return window.localStorage.getItem('last_published_token');
-  },
-
-  setLastPublishedType: (type: string) => {
-    window.localStorage.setItem('last_published_type', type);
-  },
-
-  getLastPublishedType: () => {
-    return window.localStorage.getItem('last_published_type');
-  },
-
   setSystemThemePreference: (value: string) => {
     window.localStorage.setItem(localStorageSystemThemePreference, value);
   },
@@ -180,10 +108,6 @@ export const LocalStorageRepository = {
 
   getUserThemePreference: () => {
     return window.localStorage.getItem(localStorageUserThemePreference);
-  },
-
-  removeUserThemePreference: () => {
-    window.localStorage.removeItem(localStorageUserThemePreference);
   },
 
   saveAgentBaseModel: (diagramId: string, model: UMLModel) => {
@@ -204,39 +128,6 @@ export const LocalStorageRepository = {
     const baseModels = getStoredAgentBaseModels();
     const stored = baseModels[diagramId];
     return stored ? (JSON.parse(JSON.stringify(stored)) as UMLModel) : null;
-  },
-
-  removeAgentBaseModel: (diagramId: string) => {
-    if (!diagramId) {
-      return;
-    }
-
-    const baseModels = getStoredAgentBaseModels();
-    if (!(diagramId in baseModels)) {
-      return;
-    }
-
-    delete baseModels[diagramId];
-    persistAgentBaseModels(baseModels);
-  },
-
-  storeDiagramByType: (type: UMLDiagramType, diagram: Diagram) => {
-    const key = `${localStorageDiagramPrefix}type_${type}`;
-    localStorage.setItem(key, JSON.stringify(diagram));
-  },
-
-  loadDiagramByType: (type: UMLDiagramType): Diagram | null => {
-    const key = `${localStorageDiagramPrefix}type_${type}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-    return null;
-  },
-
-  removeDiagramByType: (type: UMLDiagramType) => {
-    const key = `${localStorageDiagramPrefix}type_${type}`;
-    localStorage.removeItem(key);
   },
 
   saveUserProfile: (name: string, model: UMLModel) => {
@@ -275,11 +166,6 @@ export const LocalStorageRepository = {
     const profiles = getStoredUserProfiles();
     const profile = profiles.find((entry) => entry.id === id);
     return profile || null;
-  },
-
-  deleteUserProfile: (id: string) => {
-    const profiles = getStoredUserProfiles().filter((profile) => profile.id !== id);
-    persistUserProfiles(profiles);
   },
 
   saveAgentConfiguration: (

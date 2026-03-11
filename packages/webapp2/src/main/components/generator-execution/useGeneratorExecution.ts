@@ -13,7 +13,7 @@
  *  - `isGenerating` flag
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditor, UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
@@ -32,10 +32,11 @@ import {
 } from '../../services/generate-code/useGenerateCode';
 import type { GenerationResult } from '../../services/generate-code/types';
 import { useDeployLocally } from '../../services/generate-code/useDeployLocally';
-import { GrapesJSProjectData, isUMLModel, getActiveDiagram } from '../../types/project';
+import { GrapesJSProjectData, isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../types/project';
+import type { BesserProject, ProjectDiagram } from '../../types/project';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { switchDiagramTypeThunk } from '../../services/project/projectSlice';
+import { switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
 import { validateDiagram } from '../../services/validation/validateDiagram';
 import {
   ConfigDialog,
@@ -60,6 +61,15 @@ const toIdentifier = (value: string, fallback: string): string => {
 const validateDjangoName = (name: string): boolean =>
   /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
 
+function isUMLModelEmpty(diagram: ProjectDiagram | undefined): boolean {
+  if (!diagram || !diagram.model) return true;
+  if (!isUMLModel(diagram.model)) return true;
+  const model = diagram.model;
+  const elementCount = model.elements ? Object.keys(model.elements).length : 0;
+  const relationshipCount = model.relationships ? Object.keys(model.relationships).length : 0;
+  return elementCount === 0 && relationshipCount === 0;
+}
+
 function isGuiModelEmpty(guiModel: GrapesJSProjectData | undefined): boolean {
   if (!guiModel || !guiModel.pages || guiModel.pages.length === 0) return true;
 
@@ -73,6 +83,76 @@ function isGuiModelEmpty(guiModel: GrapesJSProjectData | undefined): boolean {
     const components = page?.component?.components;
     return !Array.isArray(components) || components.length === 0;
   });
+}
+
+// ─── Web App checklist builder ──────────────────────────────────────────────
+
+function buildWebAppChecklist(project: BesserProject | undefined): WebAppChecklistInfo | null {
+  if (!project) return null;
+
+  // Resolve the active GUI diagram
+  const guiDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
+
+  // Resolve the ClassDiagram that the GUI diagram references
+  const classDiagram = getReferencedDiagram(project, guiDiagram, 'ClassDiagram');
+
+  const classDiagramExists = Boolean(classDiagram);
+  const classDiagramHasContent = classDiagramExists && !isUMLModelEmpty(classDiagram);
+
+  const guiDiagramExists = Boolean(guiDiagram);
+  const guiModel = guiDiagram?.model as GrapesJSProjectData | undefined;
+  const guiDiagramHasContent = guiDiagramExists && !isGuiModelEmpty(guiModel);
+
+  // Agent diagrams are referenced per-component inside the GUI editor (drag & drop).
+  // Count how many agent diagrams exist in the project for informational display.
+  const agentDiagrams = project.diagrams?.AgentDiagram ?? [];
+  const agentDiagramCount = agentDiagrams.length;
+
+  // Truncate long titles for display
+  const truncate = (title: string | undefined, max: number = 40): string | null => {
+    if (!title) return null;
+    return title.length > max ? `${title.slice(0, max)}...` : title;
+  };
+
+  const classDiagramInfo: WebAppChecklistDiagramInfo = {
+    label: 'Class Diagram',
+    title: truncate(classDiagram?.title),
+    exists: classDiagramExists,
+    hasContent: classDiagramHasContent,
+    required: true,
+  };
+
+  const guiDiagramInfo: WebAppChecklistDiagramInfo = {
+    label: 'GUI Diagram',
+    title: truncate(guiDiagram?.title),
+    exists: guiDiagramExists,
+    hasContent: guiDiagramHasContent,
+    required: true,
+    referencedFrom: classDiagramExists
+      ? truncate(classDiagram?.title)
+      : null,
+  };
+
+  // Agent info is now informational -- agents are configured per-component in the GUI
+  const agentDiagramInfo: WebAppChecklistDiagramInfo = {
+    label: 'Agent Diagrams',
+    title: agentDiagramCount > 0
+      ? `${agentDiagramCount} available (configured per-component in GUI)`
+      : 'None available',
+    exists: agentDiagramCount > 0,
+    hasContent: agentDiagramCount > 0,
+    required: false,
+  };
+
+  // canGenerate does NOT depend on agent diagrams -- they are optional and per-component
+  const canGenerate = classDiagramExists && guiDiagramExists;
+
+  return {
+    classDiagram: classDiagramInfo,
+    guiDiagram: guiDiagramInfo,
+    agentDiagram: agentDiagramInfo,
+    canGenerate,
+  };
 }
 
 // ─── GUI auto-generation event helpers ─────────────────────────────────────────
@@ -142,6 +222,31 @@ function triggerAssistantGuiAutoGenerate(timeoutMs = 25000): Promise<{ ok: boole
  *  - Qiskit                  – backend type and shot count
  *  - Execution callbacks     – one per generator to trigger code generation
  */
+/** Describes one diagram row in the Web App pre-generation checklist. */
+export interface WebAppChecklistDiagramInfo {
+  /** Human-readable label such as "Class Diagram" or "Agent Diagram". */
+  label: string;
+  /** Title of the resolved diagram, if it exists. */
+  title: string | null;
+  /** Whether the diagram exists in the project at all. */
+  exists: boolean;
+  /** Whether the diagram model has meaningful content. */
+  hasContent: boolean;
+  /** Whether this diagram is required for generation. */
+  required: boolean;
+  /** Name of the referenced parent diagram, if any (e.g. ClassDiagram referenced by a GUI diagram). */
+  referencedFrom?: string | null;
+}
+
+/** Complete checklist information for the Web App generator dialog. */
+export interface WebAppChecklistInfo {
+  classDiagram: WebAppChecklistDiagramInfo;
+  guiDiagram: WebAppChecklistDiagramInfo;
+  agentDiagram: WebAppChecklistDiagramInfo;
+  /** True when all required diagrams exist (generation can proceed). */
+  canGenerate: boolean;
+}
+
 export interface GeneratorConfigState {
   // ── Dialog control ───────────────────────────────────────────────────────
   /** Which config dialog is currently visible ('none' when closed). */
@@ -200,6 +305,10 @@ export interface GeneratorConfigState {
   onAgentModeChange: (v: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
 
+  // ── Web App checklist ──────────────────────────────────────────────────
+  /** Pre-generation checklist info for the web_app generator. */
+  webAppChecklist: WebAppChecklistInfo | null;
+
   // ── Execution callbacks (one per generator) ──────────────────────────────
   /** Validate inputs, call the backend, and close the dialog on success. */
   onDjangoGenerate: () => void;
@@ -209,6 +318,7 @@ export interface GeneratorConfigState {
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
   onQiskitGenerate: () => void;
+  onWebAppGenerate: () => void;
 }
 
 export interface UseGeneratorExecutionReturn {
@@ -234,7 +344,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
 
-  const { isQuantumContext, isGuiContext } = getWorkspaceContext(
+  const { isQuantumContext, isGuiContext, isObjectContext } = getWorkspaceContext(
     location.pathname,
     currentProject?.currentDiagramType,
   );
@@ -268,6 +378,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
   const [storedAgentMappings, setStoredAgentMappings] = useState<any[]>([]);
   const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
+
+  // ── Web App checklist (computed from current project) ─────────────────────
+  const webAppChecklist = useMemo(
+    () => buildWebAppChecklist(currentProject ?? undefined),
+    [currentProject],
+  );
 
   // Auto-derive Django project/app names from current project
   useEffect(() => {
@@ -374,12 +490,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         setIsGenerating(true);
 
         if (generatorType === 'web_app') {
-          // Always refresh from ProjectStorageRepository to pick up models
-          // loaded via the GrapesJS event bridge (which writes to localStorage
-          // but does NOT update the Redux store).
-          const freshProject =
-            ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-          let guiModel = getActiveDiagram(freshProject, 'GUINoCodeDiagram').model as GrapesJSProjectData | undefined;
+          // Redux state is kept in sync with localStorage via useStorageSync,
+          // so currentProject already has the latest GUI model data.
+          let guiModel = getActiveDiagram(currentProject, 'GUINoCodeDiagram')?.model as GrapesJSProjectData | undefined;
 
           if (isGuiModelEmpty(guiModel)) {
             if (options?.autoGenerateGuiIfEmpty) {
@@ -388,9 +501,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
                 toast.error(autoGenerateError.error);
                 return autoGenerateError;
               }
+              // After auto-generation, read from storage as a safety net
+              // (the async Redux sync may not have propagated yet)
               const refreshedProject =
                 ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-              guiModel = getActiveDiagram(refreshedProject, 'GUINoCodeDiagram').model as GrapesJSProjectData | undefined;
+              guiModel = getActiveDiagram(refreshedProject, 'GUINoCodeDiagram')?.model as GrapesJSProjectData | undefined;
             }
 
             if (isGuiModelEmpty(guiModel)) {
@@ -446,6 +561,24 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           case 'agent':
             result = await generateCode(editor, 'agent', activeDiagramTitle, config as AgentConfig);
             break;
+          case 'jsonobject': {
+            // Object diagram generation requires the referenced ClassDiagram data
+            if (!isObjectContext) {
+              toast.error('Switch to an Object Diagram to use the JSON Object generator.');
+              return { ok: false, error: 'Switch to an Object Diagram to use the JSON Object generator.' };
+            }
+            // Resolve the referenced ClassDiagram from the project so the backend
+            // can build the domain model that object instances are based on.
+            let referenceDiagramData: Record<string, any> | undefined;
+            if (currentProject && activeDiagram) {
+              const classDiagram = getReferencedDiagram(currentProject, activeDiagram, 'ClassDiagram');
+              if (classDiagram?.model && isUMLModel(classDiagram.model)) {
+                referenceDiagramData = classDiagram.model;
+              }
+            }
+            result = await generateCode(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
+            break;
+          }
           default:
             result = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
         }
@@ -459,8 +592,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }
     },
     [
-      currentProject, editor, generateCode, activeDiagramTitle,
-      isQuantumContext, isGuiContext, ensureGuiForAssistantWebAppGeneration,
+      currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
+      isQuantumContext, isGuiContext, isObjectContext, ensureGuiForAssistantWebAppGeneration,
     ],
   );
 
@@ -691,6 +824,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     setConfigDialog('none');
   }, [qiskitBackend, qiskitShots, executeGenerator]);
 
+  const handleWebAppGenerate = useCallback(async () => {
+    await executeGenerator('web_app');
+    setConfigDialog('none');
+  }, [executeGenerator]);
+
   // ── Return ─────────────────────────────────────────────────────────────────
 
   const handleStoredAgentConfigToggle = useCallback((id: string) => {
@@ -718,6 +856,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     storedAgentConfigurations,
     storedAgentMappings,
     selectedStoredAgentConfigIds,
+    webAppChecklist,
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
@@ -731,13 +870,14 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onQiskitShotsChange: setQiskitShots,
     onAgentModeChange: setAgentMode,
     onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
-    onDjangoGenerate: () => void handleDjangoGenerate(),
-    onDjangoDeploy: () => void handleDjangoDeploy(),
-    onSqlGenerate: () => void handleSqlGenerate(),
-    onSqlAlchemyGenerate: () => void handleSqlAlchemyGenerate(),
-    onJsonSchemaGenerate: () => void handleJsonSchemaGenerate(),
-    onAgentGenerate: () => void handleAgentGenerate(),
-    onQiskitGenerate: () => void handleQiskitGenerate(),
+    onDjangoGenerate: () => { handleDjangoGenerate().catch(console.error); },
+    onDjangoDeploy: () => { handleDjangoDeploy().catch(console.error); },
+    onSqlGenerate: () => { handleSqlGenerate().catch(console.error); },
+    onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(console.error); },
+    onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(console.error); },
+    onAgentGenerate: () => { handleAgentGenerate().catch(console.error); },
+    onQiskitGenerate: () => { handleQiskitGenerate().catch(console.error); },
+    onWebAppGenerate: () => { handleWebAppGenerate().catch(console.error); },
   };
 
   return {

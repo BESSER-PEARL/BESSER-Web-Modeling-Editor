@@ -10,6 +10,7 @@ export type GeneratorType =
   | 'jsonschema'
   | 'smartdata'
   | 'agent'
-  | 'qiskit';
+  | 'qiskit'
+  | 'jsonobject';
 
-export type GeneratorMenuMode = 'class' | 'agent' | 'gui' | 'quantum' | 'none';
+export type GeneratorMenuMode = 'class' | 'object' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'none';

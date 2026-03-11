@@ -59,14 +59,14 @@ export function useCircuitPersistence(
                 project.id,
                 'QuantumCircuitDiagram',
                 {
-                    ...getActiveDiagram(project, 'QuantumCircuitDiagram'),
+                    ...(getActiveDiagram(project, 'QuantumCircuitDiagram') ?? {}),
                     model: quantumData,
                     lastUpdate: new Date().toISOString(),
                 }
             );
 
             if (updated) {
-                // console.log('[saveCircuit] Save successful');
+                // Redux sync happens automatically via useStorageSync
                 setSaveStatus('saved');
             } else {
                 console.error('[saveCircuit] updateDiagram returned false');
@@ -122,24 +122,44 @@ export function useAutoSave(
     const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const lastProjectIdRef = useRef<string | undefined>(projectId);
     const isProjectSwitchingRef = useRef(false);
+    const projectSwitchTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Keep a ref to the latest circuit and saveCircuit so interval/unload
+    // always use current values without restarting the interval.
+    const circuitRef = useRef(circuit);
+    circuitRef.current = circuit;
+    const saveCircuitRef = useRef(saveCircuit);
+    saveCircuitRef.current = saveCircuit;
 
     // Track project changes to prevent saving stale data
     useEffect(() => {
         if (lastProjectIdRef.current !== projectId) {
             isProjectSwitchingRef.current = true;
             lastProjectIdRef.current = projectId;
-            
+
             // Clear any pending save
             if (saveTimeoutRef.current) {
                 clearTimeout(saveTimeoutRef.current);
                 saveTimeoutRef.current = null;
             }
-            
+
+            // Clear any previous project switch timer
+            if (projectSwitchTimerRef.current) {
+                clearTimeout(projectSwitchTimerRef.current);
+            }
+
             // Re-enable auto-save after a delay to let the circuit state fully update
-            setTimeout(() => {
+            projectSwitchTimerRef.current = setTimeout(() => {
                 isProjectSwitchingRef.current = false;
             }, 2000);
         }
+
+        return () => {
+            if (projectSwitchTimerRef.current) {
+                clearTimeout(projectSwitchTimerRef.current);
+                projectSwitchTimerRef.current = null;
+            }
+        };
     }, [projectId]);
 
     // Debounced save on circuit changes
@@ -161,7 +181,7 @@ export function useAutoSave(
         saveTimeoutRef.current = setTimeout(() => {
             // Double-check we're not in a project switch
             if (!isProjectSwitchingRef.current) {
-                saveCircuit(circuit);
+                saveCircuitRef.current(circuitRef.current);
             }
         }, debounceMs);
 
@@ -170,38 +190,40 @@ export function useAutoSave(
                 clearTimeout(saveTimeoutRef.current);
             }
         };
-    }, [circuit, saveCircuit, isInitialized, debounceMs, projectId]);
+    }, [circuit, isInitialized, debounceMs, projectId]);
 
-    // Periodic auto-save
+    // Periodic auto-save — uses refs so the interval doesn't need to restart
+    // on every circuit change.
     useEffect(() => {
+        if (!isInitialized) return;
+
         autoSaveIntervalRef.current = setInterval(() => {
-            if (isInitialized && !isProjectSwitchingRef.current) {
-                saveCircuit(circuit);
+            if (!isProjectSwitchingRef.current) {
+                saveCircuitRef.current(circuitRef.current);
             }
         }, intervalMs);
 
         return () => {
             if (autoSaveIntervalRef.current) {
                 clearInterval(autoSaveIntervalRef.current);
+                autoSaveIntervalRef.current = null;
             }
         };
-    }, [circuit, saveCircuit, isInitialized, intervalMs, projectId]);
+    }, [isInitialized, intervalMs, projectId]);
 
     // Save before unload
     useEffect(() => {
         const handleBeforeUnload = () => {
             if (isInitialized && !isProjectSwitchingRef.current) {
-                saveCircuit(circuit);
+                saveCircuitRef.current(circuitRef.current);
             }
         };
 
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => {
             window.removeEventListener('beforeunload', handleBeforeUnload);
-            // Don't save on cleanup - this causes issues during project switch
-            // The circuit is already auto-saved periodically
         };
-    }, [circuit, saveCircuit, isInitialized]);
+    }, [isInitialized]);
 
     return { isInitialized };
 }

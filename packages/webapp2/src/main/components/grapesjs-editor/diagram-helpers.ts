@@ -1,5 +1,5 @@
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { isUMLModel, getActiveDiagram } from '../../types/project';
+import { isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../types/project';
 import { ClassMetadata, AttributeMetadata, isNumericType, isStringType } from './utils/classBindingHelpers';
 
 /**
@@ -13,16 +13,28 @@ function stripVisibility(name: string): string {
   return name.replace(/^[+\-#~]\s*/, '');
 }
 
+/**
+ * Get the ClassDiagram model referenced by the currently active GUI diagram.
+ * Uses the GUI diagram's per-diagram `references.ClassDiagram` to find the
+ * correct ClassDiagram, falling back to the global `currentDiagramIndices`.
+ */
 function getClassDiagramModel() {
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) return undefined;
-  return getActiveDiagram(project, 'ClassDiagram')?.model;
+  const activeGUI = getActiveDiagram(project, 'GUINoCodeDiagram');
+  return getReferencedDiagram(project, activeGUI, 'ClassDiagram')?.model;
 }
 
+/**
+ * Get the AgentDiagram model referenced by the currently active GUI diagram.
+ * Uses the GUI diagram's per-diagram `references.AgentDiagram` to find the
+ * correct AgentDiagram, falling back to the global `currentDiagramIndices`.
+ */
 function getAgentDiagramModel() {
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) return undefined;
-  return getActiveDiagram(project, 'AgentDiagram')?.model;
+  const activeGUI = getActiveDiagram(project, 'GUINoCodeDiagram');
+  return getReferencedDiagram(project, activeGUI, 'AgentDiagram')?.model;
 }
 
 export function getClassOptions(): { value: string; label: string }[] {
@@ -322,16 +334,16 @@ export function getRelatedClassAttributeOptions(classId: string): { value: strin
  * Get agent options from AgentDiagram - returns the entire diagram as an option
  */
 export function getAgentOptions(): { value: string; label: string }[] {
-  // Get the project to access AgentDiagram
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) {
     console.warn('[diagram-helpers] No project available');
     return [];
   }
-  const agentDiagramData = getActiveDiagram(project, 'AgentDiagram');
+  // Use the active GUI diagram's per-diagram reference to find the correct Agent
+  const activeGUI = getActiveDiagram(project, 'GUINoCodeDiagram');
+  const agentDiagramData = getReferencedDiagram(project, activeGUI, 'AgentDiagram');
 
   if (agentDiagramData?.title) {
-    // Return the diagram title as the agent identifier (entire diagram, not individual states)
     return [{ value: agentDiagramData.title, label: agentDiagramData.title }];
   }
 

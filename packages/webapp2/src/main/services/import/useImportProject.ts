@@ -1,5 +1,4 @@
-import { BesserProject, createEmptyDiagram, SupportedDiagramType, getActiveDiagram } from '../../types/project';
-import { Diagram } from '../diagram/diagramSlice';
+import { BesserProject, ProjectDiagram, createEmptyDiagram, SupportedDiagramType, getActiveDiagram } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { BACKEND_URL } from '../../constant';
 import { UMLDiagramType } from '@besser/wme';
@@ -14,7 +13,7 @@ interface V2ExportData {
 // Interface for legacy import validation (V1 format)
 interface LegacyImportData {
   project: BesserProject;
-  diagrams: Diagram[];
+  diagrams: ProjectDiagram[];
   exportedAt?: string;
   version?: string;
 }

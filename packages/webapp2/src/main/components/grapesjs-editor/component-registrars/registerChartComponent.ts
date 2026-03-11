@@ -169,10 +169,12 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
         const view = this.getView();
         if (view && view.el) {
           const container = view.el;
-          container.innerHTML = '';
-          const root = ReactDOM.createRoot(container);
+          if (!view.__reactRoot) {
+            container.innerHTML = '';
+            view.__reactRoot = ReactDOM.createRoot(container);
+          }
           const props = getChartProps(attrs, config);
-          root.render(React.createElement(config.component, props));
+          view.__reactRoot.render(React.createElement(config.component, props));
         }
       },
     },
@@ -180,8 +182,16 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
         const props = getChartProps(attrs, config);
-        const root = ReactDOM.createRoot(el);
-        root.render(React.createElement(config.component, props));
+        if (!(this as any).__reactRoot) {
+          (this as any).__reactRoot = ReactDOM.createRoot(el);
+        }
+        (this as any).__reactRoot.render(React.createElement(config.component, props));
+      },
+      removed() {
+        if ((this as any).__reactRoot) {
+          (this as any).__reactRoot.unmount();
+          (this as any).__reactRoot = null;
+        }
       },
     },
     isComponent: (el: any) => {

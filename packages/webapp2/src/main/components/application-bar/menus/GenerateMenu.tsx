@@ -14,12 +14,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { GENERATOR_MENU_CONFIG, GeneratorMenuEntry } from '../generator-menu-config';
 import type { GeneratorMenuMode, GeneratorType } from '../../sidebar/workspace-types';
+import type { SupportedDiagramType } from '../../../types/project';
 
 interface GenerateMenuProps {
   mode: GeneratorMenuMode;
   isGenerating: boolean;
   primaryGenerateClass: string;
   onGenerate: (type: GeneratorType) => void;
+  onSwitchDiagramType?: (type: SupportedDiagramType) => void;
 }
 
 const renderGeneratorMenuEntry = (entry: GeneratorMenuEntry, onGenerate: (type: GeneratorType) => void) => {
@@ -53,7 +55,7 @@ const renderGeneratorMenuEntry = (entry: GeneratorMenuEntry, onGenerate: (type: 
   );
 };
 
-export const GenerateMenu: React.FC<GenerateMenuProps> = ({ mode, isGenerating, primaryGenerateClass, onGenerate }) => {
+export const GenerateMenu: React.FC<GenerateMenuProps> = ({ mode, isGenerating, primaryGenerateClass, onGenerate, onSwitchDiagramType }) => {
   const menuEntries = GENERATOR_MENU_CONFIG[mode];
 
   return (
@@ -68,6 +70,14 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({ mode, isGenerating, 
         <DropdownMenuLabel>Code Generation</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {menuEntries.map((entry) => renderGeneratorMenuEntry(entry, onGenerate))}
+        {mode === 'statemachine' && onSwitchDiagramType && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onSwitchDiagramType('ClassDiagram')}>
+              Go to Class Diagram
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

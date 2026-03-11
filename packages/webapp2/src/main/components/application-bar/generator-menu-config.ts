@@ -64,6 +64,20 @@ const GUI_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'action', label: 'Web Application', generator: 'web_app' },
 ];
 
+const OBJECT_GENERATORS: GeneratorMenuEntry[] = [
+  {
+    kind: 'group',
+    label: 'Data',
+    actions: [
+      { kind: 'action', label: 'JSON Object Export', generator: 'jsonobject' },
+    ],
+  },
+];
+
+const STATEMACHINE_GENERATORS: GeneratorMenuEntry[] = [
+  { kind: 'notice', label: 'State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.' },
+];
+
 const QUANTUM_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'action', label: 'Qiskit Code', generator: 'qiskit' },
 ];
@@ -72,6 +86,8 @@ const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [{ kind: 'notice', label: '
 
 export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry[]> = {
   class: CLASS_GENERATORS,
+  object: OBJECT_GENERATORS,
+  statemachine: STATEMACHINE_GENERATORS,
   agent: AGENT_GENERATORS,
   gui: GUI_GENERATORS,
   quantum: QUANTUM_GENERATORS,

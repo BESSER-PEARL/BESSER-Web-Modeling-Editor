@@ -67,7 +67,7 @@ export const useProjectBootstrap = ({
       setHasCheckedForProject(true);
     };
 
-    void checkForLatestProject();
+    checkForLatestProject().catch(console.error);
   }, [loadProject, hasCheckedForProject, hasTokenInUrl]);
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export const useProjectBootstrap = ({
       setSearchParams(nextSearchParams, { replace: true });
     };
 
-    void importBumlProject();
+    importBumlProject().catch(console.error);
 
     return () => {
       isCancelled = true;

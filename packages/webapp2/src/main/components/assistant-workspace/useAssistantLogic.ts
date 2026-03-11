@@ -13,7 +13,7 @@ import { AssistantClient, type AssistantActionPayload, type InjectionCommand } f
 import { UML_BOT_WS_URL } from '../../constant';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useProject } from '../../hooks/useProject';
-import { updateCurrentDiagramThunk } from '../../services/project/projectSlice';
+import { updateDiagramModelThunk } from '../../services/workspace/workspaceSlice';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import {
   UMLModelingService,
@@ -377,8 +377,8 @@ export function useAssistantLogic({
           }
           applied = true;
         } else {
-          const result = await dispatch(updateCurrentDiagramThunk({ model: command.model as any }));
-          if (updateCurrentDiagramThunk.rejected.match(result)) {
+          const result = await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+          if (updateDiagramModelThunk.rejected.match(result)) {
             throw new Error(result.error.message || 'Failed to persist assistant model update');
           }
           applied = true;

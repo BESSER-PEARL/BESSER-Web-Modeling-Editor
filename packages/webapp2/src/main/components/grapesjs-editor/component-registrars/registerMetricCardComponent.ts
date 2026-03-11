@@ -145,19 +145,29 @@ export const registerMetricCardComponent = (editor: any, config: MetricCardConfi
         const view = this.getView();
         if (view && view.el) {
           const container = view.el;
-          container.innerHTML = '';
-          const root = ReactDOM.createRoot(container);
+          if (!view.__reactRoot) {
+            container.innerHTML = '';
+            view.__reactRoot = ReactDOM.createRoot(container);
+          }
           const props = buildMetricCardProps(attrs, config);
-          root.render(React.createElement(config.component, props));
+          view.__reactRoot.render(React.createElement(config.component, props));
         }
       },
     },
     view: {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
-        const root = ReactDOM.createRoot(el);
+        if (!(this as any).__reactRoot) {
+          (this as any).__reactRoot = ReactDOM.createRoot(el);
+        }
         const props = buildMetricCardProps(attrs, config);
-        root.render(React.createElement(config.component, props));
+        (this as any).__reactRoot.render(React.createElement(config.component, props));
+      },
+      removed() {
+        if ((this as any).__reactRoot) {
+          (this as any).__reactRoot.unmount();
+          (this as any).__reactRoot = null;
+        }
       },
     },
     isComponent: (el: any) => {

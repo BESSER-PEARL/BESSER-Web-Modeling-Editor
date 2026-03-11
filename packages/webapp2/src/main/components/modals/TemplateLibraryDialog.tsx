@@ -17,7 +17,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   switchDiagramTypeThunk,
   updateQuantumDiagramThunk,
-} from '../../services/project/projectSlice';
+} from '../../services/workspace/workspaceSlice';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { toSupportedDiagramType, getActiveDiagram } from '../../types/project';
 import { QuantumCircuitData } from '../../types/project';

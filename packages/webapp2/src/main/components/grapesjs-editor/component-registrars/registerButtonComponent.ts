@@ -80,20 +80,31 @@ export const registerButtonComponent = (editor: any) => {
         this.updateMethodOptions();
         
         // Refresh options when components or pages change
-        editor.on('component:add component:remove', () => {
+        this.__onComponentChange = () => {
           setTimeout(() => this.updateTraitVisibility(), 100);
-        });
-        
+        };
+        editor.on('component:add component:remove', this.__onComponentChange);
+
         // Refresh Instance Source options when page changes
-        editor.on('page', () => {
+        this.__onPageChange = () => {
           setTimeout(() => {
             const actionType = this.get('action-type');
             if (actionType === 'run-method' || ['create', 'update', 'delete'].includes(actionType)) {
-              // console.log('[Button] Page changed, refreshing Instance Source options');
               this.updateTraitVisibility();
             }
           }, 100);
-        });
+        };
+        editor.on('page', this.__onPageChange);
+      },
+      removed(this: any) {
+        if (this.__onComponentChange) {
+          editor.off('component:add component:remove', this.__onComponentChange);
+          this.__onComponentChange = null;
+        }
+        if (this.__onPageChange) {
+          editor.off('page', this.__onPageChange);
+          this.__onPageChange = null;
+        }
       },
       updateTraitVisibility(this: any) {
         const actionType = this.get('action-type');

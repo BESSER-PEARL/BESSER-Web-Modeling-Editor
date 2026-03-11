@@ -104,6 +104,7 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
             isGenerating={isGenerating}
             primaryGenerateClass={primaryGenerateClass}
             onGenerate={onGenerate}
+            onSwitchDiagramType={onSwitchDiagramType}
           />
           <DeployMenu
             outlineButtonClass={outlineButtonClass}

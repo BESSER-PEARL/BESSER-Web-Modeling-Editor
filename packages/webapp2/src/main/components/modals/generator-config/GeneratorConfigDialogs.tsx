@@ -16,6 +16,7 @@ import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from
 import type { ConfigDialog } from '../../../services/generate-code/generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../services/local-storage/local-storage-types';
+import type { WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../../generator-execution/useGeneratorExecution';
 
 /**
  * Props for the <GeneratorConfigDialogs /> component.
@@ -89,6 +90,10 @@ interface GeneratorConfigDialogsProps {
   onAgentModeChange: (value: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
 
+  // ── Web App checklist ──────────────────────────────────────────────────
+  /** Pre-generation checklist info for the web_app generator. */
+  webAppChecklist: WebAppChecklistInfo | null;
+
   // ── Execution callbacks (one per generator) ──────────────────────────────
   /** Validate inputs, call the backend, and close the dialog on success. */
   onDjangoGenerate: () => void;
@@ -98,6 +103,7 @@ interface GeneratorConfigDialogsProps {
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
   onQiskitGenerate: () => void;
+  onWebAppGenerate: () => void;
 }
 
 const closeDialog = (setConfigDialog: (dialog: ConfigDialog) => void): void => {
@@ -137,6 +143,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onQiskitShotsChange,
   onAgentModeChange,
   onStoredAgentConfigToggle,
+  webAppChecklist,
   onDjangoGenerate,
   onDjangoDeploy,
   onSqlGenerate,
@@ -144,6 +151,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onJsonSchemaGenerate,
   onAgentGenerate,
   onQiskitGenerate,
+  onWebAppGenerate,
 }) => {
   const navigate = useNavigate();
   return (
@@ -540,6 +548,144 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={configDialog === 'web_app_checklist'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Web Application Generator</DialogTitle>
+            <DialogDescription>The following diagrams will be used for generation.</DialogDescription>
+          </DialogHeader>
+          {webAppChecklist ? (
+            <div className="space-y-4">
+              {/* Required diagrams */}
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Required</p>
+                <div className="space-y-2">
+                  <ChecklistRow diagram={webAppChecklist.classDiagram} />
+                  <ChecklistRow diagram={webAppChecklist.guiDiagram} />
+                </div>
+              </div>
+
+              {/* Optional / informational */}
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Optional</p>
+                <div className="space-y-2">
+                  <AgentChecklistRow diagram={webAppChecklist.agentDiagram} />
+                </div>
+              </div>
+
+              {/* Hint */}
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                <span className="mt-0.5 shrink-0" aria-hidden="true">&#x26A0;&#xFE0F;</span>
+                <span>
+                  If the Class or GUI diagram is not correct, change the references in the diagram tabs before generating.
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 text-sm text-destructive">
+              No project is loaded. Create or load a project first.
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={onWebAppGenerate}
+              disabled={!webAppChecklist?.canGenerate}
+            >
+              Generate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
+  );
+};
+
+// ─── Checklist row for the Web App pre-generation dialog ──────────────────────
+
+const ChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagram }) => {
+  const { label, title, exists, hasContent, required, referencedFrom } = diagram;
+
+  let icon: string;
+  let textClass: string;
+
+  if (!exists && required) {
+    // Required but missing entirely
+    icon = '\u274C'; // red X
+    textClass = 'text-destructive';
+  } else if (exists && hasContent) {
+    // Present with content
+    icon = '\u2705'; // green check
+    textClass = 'text-foreground';
+  } else if (exists && !hasContent && required) {
+    // Present but empty (required) -- warning
+    icon = '\u26A0\uFE0F'; // warning
+    textClass = 'text-amber-600 dark:text-amber-400';
+  } else if (exists && !hasContent && !required) {
+    // Optional and empty -- will be skipped
+    icon = '\u2B1C'; // white square
+    textClass = 'text-muted-foreground';
+  } else {
+    // Optional and missing -- will be skipped
+    icon = '\u2B1C'; // white square
+    textClass = 'text-muted-foreground';
+  }
+
+  const displayTitle = title || (exists ? '(untitled)' : '(missing)');
+  const emptyNote = exists && !hasContent ? ' (empty - will be skipped)' : '';
+
+  return (
+    <div className={`flex flex-col gap-0.5 rounded-md border border-border/60 px-3 py-2 text-sm ${textClass}`}>
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true">{icon}</span>
+        <span className="font-medium">{label}:</span>
+        <span className="truncate">{`"${displayTitle}"${emptyNote}`}</span>
+      </div>
+      {referencedFrom && hasContent && (
+        <div className="ml-7 text-xs text-muted-foreground">
+          References: Class Diagram &quot;{referencedFrom}&quot;
+        </div>
+      )}
+      {!exists && required && (
+        <div className="ml-7 text-xs text-destructive">
+          This diagram is required for Web App generation.
+        </div>
+      )}
+      {exists && !hasContent && required && (
+        <div className="ml-7 text-xs text-amber-600 dark:text-amber-400">
+          This diagram is empty. Generation may produce incomplete results.
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── Agent checklist row — informational, not a blocker ───────────────────────
+
+const AgentChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagram }) => {
+  const { label, exists } = diagram;
+
+  // Agent diagrams are per-component in the GUI, so this is purely informational
+  const icon = exists ? '\u2139\uFE0F' : '\u2B1C'; // info icon or white square
+  const textClass = 'text-muted-foreground';
+
+  return (
+    <div className={`flex flex-col gap-0.5 rounded-md border border-border/60 px-3 py-2 text-sm ${textClass}`}>
+      <div className="flex items-center gap-2">
+        <span aria-hidden="true">{icon}</span>
+        <span className="font-medium">{label}:</span>
+        <span className="truncate">
+          {exists
+            ? diagram.title
+            : 'No Agent Diagrams in project'}
+        </span>
+      </div>
+      <div className="ml-7 text-xs text-muted-foreground">
+        Agent diagrams are linked per-component inside the GUI editor (drag &amp; drop).
+      </div>
+    </div>
   );
 };

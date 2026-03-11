@@ -26,26 +26,36 @@ import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram } from '../../types/project';
+import { downloadFile } from '../../utils/download';
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     try {
+      // Capture which diagram this editor instance belongs to BEFORE any async
+      // operations or tab switches can change the active index.  This prevents
+      // the unmount cleanup from accidentally saving to the wrong diagram slot.
+      const mountProject = ProjectStorageRepository.getCurrentProject();
+      const mountDiagramIndex = mountProject?.currentDiagramIndices?.GUINoCodeDiagram ?? 0;
+      const mountDiagram = mountProject?.diagrams?.GUINoCodeDiagram?.[mountDiagramIndex];
+      const mountDiagramId = mountDiagram?.id ?? null;
+
       // Initialize GrapesJS editor
       const editor = initializeEditor(containerRef.current);
-      
+
       // Store editor reference
       editorRef.current = editor;
       (window as any).editor = editor;
 
       // Setup all editor features
-      const cleanup = setupEditorFeatures(editor, setSaveStatus, saveIntervalRef);
+      const cleanup = setupEditorFeatures(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
 
       const handleAssistantAutoGenerate = async () => {
         try {
@@ -94,15 +104,19 @@ export const GraphicalUIEditor: React.FC = () => {
           // Load the new project data into the live editor
           editor.loadProjectData(model);
 
-          // Persist to ProjectStorageRepository
+          // Persist to ProjectStorageRepository (Redux sync happens
+          // automatically via useStorageSync listening to notifyChange)
           const project = ProjectStorageRepository.getCurrentProject();
           if (project) {
             const normalized = normalizeToGrapesJSProjectData(model);
-            ProjectStorageRepository.updateDiagram(project.id, 'GUINoCodeDiagram', {
-              ...getActiveDiagram(project, 'GUINoCodeDiagram'),
-              model: normalized,
-              lastUpdate: new Date().toISOString(),
-            });
+            const currentGuiDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
+            if (currentGuiDiagram) {
+              ProjectStorageRepository.updateDiagram(project.id, 'GUINoCodeDiagram', {
+                ...currentGuiDiagram,
+                model: normalized,
+                lastUpdate: new Date().toISOString(),
+              });
+            }
           }
 
           editor.runCommand('notifications:add', {
@@ -149,26 +163,60 @@ export const GraphicalUIEditor: React.FC = () => {
       // Cleanup on unmount
       return () => {
         // console.log('[GraphicalUIEditor] Cleaning up...');
-        
+
         // Clear save interval
         if (saveIntervalRef.current) {
           clearInterval(saveIntervalRef.current);
           saveIntervalRef.current = null;
         }
-        
+
+        // Flush pending debounced save instead of discarding it
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+          saveTimeoutRef.current = null;
+          // Immediately persist current editor state so edits aren't lost.
+          // IMPORTANT: Use the diagram ID/index captured at mount time, NOT
+          // getActiveDiagram(), because a tab switch may have already changed
+          // the active index before React processes this unmount cleanup.
+          if (editorRef.current && mountDiagramId) {
+            try {
+              const data = editorRef.current.getProjectData();
+              if (isGrapesJSProjectData(data)) {
+                const project = ProjectStorageRepository.getCurrentProject();
+                if (project) {
+                  const grapesData = normalizeToGrapesJSProjectData(data);
+                  // Find the diagram by the ID we captured at mount time
+                  const diagrams = project.diagrams.GUINoCodeDiagram ?? [];
+                  const targetIndex = diagrams.findIndex((d) => d.id === mountDiagramId);
+                  if (targetIndex >= 0) {
+                    ProjectStorageRepository.updateDiagram(project.id, 'GUINoCodeDiagram', {
+                      ...diagrams[targetIndex],
+                      model: grapesData,
+                      lastUpdate: new Date().toISOString(),
+                    }, targetIndex);
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn('[GraphicalUIEditor] Failed to flush pending save on unmount:', e);
+            }
+          }
+        }
+
         // Call cleanup function
         if (cleanup) cleanup();
 
         window.removeEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
         window.removeEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
         (window as any).__WME_GUI_EDITOR_READY__ = false;
-        
-        // Destroy editor
+
+        // Destroy editor and clean up global reference
         if (editorRef.current) {
           editorRef.current.destroy();
           editorRef.current = null;
         }
-        
+        delete (window as any).editor;
+
         console.log('[GraphicalUIEditor] Cleanup complete');
       };
     } catch (error) {
@@ -268,12 +316,13 @@ function initializeEditor(container: HTMLDivElement): Editor {
  * Setup all editor features in organized order
  */
 function setupEditorFeatures(
-  editor: Editor, 
+  editor: Editor,
   setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
-  saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>
+  saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>,
+  saveTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>,
 ): () => void {
   // Core features
-  const cleanupStorage = setupProjectStorageIntegration(editor, setSaveStatus, saveIntervalRef);
+  const cleanupStorage = setupProjectStorageIntegration(editor, setSaveStatus, saveIntervalRef, saveTimeoutRef);
   setupCommands(editor);
   setupKeyboardShortcuts(editor);
   
@@ -382,10 +431,18 @@ function removeUnwantedBlocks(editor: Editor) {
 function setupProjectStorageIntegration(
   editor: Editor,
   setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
-  saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>
+  saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>,
+  saveTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>,
 ): () => void {
   const sm = editor.StorageManager;
-  
+
+  // Capture the diagram ID at init time to prevent saving to the wrong diagram
+  // if a tab switch races with a pending save.
+  const initProject = ProjectStorageRepository.getCurrentProject();
+  const initDiagramId = initProject
+    ? (initProject.diagrams.GUINoCodeDiagram[initProject.currentDiagramIndices.GUINoCodeDiagram ?? 0]?.id ?? null)
+    : null;
+
   sm.add('remote', {
     async load() {
       try {
@@ -404,17 +461,17 @@ function setupProjectStorageIntegration(
             console.log('[Storage] First visit to GUI editor - initializing with default template');
             const defaultTemplate = createDefaultGUITemplate();
             
-            // Save the template to the project
+            // Save the template to the project (Redux sync via useStorageSync)
             ProjectStorageRepository.updateDiagram(
               project.id,
               'GUINoCodeDiagram',
               {
-                ...getActiveDiagram(project, 'GUINoCodeDiagram'),
+                ...(getActiveDiagram(project, 'GUINoCodeDiagram') ?? {}),
                 model: defaultTemplate,
                 lastUpdate: new Date().toISOString(),
               }
             );
-            
+
             return defaultTemplate;
           }
           
@@ -448,19 +505,29 @@ function setupProjectStorageIntegration(
           return;
         }
 
+        // Verify this editor is still for the active GUI diagram to prevent
+        // saving stale data to the wrong diagram slot during tab switches.
+        const activeIndex = project.currentDiagramIndices.GUINoCodeDiagram ?? 0;
+        const activeDiagram = project.diagrams.GUINoCodeDiagram[activeIndex];
+        if (activeDiagram && initDiagramId && activeDiagram.id !== initDiagramId) {
+          console.warn('[Storage] Editor diagram mismatch — skipping save (stale editor)');
+          return;
+        }
+
         const grapesData = normalizeToGrapesJSProjectData(data);
+        const targetDiagram = activeDiagram || getActiveDiagram(project, 'GUINoCodeDiagram');
         const updated = ProjectStorageRepository.updateDiagram(
           project.id,
           'GUINoCodeDiagram',
           {
-            ...getActiveDiagram(project, 'GUINoCodeDiagram'),
+            ...targetDiagram,
             model: grapesData,
             lastUpdate: new Date().toISOString(),
           }
         );
-        
+
         if (updated) {
-          // console.log('[Storage] Data saved successfully');
+          // Redux sync happens automatically via useStorageSync
           setSaveStatus('saved');
           setTimeout(() => updateSaveStatusUI(editor, 'saved'), 100);
         } else {
@@ -498,22 +565,20 @@ function setupProjectStorageIntegration(
     setTimeout(() => {
       isEditorReady = true;
       // console.log('[Storage] Editor fully loaded, auto-save enabled');
-      
-      let saveTimeout: NodeJS.Timeout | null = null;
-      
+
       // Safe save function that checks if editor is ready
       const safeSave = () => {
         if (!isEditorReady) {
           console.log('[Storage] Editor not ready, skipping save');
           return;
         }
-        
+
         // Check if editor and its internals are still available
         if (!editor || !(editor as any).em || !(editor as any).em.storables) {
           console.log('[Storage] Editor not available or destroyed, skipping save');
           return;
         }
-        
+
         try {
           // console.log('[Storage] Auto-saving changes...');
           editor.store();
@@ -521,11 +586,11 @@ function setupProjectStorageIntegration(
           console.error('[Storage] Auto-save error:', error);
         }
       };
-      
+
       // Debounced save function to avoid too many saves
       const debouncedSave = () => {
-        if (saveTimeout) clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(safeSave, 2000); // Wait 2 seconds after last change
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = setTimeout(safeSave, 2000); // Wait 2 seconds after last change
       };
       
       // Auto-save on changes
@@ -546,7 +611,12 @@ function setupProjectStorageIntegration(
   return () => {
     // console.log('[Storage] Cleaning up storage integration');
     isEditorReady = false;
-    
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
     if (saveIntervalRef.current) {
       clearInterval(saveIntervalRef.current);
       saveIntervalRef.current = null;
@@ -728,13 +798,7 @@ function attachDownloadHandler(buttonId: string, content: string, filename: stri
   const btn = document.getElementById(buttonId);
   if (btn) {
     btn.addEventListener('click', () => {
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadFile(content, filename, mimeType);
     });
   }
 }

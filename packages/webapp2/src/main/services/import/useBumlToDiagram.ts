@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { BACKEND_URL } from '../../constant';
 import { uuid } from '../../utils/uuid';
-import { Diagram } from '../diagram/diagramSlice';
+import { ProjectDiagram } from '../../types/project';
 
 /**
  * Custom hook for converting BUML files to diagram objects
@@ -10,7 +10,7 @@ import { Diagram } from '../diagram/diagramSlice';
  */
 export const useBumlToDiagram = () => {
   
-  const convertBumlToDiagram = useCallback(async (file: File): Promise<Diagram> => {
+  const convertBumlToDiagram = useCallback(async (file: File): Promise<ProjectDiagram> => {
     const formData = new FormData();
     formData.append('buml_file', file);
 
@@ -123,7 +123,7 @@ export const useBumlToDiagram = () => {
       }
 
       // Create the diagram object
-      const diagram: Diagram = {
+      const diagram: ProjectDiagram = {
         id: uuid(),
         title: title,
         model: {

@@ -2,7 +2,78 @@ import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { Atom, Bot, Layers3, Network, PackageOpen, Repeat2, Settings, SlidersHorizontal } from 'lucide-react';
 import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../constant';
-import type { SupportedDiagramType } from '../../types/project';
+import type { SupportedDiagramType, BesserProject, ProjectDiagram } from '../../types/project';
+import { isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../types/project';
+
+/** Maps each diagram type to its available generators and a human-readable label. */
+export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: string[]; label: string }> = {
+  ClassDiagram: {
+    generators: ['django', 'backend', 'web_app', 'python', 'java', 'pydantic', 'sql', 'sqlalchemy', 'jsonschema'],
+    label: '9 generators',
+  },
+  ObjectDiagram: {
+    generators: ['jsonobject'],
+    label: '1 generator',
+  },
+  StateMachineDiagram: {
+    generators: [],
+    label: 'Used in Class methods',
+  },
+  AgentDiagram: {
+    generators: ['agent'],
+    label: '1 generator',
+  },
+  GUINoCodeDiagram: {
+    generators: ['web_app'],
+    label: '1 generator',
+  },
+  QuantumCircuitDiagram: {
+    generators: ['qiskit'],
+    label: '1 generator',
+  },
+};
+
+/** Check whether a single diagram has meaningful content (non-empty model). */
+export function diagramHasContent(diagram: ProjectDiagram): boolean {
+  const model = diagram.model;
+  if (!model) return false;
+
+  if (isUMLModel(model)) {
+    const hasElements = model.elements && Object.keys(model.elements).length > 0;
+    const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
+    return !!(hasElements || hasRelationships);
+  }
+
+  if (isGrapesJSProjectData(model)) {
+    // Check if any page has non-empty components beyond the bare wrapper
+    return model.pages.some((page: any) =>
+      page?.frames?.some((frame: any) => {
+        const components = frame?.component?.components;
+        return Array.isArray(components) && components.length > 0;
+      }),
+    );
+  }
+
+  if (isQuantumCircuitData(model)) {
+    return Array.isArray(model.cols) && model.cols.length > 0;
+  }
+
+  return false;
+}
+
+/** For a given diagram type, check whether *any* diagram in the array has content. */
+export function diagramTypeHasContent(project: BesserProject | null, type: SupportedDiagramType): boolean {
+  if (!project) return false;
+  const diagrams = project.diagrams[type];
+  if (!diagrams || diagrams.length === 0) return false;
+  return diagrams.some(diagramHasContent);
+}
+
+/** Return the number of diagrams for a given type. */
+export function diagramCount(project: BesserProject | null, type: SupportedDiagramType): number {
+  if (!project) return 0;
+  return project.diagrams[type]?.length ?? 0;
+}
 
 export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React.ReactNode }> = [
   { type: UMLDiagramType.ClassDiagram, label: 'Class', icon: <Network className="h-4 w-4" /> },

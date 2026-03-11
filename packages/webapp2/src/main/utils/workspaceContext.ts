@@ -4,6 +4,8 @@ interface WorkspaceContext {
   isQuantumContext: boolean;
   isGuiContext: boolean;
   isClassContext: boolean;
+  isObjectContext: boolean;
+  isStateMachineContext: boolean;
   isAgentContext: boolean;
   isDeploymentAvailable: boolean;
   generatorMenuMode: GeneratorMenuMode;
@@ -12,10 +14,9 @@ interface WorkspaceContext {
 export const getWorkspaceContext = (pathname: string, currentDiagramType?: string): WorkspaceContext => {
   const isQuantumContext = currentDiagramType === 'QuantumCircuitDiagram';
   const isGuiContext = currentDiagramType === 'GUINoCodeDiagram';
-  const isClassContext =
-    currentDiagramType === 'ClassDiagram'
-    || currentDiagramType === 'ObjectDiagram'
-    || currentDiagramType === 'StateMachineDiagram';
+  const isClassContext = currentDiagramType === 'ClassDiagram';
+  const isObjectContext = currentDiagramType === 'ObjectDiagram';
+  const isStateMachineContext = currentDiagramType === 'StateMachineDiagram';
   const isAgentContext = currentDiagramType === 'AgentDiagram';
 
   const generatorMenuMode: GeneratorMenuMode = isQuantumContext
@@ -26,12 +27,18 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
         ? 'agent'
         : isClassContext
           ? 'class'
-          : 'none';
+          : isObjectContext
+            ? 'object'
+            : isStateMachineContext
+              ? 'statemachine'
+              : 'none';
 
   return {
     isQuantumContext,
     isGuiContext,
     isClassContext,
+    isObjectContext,
+    isStateMachineContext,
     isAgentContext,
     isDeploymentAvailable: isGuiContext || isClassContext,
     generatorMenuMode,

@@ -6,7 +6,13 @@ interface HistoryState<T> {
     future: T[];
 }
 
-export function useUndoRedo<T>(initialState: T) {
+/**
+ * @param initialState - The starting state for undo/redo history.
+ * @param resetKey - Optional key that, when changed, forces a full history reset.
+ *                   Use this to tie history to a specific diagram or project ID
+ *                   so that switching contexts always clears stale undo/redo entries.
+ */
+export function useUndoRedo<T>(initialState: T, resetKey?: string) {
     const [state, setState] = useState<HistoryState<T>>(() => ({
         past: [],
         present: initialState,
@@ -15,6 +21,7 @@ export function useUndoRedo<T>(initialState: T) {
 
     // Track if this is the first render to avoid resetting on mount
     const isFirstRender = useRef(true);
+    const lastResetKey = useRef(resetKey);
 
     // Reset state when initialState changes (e.g., project switch)
     useEffect(() => {
@@ -29,6 +36,20 @@ export function useUndoRedo<T>(initialState: T) {
             future: []
         });
     }, [initialState]);
+
+    // Force reset when resetKey changes (e.g., project/diagram ID switch)
+    useEffect(() => {
+        if (resetKey !== undefined && lastResetKey.current !== resetKey) {
+            const isFirst = lastResetKey.current === undefined && isFirstRender.current;
+            lastResetKey.current = resetKey;
+            if (isFirst) return; // Skip on initial mount
+            setState({
+                past: [],
+                present: initialState,
+                future: []
+            });
+        }
+    }, [resetKey, initialState]);
 
     const canUndo = state.past.length > 0;
     const canRedo = state.future.length > 0;

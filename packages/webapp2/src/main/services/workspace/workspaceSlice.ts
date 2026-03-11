@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/wme';
 import {
   BesserProject,
@@ -9,6 +9,7 @@ import {
   toSupportedDiagramType,
   toUMLDiagramType,
   getActiveDiagram,
+  getReferencedDiagram,
 } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../constant';
@@ -118,7 +119,11 @@ export const loadProjectThunk = createAsyncThunk(
 export const createProjectThunk = createAsyncThunk(
   'workspace/createProject',
   async ({ name, description, owner }: { name: string; description: string; owner: string }) => {
-    return ProjectStorageRepository.createNewProject(name, description, owner);
+    let project!: BesserProject;
+    ProjectStorageRepository.withoutNotify(() => {
+      project = ProjectStorageRepository.createNewProject(name, description, owner);
+    });
+    return project;
   },
 );
 
@@ -137,12 +142,16 @@ export const switchDiagramTypeThunk = createAsyncThunk(
         ? (diagramType as SupportedDiagramType)
         : toSupportedDiagramType(diagramType as UMLDiagramType);
 
-    const diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
+    let diagram: ProjectDiagram | null = null;
+    ProjectStorageRepository.withoutNotify(() => {
+      diagram = ProjectStorageRepository.switchDiagramType(project.id, supportedType);
+    });
     if (!diagram) throw new Error('Failed to switch diagram type');
 
     // Set class diagram reference in bridge for Object Diagrams
+    // Uses the ObjectDiagram's per-diagram references to find the correct ClassDiagram
     if (diagramType === UMLDiagramType.ObjectDiagram) {
-      const classDiagram = getActiveDiagram(project, 'ClassDiagram');
+      const classDiagram = getReferencedDiagram(project, diagram, 'ClassDiagram');
       if (isUMLModel(classDiagram?.model)) {
         try {
           const { diagramBridge } = await import('@besser/wme');
@@ -167,7 +176,10 @@ export const switchDiagramIndexThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
-    const diagram = ProjectStorageRepository.switchDiagramIndex(project.id, diagramType, index);
+    let diagram: ProjectDiagram | null = null;
+    ProjectStorageRepository.withoutNotify(() => {
+      diagram = ProjectStorageRepository.switchDiagramIndex(project.id, diagramType, index);
+    });
     if (!diagram) throw new Error('Failed to switch diagram index');
 
     return { diagram, diagramType, index };
@@ -185,18 +197,22 @@ export const updateDiagramModelThunk = createAsyncThunk(
     if (!project) return null;
 
     const current = getActiveDiagram(project, activeDiagramType);
+    if (!current) return null;
     const updated: ProjectDiagram = {
       ...current,
       ...updates,
       lastUpdate: new Date().toISOString(),
     };
 
-    const success = ProjectStorageRepository.updateDiagram(
-      project.id,
-      activeDiagramType,
-      updated,
-      activeDiagramIndex,
-    );
+    let success = false;
+    ProjectStorageRepository.withoutNotify(() => {
+      success = ProjectStorageRepository.updateDiagram(
+        project.id,
+        activeDiagramType,
+        updated,
+        activeDiagramIndex,
+      );
+    });
     if (!success) throw new Error('Failed to update diagram');
     return updated;
   },
@@ -210,21 +226,72 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
     if (!project) throw new Error('No active project');
 
     const qIndex = project.currentDiagramIndices.QuantumCircuitDiagram ?? 0;
-    const current = project.diagrams.QuantumCircuitDiagram[qIndex];
+    const quantumDiagrams = project.diagrams.QuantumCircuitDiagram;
+    const safeIndex = qIndex < quantumDiagrams.length ? qIndex : 0;
+    const current = quantumDiagrams[safeIndex];
+    if (!current) throw new Error('No quantum diagram found');
     const updated: ProjectDiagram = {
       ...current,
       model,
       lastUpdate: new Date().toISOString(),
     };
 
-    const success = ProjectStorageRepository.updateDiagram(
-      project.id,
-      'QuantumCircuitDiagram',
-      updated,
-      qIndex,
-    );
+    let success = false;
+    ProjectStorageRepository.withoutNotify(() => {
+      success = ProjectStorageRepository.updateDiagram(
+        project.id,
+        'QuantumCircuitDiagram',
+        updated,
+        safeIndex,
+      );
+    });
     if (!success) throw new Error('Failed to update quantum diagram');
     return updated;
+  },
+);
+
+/**
+ * Lightweight sync: re-reads the project from storage into Redux
+ * WITHOUT bumping editorRevision (no editor reinit).
+ * Use after direct ProjectStorageRepository writes from editors
+ * (GrapesJS, Quantum, Agent) that bypass Redux thunks.
+ */
+export const refreshProjectStateThunk = createAsyncThunk(
+  'workspace/refreshProjectState',
+  async (_: void, { getState }) => {
+    const state = getState() as { workspace: WorkspaceState };
+    const { project } = state.workspace;
+    if (!project) return null;
+    return ProjectStorageRepository.loadProject(project.id);
+  },
+);
+
+export const updateDiagramReferencesThunk = createAsyncThunk(
+  'workspace/updateDiagramReferences',
+  async (
+    { diagramType, diagramIndex, references }: {
+      diagramType: SupportedDiagramType;
+      diagramIndex: number;
+      references: Partial<Record<SupportedDiagramType, string>>;
+    },
+    { getState },
+  ) => {
+    const state = getState() as { workspace: WorkspaceState };
+    const { project } = state.workspace;
+    if (!project) throw new Error('No active project');
+
+    // Suppress notifyChange — the thunk's fulfilled reducer already updates
+    // Redux state, so a redundant syncProjectFromStorage would be a no-op at
+    // best and a race-condition source at worst.
+    let success = false;
+    ProjectStorageRepository.withoutNotify(() => {
+      success = ProjectStorageRepository.updateDiagramReferences(
+        project.id, diagramType, diagramIndex, references,
+      );
+    });
+    if (!success) throw new Error('Failed to update diagram references');
+
+    return { diagramType, diagramIndex, references };
   },
 );
 
@@ -238,10 +305,14 @@ export const addDiagramThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
-    const result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
+    let result: { index: number; diagram: ProjectDiagram } | null = null;
+    ProjectStorageRepository.withoutNotify(() => {
+      result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
+    });
     if (!result) throw new Error('Cannot add more diagrams (limit reached)');
 
-    return { diagramType, index: result.index, diagram: result.diagram };
+    const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
+    return { diagramType, index: newIndex, diagram };
   },
 );
 
@@ -255,12 +326,17 @@ export const removeDiagramThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
-    const success = ProjectStorageRepository.removeDiagram(project.id, diagramType, index);
+    let success = false;
+    let updatedProject: BesserProject | null = null;
+    ProjectStorageRepository.withoutNotify(() => {
+      success = ProjectStorageRepository.removeDiagram(project.id, diagramType, index);
+      if (success) {
+        updatedProject = ProjectStorageRepository.loadProject(project.id);
+      }
+    });
     if (!success) throw new Error('Cannot remove diagram');
-
-    const updatedProject = ProjectStorageRepository.loadProject(project.id);
     if (!updatedProject) throw new Error('Failed to reload project after removal');
-    return { project: updatedProject, diagramType };
+    return { project: updatedProject as BesserProject, diagramType };
   },
 );
 
@@ -278,7 +354,9 @@ export const renameDiagramThunk = createAsyncThunk(
     if (index < 0 || index >= diagrams.length) throw new Error('Invalid diagram index');
 
     const updated = { ...diagrams[index], title: newTitle };
-    ProjectStorageRepository.updateDiagram(project.id, diagramType, updated, index);
+    ProjectStorageRepository.withoutNotify(() => {
+      ProjectStorageRepository.updateDiagram(project.id, diagramType, updated, index);
+    });
     return { diagramType, index, diagram: updated };
   },
 );
@@ -301,7 +379,10 @@ const workspaceSlice = createSlice({
     ) {
       if (state.project) {
         Object.assign(state.project, action.payload);
-        ProjectStorageRepository.saveProject(state.project);
+        // Suppress change notification — Redux is already up-to-date
+        ProjectStorageRepository.withoutNotify(() => {
+          ProjectStorageRepository.saveProject(state.project!);
+        });
       }
     },
     changeEditorMode(state, action: PayloadAction<ApollonMode>) {
@@ -309,6 +390,32 @@ const workspaceSlice = createSlice({
     },
     changeReadonlyMode(state, action: PayloadAction<boolean>) {
       state.editorOptions.readonly = action.payload;
+    },
+    /**
+     * Sync Redux state from an externally-provided project snapshot
+     * (e.g. after a direct localStorage write by the GUI/Quantum editor).
+     *
+     * This does NOT bump editorRevision (no editor reinit), and does NOT
+     * write back to localStorage — avoiding infinite sync loops.
+     */
+    syncProjectFromStorage(state, action: PayloadAction<BesserProject>) {
+      const p = action.payload;
+      state.project = p;
+
+      // Sync activeDiagramType if storage has a different value
+      if (p.currentDiagramType && p.currentDiagramType !== state.activeDiagramType) {
+        state.activeDiagramType = p.currentDiagramType;
+        state.editorOptions = deriveEditorOptions(state.editorOptions, p.currentDiagramType);
+      }
+
+      // Sync activeDiagramIndex if storage has a different value for the active type
+      const storedIndex = p.currentDiagramIndices?.[state.activeDiagramType];
+      if (storedIndex !== undefined && storedIndex !== state.activeDiagramIndex) {
+        state.activeDiagramIndex = storedIndex;
+      }
+
+      // Keep active diagram pointer in sync without reinitializing the editor
+      state.activeDiagram = getActiveDiagram(p, state.activeDiagramType) ?? state.activeDiagram;
     },
   },
   extraReducers: (builder) => {
@@ -343,6 +450,10 @@ const workspaceSlice = createSlice({
         state.editorOptions = deriveEditorOptions(state.editorOptions, p.currentDiagramType);
         state.editorRevision += 1;
       })
+      .addCase(createProjectThunk.rejected, (state, action) => {
+        console.error('createProjectThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to create project';
+      })
 
       // ── Switch diagram type ───────────────────────────────────
       .addCase(switchDiagramTypeThunk.fulfilled, (state, action) => {
@@ -367,6 +478,10 @@ const workspaceSlice = createSlice({
         if (state.project) {
           state.project.currentDiagramIndices[diagramType] = index;
         }
+      })
+      .addCase(switchDiagramIndexThunk.rejected, (state, action) => {
+        console.error('switchDiagramIndexThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to switch diagram index';
       })
 
       // ── Update diagram model (no revision bump) ───────────────
@@ -393,17 +508,32 @@ const workspaceSlice = createSlice({
           state.activeDiagram = action.payload;
         }
       })
+      .addCase(updateQuantumDiagramThunk.rejected, (state, action) => {
+        console.error('updateQuantumDiagramThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to update quantum diagram';
+      })
 
       // ── Add diagram ───────────────────────────────────────────
       .addCase(addDiagramThunk.fulfilled, (state, action) => {
         const { diagramType, index, diagram } = action.payload;
         if (state.project) {
-          state.project.diagrams[diagramType].push(diagram);
+          // Reload project from storage to stay in sync (storage already added the diagram)
+          const freshProject = ProjectStorageRepository.loadProject(state.project.id);
+          if (freshProject) {
+            state.project = freshProject;
+          } else {
+            // Fallback: add manually if storage reload fails
+            state.project.diagrams[diagramType].push(diagram);
+          }
           state.project.currentDiagramIndices[diagramType] = index;
         }
         state.activeDiagram = diagram;
         state.activeDiagramIndex = index;
         state.editorRevision += 1;
+      })
+      .addCase(addDiagramThunk.rejected, (state, action) => {
+        console.error('addDiagramThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to add diagram';
       })
 
       // ── Remove diagram ────────────────────────────────────────
@@ -413,6 +543,10 @@ const workspaceSlice = createSlice({
         state.activeDiagramIndex = project.currentDiagramIndices[diagramType] ?? 0;
         state.activeDiagram = getActiveDiagram(project, diagramType);
         state.editorRevision += 1;
+      })
+      .addCase(removeDiagramThunk.rejected, (state, action) => {
+        console.error('removeDiagramThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to remove diagram';
       })
 
       // ── Rename diagram ────────────────────────────────────────
@@ -424,6 +558,54 @@ const workspaceSlice = createSlice({
         if (state.activeDiagramIndex === index && state.activeDiagramType === diagramType) {
           state.activeDiagram = diagram;
         }
+      })
+      .addCase(renameDiagramThunk.rejected, (state, action) => {
+        console.error('renameDiagramThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to rename diagram';
+      })
+
+      // ── Update diagram references ─────────────────────────────
+      .addCase(updateDiagramReferencesThunk.fulfilled, (state, action) => {
+        const { diagramType, diagramIndex, references } = action.payload;
+        if (state.project) {
+          const diagram = state.project.diagrams[diagramType][diagramIndex];
+          if (diagram) {
+            diagram.references = { ...diagram.references, ...references };
+          }
+          // Keep activeDiagram in sync
+          if (state.activeDiagramType === diagramType && state.activeDiagramIndex === diagramIndex) {
+            state.activeDiagram = diagram;
+          }
+        }
+      })
+      .addCase(updateDiagramReferencesThunk.rejected, (state, action) => {
+        console.error('updateDiagramReferencesThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to update diagram references';
+      })
+
+      // ── Refresh project from storage (no revision bump) ─────
+      .addCase(refreshProjectStateThunk.fulfilled, (state, action) => {
+        if (!action.payload) return;
+        const p = action.payload;
+        state.project = p;
+
+        // Sync activeDiagramType if storage has a different value
+        if (p.currentDiagramType && p.currentDiagramType !== state.activeDiagramType) {
+          state.activeDiagramType = p.currentDiagramType;
+          state.editorOptions = deriveEditorOptions(state.editorOptions, p.currentDiagramType);
+        }
+
+        // Sync activeDiagramIndex if storage has a different value for the active type
+        const storedIndex = p.currentDiagramIndices?.[state.activeDiagramType];
+        if (storedIndex !== undefined && storedIndex !== state.activeDiagramIndex) {
+          state.activeDiagramIndex = storedIndex;
+        }
+
+        // Keep active diagram in sync without triggering editor reinit
+        state.activeDiagram = getActiveDiagram(p, state.activeDiagramType) ?? state.activeDiagram;
+      })
+      .addCase(refreshProjectStateThunk.rejected, (_state, action) => {
+        console.error('refreshProjectStateThunk failed:', action.error.message);
       });
   },
 });
@@ -436,6 +618,7 @@ export const {
   updateProjectInfo,
   changeEditorMode,
   changeReadonlyMode,
+  syncProjectFromStorage,
 } = workspaceSlice.actions;
 
 export const workspaceReducer = workspaceSlice.reducer;
@@ -454,8 +637,12 @@ export const selectWorkspaceError = (state: { workspace: WorkspaceState }) => st
 export const selectUMLDiagramType = (state: { workspace: WorkspaceState }) =>
   toUMLDiagramType(state.workspace.activeDiagramType) ?? UMLDiagramType.ClassDiagram;
 
-export const selectDiagramsForActiveType = (state: { workspace: WorkspaceState }) =>
-  state.workspace.project?.diagrams[state.workspace.activeDiagramType] ?? [];
+const EMPTY_DIAGRAMS: ProjectDiagram[] = [];
+export const selectDiagramsForActiveType = createSelector(
+  [(state: { workspace: WorkspaceState }) => state.workspace.project?.diagrams,
+   (state: { workspace: WorkspaceState }) => state.workspace.activeDiagramType],
+  (diagrams, activeDiagramType) => diagrams?.[activeDiagramType] ?? EMPTY_DIAGRAMS,
+);
 
 export const selectIsUMLEditor = (state: { workspace: WorkspaceState }) =>
   toUMLDiagramType(state.workspace.activeDiagramType) !== null;

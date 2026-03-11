@@ -1,13 +1,11 @@
 import { useCallback } from 'react';
 import { useAppDispatch } from '../../store/hooks';
 import { uuid } from '../../utils/uuid';
-import { Diagram, loadImportedDiagram } from '../diagram/diagramSlice';
+import { ProjectDiagram, isUMLModel, toSupportedDiagramType } from '../../types/project';
+import { bumpEditorRevision, loadProjectThunk } from '../workspace/workspaceSlice';
 import { displayError } from '../error-management/errorManagementSlice';
 import { useNavigate } from 'react-router-dom';
-import { LocalStorageRepository } from '../local-storage/local-storage-repository';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
-import { isUMLModel, toSupportedDiagramType } from '../../types/project';
-import { diagramBridge, UMLDiagramType } from '@besser/wme';
 import { useBumlToDiagram, isBumlFile, isJsonFile } from './useBumlToDiagram';
 
 export const useImportDiagram = () => {
@@ -17,7 +15,7 @@ export const useImportDiagram = () => {
   
   const importDiagram = useCallback(async (file: File) => {
     try {
-      let diagram: Diagram;
+      let diagram: ProjectDiagram;
 
       if (isBumlFile(file)) {
         // Handle Python/BUML file - convert to diagram
@@ -43,7 +41,7 @@ export const useImportDiagram = () => {
         throw new Error('Invalid diagram: missing model or type information');
       }
 
-      dispatch(loadImportedDiagram(diagram));
+      dispatch(bumpEditorRevision());
       navigate('/', { relative: 'path' });
       
     } catch (error) {
@@ -70,7 +68,7 @@ export const useImportDiagramToProject = () => {
   
   const importDiagramToProject = useCallback(async (file: File) => {
     try {
-      let diagram: Diagram;
+      let diagram: ProjectDiagram;
 
       if (isBumlFile(file)) {
         // Handle Python/BUML file - convert to diagram
@@ -105,45 +103,51 @@ export const useImportDiagramToProject = () => {
       
       // Generate new ID for the imported diagram to avoid conflicts
       const newId = uuid();
-      const importedDiagram: Diagram = {
+      const importedDiagram: ProjectDiagram = {
         ...diagram,
         id: newId,
         title: `${diagram.title}`,
         lastUpdate: new Date().toISOString()
       };
 
-      // Update the corresponding diagram in the project
+      // Update the active diagram in the array (preserving the array structure)
+      const existingDiagrams = currentProject.diagrams[diagramType] ?? [];
+      const activeIndex = currentProject.currentDiagramIndices?.[diagramType] ?? 0;
+      const updatedDiagrams = [...existingDiagrams];
+      const newDiagram = {
+        id: newId,
+        title: importedDiagram.title,
+        model: importedDiagram.model,
+        lastUpdate: importedDiagram.lastUpdate,
+        description: importedDiagram.description || `Imported ${diagramType} diagram`
+      };
+
+      if (updatedDiagrams.length === 0) {
+        updatedDiagrams.push(newDiagram);
+      } else {
+        updatedDiagrams[Math.min(activeIndex, updatedDiagrams.length - 1)] = newDiagram;
+      }
+
       const updatedProject = {
         ...currentProject,
         diagrams: {
           ...currentProject.diagrams,
-          [diagramType]: {
-            id: newId,
-            title: importedDiagram.title,
-            model: importedDiagram.model,
-            lastUpdate: importedDiagram.lastUpdate,
-            description: importedDiagram.description || `Imported ${diagramType} diagram`
-          }
+          [diagramType]: updatedDiagrams,
         }
       };
 
-      // Save the updated project
+      // Save to localStorage and reload the project into Redux to keep them in sync
       ProjectStorageRepository.saveProject(updatedProject);
+      await dispatch(loadProjectThunk(currentProject.id));
 
       // If importing a Class Diagram, update the diagram bridge for Object Diagram compatibility
       if (diagramType === 'ClassDiagram' && isUMLModel(importedDiagram.model)) {
         try {
           const { diagramBridge } = await import('@besser/wme');
           diagramBridge.setClassDiagramData(importedDiagram.model);
-          console.log('Updated diagram bridge with imported class diagram data');
-        } catch (error) {
-          console.warn('Could not update diagram bridge with class diagram data:', error);
+        } catch {
+          /* bridge not available */
         }
-      }
-
-      // If the imported diagram is the same type as the current diagram, load it immediately
-      if (diagramType === currentProject.currentDiagramType) {
-        dispatch(loadImportedDiagram(importedDiagram));
       }
 
       const fileType = isBumlFile(file) ? 'Python/BUML' : 'JSON';

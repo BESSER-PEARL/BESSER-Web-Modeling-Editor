@@ -1,15 +1,15 @@
 import { useCallback } from 'react';
 import { ApollonEditor } from '@besser/wme';
 import { useFileDownload } from '../file-download/useFileDownload';
-import { Diagram } from '../diagram/diagramSlice';
+import { ProjectDiagram } from '../../types/project';
 
 export const useExportJSON = () => {
   const downloadFile = useFileDownload();
 
   const exportJSON = useCallback(
-    (editor: ApollonEditor, diagram: Diagram) => {
+    (editor: ApollonEditor, diagram: ProjectDiagram) => {
       const fileName = `${diagram.title}.json`;
-      const diagramData: Diagram = { ...diagram, model: editor.model };
+      const diagramData: ProjectDiagram = { ...diagram, model: editor.model };
 
       const jsonContent = JSON.stringify(diagramData, null, 2);
       const fileToDownload = new File([jsonContent], fileName, { type: 'application/json' });

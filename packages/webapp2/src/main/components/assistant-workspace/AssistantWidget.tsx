@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useAppDispatch } from '../../store/hooks';
-import { switchDiagramTypeThunk } from '../../services/project/projectSlice';
+import { switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
 import type { SupportedDiagramType } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';

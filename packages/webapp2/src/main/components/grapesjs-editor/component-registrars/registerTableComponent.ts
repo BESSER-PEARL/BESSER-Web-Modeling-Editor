@@ -271,14 +271,20 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
     view: {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
-        
+
         // Store root on the view instance to reuse it
         if (!(this as any).__reactRoot) {
           (this as any).__reactRoot = ReactDOM.createRoot(el);
         }
-        
+
         const props = buildTableProps(attrs, config);
         (this as any).__reactRoot.render(React.createElement(config.component, props));
+      },
+      removed() {
+        if ((this as any).__reactRoot) {
+          (this as any).__reactRoot.unmount();
+          (this as any).__reactRoot = null;
+        }
       },
     },
     isComponent: (el: any) => {

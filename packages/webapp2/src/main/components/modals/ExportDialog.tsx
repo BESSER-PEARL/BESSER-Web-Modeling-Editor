@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UMLModel } from '@besser/wme';
 import { useProject } from '../../hooks/useProject';
-import { ProjectDiagram, SupportedDiagramType, getActiveDiagram, isUMLModel } from '../../types/project';
+import { ProjectDiagram, SupportedDiagramType, getReferencedDiagram, isUMLModel } from '../../types/project';
 import { useExportPNG } from '../../services/export/useExportPng';
 import { useExportSVG } from '../../services/export/useExportSvg';
 import { useExportBUML } from '../../services/export/useExportBuml';
@@ -43,6 +43,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   const exportAsBUML = useExportBUML();
   const exportAsJSON = useExportJSON();
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
+  const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
 
   const diagramEntries = useMemo<[SupportedDiagramType, ProjectDiagram][]>(
     () => {
@@ -56,18 +57,26 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
         }
       );
     },
-    [currentProject]
+    // Only recompute when the project id or diagram structure actually changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentProject?.id, currentProject?.diagrams]
   );
 
+  // Pre-select diagrams only when dialog opens, not on every project change
   useEffect(() => {
-    if (diagramEntries.length === 0) {
-      setSelectedDiagrams([]);
+    if (!open) {
+      setHasInitializedSelection(false);
       return;
     }
+    if (hasInitializedSelection) return;
 
-    // Match previous behavior: pre-select all project diagrams except GUI.
-    setSelectedDiagrams(diagramEntries.map(([type]) => type).filter((type) => type !== 'GUINoCodeDiagram'));
-  }, [diagramEntries]);
+    if (diagramEntries.length === 0) {
+      setSelectedDiagrams([]);
+    } else {
+      setSelectedDiagrams(diagramEntries.map(([type]) => type).filter((type) => type !== 'GUINoCodeDiagram'));
+    }
+    setHasInitializedSelection(true);
+  }, [open, diagramEntries, hasInitializedSelection]);
 
   const toggleDiagramSelection = (diagramType: SupportedDiagramType) => {
     setSelectedDiagrams((previous) =>
@@ -109,10 +118,15 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       } else if (format === 'BUML') {
         await exportProjectAsSingleBUMLFile(currentProject, selectedDiagrams);
       } else if (format === 'SINGLE_BUML') {
-        // For ObjectDiagram, include the reference class diagram data
+        // Include the referenced ClassDiagram data for diagram types that depend on it
         let refData: UMLModel | undefined;
-        if (editor!.model?.type === 'ObjectDiagram' && currentProject) {
-          const classDiagram = getActiveDiagram(currentProject, 'ClassDiagram');
+        const modelType = editor!.model?.type;
+        if (
+          (modelType === 'ObjectDiagram' || modelType === 'StateMachineDiagram') &&
+          currentProject &&
+          diagram
+        ) {
+          const classDiagram = getReferencedDiagram(currentProject, diagram, 'ClassDiagram');
           if (isUMLModel(classDiagram?.model)) {
             refData = classDiagram.model;
           }

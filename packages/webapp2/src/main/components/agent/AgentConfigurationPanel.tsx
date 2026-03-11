@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { BACKEND_URL } from '../../constant';
 import { useAppDispatch } from '../../store/hooks';
-import { updateDiagramThunk } from '../../services/diagram/diagramSlice';
+import { updateDiagramModelThunk } from '../../services/workspace/workspaceSlice';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
 import {
   StoredAgentConfiguration,
@@ -182,9 +182,30 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
   };
 
+  // Reload stored configurations whenever the component mounts or project changes
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [currentProject?.id]);
+
+  // Reload the config form from the project's agent diagram when the project changes
+  useEffect(() => {
+    if (!currentProject) return;
+    const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
+    const diagramConfig = agentDiagram?.config as Partial<AgentConfigurationPayload> | undefined;
+    if (diagramConfig && Object.keys(diagramConfig).length > 0) {
+      const normalized = normalizeConfig(diagramConfig);
+      setConfig(normalized);
+      // Restore custom model if the saved model is not in the known list
+      const loadedModel = (normalized.llm as any)?.model as string | undefined;
+      const loadedProvider = (normalized.llm as any)?.provider as AgentLLMProvider | undefined;
+      if (loadedProvider && loadedModel && !knownLLMModels.includes(loadedModel)) {
+        setCustomModel(loadedModel);
+        setConfig((prev) => ({ ...prev, llm: { provider: loadedProvider, model: 'other' } }));
+      } else {
+        setCustomModel('');
+      }
+    }
+  }, [currentProject?.id]);
 
   const updateConfig = <K extends keyof AgentConfigurationPayload>(key: K, value: AgentConfigurationPayload[K]) => {
     setConfig((previous) => ({
@@ -262,6 +283,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         ...agentDiagram,
         config: payload as unknown as Record<string, unknown>,
       });
+      // Redux sync happens automatically via useStorageSync
     }
 
     setConfigurationName(saved.name);
@@ -332,7 +354,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
       if (personalizedModel) {
         const snapshotModel = cloneModel(personalizedModel);
-        dispatch(updateDiagramThunk({ model: snapshotModel }));
+        dispatch(updateDiagramModelThunk({ model: snapshotModel }));
         toast.success('Configuration transformed, saved, and applied successfully.');
       }
     } catch (err) {

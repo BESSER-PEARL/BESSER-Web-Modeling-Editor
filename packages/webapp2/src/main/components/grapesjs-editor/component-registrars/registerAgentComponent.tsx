@@ -267,14 +267,21 @@ export const registerAgentComponent = (editor: any) => {
         }
 
         // Refresh options when project changes
-        editor.on('component:add component:remove', () => {
+        this.__onComponentChange = () => {
           setTimeout(() => {
             const updatedOptions = getAgentOptions();
             if (agentNameTrait) {
               agentNameTrait.set('options', updatedOptions);
             }
           }, 100);
-        });
+        };
+        editor.on('component:add component:remove', this.__onComponentChange);
+      },
+      removed(this: any) {
+        if (this.__onComponentChange) {
+          editor.off('component:add component:remove', this.__onComponentChange);
+          this.__onComponentChange = null;
+        }
       },
       
       renderAgentComponent(this: any) {
@@ -282,10 +289,12 @@ export const registerAgentComponent = (editor: any) => {
         const view = this.getView();
         if (view && view.el) {
           const container = view.el;
-          container.innerHTML = '';
-          const root = ReactDOM.createRoot(container);
+          if (!view.__reactRoot) {
+            container.innerHTML = '';
+            view.__reactRoot = ReactDOM.createRoot(container);
+          }
           const props = buildAgentProps(attrs);
-          root.render(React.createElement(AgentComponentPreview, {
+          view.__reactRoot.render(React.createElement(AgentComponentPreview, {
             agentName: props['agent-name'] || '',
             agentTitle: props['agent-title'] || 'BESSER Agent',
           }));
@@ -295,12 +304,20 @@ export const registerAgentComponent = (editor: any) => {
     view: {
       onRender({ el, model }: any) {
         const attrs = model.get('attributes') || {};
-        const root = ReactDOM.createRoot(el);
+        if (!(this as any).__reactRoot) {
+          (this as any).__reactRoot = ReactDOM.createRoot(el);
+        }
         const props = buildAgentProps(attrs);
-        root.render(React.createElement(AgentComponentPreview, {
+        (this as any).__reactRoot.render(React.createElement(AgentComponentPreview, {
           agentName: props['agent-name'] || '',
           agentTitle: props['agent-title'] || 'BESSER Agent',
         }));
+      },
+      removed() {
+        if ((this as any).__reactRoot) {
+          (this as any).__reactRoot.unmount();
+          (this as any).__reactRoot = null;
+        }
       },
     },
     isComponent: (el: any) => {

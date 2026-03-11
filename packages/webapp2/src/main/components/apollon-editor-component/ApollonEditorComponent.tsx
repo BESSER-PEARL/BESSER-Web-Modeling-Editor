@@ -2,12 +2,11 @@ import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import styled from 'styled-components';
 
-import { updateDiagramThunk } from '../../services/diagram/diagramSlice';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { isUMLModel } from '../../types/project';
 import {
-  selectProject,
+  updateDiagramModelThunk,
   selectActiveDiagram,
   selectEditorOptions,
   selectEditorRevision,
@@ -27,13 +26,19 @@ const ApollonContainer = styled.div`
 export const ApollonEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ApollonEditor | null>(null);
+  const modelSubscriptionRef = useRef<number | null>(null);
   const setupRunRef = useRef(0);
   const lastHandledRevisionRef = useRef(0);
   const dispatch = useAppDispatch();
   const reduxDiagram = useAppSelector(selectActiveDiagram);
   const options = useAppSelector(selectEditorOptions);
   const editorRevision = useAppSelector(selectEditorRevision);
-  const currentProject = useAppSelector(selectProject);
+  const stateMachineDiagrams = useAppSelector(
+    (state) => state.workspace.project?.diagrams.StateMachineDiagram,
+  );
+  const quantumCircuitDiagrams = useAppSelector(
+    (state) => state.workspace.project?.diagrams.QuantumCircuitDiagram,
+  );
   const { setEditor } = useContext(ApollonEditorContext);
 
   // Stable refs so the setup effect can read current values without
@@ -63,36 +68,35 @@ export const ApollonEditorComponent: React.FC = () => {
     const editor = editorRef.current;
     editorRef.current = null;
     if (!editor) return;
+    // Unsubscribe from model changes before destroying
+    if (modelSubscriptionRef.current !== null) {
+      editor.unsubscribeFromModelChange(modelSubscriptionRef.current);
+      modelSubscriptionRef.current = null;
+    }
     await destroyEditorDeferred(editor);
   }, [destroyEditorDeferred]);
 
   useEffect(() => {
-    if (!currentProject) {
-      diagramBridge.setStateMachineDiagrams([]);
-      diagramBridge.setQuantumCircuitDiagrams([]);
-      return;
-    }
+    const smDiagrams = stateMachineDiagrams ?? [];
+    const qcDiagrams = quantumCircuitDiagrams ?? [];
 
-    const stateMachineDiagrams = currentProject.diagrams.StateMachineDiagram ?? [];
-    const quantumCircuitDiagrams = currentProject.diagrams.QuantumCircuitDiagram ?? [];
-
-    const stateMachines = stateMachineDiagrams
+    const stateMachines = smDiagrams
       .filter(d => d.id && d.title)
       .map(d => ({ id: d.id, name: d.title }));
 
-    const quantumCircuits = quantumCircuitDiagrams
+    const quantumCircuits = qcDiagrams
       .filter(d => d.id && d.title)
       .map(d => ({ id: d.id, name: d.title }));
 
     diagramBridge.setStateMachineDiagrams(stateMachines);
     diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
-  }, [currentProject]);
+  }, [stateMachineDiagrams, quantumCircuitDiagrams]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       setupRunRef.current += 1;
-      void cleanupEditor();
+      cleanupEditor().catch(console.error);
       setEditor!(undefined);
     };
   }, [cleanupEditor, setEditor]);
@@ -129,14 +133,14 @@ export const ApollonEditorComponent: React.FC = () => {
       }
 
       // Subscribe to model changes
-      nextEditor.subscribeToModelChange((model: UMLModel) => {
-        dispatch(updateDiagramThunk({ model }));
+      modelSubscriptionRef.current = nextEditor.subscribeToModelChange((model: UMLModel) => {
+        dispatch(updateDiagramModelThunk({ model }));
       });
 
       setEditor!(nextEditor);
     };
 
-    void setupEditor();
+    setupEditor().catch(console.error);
   }, [editorRevision, cleanupEditor, destroyEditorDeferred, dispatch, setEditor]);
 
   return <ApollonContainer ref={containerRef} />;

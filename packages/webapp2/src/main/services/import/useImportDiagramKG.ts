@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { BACKEND_URL } from '../../constant';
 import { useAppDispatch } from '../../store/hooks';
 import { uuid } from '../../utils/uuid';
-import { loadImportedDiagram } from '../diagram/diagramSlice';
+import { bumpEditorRevision } from '../workspace/workspaceSlice';
 import { displayError } from '../error-management/errorManagementSlice';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { toSupportedDiagramType } from '../../types/project';
@@ -72,7 +72,7 @@ export const useImportDiagramFromKG = () => {
       };
       ProjectStorageRepository.saveProject(updatedProject);
       if (diagramType === currentProject.currentDiagramType) {
-        dispatch(loadImportedDiagram(importedDiagram));
+        dispatch(bumpEditorRevision());
       }
       return {
         success: true,

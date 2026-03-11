@@ -36,11 +36,16 @@ function convertRenderedSVGToPNG(renderedSVG: SVG, whiteBackground: boolean): Pr
 
     image.onload = () => {
       const canvas = document.createElement('canvas');
-      const scale = 1.5; // Adjust scale if necessary
+      const scale = 1.5;
       canvas.width = width * scale;
       canvas.height = height * scale;
 
-      const context = canvas.getContext('2d')!;
+      const context = canvas.getContext('2d');
+      if (!context) {
+        URL.revokeObjectURL(blobUrl);
+        reject(new Error('Failed to create canvas 2D context'));
+        return;
+      }
 
       if (whiteBackground) {
         context.fillStyle = 'white';
@@ -51,12 +56,17 @@ function convertRenderedSVGToPNG(renderedSVG: SVG, whiteBackground: boolean): Pr
       context.drawImage(image, 0, 0);
 
       canvas.toBlob((blob) => {
-        URL.revokeObjectURL(blobUrl); // Cleanup the blob URL
-        resolve(blob as Blob);
+        URL.revokeObjectURL(blobUrl);
+        if (!blob) {
+          reject(new Error('Failed to create PNG blob from canvas'));
+          return;
+        }
+        resolve(blob);
       });
     };
 
     image.onerror = (error) => {
+      URL.revokeObjectURL(blobUrl);
       reject(error);
     };
   });

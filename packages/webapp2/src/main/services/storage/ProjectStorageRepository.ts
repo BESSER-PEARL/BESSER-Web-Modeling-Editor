@@ -1,20 +1,82 @@
-import { UMLDiagramType } from '@besser/wme';
 import {
+  ALL_DIAGRAM_TYPES,
   BesserProject,
   ProjectDiagram,
   createDefaultProject,
   createEmptyDiagram,
+  ensureProjectMigrated,
   getActiveDiagram,
   isProject,
   MAX_DIAGRAMS_PER_TYPE,
   SupportedDiagramType,
-  toSupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
 import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constant';
 
 export class ProjectStorageRepository {
-  
+
+  // ── Change notification mechanism ──────────────────────────────────────
+  // Editors (GrapesJS, Quantum, etc.) write directly to localStorage for
+  // performance. This listener pattern lets Redux stay in sync without
+  // those editors needing to know about the store.
+
+  private static changeListeners: Array<() => void> = [];
+
+  /**
+   * Monotonically increasing counter bumped on every write.
+   * Consumers can compare against a cached value to detect real changes
+   * and avoid redundant Redux dispatches.
+   */
+  static revision = 0;
+
+  /**
+   * When > 0, notifyChange() is suppressed.  Used by Redux thunks that
+   * already update the store themselves (via saveProject inside a thunk
+   * whose fulfilled handler writes to Redux).  Avoids a redundant
+   * syncProjectFromStorage dispatch after every thunk-driven save.
+   */
+  private static suppressDepth = 0;
+
+  /**
+   * Execute `fn` without firing change listeners.  Calls can nest safely.
+   *
+   * Usage (in workspaceSlice reducers that call saveProject):
+   *   ProjectStorageRepository.withoutNotify(() => {
+   *     ProjectStorageRepository.saveProject(project);
+   *   });
+   */
+  static withoutNotify(fn: () => void): void {
+    this.suppressDepth += 1;
+    try {
+      fn();
+    } finally {
+      this.suppressDepth -= 1;
+    }
+  }
+
+  /**
+   * Register a callback that fires after any project write operation.
+   * Returns an unsubscribe function.
+   */
+  static onProjectChange(listener: () => void): () => void {
+    this.changeListeners.push(listener);
+    return () => {
+      this.changeListeners = this.changeListeners.filter(l => l !== listener);
+    };
+  }
+
+  private static notifyChange(): void {
+    if (this.suppressDepth > 0) return;
+    this.revision += 1;
+    for (const listener of this.changeListeners) {
+      try {
+        listener();
+      } catch (e) {
+        console.error('[ProjectStorageRepository] Change listener error:', e);
+      }
+    }
+  }
+
   // Save complete project (diagrams included)
   static saveProject(project: BesserProject): void {
     try {
@@ -26,7 +88,10 @@ export class ProjectStorageRepository {
       
       // Update projects list
       this.updateProjectsList(project.id);
-      
+
+      // Notify listeners (Redux sync, etc.)
+      this.notifyChange();
+
       // console.log('Project saved successfully:', project.name);
     } catch (error) {
       console.error('Error saving project:', error);
@@ -51,8 +116,8 @@ export class ProjectStorageRepository {
         console.warn(`Invalid project structure: ${projectId}`);
         return null;
       }
-      
-      return project;
+
+      return ensureProjectMigrated(project);
     } catch (error) {
       console.error('Error loading project:', error);
       return null;
@@ -137,16 +202,6 @@ export class ProjectStorageRepository {
     return getActiveDiagram(project, newType);
   }
   
-  // Get current active diagram
-  static getCurrentDiagram(projectId?: string): ProjectDiagram | null {
-    const project = projectId ? this.loadProject(projectId) : this.getCurrentProject();
-    if (!project) {
-      return null;
-    }
-
-    return getActiveDiagram(project, project.currentDiagramType);
-  }
-
   // Add a new diagram to a type (returns index, or null if at limit)
   static addDiagram(projectId: string, diagramType: SupportedDiagramType, title?: string): { index: number; diagram: ProjectDiagram } | null {
     const project = this.loadProject(projectId);
@@ -164,6 +219,24 @@ export class ProjectStorageRepository {
     const defaultTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
     const diagram = createEmptyDiagram(defaultTitle, umlType, kind);
 
+    // Populate default cross-references for diagram types that need them
+    if (diagramType === 'GUINoCodeDiagram' || diagramType === 'ObjectDiagram') {
+      const refs: Partial<Record<SupportedDiagramType, string>> = {};
+      const classDiagrams = project.diagrams.ClassDiagram;
+      if (classDiagrams.length > 0) {
+        refs.ClassDiagram = classDiagrams[0].id;
+      }
+      if (diagramType === 'GUINoCodeDiagram') {
+        const agentDiagrams = project.diagrams.AgentDiagram;
+        if (agentDiagrams.length > 0) {
+          refs.AgentDiagram = agentDiagrams[0].id;
+        }
+      }
+      if (Object.keys(refs).length > 0) {
+        diagram.references = refs;
+      }
+    }
+
     diagrams.push(diagram);
     const newIndex = diagrams.length - 1;
     project.currentDiagramIndices[diagramType] = newIndex;
@@ -172,7 +245,8 @@ export class ProjectStorageRepository {
     return { index: newIndex, diagram };
   }
 
-  // Remove a diagram by index (cannot remove the last one)
+  // Remove a diagram by index (cannot remove the last one).
+  // Cleans up dangling ID-based references on all other diagrams.
   static removeDiagram(projectId: string, diagramType: SupportedDiagramType, diagramIndex: number): boolean {
     const project = this.loadProject(projectId);
     if (!project) {
@@ -184,6 +258,7 @@ export class ProjectStorageRepository {
       return false;
     }
 
+    const deletedId = diagrams[diagramIndex].id;
     diagrams.splice(diagramIndex, 1);
 
     // Adjust active index
@@ -193,6 +268,39 @@ export class ProjectStorageRepository {
     } else if (currentIndex > diagramIndex) {
       project.currentDiagramIndices[diagramType] = currentIndex - 1;
     }
+
+    // Clean up dangling references: any diagram referencing the deleted ID
+    // gets its reference reset to the first diagram of that type.
+    const fallbackId = diagrams[0]?.id;
+    for (const type of ALL_DIAGRAM_TYPES) {
+      for (const d of project.diagrams[type]) {
+        if (d.references?.[diagramType] === deletedId) {
+          d.references[diagramType] = fallbackId;
+        }
+      }
+    }
+
+    this.saveProject(project);
+    return true;
+  }
+
+  // Update a diagram's cross-references (ID-based)
+  static updateDiagramReferences(
+    projectId: string,
+    diagramType: SupportedDiagramType,
+    diagramIndex: number,
+    references: Partial<Record<SupportedDiagramType, string>>,
+  ): boolean {
+    const project = this.loadProject(projectId);
+    if (!project) return false;
+
+    const diagrams = project.diagrams[diagramType];
+    if (diagramIndex < 0 || diagramIndex >= diagrams.length) return false;
+
+    diagrams[diagramIndex] = {
+      ...diagrams[diagramIndex],
+      references: { ...diagrams[diagramIndex].references, ...references },
+    };
 
     this.saveProject(project);
     return true;
@@ -215,15 +323,6 @@ export class ProjectStorageRepository {
     return diagrams[index];
   }
 
-  // Get all diagrams for a type
-  static getDiagramsForType(projectId: string, diagramType: SupportedDiagramType): ProjectDiagram[] {
-    const project = this.loadProject(projectId);
-    if (!project) {
-      return [];
-    }
-    return project.diagrams[diagramType];
-  }
-  
   // Delete project
   static deleteProject(projectId: string): void {
     try {
@@ -241,7 +340,10 @@ export class ProjectStorageRepository {
       if (latestProjectId === projectId) {
         localStorage.removeItem(localStorageLatestProject);
       }
-      
+
+      // Notify listeners (Redux sync, etc.)
+      this.notifyChange();
+
       // console.log('Project deleted successfully:', projectId);
     } catch (error) {
       console.error('Error deleting project:', error);
@@ -271,9 +373,4 @@ export class ProjectStorageRepository {
     return [];
   }
   
-  // Migration helper: Check if project exists
-  static projectExists(projectId: string): boolean {
-    const projectKey = `${localStorageProjectPrefix}${projectId}`;
-    return localStorage.getItem(projectKey) !== null;
-  }
 }

@@ -239,13 +239,13 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
   useEffect(() => {
     if (showLinkModal && isAuthenticated && githubSession) {
-      void fetchRepositories(githubSession);
+      fetchRepositories(githubSession).catch(console.error);
     }
   }, [showLinkModal, isAuthenticated, githubSession, fetchRepositories]);
 
   useEffect(() => {
     if (isOpen && linkedRepo && isAuthenticated && githubSession) {
-      void fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath);
+      fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath).catch(console.error);
     }
   }, [isOpen, linkedRepo, isAuthenticated, githubSession, fetchCommits]);
 
@@ -270,7 +270,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       }
     };
 
-    void checkChanges();
+    checkChanges().catch(console.error);
   }, [isOpen, linkedRepo, isAuthenticated, githubSession, currentProject, checkForChanges]);
 
   const handleSave = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { ApollonEditor } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
 import { validateDiagram } from '../validation/validateDiagram';

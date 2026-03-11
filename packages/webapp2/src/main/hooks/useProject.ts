@@ -1,33 +1,33 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { BesserProject } from '../types/project';
 import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
+import { exportProjectAsJson } from '../services/export/useExportProjectJSON';
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { normalizeProjectName } from '../utils/projectName';
 import {
   loadProjectThunk,
   createProjectThunk,
-  updateCurrentDiagramThunk,
+  updateDiagramModelThunk,
   switchDiagramTypeThunk,
   clearError,
   updateProjectInfo,
-  selectCurrentProject,
-  selectCurrentDiagram,
-  selectCurrentDiagramType,
-  selectCurrentUMLDiagramType,
-  selectLoading,
-  selectError,
-} from '../services/project/projectSlice';
+  selectProject,
+  selectActiveDiagram,
+  selectActiveDiagramType,
+  selectWorkspaceLoading,
+  selectWorkspaceError,
+} from '../services/workspace/workspaceSlice';
 
 export const useProject = () => {
   const dispatch = useAppDispatch();
   
   // Redux state selectors (unified workspace slice)
-  const currentProject = useAppSelector(selectCurrentProject);
-  const currentDiagram = useAppSelector(selectCurrentDiagram);
-  const currentDiagramType = useAppSelector(selectCurrentDiagramType);
-  const loading = useAppSelector(selectLoading);
-  const error = useAppSelector(selectError);
+  const currentProject = useAppSelector(selectProject);
+  const currentDiagram = useAppSelector(selectActiveDiagram);
+  const currentDiagramType = useAppSelector(selectActiveDiagramType);
+  const loading = useAppSelector(selectWorkspaceLoading);
+  const error = useAppSelector(selectWorkspaceError);
   
   // Actions
   const createProject = useCallback(async (name: string, description: string, owner: string) => {
@@ -40,23 +40,23 @@ export const useProject = () => {
     if (createProjectThunk.fulfilled.match(result)) {
       return result.payload;
     }
-    throw new Error(result.payload as string || 'Failed to create project');
+    throw new Error(result.error?.message || 'Failed to create project');
   }, [dispatch]);
-  
+
   const loadProject = useCallback(async (projectId?: string) => {
     const result = await dispatch(loadProjectThunk(projectId));
     if (loadProjectThunk.fulfilled.match(result)) {
       return result.payload;
     }
-    throw new Error(result.payload as string || 'Failed to load project');
+    throw new Error(result.error?.message || 'Failed to load project');
   }, [dispatch]);
   
-  const switchDiagramType = useCallback((diagramType: UMLDiagramType) => {
+  const switchDiagramType = useCallback(async (diagramType: UMLDiagramType) => {
     if (!currentProject) {
       throw new Error('No active project');
     }
-    
-    dispatch(switchDiagramTypeThunk({ diagramType }));
+
+    await dispatch(switchDiagramTypeThunk({ diagramType }));
   }, [dispatch, currentProject]);
   
   const updateCurrentDiagram = useCallback((model: UMLModel) => {
@@ -64,7 +64,7 @@ export const useProject = () => {
       throw new Error('No active project');
     }
     
-    dispatch(updateCurrentDiagramThunk({ model }));
+    dispatch(updateDiagramModelThunk({ model }));
   }, [dispatch, currentProject]);
   
   const clearProjectError = useCallback(() => {
@@ -116,8 +116,7 @@ export const useProject = () => {
     }
     
     // Use the simple JSON export function instead of ZIP export
-    const { exportProjectAsJson } = await import('../services/export/useExportProjectJSON');
-    await exportProjectAsJson(project);
+    exportProjectAsJson(project);
   }, [currentProject]);
   
   return {

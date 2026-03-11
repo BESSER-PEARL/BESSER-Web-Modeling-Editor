@@ -66,13 +66,13 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
 
     setCurrentPath(initialPath);
     setSelectedItem(null);
-    void loadContents(initialPath);
+    loadContents(initialPath).catch(console.error);
   }, [show, initialPath]);
 
   const openPath = (path: string) => {
     setCurrentPath(path);
     setSelectedItem(null);
-    void loadContents(path);
+    loadContents(path).catch(console.error);
   };
 
   const handleItemClick = (item: GitHubContentItem) => {

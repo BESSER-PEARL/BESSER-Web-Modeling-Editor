@@ -31,36 +31,43 @@ export const buildExportableProjectPayload = (
 };
 
 /**
- * Flatten project diagram arrays to single diagrams (active one per type).
- * Used at the API boundary when the backend expects single diagrams per type.
+ * Build a project payload for backend API endpoints.
+ * Sends full diagram arrays (not flattened) so the backend has all diagrams.
+ * The backend uses currentDiagramIndices to pick the active diagram per type.
  *
  * @param selectedDiagramTypes  Optional filter – only include these diagram types.
  */
-export const flattenProjectForBackend = (
+export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
-): any => {
-  const flat = JSON.parse(JSON.stringify(project));
-  flat.name = normalizeProjectName(flat.name || 'project');
+): Record<string, unknown> => {
+  const payload = JSON.parse(JSON.stringify(project));
+  payload.name = normalizeProjectName(payload.name || 'project');
 
-  for (const type of Object.keys(flat.diagrams)) {
-    const diagrams = flat.diagrams[type];
-    if (Array.isArray(diagrams)) {
-      const index = flat.currentDiagramIndices?.[type] ?? 0;
-      flat.diagrams[type] = diagrams[index] ?? diagrams[0];
+  // Filter to only non-empty diagram types
+  const diagrams: Record<string, ProjectDiagram[]> = {};
+  for (const type of Object.keys(payload.diagrams)) {
+    const arr = payload.diagrams[type];
+    if (Array.isArray(arr) && arr.length > 0) {
+      diagrams[type] = arr;
     }
   }
 
   // Optionally filter to only the requested diagram types
   if (selectedDiagramTypes && selectedDiagramTypes.length > 0) {
-    const filtered: Record<string, any> = {};
+    const filtered: Record<string, ProjectDiagram[]> = {};
     for (const type of selectedDiagramTypes) {
-      if (flat.diagrams[type]) {
-        filtered[type] = flat.diagrams[type];
+      if (diagrams[type]) {
+        filtered[type] = diagrams[type];
       }
     }
-    flat.diagrams = filtered;
+    payload.diagrams = filtered;
+  } else {
+    payload.diagrams = diagrams;
   }
 
-  return flat;
+  return payload;
 };
+
+/** @deprecated Use buildProjectPayloadForBackend instead. */
+export const flattenProjectForBackend = buildProjectPayloadForBackend;

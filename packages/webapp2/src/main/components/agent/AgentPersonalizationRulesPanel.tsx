@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { downloadJson } from '../../utils/download';
 import jsonSchema from './json_schema.json';
 
 type Operator = 'is' | 'contains' | '<' | '<=' | '>' | '>=' | 'between';
@@ -141,15 +142,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
   };
 
   const handleDownload = () => {
-    const blob = new Blob([JSON.stringify(mappings, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'agent_personalization.json';
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
+    downloadJson(mappings, 'agent_personalization.json');
   };
 
   const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,23 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../constant';
 import { useProject } from '../../hooks/useProject';
 import { toUMLDiagramType, type SupportedDiagramType } from '../../types/project';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateDiagramThunk } from '../../services/diagram/diagramSlice';
-import { switchDiagramTypeThunk } from '../../services/project/projectSlice';
+import { updateDiagramModelThunk, switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
 import { useGitHubAuth } from '../../services/github/useGitHubAuth';
 import { GitHubSidebar } from '../github-sidebar';
 import { isDarkThemeEnabled, toggleTheme } from '../../utils/theme-switcher';
-import { useDeployToGitHub } from '../../services/deploy/useGitHubDeploy';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { useImportDiagramToProjectWorkflow } from '../../services/import/useImportDiagram';
-import { useImportDiagramPictureFromImage } from '../../services/import/useImportDiagramPicture';
-import { useImportDiagramFromKG } from '../../services/import/useImportDiagramKG';
-import { buildExportableProjectPayload, flattenProjectForBackend } from '../../services/export/projectExportUtils';
-import { useProjectBumlPreview } from '../../services/export/useProjectBumlPreview';
+import { buildExportableProjectPayload } from '../../services/export/projectExportUtils';
 import {
   appVersion,
   besserLibraryRepositoryLink,
@@ -26,6 +20,7 @@ import {
 } from '../../application-constants';
 import { normalizeProjectName } from '../../utils/projectName';
 import { getWorkspaceContext } from '../../utils/workspaceContext';
+import { downloadFile, downloadJson } from '../../utils/download';
 import type { GenerationResult } from '../../services/generate-code/types';
 import { JsonViewerModal } from '../modals/json-viewer-modal/json-viewer-modal';
 import { FeedbackDialog } from '../modals/FeedbackDialog';
@@ -37,36 +32,26 @@ import { WorkspaceSidebar } from './WorkspaceSidebar';
 import {
   AboutDialog,
   AssistantImportDialog,
-  type AssistantImportMode,
   DeployDialog,
   DeployResultDialog,
 } from './dialogs';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
+import { useDeployment } from './hooks/useDeployment';
+import { useAssistantImport } from './hooks/useAssistantImport';
+import { useProjectPreview } from './hooks/useProjectPreview';
+import { useGitHubStar } from './hooks/useGitHubStar';
+import { useDialogStates } from './hooks/useDialogStates';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
-// localStorage helpers for tracking previously deployed repos per project
-const DEPLOY_LINKED_REPO_PREFIX = 'besser_deploy_linked_';
-
-function getDeployLinkedRepo(projectId: string): { owner: string; repo: string } | null {
-  try {
-    const raw = localStorage.getItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.owner && parsed.repo) return parsed;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function saveDeployLinkedRepo(projectId: string, owner: string, repo: string): void {
-  localStorage.setItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}`, JSON.stringify({ owner, repo }));
-}
-
-function clearDeployLinkedRepo(projectId: string): void {
-  localStorage.removeItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}`);
-}
+const sanitizeRepoName = (name: string): string => {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
@@ -80,15 +65,6 @@ interface WorkspaceShellProps {
   isGenerating?: boolean;
   onAssistantGenerate?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
 }
-
-const sanitizeRepoName = (name: string): string => {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
 
 export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   children,
@@ -115,45 +91,96 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     logout: githubLogout,
     isLoading: githubLoading,
   } = useGitHubAuth();
-  const { deployToGitHub, isDeploying: isDeployingToRender, deploymentResult } = useDeployToGitHub();
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
-  const importDiagramPictureFromImage = useImportDiagramPictureFromImage();
-  const importDiagramFromKG = useImportDiagramFromKG();
-  const generateProjectBumlPreview = useProjectBumlPreview();
 
+  // Local UI state
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
   const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
-  const [hasStarred, setHasStarred] = useState(false);
-  const [starLoading, setStarLoading] = useState(false);
 
-  const [assistantImportMode, setAssistantImportMode] = useState<AssistantImportMode>(null);
-  const [assistantApiKey, setAssistantApiKey] = useState('');
-  const [assistantSelectedFile, setAssistantSelectedFile] = useState<File | null>(null);
-  const [assistantImportError, setAssistantImportError] = useState('');
-  const [isAssistantImporting, setIsAssistantImporting] = useState(false);
+  // Derived values
+  const activeUmlType = useMemo(
+    () => toUMLDiagramType(currentDiagramType) ?? UMLDiagramType.ClassDiagram,
+    [currentDiagramType],
+  );
+  const { isDeploymentAvailable } = getWorkspaceContext(
+    location.pathname,
+    currentProject?.currentDiagramType,
+  );
 
-  const [isProjectPreviewOpen, setIsProjectPreviewOpen] = useState(false);
-  const [projectPreviewJson, setProjectPreviewJson] = useState('');
-  const [projectBumlPreview, setProjectBumlPreview] = useState('');
-  const [projectBumlPreviewError, setProjectBumlPreviewError] = useState('');
-  const [isProjectBumlPreviewLoading, setIsProjectBumlPreviewLoading] = useState(false);
+  // Extracted hooks
+  const {
+    hasStarred,
+    starLoading,
+    handleToggleStar,
+  } = useGitHubStar({ isAuthenticated, githubSession });
 
-  const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
-  const [isDeployResultOpen, setIsDeployResultOpen] = useState(false);
-  const [githubRepoName, setGithubRepoName] = useState('');
-  const [githubRepoDescription, setGithubRepoDescription] = useState('');
-  const [githubRepoPrivate, setGithubRepoPrivate] = useState(false);
-  const [useExistingRepo, setUseExistingRepo] = useState(false);
-  const [linkedRepo, setLinkedRepo] = useState<{ owner: string; repo: string } | null>(null);
-  const [commitMessage, setCommitMessage] = useState('');
+  const {
+    isDeployDialogOpen,
+    isDeployResultOpen,
+    githubRepoName,
+    githubRepoDescription,
+    githubRepoPrivate,
+    useExistingRepo,
+    linkedRepo,
+    commitMessage,
+    isDeployingToRender,
+    deploymentResult,
+    setIsDeployDialogOpen,
+    setIsDeployResultOpen,
+    setGithubRepoName,
+    setGithubRepoDescription,
+    setGithubRepoPrivate,
+    setCommitMessage,
+    handleOpenDeployDialog,
+    handlePublishToRender,
+    handleCreateNewInstead,
+  } = useDeployment({ currentProject, isDeploymentAvailable });
 
-  const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
-  const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false);
-  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const {
+    assistantImportMode,
+    assistantApiKey,
+    assistantSelectedFile,
+    assistantImportError,
+    isAssistantImporting,
+    setAssistantApiKey,
+    openAssistantImportDialog,
+    resetAssistantImportDialog,
+    handleAssistantFileChange,
+    handleAssistantImport,
+  } = useAssistantImport({ currentProject });
+
+  const {
+    isProjectPreviewOpen,
+    projectPreviewJson,
+    projectBumlPreview,
+    projectBumlPreviewError,
+    isProjectBumlPreviewLoading,
+    handleOpenProjectPreview,
+    handleCopyProjectPreview,
+    handleDownloadProjectPreview,
+    handleRequestProjectBumlPreview,
+    handleCloseProjectPreview,
+    handleCopyProjectBumlPreview,
+    handleDownloadProjectBumlPreview,
+    generateProjectBumlPreview,
+  } = useProjectPreview({ currentProject });
+
+  const {
+    isHelpDialogOpen,
+    setIsHelpDialogOpen,
+    isAboutDialogOpen,
+    setIsAboutDialogOpen,
+    isFeedbackDialogOpen,
+    setIsFeedbackDialogOpen,
+  } = useDialogStates();
+
+  // Refs to avoid stale closures in event listeners
+  const currentProjectRef = useRef(currentProject);
+  currentProjectRef.current = currentProject;
 
   useEffect(() => {
     setProjectNameDraft(currentProject?.name ?? '');
@@ -163,59 +190,27 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setDiagramTitleDraft(diagram?.title ?? '');
   }, [diagram?.id, diagram?.title]);
 
-  useEffect(() => {
-    if (!isAuthenticated || !githubSession) return;
-    fetch(`${BACKEND_URL}/github/star/status?session_id=${githubSession}`)
-      .then((res) => res.json())
-      .then((data) => { if (data.starred) setHasStarred(true); })
-      .catch(() => {});
-  }, [isAuthenticated, githubSession]);
-
-  const handleToggleStar = async () => {
-    if (!githubSession || starLoading) return;
-    setStarLoading(true);
-    try {
-      const method = hasStarred ? 'DELETE' : 'PUT';
-      const res = await fetch(`${BACKEND_URL}/github/star?session_id=${githubSession}`, { method });
-      if (res.ok) {
-        setHasStarred(!hasStarred);
-        if (!hasStarred) toast.success('Thanks for starring BESSER!');
-      }
-    } catch {
-      toast.error('Failed to update star');
-    } finally {
-      setStarLoading(false);
-    }
-  };
-
   /* ---- Assistant-driven export (JSON / BUML) ---- */
   useEffect(() => {
     const handleAssistantExport = async (e: Event) => {
       const format = (e as CustomEvent<{ format: string }>).detail?.format ?? 'json';
+      const project = currentProjectRef.current;
 
-      if (!currentProject) {
+      if (!project) {
         toast.error('Create or load a project first.');
         return;
       }
 
-      const freshProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+      const freshProject = ProjectStorageRepository.loadProject(project.id) || project;
 
       if (format === 'buml') {
         try {
           const buml = await generateProjectBumlPreview(freshProject);
           const normalizedName =
-            normalizeProjectName(currentProject.name || 'project')
+            normalizeProjectName(project.name || 'project')
               .toLowerCase()
               .replace(/[^a-z0-9_]/g, '_') || 'project';
-          const blob = new Blob([buml], { type: 'text/x-python' });
-          const url = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href = url;
-          anchor.download = `${normalizedName}_buml.py`;
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
-          URL.revokeObjectURL(url);
+          downloadFile(buml, `${normalizedName}_buml.py`, 'text/x-python');
           toast.success('Project exported as B-UML.');
         } catch (err) {
           toast.error(`B-UML export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -226,32 +221,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           exportedAt: new Date().toISOString(),
           version: '2.0.0',
         };
-        const projectName = sanitizeRepoName(currentProject.name || 'project') || 'project';
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `${projectName}_export.json`;
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        URL.revokeObjectURL(url);
+        const projectName = sanitizeRepoName(project.name || 'project') || 'project';
+        downloadJson(exportData, `${projectName}_export.json`);
         toast.success('Project exported as JSON.');
       }
     };
 
     window.addEventListener('wme:assistant-export-project', handleAssistantExport);
     return () => window.removeEventListener('wme:assistant-export-project', handleAssistantExport);
-  }, [currentProject, generateProjectBumlPreview]);
+  }, [generateProjectBumlPreview]);
 
-  const activeUmlType = useMemo(
-    () => toUMLDiagramType(currentDiagramType) ?? UMLDiagramType.ClassDiagram,
-    [currentDiagramType],
-  );
-  const { isDeploymentAvailable } = getWorkspaceContext(
-    location.pathname,
-    currentProject?.currentDiagramType,
-  );
+  // Theme classes
   const shellBackgroundClass = isDarkTheme
     ? 'bg-[radial-gradient(120%_120%_at_0%_0%,#0f172a_0%,#111827_45%,#0b1220_100%)] text-slate-100'
     : 'bg-[radial-gradient(120%_120%_at_0%_0%,#d2e7df_0%,#f8f7f2_45%,#f7fafc_100%)] text-foreground';
@@ -283,18 +263,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     ? 'text-xs font-semibold text-slate-200'
     : 'text-xs font-semibold text-slate-700';
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = useCallback((path: string) => {
     navigate(path);
-  };
+  }, [navigate]);
 
-  const handleSwitchDiagramType = (type: SupportedDiagramType) => {
+  const handleSwitchDiagramType = useCallback((type: SupportedDiagramType) => {
     if (location.pathname !== '/') {
       navigate('/');
     }
     dispatch(switchDiagramTypeThunk({ diagramType: type }));
-  };
+  }, [location.pathname, navigate, dispatch]);
 
-  const handleSwitchUml = (type: UMLDiagramType) => {
+  const handleSwitchUml = useCallback((type: UMLDiagramType) => {
     if (location.pathname !== '/') {
       navigate('/');
     }
@@ -303,7 +283,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       return;
     }
     switchDiagramType(type);
-  };
+  }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType]);
 
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
     // Navigate to editor view if on a different page
@@ -332,24 +312,24 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return true;
   };
 
-  const handleProjectRename = () => {
+  const handleProjectRename = useCallback(() => {
     const normalized = normalizeProjectName(projectNameDraft);
     if (!normalized || !currentProject || normalized === currentProject.name) {
       setProjectNameDraft(currentProject?.name ?? '');
       return;
     }
     updateProject({ name: normalized });
-  };
+  }, [projectNameDraft, currentProject, updateProject]);
 
-  const handleDiagramRename = () => {
+  const handleDiagramRename = useCallback(() => {
     const normalized = diagramTitleDraft.trim();
     const currentTitle = diagram?.title ?? '';
     if (!normalized || normalized === currentTitle) {
       setDiagramTitleDraft(currentTitle);
       return;
     }
-    dispatch(updateDiagramThunk({ title: normalized }));
-  };
+    dispatch(updateDiagramModelThunk({ title: normalized }));
+  }, [diagramTitleDraft, diagram?.title, dispatch]);
 
   const handleToggleTheme = () => {
     toggleTheme();
@@ -375,256 +355,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         return;
       }
       toast.error(`Import failed: ${message}`);
-    }
-  };
-
-  const resetAssistantImportDialog = () => {
-    setAssistantImportMode(null);
-    setAssistantApiKey('');
-    setAssistantSelectedFile(null);
-    setAssistantImportError('');
-    setIsAssistantImporting(false);
-  };
-
-  const openAssistantImportDialog = (mode: Exclude<AssistantImportMode, null>) => {
-    if (!currentProject) {
-      toast.error('Create or load a project first.');
-      return;
-    }
-    setAssistantImportMode(mode);
-    setAssistantApiKey('');
-    setAssistantSelectedFile(null);
-    setAssistantImportError('');
-  };
-
-  const handleAssistantFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] ?? null;
-    if (!file || !assistantImportMode) {
-      setAssistantSelectedFile(null);
-      setAssistantImportError('');
-      return;
-    }
-
-    if (assistantImportMode === 'image') {
-      const allowedTypes = ['image/png', 'image/jpeg'];
-      if (!allowedTypes.includes(file.type)) {
-        setAssistantSelectedFile(null);
-        setAssistantImportError('Only PNG or JPEG files are allowed.');
-        return;
-      }
-    } else {
-      const allowedTypes = ['application/json', 'text/turtle', 'application/x-turtle'];
-      const allowedExtensions = ['.json', '.ttl', '.rdf'];
-      const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-      if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(extension)) {
-        setAssistantSelectedFile(null);
-        setAssistantImportError('Only TTL, RDF, or JSON files are allowed.');
-        return;
-      }
-    }
-
-    setAssistantSelectedFile(file);
-    setAssistantImportError('');
-  };
-
-  const handleAssistantImport = async () => {
-    if (!assistantImportMode || !assistantSelectedFile || !assistantApiKey || assistantImportError) {
-      return;
-    }
-
-    setIsAssistantImporting(true);
-    try {
-      const result =
-        assistantImportMode === 'image'
-          ? await importDiagramPictureFromImage(assistantSelectedFile, assistantApiKey)
-          : await importDiagramFromKG(assistantSelectedFile, assistantApiKey);
-      toast.success(result.message);
-      resetAssistantImportDialog();
-    } catch (error) {
-      toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsAssistantImporting(false);
-    }
-  };
-
-  const handleOpenProjectPreview = () => {
-    if (!currentProject) {
-      toast.error('Create or load a project first.');
-      return;
-    }
-
-    const freshProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-    const exportData = {
-      project: buildExportableProjectPayload(freshProject),
-      exportedAt: new Date().toISOString(),
-      version: '2.0.0',
-    };
-    setProjectPreviewJson(JSON.stringify(exportData, null, 2));
-    setProjectBumlPreview('');
-    setProjectBumlPreviewError('');
-    setIsProjectBumlPreviewLoading(false);
-    setIsProjectPreviewOpen(true);
-  };
-
-  const handleCopyProjectPreview = async () => {
-    try {
-      await navigator.clipboard.writeText(projectPreviewJson);
-      toast.success('Project JSON copied.');
-    } catch {
-      toast.error('Failed to copy project JSON.');
-    }
-  };
-
-  const handleDownloadProjectPreview = () => {
-    const blob = new Blob([projectPreviewJson], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const projectName = sanitizeRepoName(currentProject?.name || 'project') || 'project';
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${projectName}_preview.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleRequestProjectBumlPreview = async () => {
-    if (!currentProject) {
-      toast.error('Create or load a project first.');
-      return;
-    }
-
-    const freshProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-    setIsProjectBumlPreviewLoading(true);
-    setProjectBumlPreviewError('');
-
-    try {
-      const bumlPreview = await generateProjectBumlPreview(freshProject);
-      setProjectBumlPreview(bumlPreview);
-      toast.success('Project B-UML preview generated.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to generate B-UML preview.';
-      setProjectBumlPreview('');
-      setProjectBumlPreviewError(message);
-      toast.error(`Failed to generate B-UML preview: ${message}`);
-    } finally {
-      setIsProjectBumlPreviewLoading(false);
-    }
-  };
-
-  const handleCloseProjectPreview = () => {
-    setIsProjectPreviewOpen(false);
-    setProjectPreviewJson('');
-    setProjectBumlPreview('');
-    setProjectBumlPreviewError('');
-    setIsProjectBumlPreviewLoading(false);
-  };
-
-  const handleCopyProjectBumlPreview = async () => {
-    if (!projectBumlPreview) {
-      toast.error('No B-UML preview to copy.');
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(projectBumlPreview);
-      toast.success('Project B-UML copied.');
-    } catch {
-      toast.error('Failed to copy B-UML preview.');
-    }
-  };
-
-  const handleDownloadProjectBumlPreview = () => {
-    if (!projectBumlPreview) {
-      toast.error('No B-UML preview to download.');
-      return;
-    }
-
-    const normalizedName =
-      normalizeProjectName(currentProject?.name || 'project')
-        .toLowerCase()
-        .replace(/[^a-z0-9_]/g, '_') || 'project';
-
-    const blob = new Blob([projectBumlPreview], { type: 'text/x-python' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${normalizedName}_preview.py`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleOpenDeployDialog = () => {
-    if (!isDeploymentAvailable) {
-      toast.info('Deploy is available for Class and GUI diagrams.');
-      return;
-    }
-    if (!isAuthenticated) {
-      toast.info('Connect to GitHub first.');
-      return;
-    }
-    if (!currentProject) {
-      toast.error('Create or load a project first.');
-      return;
-    }
-
-    setCommitMessage('');
-    const linked = getDeployLinkedRepo(currentProject.id);
-    if (linked) {
-      setLinkedRepo(linked);
-      setGithubRepoName(linked.repo);
-      setUseExistingRepo(true);
-    } else {
-      setLinkedRepo(null);
-      setUseExistingRepo(false);
-      setGithubRepoName(sanitizeRepoName(currentProject.name) || 'besser-webapp');
-    }
-    setGithubRepoDescription('Web application generated by BESSER');
-    setGithubRepoPrivate(false);
-    setIsDeployDialogOpen(true);
-  };
-
-  /* ---- Assistant-driven deploy ---- */
-  useEffect(() => {
-    const handleAssistantDeploy = (_e: Event) => {
-      handleOpenDeployDialog();
-    };
-
-    window.addEventListener('wme:assistant-deploy-app', handleAssistantDeploy);
-    return () => window.removeEventListener('wme:assistant-deploy-app', handleAssistantDeploy);
-  }, [isDeploymentAvailable, isAuthenticated, currentProject]);
-
-  const handlePublishToRender = async () => {
-    if (!currentProject) {
-      toast.error('No project available for deployment.');
-      return;
-    }
-    if (!githubSession) {
-      toast.error('GitHub session not found. Please reconnect.');
-      return;
-    }
-    if (!githubRepoName.trim()) {
-      toast.error('Repository name is required.');
-      return;
-    }
-
-    const projectForDeploy = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-    const result = await deployToGitHub(
-      flattenProjectForBackend(projectForDeploy),
-      sanitizeRepoName(githubRepoName),
-      githubRepoDescription.trim() || 'Web application generated by BESSER',
-      githubRepoPrivate,
-      githubSession,
-      useExistingRepo,
-      commitMessage,
-    );
-
-    if (result?.success) {
-      saveDeployLinkedRepo(currentProject.id, result.owner, result.repo_name);
-      setIsDeployDialogOpen(false);
-      setIsDeployResultOpen(true);
     }
   };
 
@@ -693,6 +423,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           locationPath={location.pathname}
           activeUmlType={activeUmlType}
           activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
+          project={currentProject}
           onSwitchUml={handleSwitchUml}
           onSwitchDiagramType={handleSwitchDiagramType}
           onNavigate={handleNavigate}
@@ -728,7 +459,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }}
         onApiKeyChange={setAssistantApiKey}
         onFileChange={handleAssistantFileChange}
-        onImport={() => void handleAssistantImport()}
+        onImport={() => { handleAssistantImport().catch(console.error); }}
       />
 
       <JsonViewerModal
@@ -743,7 +474,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         bumlLabel={currentProject?.name ? `Project B-UML Preview (${currentProject.name})` : 'Project B-UML Preview'}
         isBumlLoading={isProjectBumlPreviewLoading}
         bumlError={projectBumlPreviewError}
-        onRequestBuml={() => void handleRequestProjectBumlPreview()}
+        onRequestBuml={() => { handleRequestProjectBumlPreview().catch(console.error); }}
         onCopyBuml={handleCopyProjectBumlPreview}
         onDownloadBuml={handleDownloadProjectBumlPreview}
       />
@@ -766,15 +497,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onRepoDescriptionChange={setGithubRepoDescription}
         onRepoPrivateChange={setGithubRepoPrivate}
         onCommitMessageChange={setCommitMessage}
-        onCreateNewInstead={() => {
-          if (currentProject?.id) {
-            clearDeployLinkedRepo(currentProject.id);
-          }
-          setLinkedRepo(null);
-          setUseExistingRepo(false);
-          setGithubRepoName(sanitizeRepoName(currentProject?.name || '') || 'besser-webapp');
-        }}
-        onPublish={() => void handlePublishToRender()}
+        onCreateNewInstead={handleCreateNewInstead}
+        onPublish={() => { handlePublishToRender().catch(console.error); }}
       />
 
       <DeployResultDialog

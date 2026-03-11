@@ -1,4 +1,4 @@
-import { updateDiagramThunk } from '../../../services/diagram/diagramSlice';
+import { updateDiagramModelThunk } from '../../../services/workspace/workspaceSlice';
 import type { AppDispatch } from '../../../store/store';
 import { ConverterFactory } from './converters';
 import type { DiagramType } from './shared-types';
@@ -272,9 +272,8 @@ export class UMLModelingService {
       }
 
       // Persist to Redux store first, then update editor
-      await this.dispatch(updateDiagramThunk({
+      await this.dispatch(updateDiagramModelThunk({
         model: updatedModel as any,
-        lastUpdate: new Date().toISOString()
       })).unwrap();
 
       if (this.editor) {
@@ -322,9 +321,8 @@ export class UMLModelingService {
     }
 
     // Persist to Redux store first, then update editor
-    await this.dispatch(updateDiagramThunk({
+    await this.dispatch(updateDiagramModelThunk({
       model: mergedModel as any,
-      lastUpdate: new Date().toISOString()
     })).unwrap();
 
     if (this.editor) {

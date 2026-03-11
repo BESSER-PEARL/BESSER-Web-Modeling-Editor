@@ -27,6 +27,7 @@ import { TemplateLibraryDialog } from './components/modals/TemplateLibraryDialog
 import { ExportDialog } from './components/modals/ExportDialog';
 import { GeneratorConfigDialogs } from './components/modals/generator-config/GeneratorConfigDialogs';
 import { useProjectBootstrap } from './hooks/useProjectBootstrap';
+import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from './utils/workspaceContext';
 import { useGeneratorExecution } from './components/generator-execution/useGeneratorExecution';
 
@@ -46,6 +47,9 @@ function AppContentInner() {
   const [showExportDialog, setShowExportDialog] = useState(false);
 
   const location = useLocation();
+
+  // Keep Redux in sync with direct localStorage writes from editors
+  useStorageSync();
 
   const { currentProject, loadProject } = useProject();
   const loadProjectForBootstrap = useCallback(
@@ -144,6 +148,8 @@ function AppContentInner() {
         // ── Qiskit config ────────────────────────────────────────────
         qiskitBackend={configState.qiskitBackend}
         qiskitShots={configState.qiskitShots}
+        // ── Web App checklist ────────────────────────────────────────
+        webAppChecklist={configState.webAppChecklist}
         // ── Field change handlers ────────────────────────────────────
         onDjangoProjectNameChange={configState.onDjangoProjectNameChange}
         onDjangoAppNameChange={configState.onDjangoAppNameChange}
@@ -166,6 +172,7 @@ function AppContentInner() {
         onJsonSchemaGenerate={configState.onJsonSchemaGenerate}
         onAgentGenerate={configState.onAgentGenerate}
         onQiskitGenerate={configState.onQiskitGenerate}
+        onWebAppGenerate={configState.onWebAppGenerate}
       />
 
       <ErrorPanel />

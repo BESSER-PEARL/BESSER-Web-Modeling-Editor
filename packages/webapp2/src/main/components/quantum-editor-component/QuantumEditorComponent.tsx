@@ -58,7 +58,7 @@ export function QuantumEditorComponent(): JSX.Element {
         redo,
         canUndo,
         canRedo,
-    } = useUndoRedo(initialCircuit);
+    } = useUndoRedo(initialCircuit, currentProject?.id);
 
     // React to external circuit updates (e.g., loading a template while on quantum editor)
     // This is needed because templates update the storage directly via Redux thunks
