@@ -37,7 +37,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
               </p>
               <p className="text-xs">{deploymentResult.files_uploaded} files uploaded.</p>
             </div>
-            <Button className="w-full bg-[#397C95] text-white hover:bg-[#2C6A82]" onClick={onOpenRender}>
+            <Button className="w-full bg-brand text-brand-foreground hover:bg-brand-dark" onClick={onOpenRender}>
               Open Render Deployment
             </Button>
             <Button variant="outline" className="w-full" onClick={onOpenRepository}>

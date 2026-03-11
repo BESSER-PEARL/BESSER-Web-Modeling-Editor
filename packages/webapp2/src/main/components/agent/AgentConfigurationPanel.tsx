@@ -910,7 +910,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   storedMappings.map((mapping) => (
                     <div
                       key={mapping.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#397C95]/10 px-3 py-2 text-sm dark:border-[#5BB8D4]/10"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-brand/10 px-3 py-2 text-sm"
                     >
                       <div>
                         <span className="font-medium">{mapping.userProfileName}</span>

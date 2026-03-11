@@ -191,16 +191,15 @@ select {
 }
 
 /* ---- Gradient text for "model" keyword ---- */
-/* Brand base: #397C95 (HSL ~196 45% 40%) */
 .gradient-text-model {
-  background: linear-gradient(135deg, #397C95 0%, #2C6A82 30%, #4A9BB8 60%, #397C95 100%);
+  background: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-dark)) 30%, hsl(var(--brand-light)) 60%, hsl(var(--brand)) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 [data-theme='dark'] .gradient-text-model {
-  background: linear-gradient(135deg, #5BB8D4 0%, #6BC8E4 30%, #8DD8EE 60%, #5BB8D4 100%);
+  background: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-light)) 30%, hsl(195 70% 80%) 60%, hsl(var(--brand)) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -233,11 +232,11 @@ select {
   padding: 1.5px;
   background: conic-gradient(
     from var(--gradient-angle, 0deg),
-    #397C95 0%,
-    #4A9BB8 25%,
-    #2C6A82 50%,
-    #5BAFCC 75%,
-    #397C95 100%
+    hsl(var(--brand)) 0%,
+    hsl(var(--brand-light)) 25%,
+    hsl(var(--brand-dark)) 50%,
+    hsl(195 50% 58%) 75%,
+    hsl(var(--brand)) 100%
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -254,11 +253,11 @@ select {
 [data-theme='dark'] .input-card-glow::before {
   background: conic-gradient(
     from var(--gradient-angle, 0deg),
-    #5BB8D4 0%,
-    #6BC8E4 25%,
-    #4A9BB8 50%,
-    #8DD8EE 75%,
-    #5BB8D4 100%
+    hsl(var(--brand)) 0%,
+    hsl(var(--brand-light)) 25%,
+    hsl(var(--brand-dark)) 50%,
+    hsl(195 70% 80%) 75%,
+    hsl(var(--brand)) 100%
   );
   opacity: 0.6;
 }

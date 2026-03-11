@@ -64,7 +64,7 @@ interface KeyboardShortcutsDialogProps {
 
 /** Renders an individual key token inside a <kbd> element. */
 const Key: React.FC<{ label: string }> = ({ label }) => (
-  <kbd className="inline-flex min-w-[1.6rem] items-center justify-center rounded-md border border-[#397C95]/20 bg-[#397C95]/[0.06] px-1.5 py-0.5 font-mono text-xs font-medium text-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)] dark:border-[#5BB8D4]/20 dark:bg-[#5BB8D4]/[0.08]">
+  <kbd className="inline-flex min-w-[1.6rem] items-center justify-center rounded-md border border-brand/20 bg-brand/[0.06] px-1.5 py-0.5 font-mono text-xs font-medium text-foreground shadow-[0_1px_0_1px_rgba(0,0,0,0.04)]">
     {label}
   </kbd>
 );
@@ -105,7 +105,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
       <DialogContent className="max-h-[85vh] w-[560px] max-w-[92vw] overflow-hidden p-0">
         <DialogHeader className="border-b border-border/70 px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
-            <Keyboard className="h-5 w-5 text-[#397C95] dark:text-[#5BB8D4]" />
+            <Keyboard className="h-5 w-5 text-brand" />
             Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription>

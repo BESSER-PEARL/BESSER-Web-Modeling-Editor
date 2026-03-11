@@ -43,7 +43,7 @@ export const ProjectIdentityPanel: React.FC<ProjectIdentityPanelProps> = ({
         className="h-7 w-40 border-none bg-transparent px-1 py-0 text-sm font-medium shadow-none focus-visible:ring-0"
         placeholder="Project name"
       />
-      <span className="h-5 w-px bg-[#397C95]/20 dark:bg-[#5BB8D4]/20" />
+      <span className="h-5 w-px bg-brand/20" />
       <Input
         value={diagramTitleDraft}
         onChange={(event) => onDiagramTitleDraftChange(event.target.value)}

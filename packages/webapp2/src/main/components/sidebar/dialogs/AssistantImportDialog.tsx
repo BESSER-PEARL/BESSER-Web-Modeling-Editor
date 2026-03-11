@@ -76,7 +76,7 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>
             Cancel
           </Button>
-          <Button onClick={onImport} disabled={!canImport} className="bg-[#397C95] text-white hover:bg-[#2C6A82]">
+          <Button onClick={onImport} disabled={!canImport} className="bg-brand text-brand-foreground hover:bg-brand-dark">
             {isImporting ? 'Importing...' : 'Import'}
           </Button>
         </DialogFooter>

@@ -62,7 +62,7 @@ export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible })
       <div className="mx-4 w-full max-w-md rounded-xl border border-slate-200/60 bg-white p-8 shadow-elevation-3 dark:border-slate-700/60 dark:bg-slate-900">
         {/* Header */}
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#397C95]/10 text-[#397C95] dark:bg-[#397C95]/20 dark:text-[#5BB8D4]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand/10 text-brand dark:bg-brand/20">
             <Code2 className="h-5 w-5" />
           </div>
           <div>
@@ -78,7 +78,7 @@ export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible })
         {/* Progress bar */}
         <div className="mb-6 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
           <div
-            className="h-full rounded-full bg-[#397C95] transition-all duration-700 ease-out"
+            className="h-full rounded-full bg-brand transition-all duration-700 ease-out"
             style={{
               width: `${((activeStep + 1) / STEPS.length) * 100}%`,
             }}
@@ -97,9 +97,9 @@ export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible })
                 <span
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-300 ${
                     isDone
-                      ? 'bg-[#397C95] text-white'
+                      ? 'bg-brand text-brand-foreground'
                       : isCurrent
-                        ? 'border-2 border-[#397C95] text-[#397C95] dark:text-[#5BB8D4]'
+                        ? 'border-2 border-brand text-brand'
                         : 'border border-slate-300 text-slate-400 dark:border-slate-600 dark:text-slate-500'
                   }`}
                 >
@@ -131,7 +131,7 @@ export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible })
                     {[0, 1, 2].map((dotIndex) => (
                       <span
                         key={dotIndex}
-                        className="inline-block h-1.5 w-1.5 rounded-full bg-[#397C95] dark:bg-[#5BB8D4]"
+                        className="inline-block h-1.5 w-1.5 rounded-full bg-brand"
                         style={{
                           animation: 'typing-dot-bounce 1.25s ease-out infinite',
                           animationDelay: `${dotIndex * 0.15}s`,

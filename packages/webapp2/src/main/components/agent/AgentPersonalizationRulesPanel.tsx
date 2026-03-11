@@ -211,7 +211,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                 const enumValues = property?.enumValues || [];
 
                 return (
-                  <div key={entry.feature} className="rounded-lg border border-[#397C95]/10 p-4 dark:border-[#5BB8D4]/10">
+                  <div key={entry.feature} className="rounded-lg border border-brand/10 p-4">
                     <div className="mb-3 flex items-center justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold text-brand">{entry.feature}</p>

@@ -152,7 +152,7 @@ export const ProjectSettingsPanel: React.FC = () => {
               <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand">Diagrams</h3>
               <div className="grid gap-3">
                 {diagrams.map(({ type, diagram, index }) => (
-                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#397C95]/10 bg-brand/[0.02] p-3">
+                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand/10 bg-brand/[0.02] p-3">
                     <div>
                       <p className="text-sm font-medium">{diagram.title}</p>
                       <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
@@ -166,17 +166,17 @@ export const ProjectSettingsPanel: React.FC = () => {
             <Separator />
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-[#397C95]/10 p-3 dark:border-[#5BB8D4]/10">
+              <div className="rounded-lg border border-brand/10 p-3">
                 <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground">Created</p>
                 <p className="mt-1 text-sm font-medium">{new Date(currentProject.createdAt).toLocaleString()}</p>
               </div>
-              <div className="rounded-lg border border-[#397C95]/10 p-3 dark:border-[#5BB8D4]/10">
+              <div className="rounded-lg border border-brand/10 p-3">
                 <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground">Current Diagram</p>
                 <p className="mt-1 text-sm font-medium">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
               </div>
             </div>
 
-            <div className="space-y-3 rounded-lg border border-[#397C95]/10 bg-[#397C95]/[0.02] p-4 dark:border-[#5BB8D4]/10 dark:bg-[#5BB8D4]/[0.02]">
+            <div className="space-y-3 rounded-lg border border-brand/10 bg-brand/[0.02] p-4">
               <h3 className="text-sm font-semibold text-brand">Display Settings</h3>
               <label className="flex items-start justify-between gap-4 text-sm">
                 <div>

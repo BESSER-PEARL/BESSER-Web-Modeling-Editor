@@ -108,11 +108,11 @@ export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boo
     }`,
     isActive
       ? isDark
-        ? 'border-[#5BB8D4]/40 bg-[#397C95]/20 text-[#5BB8D4] shadow-sm'
-        : 'border-[#397C95]/30 bg-[#397C95]/10 text-[#2C6A82] shadow-sm'
+        ? 'border-brand/40 bg-brand/20 text-brand shadow-sm'
+        : 'border-brand/30 bg-brand/10 text-brand-dark shadow-sm'
       : isDark
         ? 'border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-800/60 hover:text-slate-200'
-        : 'border-transparent text-slate-500 hover:border-[#397C95]/12 hover:bg-[#397C95]/[0.04] hover:text-slate-700',
+        : 'border-transparent text-slate-500 hover:border-brand/12 hover:bg-brand/[0.04] hover:text-slate-700',
   ].join(' ');
 }
 

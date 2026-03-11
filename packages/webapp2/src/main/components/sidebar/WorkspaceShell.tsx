@@ -268,18 +268,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     : 'bg-[radial-gradient(120%_120%_at_0%_0%,#d2e7df_0%,#f8f7f2_45%,#f7fafc_100%)] text-foreground';
   const headerBackgroundClass = isDarkTheme
     ? 'border-b border-slate-700/70 bg-[linear-gradient(105deg,#0f172a_0%,#111827_45%,#1e293b_100%)]'
-    : 'border-b border-[#397C95]/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
+    : 'border-b border-brand/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
   const topPanelClass = isDarkTheme ? 'border-slate-700/80 bg-slate-900/70' : 'border-slate-300/60 bg-white/70';
   const topPanelIconClass = isDarkTheme ? 'text-slate-300' : 'text-slate-600';
   const diagramBadgeClass = isDarkTheme
-    ? 'hidden bg-[#397C95]/20 text-[#5BB8D4] xl:inline-flex'
-    : 'hidden bg-[#397C95]/8 text-[#397C95] xl:inline-flex';
+    ? 'hidden bg-brand/20 text-brand xl:inline-flex'
+    : 'hidden bg-brand/8 text-brand xl:inline-flex';
   const outlineButtonClass = isDarkTheme
     ? 'border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800 hover:border-slate-600'
-    : 'border-slate-300/80 bg-white/80 hover:border-[#397C95]/25 hover:bg-[#397C95]/[0.03]';
+    : 'border-slate-300/80 bg-white/80 hover:border-brand/25 hover:bg-brand/[0.03]';
   const primaryGenerateClass = isDarkTheme
-    ? 'gap-2 bg-[#397C95] text-white hover:bg-[#2C6A82] shadow-sm'
-    : 'gap-2 bg-[#397C95] text-white hover:bg-[#2C6A82] shadow-sm';
+    ? 'gap-2 bg-brand text-brand-foreground hover:bg-brand-dark shadow-sm'
+    : 'gap-2 bg-brand text-brand-foreground hover:bg-brand-dark shadow-sm';
   const sidebarBaseClass = isDarkTheme
     ? 'hidden shrink-0 border-r border-slate-700/70 bg-slate-950/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5'
     : 'hidden shrink-0 border-r border-slate-200/70 bg-white/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5';
@@ -289,7 +289,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const sidebarDividerClass = isDarkTheme ? 'my-2 border-t border-slate-700/60' : 'my-2 border-t border-slate-200/80';
   const sidebarToggleClass = isDarkTheme
     ? 'mt-auto flex items-center rounded-lg border border-slate-700/60 bg-slate-900/70 p-2 transition-all duration-150 hover:border-slate-600 hover:bg-slate-800'
-    : 'mt-auto flex items-center rounded-lg border border-slate-200/80 bg-white/70 p-2 transition-all duration-150 hover:border-[#397C95]/20 hover:bg-[#397C95]/[0.03]';
+    : 'mt-auto flex items-center rounded-lg border border-slate-200/80 bg-white/70 p-2 transition-all duration-150 hover:border-brand/20 hover:bg-brand/[0.03]';
   const sidebarToggleTextClass = isDarkTheme
     ? 'text-xs font-semibold text-slate-200'
     : 'text-xs font-semibold text-slate-700';

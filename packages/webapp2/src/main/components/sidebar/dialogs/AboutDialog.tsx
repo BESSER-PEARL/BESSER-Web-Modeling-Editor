@@ -28,10 +28,10 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
         </DialogHeader>
         <div className="space-y-2 text-sm text-foreground/80">
           <p>
-            <span className="font-semibold text-[#397C95] dark:text-[#5BB8D4]">Web Editor:</span> {appVersion}
+            <span className="font-semibold text-brand">Web Editor:</span> {appVersion}
           </p>
           <p>
-            <span className="font-semibold text-[#397C95] dark:text-[#5BB8D4]">BESSER Library:</span> {libraryVersion}
+            <span className="font-semibold text-brand">BESSER Library:</span> {libraryVersion}
           </p>
           <p className="pt-1 text-xs text-muted-foreground">
             BESSER provides model-driven engineering tooling for UML-based design, code generation, and deployment.

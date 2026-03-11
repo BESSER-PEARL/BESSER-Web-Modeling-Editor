@@ -235,7 +235,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                         data-active={isActive}
                         className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                           isActive
-                            ? 'bg-[#397C95]/10 text-[#2C6A82] dark:bg-[#397C95]/20 dark:text-[#5BB8D4]'
+                            ? 'bg-brand/10 text-brand-dark dark:bg-brand/20 dark:text-brand'
                             : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70'
                         }`}
                         onClick={() => handleSelect(action)}
@@ -244,7 +244,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                         <span
                           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
                             isActive
-                              ? 'bg-[#397C95]/15 text-[#397C95] dark:bg-[#397C95]/25 dark:text-[#5BB8D4]'
+                              ? 'bg-brand/15 text-brand dark:bg-brand/25'
                               : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                           }`}
                         >

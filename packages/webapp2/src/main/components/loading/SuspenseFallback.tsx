@@ -39,7 +39,7 @@ export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
 
     {/* Animated progress bar */}
     <div className="h-1 w-48 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-      <div className="h-full w-1/3 animate-[progress-slide_1.4s_ease-in-out_infinite] rounded-full bg-[#397C95]" />
+      <div className="h-full w-1/3 animate-[progress-slide_1.4s_ease-in-out_infinite] rounded-full bg-brand" />
     </div>
 
     {/* Message */}

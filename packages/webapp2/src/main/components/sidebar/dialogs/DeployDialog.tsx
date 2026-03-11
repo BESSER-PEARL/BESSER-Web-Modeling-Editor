@@ -142,7 +142,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isDeploying}>
             Cancel
           </Button>
-          <Button onClick={onPublish} disabled={isDeploying || !validation.isValid} className="bg-[#397C95] text-white hover:bg-[#2C6A82]">
+          <Button onClick={onPublish} disabled={isDeploying || !validation.isValid} className="bg-brand text-brand-foreground hover:bg-brand-dark">
             {isDeploying ? 'Publishing...' : useExistingRepo ? 'Update & Publish' : 'Publish to Render'}
           </Button>
         </DialogFooter>
