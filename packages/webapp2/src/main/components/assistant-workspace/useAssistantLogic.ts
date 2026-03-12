@@ -428,11 +428,17 @@ export function useAssistantLogic({
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
 
-      if (targetIsUml && !modelingServiceRef.current) {
+      // When creating a new tab, the Apollon editor hasn't mounted yet so the
+      // modeling service still references the previous tab's editor.  Skip the
+      // modeling service path and write the model directly to Redux — the new
+      // editor will load the model when it initialises.
+      const createdNewTab = !!(command as any).createNewTab;
+
+      if (targetIsUml && !createdNewTab && !modelingServiceRef.current) {
         await waitForModelingService();
       }
 
-      if (targetIsUml && modelingServiceRef.current) {
+      if (targetIsUml && !createdNewTab && modelingServiceRef.current) {
         let update: ModelUpdate | null = null;
         switch (command.action) {
           case 'inject_element':
