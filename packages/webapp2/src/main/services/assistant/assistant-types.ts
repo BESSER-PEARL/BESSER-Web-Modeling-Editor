@@ -26,6 +26,7 @@ export interface AssistantWorkspaceContext {
   projectName?: string;
   diagramSummaries?: DiagramSummary[];
   projectMetadata?: ProjectMetadata;
+  currentDiagramIndices?: Record<string, number>;
   contextUnchanged?: boolean;
   modelHash?: string;
 }

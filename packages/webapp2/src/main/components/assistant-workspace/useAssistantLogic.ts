@@ -13,7 +13,7 @@ import { AssistantClient, type AssistantActionPayload, type InjectionCommand } f
 import { UML_BOT_WS_URL } from '../../constant';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useProject } from '../../hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram } from '../../services/workspace/workspaceSlice';
+import { updateDiagramModelThunk, selectActiveDiagram, switchDiagramIndexThunk, addDiagramThunk } from '../../services/workspace/workspaceSlice';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import {
   UMLModelingService,
@@ -26,7 +26,7 @@ import {
   type RateLimitStatus,
 } from './services';
 import { popUndo, canUndo, clearUndoStack } from './services/UMLModelingService';
-import { isUMLModel, ProjectDiagram } from '../../types/project';
+import { isUMLModel, ProjectDiagram, SupportedDiagramType } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
 
@@ -309,6 +309,7 @@ export function useAssistantLogic({
       projectName: project?.name,
       diagramSummaries,
       projectMetadata,
+      currentDiagramIndices: project?.currentDiagramIndices,
     };
   }
 
@@ -335,11 +336,53 @@ export function useAssistantLogic({
     });
   };
 
-  const ensureTargetDiagramReady = async (targetType?: string): Promise<boolean> => {
-    if (!targetType || targetType === currentDiagramTypeRef.current) return true;
-    const switched = await switchDiagramRef.current(targetType);
-    if (!switched) return false;
-    await waitForSwitchRender();
+  /**
+   * Find the tab index for a given diagramId within a diagram type array.
+   * Returns -1 if not found.
+   */
+  const findDiagramIndexById = (diagramType: string, diagramId: string): number => {
+    const project = currentProjectRef.current;
+    if (!project) return -1;
+    const diagrams = (project.diagrams as Record<string, ProjectDiagram[]>)[diagramType];
+    if (!Array.isArray(diagrams)) return -1;
+    return diagrams.findIndex((d) => d.id === diagramId);
+  };
+
+  /**
+   * Ensure the specified diagram type (and optionally a specific tab identified
+   * by diagramId) is the active editor before an injection is applied.
+   *
+   * Steps:
+   *  1. If diagramType differs from the current type, switch diagram type first.
+   *  2. If diagramId is provided, locate its tab index and switch to that index.
+   */
+  const ensureTargetDiagramReady = async (targetType?: string, targetDiagramId?: string): Promise<boolean> => {
+    // Step 1: switch diagram type if needed
+    if (targetType && targetType !== currentDiagramTypeRef.current) {
+      const switched = await switchDiagramRef.current(targetType);
+      if (!switched) return false;
+      await waitForSwitchRender();
+    }
+
+    // Step 2: switch to the specific tab if diagramId is provided
+    if (targetDiagramId && targetType) {
+      const tabIndex = findDiagramIndexById(targetType, targetDiagramId);
+      if (tabIndex >= 0) {
+        // Check current active index — only dispatch if we need to switch
+        const project = currentProjectRef.current;
+        const currentIndex = project?.currentDiagramIndices?.[targetType as SupportedDiagramType] ?? 0;
+        if (tabIndex !== currentIndex) {
+          try {
+            await dispatch(switchDiagramIndexThunk({ diagramType: targetType as SupportedDiagramType, index: tabIndex })).unwrap();
+            await waitForSwitchRender();
+          } catch (error) {
+            console.warn('[useAssistantLogic] Could not switch to diagram tab:', error);
+            // Non-fatal: we already switched diagram type, proceed with injection
+          }
+        }
+      }
+    }
+
     return true;
   };
 
@@ -357,12 +400,31 @@ export function useAssistantLogic({
 
   const handleInjection = async (command: InjectionCommand) => {
     try {
-      const diagramReady = await ensureTargetDiagramReady(command.diagramType);
+      const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
+
+      // If the agent requests a new tab, create it before switching/injecting
+      if ((command as any).createNewTab) {
+        try {
+          const result = await dispatch(addDiagramThunk({
+            diagramType: targetDiagramType as SupportedDiagramType,
+          })).unwrap();
+          if (result?.index !== undefined) {
+            await dispatch(switchDiagramIndexThunk({
+              diagramType: targetDiagramType as SupportedDiagramType,
+              index: result.index,
+            })).unwrap();
+            await waitForSwitchRender();
+          }
+        } catch (tabError) {
+          console.warn('[useAssistantLogic] Could not create new tab, injecting into current:', tabError);
+        }
+      }
+
+      const diagramReady = await ensureTargetDiagramReady(command.diagramType, command.diagramId);
       if (!diagramReady) {
         throw new Error(`Could not switch to ${command.diagramType || 'the target diagram'}`);
       }
 
-      const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
 
@@ -561,6 +623,37 @@ export function useAssistantLogic({
       const total = typeof (payload as any).total === 'number' ? (payload as any).total as number : undefined;
       const label = step != null && total != null ? `[${step}/${total}] ${progressMsg}` : progressMsg;
       setProgressMessage(label);
+      return;
+    }
+
+    if (payload.action === 'create_diagram_tab') {
+      const diagramType = typeof payload.diagramType === 'string' ? payload.diagramType : '';
+      if (!diagramType) return;
+
+      try {
+        // Ensure the correct diagram type is active before creating the new tab
+        await ensureTargetDiagramReady(diagramType);
+
+        // Create new tab
+        const title = typeof payload.title === 'string' ? payload.title : undefined;
+        const result = await dispatch(addDiagramThunk({
+          diagramType: diagramType as SupportedDiagramType,
+          title,
+        })).unwrap();
+
+        // Switch to the new tab
+        if (result?.index !== undefined) {
+          await dispatch(switchDiagramIndexThunk({
+            diagramType: diagramType as SupportedDiagramType,
+            index: result.index,
+          })).unwrap();
+          await waitForSwitchRender();
+        }
+      } catch (error) {
+        console.error('[useAssistantLogic] Failed to create diagram tab:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        toast.error(`Could not create new tab: ${errorMsg}`);
+      }
       return;
     }
 

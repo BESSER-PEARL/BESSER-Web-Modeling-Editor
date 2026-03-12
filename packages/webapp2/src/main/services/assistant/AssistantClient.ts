@@ -48,6 +48,7 @@ const KNOWN_ACTIONS = new Set([
   'inject_complete_system',
   'modify_model',
   'switch_diagram',
+  'create_diagram_tab',
   'trigger_generator',
   'trigger_export',
   'trigger_deploy',
@@ -88,6 +89,7 @@ const mergeContexts = (
     projectName: override?.projectName || base?.projectName,
     diagramSummaries: override?.diagramSummaries || base?.diagramSummaries || [],
     projectMetadata: override?.projectMetadata || base?.projectMetadata,
+    currentDiagramIndices: override?.currentDiagramIndices || base?.currentDiagramIndices,
   };
 };
 
@@ -633,6 +635,15 @@ export class AssistantClient {
     }
     if (message.startsWith('{') && message.endsWith('}')) {
       candidates.push(message);
+    }
+
+    // Also try to find a JSON object anywhere in the message (handles
+    // cases where the platform prepends/appends text around the payload).
+    if (candidates.length === 0) {
+      const jsonMatch = message.match(/\{[\s\S]*"action"\s*:\s*"[^"]+[\s\S]*\}/);
+      if (jsonMatch) {
+        candidates.push(jsonMatch[0]);
+      }
     }
 
     for (const candidate of candidates) {
