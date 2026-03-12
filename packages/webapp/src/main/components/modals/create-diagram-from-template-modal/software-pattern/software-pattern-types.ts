@@ -23,6 +23,7 @@ export enum SoftwarePatternType {
   FACTORY = 'Factory',
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
+  DB_AGENT = 'Database Agent',
   LIBRARY_AGENT = 'Library Agent',
   GYM_AGENT = 'Gym Agent',
   FAQ_RAG_AGENT = 'FAQ RAG Agent',
