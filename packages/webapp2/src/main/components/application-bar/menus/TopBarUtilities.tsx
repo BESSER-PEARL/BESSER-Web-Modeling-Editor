@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
+import { CheckCircle, ChevronDown, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -46,8 +46,9 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   return (
     <>
       {showQualityCheck && (
-        <Button variant="outline" className={outlineButtonClass} onClick={onQualityCheck}>
-          Quality Check
+        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} onClick={onQualityCheck} title="Quality Check">
+          <CheckCircle className="h-4 w-4" />
+          <span className="hidden xl:inline">Quality Check</span>
         </Button>
       )}
 
@@ -70,7 +71,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
           title={hasStarred ? 'Unstar BESSER on GitHub' : 'Star BESSER on GitHub'}
         >
           <Star className={`h-4 w-4 ${hasStarred ? 'fill-current' : ''}`} />
-          {hasStarred ? 'Starred' : 'Star'}
+          <span className="hidden xl:inline">{hasStarred ? 'Starred' : 'Star'}</span>
         </Button>
       )}
 
@@ -84,8 +85,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
                 title={`GitHub account: ${username || 'GitHub'}`}
               >
                 <Github className="h-4 w-4" />
-                <span className="max-w-[120px] truncate">{username || 'GitHub'}</span>
-                <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                <span className="hidden max-w-[120px] truncate xl:inline">{username || 'GitHub'}</span>
+                <ChevronDown className="hidden h-3.5 w-3.5 opacity-70 xl:inline" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[170px]">
@@ -110,9 +111,9 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
           </Button>
         </>
       ) : (
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} onClick={onGitHubLogin} disabled={githubLoading}>
+        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} onClick={onGitHubLogin} disabled={githubLoading} title="Connect GitHub">
           <Github className="h-4 w-4" />
-          {githubLoading ? 'Connecting...' : 'Connect GitHub'}
+          <span className="hidden xl:inline">{githubLoading ? 'Connecting...' : 'GitHub'}</span>
         </Button>
       )}
     </>

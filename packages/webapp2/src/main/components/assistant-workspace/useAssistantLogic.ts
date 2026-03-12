@@ -6,7 +6,7 @@
  * This hook owns all of that shared state and behaviour.
  */
 
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { AssistantClient, type AssistantActionPayload, type InjectionCommand } from '../../services/assistant';
@@ -25,6 +25,7 @@ import {
   RateLimiterService,
   type RateLimitStatus,
 } from './services';
+import { popUndo, canUndo, clearUndoStack } from './services/UMLModelingService';
 import { isUMLModel, ProjectDiagram } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
@@ -34,6 +35,20 @@ import type { GenerationResult } from '../../services/generate-code/types';
 /* ------------------------------------------------------------------ */
 
 export type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected' | 'closed' | 'closing' | 'unknown';
+
+export interface SuggestedAction {
+  label: string;
+  prompt: string;
+}
+
+export interface MessageMeta {
+  /** Suggested follow-up actions shown as quick-action chips after this message. */
+  suggestedActions?: SuggestedAction[];
+  /** Badge type indicating the nature of the message (injection, error, generation). */
+  badge?: 'injection' | 'error' | 'generation';
+  /** Human-readable badge label, e.g. "Applied to ClassDiagram". */
+  badgeLabel?: string;
+}
 
 export interface UseAssistantLogicOptions {
   /** Whether the assistant panel is currently open/visible. */
@@ -55,6 +70,14 @@ export interface UseAssistantLogicReturn {
   isGenerating: boolean;
   connectionStatus: ConnectionStatus;
   rateLimitStatus: RateLimitStatus;
+  /** Per-message metadata (suggestedActions, badges) keyed by message id. */
+  messageMeta: Record<string, MessageMeta>;
+  /** Transient progress status from the assistant (e.g. "Generating code..."). */
+  progressMessage: string;
+  /** The last user-sent message text (for input recall via Up arrow). */
+  lastSentMessage: string;
+  /** The id of the message currently being streamed, or null when idle. */
+  streamingMessageId: string | null;
 
   /* refs */
   messageListContainerRef: React.RefObject<HTMLDivElement>;
@@ -66,6 +89,10 @@ export interface UseAssistantLogicReturn {
   ) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
+  /** Undo the last assistant-driven model change using the undo stack. */
+  handleUndo: () => void;
+  /** Whether an undo action is available. */
+  canUndo: boolean;
 
   /* services (exposed for edge cases) */
   assistantClient: AssistantClient;
@@ -85,11 +112,16 @@ const createMessageId = (): string => {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-const toKitMessage = (role: 'user' | 'assistant', content: string): ChatKitMessage => ({
+const toKitMessage = (
+  role: 'user' | 'assistant',
+  content: string,
+  extras?: Partial<Pick<ChatKitMessage, 'isProgress' | 'progressStep' | 'progressTotal' | 'isError' | 'isStreaming' | 'injectionType'>>,
+): ChatKitMessage => ({
   id: createMessageId(),
   role,
   content,
   createdAt: new Date(),
+  ...extras,
 });
 
 const sanitizeForDisplay = (text: string): string =>
@@ -146,6 +178,11 @@ export function useAssistantLogic({
     requestsLastHour: 0,
     cooldownRemaining: 0,
   });
+  const [messageMeta, setMessageMeta] = useState<Record<string, MessageMeta>>({});
+  const [progressMessage, setProgressMessage] = useState('');
+  const [lastSentMessage, setLastSentMessage] = useState('');
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [undoAvailable, setUndoAvailable] = useState(false);
 
   const messageListContainerRef = useRef<HTMLDivElement>(null);
   const operationQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -212,6 +249,12 @@ export function useAssistantLogic({
     }
   }, [activeDiagram, modelingService]);
 
+  /* ---- keep undoAvailable in sync with the undo stack ---- */
+
+  const refreshUndoState = () => {
+    setUndoAvailable(canUndo());
+  };
+
   /* ---- auto-scroll on new messages ---- */
 
   useEffect(() => {
@@ -234,23 +277,38 @@ export function useAssistantLogic({
       ? modelingServiceRef.current?.getCurrentModel() || editorModel || projectModel
       : projectModel;
 
+    // Build compact but informative per-diagram summaries.
+    // compactContextPayload will auto-generate richer summaries from the
+    // projectSnapshot when these are empty, but passing lightweight ones here
+    // ensures the caller's titles and ids are preserved.
     const diagramSummaries = project
       ? Object.entries(project.diagrams).flatMap(([diagramType, diagramArr]) =>
-          (diagramArr as ProjectDiagram[]).map((d, i) => ({
-            diagramType,
+          (diagramArr as ProjectDiagram[]).map((d) => ({
+            type: diagramType,
             diagramId: d.id,
             title: d.title,
-            index: i,
           })),
         )
       : [];
+
+    // Project-level metadata for quick agent orientation.
+    const projectMetadata = project
+      ? {
+          totalDiagrams: Object.values(project.diagrams).flat().length,
+          diagramTypes: Object.keys(project.diagrams).filter(
+            (type) => (project.diagrams as Record<string, any[]>)[type]?.length > 0,
+          ),
+        }
+      : undefined;
 
     return {
       activeDiagramType: activeType,
       activeDiagramId: currentDiag?.id,
       activeModel,
       projectSnapshot: project || undefined,
+      projectName: project?.name,
       diagramSummaries,
+      projectMetadata,
     };
   }
 
@@ -389,18 +447,28 @@ export function useAssistantLogic({
         throw new Error('Assistant did not provide a valid update payload');
       }
 
+      // Refresh undo state after successful injection
+      refreshUndoState();
+
       const infoMessage =
         typeof command.message === 'string' && command.message.trim()
           ? command.message
           : 'Applied assistant model update.';
-      setMessages((prev) => [...prev, toKitMessage('assistant', infoMessage)]);
+      const injMsg = toKitMessage('assistant', infoMessage, { injectionType: command.action });
+      setMessages((prev) => [...prev, injMsg]);
+      const diagramLabel = command.diagramType || currentDiagramTypeRef.current || 'Diagram';
+      attachMetaFromPayload(
+        injMsg.id,
+        command as unknown as Record<string, unknown>,
+        'injection',
+        `Applied to ${diagramLabel}`,
+      );
     } catch (error) {
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       toast.error(`Could not apply assistant update: ${errorMessage}`);
-      setMessages((prev) => [
-        ...prev,
-        toKitMessage('assistant', `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`),
-      ]);
+      const errMsg = toKitMessage('assistant', `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`, { isError: true });
+      setMessages((prev) => [...prev, errMsg]);
+      attachMetaFromPayload(errMsg.id, {}, 'error', 'Update failed');
     }
   };
 
@@ -408,13 +476,91 @@ export function useAssistantLogic({
   /*  handleAction                                                     */
   /* ================================================================ */
 
+  /** Attach meta (suggestedActions/badge) to a message if the payload contains them. */
+  const attachMetaFromPayload = (messageId: string, payload: Record<string, unknown>, badge?: MessageMeta['badge'], badgeLabel?: string) => {
+    const suggested = payload.suggestedActions;
+    const hasSuggested = Array.isArray(suggested) && suggested.length > 0;
+    if (hasSuggested || badge) {
+      setMessageMeta((prev) => ({
+        ...prev,
+        [messageId]: {
+          ...prev[messageId],
+          ...(hasSuggested ? { suggestedActions: suggested as SuggestedAction[] } : {}),
+          ...(badge ? { badge, badgeLabel } : {}),
+        },
+      }));
+    }
+  };
+
   const handleAction = async (payload: AssistantActionPayload) => {
+    // Extract suggestedActions from assistant_message payloads before returning.
+    if (payload.action === 'assistant_message') {
+      // The message was already added by the onMessage handler; attach meta to the last assistant message.
+      if (Array.isArray(payload.suggestedActions) && (payload.suggestedActions as unknown[]).length > 0) {
+        setMessages((prev) => {
+          const lastAssistant = [...prev].reverse().find((m) => m.role === 'assistant');
+          if (lastAssistant) {
+            attachMetaFromPayload(lastAssistant.id, payload as Record<string, unknown>);
+          }
+          return prev;
+        });
+      }
+      return;
+    }
     if (
-      payload.action === 'assistant_message' ||
       payload.action === 'inject_element' ||
       payload.action === 'inject_complete_system' ||
       payload.action === 'modify_model'
     ) {
+      return;
+    }
+
+    /* ---- streaming actions ---- */
+
+    if (payload.action === 'stream_chunk') {
+      const { streamId, chunk } = payload as Record<string, any>;
+      if (typeof streamId !== 'string' || typeof chunk !== 'string') return;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.id === streamId && last.role === 'assistant') {
+          // Append chunk to existing streaming message
+          return [
+            ...prev.slice(0, -1),
+            { ...last, content: last.content + chunk, isStreaming: true },
+          ];
+        }
+        // New streaming message
+        return [
+          ...prev,
+          { id: streamId, role: 'assistant' as const, content: chunk, isStreaming: true, createdAt: new Date() },
+        ];
+      });
+      setStreamingMessageId(streamId);
+      return;
+    }
+
+    if (payload.action === 'stream_done') {
+      const { streamId, fullText } = payload as Record<string, any>;
+      if (typeof streamId !== 'string') return;
+      setMessages((prev) => prev.map((msg) =>
+        msg.id === streamId
+          ? { ...msg, content: (typeof fullText === 'string' ? fullText : undefined) || msg.content, isStreaming: false }
+          : msg,
+      ));
+      setStreamingMessageId(null);
+      // Clear any transient progress message when streaming completes.
+      setProgressMessage('');
+      return;
+    }
+
+    /* ---- progress action ---- */
+
+    if (payload.action === 'progress') {
+      const progressMsg = typeof payload.message === 'string' ? payload.message : '';
+      const step = typeof (payload as any).step === 'number' ? (payload as any).step as number : undefined;
+      const total = typeof (payload as any).total === 'number' ? (payload as any).total as number : undefined;
+      const label = step != null && total != null ? `[${step}/${total}] ${progressMsg}` : progressMsg;
+      setProgressMessage(label);
       return;
     }
 
@@ -474,9 +620,25 @@ export function useAssistantLogic({
       return;
     }
 
+    /* ---- structured agent_error ---- */
+
     if (payload.action === 'agent_error') {
-      const message = typeof payload.message === 'string' ? payload.message : 'Something went wrong on the assistant side.';
-      setMessages((prev) => [...prev, toKitMessage('assistant', message)]);
+      const errorMsg = typeof payload.message === 'string' ? payload.message : 'Something went wrong on the assistant side.';
+      const errorCode = typeof (payload as any).errorCode === 'string' ? (payload as any).errorCode as string : undefined;
+      const suggestedRecovery = typeof (payload as any).suggestedRecovery === 'string' ? (payload as any).suggestedRecovery as string : undefined;
+      const retryable = (payload as any).retryable === true;
+
+      const errMsg = toKitMessage('assistant', errorMsg, { isError: true });
+      setMessages((prev) => [...prev, errMsg]);
+
+      // Attach error badge and recovery-based suggestedActions
+      const meta: MessageMeta = { badge: 'error', badgeLabel: errorCode ? `Error: ${errorCode}` : 'Error' };
+      if (retryable && suggestedRecovery) {
+        meta.suggestedActions = [{ label: 'Try again', prompt: suggestedRecovery }];
+      }
+      setMessageMeta((prev) => ({ ...prev, [errMsg.id]: { ...prev[errMsg.id], ...meta } }));
+
+      setIsGenerating(false);
       return;
     }
 
@@ -547,7 +709,21 @@ export function useAssistantLogic({
     }
 
     assistantClient.onMessage((message) => {
-      setMessages((prev) => [...prev, toKitMessage('assistant', toAssistantText(message.message))]);
+      const kitMsg = toKitMessage('assistant', toAssistantText(message.message));
+      setMessages((prev) => [...prev, kitMsg]);
+
+      // Extract suggestedActions from the raw message payload if present.
+      const raw = message as Record<string, unknown>;
+      const suggested = raw.suggestedActions ?? (typeof raw.message === 'object' && raw.message !== null ? (raw.message as Record<string, unknown>).suggestedActions : undefined);
+      if (Array.isArray(suggested) && suggested.length > 0) {
+        setMessageMeta((prev) => ({
+          ...prev,
+          [kitMsg.id]: { ...prev[kitMsg.id], suggestedActions: suggested as SuggestedAction[] },
+        }));
+      }
+
+      // Clear any transient progress message when a real message arrives.
+      setProgressMessage('');
     });
     assistantClient.onConnection((connected) => {
       let next: ConnectionStatus;
@@ -592,8 +768,8 @@ export function useAssistantLogic({
     if (!isGenerating) return;
     const timeout = setTimeout(() => {
       setIsGenerating(false);
-      setMessages((prev) => [...prev, toKitMessage('assistant', 'The response timed out. Please try again.')]);
-    }, 60000);
+      setMessages((prev) => [...prev, toKitMessage('assistant', 'The assistant is taking too long to respond. Please try again.')]);
+    }, 120000);
     return () => clearTimeout(timeout);
   }, [isGenerating]);
 
@@ -627,7 +803,7 @@ export function useAssistantLogic({
 
       // --- Rate limit check ---
       const messageText = normalizedInput || (hasFiles ? 'Convert this file to a diagram' : '');
-      const rateLimitCheck = await rateLimiter.checkRateLimit(messageText.length);
+      const rateLimitCheck = await rateLimiter.checkRateLimit(messageText);
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
         toast.error(rateLimitCheck.reason || 'Rate limit exceeded. Please wait before sending another message.');
@@ -640,6 +816,7 @@ export function useAssistantLogic({
 
       setMessages((prev) => [...prev, toKitMessage('user', displayText)]);
       setInputValue('');
+      if (normalizedInput) setLastSentMessage(normalizedInput);
 
       let attachments: Array<{ filename: string; content: string; mimeType: string }> | undefined;
       if (hasFiles) {
@@ -683,7 +860,34 @@ export function useAssistantLogic({
     setMessages([]);
     setIsGenerating(false);
     setInputValue('');
+    setMessageMeta({});
+    setProgressMessage('');
+    setStreamingMessageId(null);
   };
+
+  /* ---- undo ---- */
+
+  const handleUndo = useCallback(() => {
+    const snapshot = popUndo();
+    if (!snapshot) return;
+
+    // Restore the model via the editor and Redux
+    try {
+      if (editor) {
+        editor.model = snapshot.model;
+      }
+      dispatch(updateDiagramModelThunk({ model: snapshot.model }));
+
+      setMessages((prev) => [
+        ...prev,
+        toKitMessage('assistant', `Undone: ${snapshot.description}`),
+      ]);
+    } catch (error) {
+      console.error('[useAssistantLogic] Undo failed:', error);
+    }
+
+    refreshUndoState();
+  }, [editor, dispatch]);
 
   return {
     messages,
@@ -692,10 +896,16 @@ export function useAssistantLogic({
     isGenerating,
     connectionStatus,
     rateLimitStatus,
+    messageMeta,
+    progressMessage,
+    lastSentMessage,
+    streamingMessageId,
     messageListContainerRef: messageListContainerRef as React.RefObject<HTMLDivElement>,
     handleSubmit,
     stopGenerating,
     clearConversation,
+    handleUndo,
+    canUndo: undoAvailable,
     assistantClient,
   };
 }

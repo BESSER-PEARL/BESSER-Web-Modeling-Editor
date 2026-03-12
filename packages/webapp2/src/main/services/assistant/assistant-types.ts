@@ -2,12 +2,32 @@ export type AssistantClientMode = 'widget' | 'workspace';
 
 
 
+export interface DiagramSummary {
+  type: string;
+  diagramId?: string;
+  title?: string;
+  empty?: boolean;
+  elementCount?: number;
+  relationshipCount?: number;
+  elementsByType?: Record<string, string[]>;
+  classNames?: string[];
+}
+
+export interface ProjectMetadata {
+  totalDiagrams: number;
+  diagramTypes: string[];
+}
+
 export interface AssistantWorkspaceContext {
   activeDiagramType: string;
   activeDiagramId?: string;
   activeModel?: any;
   projectSnapshot?: any;
-  diagramSummaries?: Array<{ diagramType: string; diagramId?: string; title?: string }>;
+  projectName?: string;
+  diagramSummaries?: DiagramSummary[];
+  projectMetadata?: ProjectMetadata;
+  contextUnchanged?: boolean;
+  modelHash?: string;
 }
 
 export interface AssistantClientOptions {
@@ -26,7 +46,8 @@ export type AssistantActionName =
   | 'trigger_export'
   | 'trigger_deploy'
   | 'auto_generate_gui'
-  | 'agent_error';
+  | 'agent_error'
+  | 'progress';
 
 export interface AssistantActionPayload {
   action: AssistantActionName | string;

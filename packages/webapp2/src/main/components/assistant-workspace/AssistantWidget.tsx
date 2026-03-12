@@ -7,23 +7,24 @@
  * diagram switching via route navigation.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CircleHelp, X } from 'lucide-react';
+import { AlertTriangle, Check, CircleHelp, Code, Loader2, X } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
+import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useAppDispatch } from '../../store/hooks';
 import { switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
 import type { SupportedDiagramType } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
-import { useAssistantLogic, type ConnectionStatus } from './useAssistantLogic';
+import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from './useAssistantLogic';
+import { QuickActions } from './components/QuickActions';
 import { Z_INDEX } from '../../constants/z-index';
 
 /* ------------------------------------------------------------------ */
@@ -106,6 +107,9 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     isGenerating,
     connectionStatus,
     rateLimitStatus,
+    messageMeta,
+    progressMessage,
+    lastSentMessage,
     messageListContainerRef,
     handleSubmit,
     stopGenerating,
@@ -114,6 +118,34 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     switchDiagram,
     onGenerate: onAssistantGenerate,
   });
+
+  /* ---- Quick action handler: submit a prompt directly ---- */
+  const handleQuickAction = useCallback((prompt: string) => {
+    setInputValue(prompt);
+    // Use a microtask so the inputValue state settles before submit reads it.
+    queueMicrotask(() => {
+      handleSubmit();
+    });
+  }, [handleSubmit, setInputValue]);
+
+  /* ---- Keyboard shortcuts on input ---- */
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setInputValue('');
+      return;
+    }
+    if (e.key === 'ArrowUp' && !inputValue && lastSentMessage) {
+      e.preventDefault();
+      setInputValue(lastSentMessage);
+    }
+  }, [inputValue, lastSentMessage, setInputValue]);
+
+  /* ---- Compute last assistant message for QuickActions ---- */
+  const lastAssistantMsg = messages.length > 0
+    ? [...messages].reverse().find((m) => m.role === 'assistant')
+    : undefined;
+  const lastMeta = lastAssistantMsg ? messageMeta[lastAssistantMsg.id] : undefined;
 
   /* ---- Hide when not on an editor page ---- */
 
@@ -185,7 +217,33 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
           {/* Message list */}
           <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white p-4 dark:from-slate-900/60 dark:to-slate-950/40">
-            <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
+            <MessageList
+              messages={messages}
+              isTyping={isGenerating}
+              showTimeStamps={false}
+              messageOptions={(message: ChatKitMessage) => {
+                const meta = messageMeta[message.id];
+                if (!meta?.badge) return {};
+                return {
+                  actions: (
+                    <MessageBadge badge={meta.badge} label={meta.badgeLabel} />
+                  ),
+                };
+              }}
+            />
+
+            {/* Progress indicator */}
+            {progressMessage && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>{progressMessage}</span>
+              </div>
+            )}
+
+            {/* Quick actions after last assistant message */}
+            {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
+              <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+            )}
           </div>
 
           {/* Status bar */}
@@ -208,6 +266,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 <MessageInput
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleInputKeyDown}
                   placeholder="Describe what you want to create or modify\u2026"
                   allowAttachments
                   files={files}
@@ -271,5 +330,35 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
         </DialogContent>
       </Dialog>
     </>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/*  MessageBadge — small inline badge for injection/error/generation   */
+/* ------------------------------------------------------------------ */
+
+const BADGE_STYLES: Record<NonNullable<MessageMeta['badge']>, { icon: React.ReactNode; className: string }> = {
+  injection: {
+    icon: <Check className="h-3 w-3" />,
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400',
+  },
+  error: {
+    icon: <AlertTriangle className="h-3 w-3" />,
+    className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400',
+  },
+  generation: {
+    icon: <Code className="h-3 w-3" />,
+    className: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-400',
+  },
+};
+
+const MessageBadge: React.FC<{ badge: NonNullable<MessageMeta['badge']>; label?: string }> = ({ badge, label }) => {
+  const style = BADGE_STYLES[badge];
+  if (!style) return null;
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium', style.className)}>
+      {style.icon}
+      {label || badge}
+    </span>
   );
 };

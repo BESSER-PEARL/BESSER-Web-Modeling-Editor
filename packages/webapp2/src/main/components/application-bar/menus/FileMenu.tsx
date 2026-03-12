@@ -39,9 +39,9 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`}>
+        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="File">
           <FileText className="h-4 w-4" />
-          File
+          <span className="hidden xl:inline">File</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">

@@ -284,11 +284,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const headerBackgroundClass = isDarkTheme
     ? 'border-b border-slate-700/70 bg-[linear-gradient(105deg,#0f172a_0%,#111827_45%,#1e293b_100%)]'
     : 'border-b border-brand/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
-  const topPanelClass = isDarkTheme ? 'border-slate-700/80 bg-slate-900/70' : 'border-slate-300/60 bg-white/70';
-  const topPanelIconClass = isDarkTheme ? 'text-slate-300' : 'text-slate-600';
-  const diagramBadgeClass = isDarkTheme
-    ? 'hidden bg-brand/20 text-brand xl:inline-flex'
-    : 'hidden bg-brand/8 text-brand xl:inline-flex';
   const outlineButtonClass = isDarkTheme
     ? 'border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800 hover:border-slate-600'
     : 'border-slate-300/80 bg-white/80 hover:border-brand/25 hover:bg-brand/[0.03]';
@@ -450,17 +445,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       <WorkspaceTopBar
         isDarkTheme={isDarkTheme}
         headerBackgroundClass={headerBackgroundClass}
-        topPanelClass={topPanelClass}
-        topPanelIconClass={topPanelIconClass}
-        diagramBadgeClass={diagramBadgeClass}
         outlineButtonClass={outlineButtonClass}
         primaryGenerateClass={primaryGenerateClass}
         showQualityCheck={showQualityCheck}
         generatorMode={generatorMode}
         isGenerating={isGenerating}
-        projectNameDraft={projectNameDraft}
-        diagramTitleDraft={diagramTitleDraft}
-        currentDiagramType={currentProject?.currentDiagramType}
         locationPath={location.pathname}
         activeUmlType={activeUmlType}
         isAuthenticated={isAuthenticated}
@@ -494,10 +483,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onSwitchUml={handleSwitchUml}
         onSwitchDiagramType={handleSwitchDiagramType}
         onNavigate={handleNavigate}
+        projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}
         onProjectRename={handleProjectRename}
-        onDiagramTitleDraftChange={setDiagramTitleDraft}
-        onDiagramRename={handleDiagramRename}
       />
 
       {/* Mobile hamburger button - visible only below md breakpoint */}

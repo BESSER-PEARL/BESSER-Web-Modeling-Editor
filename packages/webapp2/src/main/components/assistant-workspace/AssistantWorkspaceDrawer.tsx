@@ -5,8 +5,8 @@
  * Owns only the drag-to-open/close gesture, layout animation, and rendering.
  */
 
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles } from 'lucide-react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronDown, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
 import { useAssistantLogic, type ConnectionStatus } from './useAssistantLogic';
+import { QuickActions } from './components/QuickActions';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -152,6 +153,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     isGenerating,
     connectionStatus,
     rateLimitStatus,
+    messageMeta,
+    progressMessage,
+    lastSentMessage,
     messageListContainerRef,
     handleSubmit,
     stopGenerating,
@@ -161,6 +165,22 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     switchDiagram,
     onGenerate: onTriggerGenerator,
   });
+
+  /* ---- Quick action handler ---- */
+
+  const handleQuickAction = useCallback((prompt: string) => {
+    setInputValue(prompt);
+    queueMicrotask(() => {
+      handleSubmit();
+    });
+  }, [handleSubmit, setInputValue]);
+
+  /* ---- Last assistant message meta (for QuickActions) ---- */
+
+  const lastAssistantMsg = messages.length > 0
+    ? [...messages].reverse().find((m) => m.role === 'assistant')
+    : undefined;
+  const lastMeta = lastAssistantMsg ? messageMeta[lastAssistantMsg.id] : undefined;
 
   /* ---- Drawer measurement & animation ---- */
 
@@ -333,6 +353,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
           setFiles={setFiles}
           stop={stopGenerating}
           isGenerating={isGenerating}
+          lastSentMessage={lastSentMessage}
+          onValueChange={setInputValue}
         />
       )}
     </ChatForm>
@@ -596,6 +618,19 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div ref={messageListContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
+
+                  {/* Progress indicator */}
+                  {progressMessage && (
+                    <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>{progressMessage}</span>
+                    </div>
+                  )}
+
+                  {/* Quick actions after last assistant message */}
+                  {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
+                    <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+                  )}
                 </div>
               </div>
 

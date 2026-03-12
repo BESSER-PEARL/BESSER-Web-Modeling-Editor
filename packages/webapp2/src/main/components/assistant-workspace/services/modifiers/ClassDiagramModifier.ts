@@ -39,7 +39,12 @@ export class ClassDiagramModifier implements DiagramModifier {
       'modify_method',
       'add_relationship',
       'modify_relationship',
-      'remove_element'
+      'remove_element',
+      'extract_class',
+      'split_class',
+      'merge_classes',
+      'promote_attribute',
+      'add_enum'
     ].includes(action);
   }
 
@@ -48,12 +53,19 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (!modification.action) {
       throw new Error('Modification is missing required "action" field');
     }
-    if (!modification.target || typeof modification.target !== 'object') {
-      throw new Error(`Modification "${modification.action}" is missing required "target" object`);
-    }
-    // changes is required for all actions except remove_element
-    if (modification.action !== 'remove_element' && (!modification.changes || typeof modification.changes !== 'object')) {
-      throw new Error(`Modification "${modification.action}" is missing required "changes" object`);
+
+    // Refactoring actions use top-level fields instead of target/changes
+    const refactoringActions = ['extract_class', 'split_class', 'merge_classes', 'promote_attribute', 'add_enum'];
+    const isRefactoring = refactoringActions.includes(modification.action);
+
+    if (!isRefactoring) {
+      if (!modification.target || typeof modification.target !== 'object') {
+        throw new Error(`Modification "${modification.action}" is missing required "target" object`);
+      }
+      // changes is required for all actions except remove_element
+      if (modification.action !== 'remove_element' && (!modification.changes || typeof modification.changes !== 'object')) {
+        throw new Error(`Modification "${modification.action}" is missing required "changes" object`);
+      }
     }
 
     const updatedModel = ModifierHelpers.cloneModel(model);
@@ -75,6 +87,16 @@ export class ClassDiagramModifier implements DiagramModifier {
         return this.modifyRelationship(updatedModel, modification);
       case 'remove_element':
         return this.removeElement(updatedModel, modification);
+      case 'extract_class':
+        return this.extractClass(updatedModel, modification);
+      case 'split_class':
+        return this.splitClass(updatedModel, modification);
+      case 'merge_classes':
+        return this.mergeClasses(updatedModel, modification);
+      case 'promote_attribute':
+        return this.promoteAttribute(updatedModel, modification);
+      case 'add_enum':
+        return this.addEnum(updatedModel, modification);
       default:
         throw new Error(`Unsupported action for ClassDiagram: ${modification.action}`);
     }
@@ -531,6 +553,603 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     return model;
   }
+
+  // ─── Refactoring action handlers ───────────────────────────────────────────
+
+  /**
+   * Extract attributes from a source class into a new class and create a relationship.
+   *
+   * Payload shape:
+   * { action: "extract_class", sourceClass: "User", newClass: "Address",
+   *   attributes: ["street", "city", "zip"], relationshipType: "ClassComposition" }
+   */
+  private extractClass(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const sourceClassName = modification.sourceClass;
+    const newClassName = modification.newClass;
+    const attributeNames = modification.attributes || [];
+    const relType = modification.relationshipType || 'ClassComposition';
+
+    if (!sourceClassName) throw new Error('extract_class requires a "sourceClass" field.');
+    if (!newClassName) throw new Error('extract_class requires a "newClass" field.');
+    if (attributeNames.length === 0) throw new Error('extract_class requires a non-empty "attributes" array.');
+
+    const sourceClassId = this.findClassIdByName(model, sourceClassName);
+    if (!sourceClassId) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
+
+    const sourceElement = model.elements[sourceClassId];
+    const sourceBounds = sourceElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
+
+    // Collect matching attributes from the source class
+    const extractedAttrs: Array<{ id: string; element: any }> = [];
+    const remainingAttrIds: string[] = [];
+
+    for (const attrId of (sourceElement.attributes || [])) {
+      const attr = model.elements[attrId];
+      if (!attr) { remainingAttrIds.push(attrId); continue; }
+      const normalizedName = this.normalizeAttributeName(attr.name || '');
+      if (attributeNames.some(name => name.toLowerCase() === normalizedName.toLowerCase())) {
+        extractedAttrs.push({ id: attrId, element: attr });
+      } else {
+        remainingAttrIds.push(attrId);
+      }
+    }
+
+    // Update source class: remove the extracted attributes
+    sourceElement.attributes = remainingAttrIds;
+    for (const extracted of extractedAttrs) {
+      delete model.elements[extracted.id];
+    }
+    // Shrink source class height
+    this.recalculateClassHeight(sourceElement);
+
+    // Create new class positioned to the right of the source
+    const newClassId = ModifierHelpers.generateUniqueId('class');
+    const newClassX = sourceBounds.x + (sourceBounds.width || 220) + 400;
+    const newClassY = sourceBounds.y;
+
+    model.elements[newClassId] = {
+      id: newClassId,
+      name: newClassName,
+      type: 'Class',
+      owner: null,
+      bounds: { x: newClassX, y: newClassY, width: 220, height: 90 },
+      attributes: [],
+      methods: [],
+    };
+
+    // Re-create extracted attributes under the new class
+    for (let i = 0; i < extractedAttrs.length; i++) {
+      const original = extractedAttrs[i].element;
+      const attrId = ModifierHelpers.generateUniqueId('attr');
+      const attrY = newClassY + 50 + i * 25;
+      model.elements[attrId] = {
+        id: attrId,
+        name: original.name,
+        type: 'ClassAttribute',
+        owner: newClassId,
+        bounds: { x: newClassX + 1, y: attrY, width: 218, height: 25 },
+        visibility: original.visibility || 'public',
+        attributeType: original.attributeType || 'str',
+      };
+      model.elements[newClassId].attributes.push(attrId);
+    }
+    this.recalculateClassHeight(model.elements[newClassId]);
+
+    // Create relationship from source to new class
+    this.createRelationship(model, sourceClassId, newClassId, relType);
+
+    return model;
+  }
+
+  /**
+   * Split a class into two (or more) new classes.
+   *
+   * Payload shape:
+   * { action: "split_class", sourceClass: "User",
+   *   newClasses: [{ name: "UserProfile", attributes: [...] }, { name: "UserAuth", attributes: [...] }],
+   *   inheritFrom: "User" }
+   *
+   * If inheritFrom is specified, the source class is kept as a parent with inheritance relationships.
+   * Otherwise, the source class is removed and replaced by the new classes.
+   */
+  private splitClass(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const sourceClassName = modification.sourceClass;
+    const newClassSpecs = modification.newClasses || [];
+    const inheritFrom = modification.inheritFrom;
+
+    if (!sourceClassName) throw new Error('split_class requires a "sourceClass" field.');
+    if (newClassSpecs.length === 0) throw new Error('split_class requires a non-empty "newClasses" array.');
+
+    const sourceClassId = this.findClassIdByName(model, sourceClassName);
+    if (!sourceClassId) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
+
+    const sourceElement = model.elements[sourceClassId];
+    const sourceBounds = sourceElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
+
+    // Collect all existing relationships involving the source class (for reconnection if needed)
+    const existingRelationships: Array<{ relId: string; rel: any; direction: 'source' | 'target' }> = [];
+    if (model.relationships) {
+      for (const [relId, rel] of Object.entries(model.relationships)) {
+        if (rel.source?.element === sourceClassId) {
+          existingRelationships.push({ relId, rel, direction: 'source' });
+        } else if (rel.target?.element === sourceClassId) {
+          existingRelationships.push({ relId, rel, direction: 'target' });
+        }
+      }
+    }
+
+    // Create new classes
+    const newClassIds: string[] = [];
+    for (let ci = 0; ci < newClassSpecs.length; ci++) {
+      const spec = newClassSpecs[ci];
+      const newClassId = ModifierHelpers.generateUniqueId('class');
+      const offsetX = (ci - (newClassSpecs.length - 1) / 2) * 300;
+      const newX = sourceBounds.x + offsetX;
+      const newY = inheritFrom ? sourceBounds.y + 250 : sourceBounds.y;
+
+      model.elements[newClassId] = {
+        id: newClassId,
+        name: spec.name,
+        type: 'Class',
+        owner: null,
+        bounds: { x: newX, y: newY, width: 220, height: 90 },
+        attributes: [],
+        methods: [],
+      };
+
+      // Add attributes
+      if (spec.attributes) {
+        for (let ai = 0; ai < spec.attributes.length; ai++) {
+          const attrSpec = spec.attributes[ai];
+          const attrId = ModifierHelpers.generateUniqueId('attr');
+          const attrY = newY + 50 + ai * 25;
+          model.elements[attrId] = {
+            id: attrId,
+            name: `+ ${attrSpec.name}: ${normalizeType(attrSpec.type || 'str')}`,
+            type: 'ClassAttribute',
+            owner: newClassId,
+            bounds: { x: newX + 1, y: attrY, width: 218, height: 25 },
+            visibility: attrSpec.visibility || 'public',
+            attributeType: normalizeType(attrSpec.type || 'str'),
+          };
+          model.elements[newClassId].attributes.push(attrId);
+        }
+      }
+
+      // Add methods
+      if (spec.methods) {
+        for (let mi = 0; mi < spec.methods.length; mi++) {
+          const methodSpec = spec.methods[mi];
+          const methodId = ModifierHelpers.generateUniqueId('method');
+          const attrCount = (spec.attributes || []).length;
+          const methodY = newY + 50 + attrCount * 25 + 10 + mi * 25;
+          const paramStr = methodSpec.parameters?.map(p => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+          const returnType = normalizeType(methodSpec.returnType || 'any');
+          model.elements[methodId] = {
+            id: methodId,
+            name: `+ ${methodSpec.name}(${paramStr}): ${returnType}`,
+            type: 'ClassMethod',
+            owner: newClassId,
+            bounds: { x: newX + 1, y: methodY, width: 218, height: 25 },
+          };
+          model.elements[newClassId].methods.push(methodId);
+        }
+      }
+
+      this.recalculateClassHeight(model.elements[newClassId]);
+      newClassIds.push(newClassId);
+    }
+
+    if (inheritFrom) {
+      // Keep source class, create inheritance relationships from new classes to source
+      for (const newClassId of newClassIds) {
+        this.createRelationship(model, newClassId, sourceClassId, 'ClassInheritance');
+      }
+    } else {
+      // Remove source class and reconnect existing relationships to the first new class
+      // (best-effort: attributes mentioned in a new class determine reconnection)
+      for (const { relId, rel, direction } of existingRelationships) {
+        // Reconnect to the first new class by default
+        if (direction === 'source') {
+          rel.source.element = newClassIds[0];
+        } else {
+          rel.target.element = newClassIds[0];
+        }
+      }
+      // Remove the source class and its children
+      ModifierHelpers.removeElementWithChildren(model, sourceClassId);
+      // Re-add relationships that were removed by removeElementWithChildren
+      for (const { relId, rel } of existingRelationships) {
+        if (!model.relationships[relId]) {
+          model.relationships[relId] = rel;
+        }
+      }
+    }
+
+    return model;
+  }
+
+  /**
+   * Merge two or more classes into a single class.
+   *
+   * Payload shape:
+   * { action: "merge_classes", classes: ["Address", "Location"], targetName: "Address" }
+   */
+  private mergeClasses(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const classNames = modification.classes || [];
+    const targetName = modification.targetName;
+
+    if (classNames.length < 2) throw new Error('merge_classes requires at least two class names in "classes".');
+    if (!targetName) throw new Error('merge_classes requires a "targetName" field.');
+
+    // Resolve class IDs
+    const classEntries: Array<{ id: string; element: any }> = [];
+    for (const name of classNames) {
+      const classId = this.findClassIdByName(model, name);
+      if (!classId) throw new Error(`Class '${name}' not found in the model.`);
+      classEntries.push({ id: classId, element: model.elements[classId] });
+    }
+
+    // Compute position: midpoint of all classes being merged
+    let sumX = 0, sumY = 0;
+    for (const entry of classEntries) {
+      const bounds = entry.element.bounds || { x: 0, y: 0 };
+      sumX += bounds.x;
+      sumY += bounds.y;
+    }
+    const mergedX = Math.round(sumX / classEntries.length);
+    const mergedY = Math.round(sumY / classEntries.length);
+
+    // Collect all attributes and methods (deduplicate attributes by normalized name)
+    const seenAttrNames = new Set<string>();
+    const collectedAttrs: any[] = [];
+    const collectedMethods: any[] = [];
+    const seenMethodNames = new Set<string>();
+
+    for (const entry of classEntries) {
+      for (const attrId of (entry.element.attributes || [])) {
+        const attr = model.elements[attrId];
+        if (!attr) continue;
+        const normalizedName = this.normalizeAttributeName(attr.name || '').toLowerCase();
+        if (!seenAttrNames.has(normalizedName)) {
+          seenAttrNames.add(normalizedName);
+          collectedAttrs.push({ ...attr });
+        }
+      }
+      for (const methodId of (entry.element.methods || [])) {
+        const method = model.elements[methodId];
+        if (!method) continue;
+        const normalizedName = this.normalizeMethodName(method.name || '').toLowerCase();
+        if (!seenMethodNames.has(normalizedName)) {
+          seenMethodNames.add(normalizedName);
+          collectedMethods.push({ ...method });
+        }
+      }
+    }
+
+    // Collect all relationships involving any of the merged classes
+    const affectedRelationships: Array<{ relId: string; rel: any }> = [];
+    const mergedClassIds = new Set(classEntries.map(e => e.id));
+    if (model.relationships) {
+      for (const [relId, rel] of Object.entries(model.relationships)) {
+        const srcId = rel.source?.element;
+        const tgtId = rel.target?.element;
+        // Skip relationships that are between two classes being merged
+        if (mergedClassIds.has(srcId) && mergedClassIds.has(tgtId)) {
+          continue;
+        }
+        if (mergedClassIds.has(srcId) || mergedClassIds.has(tgtId)) {
+          affectedRelationships.push({ relId, rel: { ...rel, source: { ...rel.source }, target: { ...rel.target } } });
+        }
+      }
+    }
+
+    // Remove all old classes (and their children and relationships)
+    for (const entry of classEntries) {
+      ModifierHelpers.removeElementWithChildren(model, entry.id);
+    }
+
+    // Create merged class
+    const mergedClassId = ModifierHelpers.generateUniqueId('class');
+    model.elements[mergedClassId] = {
+      id: mergedClassId,
+      name: targetName,
+      type: 'Class',
+      owner: null,
+      bounds: { x: mergedX, y: mergedY, width: 220, height: 90 },
+      attributes: [],
+      methods: [],
+    };
+
+    // Re-create attributes under the merged class
+    for (let i = 0; i < collectedAttrs.length; i++) {
+      const original = collectedAttrs[i];
+      const attrId = ModifierHelpers.generateUniqueId('attr');
+      const attrY = mergedY + 50 + i * 25;
+      model.elements[attrId] = {
+        id: attrId,
+        name: original.name,
+        type: 'ClassAttribute',
+        owner: mergedClassId,
+        bounds: { x: mergedX + 1, y: attrY, width: 218, height: 25 },
+        visibility: original.visibility || 'public',
+        attributeType: original.attributeType || 'str',
+      };
+      model.elements[mergedClassId].attributes.push(attrId);
+    }
+
+    // Re-create methods under the merged class
+    const attrCount = collectedAttrs.length;
+    for (let i = 0; i < collectedMethods.length; i++) {
+      const original = collectedMethods[i];
+      const methodId = ModifierHelpers.generateUniqueId('method');
+      const methodY = mergedY + 50 + attrCount * 25 + 10 + i * 25;
+      model.elements[methodId] = {
+        id: methodId,
+        name: original.name,
+        type: 'ClassMethod',
+        owner: mergedClassId,
+        bounds: { x: mergedX + 1, y: methodY, width: 218, height: 25 },
+      };
+      model.elements[mergedClassId].methods.push(methodId);
+    }
+    this.recalculateClassHeight(model.elements[mergedClassId]);
+
+    // Re-add affected relationships, pointing to the merged class
+    if (!model.relationships) model.relationships = {};
+    for (const { relId, rel } of affectedRelationships) {
+      if (mergedClassIds.has(rel.source.element)) {
+        rel.source.element = mergedClassId;
+      }
+      if (mergedClassIds.has(rel.target.element)) {
+        rel.target.element = mergedClassId;
+      }
+      model.relationships[relId] = rel;
+    }
+
+    return model;
+  }
+
+  /**
+   * Promote an attribute from a class into its own class with a composition relationship.
+   *
+   * Payload shape:
+   * { action: "promote_attribute", sourceClass: "User", attribute: "address",
+   *   newClass: "Address", newAttributes: [{ name: "street", type: "str" }, ...] }
+   */
+  private promoteAttribute(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const sourceClassName = modification.sourceClass;
+    const attributeName = modification.attribute;
+    const newClassName = modification.newClass;
+    const newAttributes = modification.newAttributes || [];
+
+    if (!sourceClassName) throw new Error('promote_attribute requires a "sourceClass" field.');
+    if (!attributeName) throw new Error('promote_attribute requires an "attribute" field.');
+    if (!newClassName) throw new Error('promote_attribute requires a "newClass" field.');
+
+    const sourceClassId = this.findClassIdByName(model, sourceClassName);
+    if (!sourceClassId) throw new Error(`Source class '${sourceClassName}' not found in the model.`);
+
+    const sourceElement = model.elements[sourceClassId];
+    const sourceBounds = sourceElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
+
+    // Find and remove the attribute from the source class
+    const attrId = this.findAttributeIdByClassAndName(model, sourceClassName, attributeName);
+    if (attrId) {
+      sourceElement.attributes = (sourceElement.attributes || []).filter((id: string) => id !== attrId);
+      delete model.elements[attrId];
+      this.recalculateClassHeight(sourceElement);
+    }
+
+    // Create the new class positioned to the right of the source
+    const newClassId = ModifierHelpers.generateUniqueId('class');
+    const newClassX = sourceBounds.x + (sourceBounds.width || 220) + 400;
+    const newClassY = sourceBounds.y;
+
+    model.elements[newClassId] = {
+      id: newClassId,
+      name: newClassName,
+      type: 'Class',
+      owner: null,
+      bounds: { x: newClassX, y: newClassY, width: 220, height: 90 },
+      attributes: [],
+      methods: [],
+    };
+
+    // Add new attributes to the new class
+    for (let i = 0; i < newAttributes.length; i++) {
+      const attrSpec = newAttributes[i];
+      const newAttrId = ModifierHelpers.generateUniqueId('attr');
+      const attrY = newClassY + 50 + i * 25;
+      const visibility = attrSpec.visibility || 'public';
+      const visSymbol = visibility === 'private' ? '-' : visibility === 'protected' ? '#' : '+';
+      const type = normalizeType(attrSpec.type || 'str');
+
+      model.elements[newAttrId] = {
+        id: newAttrId,
+        name: `${visSymbol} ${attrSpec.name}: ${type}`,
+        type: 'ClassAttribute',
+        owner: newClassId,
+        bounds: { x: newClassX + 1, y: attrY, width: 218, height: 25 },
+        visibility: visibility,
+        attributeType: type,
+      };
+      model.elements[newClassId].attributes.push(newAttrId);
+    }
+    this.recalculateClassHeight(model.elements[newClassId]);
+
+    // Create composition relationship from source to new class
+    this.createRelationship(model, sourceClassId, newClassId, 'ClassComposition');
+
+    return model;
+  }
+
+  /**
+   * Add an Enumeration element and optionally update class attributes to use it.
+   *
+   * Payload shape:
+   * { action: "add_enum", enumName: "OrderStatus",
+   *   values: ["PENDING", "SHIPPED", "DELIVERED"],
+   *   usedBy: [{ className: "Order", attributeName: "status" }] }
+   */
+  private addEnum(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const enumName = modification.enumName;
+    const values = modification.values || [];
+    const usedBy = modification.usedBy || [];
+
+    if (!enumName) throw new Error('add_enum requires an "enumName" field.');
+    if (values.length === 0) throw new Error('add_enum requires a non-empty "values" array.');
+
+    // Determine position: near the classes that use it, or fall back to a default spot
+    let posX = 0;
+    let posY = 0;
+
+    if (usedBy.length > 0) {
+      let count = 0;
+      for (const usage of usedBy) {
+        const classId = this.findClassIdByName(model, usage.className);
+        if (classId && model.elements[classId]) {
+          const bounds = model.elements[classId].bounds || { x: 0, y: 0 };
+          posX += bounds.x;
+          posY += bounds.y;
+          count++;
+        }
+      }
+      if (count > 0) {
+        posX = Math.round(posX / count) + 400;
+        posY = Math.round(posY / count) - 100;
+      }
+    } else {
+      // Place after the rightmost element
+      for (const el of Object.values(model.elements)) {
+        if (el.type === 'Class' || el.type === 'Enumeration') {
+          const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 220);
+          if (right + 80 > posX) {
+            posX = right + 80;
+            posY = el.bounds?.y ?? 0;
+          }
+        }
+      }
+    }
+
+    // Create the Enumeration element
+    const enumId = ModifierHelpers.generateUniqueId('enum');
+    const enumWidth = 220;
+    const headerHeight = 50;
+    const valueHeight = 25;
+    const totalHeight = headerHeight + values.length * valueHeight + 10;
+
+    model.elements[enumId] = {
+      id: enumId,
+      name: enumName,
+      type: 'Enumeration',
+      owner: null,
+      bounds: { x: posX, y: posY, width: enumWidth, height: totalHeight },
+      attributes: [],
+      methods: [],
+    };
+
+    // Add enumeration literals as attributes
+    for (let i = 0; i < values.length; i++) {
+      const literalId = ModifierHelpers.generateUniqueId('literal');
+      const literalY = posY + headerHeight + i * valueHeight;
+
+      model.elements[literalId] = {
+        id: literalId,
+        name: values[i],
+        type: 'EnumerationLiteral',
+        owner: enumId,
+        bounds: { x: posX + 1, y: literalY, width: enumWidth - 2, height: valueHeight },
+      };
+      model.elements[enumId].attributes.push(literalId);
+    }
+
+    // Update attribute types in classes that use this enum
+    for (const usage of usedBy) {
+      const classId = this.findClassIdByName(model, usage.className);
+      if (!classId) continue;
+
+      const classElement = model.elements[classId];
+      if (!classElement?.attributes) continue;
+
+      for (const attrId of classElement.attributes) {
+        const attr = model.elements[attrId];
+        if (!attr) continue;
+
+        const normalizedName = this.normalizeAttributeName(attr.name || '');
+        if (normalizedName.toLowerCase() === usage.attributeName.toLowerCase()) {
+          // Update the attribute type to the enum name
+          const parsed = this.parseAttributeLabel(attr.name || '');
+          attr.name = `${parsed.visibilitySymbol} ${parsed.name}: ${enumName}`;
+          attr.attributeType = enumName;
+        }
+      }
+    }
+
+    return model;
+  }
+
+  // ─── Shared helpers for refactoring actions ──────────────────────────────────
+
+  /**
+   * Recalculate a class element's height based on its current attributes and methods.
+   */
+  private recalculateClassHeight(classElement: any): void {
+    const attrCount = (classElement.attributes || []).length;
+    const methodCount = (classElement.methods || []).length;
+    const headerHeight = 50;
+    const rowHeight = 25;
+    const methodGap = methodCount > 0 ? 10 : 0;
+    const padding = 15;
+    classElement.bounds.height = Math.max(
+      90,
+      headerHeight + attrCount * rowHeight + methodGap + methodCount * rowHeight + padding
+    );
+  }
+
+  /**
+   * Create a relationship between two classes and add it to the model.
+   */
+  private createRelationship(
+    model: BESSERModel,
+    sourceClassId: string,
+    targetClassId: string,
+    relationshipType: string,
+    name: string = ''
+  ): string {
+    if (!model.relationships) model.relationships = {};
+
+    const relId = ModifierHelpers.generateUniqueId('rel');
+    model.relationships[relId] = {
+      id: relId,
+      type: relationshipType,
+      source: {
+        element: sourceClassId,
+        direction: 'Left',
+        multiplicity: '1',
+        role: '',
+        bounds: { x: 0, y: 0, width: 0, height: 0 }
+      },
+      target: {
+        element: targetClassId,
+        direction: 'Right',
+        multiplicity: '*',
+        role: name,
+        bounds: { x: 0, y: 0, width: 0, height: 0 }
+      },
+      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      name: name,
+      path: [
+        { x: 100, y: 10 },
+        { x: 0, y: 10 }
+      ],
+      isManuallyLayouted: false
+    };
+
+    return relId;
+  }
+
+  // ─── Lookup helpers ──────────────────────────────────────────────────────────
 
   // Helper methods
   private findClassIdByName(model: BESSERModel, className: string): string | null {

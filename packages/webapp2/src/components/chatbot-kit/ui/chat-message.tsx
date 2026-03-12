@@ -128,6 +128,18 @@ export interface Message {
   experimental_attachments?: Attachment[]
   toolInvocations?: ToolInvocation[]
   parts?: MessagePart[]
+  /** True when this message represents a progress/status update. */
+  isProgress?: boolean
+  /** Current step index (1-based) for progress messages. */
+  progressStep?: number
+  /** Total number of steps for progress messages. */
+  progressTotal?: number
+  /** True when this message represents an error. */
+  isError?: boolean
+  /** True when the assistant is still streaming this message. */
+  isStreaming?: boolean
+  /** The injection action type, if the message was the result of an injection. */
+  injectionType?: string
 }
 
 export interface ChatMessageProps extends Message {
@@ -136,17 +148,90 @@ export interface ChatMessageProps extends Message {
   actions?: React.ReactNode
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({
-  role,
-  content,
-  createdAt,
-  showTimeStamp = false,
-  animation = "scale",
-  actions,
-  experimental_attachments,
-  toolInvocations,
-  parts,
-}) => {
+/* ------------------------------------------------------------------ */
+/*  MessageBadge — visual badge for different message types            */
+/* ------------------------------------------------------------------ */
+
+function MessageBadge({ message }: { message: ChatMessageProps }) {
+  if (message.isProgress) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+        In progress
+      </span>
+    )
+  }
+  if (message.isError) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+        Error
+      </span>
+    )
+  }
+  if (message.injectionType) {
+    const labels: Record<string, string> = {
+      inject_element: "Applied",
+      inject_complete_system: "System created",
+      modify_model: "Modified",
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+        <svg
+          className="h-2.5 w-2.5"
+          viewBox="0 0 12 12"
+          fill="none"
+        >
+          <path
+            d="M2 6l3 3 5-5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        {labels[message.injectionType] || "Applied"}
+      </span>
+    )
+  }
+  if (message.isStreaming) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+        Typing
+      </span>
+    )
+  }
+  return null
+}
+
+/* ------------------------------------------------------------------ */
+/*  StreamingCursor — blinking cursor appended while streaming         */
+/* ------------------------------------------------------------------ */
+
+function StreamingCursor() {
+  return (
+    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground/60" />
+  )
+}
+
+export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
+  const {
+    role,
+    content,
+    createdAt,
+    showTimeStamp = false,
+    animation = "scale",
+    actions,
+    experimental_attachments,
+    toolInvocations,
+    parts,
+    isProgress,
+    progressStep,
+    progressTotal,
+    isError,
+    isStreaming,
+    injectionType,
+  } = props
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
       const dataArray = dataUrlToUint8Array(attachment.url)
@@ -199,6 +284,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   if (parts && parts.length > 0) {
     return parts.map((part, index) => {
       if (part.type === "text") {
+        const isFirstTextPart = parts.findIndex((p) => p.type === "text") === index
+        const isLastTextPart =
+          parts.filter((p) => p.type === "text").length - 1 ===
+          parts.filter((p, i) => p.type === "text" && i <= index).length - 1
+
         return (
           <div
             className={cn(
@@ -207,8 +297,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             )}
             key={`text-${index}`}
           >
-            <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+            {!isUser && isFirstTextPart && <MessageBadge message={props} />}
+            <div className={cn(chatBubbleVariants({ isUser, animation }), !isUser && isFirstTextPart && (injectionType || isStreaming) && "mt-1")}>
               <MarkdownRenderer>{part.text}</MarkdownRenderer>
+              {isStreaming && isLastTextPart && <StreamingCursor />}
               {actions ? (
                 <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
                   {actions}
@@ -247,10 +339,42 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return <ToolCall toolInvocations={toolInvocations} />
   }
 
+  /* ---- Progress message: compact status-bar style ---- */
+  if (isProgress) {
+    return (
+      <div className="flex flex-col items-start">
+        <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+          {content}
+          {typeof progressTotal === "number" && progressTotal > 0 && (
+            <span className="ml-auto text-[10px] opacity-60">
+              {progressStep}/{progressTotal}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  /* ---- Error message: red/amber alert style ---- */
+  if (isError) {
+    return (
+      <div className="flex flex-col items-start">
+        <MessageBadge message={props} />
+        <div className="mt-1 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800/30 dark:bg-red-950/20 dark:text-red-200">
+          {content}
+        </div>
+      </div>
+    )
+  }
+
+  /* ---- Default assistant / fallback message ---- */
   return (
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
-      <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+      {!isUser && <MessageBadge message={props} />}
+      <div className={cn(chatBubbleVariants({ isUser, animation }), !isUser && (injectionType || isStreaming) && "mt-1")}>
         <MarkdownRenderer>{content}</MarkdownRenderer>
+        {isStreaming && <StreamingCursor />}
         {actions ? (
           <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
             {actions}

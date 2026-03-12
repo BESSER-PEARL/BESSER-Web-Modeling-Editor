@@ -19,6 +19,10 @@ interface MessageInputBaseProps
   isGenerating: boolean
   enableInterrupt?: boolean
   transcribeAudio?: (blob: Blob) => Promise<string>
+  /** Optional: last user-sent message text, used for Up-arrow recall. */
+  lastSentMessage?: string
+  /** Optional: callback to set the input value externally (for keyboard shortcuts). */
+  onValueChange?: (value: string) => void
 }
 
 interface MessageInputWithoutAttachmentProps extends MessageInputBaseProps {
@@ -44,6 +48,8 @@ export function MessageInput({
   isGenerating,
   enableInterrupt = true,
   transcribeAudio,
+  lastSentMessage,
+  onValueChange,
   ...props
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false)
@@ -134,6 +140,33 @@ export function MessageInput({
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Escape to clear the input
+    if (event.key === "Escape") {
+      event.preventDefault()
+      if (onValueChange) {
+        onValueChange("")
+      } else {
+        // Fallback: synthesise a change event with empty value
+        props.onChange?.({
+          target: { value: "" },
+        } as React.ChangeEvent<HTMLTextAreaElement>)
+      }
+      return
+    }
+
+    // Up arrow when input is empty to recall the last sent message
+    if (event.key === "ArrowUp" && !props.value && lastSentMessage) {
+      event.preventDefault()
+      if (onValueChange) {
+        onValueChange(lastSentMessage)
+      } else {
+        props.onChange?.({
+          target: { value: lastSentMessage },
+        } as React.ChangeEvent<HTMLTextAreaElement>)
+      }
+      return
+    }
+
     if (submitOnEnter && event.key === "Enter" && !event.shiftKey) {
       event.preventDefault()
 

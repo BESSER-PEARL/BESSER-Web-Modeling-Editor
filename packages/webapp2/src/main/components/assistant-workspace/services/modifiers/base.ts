@@ -51,13 +51,13 @@ export interface ModificationChanges {
 }
 
 export interface ModelModification {
-  action: 
-    | 'modify_class' 
+  action:
+    | 'modify_class'
     | 'add_attribute'
-    | 'modify_attribute' 
+    | 'modify_attribute'
     | 'add_method'
-    | 'modify_method' 
-    | 'add_relationship' 
+    | 'modify_method'
+    | 'add_relationship'
     | 'modify_relationship'
     | 'remove_element'
     | 'modify_state'
@@ -67,10 +67,30 @@ export interface ModelModification {
     | 'add_state_body'
     | 'modify_object'
     | 'modify_attribute_value'
-    | 'add_link';
+    | 'add_link'
+    | 'extract_class'
+    | 'split_class'
+    | 'merge_classes'
+    | 'promote_attribute'
+    | 'add_enum';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;
+
+  // Refactoring action fields (used by extract_class, split_class, merge_classes, promote_attribute, add_enum)
+  sourceClass?: string;
+  newClass?: string;
+  attributes?: string[];
+  relationshipType?: string;
+  newClasses?: Array<{ name: string; attributes: Array<{ name: string; type: string; visibility?: string }>; methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }> }>;
+  inheritFrom?: string;
+  classes?: string[];
+  targetName?: string;
+  attribute?: string;
+  newAttributes?: Array<{ name: string; type: string; visibility?: string }>;
+  enumName?: string;
+  values?: string[];
+  usedBy?: Array<{ className: string; attributeName: string }>;
 }
 
 /**

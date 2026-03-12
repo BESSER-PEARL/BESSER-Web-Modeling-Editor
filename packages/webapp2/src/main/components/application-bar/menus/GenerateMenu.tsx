@@ -61,9 +61,9 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({ mode, isGenerating, 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className={primaryGenerateClass} disabled={isGenerating}>
+        <Button className={primaryGenerateClass} disabled={isGenerating} title="Generate">
           <Code2 className="h-4 w-4" />
-          {isGenerating ? 'Generating...' : 'Generate'}
+          <span className="hidden xl:inline">{isGenerating ? 'Generating...' : 'Generate'}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">

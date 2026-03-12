@@ -7,6 +7,57 @@ import { ModifierFactory, ModelModification } from './modifiers';
 // Re-export ModelModification for backward compatibility
 export type { ModelModification };
 
+// ---------------------------------------------------------------------------
+// Undo stack – allows reverting agent-driven model changes
+// ---------------------------------------------------------------------------
+
+const MAX_UNDO_STACK = 10;
+let undoStack: Array<{ model: any; description: string; timestamp: number }> = [];
+
+/**
+ * Push the current model onto the undo stack before making changes.
+ */
+function pushUndoSnapshot(currentModel: any, description: string) {
+  undoStack.push({
+    model: structuredClone(currentModel),
+    description,
+    timestamp: Date.now(),
+  });
+  // Keep stack bounded
+  if (undoStack.length > MAX_UNDO_STACK) {
+    undoStack.shift();
+  }
+}
+
+/**
+ * Pop the last model snapshot from the undo stack.
+ * Returns null if stack is empty.
+ */
+export function popUndo(): { model: any; description: string } | null {
+  return undoStack.pop() || null;
+}
+
+/**
+ * Check if undo is available.
+ */
+export function canUndo(): boolean {
+  return undoStack.length > 0;
+}
+
+/**
+ * Get the description of the last undoable action.
+ */
+export function getLastUndoDescription(): string | null {
+  return undoStack.length > 0 ? undoStack[undoStack.length - 1].description : null;
+}
+
+/**
+ * Clear the undo stack (e.g., on diagram switch).
+ */
+export function clearUndoStack() {
+  undoStack = [];
+}
+
 // Enhanced interfaces for better type safety
 export interface ClassSpec {
   className: string;
@@ -131,16 +182,34 @@ export class UMLModelingService {
       const type = (diagramType || this.currentDiagramType) as DiagramType;
       const converter = ConverterFactory.getConverter(type);
       const currentModel = this.getCurrentModel();
+
+      // Snapshot before changes
+      const elementName = spec?.className || spec?.name || spec?.stateName || spec?.objectName || 'element';
+      pushUndoSnapshot(currentModel, `Add ${elementName}`);
+
       const insertPosition = this.hasPositionHint(spec) ? undefined : this.getNextLayoutPosition(currentModel);
       const completeElement = converter.convertSingleElement(spec, insertPosition);
-      
+
       return {
         type: 'single_element',
         data: completeElement,
         message: `✨ Created element in ${type}`
       };
     } catch (error) {
-      throw new Error(`Failed to process element specification: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const elementName = spec?.className || spec?.name || spec?.stateName || spec?.objectName || 'element';
+
+      if (errorMessage.includes('not found')) {
+        throw new Error(
+          `Could not find the element "${elementName}". Make sure it exists in the current diagram.`
+        );
+      }
+      if (errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
+        throw new Error(
+          `An element named "${elementName}" already exists. Try a different name.`
+        );
+      }
+      throw new Error(`Failed to process element specification: ${errorMessage}`);
     }
   }
 
@@ -151,12 +220,24 @@ export class UMLModelingService {
     try {
       const type = (diagramType || this.currentDiagramType) as DiagramType;
       const converter = ConverterFactory.getConverter(type);
+      const currentModel = this.getCurrentModel();
+
+      // Build a descriptive label for undo
+      const systemName = systemSpec?.systemName || systemSpec?.name || type;
+      const classCount =
+        (Array.isArray(systemSpec?.classes) ? systemSpec.classes.length : 0) ||
+        (Array.isArray(systemSpec?.states) ? systemSpec.states.length : 0) ||
+        (Array.isArray(systemSpec?.objects) ? systemSpec.objects.length : 0);
+      const undoLabel = classCount
+        ? `Create ${systemName} (${classCount} elements)`
+        : `Create ${systemName} system`;
+      pushUndoSnapshot(currentModel, undoLabel);
+
       const completeSystem = converter.convertCompleteSystem(systemSpec);
       const shouldKeepExplicitLayout = this.hasExplicitSystemLayout(systemSpec, type);
       const shiftedSystem = shouldKeepExplicitLayout
         ? completeSystem
         : (() => {
-            const currentModel = this.getCurrentModel();
             const nextPosition = replaceExisting
               ? { x: 0, y: 0 }
               : this.getNextLayoutPosition(currentModel);
@@ -166,7 +247,7 @@ export class UMLModelingService {
               y: nextPosition.y - anchorPosition.y,
             });
           })();
-      
+
       return {
         type: 'complete_system',
         data: shiftedSystem,
@@ -176,7 +257,20 @@ export class UMLModelingService {
         replaceExisting: !!replaceExisting,
       };
     } catch (error) {
-      throw new Error(`Failed to process system specification: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const systemName = systemSpec?.systemName || systemSpec?.name || 'system';
+
+      if (errorMessage.includes('not found')) {
+        throw new Error(
+          `Could not find a referenced element while building "${systemName}". Verify all class/state names are consistent.`
+        );
+      }
+      if (errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
+        throw new Error(
+          `A duplicate element name was detected in "${systemName}". Each element must have a unique name.`
+        );
+      }
+      throw new Error(`Failed to process system specification: ${errorMessage}`);
     }
   }
 
@@ -188,33 +282,54 @@ export class UMLModelingService {
     try {
       const currentModel = this.getCurrentModel();
       const diagramType = this.currentDiagramType as DiagramType;
-      
+
+      const targetName = modification.target.className ||
+                        modification.target.stateName ||
+                        modification.target.objectName ||
+                        'element';
+
+      // Snapshot before changes
+      pushUndoSnapshot(currentModel, `Modify ${targetName}`);
+
       // Get diagram-specific modifier
       const modifier = ModifierFactory.getModifier(diagramType);
-      
+
       // Validate action is supported for this diagram type
       if (!modifier.canHandle(modification.action)) {
         throw new Error(
           `Action '${modification.action}' is not supported for ${diagramType} diagrams.`
         );
       }
-      
+
       // Apply modification using diagram-specific logic
       const updatedModel = modifier.applyModification(currentModel, modification);
-      
-      // Generate success message
-      const targetName = modification.target.className || 
-                        modification.target.stateName || 
-                        modification.target.objectName || 
-                        'element';
-      
+
       return {
         type: 'modification',
         data: updatedModel,
         message: `✅ Applied ${modification.action} to ${targetName} in ${diagramType}`
       };
     } catch (error) {
-      throw new Error(`Failed to apply modification: ${error instanceof Error ? error.message : error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const targetName = modification.target.className ||
+                        modification.target.stateName ||
+                        modification.target.objectName ||
+                        'element';
+
+      if (errorMessage.includes('not found')) {
+        throw new Error(
+          `Could not find the element "${targetName}". Make sure it exists in the current diagram.`
+        );
+      }
+      if (errorMessage.includes('duplicate') || errorMessage.includes('already exists')) {
+        throw new Error(
+          `An element named "${targetName}" already exists. Try a different name.`
+        );
+      }
+      if (errorMessage.includes('not supported')) {
+        throw new Error(errorMessage);
+      }
+      throw new Error(`Failed to apply modification to "${targetName}": ${errorMessage}`);
     }
   }
 
@@ -231,6 +346,9 @@ export class UMLModelingService {
     const diagramType = this.currentDiagramType as DiagramType;
     const modifier = ModifierFactory.getModifier(diagramType);
     const applied: string[] = [];
+
+    // Snapshot before the batch
+    pushUndoSnapshot(latestModel, `Batch modify (${modifications.length} changes)`);
 
     for (const mod of modifications) {
       if (!modifier.canHandle(mod.action)) {
@@ -289,8 +407,20 @@ export class UMLModelingService {
 
       return true;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[UMLModelingService] Error injecting to editor:', error);
-      throw error; // Re-throw to let caller handle it
+
+      if (errorMessage.includes('No main element')) {
+        throw new Error(
+          'The generated element data is incomplete. The assistant produced an invalid structure — please try again.'
+        );
+      }
+      if (errorMessage.includes('dispatch') || errorMessage.includes('Redux') || errorMessage.includes('thunk')) {
+        throw new Error(
+          `Failed to persist the model update to the editor store: ${errorMessage}`
+        );
+      }
+      throw new Error(`Failed to apply change to editor: ${errorMessage}`);
     }
   }
 
@@ -300,6 +430,10 @@ export class UMLModelingService {
     }
 
     const currentModel = this.getCurrentModel();
+
+    // Snapshot before full replacement
+    pushUndoSnapshot(currentModel, 'Replace entire model');
+
     const mergedModel: BESSERModel = {
       ...currentModel,
       ...model,

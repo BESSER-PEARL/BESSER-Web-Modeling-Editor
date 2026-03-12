@@ -1,27 +1,22 @@
 import React from 'react';
+import { FolderKanban } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
 import { FileMenu } from './menus/FileMenu';
 import { GenerateMenu } from './menus/GenerateMenu';
 import { MobileNavigation } from './menus/MobileNavigation';
-import { ProjectIdentityPanel } from './menus/ProjectIdentityPanel';
 import { TopBarUtilities } from './menus/TopBarUtilities';
 import type { WorkspaceTopBarProps } from './topbar-types';
 
 export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
   isDarkTheme,
   headerBackgroundClass,
-  topPanelClass,
-  topPanelIconClass,
-  diagramBadgeClass,
   outlineButtonClass,
   primaryGenerateClass,
   showQualityCheck,
   generatorMode,
   isGenerating,
-  projectNameDraft,
-  diagramTitleDraft,
-  currentDiagramType,
   locationPath,
   activeUmlType,
   isAuthenticated,
@@ -55,20 +50,19 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
   onSwitchUml,
   onSwitchDiagramType,
   onNavigate,
+  projectNameDraft,
   onProjectNameDraftChange,
   onProjectRename,
-  onDiagramTitleDraftChange,
-  onDiagramRename,
 }) => {
   return (
-    <header className={`relative z-20 px-4 py-3 sm:px-6 ${headerBackgroundClass}`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+    <header className={`relative z-20 px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
             onClick={onOpenProjectHub}
             aria-label="Open project hub"
-            className="group flex items-center p-0 text-left transition-opacity hover:opacity-85"
+            className="group flex shrink-0 items-center p-0 text-left transition-opacity hover:opacity-85"
           >
             <img
               src="/images/logo.png"
@@ -76,21 +70,24 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
               className={`h-10 w-auto ${isDarkTheme ? 'brightness-0 invert' : 'brightness-0'}`}
             />
           </button>
-          <ProjectIdentityPanel
-            topPanelClass={topPanelClass}
-            topPanelIconClass={topPanelIconClass}
-            diagramBadgeClass={diagramBadgeClass}
-            projectNameDraft={projectNameDraft}
-            diagramTitleDraft={diagramTitleDraft}
-            currentDiagramType={currentDiagramType}
-            onProjectNameDraftChange={onProjectNameDraftChange}
-            onProjectRename={onProjectRename}
-            onDiagramTitleDraftChange={onDiagramTitleDraftChange}
-            onDiagramRename={onDiagramRename}
-          />
+          <div className="hidden items-center gap-1.5 lg:flex">
+            <FolderKanban className={`h-4 w-4 shrink-0 ${isDarkTheme ? 'text-slate-300' : 'text-slate-600'}`} />
+            <Input
+              value={projectNameDraft}
+              onChange={(event) => onProjectNameDraftChange(event.target.value)}
+              onBlur={onProjectRename}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.currentTarget.blur();
+                }
+              }}
+              className="h-7 w-36 border-none bg-transparent px-1 py-0 text-sm font-medium shadow-none focus-visible:ring-0"
+              placeholder="Project name"
+            />
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1 xl:gap-2">
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}

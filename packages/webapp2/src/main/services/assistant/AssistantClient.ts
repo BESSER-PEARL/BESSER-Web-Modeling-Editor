@@ -7,9 +7,11 @@ import type {
   AssistantWorkspaceContext,
   ChatMessage,
   ConnectionHandler,
+  DiagramSummary,
   InjectionCommand,
   InjectionHandler,
   MessageHandler,
+  ProjectMetadata,
   SendStatus,
   TypingHandler,
 } from './assistant-types';
@@ -51,6 +53,7 @@ const KNOWN_ACTIONS = new Set([
   'trigger_deploy',
   'auto_generate_gui',
   'agent_error',
+  'progress',
 ]);
 
 const isActionPayload = (payload: unknown): payload is AssistantActionPayload => {
@@ -82,7 +85,9 @@ const mergeContexts = (
     activeDiagramId: override?.activeDiagramId || base?.activeDiagramId,
     activeModel: override?.activeModel || base?.activeModel || fallbackModel,
     projectSnapshot: override?.projectSnapshot || base?.projectSnapshot,
+    projectName: override?.projectName || base?.projectName,
     diagramSummaries: override?.diagramSummaries || base?.diagramSummaries || [],
+    projectMetadata: override?.projectMetadata || base?.projectMetadata,
   };
 };
 
@@ -122,6 +127,98 @@ const stripRedundantProjectMetadata = (projectSnapshot: unknown): any | undefine
   return snapshot;
 };
 
+// --- Diagram summary helpers ---
+
+const buildDiagramSummary = (diagram: any, diagramType: string, diagramId?: string): DiagramSummary => {
+  if (!diagram?.model) return { type: diagramType, diagramId, empty: true };
+
+  const model = diagram.model;
+
+  // For UML-style models (Class, Object, StateMachine, Agent) that have elements & relationships
+  if (model.elements && model.relationships) {
+    const elements = Object.values(model.elements) as any[];
+    const relationships = Object.values(model.relationships) as any[];
+
+    // Group elements by their type field
+    const elementsByType: Record<string, string[]> = {};
+    for (const el of elements) {
+      const type = el.type || 'unknown';
+      if (!elementsByType[type]) elementsByType[type] = [];
+      if (el.name) elementsByType[type].push(el.name);
+    }
+
+    const summary: DiagramSummary = {
+      type: diagramType,
+      diagramId,
+      elementCount: elements.length,
+      relationshipCount: relationships.length,
+      elementsByType,
+    };
+
+    // For ClassDiagrams include class names so cross-diagram references are easy to resolve
+    if (diagramType === 'ClassDiagram') {
+      summary.classNames = elements.filter((e: any) => e.type === 'Class').map((e: any) => e.name);
+    }
+
+    return summary;
+  }
+
+  return { type: diagramType, diagramId, elementCount: 0 };
+};
+
+const buildDiagramSummaries = (projectSnapshot: unknown): DiagramSummary[] => {
+  if (!isObject(projectSnapshot) || !isObject(projectSnapshot.diagrams)) {
+    return [];
+  }
+  const summaries: DiagramSummary[] = [];
+  Object.entries(projectSnapshot.diagrams).forEach(([diagramType, diagramPayload]) => {
+    if (Array.isArray(diagramPayload)) {
+      diagramPayload.forEach((d: any, index: number) => {
+        summaries.push(buildDiagramSummary(d, diagramType, d?.id ?? `${diagramType}_${index}`));
+      });
+    } else if (isObject(diagramPayload)) {
+      summaries.push(buildDiagramSummary(diagramPayload, diagramType));
+    }
+  });
+  return summaries;
+};
+
+const buildProjectMetadata = (projectSnapshot: unknown): ProjectMetadata | undefined => {
+  if (!isObject(projectSnapshot) || !isObject(projectSnapshot.diagrams)) {
+    return undefined;
+  }
+  const diagrams = projectSnapshot.diagrams as Record<string, any>;
+  let totalDiagrams = 0;
+  const diagramTypes: string[] = [];
+  Object.entries(diagrams).forEach(([type, payload]) => {
+    if (Array.isArray(payload)) {
+      if (payload.length > 0) {
+        totalDiagrams += payload.length;
+        diagramTypes.push(type);
+      }
+    } else if (payload) {
+      totalDiagrams += 1;
+      diagramTypes.push(type);
+    }
+  });
+  return { totalDiagrams, diagramTypes };
+};
+
+// --- Context delta optimisation ---
+
+let lastSentModelHash: string | null = null;
+
+const hashModel = (model: any): string => {
+  const str = JSON.stringify(model);
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // Convert to 32-bit integer
+  }
+  return hash.toString(36);
+};
+
 const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWorkspaceContext => {
   const compacted: AssistantWorkspaceContext = { ...context };
   const compactProjectSnapshot = stripRedundantProjectMetadata(context.projectSnapshot);
@@ -129,12 +226,40 @@ const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWor
     compacted.projectSnapshot = compactProjectSnapshot;
   }
 
-  // Safe reduction: backend can derive summaries from projectSnapshot when needed.
-  if (Array.isArray(compacted.diagramSummaries)) {
-    delete compacted.diagramSummaries;
+  // Always build and include diagram summaries and project metadata -- these are
+  // compact enough to keep even when stripping heavier payloads for bandwidth.
+  if (!compacted.diagramSummaries || compacted.diagramSummaries.length === 0) {
+    const summaries = buildDiagramSummaries(compacted.projectSnapshot);
+    if (summaries.length > 0) {
+      compacted.diagramSummaries = summaries;
+    }
   }
 
+  if (!compacted.projectMetadata) {
+    const metadata = buildProjectMetadata(compacted.projectSnapshot);
+    if (metadata) {
+      compacted.projectMetadata = metadata;
+    }
+  }
+
+  // Context delta optimisation: if the active model hasn't changed since the
+  // last send, replace the full model with a lightweight hash reference.
+  if (compacted.activeModel) {
+    const modelHash = hashModel(compacted.activeModel);
+    const contextUnchanged = modelHash === lastSentModelHash;
+    lastSentModelHash = modelHash;
+
+    if (contextUnchanged) {
+      compacted.contextUnchanged = true;
+      compacted.modelHash = modelHash;
+      delete compacted.activeModel;
+    }
+  }
+
+  // De-duplicate: if activeModel is the same reference that already lives inside
+  // the projectSnapshot, don't send it twice.
   if (
+    compacted.activeModel &&
     isObject(compacted.projectSnapshot) &&
     isObject(compacted.projectSnapshot.diagrams) &&
     typeof compacted.activeDiagramType === 'string'
@@ -592,7 +717,9 @@ export class AssistantClient {
 export type {
   AssistantWorkspaceContext,
   AssistantActionPayload,
+  DiagramSummary,
   InjectionCommand,
   ChatMessage,
+  ProjectMetadata,
   SendStatus,
 } from './assistant-types';

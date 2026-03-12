@@ -41,9 +41,9 @@ export const CommunityMenu: React.FC<CommunityMenuProps> = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`}>
+        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="Community & Help">
           <Users className="h-4 w-4" />
-          Community & Help
+          <span className="hidden xl:inline">Help</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end">

@@ -5,17 +5,11 @@ import type { GeneratorMenuMode, GeneratorType } from '../sidebar/workspace-type
 export interface WorkspaceTopBarProps {
   isDarkTheme: boolean;
   headerBackgroundClass: string;
-  topPanelClass: string;
-  topPanelIconClass: string;
-  diagramBadgeClass: string;
   outlineButtonClass: string;
   primaryGenerateClass: string;
   showQualityCheck: boolean;
   generatorMode: GeneratorMenuMode;
   isGenerating: boolean;
-  projectNameDraft: string;
-  diagramTitleDraft: string;
-  currentDiagramType?: string;
   locationPath: string;
   activeUmlType: UMLDiagramType;
   isAuthenticated: boolean;
@@ -49,8 +43,7 @@ export interface WorkspaceTopBarProps {
   onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;
+  projectNameDraft: string;
   onProjectNameDraftChange: (value: string) => void;
   onProjectRename: () => void;
-  onDiagramTitleDraftChange: (value: string) => void;
-  onDiagramRename: () => void;
 }
