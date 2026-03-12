@@ -1,5 +1,4 @@
-import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface SeriesItem {
   name: string;
@@ -51,26 +50,51 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
   animate = true,
   series,
 }) => {
-  // If series prop is provided, use it. If it's an empty array, show "No data available". If undefined, use defaultSeries.
-  let chartSeries: SeriesItem[] = defaultSeries;
-  if (Array.isArray(series)) {
-    chartSeries = series.length > 0 ? series : [];
-  }
+  const [Recharts, setRecharts] = useState<typeof import('recharts') | null>(null);
 
-  // Merge all data points by name for X axis
-  const allNames = Array.from(
-    new Set(chartSeries.flatMap(s => s.data.map(d => d.name)))
-  );
-  const mergedData = allNames.map(name => {
-    const entry: any = { name };
-    chartSeries.forEach((s, idx) => {
-      const found = s.data.find(d => d.name === name);
-      entry[`value${idx}`] = found ? found.value : null;
+  useEffect(() => {
+    let cancelled = false;
+    import('recharts').then((mod) => {
+      if (!cancelled) setRecharts(mod);
     });
-    return entry;
-  });
+    return () => { cancelled = true; };
+  }, []);
+
+  // If series prop is provided, use it. If it's an empty array, show "No data available". If undefined, use defaultSeries.
+  const chartSeries: SeriesItem[] = useMemo(() => {
+    if (Array.isArray(series)) {
+      return series.length > 0 ? series : [];
+    }
+    return defaultSeries;
+  }, [series]);
+
+  // Memoize expensive data transformations to avoid recomputation on every render
+  const { mergedData, allNames } = useMemo(() => {
+    const names = Array.from(
+      new Set(chartSeries.flatMap(s => s.data.map(d => d.name)))
+    );
+    const data = names.map(name => {
+      const entry: any = { name };
+      chartSeries.forEach((s, idx) => {
+        const found = s.data.find(d => d.name === name);
+        entry[`value${idx}`] = found ? found.value : null;
+      });
+      return entry;
+    });
+    return { mergedData: data, allNames: names };
+  }, [chartSeries]);
 
   const isEmpty = !chartSeries || chartSeries.length === 0 || allNames.length === 0;
+
+  if (!Recharts) {
+    return (
+      <div style={{ width: '100%', height: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#888' }}>
+        Loading chart...
+      </div>
+    );
+  }
+
+  const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
 
   return (
     <div style={{ width: '100%', height: 400, marginBottom: 20 }}>

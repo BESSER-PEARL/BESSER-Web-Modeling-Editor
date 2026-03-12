@@ -14,7 +14,7 @@ export const useProjectBumlPreview = () => {
     const freshProject = ProjectStorageRepository.loadProject(project.id);
     const projectPayload = buildProjectPayloadForBackend(freshProject || project);
 
-    const response = await fetch(`${BACKEND_URL}/export-project_as_buml`, {
+    const response = await fetch(`${BACKEND_URL}/export-project-as-buml`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

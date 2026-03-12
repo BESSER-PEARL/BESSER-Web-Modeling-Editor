@@ -1,4 +1,4 @@
-﻿import { Editor } from 'grapesjs';
+﻿import type { Editor } from 'grapesjs';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;

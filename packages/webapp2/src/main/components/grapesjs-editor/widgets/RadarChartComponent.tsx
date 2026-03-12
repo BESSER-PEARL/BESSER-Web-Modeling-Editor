@@ -1,5 +1,4 @@
-import React from 'react';
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface SeriesItem {
   name: string;
@@ -48,8 +47,30 @@ export const RadarChartComponent: React.FC<RadarChartComponentProps> = ({
   showTooltip = true,
   showRadiusAxis = true,
 }) => {
-  const mergedData = mergeRadarData(series);
+  const [Recharts, setRecharts] = useState<typeof import('recharts') | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('recharts').then((mod) => {
+      if (!cancelled) setRecharts(mod);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Memoize expensive radar data merge to avoid recomputation on every render
+  const mergedData = useMemo(() => mergeRadarData(series), [series]);
   const isEmpty = !series || series.length === 0 || mergedData.length === 0;
+
+  if (!Recharts) {
+    return (
+      <div style={{ width: '100%', height: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#888' }}>
+        Loading chart...
+      </div>
+    );
+  }
+
+  const { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
   return (
     <div style={{ width: '100%', height: 400, marginBottom: 20 }}>
       {title && <h3 style={{ textAlign: 'center', marginBottom: 10 }}>{title}</h3>}

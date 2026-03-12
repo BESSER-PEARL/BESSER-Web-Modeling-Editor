@@ -59,6 +59,7 @@ const KeyboardShortcutsDialog = React.lazy(() =>
 // The keyboard toggle hook must be imported eagerly (it registers a global listener).
 import { useKeyboardShortcutsToggle } from '../modals/KeyboardShortcutsDialog';
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../command-palette/CommandPalette';
+import { OnboardingChecklist } from '../onboarding/OnboardingChecklist';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -71,6 +72,18 @@ const sanitizeRepoName = (name: string): string => {
     .replace(/^-+|-+$/g, '');
 };
 
+interface OnboardingHook {
+  checklist: { createdClass: boolean; addedAttribute: boolean; createdRelationship: boolean; generatedCode: boolean; exploredTemplates: boolean; triedQualityCheck: boolean };
+  checklistDismissed: boolean;
+  checklistCompleted: number;
+  checklistTotal: number;
+  allChecklistDone: boolean;
+  dismissChecklist: () => void;
+  startTutorial: () => void;
+  updateChecklist: (key: keyof OnboardingHook['checklist']) => void;
+  [key: string]: unknown;
+}
+
 interface WorkspaceShellProps {
   children: React.ReactNode;
   onOpenProjectHub: () => void;
@@ -82,6 +95,7 @@ interface WorkspaceShellProps {
   generatorMode: GeneratorMenuMode;
   isGenerating?: boolean;
   onAssistantGenerate?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
+  onboarding?: OnboardingHook;
 }
 
 export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
@@ -95,6 +109,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   generatorMode,
   isGenerating = false,
   onAssistantGenerate,
+  onboarding,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -474,6 +489,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenAboutDialog={() => setIsAboutDialogOpen(true)}
         onOpenFeedback={() => setIsFeedbackDialogOpen(true)}
         onOpenKeyboardShortcuts={openKeyboardShortcuts}
+        onShowWelcomeGuide={onboarding?.startTutorial}
         activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
         onSwitchUml={handleSwitchUml}
         onSwitchDiagramType={handleSwitchDiagramType}
@@ -567,6 +583,20 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <DiagramTabs />
           <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
+
+          {/* Onboarding checklist - fixed bottom-right */}
+          {onboarding && !onboarding.checklistDismissed && (
+            <div className="absolute bottom-4 right-4 z-30 w-56">
+              <OnboardingChecklist
+                checklist={onboarding.checklist}
+                completed={onboarding.checklistCompleted}
+                total={onboarding.checklistTotal}
+                allDone={onboarding.allChecklistDone}
+                isDarkTheme={isDarkTheme}
+                onDismiss={onboarding.dismissChecklist}
+              />
+            </div>
+          )}
         </main>
 
         <Suspense fallback={null}>

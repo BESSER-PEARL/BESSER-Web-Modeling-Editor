@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LazyPostHogProvider } from './services/analytics/LazyPostHogProvider';
 import { ToastContainer } from 'react-toastify';
@@ -9,7 +9,7 @@ import {
   POSTHOG_HOST,
   POSTHOG_KEY,
 } from './constant';
-import { getActiveDiagram } from './types/project';
+import { getActiveDiagram, isUMLModel } from './types/project';
 import { ApollonEditorProvider } from './components/apollon-editor-component/apollon-editor-context';
 import { EditorView } from './components/editor-view/EditorView';
 import { ErrorPanel } from './components/error-handling/error-panel';
@@ -26,6 +26,9 @@ import { GeneratingOverlay } from './components/loading/GeneratingOverlay';
 import { GlobalConfirmProvider } from './services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NotFound } from './components/NotFound';
+import { useOnboarding } from './components/onboarding/useOnboarding';
+import { useAppSelector } from './store/hooks';
+import { selectActiveDiagram } from './services/workspace/workspaceSlice';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>
@@ -56,6 +59,9 @@ const GeneratorConfigDialogs = React.lazy(() =>
 );
 const AssistantWidget = React.lazy(() =>
   import('./components/assistant-workspace/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
+);
+const InteractiveTutorial = React.lazy(() =>
+  import('./components/onboarding/InteractiveTutorial').then((m) => ({ default: m.InteractiveTutorial })),
 );
 
 const postHogOptions = {
@@ -112,18 +118,60 @@ function AppContentInner() {
     setShowExportDialog(true);
   };
 
+  // Onboarding system
+  const onboarding = useOnboarding();
+
+  // Detect model changes for onboarding checklist (class, attribute, relationship)
+  const reduxDiagram = useAppSelector(selectActiveDiagram);
+  const { checklist, updateChecklist } = onboarding;
+
+  useEffect(() => {
+    const model = reduxDiagram?.model;
+    if (!model || !isUMLModel(model)) return;
+
+    if (!checklist.createdClass) {
+      const hasClass = Object.values(model.elements).some(
+        (el) => el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface',
+      );
+      if (hasClass) updateChecklist('createdClass');
+    }
+
+    if (!checklist.addedAttribute) {
+      const hasAttribute = Object.values(model.elements).some(
+        (el) => el.type === 'ClassAttribute',
+      );
+      if (hasAttribute) updateChecklist('addedAttribute');
+    }
+
+    if (!checklist.createdRelationship) {
+      if (Object.keys(model.relationships).length > 0) {
+        updateChecklist('createdRelationship');
+      }
+    }
+  }, [reduxDiagram, checklist.createdClass, checklist.addedAttribute, checklist.createdRelationship, updateChecklist]);
+
   return (
     <ApollonEditorProvider value={{ editor, setEditor }}>
       <WorkspaceShell
         onOpenProjectHub={() => setShowProjectHub(true)}
-        onOpenTemplateDialog={() => setShowTemplateDialog(true)}
+        onOpenTemplateDialog={() => {
+          setShowTemplateDialog(true);
+          onboarding.updateChecklist('exploredTemplates');
+        }}
         onExportProject={handleExport}
-        onGenerate={handleGenerateRequest}
-        onQualityCheck={handleQualityCheck}
+        onGenerate={(type) => {
+          onboarding.updateChecklist('generatedCode');
+          handleGenerateRequest(type);
+        }}
+        onQualityCheck={() => {
+          onboarding.updateChecklist('triedQualityCheck');
+          handleQualityCheck();
+        }}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
         isGenerating={isGenerating}
         onAssistantGenerate={handleAssistantGenerate}
+        onboarding={onboarding}
       >
         <Suspense fallback={<SuspenseFallback showSkeleton />}>
           <Routes>
@@ -210,6 +258,17 @@ function AppContentInner() {
         onQiskitGenerate={configState.onQiskitGenerate}
         onWebAppGenerate={configState.onWebAppGenerate}
       />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <InteractiveTutorial
+          visible={onboarding.isTutorialActive}
+          currentStep={onboarding.tutorialStep}
+          onNext={onboarding.advanceTutorial}
+          onBack={onboarding.goBackTutorial}
+          onSkip={onboarding.skipTutorial}
+          onFinish={onboarding.finishTutorial}
+        />
       </Suspense>
 
       <ErrorPanel />

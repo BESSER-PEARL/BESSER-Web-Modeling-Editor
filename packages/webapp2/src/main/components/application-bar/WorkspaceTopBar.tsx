@@ -50,6 +50,7 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
   onOpenAboutDialog,
   onOpenFeedback,
   onOpenKeyboardShortcuts,
+  onShowWelcomeGuide,
   activeDiagramType,
   onSwitchUml,
   onSwitchDiagramType,
@@ -122,6 +123,7 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
             onOpenHelpDialog={onOpenHelpDialog}
             onOpenAboutDialog={onOpenAboutDialog}
             onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
+            onShowWelcomeGuide={onShowWelcomeGuide}
           />
           <TopBarUtilities
             showQualityCheck={showQualityCheck}

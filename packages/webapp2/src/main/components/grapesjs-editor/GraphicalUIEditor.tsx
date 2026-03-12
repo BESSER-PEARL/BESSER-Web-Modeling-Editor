@@ -1,12 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
-import grapesjs, { Editor } from 'grapesjs';
-import 'grapesjs/dist/css/grapes.min.css';
-import gjsPresetWebpage from 'grapesjs-preset-webpage';
-import gjsStyleBg from 'grapesjs-style-bg';
-// @ts-ignore
-import gjsBlocksBasic from 'grapesjs-blocks-basic';
-// @ts-ignore
-import gjsPluginForms from 'grapesjs-plugin-forms';
+import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
 import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
@@ -39,6 +32,10 @@ export const GraphicalUIEditor: React.FC = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let cancelled = false;
+    let cleanupFn: (() => void) | undefined;
+
+    (async () => {
     try {
       // Capture which diagram this editor instance belongs to BEFORE any async
       // operations or tab switches can change the active index.  This prevents
@@ -48,8 +45,9 @@ export const GraphicalUIEditor: React.FC = () => {
       const mountDiagram = mountProject?.diagrams?.GUINoCodeDiagram?.[mountDiagramIndex];
       const mountDiagramId = mountDiagram?.id ?? null;
 
-      // Initialize GrapesJS editor
-      const editor = initializeEditor(containerRef.current);
+      // Initialize GrapesJS editor (async - dynamically imports GrapesJS and plugins)
+      const editor = await initializeEditor(containerRef.current!);
+      if (cancelled) { editor.destroy(); return; }
 
       // Store editor reference
       editorRef.current = editor;
@@ -163,10 +161,8 @@ export const GraphicalUIEditor: React.FC = () => {
         });
       });
 
-      // Cleanup on unmount
-      return () => {
-        // console.log('[GraphicalUIEditor] Cleaning up...');
-
+      // Store cleanup so the synchronous teardown can call it
+      cleanupFn = () => {
         // Clear save interval
         if (saveIntervalRef.current) {
           clearInterval(saveIntervalRef.current);
@@ -227,6 +223,13 @@ export const GraphicalUIEditor: React.FC = () => {
     } catch (error) {
       console.error('[GraphicalUIEditor] Failed to initialize editor:', error);
     }
+    })();
+
+    // Synchronous cleanup returned to React
+    return () => {
+      cancelled = true;
+      if (cleanupFn) cleanupFn();
+    };
   }, []);
 
   return (
@@ -239,16 +242,33 @@ export const GraphicalUIEditor: React.FC = () => {
 // ============================================
 
 /**
- * Initialize GrapesJS editor with configuration
+ * Initialize GrapesJS editor with configuration.
+ * GrapesJS core and plugins are dynamically imported so they are only
+ * loaded when this editor component is actually mounted.
  */
-function initializeEditor(container: HTMLDivElement): Editor {
+async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
+  const [
+    { default: grapesjs },
+    { default: gjsPresetWebpage },
+    { default: gjsStyleBg },
+    { default: gjsBlocksBasic },
+  ] = await Promise.all([
+    import('grapesjs'),
+    import('grapesjs-preset-webpage'),
+    import('grapesjs-style-bg'),
+    // @ts-ignore
+    import('grapesjs-blocks-basic'),
+  ]);
+  // Load GrapesJS CSS as a side-effect
+  await import('grapesjs/dist/css/grapes.min.css');
+
   return grapesjs.init({
     container,
     height: 'calc(100vh - var(--app-shell-topbar-height, 60px))',
     width: 'auto',
     fromElement: false,
     components: '', // Empty initially - pages will load default content
-    
+
     // Storage configuration
     storageManager: {
       type: 'remote',
@@ -259,12 +279,11 @@ function initializeEditor(container: HTMLDivElement): Editor {
 
     // Essential plugins only
     plugins: [
-      gjsPresetWebpage as any, 
+      gjsPresetWebpage as any,
       gjsStyleBg as any,
       gjsBlocksBasic as any,
-      // gjsPluginForms as any,
     ],
-    
+
     pluginsOpts: {
       'grapesjs-preset-webpage': {
         modalImportTitle: 'Import Template',
@@ -304,9 +323,6 @@ function initializeEditor(container: HTMLDivElement): Editor {
         blocks: ['column1', 'column2', 'column3', 'text', 'image'],
         flexGrid: true,
       },
-      // 'grapesjs-plugin-forms': {
-      //   blocks: ['form', 'input', 'textarea', 'select', 'button', 'label', 'checkbox'],
-      // },
     },
 
     showOffsets: true,

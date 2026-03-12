@@ -355,7 +355,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
     setIsApplying(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/transform_agent_model_json`, {
+      const res = await fetch(`${BACKEND_URL}/transform-agent-model-json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

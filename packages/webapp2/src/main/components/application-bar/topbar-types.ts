@@ -44,6 +44,7 @@ export interface WorkspaceTopBarProps {
   onOpenAboutDialog: () => void;
   onOpenFeedback: () => void;
   onOpenKeyboardShortcuts: () => void;
+  onShowWelcomeGuide?: () => void;
   activeDiagramType: SupportedDiagramType;
   onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;

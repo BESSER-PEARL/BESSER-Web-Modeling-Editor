@@ -533,9 +533,11 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
                       </td>
                       <td className="w-72 px-3 py-3">
                         {detail.image ? (
+                          // TODO: Convert help images to WebP format for smaller file sizes (#31)
                           <img
                             src={detail.image.src}
                             alt={detail.image.alt}
+                            loading="lazy"
                             className={cn(
                               'max-h-56 w-full rounded-md border border-border/60 object-contain',
                               detail.image.heightClass,

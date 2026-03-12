@@ -1,5 +1,4 @@
-import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
+import React, { useEffect, useMemo, useState } from 'react';
 
 
 
@@ -47,17 +46,41 @@ export const PieChartComponent: React.FC<PieChartComponentProps> = ({
   labelPosition = 'inside',
   paddingAngle = 0,
 }) => {
-  // If series is provided, use its first item for data. If it's an empty array, show no data.
-  let chartData: PieDataItem[] = data as PieDataItem[];
-  if (Array.isArray(series)) {
-    chartData = series.length > 0 ? (series[0].data as PieDataItem[]) : [];
-  }
-  // Ensure every data item has a color property (for palette changes)
-  chartData = chartData.map((item, idx) => ({
-    ...item,
-    color: item.color || COLORS[idx % COLORS.length],
-  }));
+  const [Recharts, setRecharts] = useState<typeof import('recharts') | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('recharts').then((mod) => {
+      if (!cancelled) setRecharts(mod);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Memoize chart data derivation and color assignment to avoid recomputation on every render
+  const chartData = useMemo(() => {
+    let items: PieDataItem[] = data as PieDataItem[];
+    if (Array.isArray(series)) {
+      items = series.length > 0 ? (series[0].data as PieDataItem[]) : [];
+    }
+    // Ensure every data item has a color property (for palette changes)
+    return items.map((item, idx) => ({
+      ...item,
+      color: item.color || COLORS[idx % COLORS.length],
+    }));
+  }, [data, series]);
+
   const isEmpty = !chartData || chartData.length === 0;
+
+  if (!Recharts) {
+    return (
+      <div style={{ width: '100%', height: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#888' }}>
+        Loading chart...
+      </div>
+    );
+  }
+
+  const { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
   return (
     <div style={{ width: '100%', height: 400, marginBottom: 20 }}>
       {title && <h3 style={{ textAlign: 'center', marginBottom: 10 }}>{title}</h3>}
@@ -73,8 +96,8 @@ export const PieChartComponent: React.FC<PieChartComponentProps> = ({
               labelLine={showLabels ? labelPosition === 'outside' : false}
               label={showLabels ? (entry: any) => {
                 const percent = entry.percent;
-                return labelPosition === 'inside' ? 
-                  `${(percent * 100).toFixed(0)}%` : 
+                return labelPosition === 'inside' ?
+                  `${(percent * 100).toFixed(0)}%` :
                   `${entry.name}: ${(percent * 100).toFixed(0)}%`;
               } : undefined}
               outerRadius={100}
@@ -88,9 +111,9 @@ export const PieChartComponent: React.FC<PieChartComponentProps> = ({
             </Pie>
             <Tooltip />
             {showLegend && (
-              <Legend 
+              <Legend
                 verticalAlign={legendPosition === 'top' || legendPosition === 'bottom' ? legendPosition : 'middle'}
-                align={legendPosition === 'left' || legendPosition === 'right' ? legendPosition : 'center'} 
+                align={legendPosition === 'left' || legendPosition === 'right' ? legendPosition : 'center'}
               />
             )}
           </PieChart>

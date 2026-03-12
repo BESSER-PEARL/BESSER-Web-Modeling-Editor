@@ -24,7 +24,7 @@ export async function exportProjectAsSingleBUMLFile(
   const projectToExport = buildProjectPayloadForBackend(projectToUse, diagramTypes);
 
   try {
-    const response = await fetch(`${BACKEND_URL}/export-project_as_buml`, {
+    const response = await fetch(`${BACKEND_URL}/export-project-as-buml`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

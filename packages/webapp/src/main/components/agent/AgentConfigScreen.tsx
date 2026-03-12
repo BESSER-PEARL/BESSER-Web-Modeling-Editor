@@ -784,7 +784,7 @@ export const AgentConfigScreen: React.FC = () => {
             const normalizedBaseRaw = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
             const normalizedBase = normalizedBaseRaw || '';
             const apiBase = normalizedBase.endsWith('/besser_api') ? normalizedBase : `${normalizedBase}/besser_api`;
-            const transformUrl = `${apiBase}/transform_agent_model_json`;
+            const transformUrl = `${apiBase}/transform-agent-model-json`;
 
             const response = await fetch(transformUrl, {
                 method: 'POST',

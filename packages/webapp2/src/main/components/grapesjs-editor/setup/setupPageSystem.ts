@@ -1,4 +1,4 @@
-﻿import { Editor } from 'grapesjs';
+﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../services/confirm/globalConfirm';
 
 // Track initialization per editor instance
