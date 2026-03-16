@@ -58,11 +58,11 @@ const ALL_STARTER_PROMPTS = [
   'Model a restaurant ordering system with menus, orders, and tables',
   'Create a project management tool with tasks, teams, and sprints',
   // GUI
-  'Generate a web app for hotel booking',
+  'Design a hotel booking web app with rooms, guests, and reservations',
   'Design a dashboard for inventory management',
   // Multi-diagram
-  'Create a library management platform',
-  'Build a complete task management application with models and UI',
+  'Build a complete library management platform with models and UI',
+  'Build a task management application with models and UI',
 ];
 
 /** Pick N random prompts from the pool, deterministic per session. */
