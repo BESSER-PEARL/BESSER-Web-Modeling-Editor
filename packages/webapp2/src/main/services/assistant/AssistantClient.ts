@@ -55,6 +55,9 @@ const KNOWN_ACTIONS = new Set([
   'auto_generate_gui',
   'agent_error',
   'progress',
+  'stream_start',
+  'stream_chunk',
+  'stream_done',
 ]);
 
 const isActionPayload = (payload: unknown): payload is AssistantActionPayload => {

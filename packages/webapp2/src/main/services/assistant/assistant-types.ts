@@ -48,7 +48,10 @@ export type AssistantActionName =
   | 'trigger_deploy'
   | 'auto_generate_gui'
   | 'agent_error'
-  | 'progress';
+  | 'progress'
+  | 'stream_start'
+  | 'stream_chunk'
+  | 'stream_done';
 
 export interface AssistantActionPayload {
   action: AssistantActionName | string;
