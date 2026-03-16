@@ -33,7 +33,9 @@ export class ClassDiagramModifier implements DiagramModifier {
   canHandle(action: string): boolean {
     return [
       'modify_class',
+      'add_attribute',
       'modify_attribute',
+      'add_method',
       'modify_method',
       'add_relationship',
       'remove_element'
@@ -46,8 +48,12 @@ export class ClassDiagramModifier implements DiagramModifier {
     switch (modification.action) {
       case 'modify_class':
         return this.modifyClass(updatedModel, modification);
+      case 'add_attribute':
+        return this.addAttribute(updatedModel, modification);
       case 'modify_attribute':
         return this.modifyAttribute(updatedModel, modification);
+      case 'add_method':
+        return this.addMethod(updatedModel, modification);
       case 'modify_method':
         return this.modifyMethod(updatedModel, modification);
       case 'add_relationship':
@@ -68,6 +74,81 @@ export class ClassDiagramModifier implements DiagramModifier {
         model.elements[targetId].name = modification.changes.name;
       }
     }
+
+    return model;
+  }
+
+  private addAttribute(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const { className } = modification.target;
+    if (!className) throw new Error('add_attribute requires a target className.');
+
+    const classId = this.findClassIdByName(model, className);
+    if (!classId) throw new Error(`Class "${className}" not found.`);
+
+    const classElement = model.elements[classId];
+    const attrId = ModifierHelpers.generateUniqueId('attr');
+    const visibility = modification.changes.visibility || 'public';
+    const name = modification.changes.name || 'newAttribute';
+    const type = normalizeType(modification.changes.type || 'str');
+
+    // Position below the last existing attribute
+    const lastAttrId = classElement.attributes?.[classElement.attributes.length - 1];
+    const lastAttr = lastAttrId ? model.elements[lastAttrId] : null;
+    const attrY = lastAttr ? lastAttr.bounds.y + lastAttr.bounds.height : classElement.bounds.y + 50;
+
+    model.elements[attrId] = {
+      id: attrId,
+      name: name,
+      type: 'ClassAttribute',
+      owner: classId,
+      bounds: { x: classElement.bounds.x + 1, y: attrY, width: classElement.bounds.width - 2, height: 25 },
+      visibility: visibility,
+      attributeType: type,
+    };
+
+    if (!classElement.attributes) classElement.attributes = [];
+    classElement.attributes.push(attrId);
+
+    // Grow class height
+    classElement.bounds.height += 25;
+
+    return model;
+  }
+
+  private addMethod(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const { className } = modification.target;
+    if (!className) throw new Error('add_method requires a target className.');
+
+    const classId = this.findClassIdByName(model, className);
+    if (!classId) throw new Error(`Class "${className}" not found.`);
+
+    const classElement = model.elements[classId];
+    const methodId = ModifierHelpers.generateUniqueId('method');
+    const visibilitySymbol = this.visibilityToSymbol(modification.changes.visibility || 'public') || '+';
+    const name = modification.changes.name || 'newMethod';
+    const returnType = normalizeType(modification.changes.returnType || 'any');
+    const paramStr = modification.changes.parameters?.map(p => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+    const methodName = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
+
+    // Position below the last existing method or last attribute
+    const lastMethodId = classElement.methods?.[classElement.methods.length - 1];
+    const lastAttrId = classElement.attributes?.[classElement.attributes.length - 1];
+    const lastChild = lastMethodId ? model.elements[lastMethodId] : (lastAttrId ? model.elements[lastAttrId] : null);
+    const methodY = lastChild ? lastChild.bounds.y + lastChild.bounds.height + 5 : classElement.bounds.y + 50;
+
+    model.elements[methodId] = {
+      id: methodId,
+      name: methodName,
+      type: 'ClassMethod',
+      owner: classId,
+      bounds: { x: classElement.bounds.x + 1, y: methodY, width: classElement.bounds.width - 2, height: 25 }
+    };
+
+    if (!classElement.methods) classElement.methods = [];
+    classElement.methods.push(methodId);
+
+    // Grow class height
+    classElement.bounds.height += 25;
 
     return model;
   }

@@ -49,11 +49,13 @@ export interface ModificationChanges {
 }
 
 export interface ModelModification {
-  action: 
-    | 'modify_class' 
-    | 'modify_attribute' 
-    | 'modify_method' 
-    | 'add_relationship' 
+  action:
+    | 'modify_class'
+    | 'add_attribute'
+    | 'modify_attribute'
+    | 'add_method'
+    | 'modify_method'
+    | 'add_relationship'
     | 'remove_element'
     | 'modify_state'
     | 'modify_intent'
