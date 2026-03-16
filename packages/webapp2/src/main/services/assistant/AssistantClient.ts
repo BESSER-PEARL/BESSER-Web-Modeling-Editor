@@ -30,11 +30,30 @@ interface QueuedMessage {
   attachments?: FileAttachmentPayload[];
 }
 
+const SESSION_STORAGE_KEY = 'besser-assistant-session-id';
+
 const createSessionId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+  // Reuse the session ID within the same browser tab so that closing
+  // and reopening the assistant drawer reconnects to the same backend
+  // session (preserving conversation memory and context).
+  try {
+    const existing = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (existing) return existing;
+  } catch {
+    // sessionStorage unavailable (e.g. iframe sandbox) — fall through
   }
-  return `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+  const id =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+  try {
+    sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+  } catch {
+    // best-effort
+  }
+  return id;
 };
 
 const createMessageId = (): string => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
