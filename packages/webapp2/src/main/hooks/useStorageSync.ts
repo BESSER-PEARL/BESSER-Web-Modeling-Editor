@@ -39,7 +39,7 @@ export function useStorageSync(): void {
   const currentProjectId = useAppSelector(selectProjectId);
 
   // Track the last revision we synced so we skip no-op dispatches.
-  const lastSyncedRevisionRef = useRef(ProjectStorageRepository.revision);
+  const lastSyncedRevisionRef = useRef(-1);
 
   // ── 1. Same-tab sync (ProjectStorageRepository change listeners) ──────
   useEffect(() => {

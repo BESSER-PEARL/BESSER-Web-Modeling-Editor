@@ -311,6 +311,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
 
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    if (!isMobileDrawerOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isMobileDrawerOpen]);
+
   const handleNavigate = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);

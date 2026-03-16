@@ -9,7 +9,7 @@ import { MobileNavigation } from './menus/MobileNavigation';
 import { TopBarUtilities } from './menus/TopBarUtilities';
 import type { WorkspaceTopBarProps } from './topbar-types';
 
-export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
+const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   isDarkTheme,
   headerBackgroundClass,
   outlineButtonClass,
@@ -152,3 +152,5 @@ export const WorkspaceTopBar: React.FC<WorkspaceTopBarProps> = ({
     </header>
   );
 };
+
+export const WorkspaceTopBar = React.memo(WorkspaceTopBarInner);

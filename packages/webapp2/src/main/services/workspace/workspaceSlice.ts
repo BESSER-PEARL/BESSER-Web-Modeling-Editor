@@ -528,7 +528,7 @@ const workspaceSlice = createSlice({
           if (freshProject) {
             state.project = freshProject;
           } else {
-            // Fallback: add manually if storage reload fails
+            console.warn('[workspaceSlice] addDiagramThunk: storage reload failed, falling back to manual push');
             state.project.diagrams[diagramType].push(diagram);
           }
           state.project.currentDiagramIndices[diagramType] = index;

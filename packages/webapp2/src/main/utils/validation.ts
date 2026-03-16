@@ -70,22 +70,27 @@ export const validateProjectName = (value: string): string | undefined => {
 /**
  * Validates a GitHub repository name:
  *  - must not be empty
- *  - only lowercase letters, digits, dashes, and underscores
- *  - must not start or end with a dash
+ *  - cannot start with a dot, dash, or underscore
+ *  - can contain alphanumeric, dashes, dots, and underscores
+ *  - cannot end with .git or a dot
+ *  - max 100 chars
  */
 export const validateRepoName = (value: string): string | undefined => {
   const trimmed = value.trim();
   if (!trimmed) {
     return 'Repository name is required.';
   }
-  if (!/^[a-z0-9_-]+$/.test(trimmed)) {
-    return 'Only lowercase letters, numbers, dashes, and underscores.';
-  }
-  if (trimmed.startsWith('-') || trimmed.endsWith('-')) {
-    return 'Cannot start or end with a dash.';
-  }
   if (trimmed.length > 100) {
     return 'Must be at most 100 characters.';
+  }
+  if (/^[.\-_]/.test(trimmed)) {
+    return 'Cannot start with a dot, dash, or underscore.';
+  }
+  if (/\.git$/i.test(trimmed) || /\.$/.test(trimmed)) {
+    return 'Cannot end with .git or a dot.';
+  }
+  if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) {
+    return 'Only letters, numbers, dashes, dots, and underscores.';
   }
   return undefined;
 };

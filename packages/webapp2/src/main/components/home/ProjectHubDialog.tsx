@@ -82,9 +82,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
   const refreshProjects = useCallback(() => {
     const all = ProjectStorageRepository.getAllProjects();
-    const sorted = [...all].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    setProjects(sorted as BesserProject[]);
+    setProjects(all as BesserProject[]);
   }, []);
+
+  const sortedProjects = useMemo(
+    () => [...projects].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [projects],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -288,7 +292,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
   const renderProjectList = () => (
     <div className="space-y-3">
-      {projects.length === 0 && (
+      {sortedProjects.length === 0 && (
         <Card className="border-dashed border-border/80 bg-muted/20 shadow-none">
           <CardContent className="py-6 text-sm text-muted-foreground">
             No projects yet. Create one to get started.
@@ -296,7 +300,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         </Card>
       )}
 
-      {projects.map((project) => {
+      {sortedProjects.map((project) => {
         const isCurrent = currentProject?.id === project.id;
         return (
           <Card key={project.id} className={isCurrent ? 'border-brand/40 bg-brand/5 shadow-none' : 'shadow-none'}>
@@ -445,11 +449,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="mb-2.5 flex items-center justify-between">
                   <p className="text-sm font-semibold tracking-tight">Existing Projects</p>
-                  <Badge variant="secondary" className="rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] text-brand">{projects.length}</Badge>
+                  <Badge variant="secondary" className="rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] text-brand">{sortedProjects.length}</Badge>
                 </div>
-                {projects.length > 0 ? (
+                {sortedProjects.length > 0 ? (
                   <div className="space-y-1.5">
-                    {projects.slice(0, 3).map((project) => (
+                    {sortedProjects.slice(0, 3).map((project) => (
                       <div
                         key={project.id}
                         className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-all duration-200 hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
@@ -549,7 +553,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     <CardTitle className="text-base tracking-tight">Recent Projects</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-1.5">
-                    {projects.slice(0, 5).map((project) => (
+                    {sortedProjects.slice(0, 5).map((project) => (
                       <div
                         key={project.id}
                         className="group flex items-center gap-2 rounded-lg border border-border/40 bg-muted/15 px-3 py-2 text-sm transition-all duration-200 hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
@@ -575,7 +579,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         </Button>
                       </div>
                     ))}
-                    {projects.length === 0 && <p className="text-xs text-muted-foreground">No projects yet.</p>}
+                    {sortedProjects.length === 0 && <p className="text-xs text-muted-foreground">No projects yet.</p>}
                   </CardContent>
                 </Card>
               </div>
@@ -732,7 +736,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               </Button>
               <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-base font-semibold">All Projects</h3>
-                <Badge variant="secondary">{projects.length}</Badge>
+                <Badge variant="secondary">{sortedProjects.length}</Badge>
               </div>
               {renderProjectList()}
             </div>

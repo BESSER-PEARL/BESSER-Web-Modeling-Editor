@@ -16,6 +16,16 @@ import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
 
 export class ProjectStorageRepository {
 
+  // ── Write coalescing ────────────────────────────────────────────────────
+  // Multiple async thunks may call saveProject in quick succession.
+  // Although localStorage is synchronous, reentrant calls (e.g. from
+  // notifyChange listeners that trigger another save) could interleave.
+  // We use a simple flag to detect reentrant writes and coalesce them:
+  // the latest project snapshot wins.
+
+  private static isWriting = false;
+  private static pendingProject: BesserProject | null = null;
+
   // ── Change notification mechanism ──────────────────────────────────────
   // Editors (GrapesJS, Quantum, etc.) write directly to localStorage for
   // performance. This listener pattern lets Redux stay in sync without
@@ -80,27 +90,42 @@ export class ProjectStorageRepository {
 
   // Save complete project (diagrams included)
   static saveProject(project: BesserProject): void {
+    // Coalesce reentrant / rapid-fire writes: if a save is already in
+    // progress, queue the latest snapshot and return immediately.
+    if (ProjectStorageRepository.isWriting) {
+      ProjectStorageRepository.pendingProject = project;
+      return;
+    }
+
+    ProjectStorageRepository.isWriting = true;
     try {
       const projectKey = `${localStorageProjectPrefix}${project.id}`;
       localStorage.setItem(projectKey, JSON.stringify(project));
-      
+
       // Update latest project pointer
       localStorage.setItem(localStorageLatestProject, project.id);
-      
+
       // Update projects list
       this.updateProjectsList(project.id);
-
-      // Notify listeners (Redux sync, etc.)
-      this.notifyChange();
-
-      // Check localStorage quota and warn if approaching limit
-      checkLocalStorageQuota();
-
-      // console.log('Project saved successfully:', project.name);
     } catch (error) {
       console.error('Error saving project:', error);
       throw new Error('Failed to save project');
+    } finally {
+      ProjectStorageRepository.isWriting = false;
+
+      // Process any write that arrived while we were busy
+      if (ProjectStorageRepository.pendingProject) {
+        const pending = ProjectStorageRepository.pendingProject;
+        ProjectStorageRepository.pendingProject = null;
+        ProjectStorageRepository.saveProject(pending);
+      }
     }
+
+    // Notify listeners (Redux sync, etc.)
+    this.notifyChange();
+
+    // Check localStorage quota and warn if approaching limit
+    checkLocalStorageQuota();
   }
   
   // Load complete project by ID

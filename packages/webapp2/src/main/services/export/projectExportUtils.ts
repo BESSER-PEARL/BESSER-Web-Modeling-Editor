@@ -9,7 +9,7 @@ export const buildExportableProjectPayload = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[]
 ): ExportableProjectPayload => {
-  const projectClone = JSON.parse(JSON.stringify(project)) as ExportableProjectPayload;
+  const projectClone = structuredClone(project) as ExportableProjectPayload;
   projectClone.name = normalizeProjectName(projectClone.name || 'project');
 
   if (!selectedDiagramTypes || selectedDiagramTypes.length === 0) {
@@ -41,7 +41,7 @@ export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
 ): Record<string, unknown> => {
-  const payload = JSON.parse(JSON.stringify(project));
+  const payload = structuredClone(project);
   payload.name = normalizeProjectName(payload.name || 'project');
 
   // Filter to only non-empty diagram types

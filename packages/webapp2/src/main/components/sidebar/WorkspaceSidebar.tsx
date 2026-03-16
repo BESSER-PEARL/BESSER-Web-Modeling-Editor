@@ -67,7 +67,7 @@ function labelWithCount(label: string, count: number): string {
   return count > 1 ? `${label} (${count})` : label;
 }
 
-export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
+const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   isDarkTheme,
   isSidebarExpanded,
   sidebarBaseClass,
@@ -241,3 +241,5 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
     </aside>
   );
 };
+
+export const WorkspaceSidebar = React.memo(WorkspaceSidebarInner);

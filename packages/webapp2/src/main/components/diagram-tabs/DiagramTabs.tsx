@@ -125,13 +125,10 @@ export const DiagramTabs: React.FC = () => {
     if (currentDiagramType === 'ObjectDiagram') {
       if (isUMLModel(refModel)) {
         diagramBridge.setClassDiagramData(refModel);
-        const idChanged =
-          prevClassRefIdRef.current !== null &&
-          prevClassRefIdRef.current !== classRefId;
-        prevClassRefIdRef.current = classRefId;
-        if (idChanged) {
+        if (prevClassRefIdRef.current !== null && prevClassRefIdRef.current !== classRefId) {
           dispatch(bumpEditorRevision());
         }
+        prevClassRefIdRef.current = classRefId;
       }
     }
     // For GUI: no bridge side-effect needed — diagram-helpers reads per-diagram references

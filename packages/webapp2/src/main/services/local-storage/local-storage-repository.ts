@@ -18,6 +18,26 @@ import { AgentConfigurationPayload } from '../../types/agent-config';
 
 type AgentBaseModelMap = Record<string, UMLModel>;
 
+/**
+ * Safely write to localStorage, catching QuotaExceededError so callers
+ * can degrade gracefully instead of crashing.
+ */
+const safeSetItem = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+      console.error(
+        `[LocalStorageRepository] localStorage quota exceeded while writing key "${key}". ` +
+        'Consider deleting unused projects or profiles to free space.',
+      );
+      // Don't rethrow — let caller handle gracefully
+    } else {
+      throw e;
+    }
+  }
+};
+
 const getStoredUserProfiles = (): StoredUserProfile[] => {
   const json = localStorage.getItem(localStorageUserProfiles);
   if (!json) {
@@ -34,7 +54,7 @@ const getStoredUserProfiles = (): StoredUserProfile[] => {
 };
 
 const persistUserProfiles = (profiles: StoredUserProfile[]) => {
-  localStorage.setItem(localStorageUserProfiles, JSON.stringify(profiles));
+  safeSetItem(localStorageUserProfiles, JSON.stringify(profiles));
 };
 
 const getStoredAgentConfigurations = (): StoredAgentConfiguration[] => {
@@ -53,7 +73,7 @@ const getStoredAgentConfigurations = (): StoredAgentConfiguration[] => {
 };
 
 const persistAgentConfigurations = (configs: StoredAgentConfiguration[]) => {
-  localStorage.setItem(localStorageAgentConfigurations, JSON.stringify(configs));
+  safeSetItem(localStorageAgentConfigurations, JSON.stringify(configs));
 };
 
 const getStoredAgentProfileMappings = (): StoredAgentProfileConfigurationMapping[] => {
@@ -72,7 +92,7 @@ const getStoredAgentProfileMappings = (): StoredAgentProfileConfigurationMapping
 };
 
 const persistAgentProfileMappings = (entries: StoredAgentProfileConfigurationMapping[]) => {
-  localStorage.setItem(localStorageAgentProfileMappings, JSON.stringify(entries));
+  safeSetItem(localStorageAgentProfileMappings, JSON.stringify(entries));
 };
 
 const getStoredAgentBaseModels = (): AgentBaseModelMap => {
@@ -90,16 +110,16 @@ const getStoredAgentBaseModels = (): AgentBaseModelMap => {
 };
 
 const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
-  localStorage.setItem(localStorageAgentBaseModels, JSON.stringify(entries));
+  safeSetItem(localStorageAgentBaseModels, JSON.stringify(entries));
 };
 
 export const LocalStorageRepository = {
   setSystemThemePreference: (value: string) => {
-    window.localStorage.setItem(localStorageSystemThemePreference, value);
+    safeSetItem(localStorageSystemThemePreference, value);
   },
 
   setUserThemePreference: (value: string) => {
-    window.localStorage.setItem(localStorageUserThemePreference, value);
+    safeSetItem(localStorageUserThemePreference, value);
   },
 
   getSystemThemePreference: () => {
@@ -194,7 +214,7 @@ export const LocalStorageRepository = {
       name: trimmedName,
       savedAt,
       config: clone,
-      baseAgentModel: personalizedSnapshot,
+      baseAgentModel: originalSnapshot,
       personalizedAgentModel: personalizedSnapshot,
       originalAgentModel: originalSnapshot,
     };
@@ -224,7 +244,7 @@ export const LocalStorageRepository = {
   },
 
   setActiveAgentConfigurationId: (id: string) => {
-    localStorage.setItem(localStorageActiveAgentConfiguration, id);
+    safeSetItem(localStorageActiveAgentConfiguration, id);
   },
 
   getActiveAgentConfigurationId: (): string | null => {

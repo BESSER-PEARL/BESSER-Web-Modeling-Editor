@@ -13,7 +13,7 @@
  *  - `isGenerating` flag
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditor, UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
@@ -376,6 +376,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const isLocalEnvironment =
     !BACKEND_URL || BACKEND_URL.includes('localhost') || BACKEND_URL.includes('127.0.0.1');
 
+  // Track whether the component is still mounted to avoid state updates after unmount
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
   const activeDiagram = currentProject
     ? getActiveDiagram(currentProject, currentProject.currentDiagramType)
     : undefined;
@@ -521,6 +527,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           if (isGuiModelEmpty(guiModel)) {
             if (options?.autoGenerateGuiIfEmpty) {
               const autoGenerateError = await ensureGuiForAssistantWebAppGeneration();
+              if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
               if (autoGenerateError) {
                 toast.error(autoGenerateError.error);
                 return autoGenerateError;
@@ -539,6 +546,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           }
 
           const webAppResult = await generateCode(null, 'web_app', activeDiagramTitle, config as any);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (webAppResult.ok) {
             getPostHog()?.capture('generator_used', {
               generator_type: 'web_app',
@@ -561,6 +569,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             activeDiagramTitle,
             (config as QiskitConfig) ?? { backend: 'aer_simulator', shots: 1024 },
           );
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (qiskitResult.ok) {
             getPostHog()?.capture('generator_used', {
               generator_type: 'qiskit',
@@ -622,6 +631,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           default:
             result = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
         }
+
+        if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
 
         if (result.ok) {
           getPostHog()?.capture('generator_used', {
@@ -806,8 +817,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             }
             return {
               name: entry.name,
-              model: JSON.parse(JSON.stringify(variantModel)),
-              config: JSON.parse(JSON.stringify(entry.config)),
+              model: structuredClone(variantModel),
+              config: structuredClone(entry.config),
             };
           })
           .filter((entry): entry is { name: string; model: any; config: any } => Boolean(entry));
@@ -815,7 +826,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         if (baseModel && variations.length > 0) {
           finalConfig = {
             ...baseConfig,
-            baseModel: JSON.parse(JSON.stringify(baseModel)),
+            baseModel: structuredClone(baseModel),
             variations,
           };
         }
@@ -838,9 +849,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
             return {
               name: profile.name,
-              configuration: JSON.parse(JSON.stringify(config.config)),
-              user_profile: JSON.parse(JSON.stringify(profile.model)),
-              agent_model: JSON.parse(JSON.stringify(agentModel)),
+              configuration: structuredClone(config.config),
+              user_profile: structuredClone(profile.model),
+              agent_model: structuredClone(agentModel),
             };
           })
           .filter((entry): entry is {

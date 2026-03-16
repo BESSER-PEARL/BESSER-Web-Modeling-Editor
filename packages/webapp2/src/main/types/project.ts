@@ -353,7 +353,8 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
-    obj.diagrams.GUINoCodeDiagram;
+    obj.diagrams.GUINoCodeDiagram &&
+    obj.diagrams.QuantumCircuitDiagram;
 
   return !!hasRequiredDiagrams;
 };
@@ -403,6 +404,7 @@ const migrateReferencesToIds = (project: BesserProject): BesserProject => {
           if (typeof refValue === 'number') {
             // Old index-based reference — resolve to ID
             const targetDiagrams = project.diagrams[targetType];
+            if (!targetDiagrams || targetDiagrams.length === 0) continue;
             if (targetDiagrams && targetDiagrams.length > 0) {
               const safeIdx = Math.min(refValue, targetDiagrams.length - 1);
               converted[targetType] = targetDiagrams[safeIdx].id;

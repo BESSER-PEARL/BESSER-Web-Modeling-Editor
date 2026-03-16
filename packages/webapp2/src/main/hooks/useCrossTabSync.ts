@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 
 /**
  * Listens for the browser `storage` event, which fires when localStorage
@@ -19,15 +19,13 @@ export function useCrossTabSync(
   key: string,
   onExternalChange: (newValue: string | null) => void,
 ): void {
-  const stableCallback = useCallback(onExternalChange, [onExternalChange]);
-
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === key) {
-        stableCallback(e.newValue);
+        onExternalChange(e.newValue);
       }
     };
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
-  }, [key, stableCallback]);
+  }, [key, onExternalChange]);
 }

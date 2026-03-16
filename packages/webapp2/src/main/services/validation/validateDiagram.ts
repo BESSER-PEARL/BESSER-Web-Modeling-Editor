@@ -15,9 +15,11 @@ import { ApollonEditor } from '@besser/wme';
  * @param diagramTitle - Title of the diagram being validated
  * @param modelData - Optional: Direct model data (used for quantum circuits that don't use Apollon)
  */
+const VALIDATION_TOAST_ID = 'diagram-validation-loading';
+
 export async function validateDiagram(editor: ApollonEditor | null | undefined, diagramTitle: string, modelData?: any) {
-  toast.dismiss();
-  
+  toast.dismiss(VALIDATION_TOAST_ID);
+
   try {
     const longToastStyle: CSSProperties = {
       fontSize: "16px",
@@ -40,7 +42,8 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     }
 
     // Show loading state
-    const loadingToastId = toast.loading("Validating diagram...", {
+    toast.loading("Validating diagram...", {
+      toastId: VALIDATION_TOAST_ID,
       position: "top-right",
       theme: "dark",
       autoClose: false,
@@ -49,25 +52,41 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       draggable: false
     });
 
-    // Call unified validation endpoint
-    const response = await fetch(`${BACKEND_URL}/validate-diagram`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: diagramTitle,
-        model: model
-      }),
-    });
+    // Call unified validation endpoint with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+    let response: Response;
+    try {
+      response = await fetch(`${BACKEND_URL}/validate-diagram`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: diagramTitle,
+          model: model
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
+        toast.dismiss(VALIDATION_TOAST_ID);
+        toast.error('Validation timed out. The backend may be overloaded.');
+        return { isValid: false, errors: ['Validation timed out'] };
+      }
+      throw fetchError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ 
         errors: ['Could not parse error response'] 
       }));
       
-      toast.dismiss();
-      
+      toast.dismiss(VALIDATION_TOAST_ID);
+
       const errorMessage = errorData.errors?.join('\n') || 'Validation failed';
       toast.error(errorMessage, {
         position: "top-right",
@@ -83,7 +102,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     
     // Small delay to ensure smooth transition
     await new Promise(resolve => setTimeout(resolve, 100));
-    toast.dismiss(loadingToastId);
+    toast.dismiss(VALIDATION_TOAST_ID);
     
     // Show validation errors
     if (result.errors && result.errors.length > 0) {
@@ -186,7 +205,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     
   } catch (error: unknown) {
     console.error('Error during validation:', error);
-    toast.dismiss();
+    toast.dismiss(VALIDATION_TOAST_ID);
     toast.error(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`, {
       position: "top-right",
       autoClose: 5000,

@@ -95,6 +95,8 @@ export const useGenerateCode = () => {
         }
       };
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000);
       try {
         const response = await fetch(`${BACKEND_URL}/generate-output-from-project`, {
           method: 'POST',
@@ -103,6 +105,7 @@ export const useGenerateCode = () => {
             'Accept': 'application/json, text/plain, */*',
           },
           body: JSON.stringify(projectWithSettings),
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -148,12 +151,18 @@ export const useGenerateCode = () => {
         toast.success('Code generation completed successfully');
         return { ok: true, filename };
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          toast.error('Request timed out. Please try again.');
+          return { ok: false, error: 'Request timed out' };
+        }
         let errorMessage = 'Unknown error occurred';
         if (error instanceof Error) {
           errorMessage = error.message;
         }
         toast.error(`${errorMessage}`);
         return { ok: false, error: errorMessage };
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
     [downloadFile],
@@ -202,6 +211,8 @@ export const useGenerateCode = () => {
         ...(referenceDiagramData ? { referenceDiagramData } : {}),
       };
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000);
       try {
         const response = await fetch(`${BACKEND_URL}/generate-output`, {
           method: 'POST',
@@ -210,6 +221,7 @@ export const useGenerateCode = () => {
             'Accept': 'application/json, text/plain, */*',
           },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -256,6 +268,10 @@ export const useGenerateCode = () => {
         toast.success('Code generation completed successfully');
         return { ok: true, filename };
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          toast.error('Request timed out. Please try again.');
+          return { ok: false, error: 'Request timed out' };
+        }
 
         let errorMessage = 'Unknown error occurred';
         if (error instanceof Error) {
@@ -264,6 +280,8 @@ export const useGenerateCode = () => {
 
         toast.error(`${errorMessage}`);
         return { ok: false, error: errorMessage };
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
     [downloadFile, generateCodeFromProject],
