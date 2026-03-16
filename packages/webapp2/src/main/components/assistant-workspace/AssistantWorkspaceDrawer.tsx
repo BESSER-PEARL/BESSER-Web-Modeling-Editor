@@ -77,7 +77,7 @@ function pickRandomPrompts(pool: string[], count: number): string[] {
   return shuffled.slice(0, count);
 }
 
-const STARTER_PROMPTS = pickRandomPrompts(ALL_STARTER_PROMPTS, 5);
+const STARTER_PROMPTS = pickRandomPrompts(ALL_STARTER_PROMPTS, 3);
 
 /* ------------------------------------------------------------------ */
 /*  Helper functions                                                   */

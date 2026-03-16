@@ -11,17 +11,32 @@ const TYPE_ALIASES: Record<string, string> = {
   'integer': 'int', 'Integer': 'int', 'INTEGER': 'int', 'long': 'int', 'Long': 'int',
   'double': 'float', 'Double': 'float', 'DOUBLE': 'float', 'Float': 'float', 'FLOAT': 'float',
   'number': 'float', 'Number': 'float', 'decimal': 'float', 'Decimal': 'float',
+  'BigDecimal': 'float', 'bigdecimal': 'float',
   'boolean': 'bool', 'Boolean': 'bool', 'BOOLEAN': 'bool',
-  'Date': 'date', 'DATE': 'date',
+  'Date': 'date', 'DATE': 'date', 'LocalDate': 'date', 'localDate': 'date',
   'DateTime': 'datetime', 'DATETIME': 'datetime', 'Timestamp': 'datetime', 'timestamp': 'datetime',
-  'Time': 'time', 'TIME': 'time',
+  'LocalDateTime': 'datetime', 'localDateTime': 'datetime',
+  'Time': 'time', 'TIME': 'time', 'LocalTime': 'time',
   'object': 'any', 'Object': 'any', 'void': 'any', 'Void': 'any',
+  'UUID': 'str', 'Uuid': 'str', 'uuid': 'str', 'GUID': 'str',
+  'byte': 'int', 'Byte': 'int', 'short': 'int', 'Short': 'int',
+  'char': 'str', 'Char': 'str', 'Character': 'str',
 };
 
-const normalizeType = (type: string): string => {
+// Valid BESSER primitive types
+const VALID_PRIMITIVES = new Set(['str', 'int', 'bool', 'float', 'date', 'datetime', 'time', 'any']);
+
+const normalizeType = (type: string, classNames?: Set<string>): string => {
   if (!type) return 'str';
   const trimmed = type.trim();
-  return TYPE_ALIASES[trimmed] || trimmed;
+  const aliased = TYPE_ALIASES[trimmed];
+  if (aliased) return aliased;
+  // If the type matches a class name in the model, keep it (custom type reference)
+  if (classNames && classNames.has(trimmed)) return trimmed;
+  // If it's already a valid primitive, keep it
+  if (VALID_PRIMITIVES.has(trimmed)) return trimmed;
+  // Unknown type — default to str
+  return 'str';
 };
 
 export class ClassDiagramConverter implements DiagramConverter {
