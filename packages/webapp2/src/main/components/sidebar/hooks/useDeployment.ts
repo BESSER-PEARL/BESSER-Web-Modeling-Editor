@@ -5,6 +5,7 @@ import { useDeployToGitHub } from '../../../services/deploy/useGitHubDeploy';
 import { ProjectStorageRepository } from '../../../services/storage/ProjectStorageRepository';
 import { buildProjectPayloadForBackend } from '../../../services/export/projectExportUtils';
 import type { BesserProject } from '../../../types/project';
+import { getPostHog } from '../../../services/analytics/lazy-analytics';
 
 // localStorage helpers for tracking previously deployed repos per project
 const DEPLOY_LINKED_REPO_PREFIX = 'besser_deploy_linked_';
@@ -143,6 +144,24 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       saveDeployLinkedRepo(currentProject.id, result.owner, result.repo_name);
       setIsDeployDialogOpen(false);
       setIsDeployResultOpen(true);
+
+      getPostHog()?.capture('render_deploy_success', {
+        deployment_status: 'success',
+        is_private: githubRepoPrivate,
+        repo_name: githubRepoName,
+        repo_url: result.repo_url,
+        owner: result.owner,
+        files_uploaded: result.files_uploaded,
+        is_redeployment: useExistingRepo,
+        diagram_type: currentProject.currentDiagramType,
+      });
+    } else {
+      getPostHog()?.capture('render_deploy_failure', {
+        deployment_status: 'failed',
+        is_private: githubRepoPrivate,
+        repo_name: githubRepoName,
+        diagram_type: currentProject.currentDiagramType,
+      });
     }
   }, [currentProject, githubSession, githubRepoName, githubRepoDescription, githubRepoPrivate, useExistingRepo, commitMessage, deployToGitHub]);
 

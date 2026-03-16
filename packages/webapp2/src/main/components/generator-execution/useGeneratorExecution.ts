@@ -21,6 +21,7 @@ import { toast } from 'react-toastify';
 import { useAppDispatch } from '../../store/hooks';
 import { notifyError } from '../../utils/notifyError';
 import { useProject } from '../../hooks/useProject';
+import { getPostHog } from '../../services/analytics/lazy-analytics';
 import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
 import {
   useGenerateCode,
@@ -84,6 +85,28 @@ function isGuiModelEmpty(guiModel: GrapesJSProjectData | undefined): boolean {
     const components = page?.component?.components;
     return !Array.isArray(components) || components.length === 0;
   });
+}
+
+// ─── Model metrics for analytics ────────────────────────────────────────────
+
+function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
+  if (!project) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
+  const diagram = getActiveDiagram(project, project.currentDiagramType);
+  const model = diagram?.model as any;
+  if (!model || !model.elements) return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
+
+  const elementsCount = model.elements ? Object.keys(model.elements).length : 0;
+  const classesCount = model.elements
+    ? Object.values(model.elements).filter((el: any) => el.type === 'Class' || el.type === 'AbstractClass').length
+    : 0;
+  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+
+  return {
+    elements_count: elementsCount,
+    classes_count: classesCount,
+    relationships_count: relationshipsCount,
+    total_size: elementsCount + relationshipsCount,
+  };
 }
 
 // ─── Web App checklist builder ──────────────────────────────────────────────
@@ -515,7 +538,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             }
           }
 
-          return await generateCode(null, 'web_app', activeDiagramTitle, config as any);
+          const webAppResult = await generateCode(null, 'web_app', activeDiagramTitle, config as any);
+          if (webAppResult.ok) {
+            getPostHog()?.capture('generator_used', {
+              generator_type: 'web_app',
+              diagram_type: currentProject.currentDiagramType,
+              ...getModelMetrics(currentProject),
+            });
+          }
+          return webAppResult;
         }
 
         if (generatorType === 'qiskit') {
@@ -524,12 +555,20 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.' };
           }
 
-          return await generateCode(
+          const qiskitResult = await generateCode(
             null,
             'qiskit',
             activeDiagramTitle,
             (config as QiskitConfig) ?? { backend: 'aer_simulator', shots: 1024 },
           );
+          if (qiskitResult.ok) {
+            getPostHog()?.capture('generator_used', {
+              generator_type: 'qiskit',
+              diagram_type: currentProject.currentDiagramType,
+              ...getModelMetrics(currentProject),
+            });
+          }
+          return qiskitResult;
         }
 
         if (isQuantumContext || isGuiContext) {
@@ -583,6 +622,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           default:
             result = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
         }
+
+        if (result.ok) {
+          getPostHog()?.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_type: currentProject.currentDiagramType,
+            ...getModelMetrics(currentProject),
+          });
+        }
+
         return result;
       } catch (error) {
         const errorMessage = `Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`;

@@ -3,6 +3,7 @@ import { diagramBridge } from '@besser/wme';
 import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Input } from '@/components/ui/input';
+import { getPostHog } from '../../services/analytics/lazy-analytics';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../types/project';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
@@ -179,6 +180,7 @@ export const DiagramTabs: React.FC = () => {
       return;
     }
     dispatch(addDiagramThunk({ diagramType: currentDiagramType }));
+    getPostHog()?.capture('diagram_created', { type: currentDiagramType });
   }, [dispatch, currentDiagramType, diagrams.length]);
 
   const handleRemoveDiagram = useCallback(

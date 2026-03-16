@@ -9,6 +9,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
+import { getPostHog } from '../../services/analytics/lazy-analytics';
 import { AssistantClient, type AssistantActionPayload, type InjectionCommand } from '../../services/assistant';
 import { UML_BOT_WS_URL } from '../../constant';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -937,6 +938,18 @@ export function useAssistantLogic({
       const context = buildWorkspaceContext();
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
       const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, modelSnapshot, context, attachments);
+
+      // Analytics: track assistant message
+      const activeModel = modelSnapshot as any;
+      const elementsCount = activeModel?.elements ? Object.keys(activeModel.elements).length : 0;
+      const relationshipsCount = activeModel?.relationships ? Object.keys(activeModel.relationships).length : 0;
+      getPostHog()?.capture('assistant_message', {
+        diagram_type: context.activeDiagramType,
+        message_length: messageText.length,
+        elements_count: elementsCount,
+        relationships_count: relationshipsCount,
+        total_size: elementsCount + relationshipsCount,
+      });
 
       // Update rate limit status after send
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
