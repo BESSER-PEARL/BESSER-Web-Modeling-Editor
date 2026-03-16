@@ -16,6 +16,7 @@ export enum SoftwarePatternType {
   TEAMOCL = 'Team Player with OCL',
   DPP = 'Digital Product Passport ',
   AISANDBOX = 'AI Sandbox',
+  NEXACRM = 'NexaCRM',
   // Behavioral pattern
   COMMAND = 'Command',
   OBSERVER = 'Observer',
