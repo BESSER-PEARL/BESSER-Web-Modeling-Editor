@@ -329,9 +329,6 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                       onBeforeChange={(editor, data, value) => {
                         this.updateCustomCondition(index, value);
                       }}
-                      onChange={(editor, data, value) => {
-                        this.updateCustomCondition(index, value);
-                      }}
                     />
                   </ResizableCodeMirrorWrapper>
                   <ConditionActions>
