@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { loadDiagram } from '../../../services/diagram/diagramSlice';
 import { Modal, Button, Form, Spinner, Alert, Tabs, Tab } from 'react-bootstrap';
 import { fetchDatabaseMetadata } from '../../../services/external-db/externalDbApi';
 
@@ -8,6 +10,7 @@ export interface ExternalDbConnectionModalProps {
 }
 
 export const ExternalDbConnectionModal: React.FC<ExternalDbConnectionModalProps> = ({ show, onHide }) => {
+  const dispatch = useDispatch();
   const [connectionMethod, setConnectionMethod] = useState<'parameters' | 'url'>('parameters');
   
   // Parameter fields
@@ -58,8 +61,17 @@ export const ExternalDbConnectionModal: React.FC<ExternalDbConnectionModalProps>
 
     try {
       const url = buildConnectionUrl();
-      const result = await fetchDatabaseMetadata(url);
-      setMetadata(result);
+      const diagramJson = await fetchDatabaseMetadata(url);
+      setMetadata(diagramJson);
+      // Load diagram into editor
+      dispatch(loadDiagram({
+        id: diagramJson.id || 'external-db-diagram',
+        title: 'External DB Class Diagram',
+        model: diagramJson,
+        lastUpdate: new Date().toISOString(),
+      }));
+      // Optionally close modal after loading
+      onHide();
     } catch (err: any) {
       setError(err.message || 'Failed to connect to the database.');
     } finally {
@@ -154,7 +166,7 @@ export const ExternalDbConnectionModal: React.FC<ExternalDbConnectionModalProps>
           </>
         ) : (
           <div>
-            <Alert variant="success">Successfully connected and retrieved metadata!</Alert>
+            <Alert variant="success">Successfully connected and loaded class diagram!</Alert>
             <Button variant="outline-secondary" size="sm" onClick={() => setMetadata(null)} className="mb-3">
               Configure different connection
             </Button>
