@@ -112,6 +112,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     lastSentMessage,
     messageListContainerRef,
     handleSubmit,
+    sendVoiceMessage,
     stopGenerating,
   } = useAssistantLogic({
     isActive: isVisible,
@@ -268,6 +269,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleInputKeyDown}
                   placeholder="Describe what you want to create or modify\u2026"
+                  transcribeAudio={async (blob) => {
+                    await sendVoiceMessage(blob);
+                    return '';
+                  }}
                   allowAttachments
                   files={files}
                   setFiles={setFiles}
