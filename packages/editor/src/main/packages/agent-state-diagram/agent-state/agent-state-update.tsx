@@ -783,15 +783,25 @@ class StateUpdate extends Component<Props, State> {
     Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
   ) => {
     if (!member) {
-      const defaultDbReplyValues = this.getDefaultDbReplyValues();
-      const displayName = this.getDbDisplayName(
-        defaultDbReplyValues.dbSelectionType ?? 'default',
-        defaultDbReplyValues.dbCustomName ?? '',
-        defaultDbReplyValues.dbQueryMode ?? 'llm_query',
-        defaultDbReplyValues.dbOperation ?? 'any',
+      const handleInitializeDbReply = () => {
+        const defaultDbReplyValues = this.getDefaultDbReplyValues();
+        const displayName = this.getDbDisplayName(
+          defaultDbReplyValues.dbSelectionType ?? 'default',
+          defaultDbReplyValues.dbCustomName ?? '',
+          defaultDbReplyValues.dbQueryMode ?? 'llm_query',
+          defaultDbReplyValues.dbOperation ?? 'any',
+        );
+        this.create(Clazz, 'db_reply', defaultDbReplyValues)(displayName);
+      };
+
+      return (
+        <>
+          <p>Configuring database action...</p>
+          <Button color="primary" onClick={handleInitializeDbReply}>
+            Initialize database action
+          </Button>
+        </>
       );
-      this.create(Clazz, 'db_reply', defaultDbReplyValues)(displayName);
-      return <p>Configuring database action...</p>;
     }
 
     const dbSelectionType = member.dbSelectionType || 'default';
