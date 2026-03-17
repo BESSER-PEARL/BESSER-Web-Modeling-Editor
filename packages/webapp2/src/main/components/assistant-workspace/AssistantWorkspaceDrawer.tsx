@@ -158,6 +158,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     lastSentMessage,
     messageListContainerRef,
     handleSubmit,
+    sendVoiceMessage,
     stopGenerating,
     clearConversation,
   } = useAssistantLogic({
@@ -348,6 +349,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         <MessageInput
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
+          transcribeAudio={async (blob) => {
+            await sendVoiceMessage(blob);
+            return '';
+          }}
           allowAttachments
           files={files}
           setFiles={setFiles}
