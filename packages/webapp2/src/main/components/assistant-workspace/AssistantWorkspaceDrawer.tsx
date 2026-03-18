@@ -349,10 +349,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         <MessageInput
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
-          transcribeAudio={async (blob) => {
-            await sendVoiceMessage(blob);
-            return '';
-          }}
+          onVoiceSend={(blob) => sendVoiceMessage(blob)}
           allowAttachments
           files={files}
           setFiles={setFiles}
@@ -536,7 +533,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   className="animate-fade-up mt-4 text-center text-sm leading-relaxed text-muted-foreground sm:text-[15px]"
                   style={{ animationDelay: '130ms' }}
                 >
-                  Describe your system in natural language. Get diagrams, interfaces, and production code.
+                  Describe your system in natural language. Get diagrams, interfaces, and code.
                   <span className="ml-2.5 inline-flex items-center gap-1.5 text-xs font-medium">
                     <span className={cn('inline-block h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                     <span className="text-muted-foreground/70">{getConnectionLabel(connectionStatus)}</span>

@@ -19,6 +19,8 @@ interface MessageInputBaseProps
   isGenerating: boolean
   enableInterrupt?: boolean
   transcribeAudio?: (blob: Blob) => Promise<string>
+  /** Called with the raw audio blob when a voice recording finishes. */
+  onVoiceSend?: (blob: Blob) => void
   /** Optional: last user-sent message text, used for Up-arrow recall. */
   lastSentMessage?: string
   /** Optional: callback to set the input value externally (for keyboard shortcuts). */
@@ -40,7 +42,7 @@ type MessageInputProps =
   | MessageInputWithAttachmentsProps
 
 export function MessageInput({
-  placeholder = "Ask AI...",
+  placeholder = "Describe what you want to create or modify...",
   className,
   onKeyDown: onKeyDownProp,
   submitOnEnter = true,
@@ -48,6 +50,7 @@ export function MessageInput({
   isGenerating,
   enableInterrupt = true,
   transcribeAudio,
+  onVoiceSend,
   lastSentMessage,
   onValueChange,
   ...props
@@ -69,6 +72,7 @@ export function MessageInput({
     onTranscriptionComplete: (text) => {
       props.onChange?.({ target: { value: text } } as any)
     },
+    onVoiceSend,
   })
 
   useEffect(() => {

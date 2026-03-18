@@ -77,8 +77,13 @@ export class ClassDiagramModifier implements DiagramModifier {
       if (!modification.target || typeof modification.target !== 'object') {
         throw new Error(`Modification "${modification.action}" is missing required "target" object`);
       }
-      // changes is required for all actions except remove_element
+      // changes is required for all actions except remove_element.
+      // For modify_relationship without changes, skip silently (no-op from cascading renames).
       if (modification.action !== 'remove_element' && (!modification.changes || typeof modification.changes !== 'object')) {
+        if (modification.action === 'modify_relationship') {
+          console.warn(`[ClassDiagramModifier] Skipping modify_relationship with no changes (no-op)`);
+          return model;
+        }
         throw new Error(`Modification "${modification.action}" is missing required "changes" object`);
       }
     }
