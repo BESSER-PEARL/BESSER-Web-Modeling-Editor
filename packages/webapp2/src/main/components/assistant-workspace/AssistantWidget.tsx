@@ -268,7 +268,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  placeholder="Describe what you want to create or modify\u2026"
+                  placeholder="Describe what you want to create or modify..."
                   onVoiceSend={(blob) => sendVoiceMessage(blob)}
                   allowAttachments
                   files={files}
