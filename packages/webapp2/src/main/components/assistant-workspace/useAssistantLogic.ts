@@ -296,13 +296,14 @@ export function useAssistantLogic({
     // projectSnapshot when these are empty, but passing lightweight ones here
     // ensures the caller's titles and ids are preserved.
     const diagramSummaries = project
-      ? Object.entries(project.diagrams).flatMap(([diagramType, diagramArr]) =>
-          (diagramArr as ProjectDiagram[]).map((d) => ({
+      ? Object.entries(project.diagrams).flatMap(([diagramType, diagramArr]) => {
+          if (!Array.isArray(diagramArr)) return [];
+          return (diagramArr as ProjectDiagram[]).map((d) => ({
             type: diagramType,
             diagramId: d.id,
             title: d.title,
-          })),
-        )
+          }));
+        })
       : [];
 
     // Project-level metadata for quick agent orientation.
