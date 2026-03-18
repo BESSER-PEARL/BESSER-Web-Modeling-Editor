@@ -84,8 +84,10 @@ export class ClassDiagramConverter implements DiagramConverter {
     const allRelationships: Record<string, any> = {};
     const classIdMap: Record<string, string> = {};
     
-    systemSpec.classes?.forEach((classSpec: any) => {
+    systemSpec.classes?.forEach((classSpec: any, idx: number) => {
+      const hasBackendPosition = !!classSpec.position;
       const position = classSpec.position || this.positionGenerator.getNextPosition();
+      console.log(`[ClassDiagramConverter] class="${classSpec.className}" idx=${idx} hasBackendPosition=${hasBackendPosition} position=`, JSON.stringify(position));
       const completeElement = this.convertSingleElement(classSpec, position);
       classIdMap[classSpec.className] = completeElement.class.id;
       
