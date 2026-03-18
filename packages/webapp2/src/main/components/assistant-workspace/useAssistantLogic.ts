@@ -39,7 +39,7 @@ import type { GenerationResult } from '../../services/generate-code/types';
  * Set to `true` to show timing information in the chat and console.
  * Tracks: round-trip response time, model injection time, streaming duration.
  */
-const DEBUG_TIMING = true;
+const DEBUG_TIMING = false;
 
 interface PendingTimer {
   label: string;
@@ -569,6 +569,7 @@ export function useAssistantLogic({
 
       // Refresh undo state after successful injection
       refreshUndoState();
+      setProgressMessage('');
 
       const injectionTiming = stopTimer('injection');
       const totalTiming = stopTimer('total');
@@ -593,6 +594,7 @@ export function useAssistantLogic({
         setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
       }
     } catch (error) {
+      setProgressMessage('');
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       toast.error(`Could not apply assistant update: ${errorMessage}`);
       const errMsg = toKitMessage('assistant', `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`, { isError: true });
@@ -706,7 +708,7 @@ export function useAssistantLogic({
       const progressMsg = typeof payload.message === 'string' ? payload.message : '';
       const step = typeof (payload as any).step === 'number' ? (payload as any).step as number : undefined;
       const total = typeof (payload as any).total === 'number' ? (payload as any).total as number : undefined;
-      const label = step != null && total != null ? `[${step}/${total}] ${progressMsg}` : progressMsg;
+      const label = step && total ? `[${step}/${total}] ${progressMsg}` : progressMsg;
       setProgressMessage(label);
       return;
     }

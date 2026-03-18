@@ -235,7 +235,6 @@ export class UMLModelingService {
 
       const completeSystem = converter.convertCompleteSystem(systemSpec);
       const shouldKeepExplicitLayout = this.hasExplicitSystemLayout(systemSpec, type);
-      console.log(`[UMLModelingService] processSystemSpec: shouldKeepExplicitLayout=${shouldKeepExplicitLayout}, replaceExisting=${replaceExisting}, classCount=${classCount}`);
       const shiftedSystem = shouldKeepExplicitLayout
         ? completeSystem
         : (() => {
