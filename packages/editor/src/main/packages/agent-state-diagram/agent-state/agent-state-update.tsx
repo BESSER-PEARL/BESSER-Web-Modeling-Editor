@@ -226,19 +226,16 @@ class StateUpdate extends Component<Props, State> {
     const fallbackRagBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === 'rag');
     const fallbackDbBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === 'db_reply');
 
-    fallbackBodies.forEach((fallbackBody) => {
-      if (fallbackBody.replyType === "rag") {
-        this.fallbackBodyReplyType = "rag"
-      } else if (fallbackBody.replyType === "db_reply") {
-        this.fallbackBodyReplyType = "db_reply"
-      } else if (fallbackBody.replyType === "llm") {
-        this.fallbackBodyReplyType = "llm"
-      } else if (fallbackBody.replyType === "code") {
-        this.fallbackBodyReplyType = "code"
-      } else {
-        this.fallbackBodyReplyType = "text"
-      }
-    });
+    this.fallbackBodyReplyType = 'text';
+    if (fallbackBodies.some((fb) => fb.replyType === 'rag')) {
+      this.fallbackBodyReplyType = 'rag';
+    } else if (fallbackBodies.some((fb) => fb.replyType === 'db_reply')) {
+      this.fallbackBodyReplyType = 'db_reply';
+    } else if (fallbackBodies.some((fb) => fb.replyType === 'llm')) {
+      this.fallbackBodyReplyType = 'llm';
+    } else if (fallbackBodies.some((fb) => fb.replyType === 'code')) {
+      this.fallbackBodyReplyType = 'code';
+    }
     const bodyRefs: (Textfield<string> | null)[] = [];
     const fallbackBodyRefs: (Textfield<string> | null)[] = [];
 

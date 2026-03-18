@@ -22,9 +22,6 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
 
-const PopupContainer = styled.div`
-`;
-
 const Flex = styled.div`
   display: flex;
   align-items: baseline;
@@ -176,7 +173,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
       .map((el: any) => el.name);
 
     return (
-      <PopupContainer>
+      <div>
         <section>
           <Flex>
             <Header gutter={false} style={{ flexGrow: 1 }}>
@@ -349,7 +346,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
           lineColor
           textColor
         />
-      </PopupContainer>
+      </div>
     );
   }
 }

@@ -8,6 +8,15 @@ import { IBoundary, computeDimension } from '../../../utils/geometry/boundary';
 import { Text } from '../../../utils/svg/text';
 import * as Apollon from '../../../typings';
 
+interface IAgentStateMemberValues extends IUMLElement {
+  ragDatabaseName?: string;
+  dbSelectionType?: string;
+  dbCustomName?: string;
+  dbQueryMode?: string;
+  dbOperation?: string;
+  dbSqlQuery?: string;
+}
+
 export abstract class AgentStateMember extends UMLElement {
   static features: UMLElementFeatures = {
     ...UMLElement.features,
@@ -29,26 +38,26 @@ export abstract class AgentStateMember extends UMLElement {
   dbOperation: string = 'any';
   dbSqlQuery: string = '';
   
-  constructor(values?: DeepPartial<IUMLElement>) {
+  constructor(values?: DeepPartial<IAgentStateMemberValues>) {
     super(values);
     assign<IUMLElement>(this, values);
-    if ((values as any)?.ragDatabaseName !== undefined) {
-      this.ragDatabaseName = (values as any).ragDatabaseName ?? '';
+    if (values?.ragDatabaseName !== undefined) {
+      this.ragDatabaseName = values.ragDatabaseName ?? '';
     }
-    if ((values as any)?.dbSelectionType !== undefined) {
-      this.dbSelectionType = (values as any).dbSelectionType ?? 'default';
+    if (values?.dbSelectionType !== undefined) {
+      this.dbSelectionType = values.dbSelectionType ?? 'default';
     }
-    if ((values as any)?.dbCustomName !== undefined) {
-      this.dbCustomName = (values as any).dbCustomName ?? '';
+    if (values?.dbCustomName !== undefined) {
+      this.dbCustomName = values.dbCustomName ?? '';
     }
-    if ((values as any)?.dbQueryMode !== undefined) {
-      this.dbQueryMode = (values as any).dbQueryMode ?? 'llm_query';
+    if (values?.dbQueryMode !== undefined) {
+      this.dbQueryMode = values.dbQueryMode ?? 'llm_query';
     }
-    if ((values as any)?.dbOperation !== undefined) {
-      this.dbOperation = (values as any).dbOperation ?? 'any';
+    if (values?.dbOperation !== undefined) {
+      this.dbOperation = values.dbOperation ?? 'any';
     }
-    if ((values as any)?.dbSqlQuery !== undefined) {
-      this.dbSqlQuery = (values as any).dbSqlQuery ?? '';
+    if (values?.dbSqlQuery !== undefined) {
+      this.dbSqlQuery = values.dbSqlQuery ?? '';
     }
   }
 

@@ -170,6 +170,7 @@ export type UMLStateTransition = UMLRelationship & {
 
 export type AgentStateTransition = UMLRelationship & {
   params?: string | string[];
+  // Canonical shape: transitionType + predefined/custom nested objects
   transitionType?: 'predefined' | 'custom';
   predefined?: {
     predefinedType?: string;
@@ -190,6 +191,7 @@ export type AgentStateTransition = UMLRelationship & {
       | 'ReceiveFileEvent';
     condition?: string[];
   };
+  // Legacy flat properties — kept for backward compatibility with existing diagrams
   predefinedType?: string;
   event?:
     | 'None'

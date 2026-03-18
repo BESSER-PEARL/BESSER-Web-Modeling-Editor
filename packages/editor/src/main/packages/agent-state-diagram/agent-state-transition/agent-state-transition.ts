@@ -116,17 +116,17 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     let predefinedType = this.predefinedType || 'when_intent_matched';
     if (this.transitionType === 'custom') {
       predefinedType = 'custom_transition';
-    } else if (predefinedType == 'when_intent_matched') {
+    } else if (predefinedType === 'when_intent_matched') {
       conditionValue = this.intentName || '';
-    } else if (predefinedType == 'when_no_intent_matched' || predefinedType == 'auto') {
+    } else if (predefinedType === 'when_no_intent_matched' || predefinedType === 'auto') {
       conditionValue = '';
-    } else if (predefinedType == 'when_variable_operation_matched') {
+    } else if (predefinedType === 'when_variable_operation_matched') {
       conditionValue = {
         variable: this.variable || '',
         operator: this.operator || '',
         targetValue: this.targetValue || '',
       };
-    } else if (predefinedType == 'when_file_received') {
+    } else if (predefinedType === 'when_file_received') {
       conditionValue = this.fileType || '';
     }
 
@@ -254,11 +254,11 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     }
 
     this.predefinedType = nextPredefinedType;
-    if (this.predefinedType == 'when_intent_matched') {
+    if (this.predefinedType === 'when_intent_matched') {
       this.intentName = nextIntentName ?? (nextConditionValue as string);
-    } else if (this.predefinedType == 'when_no_intent_matched' || this.predefinedType == 'auto') {
+    } else if (this.predefinedType === 'when_no_intent_matched' || this.predefinedType === 'auto') {
       // no additional value needed
-    } else if (this.predefinedType == 'when_variable_operation_matched') {
+    } else if (this.predefinedType === 'when_variable_operation_matched') {
       if (
         typeof nextConditionValue === 'object' &&
         nextConditionValue &&
@@ -270,7 +270,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
         this.operator = nextConditionValue.operator;
         this.targetValue = nextConditionValue.targetValue;
       }
-    } else if (this.predefinedType == 'when_file_received') {
+    } else if (this.predefinedType === 'when_file_received') {
       this.fileType = nextFileType ?? (nextConditionValue as string);
     }
   }
