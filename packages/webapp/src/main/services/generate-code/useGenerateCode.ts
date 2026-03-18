@@ -20,6 +20,14 @@ export interface DjangoConfig {
   containerization: boolean;
 }
 
+export interface SpringConfig {
+  project_name: string,
+  spring_boot_version: string,
+  java_version: string,
+  package_name: string,
+  app_name: string
+}
+
 export interface SQLConfig {
   dialect: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
 }
@@ -47,6 +55,7 @@ export interface AgentConfig {
 
 export type GeneratorConfig = {
   django: DjangoConfig;
+  spring: SpringConfig;
   sql: SQLConfig;
   sqlalchemy: SQLAlchemyConfig;
   jsonschema: JSONSchemaConfig;

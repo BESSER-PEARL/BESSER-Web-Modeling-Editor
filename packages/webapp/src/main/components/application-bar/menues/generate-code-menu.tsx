@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Dropdown, NavDropdown, Modal, Form, Button } from 'react-bootstrap';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditorContext } from '../../apollon-editor-component/apollon-editor-context';
-import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig } from '../../../services/generate-code/useGenerateCode';
+import { useGenerateCode, DjangoConfig, SQLConfig, SQLAlchemyConfig, JSONSchemaConfig, AgentConfig, QiskitConfig, SpringConfig } from '../../../services/generate-code/useGenerateCode';
 import posthog from 'posthog-js';
 import { useDeployLocally } from '../../../services/generate-code/useDeployLocally';
 import { useAppSelector } from '../../store/hooks';
@@ -21,12 +21,18 @@ export const GenerateCodeMenu: React.FC = () => {
   const [dropdownLanguage, setDropdownLanguage] = useState<string>('none');
   const [sourceLanguage, setSourceLanguage] = useState<string>('none');
   const [showDjangoConfig, setShowDjangoConfig] = useState(false);
+  const [showSpringConfig, setShowSpringConfig] = useState(false);
   const [showSqlConfig, setShowSqlConfig] = useState(false);
   const [showSqlAlchemyConfig, setShowSqlAlchemyConfig] = useState(false);
   const [showJsonSchemaConfig, setShowJsonSchemaConfig] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [appName, setAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
+  const [springProjectName, setSpringProjectName] = useState('');
+  const [springSpringBootVersion, setSpringSpringBootVersion] = useState('');
+  const [springJavaVersion, setSpringJavaVersion] = useState('');
+  const [springPackageName, setSpringPackageName] = useState('');
+  const [springAppName, setSpringAppName] = useState('');
   const [sqlDialect, setSqlDialect] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle'>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<'regular' | 'smart_data'>('regular');
@@ -220,6 +226,11 @@ export const GenerateCodeMenu: React.FC = () => {
 
     if (generatorType === 'django') {
       setShowDjangoConfig(true);
+      return;
+    }
+
+    if (generatorType === 'spring') {
+      setShowSpringConfig(true);
       return;
     }
 
@@ -510,6 +521,44 @@ export const GenerateCodeMenu: React.FC = () => {
     }
   };
 
+  const handleSpringGenerate = async () => {
+    if (!springProjectName || !springAppName) {
+      toast.error('Project and app names are required');
+      return;
+    }
+
+    if (!springJavaVersion) {
+      toast.error('Spring boot java version is required.');
+      return;
+    }
+
+    if (!springSpringBootVersion) {
+      toast.error('Spring boot version is required.');
+      return;
+    }
+
+    try {
+      const springoConfig: SpringConfig = {
+        project_name: springProjectName,
+        app_name: springAppName,
+        spring_boot_version: springSpringBootVersion,
+        java_version: springJavaVersion,
+        package_name: springPackageName
+      };
+      await generateCode(editor!, 'spring', diagram.title, springoConfig);
+      posthog.capture('generator_used', {
+        generator_type: 'spring',
+        diagram_type: currentDiagramType,
+        spring_boot_version: springSpringBootVersion,
+        ...getModelMetrics()
+      });
+      setShowSpringConfig(false);
+    } catch (error) {
+      console.error('Error in Spring code generation:', error);
+      toast.error('Spring code generation failed');
+    }
+  };
+
   const handleSqlGenerate = async () => {
     try {
       const sqlConfig: SQLConfig = {
@@ -636,6 +685,7 @@ export const GenerateCodeMenu: React.FC = () => {
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <Dropdown.Item onClick={() => handleGenerateCode('django')}>Django Project</Dropdown.Item>
+                <Dropdown.Item onClick={() => handleGenerateCode('spring')}>Spring Project</Dropdown.Item>
                 <Dropdown.Item onClick={() => handleGenerateCode('backend')}>Full Backend</Dropdown.Item>
                 <Dropdown.Item onClick={() => handleGenerateCode('web_app')}>Web Application</Dropdown.Item>
               </Dropdown.Menu>
@@ -935,6 +985,70 @@ export const GenerateCodeMenu: React.FC = () => {
               Deploy
             </Button>
           )}
+        </Modal.Footer>
+      </Modal>
+
+      {/* Spring Configuration Modal */}
+      <Modal show={showSpringConfig} onHide={() => setShowSpringConfig(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Spring Project Configuration</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Project Name</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="example"
+                value={springProjectName}
+                onChange={(e) => setSpringProjectName(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>App Name</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="myApp"
+                value={springAppName}
+                onChange={(e) => setSpringAppName(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Package name</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="com.example"
+                value={springPackageName}
+                onChange={(e) => setSpringPackageName(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Spring boot version</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="3.5.11"
+                value={springSpringBootVersion}
+                onChange={(e) => setSpringSpringBootVersion(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Java version</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="17"
+                value={springJavaVersion}
+                onChange={(e) => setSpringJavaVersion(e.target.value)}
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowSpringConfig(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleSpringGenerate}>
+            Generate
+          </Button>
         </Modal.Footer>
       </Modal>
 
