@@ -13,6 +13,7 @@ import commandModel from '../../../templates/pattern/behavioral/command.json';
 import factoryModel from '../../../templates/pattern/creational/factory.json';
 import observerModel from '../../../templates/pattern/behavioral/observer.json';
 import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
+import dbagent from '../../../templates/pattern/agent/dbagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
@@ -96,6 +97,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           greetingagent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+        case SoftwarePatternType.DB_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          dbagent as any,
           SoftwarePatternCategory.AGENT,
         );
         case SoftwarePatternType.LIBRARY_AGENT:
