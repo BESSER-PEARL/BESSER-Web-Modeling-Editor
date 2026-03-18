@@ -5,16 +5,21 @@ import { recordAudio } from "@/components/chatbot-kit/lib/audio-utils"
 interface UseAudioRecordingOptions {
   transcribeAudio?: (blob: Blob) => Promise<string>
   onTranscriptionComplete?: (text: string) => void
+  /** Called with the raw audio blob when recording finishes (for voice send). */
+  onVoiceSend?: (blob: Blob) => void
   maxDurationMs?: number
 }
 
 export function useAudioRecording({
   transcribeAudio,
   onTranscriptionComplete,
+  onVoiceSend,
   maxDurationMs = 60_000,
 }: UseAudioRecordingOptions) {
   const [isListening, setIsListening] = useState(false)
-  const [isSpeechSupported, setIsSpeechSupported] = useState(!!transcribeAudio)
+  const [isSpeechSupported, setIsSpeechSupported] = useState(
+    !!(transcribeAudio || onVoiceSend),
+  )
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
@@ -22,17 +27,14 @@ export function useAudioRecording({
   const [, setTicker] = useState(0)
   const activeRecordingRef = useRef<any>(null)
   const autoStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isInitializingRef = useRef(false)
 
   useEffect(() => {
-    const checkSpeechSupport = async () => {
-      const hasMediaDevices = !!(
-        navigator.mediaDevices && navigator.mediaDevices.getUserMedia
-      )
-      setIsSpeechSupported(hasMediaDevices && !!transcribeAudio)
-    }
-
-    checkSpeechSupport()
-  }, [transcribeAudio])
+    const hasMediaDevices = !!(
+      navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+    )
+    setIsSpeechSupported(hasMediaDevices && !!(transcribeAudio || onVoiceSend))
+  }, [transcribeAudio, onVoiceSend])
 
   useEffect(() => {
     if (!isRecording || recordingEndsAt === null) return
@@ -61,12 +63,16 @@ export function useAudioRecording({
       recordAudio.stop()
       // Wait for the recording promise to resolve with the final blob
       const recording = await activeRecordingRef.current
-      if (transcribeAudio) {
+
+      // Dedicated voice-send path — no transcription needed.
+      if (onVoiceSend) {
+        onVoiceSend(recording)
+      } else if (transcribeAudio) {
         const text = await transcribeAudio(recording)
         onTranscriptionComplete?.(text)
       }
     } catch (error) {
-      console.error("Error transcribing audio:", error)
+      console.error("Error processing audio:", error)
     } finally {
       setIsTranscribing(false)
       setIsListening(false)
@@ -79,7 +85,11 @@ export function useAudioRecording({
   }
 
   const toggleListening = async () => {
+    // Guard against rapid double-taps while getUserMedia is resolving.
+    if (isInitializingRef.current) return
+
     if (!isListening) {
+      isInitializingRef.current = true
       try {
         setIsListening(true)
         setIsRecording(true)
@@ -107,6 +117,8 @@ export function useAudioRecording({
           audioStream.getTracks().forEach((track) => track.stop())
           setAudioStream(null)
         }
+      } finally {
+        isInitializingRef.current = false
       }
     } else {
       await stopRecording()

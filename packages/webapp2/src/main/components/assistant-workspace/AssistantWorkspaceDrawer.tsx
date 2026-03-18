@@ -349,10 +349,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         <MessageInput
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
-          transcribeAudio={async (blob) => {
-            await sendVoiceMessage(blob);
-            return '';
-          }}
+          onVoiceSend={(blob) => sendVoiceMessage(blob)}
           allowAttachments
           files={files}
           setFiles={setFiles}
