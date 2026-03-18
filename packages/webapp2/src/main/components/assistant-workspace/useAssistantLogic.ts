@@ -39,7 +39,7 @@ import type { GenerationResult } from '../../services/generate-code/types';
  * Set to `true` to show timing information in the chat and console.
  * Tracks: round-trip response time, model injection time, streaming duration.
  */
-const DEBUG_TIMING = true;
+const DEBUG_TIMING = false;
 
 interface PendingTimer {
   label: string;
@@ -1014,6 +1014,18 @@ export function useAssistantLogic({
       setMessages((prev) => [...prev, toKitMessage('user', displayText)]);
       setInputValue('');
       if (normalizedInput) setLastSentMessage(normalizedInput);
+
+      // Clear any displayed quick-action buttons so they don't linger
+      // while waiting for the next assistant response.
+      setMessageMeta((prev) => {
+        const updated = { ...prev };
+        for (const key of Object.keys(updated)) {
+          if (updated[key]?.suggestedActions) {
+            updated[key] = { ...updated[key], suggestedActions: undefined };
+          }
+        }
+        return updated;
+      });
 
       let attachments: Array<{ filename: string; content: string; mimeType: string }> | undefined;
       if (hasFiles) {
