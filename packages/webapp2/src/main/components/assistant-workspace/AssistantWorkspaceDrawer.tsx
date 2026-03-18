@@ -170,11 +170,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   /* ---- Quick action handler ---- */
 
   const handleQuickAction = useCallback((prompt: string) => {
-    setInputValue(prompt);
-    queueMicrotask(() => {
-      handleSubmit();
-    });
-  }, [handleSubmit, setInputValue]);
+    handleSubmit(undefined, { overrideText: prompt });
+  }, [handleSubmit]);
 
   /* ---- Last assistant message meta (for QuickActions) ---- */
 

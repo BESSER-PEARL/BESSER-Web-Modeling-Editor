@@ -39,7 +39,7 @@ import type { GenerationResult } from '../../services/generate-code/types';
  * Set to `true` to show timing information in the chat and console.
  * Tracks: round-trip response time, model injection time, streaming duration.
  */
-const DEBUG_TIMING = false;
+const DEBUG_TIMING = true;
 
 interface PendingTimer {
   label: string;
@@ -122,7 +122,7 @@ export interface UseAssistantLogicReturn {
   /* actions */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    options?: { experimental_attachments?: FileList },
+    options?: { experimental_attachments?: FileList; overrideText?: string },
   ) => Promise<void>;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
@@ -976,10 +976,10 @@ export function useAssistantLogic({
 
   const handleSubmit = async (
     event?: { preventDefault?: () => void },
-    options?: { experimental_attachments?: FileList },
+    options?: { experimental_attachments?: FileList; overrideText?: string },
   ) => {
     event?.preventDefault?.();
-    const normalizedInput = inputValue.trim();
+    const normalizedInput = (options?.overrideText ?? inputValue).trim();
     const attachedFiles = options?.experimental_attachments;
     const hasFiles = attachedFiles && attachedFiles.length > 0;
 

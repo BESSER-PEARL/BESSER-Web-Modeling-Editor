@@ -1,5 +1,5 @@
 import React from 'react';
-import { Code, Layout, ArrowRight, Zap, Download, LayoutTemplate } from 'lucide-react';
+import { Code, Layout, ArrowRight, Zap, Download, LayoutTemplate, RefreshCw, Layers, FilePlus, Wand2 } from 'lucide-react';
 
 interface QuickAction {
   label: string;
@@ -16,6 +16,11 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   'create': <Layout className="h-3 w-3" />,
   'gui': <LayoutTemplate className="h-3 w-3" />,
   'export': <Download className="h-3 w-3" />,
+  'Replace': <RefreshCw className="h-3 w-3" />,
+  'keep': <Layers className="h-3 w-3" />,
+  'new tab': <FilePlus className="h-3 w-3" />,
+  'Auto': <Zap className="h-3 w-3" />,
+  'Llm': <Wand2 className="h-3 w-3" />,
 };
 
 function getIcon(label: string): React.ReactNode {

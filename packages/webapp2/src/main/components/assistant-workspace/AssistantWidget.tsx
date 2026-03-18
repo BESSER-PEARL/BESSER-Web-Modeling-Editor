@@ -122,12 +122,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   /* ---- Quick action handler: submit a prompt directly ---- */
   const handleQuickAction = useCallback((prompt: string) => {
-    setInputValue(prompt);
-    // Use a microtask so the inputValue state settles before submit reads it.
-    queueMicrotask(() => {
-      handleSubmit();
-    });
-  }, [handleSubmit, setInputValue]);
+    handleSubmit(undefined, { overrideText: prompt });
+  }, [handleSubmit]);
 
   /* ---- Keyboard shortcuts on input ---- */
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
