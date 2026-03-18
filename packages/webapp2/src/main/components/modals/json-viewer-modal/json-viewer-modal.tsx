@@ -44,6 +44,8 @@ interface JsonTreeNodeProps {
   propertyKey?: string;
   collapsedPaths: Set<string>;
   onToggle: (path: string) => void;
+  copiedPath: string | null;
+  onCopyNode: (path: string, value: JsonValue) => void;
 }
 
 const escapeHtml = (value: string): string =>
@@ -111,6 +113,29 @@ const renderJsonKey = (propertyKey?: string): React.ReactNode => {
   );
 };
 
+const CopyNodeButton: React.FC<{ path: string; value: JsonValue; copiedPath: string | null; onCopyNode: (path: string, value: JsonValue) => void }> = ({
+  path,
+  value,
+  copiedPath,
+  onCopyNode,
+}) => {
+  const isCopied = copiedPath === path;
+
+  return (
+    <button
+      type="button"
+      className="jvm-copy-node-btn ml-1.5 border-none bg-transparent text-[#93a7c7] p-0 cursor-pointer text-[11px] leading-none opacity-0 transition-opacity duration-150"
+      onClick={(event) => {
+        event.stopPropagation();
+        onCopyNode(path, value);
+      }}
+      aria-label="Copy value"
+    >
+      {isCopied ? '✓' : '⧉'}
+    </button>
+  );
+};
+
 const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
   value,
   path,
@@ -119,14 +144,17 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
   propertyKey,
   collapsedPaths,
   onToggle,
+  copiedPath,
+  onCopyNode,
 }) => {
   if (!isJsonContainer(value)) {
     return (
-      <div className="flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
+      <div className="jvm-tree-row flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
         <span className="inline-block w-3.5 mr-1 text-center text-transparent" aria-hidden="true" />
         {renderJsonKey(propertyKey)}
         {renderJsonPrimitive(value)}
         {!isLast && <span className="text-[#dbe5ff]">,</span>}
+        <CopyNodeButton path={path} value={value} copiedPath={copiedPath} onCopyNode={onCopyNode} />
       </div>
     );
   }
@@ -143,18 +171,19 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
 
   if (!hasChildren) {
     return (
-      <div className="flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
+      <div className="jvm-tree-row flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
         <span className="inline-block w-3.5 mr-1 text-center text-transparent" aria-hidden="true" />
         {renderJsonKey(propertyKey)}
         <span className="text-[#dbe5ff]">{openToken}{closeToken}</span>
         {!isLast && <span className="text-[#dbe5ff]">,</span>}
+        <CopyNodeButton path={path} value={value} copiedPath={copiedPath} onCopyNode={onCopyNode} />
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
+      <div className="jvm-tree-row flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
         <button
           type="button"
           onClick={() => onToggle(path)}
@@ -175,6 +204,7 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
           )}
         </button>
         {isCollapsed && !isLast && <span className="text-[#dbe5ff]">,</span>}
+        <CopyNodeButton path={path} value={value} copiedPath={copiedPath} onCopyNode={onCopyNode} />
       </div>
 
       {!isCollapsed && (
@@ -192,6 +222,8 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
                 propertyKey={isArray ? undefined : String(entryKey)}
                 collapsedPaths={collapsedPaths}
                 onToggle={onToggle}
+                copiedPath={copiedPath}
+                onCopyNode={onCopyNode}
               />
             );
           })}
@@ -208,6 +240,7 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
 
 const JsonTreeViewer: React.FC<{ rawJson: string }> = ({ rawJson }) => {
   const [collapsedPaths, setCollapsedPaths] = React.useState<Set<string>>(new Set());
+  const [copiedPath, setCopiedPath] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setCollapsedPaths(new Set());
@@ -236,6 +269,14 @@ const JsonTreeViewer: React.FC<{ rawJson: string }> = ({ rawJson }) => {
     });
   }, []);
 
+  const handleCopyNode = React.useCallback((path: string, value: JsonValue) => {
+    const text = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedPath(path);
+      setTimeout(() => setCopiedPath((current) => (current === path ? null : current)), 1500);
+    });
+  }, []);
+
   if (!parsed.isValid) {
     return <HighlightedCode code={rawJson} language="json" />;
   }
@@ -249,6 +290,8 @@ const JsonTreeViewer: React.FC<{ rawJson: string }> = ({ rawJson }) => {
         isLast
         collapsedPaths={collapsedPaths}
         onToggle={togglePath}
+        copiedPath={copiedPath}
+        onCopyNode={handleCopyNode}
       />
     </div>
   );

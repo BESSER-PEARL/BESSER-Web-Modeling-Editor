@@ -130,6 +130,16 @@
   font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
+/* ---- Copy-node button (per row) ---- */
+
+.jvm-tree-row:hover > .jvm-copy-node-btn {
+  opacity: 1;
+}
+
+.jvm-copy-node-btn:hover {
+  color: #e2e8f0;
+}
+
 /* ---- Footer buttons ---- */
 
 .jvm-footer {
