@@ -88,6 +88,7 @@ export interface UseAssistantLogicReturn {
     event?: { preventDefault?: () => void },
     options?: { experimental_attachments?: FileList },
   ) => Promise<void>;
+  sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
   /** Undo the last assistant-driven model change using the undo stack. */
@@ -149,6 +150,18 @@ const readFileAsBase64 = (file: File): Promise<string> =>
     };
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
+  });
+
+const readBlobAsBase64 = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.includes(',') ? result.split(',')[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
   });
 
 const waitForSwitchRender = (): Promise<void> =>
@@ -966,6 +979,50 @@ export function useAssistantLogic({
     }
   };
 
+  const sendVoiceMessage = async (audioBlob: Blob): Promise<void> => {
+    if (isSendingRef.current || isGenerating) return;
+
+    isSendingRef.current = true;
+    try {
+      const rateLimitCheck = await rateLimiter.checkRateLimit('voice message');
+      setRateLimitStatus(rateLimiter.getRateLimitStatus());
+      if (!rateLimitCheck.allowed) {
+        toast.error(rateLimitCheck.reason || 'Rate limit exceeded. Please wait before sending another message.');
+        return;
+      }
+
+      const audioBase64 = await readBlobAsBase64(audioBlob);
+
+      setMessages((prev) => [...prev, toKitMessage('user', '🎤 Voice message')]);
+
+      const context = buildWorkspaceContext();
+      const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
+      const mimeType = audioBlob.type || 'audio/wav';
+      const sendResult = assistantClient.sendVoiceMessage(
+        audioBase64,
+        mimeType,
+        context.activeDiagramType,
+        modelSnapshot,
+        context,
+      );
+
+      setRateLimitStatus(rateLimiter.getRateLimitStatus());
+
+      if (sendResult === 'queued') {
+        toast.info('Reconnecting to the assistant — your voice message will be sent automatically.');
+        setConnectionStatus('connecting');
+        assistantClient.connect().catch(() => setConnectionStatus('disconnected'));
+      } else if (sendResult === 'error') {
+        toast.error('Could not send your voice message — please try again.');
+      }
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      toast.error('Could not process your voice message. Please try again.');
+    } finally {
+      isSendingRef.current = false;
+    }
+  };
+
   const stopGenerating = () => setIsGenerating(false);
 
   const clearConversation = () => {
@@ -1014,6 +1071,7 @@ export function useAssistantLogic({
     streamingMessageId,
     messageListContainerRef: messageListContainerRef as React.RefObject<HTMLDivElement>,
     handleSubmit,
+    sendVoiceMessage,
     stopGenerating,
     clearConversation,
     handleUndo,

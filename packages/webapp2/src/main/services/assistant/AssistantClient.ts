@@ -22,13 +22,23 @@ interface FileAttachmentPayload {
   mimeType: string;
 }
 
-interface QueuedMessage {
-  message: string;
-  diagramType: string;
-  model?: any;
-  context?: Partial<AssistantWorkspaceContext>;
-  attachments?: FileAttachmentPayload[];
-}
+type QueuedMessage =
+  {
+    kind: 'text';
+    message: string;
+    diagramType: string;
+    model?: any;
+    context?: Partial<AssistantWorkspaceContext>;
+    attachments?: FileAttachmentPayload[];
+  }
+  | {
+    kind: 'voice';
+    audioBase64: string;
+    mimeType: string;
+    diagramType: string;
+    model?: any;
+    context?: Partial<AssistantWorkspaceContext>;
+  };
 
 const SESSION_STORAGE_KEY = 'besser-assistant-session-id';
 
@@ -436,7 +446,7 @@ export class AssistantClient {
   ): SendStatus {
     const type = diagramType || 'ClassDiagram';
     if (!this.isConnected || !this.ws) {
-      this.messageQueue.push({ message, diagramType: type, model, context, attachments });
+      this.messageQueue.push({ kind: 'text', message, diagramType: type, model, context, attachments });
       return 'queued';
     }
     try {
@@ -444,6 +454,27 @@ export class AssistantClient {
       return 'sent';
     } catch (error) {
       console.error('Failed to send assistant message', error);
+      return 'error';
+    }
+  }
+
+  sendVoiceMessage(
+    audioBase64: string,
+    mimeType: string = 'audio/wav',
+    diagramType?: string,
+    model?: any,
+    context?: Partial<AssistantWorkspaceContext>,
+  ): SendStatus {
+    const type = diagramType || 'ClassDiagram';
+    if (!this.isConnected || !this.ws) {
+      this.messageQueue.push({ kind: 'voice', audioBase64, mimeType, diagramType: type, model, context });
+      return 'queued';
+    }
+    try {
+      this.sendPayload(this.buildVoicePayload(audioBase64, mimeType, type, model, context));
+      return 'sent';
+    } catch (error) {
+      console.error('Failed to send assistant voice message', error);
       return 'error';
     }
   }
@@ -552,6 +583,14 @@ export class AssistantClient {
   }
 
   private buildWirePayload(payload: Record<string, any>): Record<string, any> {
+    if (payload.action === 'user_voice') {
+      return {
+        action: 'user_voice',
+        user_id: this.sessionId,
+        message: payload.message,
+      };
+    }
+
     // BESSER WebSocketPlatform only preserves `action`, `message`, `user_id`, `history`.
     // Keep v2 payload intact by serializing it into `message`.
     return {
@@ -568,6 +607,28 @@ export class AssistantClient {
     this.ws.send(JSON.stringify(this.buildWirePayload(payload)));
     this.onTypingHandler?.(true);
     this.startResponseTimer();
+  }
+
+  private buildVoicePayload(
+    audioBase64: string,
+    mimeType: string,
+    diagramType: string,
+    model?: any,
+    contextOverride?: Partial<AssistantWorkspaceContext>,
+  ): Record<string, any> {
+    const baseContext = this.contextProvider?.();
+    const context = compactContextPayload(
+      mergeContexts(baseContext, contextOverride, diagramType, model),
+    );
+    return {
+      action: 'user_voice',
+      protocolVersion: '2.0',
+      clientMode: this.clientMode,
+      sessionId: this.sessionId,
+      message: audioBase64,
+      mimeType,
+      context,
+    };
   }
 
   private handleMessage(event: MessageEvent): void {
@@ -736,7 +797,11 @@ export class AssistantClient {
           return;
         }
         try {
-          this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.model, item.context, item.attachments));
+          if (item.kind === 'voice') {
+            this.sendPayload(this.buildVoicePayload(item.audioBase64, item.mimeType, item.diagramType, item.model, item.context));
+          } else {
+            this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.model, item.context, item.attachments));
+          }
         } catch {
           // Re-queue on failure so it's retried on next reconnect.
           this.messageQueue.push(item);

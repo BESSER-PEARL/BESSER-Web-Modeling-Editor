@@ -19,6 +19,8 @@ interface MessageInputBaseProps
   isGenerating: boolean
   enableInterrupt?: boolean
   transcribeAudio?: (blob: Blob) => Promise<string>
+  /** Called with the raw audio blob when a voice recording finishes. */
+  onVoiceSend?: (blob: Blob) => void
   /** Optional: last user-sent message text, used for Up-arrow recall. */
   lastSentMessage?: string
   /** Optional: callback to set the input value externally (for keyboard shortcuts). */
@@ -48,6 +50,7 @@ export function MessageInput({
   isGenerating,
   enableInterrupt = true,
   transcribeAudio,
+  onVoiceSend,
   lastSentMessage,
   onValueChange,
   ...props
@@ -61,6 +64,7 @@ export function MessageInput({
     isRecording,
     isTranscribing,
     audioStream,
+    recordingSecondsLeft,
     toggleListening,
     stopRecording,
   } = useAudioRecording({
@@ -68,6 +72,7 @@ export function MessageInput({
     onTranscriptionComplete: (text) => {
       props.onChange?.({ target: { value: text } } as any)
     },
+    onVoiceSend,
   })
 
   useEffect(() => {
@@ -226,6 +231,7 @@ export function MessageInput({
       <RecordingPrompt
         isVisible={isRecording}
         onStopRecording={stopRecording}
+        secondsLeft={recordingSecondsLeft}
       />
 
       <div className="relative flex w-full items-center space-x-2">
@@ -296,8 +302,9 @@ export function MessageInput({
           <Button
             type="button"
             variant="outline"
-            className={cn("h-8 w-8 hover:border-primary/40 hover:text-primary", isListening && "border-primary/40 text-primary bg-primary/5")}
-            aria-label="Voice input"
+            className="h-8 w-8 hover:border-primary/40 hover:text-primary"
+            aria-label={isListening ? "Stop and send voice message" : "Start voice recording"}
+            title={isListening ? "Press again to stop and send" : "Start voice recording"}
             size="icon"
             onClick={toggleListening}
           >
@@ -334,6 +341,7 @@ export function MessageInput({
         isTranscribing={isTranscribing}
         audioStream={audioStream}
         textAreaHeight={textAreaHeight}
+        secondsLeft={recordingSecondsLeft}
         onStopRecording={stopRecording}
       />
     </div>
@@ -420,9 +428,16 @@ function TranscribingOverlay() {
 interface RecordingPromptProps {
   isVisible: boolean
   onStopRecording: () => void
+  secondsLeft: number
 }
 
-function RecordingPrompt({ isVisible, onStopRecording }: RecordingPromptProps) {
+function formatRecordingTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, "0")}`
+}
+
+function RecordingPrompt({ isVisible, onStopRecording, secondsLeft }: RecordingPromptProps) {
   return (
     <AnimatePresence>
       {isVisible && (
@@ -442,7 +457,7 @@ function RecordingPrompt({ isVisible, onStopRecording }: RecordingPromptProps) {
         >
           <span className="mx-2.5 flex items-center">
             <Info className="mr-2 h-3 w-3" />
-            Click to finish recording
+            Recording... click here or press mic again to stop and send ({formatRecordingTime(secondsLeft)})
           </span>
         </motion.div>
       )}
@@ -455,6 +470,7 @@ interface RecordingControlsProps {
   isTranscribing: boolean
   audioStream: MediaStream | null
   textAreaHeight: number
+  secondsLeft: number
   onStopRecording: () => void
 }
 
@@ -463,6 +479,7 @@ function RecordingControls({
   isTranscribing,
   audioStream,
   textAreaHeight,
+  secondsLeft,
   onStopRecording,
 }: RecordingControlsProps) {
   if (isRecording) {
@@ -476,6 +493,16 @@ function RecordingControls({
           isRecording={isRecording}
           onClick={onStopRecording}
         />
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-2">
+          <button
+            type="button"
+            className="pointer-events-auto inline-flex items-center rounded-full border border-primary/40 bg-background/95 px-3 py-1 text-xs font-medium text-foreground shadow-sm"
+            onClick={onStopRecording}
+          >
+            Stop &amp; send voice message ({formatRecordingTime(secondsLeft)})
+          </button>
+        </div>
       </div>
     )
   }
