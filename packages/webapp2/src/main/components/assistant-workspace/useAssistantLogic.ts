@@ -32,6 +32,42 @@ import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
 
 /* ------------------------------------------------------------------ */
+/*  Debug timing                                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Set to `true` to show timing information in the chat and console.
+ * Tracks: round-trip response time, model injection time, streaming duration.
+ */
+const DEBUG_TIMING = true;
+
+interface PendingTimer {
+  label: string;
+  start: number;
+}
+
+const pendingTimers = new Map<string, PendingTimer>();
+
+const startTimer = (key: string, label: string) => {
+  if (!DEBUG_TIMING) return;
+  pendingTimers.set(key, { label, start: performance.now() });
+};
+
+const stopTimer = (key: string): string | null => {
+  if (!DEBUG_TIMING) return null;
+  const timer = pendingTimers.get(key);
+  if (!timer) return null;
+  pendingTimers.delete(key);
+  const elapsed = performance.now() - timer.start;
+  const formatted = elapsed < 1000
+    ? `${Math.round(elapsed)}ms`
+    : `${(elapsed / 1000).toFixed(2)}s`;
+  const msg = `⏱ ${timer.label}: ${formatted}`;
+  console.log(`[AssistantTiming] ${msg}`);
+  return msg;
+};
+
+/* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -415,6 +451,7 @@ export function useAssistantLogic({
 
   const handleInjection = async (command: InjectionCommand) => {
     try {
+      startTimer('injection', 'Model injection');
       const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
 
       // If the agent requests a new tab, create it before switching/injecting
@@ -533,6 +570,9 @@ export function useAssistantLogic({
       // Refresh undo state after successful injection
       refreshUndoState();
 
+      const injectionTiming = stopTimer('injection');
+      const totalTiming = stopTimer('total');
+
       const infoMessage =
         typeof command.message === 'string' && command.message.trim()
           ? command.message
@@ -546,6 +586,12 @@ export function useAssistantLogic({
         'injection',
         `Applied to ${diagramLabel}`,
       );
+
+      // Show timing summary after injection
+      if (injectionTiming || totalTiming) {
+        const timingText = [injectionTiming, totalTiming].filter(Boolean).join(' · ');
+        setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
+      }
     } catch (error) {
       const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       toast.error(`Could not apply assistant update: ${errorMessage}`);
@@ -600,6 +646,16 @@ export function useAssistantLogic({
 
     /* ---- streaming actions ---- */
 
+    if (payload.action === 'stream_start') {
+      // First stream event — record response time (time until agent started replying)
+      const responseTiming = stopTimer('response');
+      if (responseTiming) {
+        console.log(`[AssistantTiming] Stream started — ${responseTiming}`);
+      }
+      startTimer('streaming', 'Streaming duration');
+      return;
+    }
+
     if (payload.action === 'stream_chunk') {
       const { streamId, chunk } = payload as Record<string, any>;
       if (typeof streamId !== 'string' || typeof chunk !== 'string') return;
@@ -633,6 +689,14 @@ export function useAssistantLogic({
       setStreamingMessageId(null);
       // Clear any transient progress message when streaming completes.
       setProgressMessage('');
+
+      // Show timing summary after stream completes
+      const streamTiming = stopTimer('streaming');
+      const totalTiming = stopTimer('total');
+      if (streamTiming || totalTiming) {
+        const timingText = [streamTiming, totalTiming].filter(Boolean).join(' · ');
+        setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
+      }
       return;
     }
 
@@ -813,18 +877,35 @@ export function useAssistantLogic({
 
   /* ---- WebSocket lifecycle ---- */
 
-  useEffect(() => {
-    if (!isActive) {
-      assistantClient.clearHandlers();
-      assistantClient.disconnect({ allowReconnect: false, clearQueue: true });
-      setIsGenerating(false);
-      setConnectionStatus('disconnected');
-      return;
-    }
+  // Track active state in a ref so handlers (which are registered once) can
+  // check it synchronously without needing to re-register on every toggle.
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
 
+  // Sync connection status when drawer reopens
+  useEffect(() => {
+    if (isActive) {
+      setConnectionStatus(
+        (assistantClient.connectionState as ConnectionStatus) || (assistantClient.connected ? 'connected' : 'disconnected'),
+      );
+    }
+  }, [isActive, assistantClient]);
+
+  // Register handlers and connect once, keep alive for the lifetime of the hook.
+  useEffect(() => {
     assistantClient.onMessage((message) => {
+      // Stop response timer on first non-streaming message
+      const responseTiming = stopTimer('response');
+      const totalTiming = stopTimer('total');
+
       const kitMsg = toKitMessage('assistant', toAssistantText(message.message));
       setMessages((prev) => [...prev, kitMsg]);
+
+      // Show timing as a small system message in chat
+      if (responseTiming || totalTiming) {
+        const timingText = [responseTiming, totalTiming].filter(Boolean).join(' · ');
+        setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
+      }
 
       // Extract suggestedActions from the raw message payload if present.
       const raw = message as Record<string, unknown>;
@@ -844,7 +925,6 @@ export function useAssistantLogic({
       if (connected) {
         next = 'connected';
       } else if (assistantClient.connectionState === 'closed' || assistantClient.connectionState === 'disconnected') {
-        // If we expect reconnection, show 'reconnecting' instead of raw state
         next = assistantClient.connected ? (assistantClient.connectionState as ConnectionStatus) : 'reconnecting';
       } else {
         next = assistantClient.connectionState as ConnectionStatus;
@@ -861,20 +941,20 @@ export function useAssistantLogic({
       enqueueAssistantTask(() => handleAction(payload));
     });
 
-    setConnectionStatus((prev) => {
-      const next = (assistantClient.connectionState as ConnectionStatus) || 'connecting';
-      return prev === next ? prev : next;
-    });
+    setConnectionStatus('connecting');
     assistantClient.connect().catch(() => {
       setConnectionStatus('disconnected');
       toast.error('Could not reach the AI assistant \u2014 make sure the backend is running.');
     });
 
+    // Only disconnect when the component fully unmounts (page navigation),
+    // not when the drawer is toggled open/closed.
     return () => {
       assistantClient.clearHandlers();
       assistantClient.disconnect({ allowReconnect: false, clearQueue: true });
     };
-  }, [assistantClient, isActive]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assistantClient]);
 
   /* ---- isGenerating timeout safety net ---- */
 
@@ -951,6 +1031,8 @@ export function useAssistantLogic({
 
       const context = buildWorkspaceContext();
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
+      startTimer('response', 'Agent response time');
+      startTimer('total', 'Total round-trip (response + render)');
       const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, modelSnapshot, context, attachments);
 
       // Analytics: track assistant message
