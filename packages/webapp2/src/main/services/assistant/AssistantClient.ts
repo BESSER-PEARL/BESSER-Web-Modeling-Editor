@@ -636,7 +636,6 @@ export class AssistantClient {
     try {
       const payload = JSON.parse(event.data) as AgentResponse;
       this.onTypingHandler?.(false);
-
       const directAction = this.extractActionPayload(payload);
       if (directAction) {
         if (isInjectionCommand(directAction)) {
@@ -665,16 +664,17 @@ export class AssistantClient {
             timestamp: new Date(),
             diagramType: typeof directAction.diagramType === 'string' ? directAction.diagramType : payload.diagramType,
           };
-          this.onMessageHandler?.(chatMessage);
+          this.onMessageHandler?.(chatMessage);        
         }
         return;
       }
-
+      
+      // Received user messages correspond to audio transcriptions
       const chatMessage: ChatMessage = {
         id: createMessageId(),
         action: payload.action,
-        message: payload.message,
-        isUser: false,
+        message: payload.action === 'user_message' ? '📢 ' + payload.message : payload.message,
+        isUser: payload.action === 'user_message',
         timestamp: new Date(),
         diagramType: payload.diagramType,
       };

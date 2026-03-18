@@ -822,11 +822,12 @@ export function useAssistantLogic({
     }
 
     assistantClient.onMessage((message) => {
-      const kitMsg = toKitMessage('assistant', toAssistantText(message.message));
+      const role = message.isUser ? 'user' : 'assistant';
+      const kitMsg = toKitMessage(role, toAssistantText(message.message));
       setMessages((prev) => [...prev, kitMsg]);
 
       // Extract suggestedActions from the raw message payload if present.
-      const raw = message as Record<string, unknown>;
+      const raw = message as unknown as Record<string, unknown>;
       const suggested = raw.suggestedActions ?? (typeof raw.message === 'object' && raw.message !== null ? (raw.message as Record<string, unknown>).suggestedActions : undefined);
       if (Array.isArray(suggested) && suggested.length > 0) {
         setMessageMeta((prev) => ({
@@ -992,8 +993,6 @@ export function useAssistantLogic({
       }
 
       const audioBase64 = await readBlobAsBase64(audioBlob);
-
-      setMessages((prev) => [...prev, toKitMessage('user', '🎤 Voice message')]);
 
       const context = buildWorkspaceContext();
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
