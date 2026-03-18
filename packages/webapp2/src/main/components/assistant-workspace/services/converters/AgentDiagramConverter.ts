@@ -6,6 +6,22 @@
 
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 
+/**
+ * Estimate the rendered width of an element based on its longest text line.
+ * The editor auto-sizes elements, so we must match that to avoid overlaps.
+ */
+function estimateWidth(texts: string[], baseWidth: number): number {
+  let maxW = baseWidth;
+  for (const text of texts) {
+    if (text) {
+      // ~8px per character + padding, matching editor font metrics
+      const estimated = text.length * 8 + 40;
+      maxW = Math.max(maxW, estimated);
+    }
+  }
+  return Math.max(maxW, baseWidth);
+}
+
 export class AgentDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
 
@@ -44,47 +60,54 @@ export class AgentDiagramConverter implements DiagramConverter {
     const bodies: string[] = [];
     const fallbackBodies: string[] = [];
     const bodyElements: Record<string, any> = {};
-    
+
+    // Collect all text lines to estimate width
+    const allTexts: string[] = [];
+    (spec.bodies || spec.replies || []).forEach((b: any) => allTexts.push(typeof b === 'string' ? b : b.text || ''));
+    (spec.fallbackBodies || []).forEach((f: any) => allTexts.push(typeof f === 'string' ? f : f.text || ''));
+    const stateWidth = estimateWidth(allTexts, 210);
+    const bodyWidth = stateWidth - 1;
+
     // Create state bodies
     let currentY = pos.y + 41;
     (spec.bodies || spec.replies || []).forEach((body: any) => {
       const bodyId = generateUniqueId('body');
       bodies.push(bodyId);
-      
+
       bodyElements[bodyId] = {
         id: bodyId,
         name: body.text || body,
         type: 'AgentStateBody',
         owner: stateId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: 209, height: 30 },
+        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
         replyType: body.replyType || 'text'
       };
       currentY += 30;
     });
-    
+
     // Create fallback bodies if present
     (spec.fallbackBodies || []).forEach((fallback: any) => {
       const fallbackId = generateUniqueId('fallback');
       fallbackBodies.push(fallbackId);
-      
+
       bodyElements[fallbackId] = {
         id: fallbackId,
         name: fallback.text || fallback,
         type: 'AgentStateFallbackBody',
         owner: stateId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: 209, height: 30 }
+        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 }
       };
       currentY += 30;
     });
-    
+
     const totalHeight = Math.max(70, currentY - pos.y);
-    
+
     const stateElement = {
       id: stateId,
       name: spec.stateName || spec.name,
       type: 'AgentState',
       owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 210, height: totalHeight },
+      bounds: { x: pos.x, y: pos.y, width: stateWidth, height: totalHeight },
       bodies,
       fallbackBodies
     };
@@ -99,31 +122,39 @@ export class AgentDiagramConverter implements DiagramConverter {
     const intentId = generateUniqueId('intent');
     const bodies: string[] = [];
     const bodyElements: Record<string, any> = {};
-    
+
+    // Collect all text lines to estimate width
+    const allTexts: string[] = [];
+    (spec.trainingPhrases || spec.intentBodies || spec.bodies || []).forEach((p: any) =>
+      allTexts.push(typeof p === 'string' ? p : p.text || '')
+    );
+    const intentWidth = estimateWidth(allTexts, 230);
+    const bodyWidth = intentWidth - 1;
+
     // Create intent bodies (training phrases)
     let currentY = pos.y + 41;
     (spec.trainingPhrases || spec.intentBodies || spec.bodies || []).forEach((phrase: any) => {
       const bodyId = generateUniqueId('intentBody');
       bodies.push(bodyId);
-      
+
       bodyElements[bodyId] = {
         id: bodyId,
         name: typeof phrase === 'string' ? phrase : phrase.text,
         type: 'AgentIntentBody',
         owner: intentId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: 229, height: 30 }
+        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 }
       };
       currentY += 30;
     });
-    
+
     const totalHeight = Math.max(130, currentY - pos.y + 10);
-    
+
     const intentElement = {
       id: intentId,
       name: spec.intentName || spec.name,
       type: 'AgentIntent',
       owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 230, height: totalHeight },
+      bounds: { x: pos.x, y: pos.y, width: intentWidth, height: totalHeight },
       bodies
     };
     
