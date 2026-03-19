@@ -54,17 +54,19 @@ type State = typeof initialState;
 
 class Preview extends Component<Props, State> {
   state = initialState;
-  private listening = false;
+  private active = false;
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.connecting.length && !this.listening) {
-      this.listening = true;
+    // Register listeners once when a connection drag starts.
+    // The active flag prevents re-registration during intermediate re-renders.
+    if (this.props.connecting.length && !this.active) {
+      this.active = true;
       if (isMobile({ tablet: true })) {
         document.addEventListener('touchmove', this.onPointerMove);
-        document.addEventListener('touchend', this.onPointerUp, { once: true });
+        document.addEventListener('touchend', this.onPointerUp);
       } else {
         document.addEventListener('pointermove', this.onPointerMove);
-        document.addEventListener('pointerup', this.onPointerUp, { once: true });
+        document.addEventListener('pointerup', this.onPointerUp);
       }
     }
   }
@@ -91,7 +93,6 @@ class Preview extends Component<Props, State> {
 
   onPointerMove = (event: PointerEvent | TouchEvent) => {
     const { zoomFactor = 1 } = this.props;
-
     const offset = this.props.canvas.origin();
 
     let position: Point;
@@ -107,15 +108,21 @@ class Preview extends Component<Props, State> {
   };
 
   onPointerUp = (event: PointerEvent | TouchEvent) => {
-    this.listening = false;
+    // Remove listeners FIRST, before any dispatches that trigger re-renders
     if (isMobile({ tablet: true })) {
       document.removeEventListener('touchmove', this.onPointerMove);
+      document.removeEventListener('touchend', this.onPointerUp);
     } else {
       document.removeEventListener('pointermove', this.onPointerMove);
+      document.removeEventListener('pointerup', this.onPointerUp);
     }
+
     this.setState(initialState);
     this.props.endConnecting();
     this.props.endReconnecting();
+
+    // Set active false LAST — after all dispatches complete.
+    this.active = false;
   };
 }
 

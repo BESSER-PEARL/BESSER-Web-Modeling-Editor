@@ -49,6 +49,8 @@ export const movable = (
 ): ConnectedComponent<ComponentType<Props>, UMLElementComponentProps> => {
   class Movable extends Component<Props, State> {
     state = initialState;
+    private moveWindow = new Point();
+    private moveRaf: number | null = null;
 
     move = (x: number, y: number) => {
       const { zoomFactor = 1 } = this.props;
@@ -57,8 +59,18 @@ export const movable = (
       y = Math.round(y / 10) * 10;
       if (x === 0 && y === 0) return;
 
+      // Update visual position immediately via local state
       this.setState((state) => ({ offset: state.offset.add(x * zoomFactor, y * zoomFactor) }));
-      this.props.move({ x, y });
+
+      // Batch Redux dispatches to one per animation frame to avoid flooding re-renders
+      this.moveWindow = new Point(this.moveWindow.x + x, this.moveWindow.y + y);
+      if (!this.moveRaf) {
+        this.moveRaf = requestAnimationFrame(() => {
+          this.props.move({ x: this.moveWindow.x, y: this.moveWindow.y });
+          this.moveWindow = new Point();
+          this.moveRaf = null;
+        });
+      }
     };
 
     componentDidMount() {
@@ -82,6 +94,7 @@ export const movable = (
     }
 
     componentWillUnmount() {
+      if (this.moveRaf) cancelAnimationFrame(this.moveRaf);
       const node = findDOMNode(this) as HTMLElement;
       const child = node.firstChild as HTMLElement;
 
@@ -145,6 +158,16 @@ export const movable = (
       }
       if (!this.props.moving) {
         return;
+      }
+
+      // Flush any pending batched move before ending
+      if (this.moveRaf) {
+        cancelAnimationFrame(this.moveRaf);
+        this.moveRaf = null;
+        if (this.moveWindow.x !== 0 || this.moveWindow.y !== 0) {
+          this.props.move({ x: this.moveWindow.x, y: this.moveWindow.y });
+          this.moveWindow = new Point();
+        }
       }
 
       this.setState(initialState);
