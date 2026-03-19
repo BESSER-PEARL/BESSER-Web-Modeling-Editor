@@ -48,10 +48,15 @@ export interface ModificationChanges {
   target?: string;
   label?: string;
   value?: string;
+  // add_class fields
+  className?: string;
+  attributes?: Array<{ name: string; type?: string; visibility?: string }>;
+  methods?: Array<{ name: string; returnType?: string; visibility?: string; parameters?: Array<{ name: string; type: string }> }>;
 }
 
 export interface ModelModification {
   action:
+    | 'add_class'
     | 'modify_class'
     | 'add_attribute'
     | 'modify_attribute'

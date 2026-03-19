@@ -47,6 +47,7 @@ export class ClassDiagramModifier implements DiagramModifier {
 
   canHandle(action: string): boolean {
     return [
+      'add_class',
       'modify_class',
       'add_attribute',
       'modify_attribute',
@@ -91,6 +92,8 @@ export class ClassDiagramModifier implements DiagramModifier {
     const updatedModel = ModifierHelpers.cloneModel(model);
 
     switch (modification.action) {
+      case 'add_class':
+        return this.addClass(updatedModel, modification);
       case 'modify_class':
         return this.modifyClass(updatedModel, modification);
       case 'add_attribute':
@@ -120,6 +123,98 @@ export class ClassDiagramModifier implements DiagramModifier {
       default:
         throw new Error(`Unsupported action for ClassDiagram: ${modification.action}`);
     }
+  }
+
+  private addClass(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const className = modification.changes?.className || modification.target?.className;
+    if (!className) {
+      throw new Error('add_class requires a className in target or changes.');
+    }
+
+    // Check if class already exists
+    const existingId = this.findClassIdByName(model, className);
+    if (existingId) {
+      console.warn(`[ClassDiagramModifier] addClass: class '${className}' already exists, skipping.`);
+      return model;
+    }
+
+    // Find position: to the right of the rightmost existing class
+    let posX = 0;
+    let posY = 0;
+    for (const el of Object.values(model.elements)) {
+      if (el.type === 'Class' || el.type === 'Enumeration') {
+        const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 220);
+        if (right + 80 > posX) {
+          posX = right + 80;
+          posY = el.bounds?.y ?? 0;
+        }
+      }
+    }
+
+    const classId = ModifierHelpers.generateUniqueId('class');
+    model.elements[classId] = {
+      id: classId,
+      name: className,
+      type: 'Class',
+      owner: null,
+      bounds: { x: posX, y: posY, width: 220, height: 90 },
+      attributes: [],
+      methods: [],
+    };
+
+    // Collect all class names for type resolution
+    const classNames = new Set<string>();
+    for (const el of Object.values(model.elements)) {
+      if (el.type === 'Class') classNames.add(el.name);
+    }
+    classNames.add(className);
+
+    // Add attributes from changes
+    const attributes = modification.changes?.attributes || [];
+    for (let i = 0; i < attributes.length; i++) {
+      const attrSpec = attributes[i];
+      const attrId = ModifierHelpers.generateUniqueId('attr');
+      const attrY = posY + 50 + i * 25;
+      const visibility = attrSpec.visibility || 'public';
+      const visSymbol = visibility === 'private' ? '-' : visibility === 'protected' ? '#' : '+';
+      const type = normalizeType(attrSpec.type || 'str', classNames);
+
+      model.elements[attrId] = {
+        id: attrId,
+        name: `${visSymbol} ${attrSpec.name}: ${type}`,
+        type: 'ClassAttribute',
+        owner: classId,
+        bounds: { x: posX + 1, y: attrY, width: 218, height: 25 },
+        visibility: visibility,
+        attributeType: type,
+      };
+      model.elements[classId].attributes.push(attrId);
+    }
+
+    // Add methods from changes
+    const methods = modification.changes?.methods || [];
+    const attrCount = attributes.length;
+    for (let i = 0; i < methods.length; i++) {
+      const methodSpec = methods[i];
+      const methodId = ModifierHelpers.generateUniqueId('method');
+      const methodY = posY + 50 + attrCount * 25 + 10 + i * 25;
+      const visSymbol = methodSpec.visibility === 'private' ? '-' : methodSpec.visibility === 'protected' ? '#' : '+';
+      const paramStr = methodSpec.parameters?.map((p: any) => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+      const returnType = normalizeType(methodSpec.returnType || 'any');
+
+      model.elements[methodId] = {
+        id: methodId,
+        name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
+        type: 'ClassMethod',
+        owner: classId,
+        bounds: { x: posX + 1, y: methodY, width: 218, height: 25 },
+      };
+      model.elements[classId].methods.push(methodId);
+    }
+
+    this.recalculateClassHeight(model.elements[classId]);
+
+    return model;
   }
 
   private modifyClass(model: BESSERModel, modification: ModelModification): BESSERModel {
