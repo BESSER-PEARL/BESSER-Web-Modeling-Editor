@@ -145,9 +145,9 @@ export const connectable = (
   class Connectable extends Component<Props> {
     componentDidMount() {
       const node = findDOMNode(this) as HTMLElement;
-      node.addEventListener('pointerup', this.elementOnPointerUp.bind(this));
+      node.addEventListener('pointerup', this.elementOnPointerUp);
       if (isMobile({ tablet: true })) {
-        node.addEventListener('touchend', this.elementOnPointerUp.bind(this));
+        node.addEventListener('touchend', this.elementOnPointerUp);
       }
     }
 
@@ -221,6 +221,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -228,6 +229,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -235,6 +237,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* Right edge handles */}
@@ -244,6 +247,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -251,6 +255,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -258,6 +263,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* Bottom edge handles */}
@@ -267,6 +273,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -274,6 +281,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -281,6 +289,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* Left edge handles */}
@@ -290,6 +299,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -297,6 +307,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -304,6 +315,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* No center handle for regular elements */}
@@ -400,8 +412,10 @@ export const connectable = (
           }));
 
         // use handle with min distance to connect to
-        const minDistance = Math.min(...distances.map((value) => value.distance));
-        direction = distances.filter((value) => minDistance === value.distance)[0].key as Direction;
+        const closest = distances.reduce((prev, current) =>
+          current.distance < prev.distance ? current : prev
+        );
+        direction = closest.key as Direction;
       }
 
       if (this.props.connecting && this.props.canConnect) {
@@ -419,12 +433,6 @@ export const connectable = (
 
       // Arrêter la propagation de l'événement pour qu'il ne soit pas capturé par d'autres éléments
       event.stopPropagation();
-
-      // Adapter le comportement pour les associations avec le point central
-      const { element } = this.props;
-      if (element && UMLRelationship.isUMLRelationship(element) && direction === Direction.Center) {
-        console.log('Starting connection from relationship center point', element.id);
-      }
 
       this.props.start(direction, id);
     };

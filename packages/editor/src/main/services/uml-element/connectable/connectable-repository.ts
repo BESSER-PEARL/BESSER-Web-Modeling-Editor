@@ -54,7 +54,7 @@ export const Connectable = {
           return;
         }
 
-        const connections: Connection[] = [];
+        const connections: (Connection & { sourceElement: IUMLElement | IUMLRelationship; targetElement: IUMLElement | IUMLRelationship })[] = [];
         for (const [index, port] of sources.entries()) {
           // try to connect to target - if target.length === 1 -> connect to same element
           const connectionTarget = targets.length === 1 ? targets[0] : targets[index];
@@ -87,15 +87,13 @@ export const Connectable = {
           const isTargetRelationship = targetElement && UMLRelationship.isUMLRelationship(targetElement);
 
           // Skip invalid connections:
-          // // 1. Don't allow connecting to center port of regular elements
+          // 1. Don't allow connecting to center port of regular elements
           if (!isTargetRelationship && connectionTarget.direction === Direction.Center) {
-            console.warn('Cannot connect to center port of non-relationship element');
             continue;
           }
 
           // 2. Don't allow connecting from center port of regular elements
           if (!isSourceRelationship && port.direction === Direction.Center) {
-            console.warn('Cannot connect from center port of non-relationship element');
             continue;
           }
 
@@ -103,7 +101,6 @@ export const Connectable = {
           if (port.direction === Direction.Center &&
             sourceElement && UMLRelationship.isUMLRelationship(sourceElement) &&
             !canHaveCenterPort(sourceElement)) {
-            console.warn(`Relationship type ${sourceElement.type} is not allowed to have center port connections`);
             continue;
           }
 
@@ -111,35 +108,19 @@ export const Connectable = {
           if (connectionTarget.direction === Direction.Center &&
             targetElement && UMLRelationship.isUMLRelationship(targetElement) &&
             !canHaveCenterPort(targetElement)) {
-            console.warn(`Relationship type ${targetElement.type} is not allowed to have center port connections`);
             continue;
           }
 
-          connections.push({ source: port, target: connectionTarget });
+          // Skip if source or target element could not be resolved
+          if (!sourceElement || !targetElement) {
+            continue;
+          }
+
+          connections.push({ source: port, target: connectionTarget, sourceElement, targetElement });
         }
 
         const relationships = connections.map((connection) => {
-          let sourceElement;
-          sourceElement = dispatch(UMLRelationshipCommonRepository.getById(connection.source.element));
-          if (!sourceElement || !UMLRelationship.isUMLRelationship(sourceElement)) {
-            sourceElement = dispatch(UMLElementCommonRepository.getById(connection.source.element));
-          }
-
-          // For target element, check if it's a relationship or a regular element
-          let targetElement;
-          targetElement = dispatch(UMLRelationshipCommonRepository.getById(connection.target.element));
-          if (!targetElement || !UMLRelationship.isUMLRelationship(targetElement)) {
-            targetElement = dispatch(UMLElementCommonRepository.getById(connection.target.element));
-          }
-
-          // Skip creating the relationship if source or target element is not found
-          if (!sourceElement || !targetElement) {
-            console.error('Cannot create relationship: source or target element not found', {
-              sourceElementId: connection.source.element,
-              targetElementId: connection.target.element
-            });
-            return null;
-          }
+          const { sourceElement, targetElement } = connection;
 
           let relationshipType: UMLRelationshipType;
 
@@ -156,8 +137,8 @@ export const Connectable = {
             // determine the common supported connection types and choose one for the connection
             if (sourceElement && targetElement) {
               const commonSupportedConnections = UMLRelationshipCommonRepository.getSupportedConnectionsForElements([
-                sourceElement,
-                targetElement,
+                sourceElement as any,
+                targetElement as any,
               ]);
 
               // take the first common supported connection type or default diagram type
@@ -179,8 +160,8 @@ export const Connectable = {
 
             // Calculate the path directly using Connection.computePath
             const path = Connection.computePath(
-              { element: sourceElement, direction: connection.source.direction },
-              { element: targetElement, direction: connection.target.direction },
+              { element: sourceElement as any, direction: connection.source.direction },
+              { element: targetElement as any, direction: connection.target.direction },
               { isStraight: false, isVariable: true }
             );
 

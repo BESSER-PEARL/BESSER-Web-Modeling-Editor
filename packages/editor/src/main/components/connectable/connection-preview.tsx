@@ -54,9 +54,11 @@ type State = typeof initialState;
 
 class Preview extends Component<Props, State> {
   state = initialState;
+  private listening = false;
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.connecting.length && prevProps.connecting !== this.props.connecting) {
+    if (this.props.connecting.length && !this.listening) {
+      this.listening = true;
       if (isMobile({ tablet: true })) {
         document.addEventListener('touchmove', this.onPointerMove);
         document.addEventListener('touchend', this.onPointerUp, { once: true });
@@ -105,8 +107,9 @@ class Preview extends Component<Props, State> {
   };
 
   onPointerUp = (event: PointerEvent | TouchEvent) => {
+    this.listening = false;
     if (isMobile({ tablet: true })) {
-      document.removeEventListener('touchend', this.onPointerMove);
+      document.removeEventListener('touchmove', this.onPointerMove);
     } else {
       document.removeEventListener('pointermove', this.onPointerMove);
     }

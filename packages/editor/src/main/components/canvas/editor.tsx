@@ -92,16 +92,18 @@ class EditorComponent extends Component<Props, State> {
   editor = createRef<HTMLDivElement>();
   zoomContainer = createRef<HTMLDivElement>();
 
+  private wheelHandler = (event: WheelEvent) => {
+    if (event.ctrlKey) {
+      event.preventDefault();
+    }
+  };
+
   componentDidMount() {
-    window.addEventListener(
-      'wheel',
-      (event) => {
-        if (event.ctrlKey) {
-          event.preventDefault();
-        }
-      },
-      { passive: false },
-    );
+    window.addEventListener('wheel', this.wheelHandler, { passive: false });
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('wheel', this.wheelHandler);
   }
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
