@@ -64,6 +64,13 @@ class KeyboardEventListenerComponent extends Component<Props> {
     layer.addEventListener('pointerdown', this.pointerDown);
   }
 
+  componentWillUnmount() {
+    const { layer } = this.props.canvas;
+    layer.removeEventListener('keydown', this.keyDown);
+    layer.removeEventListener('keyup', this.keyUp);
+    layer.removeEventListener('pointerdown', this.pointerDown);
+  }
+
   render() {
     return null;
   }

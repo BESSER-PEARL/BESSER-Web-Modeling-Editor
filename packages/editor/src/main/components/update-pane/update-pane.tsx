@@ -64,6 +64,9 @@ const initialState = Object.freeze({
 
 type State = typeof initialState;
 
+/** Size in pixels of the draggable edge area around the popover. */
+const DRAG_HANDLE_SIZE = 20;
+
 class UnwrappedUpdatePane extends Component<Props, State> {
   state: Readonly<State> = {
     ...initialState,
@@ -134,13 +137,11 @@ class UnwrappedUpdatePane extends Component<Props, State> {
     // We can check if the click is near the edges of the popover
     if (this.popover.current) {
       const rect = this.popover.current.getBoundingClientRect();
-      const dragHandleSize = 15; // Use the same size for all edges
-      
-      const isEdgeClick = 
-        event.clientY - rect.top <= dragHandleSize || // Top edge
-        rect.bottom - event.clientY <= dragHandleSize || // Bottom edge
-        event.clientX - rect.left <= dragHandleSize || // Left edge
-        rect.right - event.clientX <= dragHandleSize; // Right edge
+      const isEdgeClick =
+        event.clientY - rect.top <= DRAG_HANDLE_SIZE || // Top edge
+        rect.bottom - event.clientY <= DRAG_HANDLE_SIZE || // Bottom edge
+        event.clientX - rect.left <= DRAG_HANDLE_SIZE || // Left edge
+        rect.right - event.clientX <= DRAG_HANDLE_SIZE; // Right edge
       
       if (isEdgeClick) {
         const { position } = this.state;
@@ -182,13 +183,11 @@ class UnwrappedUpdatePane extends Component<Props, State> {
   private handleMouseOver = (event: React.MouseEvent): void => {
     if (this.popover.current) {
       const rect = this.popover.current.getBoundingClientRect();
-      const dragHandleSize = 20; // Same size as in handleMouseDown
-      
-      const isEdgeHover = 
-        event.clientY - rect.top <= dragHandleSize || // Top edge
-        rect.bottom - event.clientY <= dragHandleSize || // Bottom edge
-        event.clientX - rect.left <= dragHandleSize || // Left edge
-        rect.right - event.clientX <= dragHandleSize; // Right edge
+      const isEdgeHover =
+        event.clientY - rect.top <= DRAG_HANDLE_SIZE || // Top edge
+        rect.bottom - event.clientY <= DRAG_HANDLE_SIZE || // Bottom edge
+        event.clientX - rect.left <= DRAG_HANDLE_SIZE || // Left edge
+        rect.right - event.clientX <= DRAG_HANDLE_SIZE; // Right edge
       
       // Only update state if it's changed to avoid unnecessary renders
       if (isEdgeHover !== this.state.hoverEdge) {
