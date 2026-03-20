@@ -178,6 +178,7 @@ class ClassifierUpdate extends Component<Props, State> {
                 visibility={attrMember.visibility}
                 attributeType={attrMember.attributeType}
                 isOptional={attrMember.isOptional}
+                isDerived={attrMember.isDerived}
                 defaultValue={attrMember.defaultValue}
                 onChange={this.props.update}
                 onSubmitKeyUp={() =>

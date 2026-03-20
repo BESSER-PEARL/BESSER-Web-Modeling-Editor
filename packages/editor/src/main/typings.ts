@@ -121,6 +121,7 @@ export type UMLClassifierMember = UMLElement & {
   stateMachineId?: string;
   quantumCircuitId?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
   defaultValue?: any;
 };
 

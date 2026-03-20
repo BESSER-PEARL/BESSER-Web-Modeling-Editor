@@ -25,6 +25,8 @@ type OwnProps = {
   showIcon?: boolean;
   isOptional?: boolean;
   onOptionalChange?: (checked: boolean) => void;
+  isDerived?: boolean;
+  onDerivedChange?: (checked: boolean) => void;
   defaultValue?: any;
   onDefaultValueChange?: (value: string) => void;
 };
@@ -127,7 +129,7 @@ class StylePaneComponent extends Component<Props, State> {
 
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, defaultValue, onDefaultValueChange } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, defaultValue, onDefaultValueChange } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
@@ -143,6 +145,21 @@ class StylePaneComponent extends Component<Props, State> {
                 type="checkbox"
                 checked={isOptional || false}
                 onChange={(e) => onOptionalChange(e.target.checked)}
+                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
+              />
+            </Row>
+            <Divider />
+          </>
+        )}
+        {onDerivedChange && (
+          <>
+            <Row>
+              <label htmlFor={`derived-${element?.id}`} style={{ cursor: 'pointer', margin: 0 }}>Derived</label>
+              <input
+                id={`derived-${element?.id}`}
+                type="checkbox"
+                checked={isDerived || false}
+                onChange={(e) => onDerivedChange(e.target.checked)}
                 style={{ cursor: 'pointer', width: '18px', height: '18px' }}
               />
             </Row>

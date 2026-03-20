@@ -103,6 +103,7 @@ class CanvasElementComponent extends Component<Props> {
       <svg
         {...props}
         {...element.bounds}
+        overflow="visible"
         pointerEvents={moving ? 'none' : undefined}
         fillOpacity={moving ? 0.7 : undefined}
         fill={highlight}

@@ -80,7 +80,8 @@ export class Textfield<T extends TextfieldValue> extends Component<Props<T>, Sta
   }
 
   private onBlur = ({ currentTarget }: FormEvent<HTMLTextAreaElement>) => {
-    const value: T = typeof this.props.value === 'number' ? (+currentTarget.value as T) : (currentTarget.value as T);
+    const parsed = +currentTarget.value;
+    const value: T = typeof this.props.value === 'number' ? ((Number.isNaN(parsed) ? 0 : parsed) as T) : (currentTarget.value as T);
     if (!value || !this.props.onSubmit) {
       return;
     }
@@ -90,7 +91,8 @@ export class Textfield<T extends TextfieldValue> extends Component<Props<T>, Sta
   };
 
   private onChange = ({ currentTarget }: FormEvent<HTMLTextAreaElement>) => {
-    const value: T = typeof this.props.value === 'number' ? (+currentTarget.value as T) : (currentTarget.value as T);
+    const parsed = +currentTarget.value;
+    const value: T = typeof this.props.value === 'number' ? ((Number.isNaN(parsed) ? 0 : parsed) as T) : (currentTarget.value as T);
     this.setState({ currentValue: value });
 
     if (!this.props.onChange) {
@@ -101,7 +103,8 @@ export class Textfield<T extends TextfieldValue> extends Component<Props<T>, Sta
   };
 
   private onKeyUp = ({ key, currentTarget }: KeyboardEvent<HTMLTextAreaElement>) => {
-    const value: T = typeof this.props.value === 'number' ? (+currentTarget.value as T) : (currentTarget.value as T);
+    const parsed = +currentTarget.value;
+    const value: T = typeof this.props.value === 'number' ? ((Number.isNaN(parsed) ? 0 : parsed) as T) : (currentTarget.value as T);
     switch (key) {
       case 'Enter':
         if (this.props.enterToSubmit) {

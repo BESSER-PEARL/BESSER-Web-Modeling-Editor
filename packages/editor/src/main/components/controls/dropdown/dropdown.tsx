@@ -12,7 +12,7 @@ const defaultProps = Object.freeze({
   size: 'sm' as Size,
 });
 
-const intialState = Object.freeze({
+const initialState = Object.freeze({
   show: false as boolean,
   top: 0 as number,
   left: 0 as number,
@@ -25,15 +25,19 @@ export type Props<T> = {
   value: T;
 } & typeof defaultProps;
 
-type State = typeof intialState;
+type State = typeof initialState;
 
 export class Dropdown<T> extends Component<Props<T>, State> {
   static defaultProps = defaultProps;
   static Item = DropdownItem;
-  state = intialState;
+  state = initialState;
   activator = createRef<HTMLButtonElement>();
 
   componentWillUnmount() {
+    if (this.activator.current) {
+      const parent = this.getScrollableParent(this.activator.current);
+      parent.removeEventListener('scroll', this.dismiss);
+    }
     document.removeEventListener('click', this.dismiss);
   }
 
@@ -111,8 +115,8 @@ export class Dropdown<T> extends Component<Props<T>, State> {
       width: activatorBounds.width,
     });
 
-    parent.addEventListener('scroll', this.dismiss, { once: true });
-    document.addEventListener('click', this.dismiss, { once: true });
+    parent.addEventListener('scroll', this.dismiss);
+    document.addEventListener('click', this.dismiss);
     event.stopPropagation();
   };
 
