@@ -4,6 +4,7 @@ import { ThemedCircle } from '../../../components/theme/themedComponents';
 
 export const UMLStateFinalNodeComponent: FunctionComponent<Props> = ({ element }) => (
   <g>
+    <title>Final State</title>
     <ThemedCircle
       cx="50%"
       cy="50%"
