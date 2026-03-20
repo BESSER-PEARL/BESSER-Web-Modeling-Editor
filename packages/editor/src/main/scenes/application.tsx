@@ -11,6 +11,7 @@ import { PartialModelState } from '../components/store/model-state';
 import { ModelStore, StoreProvider } from '../components/store/model-store';
 import { Styles } from '../components/theme/styles';
 import { Theme } from '../components/theme/theme';
+import { PropertiesPanel } from '../components/properties-panel';
 import { UpdatePane } from '../components/update-pane/update-pane';
 import { AssociationPopupComponent } from '../components/association-popup/association-popup';
 import { ILayer } from '../services/layouter/layer';
@@ -20,6 +21,12 @@ import { RootContext, RootProvider } from '../components/root/root-context';
 import { UMLModel } from '../typings';
 import { Patcher } from '../services/patcher';
 import { MouseEventListener } from '../components/canvas/mouse-eventlistener';
+
+/**
+ * Toggle between the new right-side properties panel and the old floating popover.
+ * Set to false to revert to the legacy popover behavior.
+ */
+const USE_PROPERTIES_PANEL = false;
 
 type Props = {
   patcher: Patcher<UMLModel>;
@@ -79,7 +86,7 @@ export class Application extends React.Component<Props, State> {
                     <DraggableLayer>
                       {canvasContext && (
                         <>
-                          <UpdatePane />
+                          {!USE_PROPERTIES_PANEL && <UpdatePane />}
                           <AssociationPopupComponent />
                           <Sidebar />
                           <KeyboardEventListener />
@@ -91,6 +98,7 @@ export class Application extends React.Component<Props, State> {
                       {canvasContext && (
                         <>
                           <MouseEventListener />
+                          {USE_PROPERTIES_PANEL && <PropertiesPanel />}
                         </>
                       )}
                     </DraggableLayer>
