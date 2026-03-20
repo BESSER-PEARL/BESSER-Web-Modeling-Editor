@@ -29,17 +29,16 @@ const StyledEditor = styled.div<{ $scale: number }>`
 
   -ms-overflow-style: -ms-autohiding-scrollbar;
   border: ${borderWidth}px solid ${(props) => props.theme.color.gray};
+  background-color: ${(props) => props.theme.color.background};
   background-position: calc(50% + ${(grid * subdivisions - borderWidth) / 2}px)
     calc(50% + ${(grid * subdivisions - borderWidth) / 2}px);
   background-size:
     ${grid * subdivisions}px ${grid * subdivisions}px,
     ${grid * subdivisions}px ${grid * subdivisions}px,
-    ${grid}px ${grid}px,
     ${grid}px ${grid}px;
   background-image: linear-gradient(to right, ${(props) => props.theme.color.grid} 1px, transparent 1px),
     linear-gradient(to bottom, ${(props) => props.theme.color.grid} 1px, transparent 1px),
-    linear-gradient(to right, ${(props) => props.theme.color.gray} 1px, transparent 1px),
-    linear-gradient(to bottom, ${(props) => props.theme.color.gray} 1px, transparent 1px);
+    radial-gradient(circle, ${(props) => props.theme.color.gridMinor} 0.55px, transparent 0.75px);
   background-repeat: repeat;
   background-attachment: local;
   transition:

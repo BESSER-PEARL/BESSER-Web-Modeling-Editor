@@ -41,6 +41,8 @@ export const hoverable = (
   WrappedComponent: ComponentType<UMLElementComponentProps>,
 ): ConnectedComponent<ComponentType<Props>, OwnProps> => {
   class Hoverable extends Component<Props> {
+    private leaveTimer: ReturnType<typeof setTimeout> | null = null;
+
     componentDidMount() {
       const node = findDOMNode(this) as HTMLElement;
       node.addEventListener('pointerenter', this.enter);
@@ -48,6 +50,7 @@ export const hoverable = (
     }
 
     componentWillUnmount() {
+      if (this.leaveTimer) clearTimeout(this.leaveTimer);
       const node = findDOMNode(this) as HTMLElement;
       node.removeEventListener('pointerenter', this.enter);
       node.removeEventListener('pointerleave', this.leave);
@@ -59,12 +62,22 @@ export const hoverable = (
     }
 
     private enter = (event: MouseEvent) => {
+      if (this.leaveTimer) {
+        clearTimeout(this.leaveTimer);
+        this.leaveTimer = null;
+      }
+      // console.debug('[Hover] enter', { id: this.props.id, cannotBeHovered: this.props.cannotBeHovered, target: event.target });
       if (!this.props.cannotBeHovered) this.props.hover(this.props.id);
       event.stopPropagation();
     };
 
     private leave = (event: MouseEvent) => {
-      if (!this.props.cannotBeHovered) this.props.leave(this.props.id);
+      // console.debug('[Hover] leave', { id: this.props.id, cannotBeHovered: this.props.cannotBeHovered, relatedTarget: event.relatedTarget });
+      if (this.leaveTimer) clearTimeout(this.leaveTimer);
+      this.leaveTimer = setTimeout(() => {
+        if (!this.props.cannotBeHovered) this.props.leave(this.props.id);
+        this.leaveTimer = null;
+      }, 30);
       event.stopPropagation();
     };
   }

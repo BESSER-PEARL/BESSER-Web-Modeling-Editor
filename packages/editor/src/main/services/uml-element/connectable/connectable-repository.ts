@@ -50,7 +50,10 @@ export const Connectable = {
         const sources = source ? (Array.isArray(source) ? source : [source]) : getState().connecting;
         const targets = Array.isArray(target) ? target : [target];
 
+        // console.debug('[Connection] connect called', { sources, targets });
+
         if (!targets.length || (targets.length !== 1 && targets.length !== sources.length)) {
+          // console.warn('[Connection] Aborted: target/source length mismatch', { targets: targets.length, sources: sources.length });
           return;
         }
 
@@ -61,6 +64,7 @@ export const Connectable = {
 
           // Skip if trying to connect the same point to itself
           if (port.element === connectionTarget.element && port.direction === connectionTarget.direction) {
+            // console.debug('[Connection] Skipped: same point self-connection', { port, connectionTarget });
             continue;
           }
 
@@ -89,11 +93,13 @@ export const Connectable = {
           // Skip invalid connections:
           // 1. Don't allow connecting to center port of regular elements
           if (!isTargetRelationship && connectionTarget.direction === Direction.Center) {
+            // console.debug('[Connection] Skipped: center port on non-relationship target');
             continue;
           }
 
           // 2. Don't allow connecting from center port of regular elements
           if (!isSourceRelationship && port.direction === Direction.Center) {
+            // console.debug('[Connection] Skipped: center port on non-relationship source');
             continue;
           }
 
@@ -101,6 +107,7 @@ export const Connectable = {
           if (port.direction === Direction.Center &&
             sourceElement && UMLRelationship.isUMLRelationship(sourceElement) &&
             !canHaveCenterPort(sourceElement)) {
+            // console.debug('[Connection] Skipped: center port not allowed on source relationship');
             continue;
           }
 
@@ -108,15 +115,28 @@ export const Connectable = {
           if (connectionTarget.direction === Direction.Center &&
             targetElement && UMLRelationship.isUMLRelationship(targetElement) &&
             !canHaveCenterPort(targetElement)) {
+            // console.debug('[Connection] Skipped: center port not allowed on target relationship');
             continue;
           }
 
           // Skip if source or target element could not be resolved
           if (!sourceElement || !targetElement) {
+            // console.warn('[Connection] Skipped: could not resolve elements', {
+            //   sourceId: port.element, sourceResolved: !!sourceElement,
+            //   targetId: connectionTarget.element, targetResolved: !!targetElement,
+            // });
             continue;
           }
 
+          // console.debug('[Connection] Valid connection pair', {
+          //   source: { id: port.element, dir: port.direction, type: sourceElement.type },
+          //   target: { id: connectionTarget.element, dir: connectionTarget.direction, type: targetElement.type },
+          // });
           connections.push({ source: port, target: connectionTarget, sourceElement, targetElement });
+        }
+
+        if (!connections.length) {
+          // console.warn('[Connection] No valid connections after validation');
         }
 
         const relationships = connections.map((connection) => {
@@ -140,6 +160,11 @@ export const Connectable = {
                 sourceElement as any,
                 targetElement as any,
               ]);
+
+              // console.debug('[Connection] Supported relationship types', {
+              //   common: commonSupportedConnections,
+              //   diagramDefault: DefaultUMLRelationshipType[getState().diagram.type],
+              // });
 
               // take the first common supported connection type or default diagram type
               relationshipType =
@@ -189,6 +214,12 @@ export const Connectable = {
 
         // Filter out null relationships
         const validRelationships = relationships.filter(Boolean);
+
+        // console.debug('[Connection] Result', {
+        //   attempted: relationships.length,
+        //   valid: validRelationships.length,
+        //   types: validRelationships.map((r) => r?.type),
+        // });
 
         if (validRelationships.length) {
           // Use type assertion to satisfy TypeScript
