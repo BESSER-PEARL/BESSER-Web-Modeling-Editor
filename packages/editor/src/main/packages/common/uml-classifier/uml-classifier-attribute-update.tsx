@@ -119,6 +119,7 @@ type AttributeValues = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
   defaultValue?: any;
   fillColor?: string;
   textColor?: string;
@@ -132,6 +133,7 @@ type Props = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
   defaultValue?: any;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
@@ -181,6 +183,7 @@ const UmlAttributeUpdate = ({
   visibility: propVisibility,
   attributeType: propAttributeType,
   isOptional: propIsOptional,
+  isDerived: propIsDerived,
   defaultValue: propDefaultValue,
   onChange,
   onSubmitKeyUp,
@@ -245,6 +248,7 @@ const UmlAttributeUpdate = ({
   }
 
   const isOptional = propIsOptional || false;
+  const isDerived = propIsDerived || false;
   const defaultValue = propDefaultValue;
 
   // Get available enumerations from the model
@@ -258,6 +262,7 @@ const UmlAttributeUpdate = ({
       visibility: vis,
       attributeType,
       isOptional,
+      isDerived,
       defaultValue,
     });
   };
@@ -269,6 +274,7 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional,
+      isDerived,
       defaultValue,
     });
   };
@@ -280,6 +286,7 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType: typeStr,
       isOptional,
+      isDerived,
       defaultValue,
     });
   };
@@ -290,6 +297,18 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional: checked,
+      isDerived,
+      defaultValue,
+    });
+  };
+
+  const handleDerivedChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      isOptional,
+      isDerived: checked,
       defaultValue,
     });
   };
@@ -300,6 +319,7 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional,
+      isDerived,
       defaultValue: newDefaultValue || undefined,
     });
   };
@@ -345,6 +365,8 @@ const UmlAttributeUpdate = ({
         textColor
         isOptional={isOptional}
         onOptionalChange={handleOptionalChange}
+        isDerived={isDerived}
+        onDerivedChange={handleDerivedChange}
         defaultValue={defaultValue}
         onDefaultValueChange={handleDefaultValueChange}
       />
