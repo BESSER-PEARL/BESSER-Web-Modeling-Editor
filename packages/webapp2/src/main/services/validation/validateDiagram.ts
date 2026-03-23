@@ -18,7 +18,12 @@ import { ApollonEditor } from '@besser/wme';
 const VALIDATION_TOAST_ID = 'diagram-validation-loading';
 
 export async function validateDiagram(editor: ApollonEditor | null | undefined, diagramTitle: string, modelData?: any) {
-  toast.dismiss(VALIDATION_TOAST_ID);
+  // Optionally suppress toasts for programmatic validation (e.g. GUI pre-validation)
+  const suppressToasts = modelData && modelData._suppressToasts;
+
+  if (!suppressToasts) {
+    toast.dismiss(VALIDATION_TOAST_ID);
+  }
 
   try {
     const longToastStyle: CSSProperties = {
@@ -34,23 +39,26 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     };
 
     // Get model data from editor or use provided modelData (for quantum circuits)
-    const model = modelData || editor?.model;
-    
+    const model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
+    if (model && model._suppressToasts) delete model._suppressToasts;
+
     if (!model) {
-      toast.error('No diagram to validate');
+      if (!suppressToasts) toast.error('No diagram to validate');
       return { isValid: false, errors: ['No diagram available'] };
     }
 
     // Show loading state
-    toast.loading("Validating diagram...", {
-      toastId: VALIDATION_TOAST_ID,
-      position: "top-right",
-      theme: "dark",
-      autoClose: false,
-      closeOnClick: false,
-      closeButton: false,
-      draggable: false
-    });
+    if (!suppressToasts) {
+      toast.loading("Validating diagram...", {
+        toastId: VALIDATION_TOAST_ID,
+        position: "top-right",
+        theme: "dark",
+        autoClose: false,
+        closeOnClick: false,
+        closeButton: false,
+        draggable: false
+      });
+    }
 
     // Call unified validation endpoint with timeout
     const controller = new AbortController();
@@ -85,27 +93,30 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         errors: ['Could not parse error response'] 
       }));
       
-      toast.dismiss(VALIDATION_TOAST_ID);
-
-      const errorMessage = errorData.errors?.join('\n') || 'Validation failed';
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: false,
-        style: {
-          ...longToastStyle
-        }
-      });
+      if (!suppressToasts) {
+        toast.dismiss(VALIDATION_TOAST_ID);
+        const errorMessage = errorData.errors?.join('\n') || 'Validation failed';
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: false,
+          style: {
+            ...longToastStyle
+          }
+        });
+      }
       return { isValid: false, errors: errorData.errors || ['Validation failed'] };
     }
     
     const result = await response.json();
     
     // Small delay to ensure smooth transition
-    await new Promise(resolve => setTimeout(resolve, 100));
-    toast.dismiss(VALIDATION_TOAST_ID);
-    
+    if (!suppressToasts) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      toast.dismiss(VALIDATION_TOAST_ID);
+    }
+
     // Show validation errors
-    if (result.errors && result.errors.length > 0) {
+    if (!suppressToasts && result.errors && result.errors.length > 0) {
       const errorMessage = "❌ Validation Errors:\n\n" + result.errors.join("\n\n");
       toast.error(errorMessage, {
         position: "top-right",
@@ -123,7 +134,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     }
     
     // Show warnings
-    if (result.warnings && result.warnings.length > 0) {
+    if (!suppressToasts && result.warnings && result.warnings.length > 0) {
       const warningMessage = "⚠️ Warnings:\n\n" + result.warnings.join("\n\n");
       toast.warning(warningMessage, {
         position: "top-right",
@@ -141,7 +152,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     }
     
     // Show valid OCL constraints
-    if (result.valid_constraints && result.valid_constraints.length > 0) {
+    if (!suppressToasts && result.valid_constraints && result.valid_constraints.length > 0) {
       const validMessage = "✅ Valid Constraints:\n\n" + result.valid_constraints.join("\n\n");
       toast.success(validMessage, {
         position: "top-right",
@@ -159,7 +170,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     }
     
     // Show invalid OCL constraints
-    if (result.invalid_constraints && result.invalid_constraints.length > 0) {
+    if (!suppressToasts && result.invalid_constraints && result.invalid_constraints.length > 0) {
       const invalidMessage = "❌ Invalid Constraints:\n\n" + result.invalid_constraints.join("\n\n");
       toast.error(invalidMessage, {
         position: "top-right",
@@ -177,7 +188,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     }
     
     // Show OCL message if available and no constraints
-    if (result.ocl_message && 
+    if (!suppressToasts && result.ocl_message &&
         (!result.valid_constraints || result.valid_constraints.length === 0) &&
         (!result.invalid_constraints || result.invalid_constraints.length === 0)) {
       toast.info(result.ocl_message, {
@@ -188,7 +199,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     }
     
     // Show success if everything is valid
-    if (result.isValid && (!result.errors || result.errors.length === 0)) {
+    if (!suppressToasts && result.isValid && (!result.errors || result.errors.length === 0)) {
       toast.success(result.message || "✅ Diagram is valid", {
         position: "top-right",
         autoClose: 3000,
@@ -205,12 +216,14 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     
   } catch (error: unknown) {
     console.error('Error during validation:', error);
-    toast.dismiss(VALIDATION_TOAST_ID);
-    toast.error(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`, {
-      position: "top-right",
-      autoClose: 5000,
-      theme: "dark"
-    });
+    if (!suppressToasts) {
+      toast.dismiss(VALIDATION_TOAST_ID);
+      toast.error(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        position: "top-right",
+        autoClose: 5000,
+        theme: "dark"
+      });
+    }
     return { 
       isValid: false, 
       errors: [error instanceof Error ? error.message : 'Unknown error'] 

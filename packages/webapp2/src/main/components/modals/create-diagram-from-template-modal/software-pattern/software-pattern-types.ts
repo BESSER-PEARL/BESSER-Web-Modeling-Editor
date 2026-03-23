@@ -17,8 +17,10 @@ export enum SoftwarePatternType {
   TEAMOCL = 'Team Player with OCL',
   DPP = 'Digital Product Passport ',
   AISANDBOX = 'AI Sandbox',
+  NEXACRM = 'NexaCRM',
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
+  DB_AGENT = 'Database Agent',
   GYM_AGENT = 'Gym Agent',
   FAQ_RAG_AGENT = 'FAQ RAG Agent',
   LIBRARY_AGENT = 'Library Agent',

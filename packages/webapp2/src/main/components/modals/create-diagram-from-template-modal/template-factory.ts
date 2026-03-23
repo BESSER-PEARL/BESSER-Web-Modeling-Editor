@@ -9,7 +9,9 @@ import libraryCompleteModel from '../../../templates/pattern/structural/Library_
 import teamOclModel from '../../../templates/pattern/structural/team_player_ocl.json';
 import dppModel from '../../../templates/pattern/structural/dpp.json';
 import aiSandboxModel from '../../../templates/pattern/structural/ai_sandbox.json';
+import nexaCrmModel from '../../../templates/pattern/structural/nexacrm.json';
 import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
+import dbagent from '../../../templates/pattern/agent/dbagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
@@ -67,11 +69,25 @@ export class TemplateFactory {
           aiSandboxModel as any,
           SoftwarePatternCategory.STRUCTURAL,
         );
+      case SoftwarePatternType.NEXACRM:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.ClassDiagram,
+          nexaCrmModel as any,
+          SoftwarePatternCategory.STRUCTURAL,
+        );
       case SoftwarePatternType.GREET_AGENT:
         return new SoftwarePatternTemplate(
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           greetingagent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+      case SoftwarePatternType.DB_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          dbagent as any,
           SoftwarePatternCategory.AGENT,
         );
       case SoftwarePatternType.GYM_AGENT:
