@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Check, Layers, Sparkles } from 'lucide-react';
+import { Check, Layers, Sparkles, AlertTriangle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,8 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
   switchDiagramTypeThunk,
   updateQuantumDiagramThunk,
+  addDiagramThunk,
+  switchDiagramIndexThunk,
   selectProject,
 } from '../../services/workspace/workspaceSlice';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
@@ -56,6 +58,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const templates = useMemo(() => {
     return Object.values(SoftwarePatternType).map((pattern) => TemplateFactory.createSoftwarePattern(pattern));
@@ -88,10 +91,29 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   const currentProject = useAppSelector(selectProject);
 
-  const handleLoadTemplate = async () => {
-    if (!selectedTemplate) {
-      return;
+  const hasExistingModel = useMemo(() => {
+    if (!currentProject || !selectedTemplate) return false;
+    const umlType = selectedTemplate.diagramType as UMLDiagramType;
+    const supportedType = toSupportedDiagramType(umlType);
+    const existing = getActiveDiagram(currentProject, supportedType);
+    const model = existing?.model;
+    if (!model || typeof model !== 'object') return false;
+    const elements = (model as any).elements;
+    return elements && typeof elements === 'object' && Object.keys(elements).length > 0;
+  }, [currentProject, selectedTemplate]);
+
+  const handleLoadClick = () => {
+    if (!selectedTemplate) return;
+    if (hasExistingModel) {
+      setShowConfirm(true);
+    } else {
+      doLoadTemplate();
     }
+  };
+
+  const doLoadTemplate = async (mode: 'replace' | 'new_tab' = 'replace') => {
+    if (!selectedTemplate) return;
+    setShowConfirm(false);
 
     try {
       setIsLoading(true);
@@ -104,9 +126,24 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         const umlType = selectedTemplate.diagramType as UMLDiagramType;
         const supportedType = toSupportedDiagramType(umlType);
 
-        // Save the template model to storage BEFORE switching diagram type,
-        // so switchDiagramTypeThunk reads the template (not a stale model)
-        if (currentProject) {
+        if (mode === 'new_tab' && currentProject) {
+          // Create a new tab, then write the template into it
+          const addResult = await dispatch(addDiagramThunk({
+            diagramType: supportedType,
+            title: selectedTemplate.type,
+          })).unwrap();
+
+          ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
+            ...addResult.diagram,
+            title: selectedTemplate.type,
+            model: selectedTemplate.diagram as any,
+            lastUpdate: new Date().toISOString(),
+          }, addResult.index);
+
+          await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
+          await dispatch(switchDiagramIndexThunk({ diagramType: supportedType, index: addResult.index }));
+        } else if (currentProject) {
+          // Replace the active diagram
           const existingDiagram = getActiveDiagram(currentProject, supportedType);
           ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
             ...existingDiagram,
@@ -114,9 +151,9 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
             model: selectedTemplate.diagram as any,
             lastUpdate: new Date().toISOString(),
           });
+          await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
         }
 
-        await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
         navigate('/');
       }
 
@@ -201,13 +238,41 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleLoadTemplate} disabled={!selectedTemplate || isLoading} className="bg-brand text-brand-foreground hover:bg-brand-dark">
+              <Button onClick={handleLoadClick} disabled={!selectedTemplate || isLoading} className="bg-brand text-brand-foreground hover:bg-brand-dark">
                 {isLoading ? 'Loading...' : 'Load Template'}
               </Button>
             </div>
           </div>
         </div>
       </DialogContent>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Existing diagram detected
+            </DialogTitle>
+            <DialogDescription>
+              You already have a{' '}
+              <strong>{selectedTemplate?.diagramType?.replace('Diagram', ' Diagram')}</strong>.
+              How would you like to load the template?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-wrap justify-end gap-2 pt-4">
+            <Button variant="outline" size="sm" onClick={() => setShowConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => doLoadTemplate('new_tab')}>
+              <Layers className="mr-1.5 h-3.5 w-3.5" />
+              New tab
+            </Button>
+            <Button size="sm" onClick={() => doLoadTemplate('replace')} className="bg-brand text-brand-foreground hover:bg-brand-dark">
+              Replace
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };
