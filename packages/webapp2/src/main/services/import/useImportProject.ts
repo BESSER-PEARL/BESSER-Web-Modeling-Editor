@@ -37,6 +37,74 @@ function validateV2ExportData(data: any): data is V2ExportData {
   );
 }
 
+// Check if this is an old webapp export (single diagrams instead of arrays, may have UserDiagram)
+function isOldWebappFormat(data: any): boolean {
+  if (!data?.project?.diagrams) return false;
+  const diagrams = data.project.diagrams;
+  // Old format: diagrams are plain objects, not arrays
+  return Object.values(diagrams).some(
+    (d: any) => d && typeof d === 'object' && !Array.isArray(d) && ('title' in d || 'model' in d || 'lastUpdate' in d)
+  );
+}
+
+// Convert old webapp format to webapp2 format
+function migrateOldWebappProject(data: any): BesserProject {
+  const project = data.project;
+  const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Build diagram arrays from single diagram objects
+  const migratedDiagrams: any = {};
+  const allTypes: SupportedDiagramType[] = [
+    'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
+    'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+  ];
+
+  for (const diagramType of allTypes) {
+    const existing = project.diagrams[diagramType];
+    if (existing && !Array.isArray(existing) && typeof existing === 'object') {
+      // Single diagram object → wrap in array
+      if (!existing.id) existing.id = `${diagramType}_${Date.now()}`;
+      if (!existing.lastUpdate) existing.lastUpdate = new Date().toISOString();
+      migratedDiagrams[diagramType] = [existing];
+    } else if (Array.isArray(existing)) {
+      migratedDiagrams[diagramType] = existing;
+    } else {
+      migratedDiagrams[diagramType] = [createEmptyDiagram(
+        diagramType.replace(/([A-Z])/g, ' $1').trim(),
+        diagramType === 'GUINoCodeDiagram' || diagramType === 'QuantumCircuitDiagram'
+          ? null
+          : (UMLDiagramType as any)[diagramType] ?? null,
+        diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined
+      )];
+    }
+  }
+
+  // Drop UserDiagram (not supported in webapp2) — just skip it silently
+
+  const currentDiagramIndices: Record<SupportedDiagramType, number> = {
+    ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
+    AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+  };
+
+  return {
+    id: newProjectId,
+    type: 'Project',
+    schemaVersion: 3,
+    name: project.name || 'Imported Project',
+    description: project.description || '',
+    owner: project.owner || '',
+    createdAt: new Date().toISOString(),
+    currentDiagramType: (project.currentDiagramType as SupportedDiagramType) || 'ClassDiagram',
+    currentDiagramIndices,
+    diagrams: migratedDiagrams,
+    settings: project.settings || {
+      defaultDiagramType: 'ClassDiagram',
+      autoSave: true,
+      collaborationEnabled: false,
+    },
+  };
+}
+
 // Fill missing diagrams with empty ones
 function fillMissingDiagrams(project: BesserProject): BesserProject {
   const allDiagramTypes: SupportedDiagramType[] = [
@@ -203,7 +271,12 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
 
   const jsonData = await response.json();
 
-  if (validateV2ExportData(jsonData)) {
+  if (isOldWebappFormat(jsonData)) {
+    const project = migrateOldWebappProject(jsonData);
+    storeImportedProject(project);
+    return project;
+
+  } else if (validateV2ExportData(jsonData)) {
     const project = fillMissingDiagrams({
       ...jsonData.project,
       id: `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -232,8 +305,14 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
       try {
         const jsonData = JSON.parse(e.target?.result as string);
 
-        // Check if it's the new V2 format first
-        if (validateV2ExportData(jsonData)) {
+        // Check for old webapp format (single diagrams, not arrays) before V2 check
+        if (isOldWebappFormat(jsonData)) {
+          const importedProject = migrateOldWebappProject(jsonData);
+          storeImportedProject(importedProject);
+          console.log(`Project "${importedProject.name}" imported successfully (old webapp format migrated)`);
+          resolve(importedProject);
+
+        } else if (validateV2ExportData(jsonData)) {
           // V2 format - project already contains diagrams
           const project = jsonData.project;
 

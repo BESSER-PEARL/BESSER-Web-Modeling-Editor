@@ -584,10 +584,16 @@ export class AssistantClient {
 
   private buildWirePayload(payload: Record<string, any>): Record<string, any> {
     if (payload.action === 'user_voice') {
+      // Voice messages need the audio as the raw `message` for the BESSER
+      // framework's speech-to-text pipeline.  We send the workspace context
+      // as a USER_SET_VARIABLE message right before the audio so the agent
+      // knows what's on the canvas.  See sendPayload() for the send order.
       return {
         action: 'user_voice',
         user_id: this.sessionId,
         message: payload.message,
+        // Stash context so sendPayload can send it as a preceding message
+        _voiceContext: payload.context,
       };
     }
 
@@ -604,7 +610,23 @@ export class AssistantClient {
     if (!this.isConnected || !this.ws) {
       throw new Error('WebSocket is not connected');
     }
-    this.ws.send(JSON.stringify(this.buildWirePayload(payload)));
+    const wire = this.buildWirePayload(payload);
+
+    // For voice messages, send the workspace context as a USER_SET_VARIABLE
+    // message right before the audio so the agent knows what's on the canvas.
+    // The agent reads session variable '_voice_context' when parsing voice events.
+    const voiceCtx = wire._voiceContext;
+    delete wire._voiceContext; // Always clean up to prevent leaking into wire JSON
+    if (voiceCtx && typeof voiceCtx === 'object') {
+      const contextSyncPayload = {
+        action: 'user_set_variable',
+        user_id: this.sessionId,
+        message: { _voice_context: voiceCtx },
+      };
+      this.ws.send(JSON.stringify(contextSyncPayload));
+    }
+
+    this.ws.send(JSON.stringify(wire));
     this.onTypingHandler?.(true);
     this.startResponseTimer();
   }
