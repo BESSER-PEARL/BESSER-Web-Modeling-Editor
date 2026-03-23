@@ -20,6 +20,7 @@
   ],
   "scripts": {
     "dev": "npm run start --workspace=webapp2",
+    "dev:editor": "npm run dev --workspace=@besser/wme",
     "start": "concurrently \"npm run start:webapp2\" \"npm run start:server\"",
     "start:webapp": "npm run start --workspace=webapp",
     "start:webapp2": "npm run start --workspace=webapp2",

@@ -20,6 +20,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "dev": "webpack serve --config webpack.dev.js",
     "lint": "npm run lint:ts && npm run lint:css",
     "lint:ts": "eslint -c .eslintrc.js src/main",
     "lint:css": "stylelint 'src/**/*.ts'",

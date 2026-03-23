@@ -128,22 +128,29 @@ export const GenerateCodeMenu: React.FC = () => {
   const isUserDiagram = currentDiagramType === UMLDiagramType.UserDiagram;
   // Helper to get model size metrics for analytics
   const getModelMetrics = () => {
-    if (!diagram?.model) {
-      return { elements_count: 0, classes_count: 0, relationships_count: 0, total_size: 0 };
-    }
+    const empty = { elements_count: 0, classes_count: 0, abstract_classes_count: 0, attributes_count: 0, methods_count: 0, enumerations_count: 0, relationships_count: 0, total_size: 0 };
+    if (!diagram?.model) return empty;
 
     const model = diagram.model as any;
-    const allElementsCount = model.elements ? Object.keys(model.elements).length : 0;
-    const classesCount = model.elements
-      ? Object.values(model.elements).filter((el: any) => el.type === 'Class' || el.type === 'AbstractClass').length
-      : 0;
+    const elements = model.elements ? Object.values(model.elements) as any[] : [];
+    const countByType = (types: string[]) => elements.filter((el) => types.includes(el.type)).length;
+
+    const classesCount = countByType(['Class']);
+    const abstractClassesCount = countByType(['AbstractClass']);
+    const attributesCount = countByType(['ClassAttribute']);
+    const methodsCount = countByType(['ClassMethod']);
+    const enumerationsCount = countByType(['Enumeration']);
     const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
 
     return {
-      elements_count: allElementsCount,
+      elements_count: elements.length,
       classes_count: classesCount,
+      abstract_classes_count: abstractClassesCount,
+      attributes_count: attributesCount,
+      methods_count: methodsCount,
+      enumerations_count: enumerationsCount,
       relationships_count: relationshipsCount,
-      total_size: allElementsCount + relationshipsCount
+      total_size: elements.length + relationshipsCount
     };
   };
 

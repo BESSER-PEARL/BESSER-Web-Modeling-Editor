@@ -29,7 +29,11 @@ export class CopyRepository {
         .map((idToClone) => UMLElementRepository.get(elements[idToClone]))
         .filter(notEmpty);
       if (getState().editor.enableCopyPasteToClipboard) {
-        navigator.clipboard.writeText(JSON.stringify(result));
+        try {
+          navigator.clipboard.writeText(JSON.stringify(result));
+        } catch (error) {
+          console.warn('Failed to write to clipboard:', error);
+        }
         return;
       } else {
         return dispatch<CopyAction>({
@@ -44,19 +48,17 @@ export class CopyRepository {
     CopyRepository.pasteCounter++;
 
     if (getState().editor.enableCopyPasteToClipboard) {
-      navigator.clipboard
-        .readText()
-        .then((value) => {
-          const parsedElements: IUMLElement[] = JSON.parse(value);
+      (async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          const parsedElements: IUMLElement[] = JSON.parse(text);
           const currentDiagramType = getState().diagram.type;
           // all elements must be supported Apollon elements and part of the current diagram type
           const diagramElements: UMLElement[] = parsedElements
             .map((x) => UMLElementRepository.get(x))
             .filter(notEmpty)
             .filter((element) => element.type in UMLElementsForDiagram[currentDiagramType]);
-          return CopyRepository.transformElementsForCopy(diagramElements);
-        })
-        .then(({ copiedElements }) => {
+          const { copiedElements } = CopyRepository.transformElementsForCopy(diagramElements);
           dispatch(UMLElementRepository.create(copiedElements));
           dispatch(UMLElementRepository.deselect());
           dispatch(
@@ -67,7 +69,10 @@ export class CopyRepository {
               ),
             ),
           );
-        });
+        } catch (error) {
+          console.warn('Failed to read from clipboard:', error);
+        }
+      })();
     } else {
       const { copy } = getState();
       dispatch<PasteAction>({ type: CopyActionTypes.PASTE, payload: {}, undoable: false });
@@ -116,11 +121,17 @@ export class CopyRepository {
     const cloneMap: { [key: string]: string } = {};
     // flat map elements to copies
     const copies: UMLElement[] = roots.reduce((clonedElements: UMLElement[], element: UMLElement) => {
-      element.owner = null;
-      element.bounds.x = element.bounds.x + 10 * CopyRepository.pasteCounter;
-      element.bounds.y = element.bounds.y + 10 * CopyRepository.pasteCounter;
+      const updatedElement = {
+        ...element,
+        owner: null,
+        bounds: {
+          ...element.bounds,
+          x: element.bounds.x + 10 * CopyRepository.pasteCounter,
+          y: element.bounds.y + 10 * CopyRepository.pasteCounter,
+        },
+      } as UMLElement;
 
-      const clones = clone(element, umlElements);
+      const clones = clone(updatedElement, umlElements);
       cloneMap[element.id] = clones[0].id;
       return clonedElements.concat(...clones);
     }, []);
@@ -139,14 +150,20 @@ export class CopyRepository {
     );
     // flat map elements to copies
     const copies: UMLRelationship[] = roots.reduce((clonedElements: UMLRelationship[], element: UMLRelationship) => {
-      element.owner = null;
-      element.bounds.x = element.bounds.x + 10 * CopyRepository.pasteCounter;
-      element.bounds.y = element.bounds.y + 10 * CopyRepository.pasteCounter;
-      element.source.element = cloneMap[element.source.element];
-      element.target.element = cloneMap[element.target.element];
       const newPath = element.path.map((pathPoint) => ({ x: pathPoint.x + 10, y: pathPoint.y + 10 }) as IPoint);
-      element.path = [newPath[0], newPath[1], ...newPath.slice(2)];
-      const clones = [element.cloneRelationship()];
+      const updatedElement = {
+        ...element,
+        owner: null,
+        bounds: {
+          ...element.bounds,
+          x: element.bounds.x + 10 * CopyRepository.pasteCounter,
+          y: element.bounds.y + 10 * CopyRepository.pasteCounter,
+        },
+        source: { ...element.source, element: cloneMap[element.source.element] },
+        target: { ...element.target, element: cloneMap[element.target.element] },
+        path: [newPath[0], newPath[1], ...newPath.slice(2)],
+      } as UMLRelationship;
+      const clones = [updatedElement.cloneRelationship()];
       return clonedElements.concat(...clones);
     }, []);
 
