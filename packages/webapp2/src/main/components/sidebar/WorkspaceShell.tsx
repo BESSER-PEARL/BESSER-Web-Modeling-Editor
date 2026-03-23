@@ -606,7 +606,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
-            onOpenChange={setIsAssistantWorkspaceOpen}
+            onOpenChange={(open) => {
+              setIsAssistantWorkspaceOpen(open);
+              window.dispatchEvent(new CustomEvent('besser:assistant-drawer', { detail: { open } }));
+            }}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
           />

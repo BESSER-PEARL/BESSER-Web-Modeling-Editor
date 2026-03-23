@@ -39,7 +39,7 @@ const getConnectionDotClass = (status: ConnectionStatus): string => {
       return 'bg-emerald-500';
     case 'connecting':
     case 'closing':
-      return 'bg-amber-500';
+      return 'bg-amber-500 animate-pulse';
     default:
       return 'bg-red-500';
   }
@@ -163,9 +163,23 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     return () => window.removeEventListener('besser:toggle-agent-widget', toggle);
   }, [isOnEditorPage]);
 
+  /* ---- Hide widget when the workspace drawer is open ---- */
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const onDrawer = (e: Event) => {
+      const open = (e as CustomEvent).detail?.open ?? false;
+      setDrawerOpen(open);
+      if (open) setIsVisible(false);
+    };
+    window.addEventListener('besser:assistant-drawer', onDrawer);
+    return () => window.removeEventListener('besser:assistant-drawer', onDrawer);
+  }, []);
+
   /* ---- Render ---- */
 
-  if (!isOnEditorPage) return null;
+  if (!isOnEditorPage || drawerOpen) return null;
 
   const rateLimitColor =
     rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
@@ -181,19 +195,19 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
         {/* ── Chat card ── */}
         <Card
           className={cn(
-            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-elevation-3 transition-all duration-300 sm:w-[480px] lg:w-[520px]',
+            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-all duration-300 ease-out sm:w-[480px] lg:w-[520px]',
             isVisible ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-4 py-3.5 text-white dark:from-slate-800 dark:via-slate-800 dark:to-slate-700">
+          <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }}>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white/95 shadow-sm ring-1 ring-white/20">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
                 <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-6 w-6 object-contain" />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none tracking-tight">Modeling Assistant</p>
-                <p className="mt-1 text-[11px] font-medium text-white/60">by BESSER</p>
+                <p className="text-sm font-semibold leading-none tracking-tight text-foreground">Modeling Assistant</p>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground/60">by BESSER</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -201,19 +215,19 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
+                className="h-7 w-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => setShowDisclaimer(true)}
                 title="Privacy and data processing"
                 aria-label="Privacy and data processing"
               >
                 <CircleHelp className="h-3.5 w-3.5" />
               </Button>
-              <span className={cn('h-2 w-2 rounded-full ring-2 ring-current/15', getConnectionDotClass(connectionStatus))} />
+              <span className={cn('h-2 w-2 rounded-full', getConnectionDotClass(connectionStatus))} />
             </div>
           </div>
 
           {/* Message list */}
-          <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white p-4 dark:from-slate-900/60 dark:to-slate-950/40">
+          <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
             <MessageList
               messages={messages}
               isTyping={isGenerating}
@@ -231,7 +245,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
             {/* Progress indicator */}
             {progressMessage && (
-              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 <span>{progressMessage}</span>
               </div>
@@ -243,21 +257,19 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             )}
           </div>
 
-          {/* Status bar */}
-          <div className="flex items-center justify-between border-t border-border/40 bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-              <span className={cn('h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
-              <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
+          {/* Input + status */}
+          <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+                <span className={cn('h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+                <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                <span className="text-[10px] text-muted-foreground/30">|</span>
+                <span className="text-[10px] text-muted-foreground/50">{messages.length} msg{messages.length === 1 ? '' : 's'}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 font-mono text-[10px] tracking-wide">
-              <span className={rateLimitColor}>{rateLimitStatus.requestsLastMinute}/8</span>
-              <span className="text-muted-foreground/50">|</span>
-              <span>{messages.length} msg{messages.length === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-
-          {/* Input */}
-          <div className="border-t border-border/30 bg-background p-3">
             <ChatForm className="w-full" isPending={isGenerating} handleSubmit={handleSubmit}>
               {({ files, setFiles }) => (
                 <MessageInput
@@ -282,10 +294,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           type="button"
           size="icon"
           className={cn(
-            'group h-14 w-14 rounded-2xl border bg-white text-slate-900 shadow-elevation-3 transition-all duration-300 hover:scale-105 hover:shadow-glow dark:bg-slate-900 dark:text-slate-100',
+            'group relative h-14 w-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-all duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
             isVisible
-              ? 'border-slate-300/80 dark:border-slate-600'
-              : 'border-slate-200/80 dark:border-slate-700',
+              ? 'border-brand/20 ring-1 ring-brand/15'
+              : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',
           )}
           onClick={() => setIsVisible((p) => !p)}
           title={isVisible ? 'Close assistant' : 'Open assistant'}
@@ -294,7 +306,12 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           {isVisible ? (
             <X className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
           ) : (
-            <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-10 w-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
+            <>
+              <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-10 w-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
+              {connectionStatus === 'connected' && (
+                <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+              )}
+            </>
           )}
         </Button>
       </div>

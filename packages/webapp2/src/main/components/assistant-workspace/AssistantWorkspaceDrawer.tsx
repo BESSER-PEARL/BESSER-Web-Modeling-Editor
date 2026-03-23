@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronDown, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles } from 'lucide-react';
+import { ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -376,7 +376,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       <section
         ref={drawerRef}
         className={cn(
-          'pointer-events-none absolute inset-0 z-40 flex flex-col overflow-hidden bg-transparent',
+          'pointer-events-none absolute inset-0 z-40 flex flex-col overflow-visible bg-transparent',
           !isDragging && 'transition-transform duration-300 ease-out',
         )}
         style={{
@@ -387,9 +387,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         }}
         aria-hidden={!open && !isDragging}
       >
+        {/* Content area */}
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col bg-background shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] transition-opacity duration-300',
+            'relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] transition-opacity duration-300',
             (open || isDragging) ? 'pointer-events-auto' : 'pointer-events-none',
             openProgress < 0.02 && !open && !isDragging && 'opacity-0',
           )}
@@ -500,8 +501,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               {/* Top spacer — pushes content to vertical center */}
               <div className="flex-[1_1_10%] min-h-6" />
 
-              {/* Content column */}
-              <div className="relative z-10 w-full max-w-2xl px-6 sm:px-8">
+              {/* Welcome content column — was max-w-2xl, now max-w-5xl (1024px) for wider screens */}
+              <div className="relative z-10 w-full max-w-5xl px-6 sm:px-8">
 
                 {/* Brand mark + AI badge */}
                 <div className="animate-fade-up flex items-center justify-center gap-3" style={{ animationDelay: '0ms' }}>
@@ -537,9 +538,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </span>
                 </p>
 
-                {/* Chat input — animated gradient border */}
+                {/* Chat input — animated gradient border, capped at max-w-2xl (was full width of max-w-5xl parent) */}
                 <div
-                  className="animate-fade-up mt-9"
+                  className="animate-fade-up mx-auto mt-9 max-w-2xl"
                   style={{ animationDelay: '200ms' }}
                 >
                   <div className="input-card-glow rounded-2xl p-3 shadow-elevation-3 sm:p-4">
@@ -613,7 +614,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             /*  Chat View                                                        */
             /* ================================================================ */
             <>
-              {/* Messages */}
+              {/* Messages — kept at max-w-4xl (896px) for readability */}
               <div ref={messageListContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
@@ -633,7 +634,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 </div>
               </div>
 
-              {/* Bottom bar */}
+              {/* Bottom bar — kept at max-w-4xl (896px) to match messages */}
               <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <div className="mb-2 flex items-center justify-between">
@@ -660,27 +661,36 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               </div>
             </>
           )}
+
         </div>
 
-        {/* Centered drag handle notch — hangs from app bar */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-7 items-start justify-center">
+        {/* Drag handle tab — hangs below the content */}
+        <div className="pointer-events-none relative flex shrink-0 justify-center">
+          <div
+            className="absolute inset-0 z-0 bg-background transition-opacity duration-300"
+            style={{ opacity: Math.min(openProgress * 1.5, 1) }}
+          />
           <div
             className={cn(
-              'pointer-events-auto flex cursor-row-resize touch-none select-none items-center gap-2 rounded-b-lg px-4 py-1.5 transition-all duration-200',
+              'pointer-events-auto relative z-10 flex cursor-row-resize touch-none select-none items-center gap-2 px-5 py-1.5 transition-all duration-200',
               openProgress > 0.5
-                ? 'bg-background/90 shadow-sm backdrop-blur-sm'
-                : 'bg-white/80 shadow-[0_2px_8px_-2px_hsl(var(--brand)/0.15)] backdrop-blur-sm hover:bg-white/95 hover:shadow-[0_3px_12px_-2px_hsl(var(--brand)/0.2)] dark:bg-slate-800/80 dark:shadow-[0_2px_8px_-2px_rgba(0,0,0,0.3)] dark:hover:bg-slate-800/95',
+                ? 'bg-transparent'
+                : 'rounded-b-xl bg-background border border-t-0 border-border/40 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.12)] hover:shadow-[0_6px_16px_-4px_rgba(0,0,0,0.16)] dark:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_6px_16px_-4px_rgba(0,0,0,0.5)]',
             )}
             onPointerDown={handlePointerDown}
             role="button"
             aria-label={open ? 'Push up to close assistant' : 'Pull down to open assistant'}
             tabIndex={0}
           >
-            <div className="flex flex-col items-center gap-[2px]">
-              <span className="block h-[1.5px] w-4 rounded-full bg-brand/20" />
-              <span className="block h-[1.5px] w-3 rounded-full bg-brand/15" />
-              <span className="block h-[1.5px] w-2 rounded-full bg-brand/10" />
-            </div>
+            {openProgress > 0.75 ? (
+              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/40" />
+            ) : (
+              <div className="flex flex-col items-center gap-[2px]">
+                <span className="block h-[1.5px] w-4 rounded-full bg-brand/20" />
+                <span className="block h-[1.5px] w-3 rounded-full bg-brand/15" />
+                <span className="block h-[1.5px] w-2 rounded-full bg-brand/10" />
+              </div>
+            )}
             <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
               {openProgress > 0.75 ? 'Push up' : 'Pull down assistant'}
             </span>
