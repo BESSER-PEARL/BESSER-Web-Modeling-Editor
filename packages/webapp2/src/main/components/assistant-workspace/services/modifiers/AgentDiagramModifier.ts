@@ -13,12 +13,15 @@ export class AgentDiagramModifier implements DiagramModifier {
 
   canHandle(action: string): boolean {
     return [
+      'add_state',
+      'add_intent',
       'modify_state',
       'modify_intent',
       'add_transition',
       'remove_element',
       'remove_transition',
-      'add_state_body'
+      'add_state_body',
+      'add_rag_element'
     ].includes(action);
   }
 
@@ -26,6 +29,10 @@ export class AgentDiagramModifier implements DiagramModifier {
     const updatedModel = ModifierHelpers.cloneModel(model);
 
     switch (modification.action) {
+      case 'add_state':
+        return this.addState(updatedModel, modification);
+      case 'add_intent':
+        return this.addIntent(updatedModel, modification);
       case 'modify_state':
         return this.modifyState(updatedModel, modification);
       case 'modify_intent':
@@ -36,11 +43,134 @@ export class AgentDiagramModifier implements DiagramModifier {
         return this.removeTransition(updatedModel, modification);
       case 'add_state_body':
         return this.addStateBody(updatedModel, modification);
+      case 'add_rag_element':
+        return this.addRagElement(updatedModel, modification);
       case 'remove_element':
         return this.removeElement(updatedModel, modification);
       default:
         throw new Error(`Unsupported action for AgentDiagram: ${modification.action}`);
     }
+  }
+
+  /**
+   * Add a new agent state with optional reply bodies
+   */
+  private addState(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const changes = modification.changes;
+    const target = modification.target;
+
+    // Auto-position: find max Y of existing elements and place below
+    let maxY = 0;
+    for (const element of Object.values(model.elements)) {
+      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    const pos = { x: 100, y: maxY + 40 };
+
+    const stateId = ModifierHelpers.generateUniqueId('state');
+    const bodies: string[] = [];
+    const fallbackBodies: string[] = [];
+
+    // Estimate width from reply text lengths
+    const replies = changes.replies || [];
+    let stateWidth = 210;
+    for (const reply of replies) {
+      const estimated = (reply.text || '').length * 8 + 40;
+      if (estimated > stateWidth) stateWidth = estimated;
+    }
+    const bodyWidth = stateWidth - 1;
+
+    // Create state body elements from replies
+    let currentY = pos.y + 41;
+    for (const reply of replies) {
+      const bodyId = ModifierHelpers.generateUniqueId('body');
+      bodies.push(bodyId);
+
+      const bodyElement: any = {
+        id: bodyId,
+        name: reply.text || '',
+        type: 'AgentStateBody',
+        owner: stateId,
+        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
+        replyType: reply.replyType || 'text'
+      };
+      if (reply.ragDatabaseName) {
+        bodyElement.ragDatabaseName = reply.ragDatabaseName;
+      }
+      model.elements[bodyId] = bodyElement;
+      currentY += 30;
+    }
+
+    const totalHeight = Math.max(70, currentY - pos.y);
+
+    model.elements[stateId] = {
+      id: stateId,
+      name: target.stateName || changes.name || '',
+      type: 'AgentState',
+      owner: null,
+      bounds: { x: pos.x, y: pos.y, width: stateWidth, height: totalHeight },
+      bodies,
+      fallbackBodies
+    };
+
+    return model;
+  }
+
+  /**
+   * Add a new intent with optional training phrases
+   */
+  private addIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const changes = modification.changes;
+    const target = modification.target;
+
+    // Auto-position: find max Y of existing elements and place below
+    let maxY = 0;
+    for (const element of Object.values(model.elements)) {
+      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    const pos = { x: 100, y: maxY + 40 };
+
+    const intentId = ModifierHelpers.generateUniqueId('intent');
+    const bodies: string[] = [];
+    const phrases = changes.trainingPhrases || [];
+
+    // Estimate width from phrase text lengths
+    let intentWidth = 230;
+    for (const phrase of phrases) {
+      const estimated = phrase.length * 8 + 40;
+      if (estimated > intentWidth) intentWidth = estimated;
+    }
+    const bodyWidth = intentWidth - 1;
+
+    // Create intent body elements from training phrases
+    let currentY = pos.y + 41;
+    for (const phrase of phrases) {
+      const bodyId = ModifierHelpers.generateUniqueId('intentBody');
+      bodies.push(bodyId);
+
+      model.elements[bodyId] = {
+        id: bodyId,
+        name: phrase,
+        type: 'AgentIntentBody',
+        owner: intentId,
+        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 }
+      };
+      currentY += 30;
+    }
+
+    const totalHeight = Math.max(130, currentY - pos.y + 10);
+
+    model.elements[intentId] = {
+      id: intentId,
+      name: target.intentName || changes.intentName || changes.name || '',
+      type: 'AgentIntent',
+      owner: null,
+      bounds: { x: pos.x, y: pos.y, width: intentWidth, height: totalHeight },
+      bodies
+    };
+
+    return model;
   }
 
   /**
@@ -151,19 +281,23 @@ export class AgentDiagramModifier implements DiagramModifier {
     }
 
     // Create new state body
-    model.elements[bodyId] = {
+    const newBody: any = {
       id: bodyId,
       name: modification.changes.text || 'New reply',
       type: 'AgentStateBody',
       owner: targetId,
-      bounds: { 
-        x: stateElement.bounds.x + 0.5, 
-        y: newY, 
-        width: 209, 
-        height: 30 
+      bounds: {
+        x: stateElement.bounds.x + 0.5,
+        y: newY,
+        width: 209,
+        height: 30
       },
       replyType: modification.changes.replyType || 'text'
     };
+    if (modification.changes.ragDatabaseName) {
+      newBody.ragDatabaseName = modification.changes.ragDatabaseName;
+    }
+    model.elements[bodyId] = newBody;
 
     // Update state to include new body
     stateElement.bodies = [...bodies, bodyId];
@@ -267,6 +401,34 @@ export class AgentDiagramModifier implements DiagramModifier {
         }
       }
     }
+
+    return model;
+  }
+
+  /**
+   * Add a RAG knowledge base element
+   */
+  private addRagElement(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const target = modification.target;
+    const changes = modification.changes;
+
+    // Auto-position: find max Y of existing elements and place below
+    let maxY = 0;
+    for (const element of Object.values(model.elements)) {
+      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    const pos = { x: 100, y: maxY + 40 };
+
+    const ragId = ModifierHelpers.generateUniqueId('rag');
+
+    model.elements[ragId] = {
+      type: 'AgentRagElement',
+      id: ragId,
+      name: target.name || changes.name || 'RAG DB',
+      owner: null,
+      bounds: { x: pos.x, y: pos.y, width: 140, height: 120 }
+    };
 
     return model;
   }

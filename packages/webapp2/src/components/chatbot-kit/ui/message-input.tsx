@@ -243,7 +243,7 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-24 text-sm ring-offset-background transition-all placeholder:text-muted-foreground focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              "relative z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-24 text-sm ring-offset-background transition-[color,border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
               showFileList && "pb-16",
               className
             )}
@@ -253,8 +253,8 @@ export function MessageInput({
           />
 
           {showFileList && (
-            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-auto py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <div className="flex space-x-3">
+            <div className="pointer-events-none absolute inset-x-3 bottom-0 z-20 overflow-x-auto py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="flex space-x-3 [&>*]:pointer-events-auto">
                 <AnimatePresence mode="popLayout">
                   {props.files?.map((file) => {
                     return (

@@ -74,7 +74,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       const bodyId = generateUniqueId('body');
       bodies.push(bodyId);
 
-      bodyElements[bodyId] = {
+      const bodyElement: any = {
         id: bodyId,
         name: body.text || body,
         type: 'AgentStateBody',
@@ -82,6 +82,10 @@ export class AgentDiagramConverter implements DiagramConverter {
         bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
         replyType: body.replyType || 'text'
       };
+      if (body.ragDatabaseName) {
+        bodyElement.ragDatabaseName = body.ragDatabaseName;
+      }
+      bodyElements[bodyId] = bodyElement;
       currentY += 30;
     });
 
@@ -242,6 +246,22 @@ export class AgentDiagramConverter implements DiagramConverter {
       }
     });
     
+    // Create RAG elements if present
+    if (systemSpec.ragElements) {
+      let ragX = -640;
+      for (const ragSpec of systemSpec.ragElements) {
+        const ragId = generateUniqueId('rag');
+        allElements[ragId] = {
+          type: 'AgentRagElement',
+          id: ragId,
+          name: ragSpec.name || 'RAG DB',
+          owner: null,
+          bounds: { x: ragX, y: -500, width: 140, height: 120 }
+        };
+        ragX += 180;
+      }
+    }
+
     return {
       version: "3.0.0",
       type: "AgentDiagram",

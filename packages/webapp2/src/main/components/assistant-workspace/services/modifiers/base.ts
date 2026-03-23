@@ -26,6 +26,7 @@ export interface ModificationTarget {
   transitionId?: string;
   objectId?: string;
   objectName?: string;
+  name?: string;
 }
 
 export interface ModificationChanges {
@@ -50,8 +51,22 @@ export interface ModificationChanges {
   value?: string;
   // add_class fields
   className?: string;
-  attributes?: Array<{ name: string; type?: string; visibility?: string }>;
+  attributes?: Array<{ name: string; type?: string; visibility?: string; value?: string }>;
   methods?: Array<{ name: string; returnType?: string; visibility?: string; parameters?: Array<{ name: string; type: string }> }>;
+  // add_state fields
+  stateType?: string;
+  entryAction?: string;
+  exitAction?: string;
+  doActivity?: string;
+  // add_state (agent) / add_intent fields
+  replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
+  trainingPhrases?: string[];
+  intentName?: string;
+  objectName?: string;
+  ragDatabaseName?: string;
+  implementationType?: string;
+  code?: string;
+  language?: string;
 }
 
 export interface ModelModification {
@@ -73,11 +88,17 @@ export interface ModelModification {
     | 'modify_object'
     | 'modify_attribute_value'
     | 'add_link'
+    | 'add_state'
+    | 'add_object'
+    | 'add_intent'
+    | 'add_intent_training_phrase'
     | 'extract_class'
     | 'split_class'
     | 'merge_classes'
     | 'promote_attribute'
-    | 'add_enum';
+    | 'add_enum'
+    | 'add_code_block'
+    | 'add_rag_element';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;

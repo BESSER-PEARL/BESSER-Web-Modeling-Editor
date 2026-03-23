@@ -94,6 +94,10 @@ class EditorComponent extends Component<Props, State> {
   private wheelHandler = (event: WheelEvent) => {
     if (event.ctrlKey) {
       event.preventDefault();
+      const step = 0.1;
+      const direction = event.deltaY < 0 ? step : -step;
+      const newZoom = clamp(this.props.scale + direction, minScale, maxScale);
+      this.props.setZoomFactor(newZoom);
     }
   };
 

@@ -27,17 +27,18 @@ const TYPE_ALIASES: Record<string, string> = {
 // Valid BESSER primitive types
 const VALID_PRIMITIVES = new Set(['str', 'int', 'bool', 'float', 'date', 'datetime', 'time', 'any']);
 
-const normalizeType = (type: string, classNames?: Set<string>): string => {
-  if (!type) return 'str';
+const normalizeType = (type: string | null | undefined, classNames?: Set<string>): string => {
+  if (!type) return '';
   const trimmed = type.trim();
+  if (!trimmed) return '';
   const aliased = TYPE_ALIASES[trimmed];
   if (aliased) return aliased;
-  // If the type matches a class name in the model, keep it (custom type reference)
+  // If the type matches a class name in the model, keep it (custom type / enum reference)
   if (classNames && classNames.has(trimmed)) return trimmed;
   // If it's already a valid primitive, keep it
   if (VALID_PRIMITIVES.has(trimmed)) return trimmed;
-  // Unknown type — default to str
-  return 'str';
+  // Unknown type — keep as-is (could be an enum or custom class name)
+  return trimmed;
 };
 
 export class ClassDiagramModifier implements DiagramModifier {
@@ -142,7 +143,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     let posX = 0;
     let posY = 0;
     for (const el of Object.values(model.elements)) {
-      if (el.type === 'Class' || el.type === 'Enumeration') {
+      if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') {
         const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 220);
         if (right + 80 > posX) {
           posX = right + 80;
@@ -162,10 +163,36 @@ export class ClassDiagramModifier implements DiagramModifier {
       methods: [],
     };
 
+    // Handle abstract class
+    const classIsAbstract = modification.changes?.isAbstract ??
+      (modification as any).isAbstract;
+    if (classIsAbstract) {
+      model.elements[classId].type = 'AbstractClass';
+      model.elements[classId].italic = true;
+      model.elements[classId].stereotype = 'abstract';
+    }
+
+    // Handle enumeration
+    const classIsEnumeration = modification.changes?.isEnumeration ??
+      (modification as any).isEnumeration;
+    if (classIsEnumeration) {
+      model.elements[classId].type = 'Enumeration';
+      model.elements[classId].stereotype = 'enumeration';
+    }
+
+    // Handle interface
+    const classIsInterface = modification.changes?.isInterface ??
+      (modification as any).isInterface;
+    if (classIsInterface) {
+      model.elements[classId].type = 'Interface';
+      model.elements[classId].italic = true;
+      model.elements[classId].stereotype = 'interface';
+    }
+
     // Collect all class names for type resolution
     const classNames = new Set<string>();
     for (const el of Object.values(model.elements)) {
-      if (el.type === 'Class') classNames.add(el.name);
+      if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') classNames.add(el.name);
     }
     classNames.add(className);
 
@@ -177,17 +204,29 @@ export class ClassDiagramModifier implements DiagramModifier {
       const attrY = posY + 50 + i * 25;
       const visibility = attrSpec.visibility || 'public';
       const visSymbol = visibility === 'private' ? '-' : visibility === 'protected' ? '#' : '+';
-      const type = normalizeType(attrSpec.type || 'str', classNames);
+      const type = normalizeType(attrSpec.type, classNames);
 
-      model.elements[attrId] = {
+      const attrElement: any = {
         id: attrId,
-        name: `${visSymbol} ${attrSpec.name}: ${type}`,
+        name: attrSpec.name,
         type: 'ClassAttribute',
         owner: classId,
         bounds: { x: posX + 1, y: attrY, width: 218, height: 25 },
         visibility: visibility,
         attributeType: type,
       };
+
+      if (attrSpec.isDerived) {
+        attrElement.isDerived = true;
+      }
+      if (attrSpec.defaultValue !== undefined && attrSpec.defaultValue !== null) {
+        attrElement.defaultValue = attrSpec.defaultValue;
+      }
+      if (attrSpec.isOptional) {
+        attrElement.isOptional = true;
+      }
+
+      model.elements[attrId] = attrElement;
       model.elements[classId].attributes.push(attrId);
     }
 
@@ -236,7 +275,38 @@ export class ClassDiagramModifier implements DiagramModifier {
       element.visibility = modification.changes.visibility;
     }
     if (typeof (modification.changes as any).isAbstract === 'boolean') {
-      element.isAbstract = (modification.changes as any).isAbstract;
+      const isAbstract = (modification.changes as any).isAbstract;
+      element.italic = isAbstract;
+      if (isAbstract) {
+        element.type = 'AbstractClass';
+        element.stereotype = 'abstract';
+      } else {
+        element.type = 'Class';
+        delete element.stereotype;
+      }
+    }
+    if (typeof (modification.changes as any).isEnumeration === 'boolean') {
+      const isEnumeration = (modification.changes as any).isEnumeration;
+      if (isEnumeration) {
+        element.type = 'Enumeration';
+        element.stereotype = 'enumeration';
+        delete element.italic;
+      } else if (element.type === 'Enumeration') {
+        element.type = 'Class';
+        delete element.stereotype;
+      }
+    }
+    if (typeof (modification.changes as any).isInterface === 'boolean') {
+      const isInterface = (modification.changes as any).isInterface;
+      if (isInterface) {
+        element.type = 'Interface';
+        element.italic = true;
+        element.stereotype = 'interface';
+      } else if (element.type === 'Interface') {
+        element.type = 'Class';
+        delete element.stereotype;
+        delete element.italic;
+      }
     }
     if ((modification.changes as any).stereotype !== undefined) {
       element.stereotype = (modification.changes as any).stereotype;
@@ -261,17 +331,28 @@ export class ClassDiagramModifier implements DiagramModifier {
       classElement.attributes = [];
     }
 
+    const name = modification.changes.name || 'newAttribute';
+
+    // Skip if attribute with the same name already exists on this class
+    const existingAttr = classElement.attributes.some((attrId: string) => {
+      const attr = model.elements[attrId];
+      return attr && (attr.name === name || attr.name?.toLowerCase() === name.toLowerCase());
+    });
+    if (existingAttr) {
+      console.warn(`[ClassDiagramModifier] addAttribute: '${name}' already exists on '${className}', skipping.`);
+      return model;
+    }
+
     const attrId = ModifierHelpers.generateUniqueId('attr');
     const visibility = modification.changes.visibility || 'public';
-    const name = modification.changes.name || 'newAttribute';
-    const type = normalizeType(modification.changes.type || 'str');
+    const type = normalizeType(modification.changes.type) || 'str';
 
     // Compute bounds: place below last existing attribute
     const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
     const existingAttrCount = classElement.attributes.length;
     const attrY = classBounds.y + 50 + existingAttrCount * 25; // header(50) + rows
 
-    model.elements[attrId] = {
+    const attrElement: any = {
       id: attrId,
       name: name,
       type: 'ClassAttribute',
@@ -280,6 +361,18 @@ export class ClassDiagramModifier implements DiagramModifier {
       visibility: visibility,
       attributeType: type,
     };
+
+    if (modification.changes.isDerived) {
+      attrElement.isDerived = true;
+    }
+    if (modification.changes.defaultValue !== undefined && modification.changes.defaultValue !== null) {
+      attrElement.defaultValue = modification.changes.defaultValue;
+    }
+    if (modification.changes.isOptional) {
+      attrElement.isOptional = true;
+    }
+
+    model.elements[attrId] = attrElement;
 
     classElement.attributes.push(attrId);
 
@@ -320,13 +413,26 @@ export class ClassDiagramModifier implements DiagramModifier {
     const existingMethodCount = classElement.methods.length;
     const methodY = classBounds.y + 50 + existingAttrCount * 25 + 10 + existingMethodCount * 25;
 
-    model.elements[methodId] = {
+    const methodElement: any = {
       id: methodId,
       name: methodLabel,
       type: 'ClassMethod',
       owner: classId,
       bounds: { x: classBounds.x + 1, y: methodY, width: (classBounds.width || 220) - 2, height: 25 },
     };
+
+    if (modification.changes.code) {
+      methodElement.code = modification.changes.code;
+      if (!modification.changes.implementationType) {
+        methodElement.implementationType = 'code';
+      }
+    }
+
+    if (modification.changes.implementationType) {
+      methodElement.implementationType = modification.changes.implementationType;
+    }
+
+    model.elements[methodId] = methodElement;
 
     classElement.methods.push(methodId);
 
@@ -379,12 +485,28 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (targetId && model.elements[targetId]) {
       const element = model.elements[targetId];
       const parsed = this.parseAttributeLabel(element.name || '');
-      const visibilitySymbol =
-        this.visibilityToSymbol(modification.changes.visibility) || parsed.visibilitySymbol || '+';
-      const name = modification.changes.name || parsed.name || this.normalizeAttributeName(element.name || '');
-      const type = normalizeType(modification.changes.type || parsed.type || 'str');
 
-      element.name = `${visibilitySymbol} ${name}: ${type}`;
+      if (modification.changes.name) {
+        element.name = modification.changes.name;
+      } else if (parsed.name) {
+        element.name = parsed.name;
+      }
+      if (modification.changes.visibility) {
+        element.visibility = modification.changes.visibility;
+      }
+      if (modification.changes.type) {
+        element.attributeType = normalizeType(modification.changes.type);
+      }
+
+      if (typeof modification.changes.isDerived === 'boolean') {
+        element.isDerived = modification.changes.isDerived;
+      }
+      if (modification.changes.defaultValue !== undefined) {
+        element.defaultValue = modification.changes.defaultValue;
+      }
+      if (typeof modification.changes.isOptional === 'boolean') {
+        element.isOptional = modification.changes.isOptional;
+      }
     } else {
       console.warn(
         `[ClassDiagramModifier] modifyAttribute: could not find attribute '${attributeName || attributeId}' in class '${className}'`
@@ -443,6 +565,17 @@ export class ClassDiagramModifier implements DiagramModifier {
       const paramStr = parameters.join(', ');
 
       element.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
+
+      if (modification.changes.code) {
+        element.code = modification.changes.code;
+        if (!modification.changes.implementationType) {
+          element.implementationType = 'code';
+        }
+      }
+
+      if (modification.changes.implementationType) {
+        element.implementationType = modification.changes.implementationType;
+      }
     } else {
       console.warn(
         `[ClassDiagramModifier] modifyMethod: could not find method '${methodName || methodId}' in class '${className}'`
@@ -820,12 +953,14 @@ export class ClassDiagramModifier implements DiagramModifier {
           const attrY = newY + 50 + ai * 25;
           model.elements[attrId] = {
             id: attrId,
-            name: `+ ${attrSpec.name}: ${normalizeType(attrSpec.type || 'str')}`,
+            name: attrSpec.name,
+            visibility: attrSpec.visibility || 'public',
+            attributeType: normalizeType(attrSpec.type),
             type: 'ClassAttribute',
             owner: newClassId,
             bounds: { x: newX + 1, y: attrY, width: 218, height: 25 },
             visibility: attrSpec.visibility || 'public',
-            attributeType: normalizeType(attrSpec.type || 'str'),
+            attributeType: normalizeType(attrSpec.type),
           };
           model.elements[newClassId].attributes.push(attrId);
         }
@@ -1078,14 +1213,16 @@ export class ClassDiagramModifier implements DiagramModifier {
       const attrY = newClassY + 50 + i * 25;
       const visibility = attrSpec.visibility || 'public';
       const visSymbol = visibility === 'private' ? '-' : visibility === 'protected' ? '#' : '+';
-      const type = normalizeType(attrSpec.type || 'str');
+      const type = normalizeType(attrSpec.type);
 
       model.elements[newAttrId] = {
         id: newAttrId,
-        name: `${visSymbol} ${attrSpec.name}: ${type}`,
+        name: attrSpec.name,
         type: 'ClassAttribute',
         owner: newClassId,
         bounds: { x: newClassX + 1, y: attrY, width: 218, height: 25 },
+        visibility: visibility,
+        attributeType: type,
         visibility: visibility,
         attributeType: type,
       };
@@ -1137,7 +1274,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     } else {
       // Place after the rightmost element
       for (const el of Object.values(model.elements)) {
-        if (el.type === 'Class' || el.type === 'Enumeration') {
+        if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') {
           const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 220);
           if (right + 80 > posX) {
             posX = right + 80;
@@ -1268,7 +1405,11 @@ export class ClassDiagramModifier implements DiagramModifier {
 
   // Helper methods
   private findClassIdByName(model: BESSERModel, className: string): string | null {
-    return ModifierHelpers.findElementByName(model, className, 'Class');
+    // Search across all class-like types (Class, AbstractClass, Interface, Enumeration)
+    return ModifierHelpers.findElementByName(model, className, 'Class')
+      ?? ModifierHelpers.findElementByName(model, className, 'AbstractClass')
+      ?? ModifierHelpers.findElementByName(model, className, 'Interface')
+      ?? ModifierHelpers.findElementByName(model, className, 'Enumeration');
   }
 
   /**
@@ -1287,7 +1428,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     } else {
       // Fallback: find the rightmost class and place to its right
       for (const el of Object.values(model.elements)) {
-        if (el.type === 'Class') {
+        if (el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface' || el.type === 'Enumeration') {
           const right = (el.bounds?.x ?? 0) + (el.bounds?.width ?? 250);
           if (right + 80 > x) {
             x = right + 80;

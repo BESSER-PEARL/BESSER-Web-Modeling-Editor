@@ -26,17 +26,18 @@ const TYPE_ALIASES: Record<string, string> = {
 // Valid BESSER primitive types
 const VALID_PRIMITIVES = new Set(['str', 'int', 'bool', 'float', 'date', 'datetime', 'time', 'any']);
 
-const normalizeType = (type: string, classNames?: Set<string>): string => {
-  if (!type) return 'str';
+const normalizeType = (type: string | null | undefined, classNames?: Set<string>): string => {
+  if (!type) return '';
   const trimmed = type.trim();
+  if (!trimmed) return '';
   const aliased = TYPE_ALIASES[trimmed];
   if (aliased) return aliased;
-  // If the type matches a class name in the model, keep it (custom type reference)
+  // If the type matches a class name in the model, keep it (custom type / enum reference)
   if (classNames && classNames.has(trimmed)) return trimmed;
   // If it's already a valid primitive, keep it
   if (VALID_PRIMITIVES.has(trimmed)) return trimmed;
-  // Unknown type — default to str
-  return 'str';
+  // Unknown type — keep as-is (could be an enum or custom class name)
+  return trimmed;
 };
 
 export class ClassDiagramConverter implements DiagramConverter {
@@ -46,7 +47,7 @@ export class ClassDiagramConverter implements DiagramConverter {
     return 'ClassDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }) {
+  convertSingleElement(spec: any, position?: { x: number; y: number }, classNames?: Set<string>) {
     const pos = position || this.positionGenerator.getNextPosition();
     const classId = generateUniqueId('class');
     
@@ -55,7 +56,7 @@ export class ClassDiagramConverter implements DiagramConverter {
     const methodHeight = (spec.methods?.length || 0) * 25 + (spec.methods?.length > 0 ? 10 : 0);
     const totalHeight = baseHeight + attrHeight + methodHeight;
     
-    const classElement = {
+    const classElement: any = {
       type: "Class",
       id: classId,
       name: spec.className,
@@ -64,8 +65,25 @@ export class ClassDiagramConverter implements DiagramConverter {
       attributes: [] as string[],
       methods: [] as string[]
     };
+
+    if (spec.isAbstract) {
+      classElement.type = 'AbstractClass';
+      classElement.italic = true;
+      classElement.stereotype = 'abstract';
+    }
+
+    if (spec.isEnumeration) {
+      classElement.type = 'Enumeration';
+      classElement.stereotype = 'enumeration';
+    }
+
+    if (spec.isInterface) {
+      classElement.type = 'Interface';
+      classElement.italic = true;
+      classElement.stereotype = 'interface';
+    }
     
-    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x);
+    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x, classNames);
     const { methods } = this.createMethods(spec, classId, attrEndY, pos.x);
     
     classElement.attributes = Object.keys(attributes);
@@ -83,12 +101,16 @@ export class ClassDiagramConverter implements DiagramConverter {
     const allElements: Record<string, any> = {};
     const allRelationships: Record<string, any> = {};
     const classIdMap: Record<string, string> = {};
-    
+
+    // Collect all class/enum names so attribute types can reference them
+    const allClassNames = new Set<string>();
+    systemSpec.classes?.forEach((c: any) => { if (c.className) allClassNames.add(c.className); });
+
     systemSpec.classes?.forEach((classSpec: any) => {
       const position = classSpec.position || this.positionGenerator.getNextPosition();
-      const completeElement = this.convertSingleElement(classSpec, position);
+      const completeElement = this.convertSingleElement(classSpec, position, allClassNames);
       classIdMap[classSpec.className] = completeElement.class.id;
-      
+
       allElements[completeElement.class.id] = completeElement.class;
       Object.assign(allElements, completeElement.attributes);
       Object.assign(allElements, completeElement.methods);
@@ -138,16 +160,16 @@ export class ClassDiagramConverter implements DiagramConverter {
     };
   }
 
-  private createAttributes(spec: any, classId: string, startY: number, startX: number) {
+  private createAttributes(spec: any, classId: string, startY: number, startX: number, classNames?: Set<string>) {
     const attributes: Record<string, any> = {};
     let currentY = startY;
-    
+
     spec.attributes?.forEach((attr: any) => {
       const attrId = generateUniqueId('attr');
       const visibility = attr.visibility || 'public';
-      const normalizedType = normalizeType(attr.type);
+      const normalizedType = normalizeType(attr.type, classNames);
       
-      attributes[attrId] = {
+      const attrElement: any = {
         id: attrId,
         name: attr.name,
         type: "ClassAttribute",
@@ -156,6 +178,18 @@ export class ClassDiagramConverter implements DiagramConverter {
         visibility: visibility,
         attributeType: normalizedType,
       };
+
+      if (attr.isDerived) {
+        attrElement.isDerived = true;
+      }
+      if (attr.defaultValue !== undefined && attr.defaultValue !== null) {
+        attrElement.defaultValue = attr.defaultValue;
+      }
+      if (attr.isOptional) {
+        attrElement.isOptional = true;
+      }
+
+      attributes[attrId] = attrElement;
       
       currentY += 25;
     });
@@ -176,13 +210,26 @@ export class ClassDiagramConverter implements DiagramConverter {
       const normalizedReturnType = normalizeType(method.returnType);
       const methodName = `${visibilitySymbol} ${method.name}(${paramStr}): ${normalizedReturnType}`;
       
-      methods[methodId] = {
+      const methodElement: any = {
         id: methodId,
         name: methodName,
         type: "ClassMethod",
         owner: classId,
         bounds: { x: startX + 1, y: currentY, width: 218, height: 25 }
       };
+
+      if (method.code) {
+        methodElement.code = method.code;
+        if (!method.implementationType) {
+          methodElement.implementationType = 'code';
+        }
+      }
+
+      if (method.implementationType) {
+        methodElement.implementationType = method.implementationType;
+      }
+
+      methods[methodId] = methodElement;
       
       currentY += 25;
     });

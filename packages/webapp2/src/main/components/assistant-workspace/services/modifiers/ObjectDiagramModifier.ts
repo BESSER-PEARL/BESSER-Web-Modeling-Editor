@@ -13,6 +13,7 @@ export class ObjectDiagramModifier implements DiagramModifier {
 
   canHandle(action: string): boolean {
     return [
+      'add_object',
       'modify_object',
       'modify_attribute_value',
       'add_link',
@@ -24,6 +25,8 @@ export class ObjectDiagramModifier implements DiagramModifier {
     const updatedModel = ModifierHelpers.cloneModel(model);
 
     switch (modification.action) {
+      case 'add_object':
+        return this.addObject(updatedModel, modification);
       case 'modify_object':
         return this.modifyObject(updatedModel, modification);
       case 'modify_attribute_value':
@@ -35,6 +38,59 @@ export class ObjectDiagramModifier implements DiagramModifier {
       default:
         throw new Error(`Unsupported action for ObjectDiagram: ${modification.action}`);
     }
+  }
+
+  private addObject(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const changes = modification.changes;
+    const target = modification.target;
+
+    const objectName = changes.objectName || target.objectName || changes.name || 'object';
+    const className = changes.className || '';
+
+    // Auto-position: find max Y of existing elements and place below
+    let maxY = 0;
+    for (const element of Object.values(model.elements)) {
+      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    const pos = { x: 100, y: maxY + 40 };
+
+    const objectId = ModifierHelpers.generateUniqueId('object');
+    const attrs = changes.attributes || [];
+    const baseHeight = 80;
+    const attrHeight = attrs.length * 30;
+    const totalHeight = baseHeight + attrHeight;
+
+    // Create ObjectName element
+    const objectElement: any = {
+      type: 'ObjectName',
+      id: objectId,
+      name: `${objectName}: ${className}`,
+      owner: null,
+      bounds: { x: pos.x, y: pos.y, width: 240, height: totalHeight },
+      attributes: [] as string[],
+      methods: []
+    };
+
+    // Create ObjectAttribute children
+    let currentY = pos.y + 60;
+    for (const attr of attrs) {
+      const attrId = ModifierHelpers.generateUniqueId('attr');
+      objectElement.attributes.push(attrId);
+
+      model.elements[attrId] = {
+        id: attrId,
+        name: `${attr.name} = ${attr.value || ''}`,
+        type: 'ObjectAttribute',
+        owner: objectId,
+        bounds: { x: pos.x + 1, y: currentY, width: 238, height: 30 }
+      };
+      currentY += 30;
+    }
+
+    model.elements[objectId] = objectElement;
+
+    return model;
   }
 
   private modifyObject(model: BESSERModel, modification: ModelModification): BESSERModel {

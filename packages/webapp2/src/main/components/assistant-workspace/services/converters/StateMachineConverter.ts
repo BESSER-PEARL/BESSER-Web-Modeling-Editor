@@ -175,6 +175,23 @@ export class StateMachineConverter implements DiagramConverter {
       }
     });
     
+    // Create code blocks if present
+    if (systemSpec.codeBlocks) {
+      for (const codeBlock of systemSpec.codeBlocks) {
+        const codeBlockPos = this.positionGenerator.getNextPosition();
+        const codeBlockId = generateUniqueId('codeblock');
+        allElements[codeBlockId] = {
+          type: 'StateCodeBlock',
+          id: codeBlockId,
+          name: codeBlock.name || 'Code',
+          code: codeBlock.code || '',
+          language: codeBlock.language || 'python',
+          owner: null,
+          bounds: { x: codeBlockPos.x, y: codeBlockPos.y, width: 200, height: 150 }
+        };
+      }
+    }
+
     return {
       version: "3.0.0",
       type: "StateMachineDiagram",
