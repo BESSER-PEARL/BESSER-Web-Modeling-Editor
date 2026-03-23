@@ -238,7 +238,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       const methodId = ModifierHelpers.generateUniqueId('method');
       const methodY = posY + 50 + attrCount * 25 + 10 + i * 25;
       const visSymbol = methodSpec.visibility === 'private' ? '-' : methodSpec.visibility === 'protected' ? '#' : '+';
-      const paramStr = methodSpec.parameters?.map((p: any) => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+      const paramStr = methodSpec.parameters?.map((p: any) => `${p.name}`).join(', ') || '';
       const returnType = normalizeType(methodSpec.returnType || 'any');
 
       model.elements[methodId] = {
@@ -405,7 +405,7 @@ export class ClassDiagramModifier implements DiagramModifier {
                               modification.changes.visibility === 'protected' ? '#' : '+';
     const name = modification.changes.name || 'newMethod';
     const returnType = normalizeType(modification.changes.returnType || 'any');
-    const paramStr = modification.changes.parameters?.map(p => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+    const paramStr = modification.changes.parameters?.map(p => `${p.name}`).join(', ') || '';
     const methodLabel = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
 
     const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
@@ -561,7 +561,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       const name = modification.changes.name || parsed.name || this.normalizeMethodName(element.name || '');
       const returnType = normalizeType(modification.changes.returnType || parsed.returnType || 'any');
       const parameters =
-        modification.changes.parameters?.map(p => `${p.name}: ${normalizeType(p.type)}`) || parsed.parameters;
+        modification.changes.parameters?.map(p => `${p.name}`) || parsed.parameters;
       const paramStr = parameters.join(', ');
 
       element.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
@@ -973,7 +973,7 @@ export class ClassDiagramModifier implements DiagramModifier {
           const methodId = ModifierHelpers.generateUniqueId('method');
           const attrCount = (spec.attributes || []).length;
           const methodY = newY + 50 + attrCount * 25 + 10 + mi * 25;
-          const paramStr = methodSpec.parameters?.map(p => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+          const paramStr = methodSpec.parameters?.map(p => `${p.name}`).join(', ') || '';
           const returnType = normalizeType(methodSpec.returnType || 'any');
           model.elements[methodId] = {
             id: methodId,

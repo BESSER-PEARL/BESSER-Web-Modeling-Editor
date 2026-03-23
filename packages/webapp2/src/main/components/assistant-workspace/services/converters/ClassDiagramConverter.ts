@@ -206,7 +206,7 @@ export class ClassDiagramConverter implements DiagramConverter {
       const visibilitySymbol = method.visibility === 'public' ? '+' : 
                              method.visibility === 'private' ? '-' : '#';
       
-      const paramStr = method.parameters?.map((p: any) => `${p.name}: ${normalizeType(p.type)}`).join(', ') || '';
+      const paramStr = method.parameters?.map((p: any) => `${p.name}`).join(', ') || '';
       const normalizedReturnType = normalizeType(method.returnType);
       const methodName = `${visibilitySymbol} ${method.name}(${paramStr}): ${normalizedReturnType}`;
       
