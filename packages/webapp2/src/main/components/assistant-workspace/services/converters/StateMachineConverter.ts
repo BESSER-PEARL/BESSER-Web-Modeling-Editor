@@ -149,7 +149,7 @@ export class StateMachineConverter implements DiagramConverter {
         
         allRelationships[transId] = {
           id: transId,
-          type: isInitialTransition ? 'StateTransitionInit' : 'StateTransition',
+          type: 'StateTransition',
           name,
           owner: null,
           bounds: { x: 0, y: 0, width: 100, height: 1 },
