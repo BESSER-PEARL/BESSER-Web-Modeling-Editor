@@ -71,32 +71,26 @@ export const useProjectBootstrap = ({
     checkForLatestProject().catch(notifyError('Loading latest project'));
   }, [loadProject, hasCheckedForProject, hasTokenInUrl]);
 
+  // Read ?buml= once on mount — not reactively — to avoid re-triggers
+  const bumlUrlRef = useRef(new URLSearchParams(window.location.search).get('buml'));
+  const bumlImportStartedRef = useRef(false);
+
   useEffect(() => {
-    const bumlUrl = searchParams.get('buml');
-    if (!bumlUrl || isGitHubImportLoading) {
+    const bumlUrl = bumlUrlRef.current;
+    if (!bumlUrl || bumlImportStartedRef.current) {
       return;
     }
+    bumlImportStartedRef.current = true;
+    bumlUrlRef.current = null;
 
-    let isCancelled = false;
+    // Remove ?buml= from URL immediately to prevent any re-triggers
+    const url = new URL(window.location.href);
+    url.searchParams.delete('buml');
+    window.history.replaceState({}, '', url.toString());
 
-    const importBumlProject = async () => {
-      await importFromGitHub(bumlUrl);
-
-      if (isCancelled) {
-        return;
-      }
-
-      const nextSearchParams = new URLSearchParams(searchParams);
-      nextSearchParams.delete('buml');
-      setSearchParams(nextSearchParams, { replace: true });
-    };
-
-    importBumlProject().catch(notifyError('Importing B-UML project'));
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [searchParams, setSearchParams, importFromGitHub, isGitHubImportLoading]);
+    importFromGitHub(bumlUrl).catch(notifyError('Importing B-UML project'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!hasCheckedForProject) {

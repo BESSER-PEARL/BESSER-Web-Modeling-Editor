@@ -511,10 +511,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     alt="BESSER"
                     className="h-9 w-auto brightness-0 opacity-70 dark:invert sm:h-10"
                   />
-                  <span className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20">
+                  <a
+                    href="https://besser-agent-framework.readthedocs.io/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
+                  >
                     <Sparkles className="h-3 w-3" />
-                    AI-Powered
-                  </span>
+                    Powered with BAF
+                  </a>
                 </div>
 
                 {/* Headline — gradient "model" text */}
@@ -531,7 +536,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   className="animate-fade-up mt-4 text-center text-sm leading-relaxed text-muted-foreground sm:text-[15px]"
                   style={{ animationDelay: '130ms' }}
                 >
-                  Describe your system in natural language. Get diagrams, interfaces, and code.
+                  Describe your system in natural language. Get models, interfaces, and code.
                   <span className="ml-2.5 inline-flex items-center gap-1.5 text-xs font-medium">
                     <span className={cn('inline-block h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                     <span className="text-muted-foreground/70">{getConnectionLabel(connectionStatus)}</span>

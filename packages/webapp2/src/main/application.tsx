@@ -118,55 +118,18 @@ function AppContentInner() {
     setShowExportDialog(true);
   };
 
-  // Onboarding system
-  const onboarding = useOnboarding();
-
-  // Detect model changes for onboarding checklist (class, attribute, relationship)
-  const reduxDiagram = useAppSelector(selectActiveDiagram);
-  const { checklist, updateChecklist } = onboarding;
-
-  useEffect(() => {
-    const model = reduxDiagram?.model;
-    if (!model || !isUMLModel(model)) return;
-
-    if (!checklist.createdClass) {
-      const hasClass = Object.values(model.elements).some(
-        (el) => el.type === 'Class' || el.type === 'AbstractClass' || el.type === 'Interface',
-      );
-      if (hasClass) updateChecklist('createdClass');
-    }
-
-    if (!checklist.addedAttribute) {
-      const hasAttribute = Object.values(model.elements).some(
-        (el) => el.type === 'ClassAttribute',
-      );
-      if (hasAttribute) updateChecklist('addedAttribute');
-    }
-
-    if (!checklist.createdRelationship) {
-      if (Object.keys(model.relationships).length > 0) {
-        updateChecklist('createdRelationship');
-      }
-    }
-  }, [reduxDiagram, checklist.createdClass, checklist.addedAttribute, checklist.createdRelationship, updateChecklist]);
+  // Onboarding system — disabled for now
+  // const onboarding = useOnboarding();
+  const onboarding = null as any;
 
   return (
     <ApollonEditorProvider value={{ editor, setEditor }}>
       <WorkspaceShell
         onOpenProjectHub={() => setShowProjectHub(true)}
-        onOpenTemplateDialog={() => {
-          setShowTemplateDialog(true);
-          onboarding.updateChecklist('exploredTemplates');
-        }}
+        onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
-        onGenerate={(type) => {
-          onboarding.updateChecklist('generatedCode');
-          handleGenerateRequest(type);
-        }}
-        onQualityCheck={() => {
-          onboarding.updateChecklist('triedQualityCheck');
-          handleQualityCheck();
-        }}
+        onGenerate={(type) => handleGenerateRequest(type)}
+        onQualityCheck={() => handleQualityCheck()}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
         isGenerating={isGenerating}
@@ -260,6 +223,7 @@ function AppContentInner() {
       />
       </Suspense>
 
+      {/* Onboarding tutorial — disabled for now
       <Suspense fallback={null}>
         <InteractiveTutorial
           visible={onboarding.isTutorialActive}
@@ -270,6 +234,7 @@ function AppContentInner() {
           onFinish={onboarding.finishTutorial}
         />
       </Suspense>
+      */}
 
       <ErrorPanel />
       <Suspense fallback={null}>
