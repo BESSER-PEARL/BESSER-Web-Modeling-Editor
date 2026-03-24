@@ -512,7 +512,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     className="h-9 w-auto brightness-0 opacity-70 dark:invert sm:h-10"
                   />
                   <a
-                    href="https://besser-agent-framework.readthedocs.io/"
+                    href="https://besser-agentic-framework.readthedocs.io/latest/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
@@ -580,9 +580,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                       <Layers className="h-4 w-4" />
                     </div>
-                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">6 Diagram Types</p>
+                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">System Design</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                      Class, Object, State Machine, Agent, GUI, Quantum
+                      Data structures, workflows, agents, and more
                     </p>
                   </div>
                   <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
@@ -592,7 +592,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Visual Interfaces</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                      GUI screens and layouts from descriptions
+                      Screens and layouts from descriptions
                     </p>
                   </div>
                   <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
