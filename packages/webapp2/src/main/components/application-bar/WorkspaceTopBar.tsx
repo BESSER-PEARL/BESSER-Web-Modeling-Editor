@@ -55,7 +55,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onProjectRename,
 }) => {
   return (
-    <header className={`relative z-20 px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
+    <header className={`relative z-20 animate-slide-in-down px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <button

@@ -11,6 +11,7 @@ import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';
@@ -424,7 +425,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Class Diagram</span>
                   </div>
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 flex flex-col gap-1">
                     <div className="h-1.5 w-20 rounded-full bg-brand/10" />
                     <div className="h-1.5 w-14 rounded-full bg-brand/7" />
                   </div>
@@ -451,7 +452,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Django</span>
                   </div>
-                  <div className="mt-2 space-y-1 font-mono text-[9px] text-muted-foreground/40">
+                  <div className="mt-2 flex flex-col gap-1 font-mono text-[9px] text-muted-foreground/40">
                     <div>class Model:</div>
                     <div className="pl-2">name = CharField()</div>
                   </div>
@@ -491,7 +492,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">React App</span>
                   </div>
-                  <div className="mt-2 space-y-1 font-mono text-[9px] text-muted-foreground/40">
+                  <div className="mt-2 flex flex-col gap-1 font-mono text-[9px] text-muted-foreground/40">
                     <div>{'<Dashboard />'}</div>
                     <div>{'<UserTable />'}</div>
                   </div>
@@ -575,36 +576,42 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   className="animate-fade-up mt-10 grid grid-cols-3 gap-3"
                   style={{ animationDelay: '400ms' }}
                 >
-                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
+                  <Card className="capability-card group relative overflow-hidden border-brand/12 bg-white/50 backdrop-blur-sm dark:bg-slate-800/30">
                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
-                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-                      <Layers className="h-4 w-4" />
-                    </div>
-                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">System Design</p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                      Data structures, workflows, agents, and more
-                    </p>
-                  </div>
-                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+                        <Layers className="h-4 w-4" />
+                      </div>
+                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">System Design</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                        Data structures, workflows, agents, and more
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="capability-card group relative overflow-hidden border-brand/12 bg-white/50 backdrop-blur-sm dark:bg-slate-800/30">
                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
-                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-                      <Palette className="h-4 w-4" />
-                    </div>
-                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Visual Interfaces</p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                      Screens and layouts from descriptions
-                    </p>
-                  </div>
-                  <div className="capability-card group relative overflow-hidden rounded-xl border border-brand/12 bg-white/50 p-4 text-center backdrop-blur-sm dark:bg-slate-800/30">
+                    <CardContent className="p-4 text-center">
+                      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+                        <Palette className="h-4 w-4" />
+                      </div>
+                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Visual Interfaces</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                        Screens and layouts from descriptions
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="capability-card group relative overflow-hidden border-brand/12 bg-white/50 backdrop-blur-sm dark:bg-slate-800/30">
                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
-                    <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-                      <Code2 className="h-4 w-4" />
-                    </div>
-                    <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Code Generation</p>
-                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                      Complete WebApp, React, SQL, and more!
-                    </p>
-                  </div>
+                    <CardContent className="p-4 text-center">
+                      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+                        <Code2 className="h-4 w-4" />
+                      </div>
+                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Code Generation</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
+                        Complete WebApp, React, SQL, and more!
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
 

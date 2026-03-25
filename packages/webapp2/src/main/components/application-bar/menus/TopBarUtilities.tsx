@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, ChevronDown, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
+import { CheckCircle, ChevronDown, GitBranch, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -65,7 +65,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
       {isAuthenticated && (
         <Button
           variant="outline"
-          className={`gap-1.5 ${outlineButtonClass} ${hasStarred ? 'text-yellow-500 hover:text-yellow-600' : ''}`}
+          className={`gap-1.5 ${outlineButtonClass} ${hasStarred ? 'text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300' : ''}`}
           onClick={onToggleStar}
           disabled={starLoading}
           title={hasStarred ? 'Unstar BESSER on GitHub' : 'Star BESSER on GitHub'}
@@ -101,13 +101,13 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
 
           <Button
             variant="outline"
-            className={`${outlineButtonClass} px-2.5`}
+            className={`gap-1.5 ${outlineButtonClass}`}
             onClick={onOpenGitHubSidebar}
             title="GitHub Version Control"
             aria-label="Toggle GitHub version control panel"
           >
-            <Github className="h-4 w-4" />
-            <span className="sr-only">GitHub Sync</span>
+            <GitBranch className="h-4 w-4" />
+            <span className="hidden xl:inline">Sync</span>
           </Button>
         </>
       ) : (

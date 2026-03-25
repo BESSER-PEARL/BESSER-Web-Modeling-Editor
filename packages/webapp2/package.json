@@ -28,6 +28,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@reduxjs/toolkit": "2.2.7",
     "@sentry/react": "8.38.0",
     "class-variance-authority": "^0.7.1",
@@ -66,6 +67,7 @@
     "websocket": "1.0.35"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -87,7 +89,6 @@
     "typescript": "5.6.3",
     "vite": "^7.1.5",
     "vite-plugin-svgr": "^4.5.0",
-    "@playwright/test": "^1.52.0",
     "vitest": "^4.0.18"
   }
 }

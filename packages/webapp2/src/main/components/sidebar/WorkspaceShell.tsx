@@ -287,9 +287,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const outlineButtonClass = isDarkTheme
     ? 'border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800 hover:border-slate-600'
     : 'border-slate-300/80 bg-white/80 hover:border-brand/25 hover:bg-brand/[0.03]';
-  const primaryGenerateClass = isDarkTheme
-    ? 'gap-2 bg-brand text-brand-foreground hover:bg-brand-dark shadow-sm'
-    : 'gap-2 bg-brand text-brand-foreground hover:bg-brand-dark shadow-sm';
+  const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
   const sidebarBaseClass = isDarkTheme
     ? 'hidden shrink-0 border-r border-slate-700/70 bg-slate-950/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5'
     : 'hidden shrink-0 border-r border-slate-200/70 bg-white/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5';
@@ -581,7 +579,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          <DiagramTabs />
+          {location.pathname === '/' && <DiagramTabs />}
           <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
 
           {/* Onboarding checklist - fixed bottom-right */}

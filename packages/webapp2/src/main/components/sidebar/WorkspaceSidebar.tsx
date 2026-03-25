@@ -1,6 +1,9 @@
 import React, { useMemo } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { Link2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../types/project';
 import { toSupportedDiagramType } from '../../types/project';
 import {
@@ -32,20 +35,27 @@ interface WorkspaceSidebarProps {
   onToggleExpanded: () => void;
 }
 
+/** Wraps children with a Tooltip when sidebar is collapsed, otherwise renders children directly. */
+const SidebarTooltip: React.FC<{ label: string; collapsed: boolean; children: React.ReactNode }> = ({ label, collapsed, children }) => {
+  if (!collapsed) return <>{children}</>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right" className="text-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+};
+
 /** Generator count badge shown when sidebar is expanded. */
 const GenBadge: React.FC<{ info: { generators: string[]; label: string }; isStateMachine: boolean; isDark: boolean }> = ({
   info,
   isStateMachine,
-  isDark,
 }) => {
   if (isStateMachine) {
     return (
-      <span
-        className="ml-auto flex items-center gap-0.5 text-[10px] leading-none text-muted-foreground/70"
-        title={info.label}
-      >
+      <Badge variant="outline" className="ml-auto gap-0.5 border-none px-1 py-0 text-[10px] leading-none text-muted-foreground/70">
         <Link2 className="h-2.5 w-2.5" />
-      </span>
+      </Badge>
     );
   }
 
@@ -53,12 +63,9 @@ const GenBadge: React.FC<{ info: { generators: string[]; label: string }; isStat
   if (count === 0) return null;
 
   return (
-    <span
-      className="ml-auto text-[10px] leading-none text-muted-foreground/70"
-      title={info.label}
-    >
-      {count} gen.
-    </span>
+    <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[10px] leading-none">
+      {count}
+    </Badge>
   );
 };
 
@@ -108,137 +115,148 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
     return map;
   }, [project]);
 
+  const isCollapsed = !isSidebarExpanded;
+
   return (
-    <aside className={`${sidebarBaseClass} ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
-      {isSidebarExpanded && <p className={sidebarTitleClass}>Editors</p>}
-      {UML_ITEMS.map((item) => {
-        const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
-        const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
-        const supported = toSupportedDiagramType(item.type);
-        const count = countMap[item.type] ?? 0;
-        const genInfo = DIAGRAM_GENERATOR_MAP[supported];
-        const isStateMachine = item.type === UMLDiagramType.StateMachineDiagram;
-        const displayLabel = labelWithCount(item.label, count);
+    <TooltipProvider delayDuration={300}>
+      <aside className={`${sidebarBaseClass} animate-slide-in-left ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
+        {isSidebarExpanded && <p className={sidebarTitleClass}>Editors</p>}
+        {UML_ITEMS.map((item) => {
+          const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
+          const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
+          const supported = toSupportedDiagramType(item.type);
+          const count = countMap[item.type] ?? 0;
+          const genInfo = DIAGRAM_GENERATOR_MAP[supported];
+          const isStateMachine = item.type === UMLDiagramType.StateMachineDiagram;
+          const displayLabel = labelWithCount(item.label, count);
 
-        if (!isAgentItem) {
+          if (!isAgentItem) {
+            return (
+              <SidebarTooltip key={item.type} label={`${displayLabel} — ${genInfo.label}`} collapsed={isCollapsed}>
+                <button
+                  type="button"
+                  className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+                  onClick={() => onSwitchUml(item.type)}
+                  title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                >
+                  {item.icon}
+                  {isSidebarExpanded ? (
+                    <>
+                      <span>{displayLabel}</span>
+                      <GenBadge info={genInfo} isStateMachine={isStateMachine} isDark={isDarkTheme} />
+                    </>
+                  ) : null}
+                </button>
+              </SidebarTooltip>
+            );
+          }
+
           return (
-            <button
-              key={item.type}
-              type="button"
-              className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-              onClick={() => onSwitchUml(item.type)}
-              title={`${displayLabel} — ${genInfo.label}`}
-            >
-              {item.icon}
-              {isSidebarExpanded ? (
-                <>
-                  <span>{displayLabel}</span>
-                  <GenBadge info={genInfo} isStateMachine={isStateMachine} isDark={isDarkTheme} />
-                </>
-              ) : null}
-            </button>
-          );
-        }
-
-        return (
-          <div key={item.type} className={agentContainerClass}>
-            <button
-              type="button"
-              className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-              onClick={() => onSwitchUml(item.type)}
-              title={`${displayLabel} — ${genInfo.label}`}
-            >
-              {item.icon}
-              {isSidebarExpanded ? (
-                <>
-                  <span>{displayLabel}</span>
-                  <GenBadge info={genInfo} isStateMachine={false} isDark={isDarkTheme} />
-                </>
-              ) : null}
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-200 ${
-                showAgentSubItems ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
-              }`}
-            >
-              {AGENT_ROUTE_ITEMS.map((routeItem) => {
-                const isActiveSubItem = locationPath === routeItem.path;
-                return (
-                  <button
-                    key={routeItem.path}
-                    type="button"
-                    className={`${navButtonClass(isActiveSubItem, isSidebarExpanded, isDarkTheme)} ${
-                      isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
-                    }`}
-                    onClick={() => onNavigate(routeItem.path)}
-                    title={routeItem.label}
-                  >
-                    {routeItem.icon}
-                    {isSidebarExpanded && <span>{routeItem.label}</span>}
-                  </button>
-                );
-              })}
+            <div key={item.type} className={agentContainerClass}>
+              <SidebarTooltip label={`${displayLabel} — ${genInfo.label}`} collapsed={isCollapsed}>
+                <button
+                  type="button"
+                  className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+                  onClick={() => onSwitchUml(item.type)}
+                  title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                >
+                  {item.icon}
+                  {isSidebarExpanded ? (
+                    <>
+                      <span>{displayLabel}</span>
+                      <GenBadge info={genInfo} isStateMachine={false} isDark={isDarkTheme} />
+                    </>
+                  ) : null}
+                </button>
+              </SidebarTooltip>
+              <div
+                className={`overflow-hidden transition-all duration-200 ${
+                  showAgentSubItems ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                {AGENT_ROUTE_ITEMS.map((routeItem) => {
+                  const isActiveSubItem = locationPath === routeItem.path;
+                  return (
+                    <SidebarTooltip key={routeItem.path} label={routeItem.label} collapsed={isCollapsed}>
+                      <button
+                        type="button"
+                        className={`${navButtonClass(isActiveSubItem, isSidebarExpanded, isDarkTheme)} ${
+                          isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
+                        }`}
+                        onClick={() => onNavigate(routeItem.path)}
+                        title={isSidebarExpanded ? routeItem.label : undefined}
+                      >
+                        {routeItem.icon}
+                        {isSidebarExpanded && <span>{routeItem.label}</span>}
+                      </button>
+                    </SidebarTooltip>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
 
-      {NON_UML_EDITOR_ITEMS.map((item) => {
-        const active = locationPath === '/' && activeDiagramType === item.type;
-        const count = countMap[item.type] ?? 0;
-        const genInfo = DIAGRAM_GENERATOR_MAP[item.type];
-        const displayLabel = labelWithCount(item.label, count);
+        {NON_UML_EDITOR_ITEMS.map((item) => {
+          const active = locationPath === '/' && activeDiagramType === item.type;
+          const count = countMap[item.type] ?? 0;
+          const genInfo = DIAGRAM_GENERATOR_MAP[item.type];
+          const displayLabel = labelWithCount(item.label, count);
 
-        return (
+          return (
+            <SidebarTooltip key={item.type} label={`${displayLabel} — ${genInfo.label}`} collapsed={isCollapsed}>
+              <button
+                type="button"
+                className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+                onClick={() => onSwitchDiagramType(item.type)}
+                title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+              >
+                {item.icon}
+                {isSidebarExpanded ? (
+                  <>
+                    <span>{displayLabel}</span>
+                    <GenBadge info={genInfo} isStateMachine={false} isDark={isDarkTheme} />
+                  </>
+                ) : null}
+              </button>
+            </SidebarTooltip>
+          );
+        })}
+
+        <Separator className="my-1" />
+
+        {ROUTE_ITEMS.map((item) => {
+          const active = locationPath === item.path;
+          return (
+            <SidebarTooltip key={item.path} label={item.label} collapsed={isCollapsed}>
+              <button
+                type="button"
+                className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
+                onClick={() => onNavigate(item.path)}
+                title={isSidebarExpanded ? item.label : undefined}
+              >
+                {item.icon}
+                {isSidebarExpanded && <span>{item.label}</span>}
+              </button>
+            </SidebarTooltip>
+          );
+        })}
+
+        <SidebarTooltip label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'} collapsed={isCollapsed}>
           <button
-            key={item.type}
             type="button"
-            className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-            onClick={() => onSwitchDiagramType(item.type)}
-            title={`${displayLabel} — ${genInfo.label}`}
+            onClick={onToggleExpanded}
+            className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-between gap-2' : 'justify-center'}`}
+            aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
-            {item.icon}
-            {isSidebarExpanded ? (
-              <>
-                <span>{displayLabel}</span>
-                <GenBadge info={genInfo} isStateMachine={false} isDark={isDarkTheme} />
-              </>
-            ) : null}
+            <span className="inline-flex rotate-180">
+              <SidebarToggleIcon size={18} />
+            </span>
+            {isSidebarExpanded && <span className={sidebarToggleTextClass}></span>}
           </button>
-        );
-      })}
-
-      <div className={sidebarDividerClass} />
-
-      {ROUTE_ITEMS.map((item) => {
-        const active = locationPath === item.path;
-        return (
-          <button
-            key={item.path}
-            type="button"
-            className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
-            onClick={() => onNavigate(item.path)}
-            title={item.label}
-          >
-            {item.icon}
-            {isSidebarExpanded && <span>{item.label}</span>}
-          </button>
-        );
-      })}
-
-      <button
-        type="button"
-        onClick={onToggleExpanded}
-        className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-between gap-2' : 'justify-center'}`}
-        title={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-        aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-      >
-        <span className="inline-flex rotate-180">
-          <SidebarToggleIcon size={18} />
-        </span>
-        {isSidebarExpanded && <span className={sidebarToggleTextClass}></span>}
-      </button>
-    </aside>
+        </SidebarTooltip>
+      </aside>
+    </TooltipProvider>
   );
 };
 

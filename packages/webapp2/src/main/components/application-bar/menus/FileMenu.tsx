@@ -48,8 +48,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
       <DropdownMenuContent className="w-72" align="end">
         <DropdownMenuLabel>Project Actions</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onOpenProjectHub}>New / Open Project</DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenProjectHub}>Import Project</DropdownMenuItem>
+        <DropdownMenuItem onClick={onOpenProjectHub}>New / Open / Import Project</DropdownMenuItem>
         <DropdownMenuItem onClick={onOpenTemplateDialog}>Load Template</DropdownMenuItem>
         <DropdownMenuItem onClick={onExportProject}>Export Project</DropdownMenuItem>
         <DropdownMenuSeparator />

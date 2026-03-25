@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { settingsService } from '@besser/wme';
 import { toast } from 'react-toastify';
-import { Download } from 'lucide-react';
+import { Download, FolderKanban, Layers3, Monitor, Settings } from 'lucide-react';
 import { useProject } from '../../hooks/useProject';
 import { SupportedDiagramType, ProjectDiagram } from '../../types/project';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,9 +86,7 @@ export const ProjectSettingsPanel: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">Loading project...</CardContent>
-        </Card>
+        <p className="text-sm text-muted-foreground">Loading project...</p>
       </div>
     );
   }
@@ -96,9 +94,7 @@ export const ProjectSettingsPanel: React.FC = () => {
   if (error) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <Card className="w-full max-w-2xl border-destructive/40">
-          <CardContent className="py-10 text-center text-sm text-destructive">{error}</CardContent>
-        </Card>
+        <p className="text-sm text-destructive">{error}</p>
       </div>
     );
   }
@@ -106,22 +102,39 @@ export const ProjectSettingsPanel: React.FC = () => {
   if (!currentProject) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">Open or create a project to edit settings.</CardContent>
-        </Card>
+        <p className="text-sm text-muted-foreground">Open or create a project to edit settings.</p>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-auto px-4 py-6 sm:px-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <Card className="border-brand/10">
-          <CardHeader>
-            <CardTitle className="text-brand">Project Settings</CardTitle>
-            <CardDescription>Update metadata, inspect diagrams and manage export for the active project.</CardDescription>
+    <div className="h-full overflow-auto">
+      {/* Page header */}
+      <div className="border-b border-border/40 bg-background/80 px-6 py-5 backdrop-blur-sm sm:px-10">
+        <div className="mx-auto flex max-w-4xl items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+            <Settings className="h-4 w-4" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Project Settings</h1>
+            <p className="text-sm text-muted-foreground">Manage metadata, diagrams, and display preferences</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Page content */}
+      <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-8 sm:px-10">
+
+        {/* General info */}
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <FolderKanban className="h-4 w-4 text-brand" />
+              <CardTitle className="text-base">General</CardTitle>
+            </div>
+            <CardDescription>Basic project information</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="flex flex-col gap-4">
             <div className="grid gap-4 md:grid-cols-2">
               <FormField label="Project Name" htmlFor="settings-name" required error={settingsValidation.getError('name')}>
                 <Input
@@ -136,7 +149,6 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <Input id="settings-owner" value={currentProject.owner} onChange={(event) => handleProjectField('owner', event.target.value)} />
               </FormField>
             </div>
-
             <FormField label="Description" htmlFor="settings-description">
               <Textarea
                 id="settings-description"
@@ -145,81 +157,100 @@ export const ProjectSettingsPanel: React.FC = () => {
                 className="min-h-24"
               />
             </FormField>
-
-            <Separator />
-
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-brand">Diagrams</h3>
-              <div className="grid gap-3">
-                {diagrams.map(({ type, diagram, index }) => (
-                  <div key={`${type}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand/10 bg-brand/[0.02] p-3">
-                    <div>
-                      <p className="text-sm font-medium">{diagram.title}</p>
-                      <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
-                    </div>
-                    <Badge className={colorByType[type]}>{type.replace('Diagram', '')}</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-brand/10 p-3">
-                <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground">Created</p>
-                <p className="mt-1 text-sm font-medium">{new Date(currentProject.createdAt).toLocaleString()}</p>
+              <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</p>
+                <p className="mt-1 text-sm">{new Date(currentProject.createdAt).toLocaleString()}</p>
               </div>
-              <div className="rounded-lg border border-brand/10 p-3">
-                <p className="text-xs uppercase tracking-[0.1em] text-muted-foreground">Current Diagram</p>
-                <p className="mt-1 text-sm font-medium">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
+              <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Active Editor</p>
+                <p className="mt-1 text-sm">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
               </div>
-            </div>
-
-            <div className="space-y-3 rounded-lg border border-brand/10 bg-brand/[0.02] p-4">
-              <h3 className="text-sm font-semibold text-brand">Display Settings</h3>
-              <label className="flex items-start justify-between gap-4 text-sm">
-                <div>
-                  <p className="font-medium">Show Instanced Objects</p>
-                  <p className="text-xs text-muted-foreground">Toggle object instance visibility in diagrams.</p>
-                </div>
-                <input
-                  type="checkbox"
-                  className="accent-brand"
-                  checked={showInstancedObjects}
-                  onChange={(event) => {
-                    setShowInstancedObjects(event.target.checked);
-                    settingsService.updateSetting('showInstancedObjects', event.target.checked);
-                    toast.success(`Instanced objects ${event.target.checked ? 'enabled' : 'disabled'}.`);
-                  }}
-                />
-              </label>
-              <label className="flex items-start justify-between gap-4 text-sm">
-                <div>
-                  <p className="font-medium">Show Association Names</p>
-                  <p className="text-xs text-muted-foreground">Toggle association name visibility for UML class diagrams.</p>
-                </div>
-                <input
-                  type="checkbox"
-                  className="accent-brand"
-                  checked={showAssociationNames}
-                  onChange={(event) => {
-                    setShowAssociationNames(event.target.checked);
-                    settingsService.updateSetting('showAssociationNames', event.target.checked);
-                    toast.success(`Association names ${event.target.checked ? 'enabled' : 'disabled'}.`);
-                  }}
-                />
-              </label>
-            </div>
-
-            <div className="flex justify-end">
-              <Button onClick={handleExportProject} disabled={isExporting} className="gap-2 bg-brand text-brand-foreground hover:bg-brand-dark">
-                <Download className="h-4 w-4" />
-                {isExporting ? 'Exporting...' : 'Export Project'}
-              </Button>
             </div>
           </CardContent>
         </Card>
+
+        {/* Diagrams */}
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Layers3 className="h-4 w-4 text-brand" />
+              <CardTitle className="text-base">Diagrams</CardTitle>
+            </div>
+            <CardDescription>{diagrams.length} diagram{diagrams.length !== 1 ? 's' : ''} in this project</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              {diagrams.map(({ type, diagram, index }) => (
+                <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-4 py-3 transition-colors hover:bg-muted/30">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{diagram.title}</p>
+                    <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
+                  </div>
+                  <Badge className={colorByType[type]}>{type.replace('Diagram', '')}</Badge>
+                </div>
+              ))}
+              {diagrams.length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">No diagrams yet</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Display settings */}
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Monitor className="h-4 w-4 text-brand" />
+              <CardTitle className="text-base">Display</CardTitle>
+            </div>
+            <CardDescription>Configure how diagrams are rendered in the editor</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-1">
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Show Instanced Objects</p>
+                <p className="text-xs text-muted-foreground">Toggle object instance visibility in diagrams</p>
+              </div>
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-brand"
+                checked={showInstancedObjects}
+                onChange={(event) => {
+                  setShowInstancedObjects(event.target.checked);
+                  settingsService.updateSetting('showInstancedObjects', event.target.checked);
+                  toast.success(`Instanced objects ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                }}
+              />
+            </label>
+            <Separator />
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Show Association Names</p>
+                <p className="text-xs text-muted-foreground">Toggle association name visibility for UML class diagrams</p>
+              </div>
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-brand"
+                checked={showAssociationNames}
+                onChange={(event) => {
+                  setShowAssociationNames(event.target.checked);
+                  settingsService.updateSetting('showAssociationNames', event.target.checked);
+                  toast.success(`Association names ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                }}
+              />
+            </label>
+          </CardContent>
+        </Card>
+
+        {/* Export */}
+        <div className="flex justify-end pb-4">
+          <Button onClick={handleExportProject} disabled={isExporting} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            {isExporting ? 'Exporting...' : 'Export Project'}
+          </Button>
+        </div>
+
       </div>
     </div>
   );

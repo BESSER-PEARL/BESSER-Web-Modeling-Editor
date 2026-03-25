@@ -10,6 +10,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, Check, CircleHelp, Code, Loader2, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -328,10 +329,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
               Important information about how the assistant processes modeling data.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+          <div className="flex flex-col gap-3 text-sm leading-relaxed text-muted-foreground">
             <p><strong className="text-foreground">Data processing notice:</strong></p>
             <p>When you use the Modeling Assistant, your messages and diagram data are processed to provide AI-powered modeling support.</p>
-            <ul className="list-disc space-y-1 pl-5">
+            <ul className="flex list-disc flex-col gap-1 pl-5">
               <li>Your diagram models and messages are sent to the AI service for processing.</li>
               <li>Data is transmitted over encrypted connections.</li>
               <li>Requests are processed to generate UML updates and modeling suggestions.</li>
@@ -371,9 +372,9 @@ const MessageBadge: React.FC<{ badge: NonNullable<MessageMeta['badge']>; label?:
   const style = BADGE_STYLES[badge];
   if (!style) return null;
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium', style.className)}>
+    <Badge variant="outline" className={cn('gap-1 text-[10px] font-medium', style.className)}>
       {style.icon}
       {label || badge}
-    </span>
+    </Badge>
   );
 };
