@@ -1,4 +1,4 @@
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { toast } from 'react-toastify';
 import { BesserProject, SupportedDiagramType } from '../../types/project';
 import { buildProjectPayloadForBackend } from './projectExportUtils';

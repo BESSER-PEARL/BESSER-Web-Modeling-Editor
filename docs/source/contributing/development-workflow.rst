@@ -13,10 +13,8 @@ Use the workspace root. npm installs all packages declared in ``workspaces``.
 2. Start the appropriate dev server
 -----------------------------------
 
-* ``npm run start:webapp`` – React development server with HMR.
+* ``npm run dev`` – Vite development server for webapp2 with HMR.
 * ``npm run start:server`` – Express API serving compiled assets.
-* ``npm run dev`` – convenience script that launches both (watch out for port
-  conflicts; adjust ``webpack.dev.js`` if needed).
 
 3. Run automated checks
 -----------------------
@@ -34,18 +32,18 @@ Use the workspace root. npm installs all packages declared in ``workspaces``.
    * - ``npm run lint --workspace=editor``
      - Lints the editor package
      - editor
-   * - ``npm run lint --workspace=webapp``
+   * - ``npm run lint --workspace=webapp2``
      - Lints the React app
-     - webapp
+     - webapp2
    * - ``npm run lint --workspace=server``
      - Lints the Express server
      - server
    * - ``npm run prettier:check``
      - Verifies formatting
      - root workspace
-   * - ``npm run build:webapp``
+   * - ``npm run build:webapp2``
      - Production bundle for UI
-     - webapp
+     - webapp2
    * - ``npm run build:server``
      - Bundles Express server
      - server

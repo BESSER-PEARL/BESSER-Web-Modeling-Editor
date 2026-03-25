@@ -14,7 +14,8 @@ This repository is a monorepo:
 
 - `packages/editor`: core diagramming engine, published as the [@besser/wme](https://www.npmjs.com/package/@besser/wme)
   npm package.
-- `packages/webapp`: React web application.
+- `packages/webapp2`: React web application (default, deployed at [editor.besser-pearl.org](https://editor.besser-pearl.org)). Uses Vite, Radix UI + Tailwind, and Vitest + Playwright.
+- `packages/webapp`: legacy React web application (kept for reference).
 - `packages/server`: Node/Express server for standalone hosting and APIs.
 
 ## Main Features
@@ -60,7 +61,7 @@ of available templates.
 ## Under the Hood: Diagram Engine as an npm Package
 
 The core diagramming engine lives in `packages/editor` and is published as [@besser/wme](https://www.npmjs.com/package/@besser/wme).
-The web application (`packages/webapp`) and standalone server (`packages/server`) consume this package.
+The web application (`packages/webapp2`) and standalone server (`packages/server`) consume this package.
 
 This separation allows the application to focus on delivering additional capabilities such as:
 
@@ -112,11 +113,11 @@ npm install
 ### Start the web application
 
 ```
-npm run start:webapp
+npm run dev
 ```
 
 The dev server runs on http://localhost:8080 and, in development mode, expects the BESSER backend at
-http://localhost:9000/besser_api (see `packages/webapp/src/main/constant.ts`).
+http://localhost:9000/besser_api (see `packages/webapp2/src/main/constants/constant.ts`).
 
 ### Run the standalone server
 
@@ -136,7 +137,7 @@ If you are working from the main BESSER repository, initialize the submodule and
 git submodule update --init --recursive
 cd besser/utilities/web_modeling_editor/frontend
 npm install
-npm run start:webapp
+npm run dev
 ```
 
 ## License

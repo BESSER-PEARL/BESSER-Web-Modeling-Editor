@@ -2,7 +2,7 @@ import React from 'react';
 
 import { ErrorMessage } from './error-message';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { dismissError, selectErrors } from '../../services/error-management/errorManagementSlice';
+import { dismissError, selectErrors } from '../../store/errorManagementSlice';
 import { Z_INDEX } from '../../constants/z-index';
 
 export const ErrorPanel: React.FC = () => {

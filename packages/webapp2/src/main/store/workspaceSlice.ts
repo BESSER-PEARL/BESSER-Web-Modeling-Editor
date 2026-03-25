@@ -10,10 +10,10 @@ import {
   toUMLDiagramType,
   getActiveDiagram,
   getReferencedDiagram,
-} from '../../types/project';
-import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
-import { localStorageLatestProject } from '../../constant';
-import { DeepPartial } from '../../utils/types';
+} from '../types/project';
+import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
+import { localStorageLatestProject } from '../constants/constant';
+import { DeepPartial } from '../utils/types';
 
 // ── Types ──────────────────────────────────────────────────────────────
 

@@ -8,12 +8,12 @@ tooling. Before submitting changes, review the repository-wide guidelines in
 Core expectations
 -----------------
 
-* Align with the existing TypeScript + React stack and the linting rules
-  configured in each package.
+* Align with the existing TypeScript + React stack (Vite, Radix UI, Tailwind CSS
+  for webapp2) and the linting rules configured in each package.
 * Keep documentation accurate. Significant feature work should update both the
   code and the relevant Sphinx pages.
-* Write readable, well-tested code. Add or update unit/interaction tests when
-  touching core logic, reducers, or utilities.
+* Write readable, well-tested code. Add or update tests (Vitest for unit tests,
+  Playwright for end-to-end) when touching core logic, reducers, or utilities.
 * Provide clear commit messages and keep pull requests focused on a single
   theme.
 

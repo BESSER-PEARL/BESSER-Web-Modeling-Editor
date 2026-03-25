@@ -1,7 +1,7 @@
 import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { Atom, Bot, Layers3, Network, PackageOpen, Repeat2, Settings, SlidersHorizontal } from 'lucide-react';
-import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../constant';
+import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../constants/constant';
 import type { SupportedDiagramType, BesserProject, ProjectDiagram } from '../../types/project';
 import { diagramHasContent } from '../../types/project';
 

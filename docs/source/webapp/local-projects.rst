@@ -9,7 +9,7 @@ diagnose issues.
 Data model
 ----------
 
-``packages/webapp/src/main/types/project.ts`` defines the core types:
+``packages/webapp2/src/main/types/project.ts`` defines the core types:
 
 ``BesserProject``
    Project metadata (name, description, owner, timestamps), current diagram type
@@ -28,7 +28,7 @@ Data model
 Persistence
 -----------
 
-``ProjectStorageRepository`` (``services/storage/ProjectStorageRepository.ts``)
+``ProjectStorageRepository`` (``services/storage/project-storage-repository.ts``)
 handles read/write operations:
 
 * Projects are serialised to JSON and stored in ``localStorage`` under keys with
@@ -43,13 +43,13 @@ Redux slices
 
 Two slices coordinate project state with the editor:
 
-``projectSlice`` (``services/project/projectSlice.ts``)
+``projectSlice`` (``store/project/projectSlice.ts``)
    Manages the current project, active diagram, diagram switching, and updates
    to diagram metadata. Async thunks load projects from storage, create new
    projects, and keep the diagram slice in sync. It also updates the diagram
    bridge when object diagrams need class diagram context.
 
-``diagramSlice`` (``services/diagram/diagramSlice.ts``)
+``diagramSlice`` (``store/diagram/diagramSlice.ts``)
    Keeps the editor options, autosave logic, and current diagram instance in
    lockstep with project changes. All edits flow back into ``projectSlice`` via
    the ``updateCurrentDiagramThunk`` thunk.

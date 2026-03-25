@@ -6,15 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { useAppDispatch } from '../../store/hooks';
-import { updateDiagramModelThunk } from '../../services/workspace/workspaceSlice';
-import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
+import { updateDiagramModelThunk } from '../../store/workspaceSlice';
+import { LocalStorageRepository } from '../../services/storage/local-storage-repository';
 import {
   StoredAgentConfiguration,
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
-} from '../../services/local-storage/local-storage-types';
+} from '../../services/storage/local-storage-types';
 import {
   AgentConfigurationPayload,
   AgentLLMProvider,
@@ -25,7 +25,7 @@ import {
 import { isUMLModel, getActiveDiagram } from '../../types/project';
 import { useProject } from '../../hooks/useProject';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
+import { SHOW_FULL_AGENT_CONFIGURATION } from '../../constants/constant';
 
 const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
 const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';

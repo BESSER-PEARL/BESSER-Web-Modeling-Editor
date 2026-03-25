@@ -6,7 +6,7 @@ import { Menu, X } from 'lucide-react';
 import { useProject } from '../../hooks/useProject';
 import { toUMLDiagramType, type SupportedDiagramType } from '../../types/project';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } from '../../services/workspace/workspaceSlice';
+import { updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } from '../../store/workspaceSlice';
 import { useGitHubAuth } from '../../services/github/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../utils/theme-switcher';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
@@ -17,7 +17,7 @@ import {
   besserLibraryRepositoryLink,
   besserLibraryVersion,
   besserWMERepositoryLink,
-} from '../../application-constants';
+} from '../../constants/application-constants';
 import { normalizeProjectName } from '../../utils/projectName';
 import { getWorkspaceContext } from '../../utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../utils/download';

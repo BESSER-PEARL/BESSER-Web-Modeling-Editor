@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { localStorageLatestProject } from '../constant';
+import { localStorageLatestProject } from '../constants/constant';
 import { useGitHubBumlImport } from '../services/import/useGitHubBumlImport';
 import { notifyError } from '../utils/notifyError';
 import type { BesserProject } from '../types/project';

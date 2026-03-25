@@ -1,4 +1,4 @@
-import { LocalStorageRepository } from '../../main/services/local-storage/local-storage-repository';
+import { LocalStorageRepository } from '../../main/services/storage/local-storage-repository';
 import * as themings from '../themings.json';
 
 export const setTheme = (theming: string) => {

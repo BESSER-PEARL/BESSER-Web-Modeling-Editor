@@ -20,7 +20,7 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useAppDispatch } from '../../store/hooks';
-import { switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
+import { switchDiagramTypeThunk } from '../../store/workspaceSlice';
 import type { SupportedDiagramType } from '../../types/project';
 import type { GeneratorType } from '../sidebar/workspace-types';
 import type { GenerationResult } from '../../services/generate-code/types';

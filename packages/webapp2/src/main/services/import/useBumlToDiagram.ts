@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { uuid } from '../../utils/uuid';
 import { ProjectDiagram } from '../../types/project';
 

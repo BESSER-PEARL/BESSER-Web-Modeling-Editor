@@ -2,7 +2,7 @@ import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ApollonError } from '../../services/error-management/errorManagementSlice';
+import { ApollonError } from '../../store/errorManagementSlice';
 
 type Props = {
   error: ApollonError;

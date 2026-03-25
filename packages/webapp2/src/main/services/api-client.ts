@@ -1,4 +1,4 @@
-import { BACKEND_URL } from '../constant';
+import { BACKEND_URL } from '../constants/constant';
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 

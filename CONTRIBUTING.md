@@ -36,24 +36,26 @@ npm install
 ### Start the web application
 
 ```bash
-npm run start:webapp
+npm run dev
 ```
 
 The dev server runs on http://localhost:8080 and, in development mode, expects the BESSER backend at
-http://localhost:9000/besser_api (see `packages/webapp/src/main/constant.ts`).
+http://localhost:9000/besser_api (see `packages/webapp2/src/main/constants/constant.ts`).
 
 ### Useful commands
 
-- `npm run start:webapp` - start the React webapp in development mode.
-- `npm run build:webapp` - build the webapp bundle.
+- `npm run dev` - start the webapp2 React app in development mode (Vite).
+- `npm run build:webapp2` - build the webapp2 bundle.
 - `npm run start:server` - serve the built webapp with the standalone server.
 - `npm run lint` - run lint checks across workspaces.
+- `npm run test` - run unit tests with Vitest.
+- `npm run test:e2e` - run end-to-end tests with Playwright.
 
 ## Pull requests
 
 1. Fork the repository and create a feature branch from `main`.
 2. Keep commits focused and update documentation when behavior changes.
-3. Run the relevant checks (`npm run lint`, `npm run build:webapp`).
+3. Run the relevant checks (`npm run lint`, `npm run build:webapp2`).
 4. Open a pull request and describe the change clearly.
 
 ## Changes that also impact the BESSER backend

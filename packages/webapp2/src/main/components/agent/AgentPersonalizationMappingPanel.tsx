@@ -4,12 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
+import { LocalStorageRepository } from '../../services/storage/local-storage-repository';
 import {
   StoredAgentConfiguration,
   StoredAgentProfileConfigurationMapping,
   StoredUserProfile,
-} from '../../services/local-storage/local-storage-types';
+} from '../../services/storage/local-storage-types';
 
 export const AgentPersonalizationMappingPanel: React.FC = () => {
   const [profiles, setProfiles] = useState<StoredUserProfile[]>([]);

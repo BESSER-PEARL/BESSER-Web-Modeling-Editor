@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../../constant';
+import { BACKEND_URL } from '../../../constants/constant';
 
 interface UseGitHubStarOptions {
   isAuthenticated: boolean;

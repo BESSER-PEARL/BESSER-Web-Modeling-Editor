@@ -1,6 +1,6 @@
 import { BesserProject, ProjectDiagram, createEmptyDiagram, SupportedDiagramType, getActiveDiagram } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { UMLDiagramType } from '@besser/wme';
 
 // Interface for V2 JSON export format

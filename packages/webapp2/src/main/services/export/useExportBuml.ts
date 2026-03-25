@@ -3,7 +3,7 @@ import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../validation/validateDiagram';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 
 export const useExportBUML = () => {
   const downloadFile = useFileDownload();

@@ -15,8 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FormField } from '@/components/ui/form-field';
 import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from '../../../services/generate-code/useGenerateCode';
 import type { ConfigDialog } from '../../../services/generate-code/generator-dialog-config';
-import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../constant';
-import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../services/local-storage/local-storage-types';
+import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../constants/constant';
+import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../services/storage/local-storage-types';
 import type { WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../../generator-execution/useGeneratorExecution';
 import { validateProjectName, validateNumberRange } from '../../../utils/validation';
 import { useFieldValidation } from '../../../hooks/useFieldValidation';

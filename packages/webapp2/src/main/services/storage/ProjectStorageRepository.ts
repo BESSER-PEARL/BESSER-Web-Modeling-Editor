@@ -11,7 +11,7 @@ import {
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
-import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constant';
+import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
 import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
 
 export class ProjectStorageRepository {

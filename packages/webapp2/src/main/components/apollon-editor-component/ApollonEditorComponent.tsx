@@ -11,7 +11,7 @@ import {
   selectEditorRevision,
   selectStateMachineDiagrams,
   selectQuantumCircuitDiagrams,
-} from '../../services/workspace/workspaceSlice';
+} from '../../store/workspaceSlice';
 import { notifyError } from '../../utils/notifyError';
 
 export const ApollonEditorComponent: React.FC = () => {

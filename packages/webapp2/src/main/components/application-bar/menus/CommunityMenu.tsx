@@ -1,7 +1,7 @@
 import React from 'react';
 import { Keyboard, Users, PlayCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { bugReportURL } from '../../../constant';
+import { bugReportURL } from '../../../constants/constant';
 import {
   DropdownMenu,
   DropdownMenuContent,

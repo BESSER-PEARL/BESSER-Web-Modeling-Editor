@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { validateEmail, validateRequired, validateMinLength } from '../../utils/validation';
 import { useFieldValidation } from '../../hooks/useFieldValidation';
 

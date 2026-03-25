@@ -2,7 +2,7 @@ Environment Variables
 =====================
 
 Set environment variables before running the build or start scripts. The webapp
-loads variables from ``packages/webapp/webpack/.env`` via ``dotenv-webpack`` and
+loads variables from ``packages/webapp2/.env`` via Vite's ``import.meta.env`` and
 respects system environment variables. The server reads directly from
 ``process.env``.
 
@@ -12,7 +12,7 @@ Web application
 ``APPLICATION_SERVER_VERSION``
    Boolean flag exposed to the UI. When truthy the application surfaces server
    backed features such as diagram sharing and collaboration. Defaults to
-   ``true`` in ``webpack.common.js`` if not provided.
+   ``true`` in the Vite config if not provided.
 
 ``DEPLOYMENT_URL``
    Base URL used to derive API endpoints (``BASE_URL``) and WebSocket URLs.
@@ -63,7 +63,7 @@ Common
 ------
 
 ``NODE_ENV``
-   Drives webpack's development vs production configuration and influences the
+   Drives Vite's development vs production configuration and influences the
    default ``BACKEND_URL`` and WebSocket URL selection.
 
 Set variables inline when running scripts, e.g.:
@@ -74,7 +74,7 @@ Set variables inline when running scripts, e.g.:
    BACKEND_URL=https://api.example.com/besser_api \
    npm run build
 
-Or create ``packages/webapp/webpack/.env`` for development:
+Or create ``packages/webapp2/.env`` for development:
 
 .. code-block:: text
 

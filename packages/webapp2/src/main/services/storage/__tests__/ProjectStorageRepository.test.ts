@@ -1,6 +1,6 @@
 import { ProjectStorageRepository } from '../ProjectStorageRepository';
 import { createDefaultProject, ALL_DIAGRAM_TYPES, BesserProject } from '../../../types/project';
-import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../../constant';
+import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../../constants/constant';
 
 // Mock react-toastify (imported transitively by localStorageQuota)
 vi.mock('react-toastify', () => ({

@@ -22,7 +22,7 @@ import { useAppDispatch } from '../../store/hooks';
 import { notifyError } from '../../utils/notifyError';
 import { useProject } from '../../hooks/useProject';
 import { getPostHog } from '../../services/analytics/lazy-analytics';
-import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
+import { BACKEND_URL, SHOW_FULL_AGENT_CONFIGURATION } from '../../constants/constant';
 import {
   useGenerateCode,
   DjangoConfig,
@@ -36,9 +36,9 @@ import type { GenerationResult } from '../../services/generate-code/types';
 import { useDeployLocally } from '../../services/generate-code/useDeployLocally';
 import { GrapesJSProjectData, isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../types/project';
 import type { BesserProject, ProjectDiagram } from '../../types/project';
-import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
+import { LocalStorageRepository } from '../../services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
-import { switchDiagramTypeThunk } from '../../services/workspace/workspaceSlice';
+import { switchDiagramTypeThunk } from '../../store/workspaceSlice';
 import { validateDiagram } from '../../services/validation/validateDiagram';
 import {
   ConfigDialog,

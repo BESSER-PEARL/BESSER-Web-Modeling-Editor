@@ -27,7 +27,7 @@ import { ProjectStorageRepository } from '../../services/storage/ProjectStorageR
 import { importProject } from '../../services/import/useImportProject';
 import { normalizeProjectName } from '../../utils/projectName';
 import { validateProjectName } from '../../utils/validation';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { useImportDiagramToProject } from '../../services/import/useImportDiagram';
 
 interface ProjectHubDialogProps {

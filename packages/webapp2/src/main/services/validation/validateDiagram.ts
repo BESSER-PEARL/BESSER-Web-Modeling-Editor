@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
 import type { CSSProperties } from 'react';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { ApollonEditor } from '@besser/wme';
 
 /**

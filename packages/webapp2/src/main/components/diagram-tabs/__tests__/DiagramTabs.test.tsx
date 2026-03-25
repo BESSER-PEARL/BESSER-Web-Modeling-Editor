@@ -15,7 +15,7 @@ vi.mock('../../../store/hooks', () => ({
   useAppSelector: vi.fn((selector: any) => selector(mockState)),
 }));
 
-vi.mock('../../../services/workspace/workspaceSlice', () => ({
+vi.mock('../../../store/workspaceSlice', () => ({
   addDiagramThunk: vi.fn((payload: any) => ({ type: 'addDiagram', payload })),
   removeDiagramThunk: vi.fn((payload: any) => ({ type: 'removeDiagram', payload })),
   renameDiagramThunk: vi.fn((payload: any) => ({ type: 'renameDiagram', payload })),
@@ -127,7 +127,7 @@ describe('DiagramTabs', () => {
   });
 
   it('calls switchDiagramIndexThunk when clicking a non-active tab', async () => {
-    const { switchDiagramIndexThunk } = await import('../../../services/workspace/workspaceSlice');
+    const { switchDiagramIndexThunk } = await import('../../../store/workspaceSlice');
 
     setMockState({
       diagrams: [
@@ -149,7 +149,7 @@ describe('DiagramTabs', () => {
   });
 
   it('does not dispatch when clicking the already-active tab', async () => {
-    const { switchDiagramIndexThunk } = await import('../../../services/workspace/workspaceSlice');
+    const { switchDiagramIndexThunk } = await import('../../../store/workspaceSlice');
 
     setMockState({
       diagrams: [makeDiagram('d1', 'First')],

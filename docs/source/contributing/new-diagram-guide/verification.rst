@@ -10,7 +10,7 @@ Once you have implemented both the frontend and backend parts, follow these step
     
     .. code-block:: bash
 
-        npm run start:webapp
+        npm run dev
 
 2.  Open the editor in your browser.
 3.  Create a new project and select "MyNewDiagram" as the type.
@@ -34,5 +34,5 @@ Once you have implemented both the frontend and backend parts, follow these step
 5.  Verify that the output (code or model) is generated correctly.
 
 .. note::
-   The standalone Node/Express server (``npm run start:server``) serves built webapp assets and a small set of ``/api``
+   The standalone Node/Express server (``npm run start:server``) serves built webapp2 assets and a small set of ``/api``
    routes, but code generation and validation still rely on the BESSER backend.

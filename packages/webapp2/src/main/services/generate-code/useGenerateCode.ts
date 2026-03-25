@@ -3,7 +3,7 @@ import { ApollonEditor } from '@besser/wme';
 import { useFileDownload } from '../file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../validation/validateDiagram';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../utils/projectName';
 import { buildProjectPayloadForBackend } from '../export/projectExportUtils';

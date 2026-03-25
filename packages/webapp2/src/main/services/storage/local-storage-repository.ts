@@ -11,7 +11,7 @@ import {
   localStorageSystemThemePreference,
   localStorageUserProfiles,
   localStorageUserThemePreference,
-} from '../../constant';
+} from '../../constants/constant';
 import { UMLModel } from '@besser/wme';
 import { uuid } from '../../utils/uuid';
 import { AgentConfigurationPayload } from '../../types/agent-config';

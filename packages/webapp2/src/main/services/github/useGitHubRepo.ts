@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { normalizeProjectName } from '../../utils/projectName';
 
 export interface GitHubRepoResult {

@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { ApollonEditor } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
 import { validateDiagram } from '../validation/validateDiagram';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import React from 'react';
 
 // Add type definitions

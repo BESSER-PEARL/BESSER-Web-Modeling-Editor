@@ -14,7 +14,7 @@ import { useExportJSON } from '../../services/export/useExportJson';
 import { exportProjectById } from '../../services/export/useExportProjectJSON';
 import { exportProjectAsSingleBUMLFile } from '../../services/export/useExportProjectBUML';
 import { useAppSelector } from '../../store/hooks';
-import { selectActiveDiagram } from '../../services/workspace/workspaceSlice';
+import { selectActiveDiagram } from '../../store/workspaceSlice';
 
 interface ExportDialogProps {
   open: boolean;

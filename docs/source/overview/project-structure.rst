@@ -36,10 +36,15 @@ Workspace packages
    supporting services used by both the standalone webapp and external
    integrations.
 
-``packages/webapp/``
-   The React single-page application that embeds the editor, manages local
-   projects, handles import/export, code generation requests, and orchestrates
-   collaboration flows.
+``packages/webapp2/``
+   The default React single-page application (Vite 7, Radix UI + Tailwind CSS,
+   Vitest + Playwright). It embeds the editor, manages local projects, handles
+   import/export, code generation requests, and orchestrates collaboration
+   flows. This is the actively developed and deployed frontend.
+
+``packages/webapp/`` *(legacy)*
+   The original React application built with Webpack and Bootstrap. Retained
+   for reference but no longer deployed or actively maintained.
 
 ``packages/server/``
    Express server that serves the compiled webapp, proxies diagram actions and
@@ -51,8 +56,9 @@ Cross-package conventions
 
 * TypeScript sources are nested under ``src/main``; tests (where present) live
   in ``src/tests``.
-* Redux slices in the webapp follow the ``services/<domain>/<name>Slice.ts``
-  naming convention.
+* Redux slices in webapp2 follow the ``store/<name>Slice.ts`` naming
+  convention.
+* Application-wide constants in webapp2 are kept in the ``constants/`` folder.
 * The editor package uses the ``packages/<diagram family>`` hierarchy to group
   element models, React renderers, previews, and pop-ups for each diagram type.
 * Build artefacts never live inside ``src``. Scripts clean the ``build/``

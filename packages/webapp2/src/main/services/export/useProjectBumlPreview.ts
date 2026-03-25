@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { BesserProject } from '../../types/project';
 import { buildProjectPayloadForBackend } from './projectExportUtils';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';

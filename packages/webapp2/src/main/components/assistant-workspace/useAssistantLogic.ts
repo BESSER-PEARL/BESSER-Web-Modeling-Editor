@@ -11,10 +11,10 @@ import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../services/analytics/lazy-analytics';
 import { AssistantClient, type AssistantActionPayload, type InjectionCommand } from '../../services/assistant';
-import { UML_BOT_WS_URL } from '../../constant';
+import { UML_BOT_WS_URL } from '../../constants/constant';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { useProject } from '../../hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram, switchDiagramIndexThunk, addDiagramThunk } from '../../services/workspace/workspaceSlice';
+import { updateDiagramModelThunk, selectActiveDiagram, switchDiagramIndexThunk, addDiagramThunk } from '../../store/workspaceSlice';
 import { ApollonEditorContext } from '../apollon-editor-component/apollon-editor-context';
 import {
   UMLModelingService,

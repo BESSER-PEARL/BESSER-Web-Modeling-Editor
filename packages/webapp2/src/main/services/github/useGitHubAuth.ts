@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 
 export interface GitHubAuthStatus {
   success: boolean;

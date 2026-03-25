@@ -17,18 +17,18 @@ integration points.
 Reusing the webapp component
 ----------------------------
 
-``packages/webapp/src/main/components/apollon-editor-component/ApollonEditorComponent.tsx``
+``packages/webapp2/src/main/components/apollon-editor-component/ApollonEditorComponent.tsx``
 wraps the editor with the Redux slices, autosave logic, and palette that the
 standalone application uses. To integrate it into another React host:
 
 1. Install the workspace as a dependency or symlink it via npm workspaces.
-2. Mount the ``ApplicationStore`` provider (``components/store/ApplicationStore``)
+2. Mount the ``ApplicationStore`` provider (``store/application-store``)
    at the root of your host application to configure the Redux store and
    persistence.
 3. Render ``ApollonEditorComponent`` when you want local editing or
    ``ApollonEditorComponentWithConnection`` when collaboration via WebSockets is
    required.
-4. Use the exported hooks in ``components/store/hooks.ts`` to interact with the
+4. Use the exported hooks in ``hooks/`` to interact with the
    slices (for example, ``useAppDispatch`` and ``useAppSelector``).
 
 Example
@@ -36,8 +36,8 @@ Example
 
 .. code-block:: tsx
 
-   import { ApplicationStore } from 'packages/webapp/src/main/components/store/ApplicationStore';
-   import { ApollonEditorComponent } from 'packages/webapp/src/main/components/apollon-editor-component/ApollonEditorComponent';
+   import { ApplicationStore } from 'packages/webapp2/src/main/store/application-store';
+   import { ApollonEditorComponent } from 'packages/webapp2/src/main/components/apollon-editor-component/ApollonEditorComponent';
 
    export function EmbeddedEditor() {
      return (

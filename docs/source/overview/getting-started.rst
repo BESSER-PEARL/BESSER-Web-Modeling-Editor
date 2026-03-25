@@ -66,9 +66,9 @@ server alongside the React dev server.
 React development server only
    .. code-block:: bash
 
-      npm run start:webapp
+      npm run dev
 
-   This starts `webpack-dev-server` on http://localhost:8080 and hot-reloads
+   This starts the Vite dev server on http://localhost:8080 and hot-reloads
    React components. Requests targeting ``/api`` (the standalone server routes)
    will fail unless you run the Express server separately.
 
@@ -78,7 +78,7 @@ Integrated server + static assets
       npm run build:webapp:local
       npm run start:server
 
-   The build step outputs static assets under ``build/webapp`` with
+   The build step outputs static assets under ``build/webapp2`` with
    ``DEPLOYMENT_URL`` defaulting to ``http://localhost:8080``. The Express
    server serves those assets and exposes the diagram REST endpoints on the
    same port.
@@ -88,10 +88,10 @@ Full stack convenience script
 
       npm run dev
 
-   This script invokes ``start:webapp`` and ``start:server`` concurrently. If
-   you reuse the default ports ensure only one renderer handles 8080 at a time.
-   In practice, run the server only after the dev server has finished building
-   or adjust the ``devServer.port`` in ``packages/webapp/webpack/webpack.dev.js``.
+   This script invokes the Vite dev server and ``start:server`` concurrently.
+   If you reuse the default ports ensure only one renderer handles 8080 at a
+   time. In practice, run the server only after the dev server has finished
+   building or adjust the port in ``packages/webapp2/vite.config.ts``.
 
 Recommended verification
 ------------------------
@@ -103,5 +103,5 @@ Recommended verification
    contain the expected graphics.
 
 If the UI fails to load, inspect the browser console and the terminal output
-from ``start:webapp`` and ``start:server``. Many runtime issues stem from
+from ``npm run dev`` and ``start:server``. Many runtime issues stem from
 missing environment variables—see :doc:`../reference/environment`.

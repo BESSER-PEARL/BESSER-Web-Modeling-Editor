@@ -1,13 +1,13 @@
 // Import diagram from image using backend API
 import { toast } from 'react-toastify';
 import { useCallback } from 'react';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { useAppDispatch } from '../../store/hooks';
 import { uuid } from '../../utils/uuid';
-import { displayError } from '../error-management/errorManagementSlice';
+import { displayError } from '../../store/errorManagementSlice';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { toSupportedDiagramType } from '../../types/project';
-import { loadProjectThunk } from '../workspace/workspaceSlice';
+import { loadProjectThunk } from '../../store/workspaceSlice';
 
 // Hook to import diagram from image file and API key
 export const useImportDiagramPictureFromImage = () => {

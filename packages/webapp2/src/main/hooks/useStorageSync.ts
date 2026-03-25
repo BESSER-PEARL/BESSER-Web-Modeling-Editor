@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
-import { syncProjectFromStorage, selectProjectId } from '../services/workspace/workspaceSlice';
+import { syncProjectFromStorage, selectProjectId } from '../store/workspaceSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   localStorageProjectPrefix,
   localStorageUserThemePreference,
-} from '../constant';
+} from '../constants/constant';
 import { useCrossTabSync } from './useCrossTabSync';
 import { setTheme } from '../utils/theme-switcher';
 

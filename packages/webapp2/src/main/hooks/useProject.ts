@@ -17,7 +17,7 @@ import {
   selectActiveDiagramType,
   selectWorkspaceLoading,
   selectWorkspaceError,
-} from '../services/workspace/workspaceSlice';
+} from '../store/workspaceSlice';
 
 export const useProject = () => {
   const dispatch = useAppDispatch();

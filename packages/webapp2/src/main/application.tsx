@@ -8,7 +8,7 @@ import { ApollonEditor } from '@besser/wme';
 import {
   POSTHOG_HOST,
   POSTHOG_KEY,
-} from './constant';
+} from './constants/constant';
 import { getActiveDiagram, isUMLModel } from './types/project';
 import { ApollonEditorProvider } from './components/apollon-editor-component/apollon-editor-context';
 import { EditorView } from './components/editor-view/EditorView';
@@ -24,11 +24,11 @@ import { useGeneratorExecution } from './components/generator-execution/useGener
 import { SuspenseFallback } from './components/loading/SuspenseFallback';
 import { GeneratingOverlay } from './components/loading/GeneratingOverlay';
 import { GlobalConfirmProvider } from './services/confirm/GlobalConfirmProvider';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorBoundary } from './components/error-handling/AppErrorBoundary';
 import { NotFound } from './components/NotFound';
 import { useOnboarding } from './components/onboarding/useOnboarding';
 import { useAppSelector } from './store/hooks';
-import { selectActiveDiagram } from './services/workspace/workspaceSlice';
+import { selectActiveDiagram } from './store/workspaceSlice';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>

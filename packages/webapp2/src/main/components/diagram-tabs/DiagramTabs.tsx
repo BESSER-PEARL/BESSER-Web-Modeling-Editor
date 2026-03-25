@@ -17,7 +17,7 @@ import {
   selectDiagramsForActiveType,
   selectActiveDiagramType,
   selectProject,
-} from '../../services/workspace/workspaceSlice';
+} from '../../store/workspaceSlice';
 
 /* ------------------------------------------------------------------ */
 /*  Small inline tooltip used for info icons next to reference labels  */

@@ -1,4 +1,4 @@
-import { updateDiagramModelThunk } from '../../../services/workspace/workspaceSlice';
+import { updateDiagramModelThunk } from '../../../store/workspaceSlice';
 import type { AppDispatch } from '../../../store/store';
 import { ConverterFactory } from './converters';
 import type { DiagramType } from './shared-types';

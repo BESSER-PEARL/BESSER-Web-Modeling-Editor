@@ -3,7 +3,7 @@ import { BookOpen, ExternalLink, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { besserWMERepositoryLink } from '../../application-constants';
+import { besserWMERepositoryLink } from '../../constants/application-constants';
 
 type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'gui' | 'quantum';
 

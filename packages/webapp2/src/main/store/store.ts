@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { workspaceReducer } from '../services/workspace/workspaceSlice';
-import { errorReducer } from '../services/error-management/errorManagementSlice';
+import { workspaceReducer } from './workspaceSlice';
+import { errorReducer } from './errorManagementSlice';
 
 export const store = configureStore({
   reducer: {

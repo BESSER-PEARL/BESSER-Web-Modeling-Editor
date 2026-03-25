@@ -20,7 +20,7 @@ import {
   addDiagramThunk,
   switchDiagramIndexThunk,
   selectProject,
-} from '../../services/workspace/workspaceSlice';
+} from '../../store/workspaceSlice';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 import { toSupportedDiagramType, getActiveDiagram } from '../../types/project';
 import { QuantumCircuitData } from '../../types/project';

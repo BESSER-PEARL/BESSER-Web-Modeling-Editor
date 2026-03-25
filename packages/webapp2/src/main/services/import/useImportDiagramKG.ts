@@ -1,11 +1,11 @@
 // Import diagram from KG using backend API
 import { toast } from 'react-toastify';
 import { useCallback } from 'react';
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../constants/constant';
 import { useAppDispatch } from '../../store/hooks';
 import { uuid } from '../../utils/uuid';
-import { bumpEditorRevision } from '../workspace/workspaceSlice';
-import { displayError } from '../error-management/errorManagementSlice';
+import { bumpEditorRevision } from '../../store/workspaceSlice';
+import { displayError } from '../../store/errorManagementSlice';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { toSupportedDiagramType } from '../../types/project';
 import { useBumlToDiagram } from './useBumlToDiagram';
