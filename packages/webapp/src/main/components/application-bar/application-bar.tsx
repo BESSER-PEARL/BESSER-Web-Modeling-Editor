@@ -405,7 +405,7 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     }
   }, [activeAgentConfigId, agentConfigOptions, diagram?.id, getCurrentAgentModel]);
 
-  const handleSaveUserProfile = () => {
+  const handleSaveUserProfile = async () => {
     if (!isUserDiagram) {
       toast.error('Profile saving is only available for user diagrams.');
       return;
@@ -414,6 +414,11 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     const model = getActiveUserModel();
     if (!model) {
       toast.error('No user model available to save.');
+      return;
+    }
+
+    const validationResult = await validateDiagram(editor, diagramTitle || 'User Diagram', model);
+    if (!validationResult?.isValid) {
       return;
     }
 

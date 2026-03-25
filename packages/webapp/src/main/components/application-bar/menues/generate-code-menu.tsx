@@ -778,7 +778,7 @@ export const GenerateCodeMenu: React.FC = () => {
               <Form.Group className="mb-3">
                 <Form.Label>Mode</Form.Label>
                 <div>
-                  <Form.Check inline type="radio" id="mode-original" label="Original" name="agentMode" checked={agentMode === 'original'} onChange={() => setAgentMode('original')} />
+                  <Form.Check inline type="radio" id="mode-original" label="Default" name="agentMode" checked={agentMode === 'original'} onChange={() => setAgentMode('original')} />
                   <Form.Check inline type="radio" id="mode-config" label="Configuration" name="agentMode" checked={agentMode === 'configuration'} onChange={() => setAgentMode('configuration')} />
                   <Form.Check inline type="radio" id="mode-personalization" label="Personalization" name="agentMode" checked={agentMode === 'personalization'} onChange={() => setAgentMode('personalization')} />
                 </div>

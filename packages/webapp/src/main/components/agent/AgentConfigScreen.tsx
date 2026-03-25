@@ -441,9 +441,6 @@ export const AgentConfigScreen: React.FC = () => {
 
     const handleAdaptContentToggle = (checked: boolean) => {
         setAdaptContentToUserProfile(checked);
-        if (!checked) {
-            setSelectedUserProfileName('');
-        }
     };
 
     const updateInterfaceStyle = (field: keyof InterfaceStyleSetting, value: InterfaceStyleSetting[keyof InterfaceStyleSetting]) => {
@@ -757,6 +754,13 @@ export const AgentConfigScreen: React.FC = () => {
         toast.success(`Configuration "${result.savedEntry.name}" saved.`);
     };
 
+    const handleResetToDefaults = () => {
+        applyConfiguration(createDefaultConfig());
+        localStorage.setItem(configKey, JSON.stringify(createDefaultConfig()));
+        setActiveCustomizationSection(null);
+        toast.info('Configuration reset to default values.');
+    };
+
     const handleSaveAndApply = async () => {
         const trimmedName = configurationName.trim();
         if (!trimmedName) {
@@ -780,6 +784,21 @@ export const AgentConfigScreen: React.FC = () => {
         const config = getConfigObject();
         if (!config || Object.keys(config).length === 0) {
             alert('Please configure the agent before saving.');
+            return;
+        }
+
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile to map before saving and applying.');
+            return;
+        }
+
+        const selectedProfile = selectedUserProfileName
+            ? (userProfiles.length > 0 ? userProfiles : LocalStorageRepository.getUserProfiles())
+                .find((profile) => profile.name === selectedUserProfileName)
+            : null;
+
+        if (!selectedProfile || !selectedProfile.model || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+            alert('The selected user profile is not available. Please select a valid saved user profile.');
             return;
         }
 
@@ -841,6 +860,9 @@ export const AgentConfigScreen: React.FC = () => {
                 originalAgentModel: agentModel,
             });
             if (result.ok) {
+                if (selectedProfile && result.savedEntry) {
+                    LocalStorageRepository.saveAgentProfileConfigurationMapping(selectedProfile, result.savedEntry);
+                }
                 window.dispatchEvent(new Event(AGENT_CONFIG_CHANGED_EVENT));
                 toast.success('Configuration transformed, saved, and applied successfully.');
                 setSelectedConfigId(result.savedEntry?.id || activeConfigId || '');
@@ -1163,20 +1185,9 @@ export const AgentConfigScreen: React.FC = () => {
                                     <Form.Group className="mb-3">
                                         <Form.Check type="switch" id="adaptContentToUserProfile" label="Adapt content to user profile" checked={adaptContentToUserProfile} onChange={e => handleAdaptContentToggle(e.target.checked)} />
                                     </Form.Group>
-                                    {adaptContentToUserProfile && (
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>Select user profile</Form.Label>
-                                            <Form.Select value={selectedUserProfileName || ''} onChange={e => setSelectedUserProfileName(e.target.value)}>
-                                                <option value="">None</option>
-                                                {userProfiles.map((profile) => (
-                                                    <option key={profile.id} value={profile.name}>{profile.name}</option>
-                                                ))}
-                                            </Form.Select>
-                                            {userProfiles.length === 0 && (
-                                                <Form.Text className="text-muted">No saved user profiles available. Save one from the user diagram screen first.</Form.Text>
-                                            )}
-                                        </Form.Group>
-                                    )}
+                                    <Form.Text className="text-muted d-block mb-2">
+                                        The user profile for adaptation is selected in Configuration Actions under "User Profile Mapping (for Save & Apply)".
+                                    </Form.Text>
                                     <Form.Text className="text-muted">
                                         Enable this option to tailor generated responses to the active user profile. This option requires user profiles to be defined. You'll have then to select a profile and attributes you think are relevant for the agent to consider when adapting responses.
                                     </Form.Text>
@@ -1331,6 +1342,29 @@ export const AgentConfigScreen: React.FC = () => {
                             )}
                         </Form.Group>
 
+                        <Form.Group className="mb-3">
+                            <Form.Label>User Profile Mapping (for Save & Apply)</Form.Label>
+                            <Form.Select
+                                value={selectedUserProfileName || ''}
+                                onChange={e => setSelectedUserProfileName(e.target.value)}
+                                disabled={userProfiles.length === 0}
+                            >
+                                <option value="">
+                                    {userProfiles.length === 0 ? 'No user profiles saved yet' : 'Select a user profile'}
+                                </option>
+                                {userProfiles.map((profile) => (
+                                    <option key={profile.id} value={profile.name}>
+                                        {profile.name}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            {userProfiles.length === 0 && (
+                                <Form.Text className="text-muted">
+                                    Save a user profile from the User Diagram first.
+                                </Form.Text>
+                            )}
+                        </Form.Group>
+
                         <div className="d-flex flex-wrap gap-2 mt-3">
                             <StyledButton
                                 variant="outline-primary"
@@ -1353,6 +1387,9 @@ export const AgentConfigScreen: React.FC = () => {
                         <ActionBar>
                             <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
                                 {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
+                            </StyledButton>
+                            <StyledButton variant="outline-secondary" type="button" onClick={handleResetToDefaults} disabled={isLoading}>
+                                Reset to Defaults
                             </StyledButton>
                             <StyledButton variant="primary" type="submit" disabled={isLoading}>
                                 Save Configuration
