@@ -3,7 +3,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { Atom, Bot, Layers3, Network, PackageOpen, Repeat2, Settings, SlidersHorizontal } from 'lucide-react';
 import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../constant';
 import type { SupportedDiagramType, BesserProject, ProjectDiagram } from '../../types/project';
-import { isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../types/project';
+import { diagramHasContent } from '../../types/project';
 
 /** Maps each diagram type to its available generators and a human-readable label. */
 export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: string[]; label: string }> = {
@@ -33,33 +33,8 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
   },
 };
 
-/** Check whether a single diagram has meaningful content (non-empty model). */
-export function diagramHasContent(diagram: ProjectDiagram): boolean {
-  const model = diagram.model;
-  if (!model) return false;
-
-  if (isUMLModel(model)) {
-    const hasElements = model.elements && Object.keys(model.elements).length > 0;
-    const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
-    return !!(hasElements || hasRelationships);
-  }
-
-  if (isGrapesJSProjectData(model)) {
-    // Check if any page has non-empty components beyond the bare wrapper
-    return model.pages.some((page: any) =>
-      page?.frames?.some((frame: any) => {
-        const components = frame?.component?.components;
-        return Array.isArray(components) && components.length > 0;
-      }),
-    );
-  }
-
-  if (isQuantumCircuitData(model)) {
-    return Array.isArray(model.cols) && model.cols.length > 0;
-  }
-
-  return false;
-}
+// Re-export for backwards compatibility
+export { diagramHasContent } from '../../types/project';
 
 /** For a given diagram type, check whether *any* diagram in the array has content. */
 export function diagramTypeHasContent(project: BesserProject | null, type: SupportedDiagramType): boolean {

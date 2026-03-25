@@ -1,4 +1,4 @@
-import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram } from '../../types/project';
+import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent } from '../../types/project';
 import { normalizeProjectName } from '../../utils/projectName';
 
 export type ExportableProjectPayload = Omit<BesserProject, 'diagrams'> & {
@@ -12,20 +12,19 @@ export const buildExportableProjectPayload = (
   const projectClone = structuredClone(project) as ExportableProjectPayload;
   projectClone.name = normalizeProjectName(projectClone.name || 'project');
 
-  if (!selectedDiagramTypes || selectedDiagramTypes.length === 0) {
-    return projectClone;
+  // Filter out empty diagrams from each type, then remove types with no content
+  const filtered: Record<string, ProjectDiagram[]> = {};
+  for (const [type, diagrams] of Object.entries(projectClone.diagrams)) {
+    if (selectedDiagramTypes && selectedDiagramTypes.length > 0 && !selectedDiagramTypes.includes(type as SupportedDiagramType)) {
+      continue;
+    }
+    const withContent = (diagrams as ProjectDiagram[]).filter(diagramHasContent);
+    if (withContent.length > 0) {
+      filtered[type] = withContent;
+    }
   }
 
-  const filteredDiagrams: Record<string, ProjectDiagram[]> = {};
-
-  selectedDiagramTypes.forEach((diagramType) => {
-    const diagrams = projectClone.diagrams[diagramType];
-    if (diagrams) {
-      filteredDiagrams[diagramType] = diagrams;
-    }
-  });
-
-  projectClone.diagrams = filteredDiagrams;
+  projectClone.diagrams = filtered;
 
   return projectClone;
 };

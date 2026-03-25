@@ -478,6 +478,33 @@ export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitDat
 };
 
 
+/** Check whether a single diagram has meaningful content (non-empty model). */
+export function diagramHasContent(diagram: ProjectDiagram): boolean {
+  const model = diagram.model;
+  if (!model) return false;
+
+  if (isUMLModel(model)) {
+    const hasElements = model.elements && Object.keys(model.elements).length > 0;
+    const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
+    return !!(hasElements || hasRelationships);
+  }
+
+  if (isGrapesJSProjectData(model)) {
+    return model.pages.some((page: any) =>
+      page?.frames?.some((frame: any) => {
+        const components = frame?.component?.components;
+        return Array.isArray(components) && components.length > 0;
+      }),
+    );
+  }
+
+  if (isQuantumCircuitData(model)) {
+    return Array.isArray(model.cols) && model.cols.length > 0;
+  }
+
+  return false;
+}
+
 // Normalize any data to valid GrapesJS format
 export const normalizeToGrapesJSProjectData = (data: unknown): GrapesJSProjectData => {
   const candidate = (data && typeof data === 'object') ? data as any : {};
