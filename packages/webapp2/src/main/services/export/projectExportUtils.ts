@@ -43,12 +43,15 @@ export const buildProjectPayloadForBackend = (
   const payload = structuredClone(project);
   payload.name = normalizeProjectName(payload.name || 'project');
 
-  // Filter to only non-empty diagram types
+  // Filter out empty diagrams, then remove types with no content
   const diagrams: Record<string, ProjectDiagram[]> = {};
   for (const type of Object.keys(payload.diagrams)) {
     const arr = payload.diagrams[type];
-    if (Array.isArray(arr) && arr.length > 0) {
-      diagrams[type] = arr;
+    if (Array.isArray(arr)) {
+      const withContent = arr.filter(diagramHasContent);
+      if (withContent.length > 0) {
+        diagrams[type] = withContent;
+      }
     }
   }
 
