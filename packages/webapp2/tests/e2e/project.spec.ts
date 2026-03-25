@@ -8,7 +8,10 @@ test.describe('Project management', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test so previous state does not leak.
     await page.goto('/');
-    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
+    });
     await page.reload();
   });
 
@@ -47,7 +50,7 @@ test.describe('Project management', () => {
     await expect(dialog).toBeHidden({ timeout: 10_000 });
 
     // Verify the project name appears in the header after creation.
-    const header = page.locator('header');
+    const header = page.locator('header').first();
     await expect(header.locator('input').first()).toHaveValue('My_Test_Project');
   });
 
@@ -56,14 +59,14 @@ test.describe('Project management', () => {
     await createBlankProject(page, 'Persistent_Project');
 
     // Verify the workspace is active.
-    await expect(page.locator('aside')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
 
     // Reload the page — the project should be auto-loaded from localStorage.
     await page.reload();
 
     // After reload, the workspace should still be visible (project hub should NOT reappear).
     // The header should show the project name.
-    const header = page.locator('header');
+    const header = page.locator('header').first();
     await expect(header).toBeVisible({ timeout: 15_000 });
 
     // The project name should still be present in the input.
@@ -74,7 +77,7 @@ test.describe('Project management', () => {
     await createBlankProject(page, 'Hub_Reopen_Test');
 
     // Click the BESSER logo in the header to re-open the project hub.
-    const header = page.locator('header');
+    const header = page.locator('header').first();
     await header.locator('img[alt="BESSER"]').click();
 
     // The ProjectHubDialog should reappear.
@@ -86,7 +89,7 @@ test.describe('Project management', () => {
   test('existing projects appear in the project hub list', async ({ page }) => {
     // Create a first project.
     await createBlankProject(page, 'First_Project');
-    await expect(page.locator('aside')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
 
     // Open the project hub again.
     await page.locator('header img[alt="BESSER"]').click();
@@ -101,7 +104,7 @@ test.describe('Project management', () => {
   test('can switch between two projects', async ({ page }) => {
     // Create the first project.
     await createBlankProject(page, 'Project_Alpha');
-    await expect(page.locator('aside')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
 
     // Open hub and create a second project.
     await page.locator('header img[alt="BESSER"]').click();
@@ -135,7 +138,7 @@ test.describe('Project management', () => {
 
   test('can rename a project from the header', async ({ page }) => {
     await createBlankProject(page, 'Original_Name');
-    await expect(page.locator('aside')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('complementary')).toBeVisible({ timeout: 10_000 });
 
     // The first input in the header is the project name.
     const projectNameInput = page.locator('header input').first();

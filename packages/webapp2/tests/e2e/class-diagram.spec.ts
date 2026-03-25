@@ -7,15 +7,19 @@ import { test, expect } from '@playwright/test';
 test.describe('Class Diagram', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('besser_analytics_consent', JSON.stringify({ status: 'declined', version: '1.2', timestamp: Date.now() }));
+    });
+    await page.reload();
     await createBlankProject(page, 'ClassDiagram_E2E');
 
     // Ensure we are on the Class Diagram editor (default diagram type).
-    const sidebar = page.locator('aside');
+    const sidebar = page.getByRole('complementary');
     await expect(sidebar).toBeVisible({ timeout: 10_000 });
 
     // The Class button should already be active after project creation.
     const classButton = sidebar.getByRole('button', { name: /class/i });
-    await expect(classButton).toHaveClass(/border-(sky|primary)/);
+    await expect(classButton).toHaveClass(/border-brand/);
   });
 
   test('editor canvas is rendered for class diagrams', async ({ page }) => {
@@ -57,7 +61,7 @@ test.describe('Class Diagram', () => {
   test('can open the generate menu from a class diagram', async ({ page }) => {
     await expect(page.getByText('Switching diagram...')).toBeHidden({ timeout: 5_000 });
 
-    const header = page.locator('header');
+    const header = page.locator('header').first();
 
     // Click the Generate menu button.
     const generateButton = header.getByRole('button', { name: /generate/i });
@@ -74,7 +78,7 @@ test.describe('Class Diagram', () => {
   test('generate menu shows class diagram generators', async ({ page }) => {
     await expect(page.getByText('Switching diagram...')).toBeHidden({ timeout: 5_000 });
 
-    const header = page.locator('header');
+    const header = page.locator('header').first();
     await header.getByRole('button', { name: /generate/i }).click();
 
     // Wait for the menu to render.
@@ -87,10 +91,10 @@ test.describe('Class Diagram', () => {
     const menuContent = page.locator('[data-radix-popper-content-wrapper]').or(page.getByRole('menu'));
     const menuText = await menuContent.first().textContent();
 
-    // At least one of these generator names should appear.
-    const expectedGenerators = ['Python', 'Java', 'Django', 'SQL'];
-    const hasAtLeastOne = expectedGenerators.some(
-      (gen) => menuText && menuText.toLowerCase().includes(gen.toLowerCase()),
+    // Generator menu shows category groups for ClassDiagram.
+    const expectedGroups = ['Web', 'Database', 'OOP', 'Schema'];
+    const hasAtLeastOne = expectedGroups.some(
+      (group) => menuText && menuText.includes(group),
     );
 
     expect(hasAtLeastOne).toBe(true);
@@ -99,7 +103,7 @@ test.describe('Class Diagram', () => {
   test('project identity panel shows project name and diagram title', async ({ page }) => {
     await expect(page.getByText('Switching diagram...')).toBeHidden({ timeout: 5_000 });
 
-    const header = page.locator('header');
+    const header = page.locator('header').first();
 
     // The ProjectIdentityPanel renders input fields for project name and diagram title.
     // After project creation, project name should be "ClassDiagram_E2E".

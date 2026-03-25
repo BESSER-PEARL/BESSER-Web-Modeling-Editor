@@ -959,8 +959,6 @@ export class ClassDiagramModifier implements DiagramModifier {
             type: 'ClassAttribute',
             owner: newClassId,
             bounds: { x: newX + 1, y: attrY, width: 218, height: 25 },
-            visibility: attrSpec.visibility || 'public',
-            attributeType: normalizeType(attrSpec.type),
           };
           model.elements[newClassId].attributes.push(attrId);
         }

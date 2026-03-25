@@ -138,6 +138,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                   onClick={() => onSwitchUml(item.type)}
                   title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                  aria-label={displayLabel}
                 >
                   {item.icon}
                   {isSidebarExpanded ? (
@@ -159,6 +160,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                   onClick={() => onSwitchUml(item.type)}
                   title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                  aria-label={displayLabel}
                 >
                   {item.icon}
                   {isSidebarExpanded ? (
@@ -185,6 +187,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                         }`}
                         onClick={() => onNavigate(routeItem.path)}
                         title={isSidebarExpanded ? routeItem.label : undefined}
+                        aria-label={routeItem.label}
                       >
                         {routeItem.icon}
                         {isSidebarExpanded && <span>{routeItem.label}</span>}
@@ -210,6 +213,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                 onClick={() => onSwitchDiagramType(item.type)}
                 title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                aria-label={displayLabel}
               >
                 {item.icon}
                 {isSidebarExpanded ? (
@@ -234,6 +238,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                 onClick={() => onNavigate(item.path)}
                 title={isSidebarExpanded ? item.label : undefined}
+                aria-label={item.label}
               >
                 {item.icon}
                 {isSidebarExpanded && <span>{item.label}</span>}
