@@ -28,6 +28,7 @@ const enhance = compose<ConnectedComponent<ComponentType<Props>, OwnProps>>(
 const UMLStateInitialNodeC: FunctionComponent<Props> = ({ element, interactive, interactable, theme }) => {
   return (
     <g>
+      <title>Initial State</title>
       <ThemedCircleContrast
         cx="50%"
         cy="50%"

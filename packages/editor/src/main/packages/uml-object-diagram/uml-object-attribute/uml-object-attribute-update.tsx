@@ -289,7 +289,7 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
         }
       }
     } catch (error) {
-      console.warn('Error formatting date/time value:', error);
+      // Gracefully handle date/time formatting errors
     }
 
     return value;

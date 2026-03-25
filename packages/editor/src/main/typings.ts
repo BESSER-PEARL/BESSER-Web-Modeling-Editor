@@ -68,6 +68,11 @@ export type UMLModelElement = {
 export interface AgentModelElement extends UMLModelElement {
   replyType: string;
   ragDatabaseName?: string;
+  dbSelectionType?: string;
+  dbCustomName?: string;
+  dbQueryMode?: string;
+  dbOperation?: string;
+  dbSqlQuery?: string;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -116,6 +121,7 @@ export type UMLClassifierMember = UMLElement & {
   stateMachineId?: string;
   quantumCircuitId?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
   defaultValue?: any;
 };
 
@@ -165,13 +171,56 @@ export type UMLStateTransition = UMLRelationship & {
 
 export type AgentStateTransition = UMLRelationship & {
   params?: string | string[];
-  condition?: string;
+  // Canonical shape: transitionType + predefined/custom nested objects
+  transitionType?: 'predefined' | 'custom';
+  predefined?: {
+    predefinedType?: string;
+    intentName?: string;
+    fileType?: string;
+    conditionValue?:
+      | string
+      | { variable: string; operator: string; targetValue: string };
+  };
+  custom?: {
+    event?:
+      | 'None'
+      | 'DummyEvent'
+      | 'WildcardEvent'
+      | 'ReceiveMessageEvent'
+      | 'ReceiveTextEvent'
+      | 'ReceiveJSONEvent'
+      | 'ReceiveFileEvent';
+    condition?: string[];
+  };
+  // Legacy flat properties — kept for backward compatibility with existing diagrams
+  predefinedType?: string;
+  event?:
+    | 'None'
+    | 'DummyEvent'
+    | 'WildcardEvent'
+    | 'ReceiveMessageEvent'
+    | 'ReceiveTextEvent'
+    | 'ReceiveJSONEvent'
+    | 'ReceiveFileEvent';
+  condition?: string | string[];
   intentName?: string;
   variable?: string;
   operator?: string;
   targetValue?: string;
-  conditionValue?: string | { variable: string; operator: string; targetValue: string }
+  conditionValue?:
+    | string
+    | { variable: string; operator: string; targetValue: string }
+    | { events: string[]; conditions: string[] };
   fileType?: string;
+  customEvent?:
+    | 'None'
+    | 'DummyEvent'
+    | 'WildcardEvent'
+    | 'ReceiveMessageEvent'
+    | 'ReceiveTextEvent'
+    | 'ReceiveJSONEvent'
+    | 'ReceiveFileEvent';
+  customConditions?: string[];
 };
 
 export type UMLDeploymentNode = UMLElement & {

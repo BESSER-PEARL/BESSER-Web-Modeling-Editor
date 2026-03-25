@@ -134,7 +134,7 @@ class StateMergeNodeUpdate extends Component<Props, State> {
                   <Button color="link" disabled>
                     <ArrowRightIcon />
                   </Button>
-                  <Body>{targets[i].name}</Body>
+                  {targets[i] ? <Body>{targets[i].name}</Body> : <Body>—</Body>}
                 </Flex>
               ))}
             </>
