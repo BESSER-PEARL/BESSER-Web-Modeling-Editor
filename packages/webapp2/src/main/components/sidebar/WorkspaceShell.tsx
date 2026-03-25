@@ -279,33 +279,29 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   // Theme classes
   const shellBackgroundClass = isDarkTheme
-    ? 'bg-[radial-gradient(120%_120%_at_0%_0%,#0f172a_0%,#111827_45%,#0b1220_100%)] text-slate-100'
-    : 'bg-[radial-gradient(120%_120%_at_0%_0%,#d2e7df_0%,#f8f7f2_45%,#f7fafc_100%)] text-foreground';
+    ? 'bg-[radial-gradient(120%_120%_at_0%_0%,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(var(--background))_100%)] text-foreground'
+    : 'bg-[radial-gradient(120%_120%_at_0%_0%,#d2e7df_0%,hsl(var(--background))_45%,#f7fafc_100%)] text-foreground';
   const headerBackgroundClass = isDarkTheme
-    ? 'border-b border-slate-700/70 bg-[linear-gradient(105deg,#0f172a_0%,#111827_45%,#1e293b_100%)]'
+    ? 'border-b border-border/70 bg-[linear-gradient(105deg,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(222_25%_14%)_100%)]'
     : 'border-b border-brand/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
   const outlineButtonClass = isDarkTheme
-    ? 'border-slate-700 bg-slate-900/70 text-slate-100 hover:bg-slate-800 hover:border-slate-600'
-    : 'border-slate-300/80 bg-white/80 hover:border-brand/25 hover:bg-brand/[0.03]';
+    ? 'border-border bg-card text-foreground hover:bg-accent hover:border-border'
+    : 'border-border/60 bg-card hover:border-brand/25 hover:bg-brand/[0.03]';
   const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
   const sidebarBaseClass = isDarkTheme
-    ? 'hidden shrink-0 border-r border-slate-700/70 bg-slate-950/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5'
-    : 'hidden shrink-0 border-r border-slate-200/70 bg-white/65 p-2.5 backdrop-blur-sm transition-all duration-200 md:flex md:flex-col md:gap-1.5';
-  const sidebarTitleClass = isDarkTheme
-    ? 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500'
-    : 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400';
-  const sidebarDividerClass = isDarkTheme ? 'my-2 border-t border-slate-700/60' : 'my-2 border-t border-slate-200/80';
+    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5'
+    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5';
+  const sidebarTitleClass = 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground';
+  const sidebarDividerClass = 'my-2 border-t border-border/60';
   const sidebarToggleClass = isDarkTheme
-    ? 'mt-auto flex items-center rounded-lg border border-slate-700/60 bg-slate-900/70 p-2 transition-all duration-150 hover:border-slate-600 hover:bg-slate-800'
-    : 'mt-auto flex items-center rounded-lg border border-slate-200/80 bg-white/70 p-2 transition-all duration-150 hover:border-brand/20 hover:bg-brand/[0.03]';
-  const sidebarToggleTextClass = isDarkTheme
-    ? 'text-xs font-semibold text-slate-200'
-    : 'text-xs font-semibold text-slate-700';
+    ? 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-border hover:bg-accent'
+    : 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-brand/20 hover:bg-brand/[0.03]';
+  const sidebarToggleTextClass = 'text-xs font-semibold text-foreground';
 
   // Mobile drawer sidebar uses the same styles but is always flex (never hidden)
   const mobileSidebarBaseClass = isDarkTheme
-    ? 'flex shrink-0 flex-col gap-1.5 border-r border-slate-700/70 bg-slate-950/65 p-2.5 backdrop-blur-sm'
-    : 'flex shrink-0 flex-col gap-1.5 border-r border-slate-200/70 bg-white/65 p-2.5 backdrop-blur-sm';
+    ? 'flex shrink-0 flex-col gap-1.5 border-r border-border/70 bg-card p-2.5'
+    : 'flex shrink-0 flex-col gap-1.5 border-r border-border/50 bg-card/90 p-2.5 backdrop-blur-sm';
 
   const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
 
@@ -501,7 +497,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       {/* Mobile hamburger button - visible only below md breakpoint */}
       <button
         type="button"
-        className="md:hidden fixed top-2 left-2 z-50 p-2 rounded-lg bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700"
+        className="md:hidden fixed top-2 left-2 z-50 p-2 rounded-lg bg-card shadow-lg border border-border"
         onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
         aria-label={isMobileDrawerOpen ? 'Close navigation' : 'Open navigation'}
       >
@@ -524,14 +520,14 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         <div
           className={`relative h-full w-64 shadow-xl overflow-y-auto transition-transform duration-300 ${
             isMobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
-          } ${isDarkTheme ? 'bg-slate-900' : 'bg-white'}`}
+          } bg-background`}
         >
           {/* Close button inside drawer */}
           <div className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}>
             <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>Navigation</span>
             <button
               type="button"
-              className={`p-1 rounded ${isDarkTheme ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+              className="p-1 rounded text-muted-foreground hover:bg-muted"
               onClick={closeMobileDrawer}
               aria-label="Close navigation"
             >

@@ -85,9 +85,7 @@ export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boo
       ? isDark
         ? 'border-brand/40 bg-brand/20 text-brand shadow-sm'
         : 'border-brand/30 bg-brand/10 text-brand-dark shadow-sm'
-      : isDark
-        ? 'border-transparent text-slate-400 hover:border-slate-700 hover:bg-slate-800/60 hover:text-slate-200 hover:shadow-sm active:scale-[0.97]'
-        : 'border-transparent text-slate-500 hover:border-brand/15 hover:bg-brand/[0.06] hover:text-slate-700 hover:shadow-sm active:scale-[0.97]',
+      : 'border-transparent text-muted-foreground hover:border-border/50 hover:bg-accent hover:text-foreground hover:shadow-sm active:scale-[0.97]',
   ].join(' ');
 }
 

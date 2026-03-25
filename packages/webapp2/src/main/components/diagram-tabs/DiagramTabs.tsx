@@ -223,7 +223,7 @@ export const DiagramTabs: React.FC = () => {
   const selectClasses = "h-6 min-w-[120px] rounded-md border border-brand/15 bg-card px-2 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-1 focus:ring-brand/20";
 
   return (
-    <div className="border-b border-brand/12 bg-gradient-to-r from-slate-50/80 to-white/60 backdrop-blur-sm dark:from-slate-900/80 dark:to-slate-800/60">
+    <div className="border-b border-brand/12 bg-card/80 backdrop-blur-sm">
       {/* Top row: tabs */}
       <div className="flex items-center gap-0 px-1">
         <div className="flex items-end gap-px py-1 pl-1">
