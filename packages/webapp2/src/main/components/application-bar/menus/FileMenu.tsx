@@ -40,9 +40,9 @@ export const FileMenu: React.FC<FileMenuProps> = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="File">
-          <FileText className="h-4 w-4" />
+          <FileText className="size-4" />
           <span className="hidden xl:inline">File</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+          <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">

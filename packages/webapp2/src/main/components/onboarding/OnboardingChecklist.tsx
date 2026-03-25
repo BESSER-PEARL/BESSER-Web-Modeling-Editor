@@ -27,7 +27,7 @@ export const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
       <div className={`mx-1 mb-2 rounded-lg border p-3 text-center transition-all duration-300 ${
         isDarkTheme ? 'border-brand/30 bg-brand/10' : 'border-brand/20 bg-brand/5'
       }`}>
-        <Trophy className="mx-auto mb-1 h-5 w-5 text-brand" />
+        <Trophy className="mx-auto mb-1 size-5 text-brand" />
         <p className="text-xs font-semibold text-brand">All done!</p>
         <p className="text-[10px] text-muted-foreground">You've completed the getting started guide.</p>
       </div>
@@ -63,12 +63,12 @@ export const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
             className="rounded p-0.5 text-muted-foreground/50 transition-colors hover:text-muted-foreground"
             aria-label="Dismiss checklist"
           >
-            <X className="h-3 w-3" />
+            <X className="size-3" />
           </button>
           {isExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <ChevronUp className="size-3.5 text-muted-foreground/60" />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <ChevronDown className="size-3.5 text-muted-foreground/60" />
           )}
         </div>
       </button>
@@ -87,9 +87,9 @@ export const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
           {(Object.keys(CHECKLIST_LABELS) as (keyof ChecklistType)[]).map((key) => (
             <div key={key} className="flex items-center gap-2 py-1">
               {checklist[key] ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                <CheckCircle2 className="size-3.5 text-brand" />
               ) : (
-                <Circle className="h-3.5 w-3.5 text-muted-foreground/40" />
+                <Circle className="size-3.5 text-muted-foreground/40" />
               )}
               <span className={`text-[11px] ${
                 checklist[key]

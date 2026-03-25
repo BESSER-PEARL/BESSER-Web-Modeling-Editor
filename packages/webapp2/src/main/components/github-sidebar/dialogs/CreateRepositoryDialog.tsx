@@ -62,7 +62,7 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
           <DialogDescription>Create a new GitHub repository and push the current project.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           <FormField
             label="Repository Name"
             required
@@ -115,7 +115,7 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
               type="checkbox"
               checked={isRepoPrivate}
               onChange={(event) => onRepoPrivateChange(event.target.checked)}
-              className="h-4 w-4 rounded border-border"
+              className="size-4 rounded border-border"
             />
             Private repository
           </label>

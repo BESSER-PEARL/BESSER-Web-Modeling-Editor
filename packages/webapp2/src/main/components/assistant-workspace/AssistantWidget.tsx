@@ -203,8 +203,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           {/* Header */}
           <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }}>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
-                <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-6 w-6 object-contain" />
+              <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
+                <img src={AGENT_AVATAR_SRC} alt="Agent" className="size-6 object-contain" />
               </div>
               <div>
                 <p className="text-sm font-semibold leading-none tracking-tight text-foreground">Modeling Assistant</p>
@@ -216,14 +216,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => setShowDisclaimer(true)}
                 title="Privacy and data processing"
                 aria-label="Privacy and data processing"
               >
-                <CircleHelp className="h-3.5 w-3.5" />
+                <CircleHelp className="size-3.5" />
               </Button>
-              <span className={cn('h-2 w-2 rounded-full', getConnectionDotClass(connectionStatus))} />
+              <span className={cn('size-2 rounded-full', getConnectionDotClass(connectionStatus))} />
             </div>
           </div>
 
@@ -247,7 +247,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             {/* Progress indicator */}
             {progressMessage && (
               <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                <Loader2 className="h-3 w-3 animate-spin" />
+                <Loader2 className="size-3 animate-spin" />
                 <span>{progressMessage}</span>
               </div>
             )}
@@ -262,7 +262,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
-                <span className={cn('h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+                <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                 <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
               </div>
               <div className="flex items-center gap-2.5">
@@ -295,7 +295,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           type="button"
           size="icon"
           className={cn(
-            'group relative h-14 w-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-all duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
+            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-all duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
             isVisible
               ? 'border-brand/20 ring-1 ring-brand/15'
               : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',
@@ -305,12 +305,12 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           aria-label={isVisible ? 'Close assistant' : 'Open assistant'}
         >
           {isVisible ? (
-            <X className="h-5 w-5 transition-transform duration-200 group-hover:rotate-90" />
+            <X className="size-5 transition-transform duration-200 group-hover:rotate-90" />
           ) : (
             <>
-              <img src={AGENT_AVATAR_SRC} alt="Agent" className="h-10 w-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
+              <img src={AGENT_AVATAR_SRC} alt="Agent" className="size-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
               {connectionStatus === 'connected' && (
-                <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+                <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
               )}
             </>
           )}
@@ -322,7 +322,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CircleHelp className="h-5 w-5" />
+              <CircleHelp className="size-5" />
               Privacy and Data Processing
             </DialogTitle>
             <DialogDescription>
@@ -355,15 +355,15 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
 const BADGE_STYLES: Record<NonNullable<MessageMeta['badge']>, { icon: React.ReactNode; className: string }> = {
   injection: {
-    icon: <Check className="h-3 w-3" />,
+    icon: <Check className="size-3" />,
     className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400',
   },
   error: {
-    icon: <AlertTriangle className="h-3 w-3" />,
+    icon: <AlertTriangle className="size-3" />,
     className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400',
   },
   generation: {
-    icon: <Code className="h-3 w-3" />,
+    icon: <Code className="size-3" />,
     className: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-400',
   },
 };

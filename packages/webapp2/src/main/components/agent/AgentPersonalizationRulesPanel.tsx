@@ -171,7 +171,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
 
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-6xl flex flex-col gap-6">
         <Card className="border-brand/10">
           <CardHeader>
             <CardTitle className="text-brand">Agent Personalization Rules</CardTitle>
@@ -179,7 +179,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
               Define rules that map user profile attributes to agent behavior settings.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="flex flex-col gap-6">
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleDownload} variant="outline">
                 Download Rules
@@ -204,7 +204,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
 
             <Separator />
 
-            <div className="space-y-4">
+            <div className="flex flex-col gap-4">
               {mappings.map((entry) => {
                 const property = userProperties.find((item) => item.name === entry.feature);
                 const isNumeric = property?.type === 'integer' || property?.type === 'number';
@@ -225,10 +225,10 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                     {entry.rules.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No rules defined for this attribute.</p>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="flex flex-col gap-3">
                         {entry.rules.map((rule) => (
                           <div key={rule.id} className="grid gap-3 rounded-md border border-brand/8 bg-brand/[0.015] p-3 md:grid-cols-5">
-                            <div className="space-y-1.5">
+                            <div className="flex flex-col gap-1.5">
                               <Label>Operator</Label>
                               <select
                                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -253,7 +253,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                               </select>
                             </div>
 
-                            <div className="space-y-1.5">
+                            <div className="flex flex-col gap-1.5">
                               <Label>Value</Label>
                               {rule.operator === 'between' && isNumeric ? (
                                 <div className="grid grid-cols-2 gap-2">
@@ -306,7 +306,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                               )}
                             </div>
 
-                            <div className="space-y-1.5">
+                            <div className="flex flex-col gap-1.5">
                               <Label>Target</Label>
                               <select
                                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -319,7 +319,7 @@ export const AgentPersonalizationRulesPanel: React.FC = () => {
                               </select>
                             </div>
 
-                            <div className="space-y-1.5">
+                            <div className="flex flex-col gap-1.5">
                               <Label>Target Value</Label>
                               <select
                                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"

@@ -42,7 +42,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
           className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Skip tutorial"
         >
-          <X className="h-4 w-4" />
+          <X className="size-4" />
         </button>
       </div>
 
@@ -62,7 +62,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
 
       {step.hint && (
         <div className="mt-3 flex gap-2 rounded-lg bg-brand/5 p-3 text-xs text-muted-foreground">
-          <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+          <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-brand" />
           <span className="whitespace-pre-line">{step.hint}</span>
         </div>
       )}
@@ -75,7 +75,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
           disabled={isFirst}
           className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
         >
-          <ArrowLeft className="h-3.5 w-3.5" />
+          <ArrowLeft className="size-3.5" />
           Back
         </button>
 
@@ -93,7 +93,7 @@ export const InteractiveTutorial: React.FC<InteractiveTutorialProps> = ({
             className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-brand-foreground transition-colors hover:bg-brand-dark"
           >
             {isLast ? 'Finish' : 'Next'}
-            {!isLast && <ArrowRight className="h-3.5 w-3.5" />}
+            {!isLast && <ArrowRight className="size-3.5" />}
           </button>
         </div>
       </div>

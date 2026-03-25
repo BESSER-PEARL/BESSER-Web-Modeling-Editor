@@ -171,7 +171,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-5xl">
         <DialogHeader className="border-b border-border/70 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-brand" />
+            <Sparkles className="size-5 text-brand" />
             Load Template
           </DialogTitle>
           <DialogDescription>
@@ -180,7 +180,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         </DialogHeader>
 
         <div className="grid max-h-[72vh] grid-cols-1 overflow-hidden md:grid-cols-[220px_1fr]">
-          <div className="space-y-2 border-b border-border/70 p-4 md:border-b-0 md:border-r">
+          <div className="flex flex-col gap-2 border-b border-border/70 p-4 md:border-b-0 md:border-r">
             {categories.map((category) => {
               const isActive = selectedCategory === category;
               return (
@@ -219,12 +219,12 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center justify-between text-base">
                           <span>{template.type}</span>
-                          {selected && <Check className="h-4 w-4 text-brand" />}
+                          {selected && <Check className="size-4 text-brand" />}
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="pt-0">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Layers className="h-3.5 w-3.5" />
+                          <Layers className="size-3.5" />
                           <span>{String(template.diagramType).replace('Diagram', ' Diagram')}</span>
                         </div>
                       </CardContent>
@@ -250,7 +250,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <AlertTriangle className="size-5 text-amber-500" />
               Existing diagram detected
             </DialogTitle>
             <DialogDescription>
@@ -264,7 +264,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
               Cancel
             </Button>
             <Button variant="outline" size="sm" onClick={() => doLoadTemplate('new_tab')}>
-              <Layers className="mr-1.5 h-3.5 w-3.5" />
+              <Layers className="mr-1.5 size-3.5" />
               New tab
             </Button>
             <Button size="sm" onClick={() => doLoadTemplate('replace')} className="bg-brand text-brand-foreground hover:bg-brand-dark">

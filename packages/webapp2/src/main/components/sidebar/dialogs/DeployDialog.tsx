@@ -71,7 +71,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
               : 'Create a GitHub repository from the current project and deploy it on Render.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           {useExistingRepo && linkedRepo ? (
             <>
               <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">

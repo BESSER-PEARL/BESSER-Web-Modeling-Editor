@@ -51,30 +51,30 @@ export function diagramCount(project: BesserProject | null, type: SupportedDiagr
 }
 
 export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React.ReactNode }> = [
-  { type: UMLDiagramType.ClassDiagram, label: 'Class', icon: <Network className="h-4 w-4" /> },
-  { type: UMLDiagramType.ObjectDiagram, label: 'Object', icon: <Layers3 className="h-4 w-4" /> },
-  { type: UMLDiagramType.StateMachineDiagram, label: 'State', icon: <Repeat2 className="h-4 w-4" /> },
-  { type: UMLDiagramType.AgentDiagram, label: 'Agent', icon: <Bot className="h-4 w-4" /> },
+  { type: UMLDiagramType.ClassDiagram, label: 'Class', icon: <Network className="size-4" /> },
+  { type: UMLDiagramType.ObjectDiagram, label: 'Object', icon: <Layers3 className="size-4" /> },
+  { type: UMLDiagramType.StateMachineDiagram, label: 'State', icon: <Repeat2 className="size-4" /> },
+  { type: UMLDiagramType.AgentDiagram, label: 'Agent', icon: <Bot className="size-4" /> },
 ];
 
 export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; icon: React.ReactNode }> = [
-  { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PackageOpen className="h-4 w-4" /> },
-  { type: 'QuantumCircuitDiagram', label: 'Quantum', icon: <Atom className="h-4 w-4" /> },
+  { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PackageOpen className="size-4" /> },
+  { type: 'QuantumCircuitDiagram', label: 'Quantum', icon: <Atom className="size-4" /> },
 ];
 
 const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
   ? [
-    { path: '/agent-personalization', label: 'Agent Personalization', icon: <SlidersHorizontal className="h-4 w-4" /> },
-    { path: '/agent-personalization-2', label: 'Agent Mappings', icon: <SlidersHorizontal className="h-4 w-4" /> },
+    { path: '/agent-personalization', label: 'Agent Personalization', icon: <SlidersHorizontal className="size-4" /> },
+    { path: '/agent-personalization-2', label: 'Agent Mappings', icon: <SlidersHorizontal className="size-4" /> },
   ]
   : [];
 
 export const AGENT_ROUTE_ITEMS = [
-  { path: '/agent-config', label: 'Agent Config', icon: <SlidersHorizontal className="h-4 w-4" /> },
+  { path: '/agent-config', label: 'Agent Config', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
 ] as const;
 
-export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }] as const;
+export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', icon: <Settings className="size-4" /> }] as const;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [

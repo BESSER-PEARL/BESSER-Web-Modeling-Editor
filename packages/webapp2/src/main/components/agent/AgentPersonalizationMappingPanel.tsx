@@ -74,7 +74,7 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
 
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-5xl flex flex-col gap-6">
         <Card className="border-brand/10">
           <CardHeader>
             <CardTitle className="text-brand">Agent Personalization Mappings</CardTitle>
@@ -82,9 +82,9 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
               Link stored user profiles to stored agent configurations.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="flex flex-col gap-6">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="mapping-profile">User Profile</Label>
                 <select
                   id="mapping-profile"
@@ -100,7 +100,7 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
                   ))}
                 </select>
               </div>
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="mapping-configuration">Agent Configuration</Label>
                 <select
                   id="mapping-configuration"
@@ -129,7 +129,7 @@ export const AgentPersonalizationMappingPanel: React.FC = () => {
 
             <Separator />
 
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {mappings.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No saved mappings yet.</p>
               ) : (

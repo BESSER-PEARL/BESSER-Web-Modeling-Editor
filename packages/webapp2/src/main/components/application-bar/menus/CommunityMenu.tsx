@@ -42,9 +42,9 @@ export const CommunityMenu: React.FC<CommunityMenuProps> = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="Community & Help">
-          <Users className="h-4 w-4" />
+          <Users className="size-4" />
           <span className="hidden xl:inline">Help</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+          <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end">
@@ -63,12 +63,12 @@ export const CommunityMenu: React.FC<CommunityMenuProps> = ({
         <DropdownMenuItem onClick={onOpenHelpDialog}>How does this editor work?</DropdownMenuItem>
         {onShowWelcomeGuide && (
           <DropdownMenuItem onClick={onShowWelcomeGuide}>
-            <PlayCircle className="mr-2 h-4 w-4" />
+            <PlayCircle className="mr-2 size-4" />
             Start Tutorial
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenKeyboardShortcuts}>
-          <Keyboard className="mr-2 h-4 w-4" />
+          <Keyboard className="mr-2 size-4" />
           Keyboard Shortcuts
           <span className="ml-auto text-xs text-muted-foreground">?</span>
         </DropdownMenuItem>

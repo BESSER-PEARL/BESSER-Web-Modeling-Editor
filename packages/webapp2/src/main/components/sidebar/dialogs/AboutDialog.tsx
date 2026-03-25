@@ -26,7 +26,7 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
           <DialogTitle>About BESSER</DialogTitle>
           <DialogDescription>Runtime versions and project resources.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-2 text-sm text-foreground/80">
+        <div className="flex flex-col gap-2 text-sm text-foreground/80">
           <p>
             <span className="font-semibold text-brand">Web Editor:</span> {appVersion}
           </p>

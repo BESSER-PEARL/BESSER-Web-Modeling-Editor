@@ -420,8 +420,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 {/* Left floating cards */}
                 <div className="floating-card absolute left-[4%] top-[18%] rotate-[-6deg] rounded-xl border border-brand/15 bg-white/40 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/30" style={{ '--float-duration': '7s', '--float-delay': '0s', '--float-rotate': '-6deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
-                      <Layers className="h-3 w-3 text-brand" />
+                    <div className="flex size-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Layers className="size-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Class Diagram</span>
                   </div>
@@ -433,22 +433,22 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
                 <div className="floating-card absolute left-[6%] top-[48%] rotate-[-3deg] rounded-xl border border-brand/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/25" style={{ '--float-duration': '8s', '--float-delay': '1.5s', '--float-rotate': '-3deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
-                      <svg className="h-3 w-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                    <div className="flex size-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <svg className="size-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">State Machine</span>
                   </div>
                   <div className="mt-2 flex gap-1.5">
-                    <div className="h-4 w-4 rounded-full border border-brand/15 bg-brand/5" />
+                    <div className="size-4 rounded-full border border-brand/15 bg-brand/5" />
                     <div className="h-1.5 w-10 self-center rounded-full bg-brand/10" />
-                    <div className="h-4 w-4 rounded border border-brand/15 bg-brand/5" />
+                    <div className="size-4 rounded border border-brand/15 bg-brand/5" />
                   </div>
                 </div>
 
                 <div className="floating-card absolute bottom-[22%] left-[3%] rotate-[2deg] rounded-xl border border-brand/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3s', '--float-rotate': '2deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
-                      <Code2 className="h-3 w-3 text-brand" />
+                    <div className="flex size-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Code2 className="size-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Django</span>
                   </div>
@@ -461,8 +461,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 {/* Right floating cards */}
                 <div className="floating-card absolute right-[4%] top-[15%] rotate-[5deg] rounded-xl border border-brand/15 bg-white/40 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/30" style={{ '--float-duration': '8s', '--float-delay': '0.5s', '--float-rotate': '5deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
-                      <Palette className="h-3 w-3 text-brand" />
+                    <div className="flex size-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Palette className="size-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">GUI Design</span>
                   </div>
@@ -474,8 +474,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
                 <div className="floating-card absolute right-[5%] top-[44%] rotate-[3deg] rounded-xl border border-brand/12 bg-white/35 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/25" style={{ '--float-duration': '7s', '--float-delay': '2s', '--float-rotate': '3deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
-                      <svg className="h-3 w-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    <div className="flex size-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <svg className="size-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">Object Diagram</span>
                   </div>
@@ -487,8 +487,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
                 <div className="floating-card absolute bottom-[20%] right-[3%] rotate-[-4deg] rounded-xl border border-brand/10 bg-white/30 px-4 py-3 shadow-elevation-1 backdrop-blur-sm dark:bg-slate-800/20" style={{ '--float-duration': '9s', '--float-delay': '3.5s', '--float-rotate': '-4deg' } as React.CSSProperties}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/[0.12]">
-                      <Sparkles className="h-3 w-3 text-brand" />
+                    <div className="flex size-6 items-center justify-center rounded-md bg-brand/[0.12]">
+                      <Sparkles className="size-3 text-brand" />
                     </div>
                     <span className="text-[11px] font-semibold text-foreground/60">React App</span>
                   </div>
@@ -518,7 +518,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
                   >
-                    <Sparkles className="h-3 w-3" />
+                    <Sparkles className="size-3" />
                     Powered with BAF
                   </a>
                 </div>
@@ -539,7 +539,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 >
                   Describe your system in natural language. Get models, interfaces, and code.
                   <span className="ml-2.5 inline-flex items-center gap-1.5 text-xs font-medium">
-                    <span className={cn('inline-block h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+                    <span className={cn('inline-block size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                     <span className="text-muted-foreground/70">{getConnectionLabel(connectionStatus)}</span>
                   </span>
                 </p>
@@ -579,8 +579,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <Card className="capability-card group relative overflow-hidden border-brand/12 bg-white/50 backdrop-blur-sm dark:bg-slate-800/30">
                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
                     <CardContent className="p-4 text-center">
-                      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-                        <Layers className="h-4 w-4" />
+                      <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+                        <Layers className="size-4" />
                       </div>
                       <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">System Design</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
@@ -591,8 +591,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <Card className="capability-card group relative overflow-hidden border-brand/12 bg-white/50 backdrop-blur-sm dark:bg-slate-800/30">
                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
                     <CardContent className="p-4 text-center">
-                      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-                        <Palette className="h-4 w-4" />
+                      <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+                        <Palette className="size-4" />
                       </div>
                       <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Visual Interfaces</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
@@ -603,8 +603,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <Card className="capability-card group relative overflow-hidden border-brand/12 bg-white/50 backdrop-blur-sm dark:bg-slate-800/30">
                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }} />
                     <CardContent className="p-4 text-center">
-                      <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-                        <Code2 className="h-4 w-4" />
+                      <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+                        <Code2 className="size-4" />
                       </div>
                       <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Code Generation</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
@@ -634,7 +634,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   {/* Progress indicator */}
                   {progressMessage && (
                     <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <Loader2 className="size-3 animate-spin" />
                       <span>{progressMessage}</span>
                     </div>
                   )}
@@ -651,7 +651,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                 <div className="mx-auto w-full max-w-4xl">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
-                      <span className={cn('h-1.5 w-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
+                      <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
                       <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
                     </div>
                     <div className="flex items-center gap-2.5">
@@ -663,7 +663,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         onClick={clearConversation}
                         title="Start a new conversation"
                       >
-                        <MessageSquarePlus className="h-3.5 w-3.5" />
+                        <MessageSquarePlus className="size-3.5" />
                         New Chat
                       </Button>
                     </div>
@@ -695,7 +695,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             tabIndex={0}
           >
             {openProgress > 0.75 ? (
-              <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/40" />
+              <ChevronUp className="size-3.5 text-muted-foreground/40" />
             ) : (
               <div className="flex flex-col items-center gap-[2px]">
                 <span className="block h-[1.5px] w-4 rounded-full bg-brand/20" />

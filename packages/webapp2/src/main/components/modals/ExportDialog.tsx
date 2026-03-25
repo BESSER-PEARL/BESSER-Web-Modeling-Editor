@@ -148,8 +148,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       <DialogContent className="max-h-[86vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 font-display text-2xl tracking-tight">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
-              <Download className="h-4 w-4" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
+              <Download className="size-4" />
             </div>
             Export Project
           </DialogTitle>
@@ -159,19 +159,19 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
         <div className="grid gap-4 md:grid-cols-2">
           <section className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-background p-4 shadow-elevation-1">
             <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold tracking-tight">
-              <FileJson2 className="h-4 w-4 text-primary" />
+              <FileJson2 className="size-4 text-primary" />
               Multiple Diagrams
             </h3>
             <p className="mb-3 text-xs text-muted-foreground">Export selected diagrams as JSON or B-UML.</p>
 
             {diagramEntries.length > 0 ? (
               <>
-                <div className="max-h-44 space-y-1.5 overflow-y-auto rounded-lg border border-border/40 bg-background/80 p-3">
+                <div className="max-h-44 flex flex-col gap-1.5 overflow-y-auto rounded-lg border border-border/40 bg-background/80 p-3">
                   {diagramEntries.map(([type, projectDiagram]) => (
                     <label key={type} className="flex cursor-pointer items-start gap-2.5 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-muted/30">
                       <input
                         type="checkbox"
-                        className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+                        className="mt-0.5 size-4 rounded border-border accent-primary"
                         checked={selectedDiagrams.includes(type)}
                         onChange={() => toggleDiagramSelection(type)}
                       />
@@ -182,11 +182,11 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
                 <div className="mt-4 grid gap-2">
                   <Button onClick={() => handleExport('JSON')} className="justify-start gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2">
-                    <FileJson2 className="h-4 w-4" />
+                    <FileJson2 className="size-4" />
                     Export as JSON
                   </Button>
                   <Button variant="secondary" onClick={() => handleExport('BUML')} className="justify-start gap-2">
-                    <FileCode2 className="h-4 w-4" />
+                    <FileCode2 className="size-4" />
                     Export as B-UML
                   </Button>
                 </div>
@@ -200,7 +200,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
           <section className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-background p-4 shadow-elevation-1">
             <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold tracking-tight">
-              <FileImage className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+              <FileImage className="size-4 text-violet-600 dark:text-violet-400" />
               Current Diagram
             </h3>
             <p className="mb-3 text-xs text-muted-foreground">Export the current UML diagram as image assets.</p>
@@ -211,23 +211,23 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
             <div className="grid gap-2">
               <Button variant="outline" onClick={() => handleExport('SVG')} className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-all hover:shadow-elevation-2">
-                <FileCode2 className="h-4 w-4" />
+                <FileCode2 className="size-4" />
                 Export as SVG
               </Button>
               <Button variant="outline" onClick={() => handleExport('PNG_WHITE')} className="justify-start gap-2 border-border/50">
-                <FileImage className="h-4 w-4" />
+                <FileImage className="size-4" />
                 Export PNG (White)
               </Button>
               <Button variant="outline" onClick={() => handleExport('PNG')} className="justify-start gap-2 border-border/50">
-                <FileImage className="h-4 w-4" />
+                <FileImage className="size-4" />
                 Export PNG (Transparent)
               </Button>
               <Button variant="outline" onClick={() => handleExport('SINGLE_JSON')} className="justify-start gap-2 border-border/50">
-                <FileJson2 className="h-4 w-4" />
+                <FileJson2 className="size-4" />
                 Export Diagram as JSON
               </Button>
               <Button variant="outline" onClick={() => handleExport('SINGLE_BUML')} className="justify-start gap-2 border-border/50">
-                <FileCode2 className="h-4 w-4" />
+                <FileCode2 className="size-4" />
                 Export Diagram as B-UML
               </Button>
             </div>

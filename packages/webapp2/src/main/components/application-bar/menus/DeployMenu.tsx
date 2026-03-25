@@ -31,9 +31,9 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="Deploy">
-          <Rocket className="h-4 w-4" />
+          <Rocket className="size-4" />
           <span className="hidden xl:inline">Deploy</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+          <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">

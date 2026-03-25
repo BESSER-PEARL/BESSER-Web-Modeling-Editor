@@ -33,8 +33,8 @@ export const CreateGistDialog: React.FC<CreateGistDialogProps> = ({
           <DialogDescription>Create a GitHub Gist to quickly share your project.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
             <Label>Description</Label>
             <Textarea
               rows={2}
@@ -49,7 +49,7 @@ export const CreateGistDialog: React.FC<CreateGistDialogProps> = ({
               type="checkbox"
               checked={isPublic}
               onChange={(event) => onPublicChange(event.target.checked)}
-              className="h-4 w-4 rounded border-border"
+              className="size-4 rounded border-border"
             />
             Public Gist
           </label>

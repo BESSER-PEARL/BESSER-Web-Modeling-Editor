@@ -61,7 +61,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
             Cancel
           </Button>
           <Button onClick={onCommit} disabled={isSaving || !validation.isValid} className="gap-2">
-            {isSaving ? 'Pushing...' : <CloudUpload className="h-4 w-4" />}
+            {isSaving ? 'Pushing...' : <CloudUpload className="size-4" />}
             Push
           </Button>
         </DialogFooter>

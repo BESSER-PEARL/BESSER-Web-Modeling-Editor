@@ -38,11 +38,11 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
       role="note"
       aria-label={text}
     >
-      <Info className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+      <Info className="size-3 text-muted-foreground" />
       {visible && (
         <span
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-56 -translate-x-1/2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] leading-snug text-slate-600 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+          className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-56 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] leading-snug text-popover-foreground shadow-lg"
         >
           {text}
         </span>
@@ -220,7 +220,7 @@ export const DiagramTabs: React.FC = () => {
 
   const hasReferences = needsClassRef;
 
-  const selectClasses = "h-6 min-w-[120px] rounded-md border border-brand/15 bg-white/90 px-2 text-[11px] font-medium text-slate-600 shadow-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-1 focus:ring-brand/20 dark:bg-slate-800/90 dark:text-slate-300";
+  const selectClasses = "h-6 min-w-[120px] rounded-md border border-brand/15 bg-card px-2 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-1 focus:ring-brand/20";
 
   return (
     <div className="border-b border-brand/12 bg-gradient-to-r from-slate-50/80 to-white/60 backdrop-blur-sm dark:from-slate-900/80 dark:to-slate-800/60">
@@ -240,15 +240,15 @@ export const DiagramTabs: React.FC = () => {
                 className={[
                   'group relative flex cursor-pointer select-none items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
                   isActive
-                    ? 'border-b-2 border-brand bg-white text-brand-dark shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_hsl(var(--brand)/0.1)] dark:bg-slate-800 dark:text-brand dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_0_0_1px_hsl(var(--brand)/0.12)]'
-                    : 'text-slate-500 hover:bg-brand/[0.04] hover:text-slate-700 dark:text-slate-400 dark:hover:bg-brand/[0.06] dark:hover:text-slate-200',
+                    ? 'border-b-2 border-brand bg-card text-brand-dark shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_hsl(var(--brand)/0.1)]'
+                    : 'text-muted-foreground hover:bg-brand/[0.04] hover:text-foreground',
                 ].join(' ')}
                 onClick={() => handleSwitchTab(index)}
                 onDoubleClick={() => handleStartRename(index)}
               >
                 {isRenaming ? (
                   <Input
-                    className="h-5 w-24 rounded-sm border-slate-300 bg-white px-1.5 py-0 text-[11px] shadow-inner focus-visible:ring-1 focus-visible:ring-slate-400 dark:border-slate-600 dark:bg-slate-900"
+                    className="h-5 w-24 rounded-sm border-input bg-card px-1.5 py-0 text-[11px] shadow-inner focus-visible:ring-1 focus-visible:ring-ring"
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
                     onBlur={handleFinishRename}
@@ -259,7 +259,7 @@ export const DiagramTabs: React.FC = () => {
                   />
                 ) : (
                   <>
-                    <FileText className={`h-3 w-3 shrink-0 ${isActive ? 'text-brand' : 'text-slate-400 dark:text-slate-500'}`} />
+                    <FileText className={`size-3 shrink-0 ${isActive ? 'text-brand' : 'text-muted-foreground'}`} />
                     <span className="max-w-[140px] truncate">{diagram.title}</span>
                   </>
                 )}
@@ -269,14 +269,14 @@ export const DiagramTabs: React.FC = () => {
                     className={[
                       'ml-0.5 rounded-sm p-0.5 transition-colors',
                       isActive
-                        ? 'text-slate-400 hover:bg-slate-200 hover:text-red-500 dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-red-400'
-                        : 'invisible text-slate-400 hover:bg-slate-200 hover:text-red-500 group-hover:visible dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-red-400',
+                        ? 'text-muted-foreground hover:bg-muted hover:text-destructive'
+                        : 'invisible text-muted-foreground hover:bg-muted hover:text-destructive group-hover:visible',
                     ].join(' ')}
                     onClick={(e) => handleRemoveDiagram(e, index)}
                     aria-label={`Close tab ${diagram.title}`}
                     title="Close tab"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="size-3" />
                   </button>
                 )}
               </div>
@@ -286,12 +286,12 @@ export const DiagramTabs: React.FC = () => {
           {/* Add button */}
           {diagrams.length < MAX_DIAGRAMS_PER_TYPE && (
             <button
-              className="ml-0.5 flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-brand/[0.06] hover:text-brand dark:text-slate-500 dark:hover:bg-brand/10"
+              className="ml-0.5 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-brand/[0.06] hover:text-brand"
               onClick={handleAddDiagram}
               aria-label="Add new diagram"
               title="Add new diagram"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="size-3.5" />
             </button>
           )}
         </div>
@@ -299,18 +299,18 @@ export const DiagramTabs: React.FC = () => {
         {/* Collapse toggle for references (inline in tab bar, right-aligned) */}
         {hasReferences && (
           <button
-            className="ml-auto mr-1 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 transition-colors hover:bg-slate-100/80 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-800/50 dark:hover:text-slate-300"
+            className="ml-auto mr-1 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setRefsCollapsed((prev) => !prev)}
             aria-label={refsCollapsed ? 'Expand linked diagrams' : 'Collapse linked diagrams'}
             aria-expanded={!refsCollapsed}
             title={refsCollapsed ? 'Show linked diagrams' : 'Hide linked diagrams'}
           >
-            <Link2 className="h-3 w-3" />
+            <Link2 className="size-3" />
             <span className="hidden sm:inline">Linked Diagrams</span>
             {refsCollapsed ? (
-              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className="size-3" />
             ) : (
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="size-3" />
             )}
           </button>
         )}
@@ -318,11 +318,11 @@ export const DiagramTabs: React.FC = () => {
 
       {/* Linked Diagrams reference section (below tabs) */}
       {hasReferences && !refsCollapsed && (
-        <div className="border-t border-slate-200/60 bg-slate-50/50 px-3 py-1.5 dark:border-slate-700/40 dark:bg-slate-900/40">
+        <div className="border-t border-border/40 bg-muted/30 px-3 py-1.5">
           <div className="flex flex-wrap items-center gap-4">
             {/* Section header */}
-            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              <Link2 className="h-3 w-3" />
+            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <Link2 className="size-3" />
               References
             </span>
 
@@ -331,7 +331,7 @@ export const DiagramTabs: React.FC = () => {
               <div className="flex items-center gap-1.5">
                 <label
                   htmlFor="ref-class-diagram"
-                  className="text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400"
+                  className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Class Diagram
                 </label>
@@ -359,17 +359,17 @@ export const DiagramTabs: React.FC = () => {
                     </select>
                     {classRefBroken && (
                       <span title="The referenced diagram was deleted. Please select a new one.">
-                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
+                        <AlertTriangle className="size-3.5 text-amber-500 dark:text-amber-400" />
                       </span>
                     )}
                     {!classRefBroken && classRefEmpty && (
                       <span title="The referenced Class Diagram is empty (no classes or relationships).">
-                        <AlertTriangle className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+                        <AlertTriangle className="size-3 text-muted-foreground" />
                       </span>
                     )}
                   </>
                 ) : (
-                  <span className="rounded-md border border-dashed border-slate-300 bg-white/60 px-2 py-0.5 text-[11px] italic text-slate-400 dark:border-slate-600 dark:bg-slate-800/60 dark:text-slate-500">
+                  <span className="rounded-md border border-dashed border-border bg-muted/30 px-2 py-0.5 text-[11px] italic text-muted-foreground">
                     No Class Diagrams available
                   </span>
                 )}

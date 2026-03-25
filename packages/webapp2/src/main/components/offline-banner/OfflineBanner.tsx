@@ -103,9 +103,9 @@ export const OfflineBanner: React.FC = () => {
       ].join(' ')}
     >
       {isOffline ? (
-        <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <WifiOff className="size-4 shrink-0" aria-hidden="true" />
       ) : (
-        <Wifi className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <Wifi className="size-4 shrink-0" aria-hidden="true" />
       )}
 
       <span>
@@ -121,7 +121,7 @@ export const OfflineBanner: React.FC = () => {
           className="ml-2 rounded p-0.5 transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
           aria-label="Dismiss offline warning"
         >
-          <X className="h-4 w-4" />
+          <X className="size-4" />
         </button>
       )}
     </div>

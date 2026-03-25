@@ -192,7 +192,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
       >
         {/* Search input */}
         <div className="flex items-center gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/60">
-          <Search className="h-5 w-5 shrink-0 text-slate-400 dark:text-slate-500" />
+          <Search className="size-5 shrink-0 text-slate-400 dark:text-slate-500" />
           <input
             ref={inputRef}
             type="text"
@@ -242,7 +242,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                         onMouseEnter={() => setSelectedIndex(itemIndex)}
                       >
                         <span
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                          className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${
                             isActive
                               ? 'bg-brand/15 text-brand dark:bg-brand/25'
                               : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
@@ -284,7 +284,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
             Select
           </span>
           <span className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-            <Command className="h-3 w-3" />
+            <Command className="size-3" />
             {modKey}+K
           </span>
         </div>
@@ -297,7 +297,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
 /*  Default action builder                                             */
 /* ------------------------------------------------------------------ */
 
-const ICON_SIZE = 'h-4 w-4';
+const ICON_SIZE = 'size-4';
 
 interface BuildActionsOptions {
   onSwitchToClassDiagram: () => void;

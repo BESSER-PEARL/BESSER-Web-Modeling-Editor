@@ -12,15 +12,15 @@ interface QuickActionsProps {
 }
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
-  'generate': <Code className="h-3 w-3" />,
-  'create': <Layout className="h-3 w-3" />,
-  'gui': <LayoutTemplate className="h-3 w-3" />,
-  'export': <Download className="h-3 w-3" />,
-  'Replace': <RefreshCw className="h-3 w-3" />,
-  'keep': <Layers className="h-3 w-3" />,
-  'new tab': <FilePlus className="h-3 w-3" />,
-  'Auto': <Zap className="h-3 w-3" />,
-  'Llm': <Wand2 className="h-3 w-3" />,
+  'generate': <Code className="size-3" />,
+  'create': <Layout className="size-3" />,
+  'gui': <LayoutTemplate className="size-3" />,
+  'export': <Download className="size-3" />,
+  'Replace': <RefreshCw className="size-3" />,
+  'keep': <Layers className="size-3" />,
+  'new tab': <FilePlus className="size-3" />,
+  'Auto': <Zap className="size-3" />,
+  'Llm': <Wand2 className="size-3" />,
 };
 
 function getIcon(label: string): React.ReactNode {
@@ -28,7 +28,7 @@ function getIcon(label: string): React.ReactNode {
   for (const [key, icon] of Object.entries(ACTION_ICONS)) {
     if (lower.includes(key)) return icon;
   }
-  return <Zap className="h-3 w-3" />;
+  return <Zap className="size-3" />;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction }) => {
@@ -45,7 +45,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction })
         >
           {getIcon(action.label)}
           {action.label}
-          <ArrowRight className="h-3 w-3 opacity-40" />
+          <ArrowRight className="size-3 opacity-40" />
         </button>
       ))}
     </div>

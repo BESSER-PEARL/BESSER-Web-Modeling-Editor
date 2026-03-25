@@ -126,8 +126,8 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
           <DialogDescription>Share your feedback about the editor and generation workflow.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5">
-          <div className="space-y-2.5">
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2.5">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">How satisfied are you with your experience?</Label>
             <div className="grid gap-2.5 md:grid-cols-3">
               {satisfactionOptions.map((option) => (
@@ -141,7 +141,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
                       : 'border-border/50 bg-background text-muted-foreground hover:-translate-y-px hover:border-brand/25 hover:shadow-elevation-1'
                   }`}
                 >
-                  <div className="pointer-events-none absolute -right-3 -top-3 h-10 w-10 rounded-full bg-brand/[0.04] transition-transform duration-300 group-hover:scale-[2]" />
+                  <div className="pointer-events-none absolute -right-3 -top-3 size-10 rounded-full bg-brand/[0.04] transition-transform duration-300 group-hover:scale-[2]" />
                   <p className="relative text-sm font-semibold tracking-tight text-foreground">{option.label}</p>
                   <p className="relative mt-1 text-xs opacity-70">{option.helper}</p>
                 </button>
@@ -149,7 +149,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
             </div>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="feedback-category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</Label>
             <select
               id="feedback-category"

@@ -71,7 +71,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             />
           </button>
           <div className="hidden items-center gap-1.5 lg:flex">
-            <FolderKanban className={`h-4 w-4 shrink-0 ${isDarkTheme ? 'text-slate-300' : 'text-slate-600'}`} />
+            <FolderKanban className="size-4 shrink-0 text-muted-foreground" />
             <Input
               value={projectNameDraft}
               onChange={(event) => onProjectNameDraftChange(event.target.value)}

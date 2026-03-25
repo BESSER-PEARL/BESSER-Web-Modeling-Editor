@@ -129,7 +129,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-1 rounded-md border border-border/70 bg-muted/40 px-2 py-1.5 text-xs">
             <button
               type="button"
@@ -160,7 +160,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
 
           {currentPath && (
             <Button variant="outline" size="sm" onClick={handleNavigateUp} className="gap-1">
-              <ArrowUp className="h-4 w-4" />
+              <ArrowUp className="size-4" />
               Up one level
             </Button>
           )}
@@ -171,7 +171,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
           >
             {loading ? (
               <div className="flex h-full items-center justify-center text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               </div>
             ) : error ? (
               <div className="p-4 text-center text-sm text-destructive">{error}</div>
@@ -193,12 +193,12 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
                         )}
                       >
                         {item.type === 'dir' ? (
-                          <Folder className="h-4 w-4 shrink-0 text-amber-600" />
+                          <Folder className="size-4 shrink-0 text-amber-600" />
                         ) : (
-                          <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                          <FileText className="size-4 shrink-0 text-slate-500" />
                         )}
                         <span className="min-w-0 flex-1 truncate">{item.name}</span>
-                        {selected && <Check className="h-4 w-4 text-primary" />}
+                        {selected && <Check className="size-4 text-primary" />}
                       </button>
                     </li>
                   );

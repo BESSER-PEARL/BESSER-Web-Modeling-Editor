@@ -187,7 +187,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>Django Project Configuration</DialogTitle>
             <DialogDescription>Configure names and containerization options for Django generation.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             <FormField label="Project Name" htmlFor="django-project-name" required error={djangoValidation.getError('projectName')}>
               <Input
                 id="django-project-name"
@@ -233,7 +233,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>SQL Dialect Selection</DialogTitle>
             <DialogDescription>Choose the SQL dialect for generated DDL statements.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label>Dialect</Label>
             <Select value={sqlDialect} onValueChange={(value) => onSqlDialectChange(value as SQLConfig['dialect'])}>
               <SelectTrigger>
@@ -264,7 +264,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>SQLAlchemy DBMS Selection</DialogTitle>
             <DialogDescription>Choose the database system for generated SQLAlchemy code.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label>DBMS</Label>
             <Select
               value={sqlAlchemyDbms}
@@ -298,7 +298,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>JSON Schema Mode</DialogTitle>
             <DialogDescription>Pick regular JSON schema or NGSI-LD smart data mode.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label>Mode</Label>
             <Select value={jsonSchemaMode} onValueChange={(value) => onJsonSchemaModeChange(value as JSONSchemaConfig['mode'])}>
               <SelectTrigger>
@@ -325,7 +325,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>Select Agent Languages</DialogTitle>
             <DialogDescription>Configure source and target languages for agent translation.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             {!hasSavedAgentConfiguration && (
               <div className="p-3 border rounded bg-muted/30">
                 <div className="text-sm text-muted-foreground mb-2">
@@ -344,7 +344,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </div>
             )}
 
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <Label>Source language (optional)</Label>
               <Select value={sourceLanguage} onValueChange={onSourceLanguageChange}>
                 <SelectTrigger>
@@ -362,7 +362,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </Select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-1.5">
               <Label>Add spoken language for agent translation</Label>
               <div className="flex gap-2">
                 <Select value={pendingAgentLanguage} onValueChange={onPendingAgentLanguageChange}>
@@ -403,39 +403,39 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </div>
 
             {SHOW_FULL_AGENT_CONFIGURATION && (
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label>Mode</Label>
                 <div className="flex gap-4">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       id="mode-original"
                       name="agentMode"
                       checked={agentMode === 'original'}
                       onChange={() => onAgentModeChange('original')}
-                      className="h-4 w-4"
+                      className="size-4"
                     />
                     <Label htmlFor="mode-original" className="text-sm font-normal">Original</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       id="mode-config"
                       name="agentMode"
                       checked={agentMode === 'configuration'}
                       onChange={() => onAgentModeChange('configuration')}
-                      className="h-4 w-4"
+                      className="size-4"
                     />
                     <Label htmlFor="mode-config" className="text-sm font-normal">Configuration</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <input
                       type="radio"
                       id="mode-personalization"
                       name="agentMode"
                       checked={agentMode === 'personalization'}
                       onChange={() => onAgentModeChange('personalization')}
-                      className="h-4 w-4"
+                      className="size-4"
                     />
                     <Label htmlFor="mode-personalization" className="text-sm font-normal">Personalization</Label>
                   </div>
@@ -444,10 +444,10 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             )}
 
             {SHOW_FULL_AGENT_CONFIGURATION && (agentMode === 'configuration' || agentMode === 'personalization') && (
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label>
-                  {agentMode === 'personalization' 
-                    ? 'Select profile → configuration mappings' 
+                  {agentMode === 'personalization'
+                    ? 'Select profile → configuration mappings'
                     : 'Select stored configurations'}
                 </Label>
                 {agentMode === 'personalization' ? (
@@ -456,15 +456,15 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                       No mappings with generated agents found. Create mappings and run "Save & Apply" first.
                     </p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                       {storedAgentMappings.map((mapping) => (
-                        <div key={mapping.id} className="flex items-center space-x-2">
+                        <div key={mapping.id} className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             id={`storedAgentMapping-${mapping.id}`}
                             checked={selectedStoredAgentConfigIds.includes(mapping.agentConfigurationId)}
                             onChange={() => onStoredAgentConfigToggle(mapping.agentConfigurationId)}
-                            className="h-4 w-4"
+                            className="size-4"
                           />
                           <Label htmlFor={`storedAgentMapping-${mapping.id}`} className="text-sm font-normal">
                             {mapping.userProfileLabel} → {mapping.agentConfigurationLabel} ({new Date(mapping.savedAt).toLocaleString()})
@@ -482,15 +482,15 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                       No saved configurations with generated agents found. Use "Save & Apply" first to make them available here.
                     </p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                       {storedAgentConfigurations.map((entry) => (
-                        <div key={entry.id} className="flex items-center space-x-2">
+                        <div key={entry.id} className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             id={`storedAgentConfig-${entry.id}`}
                             checked={selectedStoredAgentConfigIds.includes(entry.id)}
                             onChange={() => onStoredAgentConfigToggle(entry.id)}
-                            className="h-4 w-4"
+                            className="size-4"
                           />
                           <Label htmlFor={`storedAgentConfig-${entry.id}`} className="text-sm font-normal">
                             {entry.name} ({new Date(entry.savedAt).toLocaleString()})
@@ -507,7 +507,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             )}
 
             {selectedAgentLanguages.length > 0 && (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label>Selected Languages</Label>
                 <div className="flex flex-wrap gap-2">
                   {selectedAgentLanguages.map((language) => (
@@ -550,8 +550,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>Qiskit Backend Configuration</DialogTitle>
             <DialogDescription>Choose execution backend and number of shots.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
               <Label>Execution Backend</Label>
               <Select value={qiskitBackend} onValueChange={(value) => onQiskitBackendChange(value as QiskitConfig['backend'])}>
                 <SelectTrigger>
@@ -593,20 +593,20 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogDescription>The following diagrams will be used for generation.</DialogDescription>
           </DialogHeader>
           {webAppChecklist ? (
-            <div className="space-y-4">
+            <div className="flex flex-col gap-4">
               {/* Required diagrams */}
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium text-muted-foreground">Required</p>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <ChecklistRow diagram={webAppChecklist.classDiagram} />
                   <ChecklistRow diagram={webAppChecklist.guiDiagram} />
                 </div>
               </div>
 
               {/* Optional / informational */}
-              <div className="space-y-1">
+              <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium text-muted-foreground">Optional</p>
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                   <AgentChecklistRow diagram={webAppChecklist.agentDiagram} />
                 </div>
               </div>

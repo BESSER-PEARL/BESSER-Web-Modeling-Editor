@@ -105,7 +105,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
       <DialogContent className="max-h-[85vh] w-[560px] max-w-[92vw] overflow-hidden p-0">
         <DialogHeader className="border-b border-border/70 px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
-            <Keyboard className="h-5 w-5 text-brand" />
+            <Keyboard className="size-5 text-brand" />
             Keyboard Shortcuts
           </DialogTitle>
           <DialogDescription>
@@ -114,13 +114,13 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
         </DialogHeader>
 
         <div className="overflow-y-auto px-6 pb-6 pt-2">
-          <div className="space-y-5">
+          <div className="flex flex-col gap-5">
             {SHORTCUT_CATEGORIES.map((category) => (
               <div key={category.label}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {category.label}
                 </h3>
-                <div className="space-y-0 rounded-lg border border-border/70">
+                <div className="flex flex-col rounded-lg border border-border/70">
                   {category.shortcuts.map((shortcut, idx) => (
                     <div
                       key={shortcut.description + shortcut.keys}

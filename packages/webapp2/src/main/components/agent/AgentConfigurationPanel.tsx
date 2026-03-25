@@ -531,7 +531,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   return (
     <div className="h-full overflow-auto px-4 py-6 sm:px-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-6xl flex flex-col gap-6">
         <Card className="border-brand/10">
           <CardHeader>
             <CardTitle className="text-brand">Agent Configuration</CardTitle>
@@ -541,11 +541,11 @@ export const AgentConfigurationPanel: React.FC = () => {
                 : 'Configure system-level agent runtime settings.'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="flex flex-col gap-6">
             {SHOW_FULL_AGENT_CONFIGURATION && (
               <>
                 <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-1.5 md:col-span-2">
+                  <div className="flex flex-col gap-1.5 md:col-span-2">
                     <Label htmlFor="saved-config">Saved Configurations</Label>
                     <select
                       id="saved-config"
@@ -581,7 +581,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
             <div className="grid gap-4 md:grid-cols-2">
               {SHOW_FULL_AGENT_CONFIGURATION && (
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="config-name">Configuration Name</Label>
                   <Input
                     id="config-name"
@@ -591,7 +591,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   />
                 </div>
               )}
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="agent-platform">Platform</Label>
                 <select
                   id="agent-platform"
@@ -604,7 +604,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <option value="telegram">Telegram</option>
                 </select>
               </div>
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="intent-tech">Intent Recognition</Label>
                 <select
                   id="intent-tech"
@@ -619,7 +619,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </select>
               </div>
               {SHOW_FULL_AGENT_CONFIGURATION && (
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="response-timing">Response Timing</Label>
                   <select
                     id="response-timing"
@@ -633,7 +633,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </div>
               )}
               {SHOW_FULL_AGENT_CONFIGURATION && (
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="language-complexity">Language Complexity</Label>
                   <select
                     id="language-complexity"
@@ -649,7 +649,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </div>
               )}
               {SHOW_FULL_AGENT_CONFIGURATION && (
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="sentence-length">Sentence Length</Label>
                   <select
                     id="sentence-length"
@@ -666,7 +666,7 @@ export const AgentConfigurationPanel: React.FC = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label>Input Modalities</Label>
                 <p className="text-xs text-muted-foreground">Text input is always enabled.</p>
                 <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -679,7 +679,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   Enable speech input
                 </label>
               </div>
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <Label>Output Modalities</Label>
                 <p className="text-xs text-muted-foreground">Text output is always enabled.</p>
                 <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
@@ -695,7 +695,7 @@ export const AgentConfigurationPanel: React.FC = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="llm-provider">LLM Provider</Label>
                 <select
                   id="llm-provider"
@@ -711,7 +711,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </select>
               </div>
               {llmProvider === 'openai' && (
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="llm-model">OpenAI Model</Label>
                   <select
                     id="llm-model"
@@ -727,7 +727,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <option value="other">Other</option>
                   </select>
                   {llmModel === 'other' && (
-                    <div className="mt-2 space-y-1.5">
+                    <div className="mt-2 flex flex-col gap-1.5">
                       <Label htmlFor="custom-model">Custom Model Name</Label>
                       <Input
                         id="custom-model"
@@ -740,7 +740,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </div>
               )}
               {(llmProvider === 'huggingface' || llmProvider === 'huggingfaceapi' || llmProvider === 'replicate') && (
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="llm-model">
                     {llmProvider === 'huggingface' ? 'HuggingFace Model' : llmProvider === 'huggingfaceapi' ? 'HuggingFace API Model' : 'Replicate Model'}
                   </Label>
@@ -759,7 +759,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <option value="other">Other</option>
                   </select>
                   {llmModel === 'other' && (
-                    <div className="mt-2 space-y-1.5">
+                    <div className="mt-2 flex flex-col gap-1.5">
                       <Label htmlFor="custom-model">Custom Model Name</Label>
                       <Input
                         id="custom-model"
@@ -774,7 +774,7 @@ export const AgentConfigurationPanel: React.FC = () => {
             </div>
 
             {SHOW_FULL_AGENT_CONFIGURATION && (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -839,9 +839,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                 Save the project User Diagram as named profiles and map them to agent configurations.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="flex flex-col gap-6">
               <div className="grid gap-3 md:grid-cols-3">
-                <div className="space-y-1.5 md:col-span-2">
+                <div className="flex flex-col gap-1.5 md:col-span-2">
                   <Label htmlFor="profile-name">Profile Name</Label>
                   <Input
                     id="profile-name"
@@ -864,7 +864,7 @@ export const AgentConfigurationPanel: React.FC = () => {
               <Separator />
 
               <div className="grid gap-3 md:grid-cols-3">
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="map-profile">User Profile</Label>
                   <select
                     id="map-profile"
@@ -880,7 +880,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label htmlFor="map-config">Agent Configuration</Label>
                   <select
                     id="map-config"
@@ -903,7 +903,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 {storedMappings.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No personalization mappings yet.</p>
                 ) : (

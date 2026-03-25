@@ -485,7 +485,7 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
       <DialogContent className="!flex !gap-0 h-[92vh] w-[96vw] max-w-[1500px] flex-col overflow-hidden p-0">
         <DialogHeader className="border-b border-border/70 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-brand" />
+            <BookOpen className="size-5 text-brand" />
             How The Editor Works
           </DialogTitle>
           <DialogDescription>Complete modeling guide with examples and visuals.</DialogDescription>
@@ -515,7 +515,7 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
 
           <div className="min-h-0 overflow-y-auto p-4 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <Layers className="h-4 w-4 text-brand" />
+              <Layers className="size-4 text-brand" />
               <h3 className="text-base font-semibold">{selectedSection.label}</h3>
             </div>
             <p className="mb-4 text-sm text-muted-foreground">{selectedSection.summary}</p>
@@ -560,11 +560,11 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
         <DialogFooter className="border-t border-border/70 px-6 py-4">
           <Button variant="outline" onClick={() => openExternalUrl(DOCS_URL)} className="gap-2">
             Open BESSER Docs
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink className="size-3.5" />
           </Button>
           <Button variant="outline" onClick={() => openExternalUrl(besserWMERepositoryLink)} className="gap-2">
             Open WME Repository
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink className="size-3.5" />
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -115,8 +115,8 @@ export const ProjectSettingsPanel: React.FC = () => {
       <div className="border-b border-border/40 px-6 py-5 sm:px-10">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-              <Settings className="h-4 w-4" />
+            <div className="flex size-9 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
+              <Settings className="size-4" />
             </div>
             <div>
               <h1 className="text-lg font-semibold tracking-tight">Project Settings</h1>
@@ -124,7 +124,7 @@ export const ProjectSettingsPanel: React.FC = () => {
             </div>
           </div>
           <Button onClick={handleExportProject} disabled={isExporting} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
+            <Download className="size-4" />
             {isExporting ? 'Exporting...' : 'Export Project'}
           </Button>
         </div>
@@ -140,7 +140,7 @@ export const ProjectSettingsPanel: React.FC = () => {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
-                  <FolderKanban className="h-4 w-4 text-brand" />
+                  <FolderKanban className="size-4 text-brand" />
                   <CardTitle className="text-base">General</CardTitle>
                 </div>
                 <CardDescription>Basic project information</CardDescription>
@@ -183,7 +183,7 @@ export const ProjectSettingsPanel: React.FC = () => {
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
-                  <Monitor className="h-4 w-4 text-brand" />
+                  <Monitor className="size-4 text-brand" />
                   <CardTitle className="text-base">Display</CardTitle>
                 </div>
                 <CardDescription>Configure how diagrams are rendered</CardDescription>
@@ -196,7 +196,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                   </div>
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-brand"
+                    className="size-4 accent-brand"
                     checked={showInstancedObjects}
                     onChange={(event) => {
                       setShowInstancedObjects(event.target.checked);
@@ -213,7 +213,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                   </div>
                   <input
                     type="checkbox"
-                    className="h-4 w-4 accent-brand"
+                    className="size-4 accent-brand"
                     checked={showAssociationNames}
                     onChange={(event) => {
                       setShowAssociationNames(event.target.checked);
@@ -230,7 +230,7 @@ export const ProjectSettingsPanel: React.FC = () => {
           <Card className="h-fit">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-2">
-                <Layers3 className="h-4 w-4 text-brand" />
+                <Layers3 className="size-4 text-brand" />
                 <CardTitle className="text-base">Diagrams</CardTitle>
               </div>
               <CardDescription>

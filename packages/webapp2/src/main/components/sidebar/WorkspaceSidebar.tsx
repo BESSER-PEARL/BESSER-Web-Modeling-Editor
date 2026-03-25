@@ -54,7 +54,7 @@ const GenBadge: React.FC<{ info: { generators: string[]; label: string }; isStat
   if (isStateMachine) {
     return (
       <Badge variant="outline" className="ml-auto gap-0.5 border-none px-1 py-0 text-[10px] leading-none text-muted-foreground/70">
-        <Link2 className="h-2.5 w-2.5" />
+        <Link2 className="size-2.5" />
       </Badge>
     );
   }

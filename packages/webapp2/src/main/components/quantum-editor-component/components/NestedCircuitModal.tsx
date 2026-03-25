@@ -101,7 +101,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
               Edit Function Gate
             </h2>
             <button
-              className="bg-transparent border border-transparent text-2xl cursor-pointer p-0 w-8 h-8 flex items-center justify-center rounded text-[var(--quantum-editor-muted-text,#64748b)] hover:border-[var(--quantum-editor-border,#d5dde8)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] hover:text-[var(--quantum-editor-text,#0f172a)]"
+              className="bg-transparent border border-transparent text-2xl cursor-pointer p-0 size-8 flex items-center justify-center rounded text-[var(--quantum-editor-muted-text,#64748b)] hover:border-[var(--quantum-editor-border,#d5dde8)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] hover:text-[var(--quantum-editor-text,#0f172a)]"
               onClick={onClose}
               aria-label="Close modal"
               title="Close"
@@ -125,7 +125,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
                   key={color}
                   onClick={() => setGateColor(color)}
                   className={cn(
-                    'w-6 h-6 p-0 rounded cursor-pointer',
+                    'size-6 p-0 rounded cursor-pointer',
                     gateColor === color
                       ? 'border-2 border-[var(--quantum-editor-text,#0f172a)]'
                       : 'border border-[var(--quantum-editor-border,#d5dde8)]'
@@ -137,7 +137,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
               ))}
               <input
                 type="color"
-                className="w-6 h-6 p-0 border border-[var(--quantum-editor-border,#d5dde8)] rounded cursor-pointer bg-[var(--quantum-editor-bg,#ffffff)]"
+                className="size-6 p-0 border border-[var(--quantum-editor-border,#d5dde8)] rounded cursor-pointer bg-[var(--quantum-editor-bg,#ffffff)]"
                 value={gateColor}
                 onChange={(e) => setGateColor(e.target.value)}
                 title="Custom color"

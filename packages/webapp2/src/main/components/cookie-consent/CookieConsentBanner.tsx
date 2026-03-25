@@ -87,7 +87,7 @@ const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => 
     >
       <span
         className={cn(
-          'absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform',
+          'absolute top-0.5 size-5 rounded-full bg-white transition-transform',
           enabled ? 'translate-x-5' : 'translate-x-0.5',
         )}
       />
@@ -97,8 +97,8 @@ const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => 
 
 const PrivacyPolicyContent: React.FC = () => {
   return (
-    <div className="max-h-[60vh] space-y-5 overflow-y-auto pr-1 text-sm leading-6 text-muted-foreground">
-      <section className="space-y-2">
+    <div className="max-h-[60vh] flex flex-col gap-5 overflow-y-auto pr-1 text-sm leading-6 text-muted-foreground">
+      <section className="flex flex-col gap-2">
         <h4 className="font-semibold text-foreground">About BESSER</h4>
         <p>
           BESSER (Better Smart Software Faster) is an open-source low-code platform developed by the Software Engineering
@@ -106,9 +106,9 @@ const PrivacyPolicyContent: React.FC = () => {
         </p>
       </section>
 
-      <section className="space-y-2">
+      <section className="flex flex-col gap-2">
         <h4 className="font-semibold text-foreground">Data We Collect</h4>
-        <ul className="list-disc space-y-1 pl-5">
+        <ul className="list-disc flex flex-col gap-1 pl-5">
           <li>Feature usage (generators and diagram workflows)</li>
           <li>Model metrics (size and structure counts)</li>
           <li>AI assistant usage counts (not content)</li>
@@ -116,9 +116,9 @@ const PrivacyPolicyContent: React.FC = () => {
         </ul>
       </section>
 
-      <section className="space-y-2">
+      <section className="flex flex-col gap-2">
         <h4 className="font-semibold text-foreground">Data We Do Not Collect</h4>
-        <ul className="list-disc space-y-1 pl-5">
+        <ul className="list-disc flex flex-col gap-1 pl-5">
           <li>Personal identity data (name, email)</li>
           <li>Diagram/model content</li>
           <li>Screen recordings or session replay</li>
@@ -126,7 +126,7 @@ const PrivacyPolicyContent: React.FC = () => {
         </ul>
       </section>
 
-      <section className="space-y-2">
+      <section className="flex flex-col gap-2">
         <h4 className="font-semibold text-foreground">How We Use Data</h4>
         <p>
           Analytics is used only to improve product quality and prioritize feature development. It is not used for marketing or
@@ -134,7 +134,7 @@ const PrivacyPolicyContent: React.FC = () => {
         </p>
       </section>
 
-      <section className="space-y-2">
+      <section className="flex flex-col gap-2">
         <h4 className="font-semibold text-foreground">Provider</h4>
         <p>
           We use PostHog (EU-hosted). See{' '}
@@ -161,9 +161,9 @@ const CookieSettingsContent: React.FC<{
 }> = ({ analyticsEnabled, onToggleAnalytics, onCancel, onSave }) => {
   return (
     <>
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4 rounded-lg border border-border/80 bg-muted/30 p-4">
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground">Essential Cookies</p>
               <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
@@ -176,7 +176,7 @@ const CookieSettingsContent: React.FC<{
         </div>
 
         <div className="flex items-start justify-between gap-4 rounded-lg border border-border/80 bg-muted/30 p-4">
-          <div className="space-y-1">
+          <div className="flex flex-col gap-1">
             <p className="text-sm font-semibold text-foreground">Analytics</p>
             <p className="text-xs text-muted-foreground">
               Anonymous usage metrics to improve generators, workflows, and UX quality.
@@ -277,10 +277,10 @@ export const CookieConsentBanner: React.FC = () => {
         createPortal(
           <div className="pointer-events-none fixed inset-x-0 bottom-3 flex justify-center px-3" style={{ zIndex: Z_INDEX.OVERLAY }}>
             <Card className="pointer-events-auto w-full max-w-[470px] border-border/80 bg-background/95 shadow-2xl backdrop-blur">
-              <div className="space-y-2.5 p-3.5">
+              <div className="flex flex-col gap-2.5 p-3.5">
                 <div className="flex items-start gap-2.5">
                   <span className="rounded-md bg-primary/10 p-1.5 text-primary">
-                    <Shield className="h-3.5 w-3.5" />
+                    <Shield className="size-3.5" />
                   </span>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-foreground">Analytics Cookies</p>
@@ -298,9 +298,9 @@ export const CookieConsentBanner: React.FC = () => {
                     onClick={() => setShowDetails((previous) => !previous)}
                   >
                     {showDetails ? (
-                      <ChevronDown className="mr-1 h-3.5 w-3.5" />
+                      <ChevronDown className="mr-1 size-3.5" />
                     ) : (
-                      <ChevronRight className="mr-1 h-3.5 w-3.5" />
+                      <ChevronRight className="mr-1 size-3.5" />
                     )}
                     {showDetails ? 'Hide details' : 'Details'}
                   </Button>
@@ -328,10 +328,10 @@ export const CookieConsentBanner: React.FC = () => {
 
                 {showDetails && (
                   <div className="rounded-md border border-border/70 bg-muted/30 p-2.5 text-[11px] text-muted-foreground">
-                    <ul className="space-y-1.5">
+                    <ul className="flex flex-col gap-1.5">
                       {detailRows.map((row) => (
                         <li key={row} className="flex items-start gap-1.5">
-                          <Check className="mt-0.5 h-3 w-3 text-emerald-500" />
+                          <Check className="mt-0.5 size-3 text-emerald-500" />
                           <span>{row}</span>
                         </li>
                       ))}
@@ -406,7 +406,7 @@ export const PrivacySettingsButton: React.FC = () => {
   return (
     <>
       <Button variant="link" className="h-auto p-0 text-xs" onClick={() => setShowSettings(true)}>
-        <Shield className="mr-1 h-3.5 w-3.5" />
+        <Shield className="mr-1 size-3.5" />
         Privacy Settings
       </Button>
 
