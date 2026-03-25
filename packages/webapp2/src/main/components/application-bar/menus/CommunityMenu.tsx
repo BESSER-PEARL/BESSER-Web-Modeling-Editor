@@ -1,5 +1,5 @@
 import React from 'react';
-import { Keyboard, Users, PlayCircle } from 'lucide-react';
+import { Keyboard, Users, PlayCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { bugReportURL } from '../../../constant';
 import {
@@ -44,6 +44,7 @@ export const CommunityMenu: React.FC<CommunityMenuProps> = ({
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="Community & Help">
           <Users className="h-4 w-4" />
           <span className="hidden xl:inline">Help</span>
+          <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end">

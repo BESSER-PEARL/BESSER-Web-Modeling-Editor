@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,6 +42,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="File">
           <FileText className="h-4 w-4" />
           <span className="hidden xl:inline">File</span>
+          <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">

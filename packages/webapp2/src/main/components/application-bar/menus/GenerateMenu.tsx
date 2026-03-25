@@ -1,5 +1,5 @@
 import React from 'react';
-import { Code2 } from 'lucide-react';
+import { Code2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -64,6 +64,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({ mode, isGenerating, 
         <Button className={primaryGenerateClass} disabled={isGenerating} title="Generate">
           <Code2 className="h-4 w-4" />
           <span className="hidden xl:inline">{isGenerating ? 'Generating...' : 'Generate'}</span>
+          <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">

@@ -602,7 +602,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Code Generation</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                      Django, React, Flutter, SQL, and 10+ targets
+                      Complete WebApp, React, SQL, and more!
                     </p>
                   </div>
                 </div>
