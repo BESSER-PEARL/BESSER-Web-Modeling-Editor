@@ -1,13 +1,13 @@
 import React from 'react';
-import { RoutedApplication } from './application';
-import { OfflineBanner } from './components/offline-banner/OfflineBanner';
-import { setTheme } from './utils/theme-switcher';
-import { LocalStorageRepository } from './services/storage/local-storage-repository';
+import { RoutedApplication } from './app/application';
+import { OfflineBanner } from './shared/components/offline-banner/OfflineBanner';
+import { setTheme } from './shared/utils/theme-switcher';
+import { LocalStorageRepository } from './shared/services/storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
-import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './constants/constant';
-import { runStorageMigrations } from './utils/storage-migration';
-import { initLazyAnalytics } from './services/analytics/lazy-analytics';
-import { hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
+import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
+import { runStorageMigrations } from './shared/utils/storage-migration';
+import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
+import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
 import './styles.css';
 
