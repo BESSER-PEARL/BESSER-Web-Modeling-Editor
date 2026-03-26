@@ -1,7 +1,5 @@
 import React, { useMemo } from 'react';
 import { UMLDiagramType } from '@besser/wme';
-import { Link2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../types/project';
@@ -13,7 +11,6 @@ import {
   UML_ITEMS,
   SidebarToggleIcon,
   navButtonClass,
-  DIAGRAM_GENERATOR_MAP,
   diagramCount,
 } from './workspace-navigation';
 
@@ -43,29 +40,6 @@ const SidebarTooltip: React.FC<{ label: string; collapsed: boolean; children: Re
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side="right" className="text-xs">{label}</TooltipContent>
     </Tooltip>
-  );
-};
-
-/** Generator count badge shown when sidebar is expanded. */
-const GenBadge: React.FC<{ info: { generators: string[]; label: string }; isStateMachine: boolean; isDark: boolean }> = ({
-  info,
-  isStateMachine,
-}) => {
-  if (isStateMachine) {
-    return (
-      <Badge variant="outline" className="ml-auto gap-0.5 border-none px-1 py-0 text-[10px] leading-none text-muted-foreground/70">
-        <Link2 className="size-2.5" />
-      </Badge>
-    );
-  }
-
-  const count = info.generators.length;
-  if (count === 0) return null;
-
-  return (
-    <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[10px] leading-none">
-      {count}
-    </Badge>
   );
 };
 
@@ -124,29 +98,21 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
         {UML_ITEMS.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
           const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
-          const supported = toSupportedDiagramType(item.type);
           const count = countMap[item.type] ?? 0;
-          const genInfo = DIAGRAM_GENERATOR_MAP[supported];
-          const isStateMachine = item.type === UMLDiagramType.StateMachineDiagram;
           const displayLabel = labelWithCount(item.label, count);
 
           if (!isAgentItem) {
             return (
-              <SidebarTooltip key={item.type} label={`${displayLabel} — ${genInfo.label}`} collapsed={isCollapsed}>
+              <SidebarTooltip key={item.type} label={displayLabel} collapsed={isCollapsed}>
                 <button
                   type="button"
                   className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                   onClick={() => onSwitchUml(item.type)}
-                  title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                  title={isSidebarExpanded ? displayLabel : undefined}
                   aria-label={displayLabel}
                 >
                   {item.icon}
-                  {isSidebarExpanded ? (
-                    <>
-                      <span>{displayLabel}</span>
-                      <GenBadge info={genInfo} isStateMachine={isStateMachine} isDark={isDarkTheme} />
-                    </>
-                  ) : null}
+                  {isSidebarExpanded && <span>{displayLabel}</span>}
                 </button>
               </SidebarTooltip>
             );
@@ -154,21 +120,16 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
 
           return (
             <div key={item.type} className={agentContainerClass}>
-              <SidebarTooltip label={`${displayLabel} — ${genInfo.label}`} collapsed={isCollapsed}>
+              <SidebarTooltip label={displayLabel} collapsed={isCollapsed}>
                 <button
                   type="button"
                   className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                   onClick={() => onSwitchUml(item.type)}
-                  title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                  title={isSidebarExpanded ? displayLabel : undefined}
                   aria-label={displayLabel}
                 >
                   {item.icon}
-                  {isSidebarExpanded ? (
-                    <>
-                      <span>{displayLabel}</span>
-                      <GenBadge info={genInfo} isStateMachine={false} isDark={isDarkTheme} />
-                    </>
-                  ) : null}
+                  {isSidebarExpanded && <span>{displayLabel}</span>}
                 </button>
               </SidebarTooltip>
               <div
@@ -203,25 +164,19 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
         {NON_UML_EDITOR_ITEMS.map((item) => {
           const active = locationPath === '/' && activeDiagramType === item.type;
           const count = countMap[item.type] ?? 0;
-          const genInfo = DIAGRAM_GENERATOR_MAP[item.type];
           const displayLabel = labelWithCount(item.label, count);
 
           return (
-            <SidebarTooltip key={item.type} label={`${displayLabel} — ${genInfo.label}`} collapsed={isCollapsed}>
+            <SidebarTooltip key={item.type} label={displayLabel} collapsed={isCollapsed}>
               <button
                 type="button"
                 className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                 onClick={() => onSwitchDiagramType(item.type)}
-                title={isSidebarExpanded ? `${displayLabel} — ${genInfo.label}` : undefined}
+                title={isSidebarExpanded ? displayLabel : undefined}
                 aria-label={displayLabel}
               >
                 {item.icon}
-                {isSidebarExpanded ? (
-                  <>
-                    <span>{displayLabel}</span>
-                    <GenBadge info={genInfo} isStateMachine={false} isDark={isDarkTheme} />
-                  </>
-                ) : null}
+                {isSidebarExpanded && <span>{displayLabel}</span>}
               </button>
             </SidebarTooltip>
           );
