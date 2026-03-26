@@ -593,6 +593,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
         </Suspense>
 
+        {/* TODO: re-enable assistant drawer after release
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
@@ -604,6 +605,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onSwitchDiagram={handleAssistantSwitchDiagram}
           />
         </Suspense>
+        */}
       </div>
 
       <AssistantImportDialog
