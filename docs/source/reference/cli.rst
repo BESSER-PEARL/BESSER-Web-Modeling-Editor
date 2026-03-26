@@ -14,8 +14,10 @@ packages via npm workspaces.
    * - Script
      - Description
    * - ``npm run dev``
+     - Runs the webapp2 Vite dev server (alias for ``npm run start --workspace=webapp2``).
+   * - ``npm run start``
      - Runs the webapp2 Vite dev server and Express server concurrently.
-   * - ``npm run start:webapp``
+   * - ``npm run start:webapp2``
      - Alias for ``npm run start --workspace=webapp2``.
    * - ``npm run start:server``
      - Launches the Express server with ``tsx watch``.
@@ -23,15 +25,15 @@ packages via npm workspaces.
      - Produces production bundles for the webapp and server.
    * - ``npm run build:local``
      - Similar to ``build`` but bundles the webapp with a local ``DEPLOYMENT_URL``.
-   * - ``npm run build:webapp``
-     - Runs the webapp2's production Vite build.
-   * - ``npm run build:webapp:local``
+   * - ``npm run build:webapp2``
+     - Runs the webapp2 production Vite build.
+   * - ``npm run build:webapp2:local``
      - Builds the webapp2 with ``DEPLOYMENT_URL=http://localhost:8080``.
    * - ``npm run build:server``
      - Bundles the Express server via webpack.
    * - ``npm run lint``
      - Runs ESLint for the webapp and server packages.
-   * - ``npm run lint:webapp``
+   * - ``npm run lint:webapp2``
      - Runs ESLint in the webapp2 workspace.
    * - ``npm run lint:server``
      - Runs ESLint in the server workspace.
