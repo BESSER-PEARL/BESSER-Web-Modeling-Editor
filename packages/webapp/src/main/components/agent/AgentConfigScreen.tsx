@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Accordion, Form, Button, Row, Col, Badge } from 'react-bootstrap';
+import { Accordion, Form, Button, Row, Col, Badge, Spinner } from 'react-bootstrap';
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
@@ -185,6 +185,43 @@ const StyledButton = styled(Button)`
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+`;
+
+const LoadingOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+`;
+
+const LoadingCard = styled.div`
+    width: min(560px, 100%);
+    border-radius: 16px;
+    background: var(--apollon-background);
+    border: 1px solid var(--apollon-switch-box-border-color);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+`;
+
+const LoadingTitle = styled.h4`
+    margin: 0;
+    color: var(--apollon-primary-contrast);
+    font-weight: 700;
+`;
+
+const LoadingDescription = styled.p`
+    margin: 0;
+    color: var(--apollon-secondary);
+    font-size: 0.98rem;
 `;
 
 const configKey = 'agentConfig';
@@ -391,6 +428,7 @@ export const AgentConfigScreen: React.FC = () => {
     const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
     const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || '');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState<string>('Preparing your configuration...');
     const [userProfiles, setUserProfiles] = useState<StoredUserProfile[]>([]);
     const [selectedUserProfileName, setSelectedUserProfileName] = useState<string>(initialConfig.userProfileName || '');
 
@@ -599,6 +637,84 @@ export const AgentConfigScreen: React.FC = () => {
         }
         alert('Configuration deleted.');
     }, [selectedConfigId, refreshSavedConfigurations, activeConfigId]);
+
+    const handleAutoProposeConfigurationRules = () => {
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile mapping first.');
+            return;
+        }
+
+        toast.info('Automatic configuration proposal using predefined rules will be available soon.');
+    };
+
+    const handleAutoProposeConfigurationLLM = async () => {
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile mapping first.');
+            return;
+        }
+
+        const availableProfiles = (userProfiles.length > 0
+            ? userProfiles
+            : LocalStorageRepository.getUserProfiles()
+                .filter((profile) => profile.model?.type === UMLDiagramType.UserDiagram));
+
+        const selectedProfile = availableProfiles.find((profile) => profile.name === selectedUserProfileName);
+        if (!selectedProfile || !selectedProfile.model || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+            alert('The selected user profile is not available. Please select a valid saved user profile.');
+            return;
+        }
+
+        try {
+            setLoadingMessage('This might take a while to cook up the best LLM-based configuration for your selected user profile.');
+            setIsLoading(true);
+
+            const normalizedBaseRaw = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+            const normalizedBase = normalizedBaseRaw || '';
+            const apiBase = normalizedBase.endsWith('/besser_api') ? normalizedBase : `${normalizedBase}/besser_api`;
+            const recommendUrl = `${apiBase}/recommend-agent-config-llm`;
+
+            const payload = {
+                userProfileName: selectedProfile.name,
+                userProfileModel: JSON.parse(JSON.stringify(selectedProfile.model)),
+                currentConfig: buildStructuredExport(getConfigObject()),
+                model: 'gpt-5',
+            };
+
+            const response = await fetch(recommendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                alert(`Failed to get LLM recommendation: ${errorText || response.statusText}`);
+                return;
+            }
+
+            const recommendation = await response.json();
+            if (!recommendation || typeof recommendation !== 'object' || !recommendation.config) {
+                alert('Invalid recommendation response received from backend.');
+                return;
+            }
+
+            const prepared = flattenStructuredConfig(recommendation.config);
+            const normalized = normalizeAgentConfiguration({
+                ...prepared,
+                adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
+                userProfileName: selectedProfile.name,
+            });
+
+            applyConfiguration(normalized);
+            localStorage.setItem(configKey, JSON.stringify(normalized));
+            toast.success('LLM-based recommendation applied to the current configuration.');
+        } catch (error) {
+            console.error('Failed to fetch LLM recommendation:', error);
+            alert('An unexpected error occurred while requesting an LLM-based recommendation.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const getConfigObject = (): AgentConfigurationPayload => ({
         agentLanguage: normalizeAgentLanguage(agentLanguage),
@@ -815,6 +931,7 @@ export const AgentConfigScreen: React.FC = () => {
         }
 
         try {
+            setLoadingMessage('This might take a while to cook up the best transformed agent setup and apply it to your diagram.');
             setIsLoading(true);
             const referenceDiagramData = (diagram as any)?.referenceDiagramData;
             const payload = {
@@ -915,12 +1032,71 @@ export const AgentConfigScreen: React.FC = () => {
 
     return (
         <PageContainer>
+            {isLoading && (
+                <LoadingOverlay>
+                    <LoadingCard role="status" aria-live="polite" aria-busy="true">
+                        <Spinner animation="border" role="status" />
+                        <LoadingTitle>Working on it...</LoadingTitle>
+                        <LoadingDescription>{loadingMessage}</LoadingDescription>
+                    </LoadingCard>
+                </LoadingOverlay>
+            )}
             <PageHeader>
                 <h1>🤖 Agent Configuration</h1>
                 <p>Configure your agent's behavior, language, and interaction settings</p>
             </PageHeader>
             
             <Form onSubmit={handleSubmit}>
+                <ContentGrid>
+                    <Section style={{ gridColumn: '1 / -1' }}>
+                        <SectionTitle>User Profile Mapping</SectionTitle>
+                        <SectionDescription>
+                            Start by selecting the user profile that should guide personalization and future automatic configuration proposals.
+                        </SectionDescription>
+                        <Form.Group className="mb-3">
+                            <Form.Label>User Profile Mapping (for Save & Apply)</Form.Label>
+                            <Form.Select
+                                value={selectedUserProfileName || ''}
+                                onChange={e => setSelectedUserProfileName(e.target.value)}
+                                disabled={userProfiles.length === 0}
+                            >
+                                <option value="">
+                                    {userProfiles.length === 0 ? 'No user profiles saved yet' : 'Select a user profile'}
+                                </option>
+                                {userProfiles.map((profile) => (
+                                    <option key={profile.id} value={profile.name}>
+                                        {profile.name}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            {userProfiles.length === 0 && (
+                                <Form.Text className="text-muted">
+                                    Save a user profile from the User Diagram first.
+                                </Form.Text>
+                            )}
+                        </Form.Group>
+
+                        <div className="d-flex flex-wrap gap-2">
+                            <StyledButton
+                                variant="outline-secondary"
+                                type="button"
+                                onClick={handleAutoProposeConfigurationRules}
+                                disabled={!selectedUserProfileName.trim() || isLoading}
+                            >
+                                Automatically propose configuration using predefined rules
+                            </StyledButton>
+                            <StyledButton
+                                variant="outline-primary"
+                                type="button"
+                                onClick={handleAutoProposeConfigurationLLM}
+                                disabled={!selectedUserProfileName.trim() || isLoading}
+                            >
+                                Automatically propose configuration using LLMs
+                            </StyledButton>
+                        </div>
+                    </Section>
+                </ContentGrid>
+
                 <ContentGrid style={{ marginTop: '24px' }}>
                     <Section style={{ gridColumn: '1 / -1' }}>
                         <SectionTitle>Personalization Overview</SectionTitle>
@@ -1339,29 +1515,6 @@ export const AgentConfigScreen: React.FC = () => {
                                 <div className="mt-2 text-muted small">
                                     Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
                                 </div>
-                            )}
-                        </Form.Group>
-
-                        <Form.Group className="mb-3">
-                            <Form.Label>User Profile Mapping (for Save & Apply)</Form.Label>
-                            <Form.Select
-                                value={selectedUserProfileName || ''}
-                                onChange={e => setSelectedUserProfileName(e.target.value)}
-                                disabled={userProfiles.length === 0}
-                            >
-                                <option value="">
-                                    {userProfiles.length === 0 ? 'No user profiles saved yet' : 'Select a user profile'}
-                                </option>
-                                {userProfiles.map((profile) => (
-                                    <option key={profile.id} value={profile.name}>
-                                        {profile.name}
-                                    </option>
-                                ))}
-                            </Form.Select>
-                            {userProfiles.length === 0 && (
-                                <Form.Text className="text-muted">
-                                    Save a user profile from the User Diagram first.
-                                </Form.Text>
                             )}
                         </Form.Group>
 
