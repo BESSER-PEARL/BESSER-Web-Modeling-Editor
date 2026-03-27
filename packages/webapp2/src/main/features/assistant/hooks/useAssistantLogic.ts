@@ -14,7 +14,7 @@ import { AssistantClient, type AssistantActionPayload, type InjectionCommand } f
 import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram, switchDiagramIndexThunk, addDiagramThunk } from '../../../app/store/workspaceSlice';
+import { updateDiagramModelThunk, selectActiveDiagram, switchDiagramIndexThunk, addDiagramThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
 import {
   UMLModelingService,
@@ -454,43 +454,52 @@ export function useAssistantLogic({
       startTimer('injection', 'Model injection');
       const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
 
-      // If the agent requests a new tab, create it before switching/injecting
-      if ((command as any).createNewTab) {
-        try {
-          const result = await dispatch(addDiagramThunk({
-            diagramType: targetDiagramType as SupportedDiagramType,
-          })).unwrap();
-          if (result?.index !== undefined) {
-            await dispatch(switchDiagramIndexThunk({
-              diagramType: targetDiagramType as SupportedDiagramType,
-              index: result.index,
-            })).unwrap();
-            await waitForSwitchRender();
-          }
-        } catch (tabError) {
-          console.warn('[useAssistantLogic] Could not create new tab, injecting into current:', tabError);
-        }
-      }
-
-      const diagramReady = await ensureTargetDiagramReady(command.diagramType, command.diagramId);
-      if (!diagramReady) {
-        throw new Error(`Could not switch to ${command.diagramType || 'the target diagram'}`);
-      }
-
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
 
-      // When creating a new tab, the Apollon editor hasn't mounted yet so the
-      // modeling service still references the previous tab's editor.  Skip the
-      // modeling service path and write the model directly to Redux — the new
-      // editor will load the model when it initialises.
-      const createdNewTab = !!(command as any).createNewTab;
+      // New tab: create it, convert systemSpec → model, write to Redux directly.
+      // No editor/modeling service needed — the editor will load the model when it mounts.
+      if ((command as any).createNewTab) {
+        try {
+          const tabResult = await dispatch(addDiagramThunk({
+            diagramType: targetDiagramType as SupportedDiagramType,
+          })).unwrap();
+          if (tabResult?.index !== undefined) {
+            await dispatch(switchDiagramIndexThunk({
+              diagramType: targetDiagramType as SupportedDiagramType,
+              index: tabResult.index,
+            })).unwrap();
+          }
+          // Convert and write the model directly to the new (now active) tab,
+          // then bump editorRevision so the editor re-creates with the populated model.
+          if (command.systemSpec && typeof command.systemSpec === 'object') {
+            const { ConverterFactory } = await import('../services/converters');
+            const converter = ConverterFactory.getConverter(targetDiagramType as any);
+            const convertedModel = converter.convertCompleteSystem(command.systemSpec);
+            await dispatch(updateDiagramModelThunk({ model: convertedModel }));
+          } else if (command.model) {
+            await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+          }
+          dispatch(bumpEditorRevision());
+          applied = true;
+        } catch (tabError) {
+          console.error('[useAssistantLogic] New tab creation/injection failed:', tabError);
+          throw tabError;
+        }
+      }
 
-      if (targetIsUml && !createdNewTab && !modelingServiceRef.current) {
+      if (!applied) {
+        const diagramReady = await ensureTargetDiagramReady(command.diagramType, command.diagramId);
+        if (!diagramReady) {
+          throw new Error(`Could not switch to ${command.diagramType || 'the target diagram'}`);
+        }
+      }
+
+      if (!applied && targetIsUml && !modelingServiceRef.current) {
         await waitForModelingService();
       }
 
-      if (targetIsUml && !createdNewTab && modelingServiceRef.current) {
+      if (!applied && targetIsUml && modelingServiceRef.current) {
         let update: ModelUpdate | null = null;
         switch (command.action) {
           case 'inject_element':

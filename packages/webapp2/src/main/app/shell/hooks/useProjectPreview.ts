@@ -75,7 +75,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
     try {
       const bumlPreview = await generateProjectBumlPreview(freshProject);
       setProjectBumlPreview(bumlPreview);
-      toast.success('Project B-UML preview generated.');
+      // toast.success('Project B-UML preview generated.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate B-UML preview.';
       setProjectBumlPreview('');

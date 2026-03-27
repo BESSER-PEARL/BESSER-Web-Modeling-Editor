@@ -201,7 +201,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                     onChange={(event) => {
                       setShowInstancedObjects(event.target.checked);
                       settingsService.updateSetting('showInstancedObjects', event.target.checked);
-                      toast.success(`Instanced objects ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                      // toast.success(`Instanced objects ${event.target.checked ? 'enabled' : 'disabled'}.`);
                     }}
                   />
                 </label>
@@ -218,7 +218,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                     onChange={(event) => {
                       setShowAssociationNames(event.target.checked);
                       settingsService.updateSetting('showAssociationNames', event.target.checked);
-                      toast.success(`Association names ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                      // toast.success(`Association names ${event.target.checked ? 'enabled' : 'disabled'}.`);
                     }}
                   />
                 </label>
