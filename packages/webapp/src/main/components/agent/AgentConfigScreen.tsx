@@ -647,6 +647,15 @@ export const AgentConfigScreen: React.FC = () => {
         toast.info('Automatic configuration proposal using predefined rules will be available soon.');
     };
 
+    const handleAutoProposeConfigurationRAG = () => {
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile mapping first.');
+            return;
+        }
+
+        toast.info('RAG-based automatic configuration proposal will be available soon.');
+    };
+
     const handleAutoProposeConfigurationLLM = async () => {
         if (!selectedUserProfileName.trim()) {
             alert('Please select a user profile mapping first.');
@@ -1092,6 +1101,14 @@ export const AgentConfigScreen: React.FC = () => {
                                 disabled={!selectedUserProfileName.trim() || isLoading}
                             >
                                 Automatically propose configuration using LLMs
+                            </StyledButton>
+                            <StyledButton
+                                variant="outline-dark"
+                                type="button"
+                                onClick={handleAutoProposeConfigurationRAG}
+                                disabled={!selectedUserProfileName.trim() || isLoading}
+                            >
+                                Automatically propose configuration using RAG based
                             </StyledButton>
                         </div>
                     </Section>
