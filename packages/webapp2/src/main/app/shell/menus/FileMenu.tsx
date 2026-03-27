@@ -52,9 +52,9 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         <DropdownMenuItem onClick={onOpenTemplateDialog}>Load Template</DropdownMenuItem>
         <DropdownMenuItem onClick={onExportProject}>Export Project</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>
+        {/* <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>
           Import Single Diagram to Project
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger disabled={!hasProject}>Import Class Diagram from</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>

@@ -4,6 +4,7 @@
  */
 
 import { DiagramType } from '../shared-types';
+import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from '../shared/layoutUtils';
 
 export type { DiagramType };
 
@@ -26,14 +27,14 @@ export interface DiagramConverter {
  */
 export class PositionGenerator {
   private usedPositions: Set<string> = new Set();
-  private readonly gridStepX = 360;
-  private readonly gridStepY = 280;
-  private readonly startX = -940;
-  private readonly startY = -600;
+  private readonly gridStepX = LAYOUT_H_GAP;
+  private readonly gridStepY = LAYOUT_V_GAP;
+  private readonly startX = LAYOUT_START_X;
+  private readonly startY = LAYOUT_START_Y;
 
   getNextPosition(index: number = 0): { x: number; y: number } {
-    const column = index % 3;
-    const row = Math.floor(index / 3);
+    const column = index % LAYOUT_COLUMNS;
+    const row = Math.floor(index / LAYOUT_COLUMNS);
     const x = this.startX + column * this.gridStepX;
     const y = this.startY + row * this.gridStepY;
 

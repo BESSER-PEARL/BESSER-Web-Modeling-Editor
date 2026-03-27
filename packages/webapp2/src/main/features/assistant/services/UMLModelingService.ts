@@ -3,60 +3,15 @@ import type { AppDispatch } from '../../../app/store/store';
 import { ConverterFactory } from './converters';
 import type { DiagramType } from './shared-types';
 import { ModifierFactory, ModelModification } from './modifiers';
+import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from './shared/layoutUtils';
+import { pushUndoSnapshot } from './undoStack';
 
 // Re-export ModelModification for backward compatibility
 export type { ModelModification };
 
-// ---------------------------------------------------------------------------
-// Undo stack – allows reverting agent-driven model changes
-// ---------------------------------------------------------------------------
-
-const MAX_UNDO_STACK = 10;
-let undoStack: Array<{ model: any; description: string; timestamp: number }> = [];
-
-/**
- * Push the current model onto the undo stack before making changes.
- */
-function pushUndoSnapshot(currentModel: any, description: string) {
-  undoStack.push({
-    model: structuredClone(currentModel),
-    description,
-    timestamp: Date.now(),
-  });
-  // Keep stack bounded
-  if (undoStack.length > MAX_UNDO_STACK) {
-    undoStack.shift();
-  }
-}
-
-/**
- * Pop the last model snapshot from the undo stack.
- * Returns null if stack is empty.
- */
-export function popUndo(): { model: any; description: string } | null {
-  return undoStack.pop() || null;
-}
-
-/**
- * Check if undo is available.
- */
-export function canUndo(): boolean {
-  return undoStack.length > 0;
-}
-
-/**
- * Get the description of the last undoable action.
- */
-export function getLastUndoDescription(): string | null {
-  return undoStack.length > 0 ? undoStack[undoStack.length - 1].description : null;
-}
-
-/**
- * Clear the undo stack (e.g., on diagram switch).
- */
-export function clearUndoStack() {
-  undoStack = [];
-}
+// Re-export undo functions for backward compatibility.
+// New code should import directly from './undoStack'.
+export { pushUndoSnapshot, popUndo, canUndo, getLastUndoDescription, clearUndoStack, getUndoStackSize } from './undoStack';
 
 // Enhanced interfaces for better type safety
 export interface ClassSpec {
@@ -112,11 +67,11 @@ export interface BESSERModel {
  * AgentDiagram, QuantumCircuitDiagram, GUINoCodeDiagram
  */
 export class UMLModelingService {
-  private readonly layoutStartX = -940;
-  private readonly layoutStartY = -600;
-  private readonly layoutStepX = 360;
-  private readonly layoutStepY = 280;
-  private readonly layoutColumns = 3;
+  private readonly layoutStartX = LAYOUT_START_X;
+  private readonly layoutStartY = LAYOUT_START_Y;
+  private readonly layoutStepX = LAYOUT_H_GAP;
+  private readonly layoutStepY = LAYOUT_V_GAP;
+  private readonly layoutColumns = LAYOUT_COLUMNS;
 
   private editor: any;
   private dispatch: AppDispatch;

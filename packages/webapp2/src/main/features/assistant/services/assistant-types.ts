@@ -21,14 +21,11 @@ export interface ProjectMetadata {
 export interface AssistantWorkspaceContext {
   activeDiagramType: string;
   activeDiagramId?: string;
-  activeModel?: any;
   projectSnapshot?: any;
   projectName?: string;
   diagramSummaries?: DiagramSummary[];
   projectMetadata?: ProjectMetadata;
   currentDiagramIndices?: Record<string, number>;
-  contextUnchanged?: boolean;
-  modelHash?: string;
 }
 
 export interface AssistantClientOptions {

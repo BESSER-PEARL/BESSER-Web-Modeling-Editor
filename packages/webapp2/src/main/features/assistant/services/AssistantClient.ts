@@ -15,6 +15,7 @@ import type {
   SendStatus,
   TypingHandler,
 } from './assistant-types';
+import { ProtocolError } from './errors';
 
 interface FileAttachmentPayload {
   filename: string;
@@ -25,18 +26,18 @@ interface FileAttachmentPayload {
 type QueuedMessage =
   {
     kind: 'text';
+    clientMessageId: string;
     message: string;
     diagramType: string;
-    model?: any;
     context?: Partial<AssistantWorkspaceContext>;
     attachments?: FileAttachmentPayload[];
   }
   | {
     kind: 'voice';
+    clientMessageId: string;
     audioBase64: string;
     mimeType: string;
     diagramType: string;
-    model?: any;
     context?: Partial<AssistantWorkspaceContext>;
   };
 
@@ -110,13 +111,11 @@ const mergeContexts = (
   base: AssistantWorkspaceContext | undefined,
   override: Partial<AssistantWorkspaceContext> | undefined,
   fallbackDiagramType: string,
-  fallbackModel?: any,
 ): AssistantWorkspaceContext => {
   const activeDiagramType = override?.activeDiagramType || base?.activeDiagramType || fallbackDiagramType || 'ClassDiagram';
   return {
     activeDiagramType,
     activeDiagramId: override?.activeDiagramId || base?.activeDiagramId,
-    activeModel: override?.activeModel || base?.activeModel || fallbackModel,
     projectSnapshot: override?.projectSnapshot || base?.projectSnapshot,
     projectName: override?.projectName || base?.projectName,
     diagramSummaries: override?.diagramSummaries || base?.diagramSummaries || [],
@@ -238,21 +237,6 @@ const buildProjectMetadata = (projectSnapshot: unknown): ProjectMetadata | undef
   return { totalDiagrams, diagramTypes };
 };
 
-// --- Context delta optimisation ---
-
-let lastSentModelHash: string | null = null;
-
-const hashModel = (model: any): string => {
-  const str = JSON.stringify(model);
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0; // Convert to 32-bit integer
-  }
-  return hash.toString(36);
-};
-
 const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWorkspaceContext => {
   const compacted: AssistantWorkspaceContext = { ...context };
   const compactProjectSnapshot = stripRedundantProjectMetadata(context.projectSnapshot);
@@ -276,39 +260,6 @@ const compactContextPayload = (context: AssistantWorkspaceContext): AssistantWor
     }
   }
 
-  // Context delta optimisation: if the active model hasn't changed since the
-  // last send, replace the full model with a lightweight hash reference.
-  if (compacted.activeModel) {
-    const modelHash = hashModel(compacted.activeModel);
-    const contextUnchanged = modelHash === lastSentModelHash;
-    lastSentModelHash = modelHash;
-
-    if (contextUnchanged) {
-      compacted.contextUnchanged = true;
-      compacted.modelHash = modelHash;
-      delete compacted.activeModel;
-    }
-  }
-
-  // De-duplicate: if activeModel is the same reference that already lives inside
-  // the projectSnapshot, don't send it twice.
-  if (
-    compacted.activeModel &&
-    isObject(compacted.projectSnapshot) &&
-    isObject(compacted.projectSnapshot.diagrams) &&
-    typeof compacted.activeDiagramType === 'string'
-  ) {
-    const diagramsForType = compacted.projectSnapshot.diagrams[compacted.activeDiagramType];
-    // Handle both array (v2) and single object (v1) formats
-    const activeDiagramPayload = Array.isArray(diagramsForType)
-      ? diagramsForType[compacted.projectSnapshot.currentDiagramIndices?.[compacted.activeDiagramType] ?? 0]
-      : diagramsForType;
-    const activeSnapshotModel = isObject(activeDiagramPayload) ? activeDiagramPayload.model : undefined;
-    if (activeSnapshotModel && compacted.activeModel === activeSnapshotModel) {
-      delete compacted.activeModel;
-    }
-  }
-
   return compacted;
 };
 
@@ -322,7 +273,9 @@ export class AssistantClient {
   private readonly maxReconnectAttempts = 8;
   private messageQueue: QueuedMessage[] = [];
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  private queueDrainTimers: ReturnType<typeof setTimeout>[] = [];
+  private _drainAborted = false;
+  private _drainRunning = false;
+  private _nextClientMessageId = 1;
   private shouldReconnect = true;
   private responseTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly responseTimeoutMs = 45000;
@@ -408,6 +361,8 @@ export class AssistantClient {
 
   disconnect(options: { allowReconnect?: boolean; clearQueue?: boolean } = {}): void {
     this.shouldReconnect = options.allowReconnect ?? false;
+    // Abort any in-flight async drain loop immediately.
+    this._drainAborted = true;
     this.clearResponseTimer();
     if (this.ws) {
       this.ws.onopen = null;
@@ -425,8 +380,6 @@ export class AssistantClient {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    this.queueDrainTimers.forEach(clearTimeout);
-    this.queueDrainTimers = [];
     this.connectingPromise = null;
     this.isConnected = false;
     this.reconnectAttempts = 0;
@@ -440,17 +393,16 @@ export class AssistantClient {
   sendMessage(
     message: string,
     diagramType?: string,
-    model?: any,
     context?: Partial<AssistantWorkspaceContext>,
     attachments?: FileAttachmentPayload[],
   ): SendStatus {
     const type = diagramType || 'ClassDiagram';
     if (!this.isConnected || !this.ws) {
-      this.messageQueue.push({ kind: 'text', message, diagramType: type, model, context, attachments });
+      this.enqueueMessage({ kind: 'text', clientMessageId: '', message, diagramType: type, context, attachments });
       return 'queued';
     }
     try {
-      this.sendPayload(this.buildUserPayload(message, type, model, context, attachments));
+      this.sendPayload(this.buildUserPayload(message, type, context, attachments));
       return 'sent';
     } catch (error) {
       console.error('Failed to send assistant message', error);
@@ -462,16 +414,15 @@ export class AssistantClient {
     audioBase64: string,
     mimeType: string = 'audio/wav',
     diagramType?: string,
-    model?: any,
     context?: Partial<AssistantWorkspaceContext>,
   ): SendStatus {
     const type = diagramType || 'ClassDiagram';
     if (!this.isConnected || !this.ws) {
-      this.messageQueue.push({ kind: 'voice', audioBase64, mimeType, diagramType: type, model, context });
+      this.enqueueMessage({ kind: 'voice', clientMessageId: '', audioBase64, mimeType, diagramType: type, context });
       return 'queued';
     }
     try {
-      this.sendPayload(this.buildVoicePayload(audioBase64, mimeType, type, model, context));
+      this.sendPayload(this.buildVoicePayload(audioBase64, mimeType, type, context));
       return 'sent';
     } catch (error) {
       console.error('Failed to send assistant voice message', error);
@@ -503,10 +454,6 @@ export class AssistantClient {
       console.error('Failed to send frontend event', error);
       return 'error';
     }
-  }
-
-  sendModelContext(model: any, message: string, diagramType?: string): boolean {
-    return this.sendMessage(message, diagramType, model) !== 'error';
   }
 
   onMessage(handler: MessageHandler): void {
@@ -560,13 +507,12 @@ export class AssistantClient {
   private buildUserPayload(
     message: string,
     diagramType: string,
-    model?: any,
     contextOverride?: Partial<AssistantWorkspaceContext>,
     attachments?: FileAttachmentPayload[],
   ): Record<string, any> {
     const baseContext = this.contextProvider?.();
     const context = compactContextPayload(
-      mergeContexts(baseContext, contextOverride, diagramType, model),
+      mergeContexts(baseContext, contextOverride, diagramType),
     );
     const payload: Record<string, any> = {
       action: 'user_message',
@@ -635,12 +581,11 @@ export class AssistantClient {
     audioBase64: string,
     mimeType: string,
     diagramType: string,
-    model?: any,
     contextOverride?: Partial<AssistantWorkspaceContext>,
   ): Record<string, any> {
     const baseContext = this.contextProvider?.();
     const context = compactContextPayload(
-      mergeContexts(baseContext, contextOverride, diagramType, model),
+      mergeContexts(baseContext, contextOverride, diagramType),
     );
     return {
       action: 'user_voice',
@@ -702,7 +647,14 @@ export class AssistantClient {
       };
       this.onMessageHandler?.(chatMessage);
     } catch (error) {
-      console.error('Error parsing assistant websocket message', error);
+      const rawData = typeof event.data === 'string' ? event.data : '';
+      const protocolError = new ProtocolError(
+        'Failed to parse assistant WebSocket message',
+        rawData,
+        'JSON.parse',
+        { cause: error instanceof Error ? error : undefined },
+      );
+      console.error('Error parsing assistant websocket message', protocolError);
       // Surface parse failures as a chat message so the user knows something went wrong
       const chatMessage: ChatMessage = {
         id: createMessageId(),
@@ -731,34 +683,37 @@ export class AssistantClient {
     const message = payload.message.trim();
     const candidates: string[] = [];
 
+    const strategies: Array<{ label: string; value: string }> = [];
+
     const fenceRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
     let match: RegExpExecArray | null;
     while ((match = fenceRegex.exec(message)) !== null) {
       if (match[1]) {
-        candidates.push(match[1].trim());
+        strategies.push({ label: 'fenced-code-block', value: match[1].trim() });
       }
     }
     if (message.startsWith('{') && message.endsWith('}')) {
-      candidates.push(message);
+      strategies.push({ label: 'raw-json-object', value: message });
     }
 
     // Also try to find a JSON object anywhere in the message (handles
     // cases where the platform prepends/appends text around the payload).
-    if (candidates.length === 0) {
+    if (strategies.length === 0) {
       const jsonMatch = message.match(/\{[\s\S]*"action"\s*:\s*"[^"]+[\s\S]*\}/);
       if (jsonMatch) {
-        candidates.push(jsonMatch[0]);
+        strategies.push({ label: 'embedded-json-search', value: jsonMatch[0] });
       }
     }
 
-    for (const candidate of candidates) {
+    for (const { label, value } of strategies) {
       try {
-        const parsed = JSON.parse(candidate);
+        const parsed = JSON.parse(value);
         if (isActionPayload(parsed)) {
           return parsed;
         }
-      } catch {
-        // Ignore parse errors and keep searching.
+      } catch (parseError) {
+        console.debug(`[AssistantClient] extractActionPayload: strategy "${label}" failed to parse`, parseError);
+        // Keep searching remaining strategies.
       }
     }
 
@@ -798,39 +753,71 @@ export class AssistantClient {
     }
   }
 
+  /**
+   * Enqueue a message with deduplication.  Assigns a `clientMessageId` if the
+   * message doesn't already have one, and skips the push when a message with
+   * the same id is already queued (prevents duplicates on reconnect re-queue).
+   */
+  private enqueueMessage(item: QueuedMessage): void {
+    if (!item.clientMessageId) {
+      item.clientMessageId = `cmsg_${this._nextClientMessageId++}`;
+    }
+    // Deduplicate: don't add if the same clientMessageId is already queued.
+    if (this.messageQueue.some((m) => m.clientMessageId === item.clientMessageId)) {
+      return;
+    }
+    this.messageQueue.push(item);
+  }
+
+  /**
+   * Drain the message queue serially.  Only one drain loop runs at a time.
+   * Between each send we yield to the event loop and check the abort flag so
+   * that disconnect() / unmount can stop the drain immediately.
+   */
   private processMessageQueue(): void {
-    if (this.messageQueue.length === 0) {
+    if (this.messageQueue.length === 0 || this._drainRunning) {
       return;
     }
 
-    // Clear any lingering drain timers from a previous cycle.
-    this.queueDrainTimers.forEach(clearTimeout);
-    this.queueDrainTimers = [];
+    // Reset the abort flag -- we're starting a fresh drain cycle.
+    this._drainAborted = false;
+    this._drainRunning = true;
 
-    const queued = [...this.messageQueue];
-    this.messageQueue = [];
+    const drainNext = (): void => {
+      // Check abort flag between every send.
+      if (this._drainAborted || this.messageQueue.length === 0) {
+        this._drainRunning = false;
+        return;
+      }
 
-    queued.forEach((item, index) => {
-      const timer = setTimeout(() => {
-        // Re-check connection state before each deferred send.
-        if (!this.isConnected || !this.ws) {
-          // Re-queue the message so it's not silently lost.
-          this.messageQueue.push(item);
-          return;
+      // Re-check connection state before each send.
+      if (!this.isConnected || !this.ws) {
+        // Messages stay in the queue for the next reconnect cycle.
+        this._drainRunning = false;
+        return;
+      }
+
+      const item = this.messageQueue.shift()!;
+
+      try {
+        if (item.kind === 'voice') {
+          this.sendPayload(this.buildVoicePayload(item.audioBase64, item.mimeType, item.diagramType, item.context));
+        } else {
+          this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.context, item.attachments));
         }
-        try {
-          if (item.kind === 'voice') {
-            this.sendPayload(this.buildVoicePayload(item.audioBase64, item.mimeType, item.diagramType, item.model, item.context));
-          } else {
-            this.sendPayload(this.buildUserPayload(item.message, item.diagramType, item.model, item.context, item.attachments));
-          }
-        } catch {
-          // Re-queue on failure so it's retried on next reconnect.
-          this.messageQueue.push(item);
-        }
-      }, index * 1000);
-      this.queueDrainTimers.push(timer);
-    });
+      } catch {
+        // Re-queue on failure (with dedup) so it's retried on next reconnect.
+        this.enqueueMessage(item);
+        this._drainRunning = false;
+        return;
+      }
+
+      // Yield to the event loop before sending the next message.  This keeps
+      // the UI responsive and gives disconnect() a chance to set _drainAborted.
+      setTimeout(drainNext, 0);
+    };
+
+    drainNext();
   }
 }
 

@@ -27,6 +27,15 @@ export type {
   ModelModification,
 } from './UMLModelingService';
 
+export {
+  pushUndoSnapshot,
+  popUndo,
+  canUndo,
+  getLastUndoDescription,
+  clearUndoStack,
+  getUndoStackSize,
+} from './undoStack';
+
 export { RateLimiterService } from './RateLimiterService';
 export type {
   RateLimitConfig,
@@ -48,3 +57,12 @@ export type {
 } from './modifiers';
 export { QuantumCircuitModifier } from './modifiers/QuantumCircuitModifier';
 export { GUIDiagramModifier } from './modifiers/GUIDiagramModifier';
+
+export {
+  AssistantError,
+  ProtocolError,
+  InjectionError,
+  TimeoutError,
+  formatErrorForUser,
+  sanitizeForDisplay,
+} from './errors';

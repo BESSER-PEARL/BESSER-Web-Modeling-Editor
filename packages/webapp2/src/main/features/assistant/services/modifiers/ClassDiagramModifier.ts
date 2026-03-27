@@ -5,41 +5,7 @@
 
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
-
-// Type alias mapping for normalizing types from agent responses
-const TYPE_ALIASES: Record<string, string> = {
-  'string': 'str', 'String': 'str', 'STRING': 'str',
-  'integer': 'int', 'Integer': 'int', 'INTEGER': 'int', 'long': 'int', 'Long': 'int',
-  'double': 'float', 'Double': 'float', 'DOUBLE': 'float', 'Float': 'float', 'FLOAT': 'float',
-  'number': 'float', 'Number': 'float', 'decimal': 'float', 'Decimal': 'float',
-  'BigDecimal': 'float', 'bigdecimal': 'float',
-  'boolean': 'bool', 'Boolean': 'bool', 'BOOLEAN': 'bool',
-  'Date': 'date', 'DATE': 'date', 'LocalDate': 'date', 'localDate': 'date',
-  'DateTime': 'datetime', 'DATETIME': 'datetime', 'Timestamp': 'datetime', 'timestamp': 'datetime',
-  'LocalDateTime': 'datetime', 'localDateTime': 'datetime',
-  'Time': 'time', 'TIME': 'time', 'LocalTime': 'time',
-  'object': 'any', 'Object': 'any', 'void': 'any', 'Void': 'any',
-  'UUID': 'str', 'Uuid': 'str', 'uuid': 'str', 'GUID': 'str',
-  'byte': 'int', 'Byte': 'int', 'short': 'int', 'Short': 'int',
-  'char': 'str', 'Char': 'str', 'Character': 'str',
-};
-
-// Valid BESSER primitive types
-const VALID_PRIMITIVES = new Set(['str', 'int', 'bool', 'float', 'date', 'datetime', 'time', 'any']);
-
-const normalizeType = (type: string | null | undefined, classNames?: Set<string>): string => {
-  if (!type) return '';
-  const trimmed = type.trim();
-  if (!trimmed) return '';
-  const aliased = TYPE_ALIASES[trimmed];
-  if (aliased) return aliased;
-  // If the type matches a class name in the model, keep it (custom type / enum reference)
-  if (classNames && classNames.has(trimmed)) return trimmed;
-  // If it's already a valid primitive, keep it
-  if (VALID_PRIMITIVES.has(trimmed)) return trimmed;
-  // Unknown type — keep as-is (could be an enum or custom class name)
-  return trimmed;
-};
+import { normalizeType } from '../shared/typeNormalization';
 
 export class ClassDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -238,7 +204,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       const methodId = ModifierHelpers.generateUniqueId('method');
       const methodY = posY + 50 + attrCount * 25 + 10 + i * 25;
       const visSymbol = methodSpec.visibility === 'private' ? '-' : methodSpec.visibility === 'protected' ? '#' : '+';
-      const paramStr = methodSpec.parameters?.map((p: any) => `${p.name}`).join(', ') || '';
+      const paramStr = methodSpec.parameters?.map((p: any) => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
       const returnType = normalizeType(methodSpec.returnType || 'any');
 
       model.elements[methodId] = {
@@ -405,7 +371,7 @@ export class ClassDiagramModifier implements DiagramModifier {
                               modification.changes.visibility === 'protected' ? '#' : '+';
     const name = modification.changes.name || 'newMethod';
     const returnType = normalizeType(modification.changes.returnType || 'any');
-    const paramStr = modification.changes.parameters?.map(p => `${p.name}`).join(', ') || '';
+    const paramStr = modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
     const methodLabel = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
 
     const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
@@ -561,7 +527,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       const name = modification.changes.name || parsed.name || this.normalizeMethodName(element.name || '');
       const returnType = normalizeType(modification.changes.returnType || parsed.returnType || 'any');
       const parameters =
-        modification.changes.parameters?.map(p => `${p.name}`) || parsed.parameters;
+        modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name) || parsed.parameters;
       const paramStr = parameters.join(', ');
 
       element.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
@@ -971,7 +937,7 @@ export class ClassDiagramModifier implements DiagramModifier {
           const methodId = ModifierHelpers.generateUniqueId('method');
           const attrCount = (spec.attributes || []).length;
           const methodY = newY + 50 + attrCount * 25 + 10 + mi * 25;
-          const paramStr = methodSpec.parameters?.map(p => `${p.name}`).join(', ') || '';
+          const paramStr = methodSpec.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
           const returnType = normalizeType(methodSpec.returnType || 'any');
           model.elements[methodId] = {
             id: methodId,

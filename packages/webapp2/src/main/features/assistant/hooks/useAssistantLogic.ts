@@ -1,77 +1,50 @@
 /**
- * useAssistantLogic — shared business logic for AssistantWidget and AssistantWorkspaceDrawer.
+ * useAssistantLogic -- thin orchestrator that composes focused sub-hooks.
  *
- * Both components share ~90% of their logic (WebSocket lifecycle, injection handling,
- * action dispatch, message sending, model sync, rate limiting).  Only the UI differs.
- * This hook owns all of that shared state and behaviour.
+ * Sub-hooks:
+ *  - useWebSocketConnection -- connection lifecycle & status
+ *  - useStreamingResponse   -- streaming state, chunk assembly, progress
+ *  - useModelInjection      -- injection handling, undo/redo, diagram switching
+ *
+ * This orchestrator owns:
+ *  - handleSubmit (sends user messages)
+ *  - handleAction (routes backend action payloads)
+ *  - The main useEffect that wires up assistantClient handlers
+ *  - Message list state and metadata
+ *
+ * The public API (return value) is identical to the pre-refactor version so
+ * that AssistantWidget and AssistantWorkspaceDrawer require zero changes.
  */
 
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
-import { AssistantClient, type AssistantActionPayload, type InjectionCommand } from '../services';
+import { AssistantClient, type AssistantActionPayload } from '../services';
 import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram, switchDiagramIndexThunk, addDiagramThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
+import { updateDiagramModelThunk, selectActiveDiagram, addDiagramThunk, switchDiagramIndexThunk } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
 import {
   UMLModelingService,
-  type ClassSpec,
-  type SystemSpec,
-  type ModelModification,
-  type ModelUpdate,
-  type BESSERModel,
   RateLimiterService,
   type RateLimitStatus,
+  formatErrorForUser,
 } from '../services';
-import { popUndo, canUndo, clearUndoStack } from '../services/UMLModelingService';
-import { isUMLModel, ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
+import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 
-/* ------------------------------------------------------------------ */
-/*  Debug timing                                                       */
-/* ------------------------------------------------------------------ */
-
-/**
- * Set to `true` to show timing information in the chat and console.
- * Tracks: round-trip response time, model injection time, streaming duration.
- */
-const DEBUG_TIMING = false;
-
-interface PendingTimer {
-  label: string;
-  start: number;
-}
-
-const pendingTimers = new Map<string, PendingTimer>();
-
-const startTimer = (key: string, label: string) => {
-  if (!DEBUG_TIMING) return;
-  pendingTimers.set(key, { label, start: performance.now() });
-};
-
-const stopTimer = (key: string): string | null => {
-  if (!DEBUG_TIMING) return null;
-  const timer = pendingTimers.get(key);
-  if (!timer) return null;
-  pendingTimers.delete(key);
-  const elapsed = performance.now() - timer.start;
-  const formatted = elapsed < 1000
-    ? `${Math.round(elapsed)}ms`
-    : `${(elapsed / 1000).toFixed(2)}s`;
-  const msg = `⏱ ${timer.label}: ${formatted}`;
-  console.log(`[AssistantTiming] ${msg}`);
-  return msg;
-};
+import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
+import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
+import { useModelInjection } from './useModelInjection';
 
 /* ------------------------------------------------------------------ */
-/*  Types                                                              */
+/*  Types  (re-exported so consumers keep importing from here)         */
 /* ------------------------------------------------------------------ */
 
-export type ConnectionStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected' | 'closed' | 'closing' | 'unknown';
+export type { ConnectionStatus } from './useWebSocketConnection';
 
 export interface SuggestedAction {
   label: string;
@@ -95,7 +68,7 @@ export interface UseAssistantLogicOptions {
    * The widget and drawer implement this differently (navigate vs callback).
    */
   switchDiagram: (targetType: string) => Promise<boolean>;
-  /** Trigger code generation (optional — not available in all contexts). */
+  /** Trigger code generation (optional -- not available in all contexts). */
   onGenerate?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
 }
 
@@ -218,21 +191,16 @@ export function useAssistantLogic({
   switchDiagram,
   onGenerate,
 }: UseAssistantLogicOptions): UseAssistantLogicReturn {
-  /* ---- core state ---- */
+  /* ---- core state (owned by orchestrator) ---- */
   const [messages, setMessages] = useState<ChatKitMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus>({
     requestsLastMinute: 0,
     requestsLastHour: 0,
     cooldownRemaining: 0,
   });
   const [messageMeta, setMessageMeta] = useState<Record<string, MessageMeta>>({});
-  const [progressMessage, setProgressMessage] = useState('');
   const [lastSentMessage, setLastSentMessage] = useState('');
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
-  const [undoAvailable, setUndoAvailable] = useState(false);
 
   const messageListContainerRef = useRef<HTMLDivElement>(null);
   const operationQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -299,19 +267,34 @@ export function useAssistantLogic({
     }
   }, [activeDiagram, modelingService]);
 
-  /* ---- keep undoAvailable in sync with the undo stack ---- */
-
-  const refreshUndoState = () => {
-    setUndoAvailable(canUndo());
-  };
-
   /* ---- auto-scroll on new messages ---- */
 
   useEffect(() => {
     if (messageListContainerRef.current) {
       messageListContainerRef.current.scrollTop = messageListContainerRef.current.scrollHeight;
     }
-  }, [messages, isGenerating]);
+  }, [messages]);
+
+  /* ================================================================ */
+  /*  Sub-hooks                                                        */
+  /* ================================================================ */
+
+  const connection = useWebSocketConnection({ assistantClient, isActive });
+
+  const streaming = useStreamingResponse();
+
+  const injection = useModelInjection({
+    dispatch,
+    editor,
+    modelingServiceRef,
+    currentModelRef,
+    currentProjectRef,
+    currentDiagramTypeRef,
+    switchDiagramRef,
+    setMessages,
+    setMessageMeta,
+    setProgressMessage: streaming.setProgressMessage,
+  });
 
   /* ---- workspace context builder ---- */
 
@@ -327,10 +310,6 @@ export function useAssistantLogic({
       ? modelingServiceRef.current?.getCurrentModel() || editorModel || projectModel
       : projectModel;
 
-    // Build compact but informative per-diagram summaries.
-    // compactContextPayload will auto-generate richer summaries from the
-    // projectSnapshot when these are empty, but passing lightweight ones here
-    // ensures the caller's titles and ids are preserved.
     const diagramSummaries = project
       ? Object.entries(project.diagrams).flatMap(([diagramType, diagramArr]) => {
           if (!Array.isArray(diagramArr)) return [];
@@ -342,7 +321,6 @@ export function useAssistantLogic({
         })
       : [];
 
-    // Project-level metadata for quick agent orientation.
     const projectMetadata = project
       ? {
           totalDiagrams: Object.values(project.diagrams).flat().length,
@@ -364,259 +342,21 @@ export function useAssistantLogic({
     };
   }
 
-  /* ---- diagram switching helpers ---- */
-
-  const waitForModelingService = async (timeoutMs = 3000): Promise<boolean> => {
-    if (modelingServiceRef.current && typeof modelingServiceRef.current.injectToEditor === 'function') {
-      return true;
-    }
-    const start = Date.now();
-    return new Promise<boolean>((resolve) => {
-      const id = setInterval(() => {
-        if (modelingServiceRef.current && typeof modelingServiceRef.current.injectToEditor === 'function') {
-          clearInterval(id);
-          resolve(true);
-          return;
-        }
-        if (Date.now() - start > timeoutMs) {
-          clearInterval(id);
-          console.warn('[useAssistantLogic] Timed out waiting for modelingService');
-          resolve(false);
-        }
-      }, 50);
-    });
-  };
-
-  /**
-   * Find the tab index for a given diagramId within a diagram type array.
-   * Returns -1 if not found.
-   */
-  const findDiagramIndexById = (diagramType: string, diagramId: string): number => {
-    const project = currentProjectRef.current;
-    if (!project) return -1;
-    const diagrams = (project.diagrams as Record<string, ProjectDiagram[]>)[diagramType];
-    if (!Array.isArray(diagrams)) return -1;
-    return diagrams.findIndex((d) => d.id === diagramId);
-  };
-
-  /**
-   * Ensure the specified diagram type (and optionally a specific tab identified
-   * by diagramId) is the active editor before an injection is applied.
-   *
-   * Steps:
-   *  1. If diagramType differs from the current type, switch diagram type first.
-   *  2. If diagramId is provided, locate its tab index and switch to that index.
-   */
-  const ensureTargetDiagramReady = async (targetType?: string, targetDiagramId?: string): Promise<boolean> => {
-    // Step 1: switch diagram type if needed
-    if (targetType && targetType !== currentDiagramTypeRef.current) {
-      const switched = await switchDiagramRef.current(targetType);
-      if (!switched) return false;
-      await waitForSwitchRender();
-    }
-
-    // Step 2: switch to the specific tab if diagramId is provided
-    if (targetDiagramId && targetType) {
-      const tabIndex = findDiagramIndexById(targetType, targetDiagramId);
-      if (tabIndex >= 0) {
-        // Check current active index — only dispatch if we need to switch
-        const project = currentProjectRef.current;
-        const currentIndex = project?.currentDiagramIndices?.[targetType as SupportedDiagramType] ?? 0;
-        if (tabIndex !== currentIndex) {
-          try {
-            await dispatch(switchDiagramIndexThunk({ diagramType: targetType as SupportedDiagramType, index: tabIndex })).unwrap();
-            await waitForSwitchRender();
-          } catch (error) {
-            console.warn('[useAssistantLogic] Could not switch to diagram tab:', error);
-            // Non-fatal: we already switched diagram type, proceed with injection
-          }
-        }
-      }
-    }
-
-    return true;
-  };
-
   /* ---- task queue (serialises async operations) ---- */
 
   const enqueueAssistantTask = (task: () => Promise<void> | void) => {
     operationQueueRef.current = operationQueueRef.current
       .then(async () => { await task(); })
-      .catch((error) => console.error('[useAssistantLogic] task queue error:', error));
+      .catch((error) => {
+        console.error('[useAssistantLogic] task queue error:', error);
+        streaming.setIsGenerating(false);
+        streaming.setProgressMessage('');
+        toast.error(formatErrorForUser(error));
+      });
   };
 
-  /* ================================================================ */
-  /*  handleInjection                                                  */
-  /* ================================================================ */
+  /* ---- meta helpers ---- */
 
-  const handleInjection = async (command: InjectionCommand) => {
-    try {
-      startTimer('injection', 'Model injection');
-      const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
-
-      const targetIsUml = isUmlDiagramType(targetDiagramType);
-      let applied = false;
-
-      // New tab: create it, convert systemSpec → model, write to Redux directly.
-      // No editor/modeling service needed — the editor will load the model when it mounts.
-      if ((command as any).createNewTab) {
-        try {
-          const tabResult = await dispatch(addDiagramThunk({
-            diagramType: targetDiagramType as SupportedDiagramType,
-          })).unwrap();
-          if (tabResult?.index !== undefined) {
-            await dispatch(switchDiagramIndexThunk({
-              diagramType: targetDiagramType as SupportedDiagramType,
-              index: tabResult.index,
-            })).unwrap();
-          }
-          // Convert and write the model directly to the new (now active) tab,
-          // then bump editorRevision so the editor re-creates with the populated model.
-          if (command.systemSpec && typeof command.systemSpec === 'object') {
-            const { ConverterFactory } = await import('../services/converters');
-            const converter = ConverterFactory.getConverter(targetDiagramType as any);
-            const convertedModel = converter.convertCompleteSystem(command.systemSpec);
-            await dispatch(updateDiagramModelThunk({ model: convertedModel }));
-          } else if (command.model) {
-            await dispatch(updateDiagramModelThunk({ model: command.model as any }));
-          }
-          dispatch(bumpEditorRevision());
-          applied = true;
-        } catch (tabError) {
-          console.error('[useAssistantLogic] New tab creation/injection failed:', tabError);
-          throw tabError;
-        }
-      }
-
-      if (!applied) {
-        const diagramReady = await ensureTargetDiagramReady(command.diagramType, command.diagramId);
-        if (!diagramReady) {
-          throw new Error(`Could not switch to ${command.diagramType || 'the target diagram'}`);
-        }
-      }
-
-      if (!applied && targetIsUml && !modelingServiceRef.current) {
-        await waitForModelingService();
-      }
-
-      if (!applied && targetIsUml && modelingServiceRef.current) {
-        let update: ModelUpdate | null = null;
-        switch (command.action) {
-          case 'inject_element':
-            if (command.element && typeof command.element === 'object' &&
-                (command.element.className || command.element.stateName || command.element.objectName || command.element.type)) {
-              update = modelingServiceRef.current.processSimpleClassSpec(command.element as ClassSpec, command.diagramType);
-            } else if (command.element) {
-              throw new Error('inject_element payload is missing a recognizable element specification');
-            }
-            break;
-          case 'inject_complete_system':
-            if (command.systemSpec && typeof command.systemSpec === 'object' &&
-                Array.isArray(command.systemSpec.classes ?? command.systemSpec.states ?? command.systemSpec.objects ?? command.systemSpec.intents)) {
-              update = modelingServiceRef.current.processSystemSpec(command.systemSpec as SystemSpec, command.diagramType, command.replaceExisting);
-            } else if (command.systemSpec && typeof command.systemSpec === 'object' && Object.keys(command.systemSpec).length > 0) {
-              update = modelingServiceRef.current.processSystemSpec(command.systemSpec as SystemSpec, command.diagramType, command.replaceExisting);
-            } else if (command.systemSpec) {
-              throw new Error('inject_complete_system payload is missing a valid classes/states/objects/intents array');
-            }
-            break;
-          case 'modify_model':
-            if (Array.isArray(command.modifications) && command.modifications.length > 0) {
-              update = modelingServiceRef.current.processModelModifications(command.modifications as ModelModification[]);
-            } else if (command.modification && typeof command.modification === 'object' && command.modification.action && command.modification.target) {
-              update = modelingServiceRef.current.processModelModification(command.modification as ModelModification);
-            } else if (command.modification) {
-              throw new Error('modify_model payload is missing required action or target fields');
-            }
-            break;
-          default:
-            break;
-        }
-
-        if (update) {
-          await modelingServiceRef.current.injectToEditor(update);
-          applied = true;
-        } else if (command.model) {
-          await modelingServiceRef.current.replaceModel(command.model as Partial<BESSERModel>);
-          applied = true;
-        }
-      }
-
-      if (!applied && command.model) {
-        const targetDiagramIsGui = targetDiagramType === 'GUINoCodeDiagram';
-
-        if (targetDiagramIsGui && (window as any).__WME_GUI_EDITOR_READY__) {
-          const loadResult = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
-            const timeout = setTimeout(() => {
-              window.removeEventListener('wme:assistant-load-gui-model-done', onDone);
-              resolve({ ok: false, error: 'Timed out waiting for GUI editor' });
-            }, 10_000);
-            const onDone = (event: Event) => {
-              clearTimeout(timeout);
-              window.removeEventListener('wme:assistant-load-gui-model-done', onDone);
-              resolve((event as CustomEvent).detail ?? { ok: false, error: 'No response' });
-            };
-            window.addEventListener('wme:assistant-load-gui-model-done', onDone);
-            window.dispatchEvent(new CustomEvent('wme:assistant-load-gui-model', { detail: { model: command.model } }));
-          });
-          if (!loadResult.ok) {
-            throw new Error(loadResult.error || 'Failed to load GUI model into editor');
-          }
-          applied = true;
-        } else {
-          const result = await dispatch(updateDiagramModelThunk({ model: command.model as any }));
-          if (updateDiagramModelThunk.rejected.match(result)) {
-            throw new Error(result.error.message || 'Failed to persist assistant model update');
-          }
-          applied = true;
-        }
-      }
-
-      if (!applied) {
-        throw new Error('Assistant did not provide a valid update payload');
-      }
-
-      // Refresh undo state after successful injection
-      refreshUndoState();
-      setProgressMessage('');
-
-      const injectionTiming = stopTimer('injection');
-      const totalTiming = stopTimer('total');
-
-      const infoMessage =
-        typeof command.message === 'string' && command.message.trim()
-          ? command.message
-          : 'Applied assistant model update.';
-      const injMsg = toKitMessage('assistant', infoMessage, { injectionType: command.action });
-      setMessages((prev) => [...prev, injMsg]);
-      const diagramLabel = command.diagramType || currentDiagramTypeRef.current || 'Diagram';
-      attachMetaFromPayload(
-        injMsg.id,
-        command as unknown as Record<string, unknown>,
-        'injection',
-        `Applied to ${diagramLabel}`,
-      );
-
-      // Show timing summary after injection
-      if (injectionTiming || totalTiming) {
-        const timingText = [injectionTiming, totalTiming].filter(Boolean).join(' · ');
-        setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
-      }
-    } catch (error) {
-      setProgressMessage('');
-      const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
-      toast.error(`Could not apply assistant update: ${errorMessage}`);
-      const errMsg = toKitMessage('assistant', `I wasn't able to apply that change \u2014 ${errorMessage}. Try rephrasing your request.`, { isError: true });
-      setMessages((prev) => [...prev, errMsg]);
-      attachMetaFromPayload(errMsg.id, {}, 'error', 'Update failed');
-    }
-  };
-
-  /* ================================================================ */
-  /*  handleAction                                                     */
-  /* ================================================================ */
-
-  /** Attach meta (suggestedActions/badge) to a message if the payload contains them. */
   const attachMetaFromPayload = (messageId: string, payload: Record<string, unknown>, badge?: MessageMeta['badge'], badgeLabel?: string) => {
     const suggested = payload.suggestedActions;
     const hasSuggested = Array.isArray(suggested) && suggested.length > 0;
@@ -632,10 +372,18 @@ export function useAssistantLogic({
     }
   };
 
+  /* ================================================================ */
+  /*  handleAction                                                     */
+  /* ================================================================ */
+
   const handleAction = async (payload: AssistantActionPayload) => {
+    // Let the streaming sub-hook handle streaming/progress actions first
+    if (streaming.handleStreamingAction(payload, setMessages)) {
+      return;
+    }
+
     // Extract suggestedActions from assistant_message payloads before returning.
     if (payload.action === 'assistant_message') {
-      // The message was already added by the onMessage handler; attach meta to the last assistant message.
       if (Array.isArray(payload.suggestedActions) && (payload.suggestedActions as unknown[]).length > 0) {
         setMessages((prev) => {
           const lastAssistant = [...prev].reverse().find((m) => m.role === 'assistant');
@@ -655,89 +403,19 @@ export function useAssistantLogic({
       return;
     }
 
-    /* ---- streaming actions ---- */
-
-    if (payload.action === 'stream_start') {
-      // First stream event — record response time (time until agent started replying)
-      const responseTiming = stopTimer('response');
-      if (responseTiming) {
-        console.log(`[AssistantTiming] Stream started — ${responseTiming}`);
-      }
-      startTimer('streaming', 'Streaming duration');
-      return;
-    }
-
-    if (payload.action === 'stream_chunk') {
-      const { streamId, chunk } = payload as Record<string, any>;
-      if (typeof streamId !== 'string' || typeof chunk !== 'string') return;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last && last.id === streamId && last.role === 'assistant') {
-          // Append chunk to existing streaming message
-          return [
-            ...prev.slice(0, -1),
-            { ...last, content: last.content + chunk, isStreaming: true },
-          ];
-        }
-        // New streaming message
-        return [
-          ...prev,
-          { id: streamId, role: 'assistant' as const, content: chunk, isStreaming: true, createdAt: new Date() },
-        ];
-      });
-      setStreamingMessageId(streamId);
-      return;
-    }
-
-    if (payload.action === 'stream_done') {
-      const { streamId, fullText } = payload as Record<string, any>;
-      if (typeof streamId !== 'string') return;
-      setMessages((prev) => prev.map((msg) =>
-        msg.id === streamId
-          ? { ...msg, content: (typeof fullText === 'string' ? fullText : undefined) || msg.content, isStreaming: false }
-          : msg,
-      ));
-      setStreamingMessageId(null);
-      // Clear any transient progress message when streaming completes.
-      setProgressMessage('');
-
-      // Show timing summary after stream completes
-      const streamTiming = stopTimer('streaming');
-      const totalTiming = stopTimer('total');
-      if (streamTiming || totalTiming) {
-        const timingText = [streamTiming, totalTiming].filter(Boolean).join(' · ');
-        setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
-      }
-      return;
-    }
-
-    /* ---- progress action ---- */
-
-    if (payload.action === 'progress') {
-      const progressMsg = typeof payload.message === 'string' ? payload.message : '';
-      const step = typeof (payload as any).step === 'number' ? (payload as any).step as number : undefined;
-      const total = typeof (payload as any).total === 'number' ? (payload as any).total as number : undefined;
-      const label = step && total ? `[${step}/${total}] ${progressMsg}` : progressMsg;
-      setProgressMessage(label);
-      return;
-    }
-
     if (payload.action === 'create_diagram_tab') {
       const diagramType = typeof payload.diagramType === 'string' ? payload.diagramType : '';
       if (!diagramType) return;
 
       try {
-        // Ensure the correct diagram type is active before creating the new tab
-        await ensureTargetDiagramReady(diagramType);
+        await injection.ensureTargetDiagramReady(diagramType);
 
-        // Create new tab
         const title = typeof payload.title === 'string' ? payload.title : undefined;
         const result = await dispatch(addDiagramThunk({
           diagramType: diagramType as SupportedDiagramType,
           title,
         })).unwrap();
 
-        // Switch to the new tab
         if (result?.index !== undefined) {
           await dispatch(switchDiagramIndexThunk({
             diagramType: diagramType as SupportedDiagramType,
@@ -756,7 +434,7 @@ export function useAssistantLogic({
     if (payload.action === 'switch_diagram') {
       const diagramType = typeof payload.diagramType === 'string' ? payload.diagramType : '';
       if (!diagramType) return;
-      const switched = await ensureTargetDiagramReady(diagramType);
+      const switched = await injection.ensureTargetDiagramReady(diagramType);
       if (!switched) {
         setMessages((prev) => [...prev, toKitMessage('assistant', `Could not switch to ${diagramType}.`)]);
       } else {
@@ -820,19 +498,18 @@ export function useAssistantLogic({
       const errMsg = toKitMessage('assistant', errorMsg, { isError: true });
       setMessages((prev) => [...prev, errMsg]);
 
-      // Attach error badge and recovery-based suggestedActions
       const meta: MessageMeta = { badge: 'error', badgeLabel: errorCode ? `Error: ${errorCode}` : 'Error' };
       if (retryable && suggestedRecovery) {
         meta.suggestedActions = [{ label: 'Try again', prompt: suggestedRecovery }];
       }
       setMessageMeta((prev) => ({ ...prev, [errMsg.id]: { ...prev[errMsg.id], ...meta } }));
 
-      setIsGenerating(false);
+      streaming.setIsGenerating(false);
       return;
     }
 
     if (payload.action === 'auto_generate_gui') {
-      const diagramReady = await ensureTargetDiagramReady('GUINoCodeDiagram');
+      const diagramReady = await injection.ensureTargetDiagramReady('GUINoCodeDiagram');
       if (!diagramReady) {
         setMessages((prev) => [...prev, toKitMessage('assistant', 'Could not switch to the GUI editor. Please switch manually and try again.')]);
         return;
@@ -886,26 +563,19 @@ export function useAssistantLogic({
     }
   };
 
-  /* ---- WebSocket lifecycle ---- */
+  /* ================================================================ */
+  /*  Wire up assistantClient handlers                                 */
+  /* ================================================================ */
 
-  // Track active state in a ref so handlers (which are registered once) can
-  // check it synchronously without needing to re-register on every toggle.
-  const isActiveRef = useRef(isActive);
-  isActiveRef.current = isActive;
-
-  // Sync connection status when drawer reopens
-  useEffect(() => {
-    if (isActive) {
-      setConnectionStatus(
-        (assistantClient.connectionState as ConnectionStatus) || (assistantClient.connected ? 'connected' : 'disconnected'),
-      );
-    }
-  }, [isActive, assistantClient]);
-
-  // Register handlers and connect once, keep alive for the lifetime of the hook.
   useEffect(() => {
     assistantClient.onMessage((message) => {
-      // Stop response timer on first non-streaming message
+      // Clear generating state on any real message -- the backend always sends
+      // a final message (success or error), so receiving ANY message means
+      // generation is done.  This also handles the 45s response-timeout
+      // synthetic message from AssistantClient.
+      streaming.setIsGenerating(false);
+      streaming.setProgressMessage('');
+
       const responseTiming = stopTimer('response');
       const totalTiming = stopTimer('total');
 
@@ -913,13 +583,11 @@ export function useAssistantLogic({
       const kitMsg = toKitMessage(role, toAssistantText(message.message));
       setMessages((prev) => [...prev, kitMsg]);
 
-      // Show timing as a small system message in chat
       if (responseTiming || totalTiming) {
-        const timingText = [responseTiming, totalTiming].filter(Boolean).join(' · ');
+        const timingText = [responseTiming, totalTiming].filter(Boolean).join(' \u00b7 ');
         setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
       }
 
-      // Extract suggestedActions from the raw message payload if present.
       const raw = message as unknown as Record<string, unknown>;
       const suggested = raw.suggestedActions ?? (typeof raw.message === 'object' && raw.message !== null ? (raw.message as Record<string, unknown>).suggestedActions : undefined);
       if (Array.isArray(suggested) && suggested.length > 0) {
@@ -928,58 +596,26 @@ export function useAssistantLogic({
           [kitMsg.id]: { ...prev[kitMsg.id], suggestedActions: suggested as SuggestedAction[] },
         }));
       }
+    });
 
-      // Clear any transient progress message when a real message arrives.
-      setProgressMessage('');
-    });
-    assistantClient.onConnection((connected) => {
-      let next: ConnectionStatus;
-      if (connected) {
-        next = 'connected';
-      } else if (assistantClient.connectionState === 'closed' || assistantClient.connectionState === 'disconnected') {
-        next = assistantClient.connected ? (assistantClient.connectionState as ConnectionStatus) : 'reconnecting';
-      } else {
-        next = assistantClient.connectionState as ConnectionStatus;
-      }
-      setConnectionStatus((prev) => (prev === next ? prev : next));
-    });
-    assistantClient.onTyping((typing) => {
-      setIsGenerating((prev) => (prev === typing ? prev : typing));
-    });
+    streaming.registerTypingHandler(assistantClient);
+
     assistantClient.onInjection((command) => {
-      enqueueAssistantTask(() => handleInjection(command));
+      enqueueAssistantTask(() => injection.handleInjection(command));
     });
     assistantClient.onAction((payload) => {
       enqueueAssistantTask(() => handleAction(payload));
     });
 
-    setConnectionStatus('connecting');
-    assistantClient.connect().catch(() => {
-      setConnectionStatus('disconnected');
-      toast.error('Could not reach the AI assistant \u2014 make sure the backend is running.');
-    });
-
-    // Only disconnect when the component fully unmounts (page navigation),
-    // not when the drawer is toggled open/closed.
-    return () => {
-      assistantClient.clearHandlers();
-      assistantClient.disconnect({ allowReconnect: false, clearQueue: true });
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // NOTE: connection lifecycle (connect/disconnect/onConnection) is handled
+    // by useWebSocketConnection. We only register message/typing/injection/action
+    // handlers here since they depend on orchestrator state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistantClient]);
 
-  /* ---- isGenerating timeout safety net ---- */
-
-  useEffect(() => {
-    if (!isGenerating) return;
-    const timeout = setTimeout(() => {
-      setIsGenerating(false);
-      setMessages((prev) => [...prev, toKitMessage('assistant', 'The assistant is taking too long to respond. Please try again.')]);
-    }, 120000);
-    return () => clearTimeout(timeout);
-  }, [isGenerating]);
-
-  /* ---- send message ---- */
+  /* ================================================================ */
+  /*  handleSubmit                                                     */
+  /* ================================================================ */
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -992,7 +628,7 @@ export function useAssistantLogic({
     const attachedFiles = options?.experimental_attachments;
     const hasFiles = attachedFiles && attachedFiles.length > 0;
 
-    if ((!normalizedInput && !hasFiles) || isGenerating) return;
+    if ((!normalizedInput && !hasFiles) || streaming.isGenerating) return;
     if (isSendingRef.current) return;
     isSendingRef.current = true;
 
@@ -1024,8 +660,7 @@ export function useAssistantLogic({
       setInputValue('');
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
-      // Clear any displayed quick-action buttons so they don't linger
-      // while waiting for the next assistant response.
+      // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
         const updated = { ...prev };
         for (const key of Object.keys(updated)) {
@@ -1059,7 +694,7 @@ export function useAssistantLogic({
       startTimer('total', 'Total round-trip (response + render)');
       const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, modelSnapshot, context, attachments);
 
-      // Analytics: track assistant message
+      // Analytics
       const activeModel = modelSnapshot as any;
       const elementsCount = activeModel?.elements ? Object.keys(activeModel.elements).length : 0;
       const relationshipsCount = activeModel?.relationships ? Object.keys(activeModel.relationships).length : 0;
@@ -1071,13 +706,12 @@ export function useAssistantLogic({
         total_size: elementsCount + relationshipsCount,
       });
 
-      // Update rate limit status after send
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
 
       if (sendResult === 'queued') {
         toast.info('Reconnecting to the assistant \u2014 your message will be sent automatically.');
-        setConnectionStatus('connecting');
-        assistantClient.connect().catch(() => setConnectionStatus('disconnected'));
+        connection.setConnectionStatus('connecting');
+        assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
         toast.error('Could not send your message \u2014 please try again.');
       }
@@ -1087,7 +721,7 @@ export function useAssistantLogic({
   };
 
   const sendVoiceMessage = async (audioBlob: Blob): Promise<void> => {
-    if (isSendingRef.current || isGenerating) return;
+    if (isSendingRef.current || streaming.isGenerating) return;
 
     isSendingRef.current = true;
     try {
@@ -1114,11 +748,11 @@ export function useAssistantLogic({
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
 
       if (sendResult === 'queued') {
-        toast.info('Reconnecting to the assistant — your voice message will be sent automatically.');
-        setConnectionStatus('connecting');
-        assistantClient.connect().catch(() => setConnectionStatus('disconnected'));
+        toast.info('Reconnecting to the assistant \u2014 your voice message will be sent automatically.');
+        connection.setConnectionStatus('connecting');
+        assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
-        toast.error('Could not send your voice message — please try again.');
+        toast.error('Could not send your voice message \u2014 please try again.');
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
@@ -1128,59 +762,39 @@ export function useAssistantLogic({
     }
   };
 
-  const stopGenerating = () => setIsGenerating(false);
+  const stopGenerating = () => streaming.setIsGenerating(false);
 
   const clearConversation = () => {
     setMessages([]);
-    setIsGenerating(false);
+    streaming.setIsGenerating(false);
     setInputValue('');
     setMessageMeta({});
-    setProgressMessage('');
-    setStreamingMessageId(null);
+    streaming.setProgressMessage('');
+    streaming.setStreamingMessageId(null);
   };
 
-  /* ---- undo ---- */
-
-  const handleUndo = useCallback(() => {
-    const snapshot = popUndo();
-    if (!snapshot) return;
-
-    // Restore the model via the editor and Redux
-    try {
-      if (editor) {
-        editor.model = snapshot.model;
-      }
-      dispatch(updateDiagramModelThunk({ model: snapshot.model }));
-
-      setMessages((prev) => [
-        ...prev,
-        toKitMessage('assistant', `Undone: ${snapshot.description}`),
-      ]);
-    } catch (error) {
-      console.error('[useAssistantLogic] Undo failed:', error);
-    }
-
-    refreshUndoState();
-  }, [editor, dispatch]);
+  /* ================================================================ */
+  /*  Public API (unchanged)                                           */
+  /* ================================================================ */
 
   return {
     messages,
     inputValue,
     setInputValue,
-    isGenerating,
-    connectionStatus,
+    isGenerating: streaming.isGenerating,
+    connectionStatus: connection.connectionStatus,
     rateLimitStatus,
     messageMeta,
-    progressMessage,
+    progressMessage: streaming.progressMessage,
     lastSentMessage,
-    streamingMessageId,
+    streamingMessageId: streaming.streamingMessageId,
     messageListContainerRef: messageListContainerRef as React.RefObject<HTMLDivElement>,
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
     clearConversation,
-    handleUndo,
-    canUndo: undoAvailable,
+    handleUndo: injection.handleUndo,
+    canUndo: injection.undoAvailable,
     assistantClient,
   };
 }
