@@ -64,11 +64,13 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
   private wrapperRef = createRef<HTMLDivElement>();
 
   componentDidMount() {
-    document.addEventListener('pointerdown', this.handleOutsideClick);
+    document.addEventListener('keydown', this.handleKeyDown);
+    document.addEventListener('dblclick', this.handleCanvasDblClick);
   }
 
   componentWillUnmount() {
-    document.removeEventListener('pointerdown', this.handleOutsideClick);
+    document.removeEventListener('keydown', this.handleKeyDown);
+    document.removeEventListener('dblclick', this.handleCanvasDblClick);
   }
 
   render() {
@@ -116,13 +118,21 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
     return type.replace(/([A-Z])/g, ' $1').trim();
   }
 
-  private handleOutsideClick = (event: PointerEvent): void => {
-    if (
-      this.props.element &&
-      this.wrapperRef.current &&
-      event.target instanceof Node &&
-      !this.wrapperRef.current.contains(event.target)
-    ) {
+  private handleCanvasDblClick = (event: MouseEvent): void => {
+    if (!this.props.element) return;
+    // Ignore double-clicks inside the panel itself
+    if (this.wrapperRef.current && event.target instanceof Node && this.wrapperRef.current.contains(event.target)) {
+      return;
+    }
+    // Only close if the double-click landed on the SVG canvas (empty area), not on an element
+    const target = event.target as Element;
+    if (target.tagName === 'svg' || target.classList.contains('apollon-editor')) {
+      this.props.updateEnd(this.props.element.id);
+    }
+  };
+
+  private handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && this.props.element) {
       this.props.updateEnd(this.props.element.id);
     }
   };
