@@ -18,7 +18,7 @@ Top-level directories
 
 ``build/``
    Output folder populated by the ``build:*`` scripts. Static web assets live
-   under ``build/webapp`` and the server bundle under ``build/server``.
+   under ``build/webapp2`` and the server bundle under ``build/server``.
 
 ``node_modules/``
    Root-level dependencies shared by the workspaces.
@@ -42,9 +42,10 @@ Workspace packages
    import/export, code generation requests, and orchestrates collaboration
    flows. This is the actively developed and deployed frontend.
 
-``packages/webapp/`` *(legacy)*
-   The original React application built with Webpack and Bootstrap. Retained
-   for reference but no longer deployed or actively maintained.
+``packages/webapp/`` *(deprecated)*
+   The original React application built with Webpack and Bootstrap. This package
+   is **deprecated** and will be removed in a future release. It is retained
+   temporarily for reference only. All new development targets ``webapp2``.
 
 ``packages/server/``
    Express server that serves the compiled webapp, proxies diagram actions and
@@ -56,9 +57,9 @@ Cross-package conventions
 
 * TypeScript sources are nested under ``src/main``; tests (where present) live
   in ``src/tests``.
-* Redux slices in webapp2 follow the ``store/<name>Slice.ts`` naming
+* Redux slices in webapp2 follow the ``app/store/<name>Slice.ts`` naming
   convention.
-* Application-wide constants in webapp2 are kept in the ``constants/`` folder.
+* Application-wide constants in webapp2 are kept in the ``shared/constants/`` folder.
 * The editor package uses the ``packages/<diagram family>`` hierarchy to group
   element models, React renderers, previews, and pop-ups for each diagram type.
 * Build artefacts never live inside ``src``. Scripts clean the ``build/``

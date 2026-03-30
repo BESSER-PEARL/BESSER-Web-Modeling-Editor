@@ -38,6 +38,12 @@ Use the workspace root. npm installs all packages declared in ``workspaces``.
    * - ``npm run lint --workspace=server``
      - Lints the Express server
      - server
+   * - ``npm run test --workspace=webapp2``
+     - Runs unit tests with Vitest
+     - webapp2
+   * - ``npm run test:e2e --workspace=webapp2``
+     - Runs end-to-end tests with Playwright
+     - webapp2
    * - ``npm run prettier:check``
      - Verifies formatting
      - root workspace

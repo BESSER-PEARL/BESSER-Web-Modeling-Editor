@@ -50,48 +50,44 @@ Clone and install
    npm install
 
 The project uses npm workspaces. `npm install` resolves dependencies for the
-root package and cascades into the `packages/*` folders.
+root package and cascades into the ``packages/*`` folders.
+
+.. warning::
+   The legacy ``packages/webapp/`` package is **deprecated** and will be removed in
+   a future release. All development and deployment targets ``packages/webapp2/``.
+   Do not build new features against the old webapp package.
 
 Run the web application locally
 -------------------------------
 
-There are two ways to start the UI depending on whether you need the Express
-server alongside the React dev server.
+Start the Vite development server:
+
+.. code-block:: bash
+
+   npm run dev
+
+This starts the Vite dev server on http://localhost:8080 with hot-reload for
+React components.
 
 .. note::
    Code generation, validation, and BUML export rely on the BESSER backend at
-   ``http://localhost:9000/besser_api``. Start it from the BESSER repo when you
-   need those features.
+   ``http://localhost:9000/besser_api``. Start it separately from the BESSER repo:
 
-React development server only
    .. code-block:: bash
 
-      npm run dev
+      python besser/utilities/web_modeling_editor/backend/backend.py
 
-   This starts the Vite dev server on http://localhost:8080 and hot-reloads
-   React components. Requests targeting ``/api`` (the standalone server routes)
-   will fail unless you run the Express server separately.
+For production-like testing you can also build and serve static assets:
 
-Integrated server + static assets
-   .. code-block:: bash
+.. code-block:: bash
 
-      npm run build:webapp:local
-      npm run start:server
+   npm run build:webapp2:local
+   npm run start:server
 
-   The build step outputs static assets under ``build/webapp2`` with
-   ``DEPLOYMENT_URL`` defaulting to ``http://localhost:8080``. The Express
-   server serves those assets and exposes the diagram REST endpoints on the
-   same port.
-
-Full stack convenience script
-   .. code-block:: bash
-
-      npm run dev
-
-   This script invokes the Vite dev server and ``start:server`` concurrently.
-   If you reuse the default ports ensure only one renderer handles 8080 at a
-   time. In practice, run the server only after the dev server has finished
-   building or adjust the port in ``packages/webapp2/vite.config.ts``.
+The build step outputs static assets under ``build/webapp2`` with
+``DEPLOYMENT_URL`` defaulting to ``http://localhost:8080``. The Express
+server serves those assets and exposes the diagram REST endpoints on the
+same port.
 
 Recommended verification
 ------------------------

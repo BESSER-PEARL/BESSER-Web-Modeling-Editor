@@ -16,7 +16,7 @@ The content is organised around the main developer journeys:
 * **Editor package** documents the `packages/editor` module, including the
   `ApollonEditor` API, application architecture, and guidance for adding new
   diagram types or behaviours.
-* **Web application** covers the React application under `packages/webapp`,
+* **Web application** covers the React application under `packages/webapp2`,
   its project-centric UX, collaboration hooks, and how to integrate the editor
   into other UIs.
 * **Contributing** summarises the expectations for pull requests, code quality,
@@ -29,7 +29,11 @@ The content is organised around the main developer journeys:
    :caption: Overview
 
    overview/index
-   overview/getting-started
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide
+
    user-guide/index
 
 .. toctree::

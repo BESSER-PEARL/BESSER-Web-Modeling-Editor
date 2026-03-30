@@ -14,7 +14,7 @@ Decision Tree
 
 * If the diagram type already exists in the editor package (``packages/editor``), you only need the **webapp wiring**
   (sidebar, project model, import/export labels). Use the checklist in
-  ``packages/webapp2/src/main/components/project/ADDING_NEW_DIAGRAM_TYPE.md``.
+  ``packages/webapp2/src/main/features/project/ADDING_NEW_DIAGRAM_TYPE.md``.
 * If the diagram type is brand new, you must update **editor package + webapp2 + backend**.
 
 .. toctree::

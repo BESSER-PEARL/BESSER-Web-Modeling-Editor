@@ -33,6 +33,19 @@ Once you have implemented both the frontend and backend parts, follow these step
 4.  Check the backend logs to confirm that your ``process_my_new_diagram`` function is called.
 5.  Verify that the output (code or model) is generated correctly.
 
+3. Run Automated Checks
+------------------------
+
+Before opening a pull request, run the full automated check suite:
+
+.. code-block:: bash
+
+    npm run lint
+    npm run test
+    npm run build
+
+This verifies linting, unit tests, and production build all pass with your changes.
+
 .. note::
    The standalone Node/Express server (``npm run start:server``) serves built webapp2 assets and a small set of ``/api``
    routes, but code generation and validation still rely on the BESSER backend.

@@ -20,7 +20,7 @@ Data flow
 ---------
 
 1. When a class diagram becomes the active diagram, the webapp (see
-   ``packages/webapp/src/main/services/project/projectSlice.ts``) pushes the
+   ``packages/webapp2/src/main/store/project/projectSlice.ts``) pushes the
    current model into ``diagramBridge.setClassDiagramData``.
 2. Consumers (object diagrams, agent diagrams, validation routines) query the
    bridge for classes, attributes, associations, or related classes whenever
@@ -56,6 +56,13 @@ Key capabilities
 ``getClassHierarchy(classId)`` and ``getClassById(classId)``
    Debug-oriented helpers that expose the inheritance chain and allow verifying
    that classes are correctly registered.
+
+``getStateMachineDiagrams()`` / ``setStateMachineDiagrams(data)``
+   Store and retrieve state machine diagram data for cross-diagram references
+   (e.g., when class diagram methods reference state machine implementations).
+
+``getQuantumCircuitDiagrams()`` / ``setQuantumCircuitDiagrams(data)``
+   Store and retrieve quantum circuit diagram data for cross-diagram references.
 
 ``clearDiagramData()`` / ``hasClassDiagramData()``
    Maintenance utilities used when switching projects or flushing cached data.
