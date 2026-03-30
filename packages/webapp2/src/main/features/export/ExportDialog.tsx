@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UMLModel } from '@besser/wme';
 import { useProject } from '../../app/hooks/useProject';
-import { ProjectDiagram, SupportedDiagramType, getReferencedDiagram, isUMLModel } from '../../shared/types/project';
+import { ProjectDiagram, SupportedDiagramType, getReferencedDiagram, isUMLModel, diagramHasContent } from '../../shared/types/project';
 import { useExportPNG } from './useExportPng';
 import { useExportSVG } from './useExportSvg';
 import { useExportBUML } from './useExportBuml';
@@ -46,24 +46,22 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
   const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
 
-  const diagramEntries = useMemo<[SupportedDiagramType, ProjectDiagram][]>(
+  /** All diagrams with content, grouped by type. */
+  const diagramEntries = useMemo<[SupportedDiagramType, ProjectDiagram[]][]>(
     () => {
       if (!currentProject) return [];
-      return Object.entries(currentProject.diagrams).flatMap(
-        ([type, diagrams]) => {
-          const arr = diagrams as ProjectDiagram[];
-          const idx = currentProject.currentDiagramIndices[type as SupportedDiagramType] ?? 0;
-          const active = arr[idx] ?? arr[0];
-          return active ? [[type as SupportedDiagramType, active] as [SupportedDiagramType, ProjectDiagram]] : [];
-        }
-      );
+      return Object.entries(currentProject.diagrams)
+        .map(([type, diagrams]) => {
+          const withContent = (diagrams as ProjectDiagram[]).filter(diagramHasContent);
+          return [type as SupportedDiagramType, withContent] as [SupportedDiagramType, ProjectDiagram[]];
+        })
+        .filter(([, diagrams]) => diagrams.length > 0);
     },
-    // Only recompute when the project id or diagram structure actually changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [currentProject?.id, currentProject?.diagrams]
   );
 
-  // Pre-select diagrams only when dialog opens, not on every project change
+  // Pre-select only ClassDiagram when dialog opens
   useEffect(() => {
     if (!open) {
       setHasInitializedSelection(false);
@@ -71,11 +69,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     }
     if (hasInitializedSelection) return;
 
-    if (diagramEntries.length === 0) {
-      setSelectedDiagrams([]);
-    } else {
-      setSelectedDiagrams(diagramEntries.map(([type]) => type).filter((type) => type !== 'GUINoCodeDiagram'));
-    }
+    const hasClass = diagramEntries.some(([type]) => type === 'ClassDiagram');
+    setSelectedDiagrams(hasClass ? ['ClassDiagram'] : []);
     setHasInitializedSelection(true);
   }, [open, diagramEntries, hasInitializedSelection]);
 
@@ -167,7 +162,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
             {diagramEntries.length > 0 ? (
               <>
                 <div className="max-h-44 flex flex-col gap-1.5 overflow-y-auto rounded-lg border border-border/40 bg-background/80 p-3">
-                  {diagramEntries.map(([type, projectDiagram]) => (
+                  {diagramEntries.map(([type, diagrams]) => (
                     <label key={type} className="flex cursor-pointer items-start gap-2.5 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-muted/30">
                       <input
                         type="checkbox"
@@ -175,7 +170,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                         checked={selectedDiagrams.includes(type)}
                         onChange={() => toggleDiagramSelection(type)}
                       />
-                      <span className="font-medium">{projectDiagram.title || diagramLabels[type]}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{diagramLabels[type]}</span>
+                        {diagrams.length > 1 && (
+                          <span className="text-xs text-muted-foreground">{diagrams.length} diagrams: {diagrams.map((d) => d.title).join(', ')}</span>
+                        )}
+                      </div>
                     </label>
                   ))}
                 </div>
