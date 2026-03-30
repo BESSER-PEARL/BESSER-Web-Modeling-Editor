@@ -28,12 +28,14 @@ export const ProjectSettingsPanel: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
+  const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
 
   const { currentProject, loading, error, updateProject, exportProject } = useProject();
 
   useEffect(() => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
     setShowAssociationNames(settingsService.shouldShowAssociationNames());
+    setUsePropertiesPanel(settingsService.shouldUsePropertiesPanel());
   }, []);
 
   const diagrams = useMemo(() => {
@@ -219,6 +221,22 @@ export const ProjectSettingsPanel: React.FC = () => {
                       setShowAssociationNames(event.target.checked);
                       settingsService.updateSetting('showAssociationNames', event.target.checked);
                       // toast.success(`Association names ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                    }}
+                  />
+                </label>
+                <Separator />
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">Properties Panel</p>
+                    <p className="text-xs text-muted-foreground">Use right-side panel instead of floating popover</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-brand"
+                    checked={usePropertiesPanel}
+                    onChange={(event) => {
+                      setUsePropertiesPanel(event.target.checked);
+                      settingsService.updateSetting('usePropertiesPanel', event.target.checked);
                     }}
                   />
                 </label>

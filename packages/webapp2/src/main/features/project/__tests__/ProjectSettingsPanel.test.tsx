@@ -23,6 +23,7 @@ vi.mock('@besser/wme', async (importOriginal) => {
     settingsService: {
       shouldShowInstancedObjects: vi.fn(() => false),
       shouldShowAssociationNames: vi.fn(() => false),
+      shouldUsePropertiesPanel: vi.fn(() => false),
       updateSetting: vi.fn(),
     },
   };
@@ -153,12 +154,14 @@ describe('ProjectSettingsPanel', () => {
 
     expect(screen.getByText('Show Instanced Objects')).toBeInTheDocument();
     expect(screen.getByText('Show Association Names')).toBeInTheDocument();
+    expect(screen.getByText('Properties Panel')).toBeInTheDocument();
 
-    // Both checkboxes should be present and unchecked by default
+    // All three checkboxes should be present and unchecked by default
     const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes).toHaveLength(2);
+    expect(checkboxes).toHaveLength(3);
     expect(checkboxes[0]).not.toBeChecked();
     expect(checkboxes[1]).not.toBeChecked();
+    expect(checkboxes[2]).not.toBeChecked();
   });
 
   it('renders project name in the input field', () => {

@@ -21,12 +21,7 @@ import { RootContext, RootProvider } from '../components/root/root-context';
 import { UMLModel } from '../typings';
 import { Patcher } from '../services/patcher';
 import { MouseEventListener } from '../components/canvas/mouse-eventlistener';
-
-/**
- * Toggle between the new right-side properties panel and the old floating popover.
- * Set to false to revert to the legacy popover behavior.
- */
-const USE_PROPERTIES_PANEL = false;
+import { settingsService } from '../services/settings/settings-service';
 
 type Props = {
   patcher: Patcher<UMLModel>;
@@ -35,15 +30,20 @@ type Props = {
   locale?: Locale;
 };
 
-const initialState = Object.freeze({
-  canvas: null as ILayer | null,
-  root: null as HTMLDivElement | null,
+type State = {
+  canvas: ILayer | null;
+  root: HTMLDivElement | null;
+  usePropertiesPanel: boolean;
+};
+
+const initialState: State = Object.freeze({
+  canvas: null,
+  root: null,
+  usePropertiesPanel: settingsService.shouldUsePropertiesPanel(),
 });
 
-type State = typeof initialState;
-
 export class Application extends React.Component<Props, State> {
-  state = initialState;
+  state = { ...initialState };
 
   store?: ModelStore;
 
@@ -51,6 +51,17 @@ export class Application extends React.Component<Props, State> {
   private initializedPromise: Promise<void> = new Promise((resolve) => {
     this.resolveInitialized = resolve;
   });
+  private unsubscribeSettings?: () => void;
+
+  componentDidMount() {
+    this.unsubscribeSettings = settingsService.onSettingsChange((settings) => {
+      this.setState({ usePropertiesPanel: settings.usePropertiesPanel });
+    });
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeSettings?.();
+  }
 
   setCanvas = (ref: CanvasComponent) => {
     if (ref && ref.layer.current) {
@@ -86,7 +97,7 @@ export class Application extends React.Component<Props, State> {
                     <DraggableLayer>
                       {canvasContext && (
                         <>
-                          {!USE_PROPERTIES_PANEL && <UpdatePane />}
+                          {!this.state.usePropertiesPanel && <UpdatePane />}
                           <AssociationPopupComponent />
                           <Sidebar />
                           <KeyboardEventListener />
@@ -98,7 +109,7 @@ export class Application extends React.Component<Props, State> {
                       {canvasContext && (
                         <>
                           <MouseEventListener />
-                          {USE_PROPERTIES_PANEL && <PropertiesPanel />}
+                          {this.state.usePropertiesPanel && <PropertiesPanel />}
                         </>
                       )}
                     </DraggableLayer>
