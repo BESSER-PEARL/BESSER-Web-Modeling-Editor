@@ -60,6 +60,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
   const [spreadsheetFiles, setSpreadsheetFiles] = useState<File[]>([]);
   const [isBusy, setIsBusy] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const spreadsheetFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -224,6 +225,33 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     } finally {
       setIsBusy(false);
       event.target.value = '';
+    }
+  };
+
+  const handleImportDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    if (!file) {
+      return;
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'json' && ext !== 'py') {
+      toast.error('Unsupported file type. Please drop a .json or .py file.');
+      return;
+    }
+    try {
+      setIsBusy(true);
+      const importedProject = await importProject(file);
+      await loadProject(importedProject.id);
+      refreshProjects();
+      handleDialogOpenChange(false);
+      toast.success(`Imported project "${importedProject.name}".`);
+    } catch (error) {
+      toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsBusy(false);
     }
   };
 
@@ -599,9 +627,18 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <CardDescription>Supported formats: `.json`, `.py`.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  <div className="grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed border-brand/20 bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center">
+                  <div
+                    className={cn(
+                      'grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center transition-colors',
+                      isDragging ? 'border-brand/50 bg-brand/[0.06]' : 'border-brand/20',
+                    )}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                    onDrop={(e) => void handleImportDrop(e)}
+                  >
                     <div className="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/5 blur-2xl" />
-                    <Upload className="relative z-[2] mx-auto mb-3 size-8 text-brand/30" />
+                    <Upload className={cn('relative z-[2] mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
                     <p className="relative z-[2] text-sm font-medium text-muted-foreground">Drop a file here or click below to browse</p>
                     <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">JSON or Python project files</p>
                   </div>
