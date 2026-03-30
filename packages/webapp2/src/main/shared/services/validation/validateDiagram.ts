@@ -47,6 +47,19 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       return { isValid: false, errors: ['No diagram available'] };
     }
 
+    const hasElements = model.elements && Object.keys(model.elements).length > 0;
+    const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
+    if (!hasElements && !hasRelationships) {
+      if (!suppressToasts) {
+        toast.info('The diagram is empty. Add elements before running the quality check.', {
+          position: 'top-right',
+          autoClose: 4000,
+          theme: 'dark',
+        });
+      }
+      return { isValid: true, errors: [] };
+    }
+
     // Show loading state
     if (!suppressToasts) {
       toast.loading("Validating diagram...", {
@@ -198,8 +211,10 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       });
     }
     
-    // Show success if everything is valid
-    if (!suppressToasts && result.isValid && (!result.errors || result.errors.length === 0)) {
+    // Show success only if everything is valid and there are no warnings
+    const hasWarnings = result.warnings && result.warnings.length > 0;
+    const hasInvalidConstraints = result.invalid_constraints && result.invalid_constraints.length > 0;
+    if (!suppressToasts && result.isValid && (!result.errors || result.errors.length === 0) && !hasWarnings && !hasInvalidConstraints) {
       toast.success(result.message || "✅ Diagram is valid", {
         position: "top-right",
         autoClose: 3000,
