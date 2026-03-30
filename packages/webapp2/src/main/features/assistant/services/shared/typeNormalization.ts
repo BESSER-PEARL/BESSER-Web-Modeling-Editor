@@ -25,10 +25,10 @@ export const TYPE_ALIASES: Record<string, string> = {
 export const VALID_PRIMITIVES = new Set(['str', 'int', 'bool', 'float', 'date', 'datetime', 'time', 'any']);
 
 /** Normalize a raw type string to a canonical form. */
-export const normalizeType = (type: string | null | undefined, classNames?: Set<string>): string => {
-  if (!type) return '';
+export const normalizeType = (type: string | null | undefined, classNames?: Set<string>, fallback: string = ''): string => {
+  if (!type) return fallback;
   const trimmed = type.trim();
-  if (!trimmed) return '';
+  if (!trimmed) return fallback;
   const aliased = TYPE_ALIASES[trimmed];
   if (aliased) return aliased;
   // If the type matches a class name in the model, keep it (custom type / enum reference)

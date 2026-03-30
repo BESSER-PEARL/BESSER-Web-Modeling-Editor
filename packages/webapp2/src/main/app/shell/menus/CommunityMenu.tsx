@@ -1,23 +1,17 @@
 import React from 'react';
-import { Keyboard, Users, PlayCircle, ChevronDown } from 'lucide-react';
+import { Users, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { bugReportURL } from '../../../shared/constants/constant';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
 interface CommunityMenuProps {
   outlineButtonClass: string;
   onOpenFeedback: () => void;
-  onOpenHelpDialog: () => void;
-  onOpenAboutDialog: () => void;
-  onOpenKeyboardShortcuts: () => void;
-  onShowWelcomeGuide?: () => void;
 }
 
 const COMMUNITY_URLS = {
@@ -29,10 +23,6 @@ const COMMUNITY_URLS = {
 export const CommunityMenu: React.FC<CommunityMenuProps> = ({
   outlineButtonClass,
   onOpenFeedback,
-  onOpenHelpDialog,
-  onOpenAboutDialog,
-  onOpenKeyboardShortcuts,
-  onShowWelcomeGuide,
 }) => {
   const openExternalUrl = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -41,38 +31,18 @@ export const CommunityMenu: React.FC<CommunityMenuProps> = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="Community & Help">
+        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="Community">
           <Users className="size-4" />
-          <span className="hidden xl:inline">Help</span>
+          <span className="hidden xl:inline">Community</span>
           <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end">
-        <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-          Community
-        </DropdownMenuLabel>
         <DropdownMenuItem onClick={() => openExternalUrl(COMMUNITY_URLS.contribute)}>Contribute</DropdownMenuItem>
         <DropdownMenuItem onClick={() => openExternalUrl(COMMUNITY_URLS.repository)}>GitHub Repository</DropdownMenuItem>
         <DropdownMenuItem onClick={onOpenFeedback}>Send Feedback</DropdownMenuItem>
         <DropdownMenuItem onClick={() => openExternalUrl(COMMUNITY_URLS.survey)}>User Evaluation Survey</DropdownMenuItem>
         <DropdownMenuItem onClick={() => openExternalUrl(bugReportURL)}>Report a Problem</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs uppercase tracking-wide text-muted-foreground">
-          Help
-        </DropdownMenuLabel>
-        <DropdownMenuItem onClick={onOpenHelpDialog}>How does this editor work?</DropdownMenuItem>
-        {onShowWelcomeGuide && (
-          <DropdownMenuItem onClick={onShowWelcomeGuide}>
-            <PlayCircle className="mr-2 size-4" />
-            Start Tutorial
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={onOpenKeyboardShortcuts}>
-          <Keyboard className="mr-2 size-4" />
-          Keyboard Shortcuts
-          <span className="ml-auto text-xs text-muted-foreground">?</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenAboutDialog}>About BESSER</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

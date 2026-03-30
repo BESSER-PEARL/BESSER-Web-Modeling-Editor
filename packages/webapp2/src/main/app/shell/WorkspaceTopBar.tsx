@@ -5,6 +5,7 @@ import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
 import { FileMenu } from './menus/FileMenu';
 import { GenerateMenu } from './menus/GenerateMenu';
+import { HelpMenu } from './menus/HelpMenu';
 import { MobileNavigation } from './menus/MobileNavigation';
 import { TopBarUtilities } from './menus/TopBarUtilities';
 import type { WorkspaceTopBarProps } from './topbar-types';
@@ -117,6 +118,9 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           <CommunityMenu
             outlineButtonClass={outlineButtonClass}
             onOpenFeedback={onOpenFeedback}
+          />
+          <HelpMenu
+            outlineButtonClass={outlineButtonClass}
             onOpenHelpDialog={onOpenHelpDialog}
             onOpenAboutDialog={onOpenAboutDialog}
             onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
