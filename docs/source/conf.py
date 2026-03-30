@@ -49,6 +49,7 @@ exclude_patterns = [
     "user-guide/diagram_types.rst",
     "user-guide/project.rst",
     "user-guide/interface.rst",
+    "user-guide/index.rst",
 ]
 
 # -- Options for HTML output -------------------------------------------------

@@ -79,13 +79,34 @@ changes they describe.
 5. Prepare your pull request
 ----------------------------
 
-* Ensure ``npm run build`` succeeds; it composes the webapp and server
-  bundles.
-* Run the relevant unit or integration tests if you added them.
-* Clean up stray debug logs and keep diffs focused.
-* Summarise the change, the motivation, and any follow-up work in your PR
-  description.
+Before opening a PR, run through this checklist:
 
-Following the checklist keeps reviews fast and helps maintainers merge your work
-without surprises.
+.. code-block:: text
+
+   [ ] npm run lint passes (no ESLint errors)
+   [ ] npm run prettier:check passes (formatting clean)
+   [ ] npm run test --workspace=webapp2 passes (unit tests green)
+   [ ] npm run build succeeds (production bundles compile)
+   [ ] Documentation updated (if you changed user-facing behavior)
+   [ ] No stray debug logs or console.log statements
+
+In your PR description, include:
+
+* **What** changed and **why**.
+* **How to test** (steps a reviewer can follow).
+* **Screenshots** if the change affects the UI.
+* **Follow-up work** if any tasks remain.
+
+6. What happens after you push
+-------------------------------
+
+CI will automatically run:
+
+* ESLint linting for webapp2 and server
+* Prettier formatting check
+* Production build (``npm run build``)
+* Unit tests (Vitest) on webapp2
+
+If CI fails, check the logs, fix the issue, and push again. Maintainers will
+review once CI is green.
 

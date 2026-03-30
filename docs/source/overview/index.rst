@@ -1,30 +1,54 @@
-Overview
-========
+Architecture & Design
+=====================
 
-The BESSER Web Modeling Editor repository is organised as a TypeScript/Node.js
-monorepo. It packages the reusable modelling engine together with the React
-application and a lightweight Express server that publishes the editor as a web
-experience.
+The BESSER Web Modeling Editor is organized as a TypeScript/Node.js monorepo.
+This page explains the key design decisions and how the pieces fit together.
 
-The structure enables three complementary use cases:
+Why a Monorepo?
+---------------
 
-* **Reuse the editor engine** via the `@besser/wme` npm package in custom
-  applications that need UML editing capabilities.
-* **Run the bundled web application** (`packages/webapp2`) that uses the editor
-  together with local project storage, template management, code generation,
-  and collaboration affordances.
-* **Serve diagrams and shared assets** by using the `packages/server`
-  application on top of either the filesystem or Redis storage.
+The editor, web application, and server are maintained in a single repository
+to ensure they evolve together. The three packages share TypeScript types,
+Redux patterns, and build tooling. Changes that cross package boundaries
+(e.g., adding a new diagram type) can be reviewed and tested as a unit.
 
-Downstream consumers can opt-in to the parts they need: embed the editor inside
-another product, run the web application as a standalone site, or deploy both
-behind the same server for a complete experience.
+The Three Packages
+------------------
 
-Use the remainder of the overview section to get your local environment ready.
+* **Editor engine** (``packages/editor``): The reusable modeling kernel,
+  exported as ``@besser/wme`` on npm. It provides the ``ApollonEditor`` class,
+  diagram type registries, and Redux stores. External applications embed this
+  package without needing the web application.
+
+* **Web application** (``packages/webapp2``): A React SPA built with Vite,
+  Radix UI, and Tailwind CSS. It wraps the editor with project management,
+  code generation, deployment, and collaboration features. This is what runs
+  at `editor.besser-pearl.org <https://editor.besser-pearl.org>`_.
+
+* **Server** (``packages/server``): An Express application that serves the
+  compiled webapp, stores shared diagrams (filesystem or Redis), and handles
+  SVG-to-PDF conversion.
+
+.. warning::
+   ``packages/webapp/`` is **deprecated** and will be removed in a future
+   release. All development targets ``packages/webapp2/``.
+
+How Data Flows
+--------------
+
+1. The user designs a diagram on the canvas (editor package).
+2. Changes flow through Redux to the ``workspaceSlice`` (webapp2).
+3. The workspace slice auto-saves to ``localStorage`` and optionally syncs
+   via WebSocket to the Express server for collaboration.
+4. When the user clicks **Generate**, the webapp sends the diagram JSON to the
+   BESSER backend (``http://localhost:9000/besser_api``), which converts it to
+   a B-UML model and runs the selected code generator.
+5. Generated code is streamed back as a ZIP download.
+
+For the detailed directory layout, see :doc:`project-structure`.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :hidden:
 
    getting-started
    project-structure
