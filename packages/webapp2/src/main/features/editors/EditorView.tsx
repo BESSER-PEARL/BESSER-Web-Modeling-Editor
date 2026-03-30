@@ -1,6 +1,10 @@
 import React, { Suspense } from 'react';
 import { useAppSelector } from '../../app/store/hooks';
-import { selectActiveDiagramType, selectActiveDiagramIndex, selectWorkspaceLoading } from '../../app/store/workspaceSlice';
+import {
+  selectActiveDiagramType,
+  selectActiveDiagramIndex,
+  selectWorkspaceLoading,
+} from '../../app/store/workspaceSlice';
 import { ApollonEditorComponent } from './uml/ApollonEditorComponent';
 import { EditorErrorBoundary } from '../../shared/components/error-handling/ErrorBoundary';
 import { EditorSkeleton } from '../../shared/components/loading/EditorSkeleton';

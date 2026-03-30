@@ -24,7 +24,7 @@ import { AssistantClient, type AssistantActionPayload } from '../services';
 import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram, addDiagramThunk, switchDiagramIndexThunk } from '../../../app/store/workspaceSlice';
+import { updateDiagramModelThunk, selectActiveDiagram, addDiagramThunk, switchDiagramIndexThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
 import {
   UMLModelingService,
