@@ -94,25 +94,27 @@ export class Application extends React.Component<Props, State> {
               <Theme styles={this.props.styles}>
                 <Layout className="apollon-editor" ref={this.setLayout}>
                   {rootContext && (
-                    <DraggableLayer>
-                      {canvasContext && (
-                        <>
-                          {!this.state.usePropertiesPanel && <UpdatePane />}
-                          <AssociationPopupComponent />
-                          <Sidebar />
-                          <KeyboardEventListener />
-                        </>
-                      )}
-                      <Editor>
-                        <Canvas ref={this.setCanvas} />
-                      </Editor>
-                      {canvasContext && (
-                        <>
-                          <MouseEventListener />
-                          {this.state.usePropertiesPanel && <PropertiesPanel />}
-                        </>
-                      )}
-                    </DraggableLayer>
+                    <>
+                      <div style={{ flex: '1 1 0%', minWidth: 0, position: 'relative', display: 'flex' }}>
+                        <DraggableLayer>
+                          {canvasContext && (
+                            <>
+                              {!this.state.usePropertiesPanel && <UpdatePane />}
+                              <AssociationPopupComponent />
+                              <Sidebar />
+                              <KeyboardEventListener />
+                            </>
+                          )}
+                          <Editor>
+                            <Canvas ref={this.setCanvas} />
+                          </Editor>
+                          {canvasContext && (
+                            <MouseEventListener />
+                          )}
+                        </DraggableLayer>
+                      </div>
+                      {canvasContext && this.state.usePropertiesPanel && <PropertiesPanel />}
+                    </>
                   )}
                 </Layout>
               </Theme>

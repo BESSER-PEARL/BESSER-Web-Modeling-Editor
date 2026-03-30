@@ -16,8 +16,10 @@ import {
   PanelHeaderTitle,
   CloseButton,
   PanelBody,
-  EmptyState,
 } from './properties-panel-styles';
+
+/** CSS custom property name used to communicate the panel width to fixed-position elements (e.g. assistant widget). */
+const PANEL_WIDTH_VAR = '--properties-panel-width';
 
 type OwnProps = {};
 
@@ -62,15 +64,37 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
   };
 
   private wrapperRef = createRef<HTMLDivElement>();
+  private prevIsVisible = false;
+  private prevTotalWidth = 0;
 
   componentDidMount() {
     document.addEventListener('keydown', this.handleKeyDown);
     document.addEventListener('dblclick', this.handleCanvasDblClick);
+    this.syncCssVar();
+  }
+
+  componentDidUpdate() {
+    this.syncCssVar();
   }
 
   componentWillUnmount() {
     document.removeEventListener('keydown', this.handleKeyDown);
     document.removeEventListener('dblclick', this.handleCanvasDblClick);
+    document.documentElement.style.setProperty(PANEL_WIDTH_VAR, '0px');
+  }
+
+  /** Publish the panel's total width (panel + resize handle) as a CSS custom property on :root.
+   *  Only touches the DOM when the value actually changes. */
+  private syncCssVar() {
+    const { element, disabled, readonly } = this.props;
+    const isVisible = !!element && !disabled && !readonly;
+    const totalWidth = isVisible ? this.state.panelWidth + 6 : 0;
+
+    if (isVisible !== this.prevIsVisible || totalWidth !== this.prevTotalWidth) {
+      this.prevIsVisible = isVisible;
+      this.prevTotalWidth = totalWidth;
+      document.documentElement.style.setProperty(PANEL_WIDTH_VAR, `${totalWidth}px`);
+    }
   }
 
   render() {
@@ -120,11 +144,9 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
 
   private handleCanvasDblClick = (event: MouseEvent): void => {
     if (!this.props.element) return;
-    // Ignore double-clicks inside the panel itself
     if (this.wrapperRef.current && event.target instanceof Node && this.wrapperRef.current.contains(event.target)) {
       return;
     }
-    // Only close if the double-click landed on the SVG canvas (empty area), not on an element
     const target = event.target as Element;
     if (target.tagName === 'svg' || target.classList.contains('apollon-editor')) {
       this.props.updateEnd(this.props.element.id);
@@ -146,17 +168,18 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
   private handleResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {
     e.preventDefault();
     document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
     const startX = e.clientX;
     const startWidth = this.state.panelWidth;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      // Dragging left increases width (panel is on the right side)
       const newWidth = Math.min(Math.max(startWidth - (moveEvent.clientX - startX), MIN_WIDTH), MAX_WIDTH);
       this.setState({ panelWidth: newWidth });
     };
 
     const onMouseUp = () => {
       document.body.style.cursor = '';
+      document.body.style.userSelect = '';
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };

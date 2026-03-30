@@ -1,14 +1,10 @@
 import { styled } from '../theme/styles';
 
 export const PanelWrapper = styled.div`
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
   display: flex;
   flex-direction: row;
-  z-index: 10;
-  pointer-events: none;
+  height: 100%;
+  flex-shrink: 0;
 `;
 
 export const ResizeHandle = styled.div`
@@ -33,7 +29,6 @@ export const PanelContainer = styled.aside`
   border-left: 1px solid ${(props) => props.theme.color.gray};
   background-color: ${(props) => props.theme.color.background};
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.08);
-  pointer-events: auto;
 `;
 
 export const PanelHeader = styled.div`
@@ -85,14 +80,3 @@ export const PanelBody = styled.div`
   position: relative;
 `;
 
-export const EmptyState = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 16px;
-  color: ${(props) => props.theme.color.graylight};
-  font-size: 0.85em;
-  text-align: center;
-  user-select: none;
-`;
