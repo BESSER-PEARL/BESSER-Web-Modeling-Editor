@@ -13,9 +13,8 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildExportableProjectPayload } from '../../features/export/utils/projectExportUtils';
 import {
-  appVersion,
   besserLibraryRepositoryLink,
-  besserLibraryVersion,
+  besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
 import { normalizeProjectName } from '../../shared/utils/projectName';
@@ -680,9 +679,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
       <AboutDialog
         open={isAboutDialogOpen}
-        appVersion={appVersion}
-        libraryVersion={besserLibraryVersion}
         onOpenChange={setIsAboutDialogOpen}
+        onOpenMainRepository={() => openExternalUrl(besserMainRepositoryLink)}
         onOpenWmeRepository={() => openExternalUrl(besserWMERepositoryLink)}
         onOpenLibraryRepository={() => openExternalUrl(besserLibraryRepositoryLink)}
       />

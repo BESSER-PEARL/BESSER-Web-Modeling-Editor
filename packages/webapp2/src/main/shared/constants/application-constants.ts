@@ -3,6 +3,7 @@ import {
   appVersion,
   besserWMERepositoryLink,
   besserLibraryRepositoryLink,
+  besserMainRepositoryLink,
 } from '../../../../../../root_config';
 
-export { besserLibraryRepositoryLink, appVersion, besserWMERepositoryLink, besserLibraryVersion };
+export { besserLibraryRepositoryLink, appVersion, besserWMERepositoryLink, besserLibraryVersion, besserMainRepositoryLink };

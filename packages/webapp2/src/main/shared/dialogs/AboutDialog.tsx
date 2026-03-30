@@ -4,18 +4,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 interface AboutDialogProps {
   open: boolean;
-  appVersion: string;
-  libraryVersion: string;
   onOpenChange: (open: boolean) => void;
+  onOpenMainRepository: () => void;
   onOpenWmeRepository: () => void;
   onOpenLibraryRepository: () => void;
 }
 
 export const AboutDialog: React.FC<AboutDialogProps> = ({
   open,
-  appVersion,
-  libraryVersion,
   onOpenChange,
+  onOpenMainRepository,
   onOpenWmeRepository,
   onOpenLibraryRepository,
 }) => {
@@ -24,20 +22,26 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>About BESSER</DialogTitle>
-          <DialogDescription>Runtime versions and project resources.</DialogDescription>
+          <DialogDescription>Building Better Smart Software Faster</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-2 text-sm text-foreground/80">
+        <div className="flex flex-col gap-3 text-sm text-foreground/80">
           <p>
-            <span className="font-semibold text-brand">Web Editor:</span> {appVersion}
+            BESSER is a low-code platform for smart software modeling and code generation.
+            It provides a Python-based metamodel (B-UML) for describing domain models, state machines,
+            GUI designs, agents, and more.
           </p>
           <p>
-            <span className="font-semibold text-brand">BESSER Library:</span> {libraryVersion}
+            The <span className="font-semibold text-brand">Web Modeling Editor</span> is the online visual
+            editor for creating and editing BESSER models, generating code, and deploying applications.
           </p>
-          <p className="pt-1 text-xs text-muted-foreground">
-            BESSER provides model-driven engineering tooling for UML-based design, code generation, and deployment.
+          <p className="text-xs text-muted-foreground">
+            Developed by the BESSER-PEARL research group at the University of Luxembourg.
           </p>
         </div>
         <DialogFooter>
+          <Button variant="outline" onClick={onOpenMainRepository}>
+            BESSER Repository
+          </Button>
           <Button variant="outline" onClick={onOpenWmeRepository}>
             WME Repository
           </Button>
