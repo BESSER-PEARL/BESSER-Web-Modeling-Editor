@@ -209,10 +209,12 @@ export class ClassDiagramModifier implements DiagramModifier {
 
       model.elements[methodId] = {
         id: methodId,
-        name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
+        name: `${methodSpec.name}(${paramStr})`,
         type: 'ClassMethod',
         owner: classId,
         bounds: { x: posX + 1, y: methodY, width: 218, height: 25 },
+        visibility: methodSpec.visibility || 'public',
+        attributeType: returnType,
       };
       model.elements[classId].methods.push(methodId);
     }
@@ -372,8 +374,6 @@ export class ClassDiagramModifier implements DiagramModifier {
     const name = modification.changes.name || 'newMethod';
     const returnType = normalizeType(modification.changes.returnType || 'any');
     const paramStr = modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
-    const methodLabel = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
-
     const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
     const existingAttrCount = (classElement.attributes || []).length;
     const existingMethodCount = classElement.methods.length;
@@ -381,10 +381,12 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     const methodElement: any = {
       id: methodId,
-      name: methodLabel,
+      name: `${name}(${paramStr})`,
       type: 'ClassMethod',
       owner: classId,
       bounds: { x: classBounds.x + 1, y: methodY, width: (classBounds.width || 220) - 2, height: 25 },
+      visibility: modification.changes.visibility || 'public',
+      attributeType: returnType,
     };
 
     if (modification.changes.code) {
@@ -941,10 +943,12 @@ export class ClassDiagramModifier implements DiagramModifier {
           const returnType = normalizeType(methodSpec.returnType || 'any');
           model.elements[methodId] = {
             id: methodId,
-            name: `+ ${methodSpec.name}(${paramStr}): ${returnType}`,
+            name: `${methodSpec.name}(${paramStr})`,
             type: 'ClassMethod',
             owner: newClassId,
             bounds: { x: newX + 1, y: methodY, width: 218, height: 25 },
+            visibility: methodSpec.visibility || 'public',
+            attributeType: returnType,
           };
           model.elements[newClassId].methods.push(methodId);
         }

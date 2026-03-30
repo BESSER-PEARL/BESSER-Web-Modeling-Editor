@@ -245,7 +245,7 @@ class ClassifierUpdate extends Component<Props, State> {
                 <UmlMethodUpdate
                   id={method.id}
                   key={method.id}
-                  value={method.name}
+                  value={methodMember.displayName}
                   code={methodMember.code || ''}
                   implementationType={methodMember.implementationType || 'none'}
                   stateMachineId={methodMember.stateMachineId || ''}

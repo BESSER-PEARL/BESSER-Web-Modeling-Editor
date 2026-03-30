@@ -177,14 +177,17 @@ export class ClassDiagramConverter implements DiagramConverter {
       const normalizedReturnType = normalizeType(rawReturn);
       // Strip any signature artifacts from the method name (LLM sometimes embeds params/return in name)
       const cleanMethodName = (method.name || 'method').replace(/\(.*\).*$/, '').trim();
-      const methodName = `${visibilitySymbol} ${cleanMethodName}(${paramStr}): ${normalizedReturnType}`;
-      
+
+      // Use explicit new-format fields so Apollon's deserializer doesn't
+      // need to parse the signature string (which splits at the wrong colon).
       const methodElement: any = {
         id: methodId,
-        name: methodName,
+        name: `${cleanMethodName}(${paramStr})`,
         type: "ClassMethod",
         owner: classId,
-        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 }
+        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 },
+        visibility: method.visibility || 'public',
+        attributeType: normalizedReturnType,
       };
 
       if (method.code) {
