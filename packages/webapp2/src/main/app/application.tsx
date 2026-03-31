@@ -60,9 +60,6 @@ const GeneratorConfigDialogs = React.lazy(() =>
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
-const InteractiveTutorial = React.lazy(() =>
-  import('../features/onboarding/InteractiveTutorial').then((m) => ({ default: m.InteractiveTutorial })),
-);
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,

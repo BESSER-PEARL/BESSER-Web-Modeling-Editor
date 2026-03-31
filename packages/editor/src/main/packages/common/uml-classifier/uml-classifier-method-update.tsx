@@ -451,7 +451,7 @@ const UmlMethodUpdate = ({
         <CodeEditorWrapper>
           <CodeEditorHeader>
             <CodeEditorTitle>
-              {isBalImplementation ? 'BESSER Action Language' : 'Python'} Implementation (full method definition)
+              {isBalImplementation ? 'BESSER Action Language' : 'Python'} Implementation
             </CodeEditorTitle>
             <div>
               {hasCode && (

@@ -54,7 +54,6 @@ const HelpGuideDialog = React.lazy(() =>
 // mixed static/dynamic import warning (the module is already in this chunk).
 import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../shared/dialogs/KeyboardShortcutsDialog';
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
-import { OnboardingChecklist } from '../../features/onboarding/OnboardingChecklist';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 

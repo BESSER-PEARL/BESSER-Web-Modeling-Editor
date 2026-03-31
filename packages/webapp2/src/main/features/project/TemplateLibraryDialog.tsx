@@ -75,7 +75,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   );
 
   const [selectedTemplateType, setSelectedTemplateType] = useState<SoftwarePatternType>(
-    templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY,
+    templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY_COMPLETE,
   );
 
   React.useEffect(() => {
