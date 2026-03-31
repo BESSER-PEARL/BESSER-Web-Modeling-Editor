@@ -183,6 +183,7 @@ function* layoutElement(): SagaIterator {
         allUpdates.add(relationship.id);
         continue loop;
       }
+      if (!elements[source]) break;
       source = elements[source].owner;
     }
     let target: string | null = relationship.target.element;
@@ -192,6 +193,7 @@ function* layoutElement(): SagaIterator {
         allUpdates.add(relationship.id);
         continue loop;
       }
+      if (!elements[target]) break;
       target = elements[target].owner;
     }
   }
@@ -272,18 +274,22 @@ export function* recalc(id: string): SagaIterator {
 
   // Check if source is a relationship
   let source;
-  if (UMLRelationship.isUMLRelationship(elements[relationship.source.element])) {
-    source = UMLRelationshipRepository.get(elements[relationship.source.element]);
+  const sourceElement = elements[relationship.source.element];
+  if (!sourceElement) return;
+  if (UMLRelationship.isUMLRelationship(sourceElement)) {
+    source = UMLRelationshipRepository.get(sourceElement);
   } else {
-    source = UMLElementRepository.get(elements[relationship.source.element]);
+    source = UMLElementRepository.get(sourceElement);
   }
 
   // Check if target is a relationship
   let target;
-  if (UMLRelationship.isUMLRelationship(elements[relationship.target.element])) {
-    target = UMLRelationshipRepository.get(elements[relationship.target.element]);
+  const targetElement = elements[relationship.target.element];
+  if (!targetElement) return;
+  if (UMLRelationship.isUMLRelationship(targetElement)) {
+    target = UMLRelationshipRepository.get(targetElement);
   } else {
-    target = UMLElementRepository.get(elements[relationship.target.element]);
+    target = UMLElementRepository.get(targetElement);
   }
   
   if (!source || !target) {
