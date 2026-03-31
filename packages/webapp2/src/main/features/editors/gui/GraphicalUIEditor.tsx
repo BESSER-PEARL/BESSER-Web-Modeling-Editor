@@ -18,9 +18,10 @@ import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
-import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram } from '../../../shared/types/project';
+import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
@@ -587,10 +588,40 @@ function setupProjectStorageIntegration(
       isEditorReady = true;
       // console.log('[Storage] Editor fully loaded, auto-save enabled');
 
+      let isEditingText = false;
+      let pendingSaveDuringEdit = false;
+
+      // Fix #437: Track when user is editing text inline (RTE = Rich Text Editor)
+      // to avoid auto-save resetting the cursor position
+      editor.on('rte:enable', () => {
+        isEditingText = true;
+        // Cancel any pending save to prevent cursor reset
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+          saveTimeoutRef.current = null;
+          pendingSaveDuringEdit = true;
+        }
+      });
+
+      editor.on('rte:disable', () => {
+        isEditingText = false;
+        // Save any pending changes now that editing is done
+        if (pendingSaveDuringEdit) {
+          pendingSaveDuringEdit = false;
+          debouncedSave();
+        }
+      });
+
       // Safe save function that checks if editor is ready
       const safeSave = () => {
         if (!isEditorReady) {
           console.log('[Storage] Editor not ready, skipping save');
+          return;
+        }
+
+        // Fix #437: Defer save while user is editing text to avoid cursor reset
+        if (isEditingText) {
+          pendingSaveDuringEdit = true;
           return;
         }
 
@@ -1032,10 +1063,57 @@ function addAutoGenerateGUIButton(editor: Editor) {
 /**
  * Auto-generate GUI pages and components from the class diagram
  */
-function autoGenerateGUIFromClassDiagram(editor: Editor) {
+async function autoGenerateGUIFromClassDiagram(editor: Editor) {
+  // Get class diagram model for validation
+  const project = ProjectStorageRepository.getCurrentProject();
+  if (!project) {
+    throw new Error('No active project found.');
+  }
+  const activeGUI = getActiveDiagram(project, 'GUINoCodeDiagram');
+  const classDiagramData = getReferencedDiagram(project, activeGUI, 'ClassDiagram');
+  const classDiagramModel = classDiagramData?.model;
+  if (!classDiagramModel) {
+    throw new Error('No class diagram found. Please create a class diagram first.');
+  }
+
+  // Run backend validation before generating GUI
+  // Suppress toasts for GUI generation validation
+  const result: any = await validateDiagram(null, 'ClassDiagram', { ...classDiagramModel, _suppressToasts: true });
+  if (!result.isValid) {
+    // Show errors in a custom modal
+    const modal = editor.Modal;
+    const errorList = (result.errors && result.errors.length > 0)
+      ? result.errors.map((e: string) => `<li style='margin-bottom:8px;'>${e}</li>`).join('')
+      : '<li>Unknown error</li>';
+    const modalContent = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+        <h2 style="color:#e74c3c; margin-bottom:1rem;">Class Diagram Quality Check Failed</h2>
+        <p style="font-size:1rem; color:#333; margin-bottom:1rem;">
+          Errors were found in your class diagram. Please solve them before generating the GUI.
+        </p>
+        <ul style="background:#fff3f3; border:1px solid #e74c3c; border-radius:6px; padding:1rem; color:#b30000; font-size:1rem;">
+          ${errorList}
+        </ul>
+        <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
+          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">Close</button>
+        </div>
+      </div>
+    `;
+    modal.setTitle('Class Diagram Errors');
+    modal.setContent(modalContent);
+    modal.open();
+    setTimeout(() => {
+      const closeBtn = document.getElementById('modal-close-errors-btn');
+      if (closeBtn) {
+        closeBtn.onclick = () => modal.close();
+      }
+    }, 100);
+    return; // Abort GUI generation
+  }
+
   // Get all classes from the class diagram
   const classes = getClassOptions();
-  
+
   if (classes.length === 0) {
     throw new Error('No classes found in the Class Diagram. Please create a class diagram first.');
   }
