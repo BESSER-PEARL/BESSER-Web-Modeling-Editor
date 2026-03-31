@@ -229,6 +229,35 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
           {/* Message list */}
           <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
+            {messages.length === 0 && !isGenerating ? (
+              <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
+                  <img src={AGENT_AVATAR_SRC} alt="Agent" className="size-9 object-contain" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Hi! I'm your Modeling Assistant</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    I can help you create and modify UML diagrams, generate code, and answer modeling questions. Try something like:
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5 w-full max-w-xs">
+                  {[
+                    'Create a library management system',
+                    'Add a Payment class with amount and date',
+                    'Generate Django code',
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      className="rounded-lg border border-border/50 bg-card px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-brand/30 hover:bg-brand/5 hover:text-foreground"
+                      onClick={() => handleQuickAction(suggestion)}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
             <MessageList
               messages={messages}
               isTyping={isGenerating}
@@ -243,6 +272,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 };
               }}
             />
+            )}
 
             {/* Progress indicator */}
             {progressMessage && (
