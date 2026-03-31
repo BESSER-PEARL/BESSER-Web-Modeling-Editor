@@ -37,8 +37,40 @@ import { LayouterRepository } from '../../../services/layouter/layouter-reposito
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
+`;
+
+const Section = styled.section`
+  padding: 8px 0;
+`;
+
+const SectionHeader = styled.span`
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  margin-bottom: 4px;
+  display: block;
+`;
+
+const RadioGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+`;
+
+const DbFieldRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+  }
 `;
 
 const StyledTextArea = styled.textarea`
@@ -241,7 +273,7 @@ class StateUpdate extends Component<Props, State> {
 
     return (
       <div>
-        <section>
+        <Section>
           <Flex>
             <Textfield value={element.name} onChange={this.rename(element.id)} autoFocus />
             <ColorButton onClick={this.toggleColor} />
@@ -258,10 +290,10 @@ class StateUpdate extends Component<Props, State> {
             textColor
           />
           <Divider />
-        </section>
-        <section>
-          Agent Action
-          <div>
+        </Section>
+        <Section>
+          <SectionHeader>Agent Action</SectionHeader>
+          <RadioGroup>
             <label>
               <input
                 type="radio"
@@ -377,7 +409,7 @@ class StateUpdate extends Component<Props, State> {
               />
               Python Code
             </label>
-          </div>
+          </RadioGroup>
 
           {/* Conditionally render based on the selected radio button */}
           {this.bodyReplyType === "text" ? (
@@ -501,14 +533,13 @@ class StateUpdate extends Component<Props, State> {
               </>
             </>
           )}
-        </section>
-        <section>
+        </Section>
+        <Section>
           <Divider />
-
-        </section>
-        <section>
-          Agent Fallback Action
-          <div>
+        </Section>
+        <Section>
+          <SectionHeader>Agent Fallback Action</SectionHeader>
+          <RadioGroup>
             <label>
               <input
                 type="radio"
@@ -623,7 +654,7 @@ class StateUpdate extends Component<Props, State> {
               />
               Python Code
             </label>
-          </div>
+          </RadioGroup>
 
           {/* Conditionally render based on the selected radio button */}
           {this.fallbackBodyReplyType === "text" ? (
@@ -729,7 +760,7 @@ class StateUpdate extends Component<Props, State> {
             this.renderDbReplyEditor(fallbackDbBody, AgentStateFallbackBody)
           ) : (<></>)}
 
-        </section>
+        </Section>
       </div>
     );
   }
@@ -807,37 +838,39 @@ class StateUpdate extends Component<Props, State> {
 
     return (
       <>
-        <p>Select a Database</p>
-        <Dropdown
-          value={dbSelectionType}
-          onChange={(value) => {
-            const nextSelectionType = value === 'custom' ? 'custom' : 'default';
-            this.updateDbReply(member, {
-              dbSelectionType: nextSelectionType,
-              dbCustomName: nextSelectionType === 'default' ? '' : member.dbCustomName,
-            });
-          }}
-        >
-          {[
-            <Dropdown.Item value="default" key="db-default">
-              Default (using the app DB)
-            </Dropdown.Item>,
-            <Dropdown.Item value="custom" key="db-custom">
-              Custom
-            </Dropdown.Item>,
-          ]}
-        </Dropdown>
+        <DbFieldRow>
+          <label>Select a Database</label>
+          <Dropdown
+            value={dbSelectionType}
+            onChange={(value) => {
+              const nextSelectionType = value === 'custom' ? 'custom' : 'default';
+              this.updateDbReply(member, {
+                dbSelectionType: nextSelectionType,
+                dbCustomName: nextSelectionType === 'default' ? '' : member.dbCustomName,
+              });
+            }}
+          >
+            {[
+              <Dropdown.Item value="default" key="db-default">
+                Default (using the app DB)
+              </Dropdown.Item>,
+              <Dropdown.Item value="custom" key="db-custom">
+                Custom
+              </Dropdown.Item>,
+            ]}
+          </Dropdown>
 
-        {dbSelectionType === 'custom' ? (
-          <Textfield
-            outline
-            placeholder="Custom database name"
-            value={member.dbCustomName || ''}
-            onChange={(value) => this.updateDbReply(member, { dbCustomName: value })}
-          />
-        ) : null}
+          {dbSelectionType === 'custom' ? (
+            <Textfield
+              outline
+              placeholder="Custom database name"
+              value={member.dbCustomName || ''}
+              onChange={(value) => this.updateDbReply(member, { dbCustomName: value })}
+            />
+          ) : null}
+        </DbFieldRow>
 
-        <div>
+        <DbFieldRow>
           <label>DB operation</label>
           <Dropdown
             value={dbOperation}
@@ -865,44 +898,46 @@ class StateUpdate extends Component<Props, State> {
               </Dropdown.Item>,
             ]}
           </Dropdown>
-        </div>
+        </DbFieldRow>
 
-        <div>
-          <label>
-            <input
-              type="radio"
-              name={`dbQueryMode-${member.id}`}
-              value="llm_query"
-              checked={dbQueryMode === 'llm_query'}
-              onChange={() => this.updateDbReply(member, { dbQueryMode: 'llm_query', dbSqlQuery: '' })}
+        <DbFieldRow>
+          <RadioGroup>
+            <label>
+              <input
+                type="radio"
+                name={`dbQueryMode-${member.id}`}
+                value="llm_query"
+                checked={dbQueryMode === 'llm_query'}
+                onChange={() => this.updateDbReply(member, { dbQueryMode: 'llm_query', dbSqlQuery: '' })}
+              />
+              LLM query
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                name={`dbQueryMode-${member.id}`}
+                value="sql"
+                checked={dbQueryMode === 'sql'}
+                onChange={() => this.updateDbReply(member, { dbQueryMode: 'sql' })}
+              />
+              SQL
+            </label>
+          </RadioGroup>
+
+          {dbQueryMode === 'sql' ? (
+            <Textfield
+              outline
+              multiline
+              enterToSubmit={false}
+              placeholder="SELECT * FROM table_name"
+              value={member.dbSqlQuery || ''}
+              onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
             />
-            LLM query
-          </label>
-
-          <label>
-            <input
-              type="radio"
-              name={`dbQueryMode-${member.id}`}
-              value="sql"
-              checked={dbQueryMode === 'sql'}
-              onChange={() => this.updateDbReply(member, { dbQueryMode: 'sql' })}
-            />
-            SQL
-          </label>
-        </div>
-
-        {dbQueryMode === 'sql' ? (
-          <Textfield
-            outline
-            multiline
-            enterToSubmit={false}
-            placeholder="SELECT * FROM table_name"
-            value={member.dbSqlQuery || ''}
-            onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
-          />
-        ) : (
-          <p>Answer will be generated with LLM during runtime</p>
-        )}
+          ) : (
+            <p>Answer will be generated with LLM during runtime</p>
+          )}
+        </DbFieldRow>
       </>
     );
   };

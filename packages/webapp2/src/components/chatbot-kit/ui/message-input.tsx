@@ -315,7 +315,7 @@ export function MessageInput({
           <Button
             type="button"
             size="icon"
-            className="h-8 w-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="h-8 w-8 bg-brand text-brand-foreground hover:bg-brand-dark"
             aria-label="Stop generating"
             onClick={stop}
           >

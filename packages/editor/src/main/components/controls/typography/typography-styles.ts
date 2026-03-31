@@ -12,10 +12,10 @@ export const Typography = styled.p.withConfig({ shouldForwardProp: (prop: string
   ${(props) =>
     props.variant === 'header' &&
     css`
-      font-size: 1.25em;
-      font-weight: 500;
-      line-height: 1.2;
-      margin-bottom: 0.5em;
+      font-size: 0.95em;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 0.4em;
     `}
 
   ${(props) =>

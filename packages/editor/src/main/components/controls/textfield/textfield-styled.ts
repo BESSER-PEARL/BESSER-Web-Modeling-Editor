@@ -7,9 +7,9 @@ const FOCUS_BORDER_LIGHTEN = 25;
 const Input = styled.textarea`
   background-clip: padding-box;
   background-color: ${(props) => props.theme.color.background};
-  border: 1px solid ${(props) => props.theme.color.grayAccent};
+  border: 1px solid ${(props) => props.theme.color.graylight};
   border-radius: 0.25em;
-  color: ${(props) => props.theme.color.grayAccent};
+  color: ${(props) => props.theme.color.primaryContrast};
   font-family: ${(props) => props.theme.font.family}, sans-serif;
   font-size: 1em;
   font-weight: 400;

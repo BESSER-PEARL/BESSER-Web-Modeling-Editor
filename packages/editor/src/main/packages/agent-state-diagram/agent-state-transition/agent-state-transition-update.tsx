@@ -24,24 +24,44 @@ import 'codemirror/mode/python/python';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
+`;
+
+const Section = styled.section`
+  padding: 8px 0;
+`;
+
+const SectionHeader = styled(Header)`
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  margin-bottom: 4px;
 `;
 
 const ConditionsHeader = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
 `;
 
 const ConditionRow = styled.div`
-  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+  }
 `;
 
 const ConditionActions = styled.div`
   display: flex;
   gap: 4px;
-  margin-top: 4px;
 `;
 
 const ResizableCodeMirrorWrapper = styled.div`
@@ -174,7 +194,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
     return (
       <div>
-        <section>
+        <Section>
           <Flex>
             <Header gutter={false} style={{ flexGrow: 1 }}>
               {this.props.translate('packages.AgentDiagram.StateTransition')}
@@ -188,11 +208,9 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
             </Button>
           </Flex>
           <Divider />
-        </section>
-        <section>
-        </section>
-        <section>
-          <Header>Transition Type</Header>
+        </Section>
+        <Section>
+          <SectionHeader>Transition Type</SectionHeader>
           <Dropdown
             value={isCustomTransition ? 'custom' : 'predefined'}
             onChange={this.handleTransitionTypeChange}
@@ -203,7 +221,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
           {!isCustomTransition && (
             <React.Fragment>
-              <Header>Condition</Header>
+              <SectionHeader>Condition</SectionHeader>
               <Dropdown
                 value={element.predefinedType || 'when_intent_matched'}
                 onChange={value =>
@@ -244,7 +262,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                       this.props.update<AgentStateTransition>(element.id, { variable: value })
                     }
                     placeholder="Variable"
-                    style={{ marginBottom: "8px" }}
+                    gutter
                   />
                   <Dropdown
                     value={element.operator || '=='}
@@ -288,7 +306,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
           {isCustomTransition && (
             <React.Fragment>
-              <Header>Event</Header>
+              <SectionHeader>Event</SectionHeader>
               <Dropdown
                 value={element.event || 'WildcardEvent'}
                 onChange={(value) =>
@@ -308,7 +326,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
               </Dropdown>
 
               <ConditionsHeader>
-                <Header>Conditions</Header>
+                <SectionHeader>Conditions</SectionHeader>
                 <Button onClick={this.addCustomCondition}>Add condition</Button>
               </ConditionsHeader>
               {customConditions.map((conditionCode, index) => (
@@ -337,7 +355,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
               ))}
             </React.Fragment>
           )}
-        </section>
+        </Section>
 
         <StylePane
           open={this.state.colorOpen}

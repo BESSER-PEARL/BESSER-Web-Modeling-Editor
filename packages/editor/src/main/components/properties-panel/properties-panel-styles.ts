@@ -76,7 +76,7 @@ export const PanelBody = styled.div`
   flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.5em 0.75em;
+  padding: 8px 10px;
   position: relative;
 `;
 

@@ -19,15 +19,32 @@ import { StylePane } from '../../../components/style-pane/style-pane';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
+`;
+
+const Section = styled.section`
+  padding: 8px 0;
+`;
+
+const SectionHeader = styled(Header)`
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  margin-bottom: 4px;
 `;
 
 const ParamContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 4px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+  }
 `;
 
 const ParamControls = styled.div`
@@ -105,7 +122,7 @@ class StateTransitionUpdate extends Component<Props, State> {
 
     return (
       <div>
-        <section>
+        <Section>
           <Flex>
             <Header gutter={false} style={{ flexGrow: 1 }}>
               {this.props.translate('packages.StateDiagram.StateTransition')}
@@ -119,18 +136,18 @@ class StateTransitionUpdate extends Component<Props, State> {
             </Button>
           </Flex>
           <Divider />
-        </section>
-        <section>
-          <Header>Name</Header>
+        </Section>
+        <Section>
+          <SectionHeader>Name</SectionHeader>
           <Textfield value={element.name} onChange={this.rename} autoFocus />
-        </section>
-        <section>
-          <Header>Guard</Header>
+        </Section>
+        <Section>
+          <SectionHeader>Guard</SectionHeader>
           <Textfield value={element.guard} onChange={this.updateGuard} placeholder="Guard expression" />
-        </section>
-        <section>
+        </Section>
+        <Section>
           <Flex>
-            <Header>Parameters</Header>
+            <SectionHeader>Parameters</SectionHeader>
             <Button color="link" onClick={this.addParam}>
               Add
             </Button>
@@ -151,7 +168,7 @@ class StateTransitionUpdate extends Component<Props, State> {
               )}
             </ParamContainer>
           ))}
-        </section>
+        </Section>
         <StylePane
           open={this.state.colorOpen}
           element={element}

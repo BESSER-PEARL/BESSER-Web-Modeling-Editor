@@ -11,7 +11,7 @@ import { Visibility } from './uml-classifier-member';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 4px;
 `;
@@ -19,23 +19,27 @@ const Flex = styled.div`
 const AttributeRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 2px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+  }
 `;
 
 const ControlsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 `;
 
 const VisibilityDropdown = styled(Dropdown)`
-  min-width: 80px;
+  min-width: 44px;
   flex-shrink: 0;
 `;
 
 const TypeDropdown = styled(Dropdown)`
-  min-width: 100px;
+  min-width: 80px;
   flex-shrink: 0;
 `;
 
