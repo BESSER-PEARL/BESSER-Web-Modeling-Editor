@@ -1,5 +1,4 @@
-import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useState } from 'react';
 
 interface SeriesItem {
   name: string;
@@ -51,6 +50,16 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
   animate = true,
   series,
 }) => {
+  const [Recharts, setRecharts] = useState<typeof import('recharts') | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('recharts').then((mod) => {
+      if (!cancelled) setRecharts(mod);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // If series prop is provided, use it. If it's an empty array, show "No data available". If undefined, use defaultSeries.
   let chartSeries: SeriesItem[] = defaultSeries;
   if (Array.isArray(series)) {
@@ -71,6 +80,16 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
   });
 
   const isEmpty = !chartSeries || chartSeries.length === 0 || allNames.length === 0;
+
+  if (!Recharts) {
+    return (
+      <div style={{ width: '100%', height: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#888' }}>
+        Loading chart...
+      </div>
+    );
+  }
+
+  const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
 
   return (
     <div style={{ width: '100%', height: 400, marginBottom: 20 }}>

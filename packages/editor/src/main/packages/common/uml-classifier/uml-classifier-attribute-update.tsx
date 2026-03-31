@@ -201,7 +201,7 @@ const UmlAttributeUpdate = ({
   // For enumerations, just use the value as-is (it's a literal name)
   if (isEnumeration) {
     const handleNameChange = (newName: string | number) => {
-      const nameStr = String(newName);
+      const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
       onChange(id, { name: nameStr });
     };
 
@@ -268,7 +268,7 @@ const UmlAttributeUpdate = ({
   };
 
   const handleNameChange = (newName: string | number) => {
-    const nameStr = String(newName);
+    const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
     onChange(id, {
       name: nameStr,
       visibility,

@@ -58,7 +58,7 @@ const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillC
     
 
       {children}
-      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointer-events="none" />
+      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointerEvents="none" />
     </g>
   );
 };
@@ -107,7 +107,7 @@ const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fil
         </svg>
       )}
       {children}
-      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointer-events="none" />
+      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointerEvents="none" />
       {element.hasAttributes && (
         <ThemedPath d={`M 0 ${element.headerHeight} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
       )}

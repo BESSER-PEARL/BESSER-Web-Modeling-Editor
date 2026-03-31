@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { ApplicationBar } from './components/application-bar/application-bar';
 import { ApollonEditorComponent } from './components/apollon-editor-component/ApollonEditorComponent';
 import { ApollonEditor } from '@besser/wme';
@@ -18,11 +18,15 @@ import { useProject } from './hooks/useProject';
 import { AgentConfigScreen } from './components/agent/AgentConfigScreen';
 import { AgentPersonalizationConfigScreen } from './components/agent/AgentPersonalizationConfigScreen';
 import { AgentPersonalizationMappingScreen } from './components/agent/AgentPersonalizationMappingScreen';
-import { GraphicalUIEditor } from './components/grapesjs-editor';
 import { UMLAgentModeling } from './components/uml-agent-widget/UMLAgentModeling';
 import { QuantumEditorComponent } from './components/quantum-editor-component/QuantumEditorComponent';
 import { CookieConsentBanner, hasUserConsented } from './components/cookie-consent/CookieConsentBanner';
 import { useGitHubBumlImport } from './services/import/useGitHubBumlImport';
+
+// Lazy-load heavy GrapesJS editor so its bundle is only fetched when the route is visited
+const GraphicalUIEditor = React.lazy(() =>
+  import('./components/grapesjs-editor').then((m) => ({ default: m.GraphicalUIEditor })),
+);
 
 // PostHog options - GDPR compliant configuration
 const postHogOptions = {
@@ -163,7 +167,9 @@ function AppContentInner() {
           path="/graphical-ui-editor"
           element={
             <SidebarLayout>
-              <GraphicalUIEditor />
+              <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading GUI editor...</div>}>
+                <GraphicalUIEditor />
+              </Suspense>
             </SidebarLayout>
           }
         />

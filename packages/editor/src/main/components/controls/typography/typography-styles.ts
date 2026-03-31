@@ -5,7 +5,8 @@ type Props = {
   variant: 'header' | 'body';
 } & typeof defaultProps;
 
-export const Typography = styled.p<Props>`
+const typographyCustomProps = ['variant', 'gutter'];
+export const Typography = styled.p.withConfig({ shouldForwardProp: (prop: string) => !typographyCustomProps.includes(prop) } as any)<Props>`
   margin-top: 0;
 
   ${(props) =>

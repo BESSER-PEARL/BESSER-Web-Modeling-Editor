@@ -45,7 +45,8 @@ const Button = styled.button`
   }
 `;
 
-export const StyledButton = styled(Button)<typeof defaultProps>((props) => {
+const buttonCustomProps = ['block', 'outline'];
+export const StyledButton = styled(Button).withConfig({ shouldForwardProp: (prop: string) => !buttonCustomProps.includes(prop) } as any)<typeof defaultProps>((props) => {
   const color = props.color !== 'link' ? props.theme.color[props.color] : props.theme.color.primary;
 
   return css`

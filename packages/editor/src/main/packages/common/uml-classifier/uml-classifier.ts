@@ -71,29 +71,33 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
     this.hasAttributes = attributes.length > 0;
     this.hasMethods = methods.length > 0;
     const radix = 10;
-    const initialWidth = Math.round(this.bounds.width / radix) * radix;
-    let computedWidth = [this, ...attributes, ...methods].reduce(
-      (current, child, index) => {
-        // For attributes/methods, use displayName to get the full formatted text (visibility + name + type)
-        // For enumerations, only use the name
-        const displayText = child instanceof UMLClassifierMember
-          ? (this.stereotype === 'enumeration' ? child.name : child.displayName)
-          : child.name;
-        const rawWidth = Text.size(layer, displayText, index === 0 ? { fontWeight: 'bold' } : undefined).width + 20;
-        const roundedWidth = Math.round(rawWidth / radix) * radix;
-        return Math.max(current, roundedWidth);
-      },
-      initialWidth,
-    );
+    const userWidth = Math.round(this.bounds.width / radix) * radix;
+
+    // Compute the minimum width needed to fit all text without clipping.
+    // This is used as a suggestion, but the user can resize smaller — text
+    // will be clipped visually instead of forcing the box wider.
+    let textFitWidth = CLASSIFIER_MIN_WIDTH;
+    for (let i = 0; i < [this, ...attributes, ...methods].length; i++) {
+      const child = [this, ...attributes, ...methods][i];
+      const displayText = child instanceof UMLClassifierMember
+        ? (this.stereotype === 'enumeration' ? child.name : child.displayName)
+        : child.name;
+      const rawWidth = Text.size(layer, displayText, i === 0 ? { fontWeight: 'bold' } : undefined).width + 20;
+      const roundedWidth = Math.round(rawWidth / radix) * radix;
+      textFitWidth = Math.max(textFitWidth, roundedWidth);
+    }
 
     if (this.className) {
       const text = this.name + (this.className ? ': ' + this.className : '');
-      const rawClassLabelWidth = Text.size(layer, text).width + 40; // add some padding
+      const rawClassLabelWidth = Text.size(layer, text).width + 40;
       const roundedClassLabelWidth = Math.round(rawClassLabelWidth / radix) * radix;
-      computedWidth = Math.max(computedWidth, roundedClassLabelWidth);
+      textFitWidth = Math.max(textFitWidth, roundedClassLabelWidth);
     }
 
-    this.bounds.width = clampClassifierWidth(computedWidth);
+    // Use the larger of user width and min width, but DON'T force wider than
+    // the user's current width. This allows the user to resize smaller than
+    // the text — overflow is clipped visually by the SVG viewports.
+    this.bounds.width = Math.max(CLASSIFIER_MIN_WIDTH, userWidth);
 
     let y = this.headerHeight;
     for (const attribute of attributes) {

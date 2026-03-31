@@ -35,7 +35,11 @@ const Input = styled.textarea`
 
 type Props = typeof defaultProps;
 
-export const StyledTextfield = styled(Input)<Props>(
+const textfieldCustomProps = ['block', 'gutter', 'multiline', 'outline', 'readonly', 'enterToSubmit'];
+
+export const StyledTextfield = styled(Input).withConfig({
+  shouldForwardProp: (prop: string) => !textfieldCustomProps.includes(prop),
+} as any)<Props>(
   (props: Props & { theme: Styles }) => css`
     ${props.gutter &&
     css`

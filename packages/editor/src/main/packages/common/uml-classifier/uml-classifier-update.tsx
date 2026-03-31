@@ -245,7 +245,7 @@ class ClassifierUpdate extends Component<Props, State> {
                 <UmlMethodUpdate
                   id={method.id}
                   key={method.id}
-                  value={method.name}
+                  value={methodMember.displayName}
                   code={methodMember.code || ''}
                   implementationType={methodMember.implementationType || 'none'}
                   stateMachineId={methodMember.stateMachineId || ''}
@@ -339,7 +339,8 @@ class ClassifierUpdate extends Component<Props, State> {
   };
 
   private rename = (id: string) => (value: string) => {
-    this.props.update(id, { name: value });
+    const sanitized = value.replace(/[^a-zA-Z0-9_]/g, '');
+    this.props.update(id, { name: sanitized });
   };
 
   private toggle = (type: keyof typeof ClassElementType) => {

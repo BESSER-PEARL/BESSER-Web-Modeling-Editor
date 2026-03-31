@@ -58,16 +58,17 @@ class KeyboardEventListenerComponent extends Component<Props> {
   componentDidMount() {
     const { layer } = this.props.canvas;
     if (!this.props.readonly && this.props.mode !== ApollonMode.Assessment) {
-      layer.addEventListener('keydown', this.keyDown);
-      layer.addEventListener('keyup', this.keyUp);
+      // Listen on document so keyboard shortcuts work regardless of SVG focus
+      document.addEventListener('keydown', this.keyDown);
+      document.addEventListener('keyup', this.keyUp);
     }
     layer.addEventListener('pointerdown', this.pointerDown);
   }
 
   componentWillUnmount() {
     const { layer } = this.props.canvas;
-    layer.removeEventListener('keydown', this.keyDown);
-    layer.removeEventListener('keyup', this.keyUp);
+    document.removeEventListener('keydown', this.keyDown);
+    document.removeEventListener('keyup', this.keyUp);
     layer.removeEventListener('pointerdown', this.pointerDown);
   }
 
@@ -76,6 +77,7 @@ class KeyboardEventListenerComponent extends Component<Props> {
   }
 
   private pointerDown = (event: PointerEvent) => {
+    // console.log('[PointerDown] target:', (event.target as HTMLElement).tagName, 'x:', Math.round(event.clientX), 'y:', Math.round(event.clientY));
     if (event.target !== event.currentTarget || event.shiftKey) {
       return;
     }
@@ -83,6 +85,13 @@ class KeyboardEventListenerComponent extends Component<Props> {
   };
 
   private keyDown = (event: KeyboardEvent) => {
+    // Don't intercept keyboard shortcuts when user is typing in a form element
+    const target = event.target as HTMLElement;
+    const tag = target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) {
+      return;
+    }
+
     switch (event.key) {
       case 'ArrowUp':
         event.preventDefault();
