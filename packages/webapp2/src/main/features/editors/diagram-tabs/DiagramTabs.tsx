@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { diagramBridge } from '@besser/wme';
 import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -21,14 +22,26 @@ import {
 
 /* ------------------------------------------------------------------ */
 /*  Small inline tooltip used for info icons next to reference labels  */
+/*  Renders via portal to avoid being clipped by editor stacking ctx  */
 /* ------------------------------------------------------------------ */
 const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
   const [visible, setVisible] = useState(false);
-  const wrapperRef = useRef<HTMLSpanElement>(null);
+  const iconRef = useRef<HTMLSpanElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (visible && iconRef.current) {
+      const rect = iconRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + 6,
+        left: rect.left + rect.width / 2,
+      });
+    }
+  }, [visible]);
 
   return (
     <span
-      ref={wrapperRef}
+      ref={iconRef}
       className="relative inline-flex cursor-help"
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
@@ -39,13 +52,15 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
       aria-label={text}
     >
       <Info className="size-3 text-muted-foreground" />
-      {visible && (
+      {visible && ReactDOM.createPortal(
         <span
           role="tooltip"
-          className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 w-56 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] leading-snug text-popover-foreground shadow-lg"
+          className="pointer-events-none fixed z-[9999] w-56 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] leading-snug text-popover-foreground shadow-lg"
+          style={{ top: pos.top, left: pos.left }}
         >
           {text}
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   );
@@ -223,7 +238,7 @@ export const DiagramTabs: React.FC = () => {
   const selectClasses = "h-6 min-w-[120px] rounded-md border border-brand/15 bg-card px-2 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-1 focus:ring-brand/20";
 
   return (
-    <div className="border-b border-brand/12 bg-card/80 backdrop-blur-sm">
+    <div className="relative overflow-visible border-b border-brand/12 bg-card/80 backdrop-blur-sm">
       {/* Top row: tabs */}
       <div className="flex items-center gap-0 px-1">
         <div className="flex items-end gap-px py-1 pl-1">
@@ -318,7 +333,7 @@ export const DiagramTabs: React.FC = () => {
 
       {/* Linked Diagrams reference section (below tabs) */}
       {hasReferences && !refsCollapsed && (
-        <div className="border-t border-border/40 bg-muted/30 px-3 py-1.5">
+        <div className="overflow-visible border-t border-border/40 bg-muted/30 px-3 py-1.5">
           <div className="flex flex-wrap items-center gap-4">
             {/* Section header */}
             <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -328,10 +343,10 @@ export const DiagramTabs: React.FC = () => {
 
             {/* ClassDiagram reference */}
             {needsClassRef && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <label
                   htmlFor="ref-class-diagram"
-                  className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+                  className="whitespace-nowrap text-[11px] font-medium text-muted-foreground"
                 >
                   Class Diagram
                 </label>

@@ -20,9 +20,10 @@ import {
   addDiagramThunk,
   switchDiagramIndexThunk,
   selectProject,
+  selectActiveDiagramType,
 } from '../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType, getActiveDiagram } from '../../shared/types/project';
+import { toSupportedDiagramType, getActiveDiagram, diagramHasContent, SupportedDiagramType } from '../../shared/types/project';
 import { QuantumCircuitData } from '../../shared/types/project';
 import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
 import {
@@ -45,6 +46,13 @@ const categoryOrder: SoftwarePatternCategory[] = [
   SoftwarePatternCategory.QUANTUM_CIRCUIT,
 ];
 
+const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatternCategory>> = {
+  ClassDiagram: SoftwarePatternCategory.STRUCTURAL,
+  StateMachineDiagram: SoftwarePatternCategory.STATE_MACHINE,
+  AgentDiagram: SoftwarePatternCategory.AGENT,
+  QuantumCircuitDiagram: SoftwarePatternCategory.QUANTUM_CIRCUIT,
+};
+
 const categoryColor: Record<SoftwarePatternCategory, string> = {
   [SoftwarePatternCategory.STRUCTURAL]: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
   [SoftwarePatternCategory.BEHAVIORAL]: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
@@ -59,6 +67,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const activeDiagramType = useAppSelector(selectActiveDiagramType);
 
   const templates = useMemo(() => {
     return Object.values(SoftwarePatternType).map((pattern) => TemplateFactory.createSoftwarePattern(pattern));
@@ -69,6 +78,16 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   }, [templates]);
 
   const [selectedCategory, setSelectedCategory] = useState<SoftwarePatternCategory>(categories[0]);
+
+  // When dialog opens, jump to the category matching the active diagram type
+  React.useEffect(() => {
+    if (open) {
+      const match = diagramTypeToCategory[activeDiagramType];
+      if (match && categories.includes(match)) {
+        setSelectedCategory(match);
+      }
+    }
+  }, [open, activeDiagramType, categories]);
   const templatesInCategory = useMemo(
     () => templates.filter((template) => template.softwarePatternCategory === selectedCategory),
     [templates, selectedCategory],
@@ -93,13 +112,11 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   const hasExistingModel = useMemo(() => {
     if (!currentProject || !selectedTemplate) return false;
-    const umlType = selectedTemplate.diagramType as UMLDiagramType;
-    const supportedType = toSupportedDiagramType(umlType);
+    const supportedType = selectedTemplate.diagramType as
+      | 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram'
+      | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
     const existing = getActiveDiagram(currentProject, supportedType);
-    const model = existing?.model;
-    if (!model || typeof model !== 'object') return false;
-    const elements = (model as any).elements;
-    return elements && typeof elements === 'object' && Object.keys(elements).length > 0;
+    return existing ? diagramHasContent(existing) : false;
   }, [currentProject, selectedTemplate]);
 
   const handleLoadClick = () => {
@@ -119,8 +136,28 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       setIsLoading(true);
 
       if (!selectedTemplate.isUMLDiagram && selectedTemplate.diagramType === 'QuantumCircuitDiagram') {
-        await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
-        await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
+        const qType = 'QuantumCircuitDiagram' as const;
+
+        if (mode === 'new_tab' && currentProject) {
+          const addResult = await dispatch(addDiagramThunk({
+            diagramType: qType,
+            title: selectedTemplate.type,
+          })).unwrap();
+
+          ProjectStorageRepository.updateDiagram(currentProject.id, qType, {
+            ...addResult.diagram,
+            title: selectedTemplate.type,
+            model: selectedTemplate.diagram as QuantumCircuitData,
+            lastUpdate: new Date().toISOString(),
+          }, addResult.index);
+
+          await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
+          await dispatch(switchDiagramIndexThunk({ diagramType: qType, index: addResult.index }));
+        } else {
+          await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
+          await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
+        }
+
         navigate('/');
       } else {
         const umlType = selectedTemplate.diagramType as UMLDiagramType;
