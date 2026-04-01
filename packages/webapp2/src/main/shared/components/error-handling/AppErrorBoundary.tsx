@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -35,32 +35,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     window.location.reload();
   };
 
-  private handleResetAndReload = (): void => {
-    // Remove all besser_* keys from localStorage
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('besser_')) {
-        keysToRemove.push(key);
-      }
-    }
-    for (const key of keysToRemove) {
-      localStorage.removeItem(key);
-    }
-    // Also clear legacy non-prefixed keys
-    const legacyKeys = [
-      'latestDiagram', 'agentConfig', 'agentPersonalization',
-      'github_session', 'github_username',
-      'last_published_token', 'last_published_type',
-      'umlAgentRateLimiterState',
-    ];
-    for (const key of legacyKeys) {
-      localStorage.removeItem(key);
-    }
-    sessionStorage.clear();
-    window.location.reload();
-  };
-
   render(): ReactNode {
     if (this.state.hasError) {
       const isDev = import.meta.env.DEV;
@@ -83,25 +57,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </pre>
             )}
 
-            <div className="flex flex-col items-center gap-3">
-              <button
-                onClick={this.handleReload}
-                className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
-              >
-                <RefreshCw className="size-4" />
-                Reload
-              </button>
-              <button
-                onClick={this.handleResetAndReload}
-                className="inline-flex items-center gap-2 rounded-md border border-red-300 bg-white px-5 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:bg-slate-800 dark:text-red-400 dark:hover:bg-slate-700"
-              >
-                <Trash2 className="size-4" />
-                Reset application data & reload
-              </button>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
-                If reloading doesn't help, resetting will clear saved projects and preferences.
-              </p>
-            </div>
+            <button
+              onClick={this.handleReload}
+              className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
+            >
+              <RefreshCw className="size-4" />
+              Reload
+            </button>
           </div>
         </div>
       );
