@@ -18,7 +18,8 @@ export const buildExportableProjectPayload = (
     if (selectedDiagramTypes && selectedDiagramTypes.length > 0 && !selectedDiagramTypes.includes(type as SupportedDiagramType)) {
       continue;
     }
-    const withContent = (diagrams as ProjectDiagram[]).filter(diagramHasContent);
+    const arr = Array.isArray(diagrams) ? diagrams : [];
+    const withContent = (arr as ProjectDiagram[]).filter(diagramHasContent);
     if (withContent.length > 0) {
       filtered[type] = withContent;
     }

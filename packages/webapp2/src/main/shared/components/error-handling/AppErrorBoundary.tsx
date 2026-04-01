@@ -29,6 +29,23 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('[ErrorBoundary] Uncaught error:', error, errorInfo);
+
+    // Auto-recovery: if this is the first crash this session, clear stale
+    // localStorage and reload. The sessionStorage guard prevents loops.
+    const GUARD = 'besser_crash_recovery';
+    if (sessionStorage.getItem(GUARD) !== 'recovered') {
+      sessionStorage.setItem(GUARD, 'recovered');
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k?.startsWith('besser_')) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+      ['latestDiagram', 'agentConfig', 'agentPersonalization', 'github_session',
+       'github_username', 'last_published_token', 'last_published_type',
+       'umlAgentRateLimiterState'].forEach((k) => localStorage.removeItem(k));
+      window.location.reload();
+    }
   }
 
   private handleReload = (): void => {

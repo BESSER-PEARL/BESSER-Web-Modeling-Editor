@@ -506,7 +506,10 @@ export const useGitHubStorage = () => {
   }, [saveLinkedRepo]);
 
   /**
-   * Check if there are unsaved changes (compare with last synced version)
+   * Check if there are unsaved changes (compare with last synced version).
+   * Only compares diagram model data — ignores metadata like schemaVersion,
+   * timestamps, currentDiagramIndices, and settings that change during
+   * migrations without any user action.
    */
   const checkForChanges = useCallback(async (
     githubSession: string,
@@ -522,10 +525,19 @@ export const useGitHubStorage = () => {
         linkedRepo.filePath
       );
 
-      if (!remoteProject) return true; // Assume changes if we can't load
+      if (!remoteProject) return true;
 
-      // Simple comparison - you might want a more sophisticated diff
-      return JSON.stringify(project) !== JSON.stringify(remoteProject);
+      // Compare only diagram models — the actual user content
+      const extractModels = (p: BesserProject) => {
+        const result: Record<string, unknown[]> = {};
+        for (const [type, diagrams] of Object.entries(p.diagrams)) {
+          const arr = Array.isArray(diagrams) ? diagrams : [diagrams];
+          result[type] = arr.map((d: any) => d?.model ?? null);
+        }
+        return result;
+      };
+
+      return JSON.stringify(extractModels(project)) !== JSON.stringify(extractModels(remoteProject));
     } catch {
       return true;
     }
