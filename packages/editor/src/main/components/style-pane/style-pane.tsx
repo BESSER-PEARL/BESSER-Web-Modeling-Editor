@@ -10,7 +10,7 @@ import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
 import { Textfield } from '../controls/textfield/textfield';
 import { ColorSelector } from './color-selector';
-import { Color, Container, Divider, Row, FieldRow } from './style-pane-styles';
+import { Color, Container, Divider, Row, FieldRow, CheckboxRow } from './style-pane-styles';
 
 type OwnProps = {
   open: boolean;
@@ -138,31 +138,29 @@ class StylePaneComponent extends Component<Props, State> {
       <Container>
         {onOptionalChange && (
           <>
-            <Row>
-              <label htmlFor={`optional-${element?.id}`} style={{ cursor: 'pointer', margin: 0 }}>Optional</label>
+            <CheckboxRow as="label" htmlFor={`optional-${element?.id}`}>
+              <span>Optional</span>
               <input
                 id={`optional-${element?.id}`}
                 type="checkbox"
                 checked={isOptional || false}
                 onChange={(e) => onOptionalChange(e.target.checked)}
-                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
               />
-            </Row>
+            </CheckboxRow>
             <Divider />
           </>
         )}
         {onDerivedChange && (
           <>
-            <Row>
-              <label htmlFor={`derived-${element?.id}`} style={{ cursor: 'pointer', margin: 0 }}>Derived</label>
+            <CheckboxRow as="label" htmlFor={`derived-${element?.id}`}>
+              <span>Derived</span>
               <input
                 id={`derived-${element?.id}`}
                 type="checkbox"
                 checked={isDerived || false}
                 onChange={(e) => onDerivedChange(e.target.checked)}
-                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
               />
-            </Row>
+            </CheckboxRow>
             <Divider />
           </>
         )}

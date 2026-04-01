@@ -1,9 +1,12 @@
 import { styled } from './styles';
 
-export const ThemedPolyline = styled.polyline.attrs(
+// Prevent custom theming props from being forwarded to the DOM
+const shouldForwardThemedProp = (prop: string) => prop !== 'fillColor' && prop !== 'strokeColor';
+
+export const ThemedPolyline = styled.polyline.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'black',
     fill: props.fillColor || 'white',
   }),
@@ -12,10 +15,10 @@ export const ThemedPolyline = styled.polyline.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};
 `;
 
-export const ThemedPath = styled.path.attrs(
+export const ThemedPath = styled.path.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'black',
     fill: props.fillColor || 'white',
   }),
@@ -24,10 +27,10 @@ export const ThemedPath = styled.path.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};
 `;
 
-export const ThemedPathContrast = styled.path.attrs(
+export const ThemedPathContrast = styled.path.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'white',
     fill: props.fillColor || 'black',
   }),
@@ -36,10 +39,10 @@ export const ThemedPathContrast = styled.path.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.background};
 `;
 
-export const ThemedRect = styled.rect.attrs(
+export const ThemedRect = styled.rect.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'black',
     fill: props.fillColor || 'white',
   }),
@@ -48,10 +51,10 @@ export const ThemedRect = styled.rect.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};
 `;
 
-export const ThemedRectContrast = styled.rect.attrs(
+export const ThemedRectContrast = styled.rect.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'white',
     fill: props.fillColor || 'black',
   }),
@@ -60,10 +63,10 @@ export const ThemedRectContrast = styled.rect.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.background};
 `;
 
-export const ThemedCircle = styled.circle.attrs(
+export const ThemedCircle = styled.circle.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'black',
     fill: props.fillColor || 'white',
   }),
@@ -72,10 +75,10 @@ export const ThemedCircle = styled.circle.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};
 `;
 
-export const ThemedCircleContrast = styled.circle.attrs(
+export const ThemedCircleContrast = styled.circle.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'white',
     fill: props.fillColor || 'black',
   }),
@@ -84,10 +87,10 @@ export const ThemedCircleContrast = styled.circle.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.background};
 `;
 
-export const ThemedEllipse = styled.ellipse.attrs(
+export const ThemedEllipse = styled.ellipse.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
   (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
-    fillColor: props.fillColor,
-    strokeColor: props.strokeColor,
     stroke: props.strokeColor || 'black',
     fill: props.fillColor || 'white',
   }),
@@ -96,8 +99,9 @@ export const ThemedEllipse = styled.ellipse.attrs(
   stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};
 `;
 
-export const ThemedLine = styled.line.attrs((props: { strokeColor: string | undefined }) => ({
-  strokeColor: props.strokeColor,
+export const ThemedLine = styled.line.withConfig({
+  shouldForwardProp: (prop: string) => prop !== 'strokeColor',
+} as any).attrs((props: { strokeColor: string | undefined }) => ({
   stroke: props.strokeColor || 'black',
 }))`
   stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};

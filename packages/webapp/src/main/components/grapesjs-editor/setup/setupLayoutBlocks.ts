@@ -1,4 +1,4 @@
-import { Editor } from 'grapesjs';
+import type { Editor } from 'grapesjs';
 
 /**
  * Setup layout blocks (containers, grids, flexbox, sections)

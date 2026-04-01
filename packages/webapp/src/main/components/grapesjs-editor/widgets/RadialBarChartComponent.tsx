@@ -1,5 +1,4 @@
-import React from 'react';
-import { RadialBarChart, RadialBar, Legend, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useState } from 'react';
 
 
 interface SeriesItem {
@@ -32,12 +31,33 @@ export const RadialBarChartComponent: React.FC<RadialBarChartComponentProps> = (
   startAngle = 90,
   endAngle = 450,
 }) => {
+  const [Recharts, setRecharts] = useState<typeof import('recharts') | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import('recharts').then((mod) => {
+      if (!cancelled) setRecharts(mod);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // If series is provided, use its first item for data. If it's an empty array, show no data.
   let chartData = data;
   if (Array.isArray(series)) {
     chartData = series.length > 0 ? series[0].data : [];
   }
   const isEmpty = !chartData || chartData.length === 0;
+
+  if (!Recharts) {
+    return (
+      <div style={{ width: '100%', height: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#888' }}>
+        Loading chart...
+      </div>
+    );
+  }
+
+  const { RadialBarChart, RadialBar, Legend, Tooltip, ResponsiveContainer } = Recharts;
+
   return (
     <div style={{ width: '100%', height: 400, marginBottom: 20 }}>
       {title && <h3 style={{ textAlign: 'center', marginBottom: 10 }}>{title}</h3>}

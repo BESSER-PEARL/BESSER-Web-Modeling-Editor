@@ -110,6 +110,11 @@ export const computeTextPositionForUMLAssociation = (alignmentPath: Point[], has
 export const computeMiddlePositionForUMLAssociation = (alignmentPath: Point[]): Point => {
   if (alignmentPath.length < 2) return new Point();
   const midIndex = Math.floor(alignmentPath.length / 2);
+  if (alignmentPath.length % 2 === 0) {
+    const a = alignmentPath[midIndex - 1];
+    const b = alignmentPath[midIndex];
+    return new Point((a.x + b.x) / 2, (a.y + b.y) / 2);
+  }
   return new Point(alignmentPath[midIndex].x, alignmentPath[midIndex].y);
 };
 

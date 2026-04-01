@@ -18,7 +18,7 @@ Top-level directories
 
 ``build/``
    Output folder populated by the ``build:*`` scripts. Static web assets live
-   under ``build/webapp`` and the server bundle under ``build/server``.
+   under ``build/webapp2`` and the server bundle under ``build/server``.
 
 ``node_modules/``
    Root-level dependencies shared by the workspaces.
@@ -36,10 +36,16 @@ Workspace packages
    supporting services used by both the standalone webapp and external
    integrations.
 
-``packages/webapp/``
-   The React single-page application that embeds the editor, manages local
-   projects, handles import/export, code generation requests, and orchestrates
-   collaboration flows.
+``packages/webapp2/``
+   The default React single-page application (Vite 7, Radix UI + Tailwind CSS,
+   Vitest + Playwright). It embeds the editor, manages local projects, handles
+   import/export, code generation requests, and orchestrates collaboration
+   flows. This is the actively developed and deployed frontend.
+
+``packages/webapp/`` *(deprecated)*
+   The original React application built with Webpack and Bootstrap. This package
+   is **deprecated** and will be removed in a future release. It is retained
+   temporarily for reference only. All new development targets ``webapp2``.
 
 ``packages/server/``
    Express server that serves the compiled webapp, proxies diagram actions and
@@ -51,8 +57,9 @@ Cross-package conventions
 
 * TypeScript sources are nested under ``src/main``; tests (where present) live
   in ``src/tests``.
-* Redux slices in the webapp follow the ``services/<domain>/<name>Slice.ts``
-  naming convention.
+* Redux slices in webapp2 follow the ``app/store/<name>Slice.ts`` naming
+  convention.
+* Application-wide constants in webapp2 are kept in the ``shared/constants/`` folder.
 * The editor package uses the ``packages/<diagram family>`` hierarchy to group
   element models, React renderers, previews, and pop-ups for each diagram type.
 * Build artefacts never live inside ``src``. Scripts clean the ``build/``

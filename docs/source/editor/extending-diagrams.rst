@@ -3,8 +3,7 @@
 Extending Diagram Types
 =======================
 
-The editor ships with a rich catalogue of UML, BPMN, flowchart, and agent
-diagram types.
+The editor ships with a catalogue of UML and domain-specific diagram types (class, object, state machine, agent, GUI, quantum circuit).
 
 .. note::
    
@@ -17,12 +16,17 @@ diagram types.
    Please see :doc:`../contributing/new-diagram-guide/index` for the full
    walkthrough.
 
-Concepts
---------
+Key Concepts
+------------
 
-While the step-by-step guide is in the Contributing section, it is helpful to
-understand the core concepts:
+Before following the contributing guide, understand these core ideas:
 
-*   **Metamodel**: Defined in ``uml-element-type.ts`` and ``diagram-type.ts``.
-*   **Rendering**: React components that take an element model and render SVG.
-*   **Palette**: The sidebar is composed dynamically based on the active diagram type.
+*   **Metamodel**: Each diagram type defines its element and relationship types in
+    ``diagram-type.ts`` and ``uml-element-type.ts``. These drive palette composition
+    and serialization.
+*   **Rendering**: Every element type has a React component that receives the element
+    model and renders SVG on the canvas.
+*   **Palette**: The sidebar is composed dynamically from ``compose-preview.ts`` based
+    on the active diagram type. Each element gets a preview thumbnail.
+*   **Property panels**: Double-click popups are registered in ``popups.ts`` and let
+    users edit element attributes, relationships, and styling.

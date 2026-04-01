@@ -8,6 +8,8 @@ export interface IApplicationSettings {
   showIconView: boolean;
   /** Whether to show association names in the diagram */
   showAssociationNames: boolean;
+  /** Whether to use the right-side properties panel instead of the floating popover */
+  usePropertiesPanel: boolean;
   /** Other settings can be added here */
   // theme: 'light' | 'dark';
   // autoSave: boolean;
@@ -20,6 +22,7 @@ export const DEFAULT_SETTINGS: IApplicationSettings = {
   showInstancedObjects: true, // Default to true to show instances
   showIconView: false, // Default to false to hide class icons
   showAssociationNames: false, // Default to false to hide association names
+  usePropertiesPanel: true, // Default to true to use the right-side properties panel
 };
 
 /**
@@ -175,6 +178,13 @@ export class SettingsService implements ISettingsService {
    */
   shouldShowAssociationNames(): boolean {
     return this.settings.showAssociationNames;
+  }
+
+  /**
+   * Check if the right-side properties panel should be used instead of the floating popover
+   */
+  shouldUsePropertiesPanel(): boolean {
+    return this.settings.usePropertiesPanel;
   }
 }
 

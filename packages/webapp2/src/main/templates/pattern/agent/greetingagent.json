@@ -1,0 +1,524 @@
+{
+  "version": "3.0.0",
+  "type": "AgentDiagram",
+  "size": { "width": 1080, "height": 400 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+            "97627a74-e4e6-48af-9989-8d714dfe83b8": {
+                "id": "97627a74-e4e6-48af-9989-8d714dfe83b8",
+                "name": "initial",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                    "x": -350,
+                    "y": -30,
+                    "width": 140,
+                    "height": 40
+                },
+                "bodies": [],
+                "fallbackBodies": []
+            },
+            "269178e5-8e58-4ddc-803f-d91e99e93fde": {
+                "id": "269178e5-8e58-4ddc-803f-d91e99e93fde",
+                "name": "greeting",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                    "x": -20,
+                    "y": -60,
+                    "width": 210,
+                    "height": 100
+                },
+                "bodies": [
+                    "354aee35-fcda-486b-85d8-854a3e620d2f",
+                    "40894ba0-5b4b-4229-9b17-49fffeeea4d8"
+                ],
+                "fallbackBodies": []
+            },
+            "354aee35-fcda-486b-85d8-854a3e620d2f": {
+                "id": "354aee35-fcda-486b-85d8-854a3e620d2f",
+                "name": "Hi!",
+                "type": "AgentStateBody",
+                "owner": "269178e5-8e58-4ddc-803f-d91e99e93fde",
+                "bounds": {
+                    "x": -19.5,
+                    "y": -19.5,
+                    "width": 209,
+                    "height": 30
+                },
+                "replyType": "text"
+            },
+            "40894ba0-5b4b-4229-9b17-49fffeeea4d8": {
+                "id": "40894ba0-5b4b-4229-9b17-49fffeeea4d8",
+                "name": "How are you?",
+                "type": "AgentStateBody",
+                "owner": "269178e5-8e58-4ddc-803f-d91e99e93fde",
+                "bounds": {
+                    "x": -19.5,
+                    "y": 10.5,
+                    "width": 209,
+                    "height": 30
+                },
+                "replyType": "text"
+            },
+            "d2c3ac6c-2869-4555-a599-4810168a3164": {
+                "id": "d2c3ac6c-2869-4555-a599-4810168a3164",
+                "name": "bad",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                    "x": 310,
+                    "y": 120,
+                    "width": 220,
+                    "height": 70
+                },
+                "bodies": [
+                    "408f0c9a-e2f3-42b9-87fd-ec0e203b5d85"
+                ],
+                "fallbackBodies": []
+            },
+            "408f0c9a-e2f3-42b9-87fd-ec0e203b5d85": {
+                "id": "408f0c9a-e2f3-42b9-87fd-ec0e203b5d85",
+                "name": "I'm sorry to hear that...",
+                "type": "AgentStateBody",
+                "owner": "d2c3ac6c-2869-4555-a599-4810168a3164",
+                "bounds": {
+                    "x": 310.5,
+                    "y": 160.5,
+                    "width": 219,
+                    "height": 30
+                },
+                "replyType": "text"
+            },
+            "95bd55b0-680a-4f0c-9dd4-d4416344daca": {
+                "id": "95bd55b0-680a-4f0c-9dd4-d4416344daca",
+                "name": "",
+                "type": "StateInitialNode",
+                "owner": null,
+                "bounds": {
+                    "x": -470,
+                    "y": -30,
+                    "width": 45,
+                    "height": 45
+                }
+            },
+            "c629ac2b-4ce7-40bf-8382-41af767383c9": {
+                "id": "c629ac2b-4ce7-40bf-8382-41af767383c9",
+                "name": "Greeting",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                    "x": -640,
+                    "y": -350,
+                    "width": 230,
+                    "height": 130
+                },
+                "bodies": [
+                    "87648564-ea5f-43d2-aef0-0b8f1e4bb19c",
+                    "b230fdc3-0bf9-409e-b22e-a83b0017d9e3",
+                    "73e5374e-6fa8-42a8-b6ef-03f3b32be48b"
+                ]
+            },
+            "87648564-ea5f-43d2-aef0-0b8f1e4bb19c": {
+                "id": "87648564-ea5f-43d2-aef0-0b8f1e4bb19c",
+                "name": "Hi",
+                "type": "AgentIntentBody",
+                "owner": "c629ac2b-4ce7-40bf-8382-41af767383c9",
+                "bounds": {
+                    "x": -639.5,
+                    "y": -309.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "b230fdc3-0bf9-409e-b22e-a83b0017d9e3": {
+                "id": "b230fdc3-0bf9-409e-b22e-a83b0017d9e3",
+                "name": "Hello",
+                "type": "AgentIntentBody",
+                "owner": "c629ac2b-4ce7-40bf-8382-41af767383c9",
+                "bounds": {
+                    "x": -639.5,
+                    "y": -279.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "73e5374e-6fa8-42a8-b6ef-03f3b32be48b": {
+                "id": "73e5374e-6fa8-42a8-b6ef-03f3b32be48b",
+                "name": "Howdy",
+                "type": "AgentIntentBody",
+                "owner": "c629ac2b-4ce7-40bf-8382-41af767383c9",
+                "bounds": {
+                    "x": -639.5,
+                    "y": -249.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "83ffb8ea-e7bc-489b-b799-89c79df708b8": {
+                "id": "83ffb8ea-e7bc-489b-b799-89c79df708b8",
+                "name": "good",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                    "x": 320,
+                    "y": -170,
+                    "width": 220,
+                    "height": 70
+                },
+                "bodies": [
+                    "89df378b-5793-4fc4-bd6c-5ba8eeb173e0"
+                ],
+                "fallbackBodies": []
+            },
+            "89df378b-5793-4fc4-bd6c-5ba8eeb173e0": {
+                "id": "89df378b-5793-4fc4-bd6c-5ba8eeb173e0",
+                "name": "I am glad to hear that!",
+                "type": "AgentStateBody",
+                "owner": "83ffb8ea-e7bc-489b-b799-89c79df708b8",
+                "bounds": {
+                    "x": 320.5,
+                    "y": -129.5,
+                    "width": 219,
+                    "height": 30
+                },
+                "replyType": "text"
+            },
+            "4331ac3a-aac0-439e-a43b-622ceec672b4": {
+                "id": "4331ac3a-aac0-439e-a43b-622ceec672b4",
+                "name": "Good",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                    "x": -380,
+                    "y": -350,
+                    "width": 230,
+                    "height": 130
+                },
+                "bodies": [
+                    "a4f9f789-d4da-4db4-8f1f-1afd2c24fdff",
+                    "2e98b7ce-722a-4402-a995-3ca1d4e56605",
+                    "d58d039f-1851-4d83-aefb-b8adf392190e"
+                ]
+            },
+            "a4f9f789-d4da-4db4-8f1f-1afd2c24fdff": {
+                "id": "a4f9f789-d4da-4db4-8f1f-1afd2c24fdff",
+                "name": "Good",
+                "type": "AgentIntentBody",
+                "owner": "4331ac3a-aac0-439e-a43b-622ceec672b4",
+                "bounds": {
+                    "x": -379.5,
+                    "y": -309.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "2e98b7ce-722a-4402-a995-3ca1d4e56605": {
+                "id": "2e98b7ce-722a-4402-a995-3ca1d4e56605",
+                "name": "Fine",
+                "type": "AgentIntentBody",
+                "owner": "4331ac3a-aac0-439e-a43b-622ceec672b4",
+                "bounds": {
+                    "x": -379.5,
+                    "y": -279.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "d58d039f-1851-4d83-aefb-b8adf392190e": {
+                "id": "d58d039f-1851-4d83-aefb-b8adf392190e",
+                "name": "I'm alright",
+                "type": "AgentIntentBody",
+                "owner": "4331ac3a-aac0-439e-a43b-622ceec672b4",
+                "bounds": {
+                    "x": -379.5,
+                    "y": -249.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "e999a3c8-25d5-4180-9c77-cdd78dcd9f74": {
+                "id": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
+                "name": "Bad",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                    "x": -130,
+                    "y": -350,
+                    "width": 230,
+                    "height": 130
+                },
+                "bodies": [
+                    "b27ef549-9a7c-42b2-b64b-9923bc83a663",
+                    "cf17937f-875e-49c9-a39e-e99c09d9c466",
+                    "36e8e944-a64a-429b-8c36-907cc3bf80a0"
+                ]
+            },
+            "b27ef549-9a7c-42b2-b64b-9923bc83a663": {
+                "id": "b27ef549-9a7c-42b2-b64b-9923bc83a663",
+                "name": "Bad",
+                "type": "AgentIntentBody",
+                "owner": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
+                "bounds": {
+                    "x": -129.5,
+                    "y": -309.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "cf17937f-875e-49c9-a39e-e99c09d9c466": {
+                "id": "cf17937f-875e-49c9-a39e-e99c09d9c466",
+                "name": "Not so good",
+                "type": "AgentIntentBody",
+                "owner": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
+                "bounds": {
+                    "x": -129.5,
+                    "y": -279.5,
+                    "width": 229,
+                    "height": 30
+                }
+            },
+            "36e8e944-a64a-429b-8c36-907cc3bf80a0": {
+                "id": "36e8e944-a64a-429b-8c36-907cc3bf80a0",
+                "name": "Could be better",
+                "type": "AgentIntentBody",
+                "owner": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
+                "bounds": {
+                    "x": -129.5,
+                    "y": -249.5,
+                    "width": 229,
+                    "height": 30
+                }
+            }
+        },
+        "relationships": {
+            "f21d5200-0820-4ea2-a1a7-1f208d8bfa3a": {
+                "id": "f21d5200-0820-4ea2-a1a7-1f208d8bfa3a",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                    "x": -210,
+                    "y": -10,
+                    "width": 190,
+                    "height": 1
+                },
+                "path": [
+                    {
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "x": 190,
+                        "y": 0
+                    }
+                ],
+                "source": {
+                    "direction": "Right",
+                    "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
+                },
+                "target": {
+                    "direction": "Downleft",
+                    "element": "269178e5-8e58-4ddc-803f-d91e99e93fde"
+                },
+                "isManuallyLayouted": false,
+                "condition": "when_intent_matched",
+                "conditionValue": "Greeting"
+            },
+            "44b4863b-d7da-4316-bfc1-8dc0cfefc2d0": {
+                "id": "44b4863b-d7da-4316-bfc1-8dc0cfefc2d0",
+                "name": "",
+                "type": "AgentStateTransitionInit",
+                "owner": null,
+                "bounds": {
+                    "x": -425,
+                    "y": -10,
+                    "width": 75,
+                    "height": 1
+                },
+                "path": [
+                    {
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "x": 75,
+                        "y": 0
+                    }
+                ],
+                "source": {
+                    "direction": "Right",
+                    "element": "95bd55b0-680a-4f0c-9dd4-d4416344daca"
+                },
+                "target": {
+                    "direction": "Left",
+                    "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
+                },
+                "isManuallyLayouted": false
+            },
+            "324b41be-02fe-4dfa-8ab3-079b8e84fd01": {
+                "id": "324b41be-02fe-4dfa-8ab3-079b8e84fd01",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                    "x": 190,
+                    "y": -135,
+                    "width": 130,
+                    "height": 125
+                },
+                "path": [
+                    {
+                        "x": 0,
+                        "y": 125
+                    },
+                    {
+                        "x": 65,
+                        "y": 125
+                    },
+                    {
+                        "x": 65,
+                        "y": 0
+                    },
+                    {
+                        "x": 130,
+                        "y": 0
+                    }
+                ],
+                "source": {
+                    "direction": "Right",
+                    "element": "269178e5-8e58-4ddc-803f-d91e99e93fde"
+                },
+                "target": {
+                    "direction": "Left",
+                    "element": "83ffb8ea-e7bc-489b-b799-89c79df708b8"
+                },
+                "isManuallyLayouted": true,
+                "condition": "when_intent_matched",
+                "conditionValue": "Good"
+            },
+            "08c4c033-e087-4e5a-948d-d694f951fd9e": {
+                "id": "08c4c033-e087-4e5a-948d-d694f951fd9e",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                    "x": 190,
+                    "y": 15,
+                    "width": 120,
+                    "height": 140
+                },
+                "path": [
+                    {
+                        "x": 0,
+                        "y": 0
+                    },
+                    {
+                        "x": 60,
+                        "y": 0
+                    },
+                    {
+                        "x": 60,
+                        "y": 140
+                    },
+                    {
+                        "x": 120,
+                        "y": 140
+                    }
+                ],
+                "source": {
+                    "direction": "Downright",
+                    "element": "269178e5-8e58-4ddc-803f-d91e99e93fde"
+                },
+                "target": {
+                    "direction": "Left",
+                    "element": "d2c3ac6c-2869-4555-a599-4810168a3164"
+                },
+                "isManuallyLayouted": false,
+                "condition": "when_intent_matched",
+                "conditionValue": "Bad"
+            },
+            "b10d2d94-f9b2-431b-bce1-dea689ea34ae": {
+                "id": "b10d2d94-f9b2-431b-bce1-dea689ea34ae",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                    "x": -280,
+                    "y": -210,
+                    "width": 720,
+                    "height": 180
+                },
+                "path": [
+                    {
+                        "x": 710,
+                        "y": 40
+                    },
+                    {
+                        "x": 710,
+                        "y": 29
+                    },
+                    {
+                        "x": 0,
+                        "y": 29
+                    },
+                    {
+                        "x": 0,
+                        "y": 180
+                    }
+                ],
+                "source": {
+                    "direction": "Up",
+                    "element": "83ffb8ea-e7bc-489b-b799-89c79df708b8"
+                },
+                "target": {
+                    "direction": "Up",
+                    "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
+                },
+                "isManuallyLayouted": true,
+                "condition": "auto",
+                "conditionValue": ""
+            },
+            "a744cb97-e58a-431b-b1fa-f2dbe0905192": {
+                "id": "a744cb97-e58a-431b-b1fa-f2dbe0905192",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                    "x": -280,
+                    "y": 10,
+                    "width": 645,
+                    "height": 220
+                },
+                "path": [
+                    {
+                        "x": 645,
+                        "y": 180
+                    },
+                    {
+                        "x": 645,
+                        "y": 220
+                    },
+                    {
+                        "x": 0,
+                        "y": 220
+                    },
+                    {
+                        "x": 0,
+                        "y": 0
+                    }
+                ],
+                "source": {
+                    "direction": "Bottomleft",
+                    "element": "d2c3ac6c-2869-4555-a599-4810168a3164"
+                },
+                "target": {
+                    "direction": "Down",
+                    "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
+                },
+                "isManuallyLayouted": true,
+                "condition": "auto",                "conditionValue": ""
+            }
+        },
+  "assessments": {}
+}

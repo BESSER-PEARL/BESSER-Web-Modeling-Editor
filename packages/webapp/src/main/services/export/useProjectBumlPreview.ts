@@ -10,7 +10,7 @@ export const useProjectBumlPreview = () => {
 
     const projectPayload = JSON.parse(JSON.stringify(project));
 
-    const response = await fetch(`${BACKEND_URL}/export-project_as_buml`, {
+    const response = await fetch(`${BACKEND_URL}/export-project-as-buml`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
