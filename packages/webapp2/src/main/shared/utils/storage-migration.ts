@@ -1,5 +1,5 @@
 const STORAGE_VERSION_KEY = 'besser_storage_version';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 interface Migration {
   version: number;
@@ -30,10 +30,42 @@ interface Migration {
  * - Changing global localStorage keys or cleaning up legacy data? -> here
  */
 const migrations: Migration[] = [
-  // Global localStorage structure migrations run once on startup.
-  // Per-project schema migrations (v1->v2->v3) live in types/project.ts.
-  //
-  // Example: { version: 2, migrate: () => { /* rename old keys, clean up orphans */ } },
+  // v2: Clear incompatible data left by the legacy Apollon-based webapp (pre-v7).
+  // The old webapp stored diagrams under besser_diagram_*, besser_diagrams, besser_latest,
+  // and other keys whose data structures are incompatible with webapp2's project-based
+  // storage. Users upgrading see "Something went wrong" until they clear localStorage.
+  {
+    version: 2,
+    migrate: () => {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('besser_diagram_')) {
+          keysToRemove.push(key);
+        }
+      }
+      // Old webapp top-level keys
+      keysToRemove.push(
+        'besser_diagrams',
+        'besser_latest',
+        'besser_collaborationName',
+        'besser_collaborationColor',
+        // Legacy non-prefixed keys
+        'latestDiagram',
+        'agentConfig',
+        'agentPersonalization',
+        'github_session',
+        'github_username',
+        'last_published_token',
+        'last_published_type',
+        'umlAgentRateLimiterState',
+      );
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
+      console.info('[storage-migration] v2: Cleared legacy webapp data');
+    },
+  },
 ];
 
 export function runStorageMigrations(): void {
