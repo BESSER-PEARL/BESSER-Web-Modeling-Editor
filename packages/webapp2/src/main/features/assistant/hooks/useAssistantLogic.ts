@@ -692,7 +692,7 @@ export function useAssistantLogic({
       const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
       startTimer('response', 'Agent response time');
       startTimer('total', 'Total round-trip (response + render)');
-      const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, modelSnapshot, context, attachments);
+      const sendResult = assistantClient.sendMessage(messageText, context.activeDiagramType, context, attachments);
 
       // Analytics
       const activeModel = modelSnapshot as any;
@@ -741,7 +741,6 @@ export function useAssistantLogic({
         audioBase64,
         mimeType,
         context.activeDiagramType,
-        modelSnapshot,
         context,
       );
 
