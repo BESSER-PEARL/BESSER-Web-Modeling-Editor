@@ -656,7 +656,26 @@ export function useAssistantLogic({
         ? `${normalizedInput || 'Convert this file'} \ud83d\udcce ${Array.from(attachedFiles!).map((f) => safeName(f.name)).join(', ')}`
         : normalizedInput;
 
-      setMessages((prev) => [...prev, toKitMessage('user', displayText)]);
+      // Build attachment previews for the message bubble
+      let messageAttachments: Array<{ name: string; contentType: string; url: string }> | undefined;
+      if (hasFiles) {
+        messageAttachments = await Promise.all(
+          Array.from(attachedFiles!).map(async (file) => {
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(file);
+            });
+            return { name: file.name, contentType: file.type || 'application/octet-stream', url: dataUrl };
+          }),
+        );
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { ...toKitMessage('user', displayText), experimental_attachments: messageAttachments },
+      ]);
       setInputValue('');
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
