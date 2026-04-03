@@ -209,8 +209,8 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
             className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-between gap-2' : 'justify-center'}`}
             aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
-            <span className={`inline-flex transition-transform ${isSidebarExpanded ? '' : 'rotate-180'}`}>
-              <SidebarToggleIcon size={18} />
+            <span className="inline-flex">
+              <SidebarToggleIcon expanded={isSidebarExpanded} size={18} />
             </span>
             {isSidebarExpanded && <span className={sidebarToggleTextClass}></span>}
           </button>
