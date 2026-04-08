@@ -306,7 +306,7 @@ class ClassifierUpdate extends Component<Props, State> {
               <QuickCodeButton
                 color="primary"
                 onClick={this.createMethodWithCode}
-                title="Create method with Python code editor"
+                title="Create method with behaviour definition (Python, BAL, State Machine, Quantum Circuit)"
               >
                 📝 Code
               </QuickCodeButton>

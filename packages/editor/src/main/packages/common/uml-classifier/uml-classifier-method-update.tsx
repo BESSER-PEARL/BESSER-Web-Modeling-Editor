@@ -446,7 +446,7 @@ const UmlMethodUpdate = ({
           <CodeButton 
             color={hasCode ? "primary" : "link"} 
             onClick={toggleCodeEditor}
-            title={codeEditorOpen ? "Hide code editor" : "Show code editor"}
+            title={codeEditorOpen ? "Hide behaviour editor" : "Show behaviour editor"}
           >
             {codeEditorOpen ? 'Hide Editor' : 'Show Editor'}
           </CodeButton>
