@@ -225,17 +225,32 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   private modifyClass(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const { classId, className } = modification.target;
-    const targetId = classId || this.findClassIdByName(model, className!);
+    const target = modification.target || {};
+    const changes = modification.changes || {};
+    const { classId } = target;
+    // Accept the old class name from target.className or target.name. LLMs sometimes
+    // use target.name for the identifier when "renaming".
+    const lookupName =
+      target.className ||
+      (target as any).name ||
+      (changes as any).previousName ||
+      (changes as any).oldName;
+    const targetId = classId || (lookupName ? this.findClassIdByName(model, lookupName) : null);
 
     if (!targetId || !model.elements[targetId]) {
-      throw new Error(`Class '${className || classId}' not found in the model.`);
+      throw new Error(`Class '${lookupName || classId}' not found in the model.`);
     }
 
     const element = model.elements[targetId];
 
-    if (modification.changes.name) {
-      element.name = modification.changes.name;
+    // Accept multiple rename field names that the LLM may emit.
+    const newName =
+      changes.name ||
+      (changes as any).newName ||
+      (changes as any).className ||
+      (changes as any).newClassName;
+    if (newName && newName !== element.name) {
+      element.name = newName;
     }
 
     // Support additional class-level properties the LLM may send
@@ -450,35 +465,35 @@ export class ClassDiagramModifier implements DiagramModifier {
       }
     }
 
-    if (targetId && model.elements[targetId]) {
-      const element = model.elements[targetId];
-      const parsed = this.parseAttributeLabel(element.name || '');
-
-      if (modification.changes.name) {
-        element.name = modification.changes.name;
-      } else if (parsed.name) {
-        element.name = parsed.name;
-      }
-      if (modification.changes.visibility) {
-        element.visibility = modification.changes.visibility;
-      }
-      if (modification.changes.type) {
-        element.attributeType = normalizeType(modification.changes.type);
-      }
-
-      if (typeof modification.changes.isDerived === 'boolean') {
-        element.isDerived = modification.changes.isDerived;
-      }
-      if (modification.changes.defaultValue !== undefined) {
-        element.defaultValue = modification.changes.defaultValue;
-      }
-      if (typeof modification.changes.isOptional === 'boolean') {
-        element.isOptional = modification.changes.isOptional;
-      }
-    } else {
-      console.warn(
-        `[ClassDiagramModifier] modifyAttribute: could not find attribute '${attributeName || attributeId}' in class '${className}'`
+    if (!targetId || !model.elements[targetId]) {
+      throw new Error(
+        `Attribute '${attributeName || attributeId || modification.changes.previousName || modification.changes.name}' not found${className ? ` in class '${className}'` : ''}.`,
       );
+    }
+
+    const element = model.elements[targetId];
+    const parsed = this.parseAttributeLabel(element.name || '');
+
+    if (modification.changes.name) {
+      element.name = modification.changes.name;
+    } else if (parsed.name) {
+      element.name = parsed.name;
+    }
+    if (modification.changes.visibility) {
+      element.visibility = modification.changes.visibility;
+    }
+    if (modification.changes.type) {
+      element.attributeType = normalizeType(modification.changes.type);
+    }
+
+    if (typeof modification.changes.isDerived === 'boolean') {
+      element.isDerived = modification.changes.isDerived;
+    }
+    if (modification.changes.defaultValue !== undefined) {
+      element.defaultValue = modification.changes.defaultValue;
+    }
+    if (typeof modification.changes.isOptional === 'boolean') {
+      element.isOptional = modification.changes.isOptional;
     }
 
     return model;
@@ -521,33 +536,33 @@ export class ClassDiagramModifier implements DiagramModifier {
       }
     }
 
-    if (targetId && model.elements[targetId]) {
-      const element = model.elements[targetId];
-      const parsed = this.parseMethodLabel(element.name || '');
-      const visibilitySymbol =
-        this.visibilityToSymbol(modification.changes.visibility) || parsed.visibilitySymbol || '+';
-      const name = modification.changes.name || parsed.name || this.normalizeMethodName(element.name || '');
-      const returnType = normalizeType(modification.changes.returnType || parsed.returnType || 'any');
-      const parameters =
-        modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name) || parsed.parameters;
-      const paramStr = parameters.join(', ');
-
-      element.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
-
-      if (modification.changes.code) {
-        element.code = modification.changes.code;
-        if (!modification.changes.implementationType) {
-          element.implementationType = 'code';
-        }
-      }
-
-      if (modification.changes.implementationType) {
-        element.implementationType = modification.changes.implementationType;
-      }
-    } else {
-      console.warn(
-        `[ClassDiagramModifier] modifyMethod: could not find method '${methodName || methodId}' in class '${className}'`
+    if (!targetId || !model.elements[targetId]) {
+      throw new Error(
+        `Method '${methodName || methodId || modification.changes.previousName || modification.changes.name}' not found${className ? ` in class '${className}'` : ''}.`,
       );
+    }
+
+    const element = model.elements[targetId];
+    const parsed = this.parseMethodLabel(element.name || '');
+    const visibilitySymbol =
+      this.visibilityToSymbol(modification.changes.visibility) || parsed.visibilitySymbol || '+';
+    const name = modification.changes.name || parsed.name || this.normalizeMethodName(element.name || '');
+    const returnType = normalizeType(modification.changes.returnType || parsed.returnType || 'any');
+    const parameters =
+      modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name) || parsed.parameters;
+    const paramStr = parameters.join(', ');
+
+    element.name = `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`;
+
+    if (modification.changes.code) {
+      element.code = modification.changes.code;
+      if (!modification.changes.implementationType) {
+        element.implementationType = 'code';
+      }
+    }
+
+    if (modification.changes.implementationType) {
+      element.implementationType = modification.changes.implementationType;
     }
 
     return model;
@@ -707,67 +722,102 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
-      modification.target;
+    const target = modification.target || {};
+    const changes = modification.changes || {};
+    const { classId, attributeId, methodId, relationshipId } = target;
+    // Accept generic target.name as a fallback (LLMs sometimes use it).
+    const genericName = (target as any).name;
+    const className = target.className || (changes as any).className;
+    const attributeName = target.attributeName || (changes as any).attributeName;
+    const methodName = target.methodName || (changes as any).methodName;
+    const relationshipName = target.relationshipName || (changes as any).relationshipName;
 
     // Remove relationship
     if (relationshipId || relationshipName) {
       if (relationshipId && model.relationships?.[relationshipId]) {
         delete model.relationships[relationshipId];
-      } else if (relationshipName && model.relationships) {
+        return model;
+      }
+      if (relationshipName && model.relationships) {
+        const needle = relationshipName.trim().toLowerCase();
         for (const [relId, rel] of Object.entries(model.relationships)) {
-          if (rel.name === relationshipName) {
+          if ((rel.name || '').trim().toLowerCase() === needle) {
             delete model.relationships[relId];
-            break;
+            return model;
           }
         }
       }
-      return model;
+      throw new Error(`Relationship '${relationshipName || relationshipId}' not found in the model.`);
     }
 
     // Remove attribute
-    if ((attributeId || attributeName) && className) {
-      const classElementId = classId || this.findClassIdByName(model, className);
-      if (classElementId) {
-        const classElement = model.elements[classElementId];
-        if (classElement?.attributes) {
-          const resolvedAttrId =
-            attributeId ||
-            this.findAttributeIdByClassAndName(model, className, attributeName || modification.changes.name);
-          if (resolvedAttrId) {
-            classElement.attributes = classElement.attributes.filter((attr: string) => attr !== resolvedAttrId);
-            delete model.elements[resolvedAttrId];
-          }
-        }
+    if (attributeId || attributeName) {
+      if (!className) {
+        throw new Error(
+          `remove_element for attribute '${attributeName || attributeId}' requires a target className.`,
+        );
       }
+      const classElementId = classId || this.findClassIdByName(model, className);
+      if (!classElementId) {
+        throw new Error(`Class '${className}' not found in the model.`);
+      }
+      const classElement = model.elements[classElementId];
+      if (!classElement?.attributes?.length) {
+        throw new Error(`Class '${className}' has no attributes to remove.`);
+      }
+      const resolvedAttrId =
+        attributeId ||
+        this.findAttributeIdByClassAndName(model, className, attributeName || changes.name);
+      if (!resolvedAttrId) {
+        throw new Error(
+          `Attribute '${attributeName || attributeId}' not found in class '${className}'.`,
+        );
+      }
+      classElement.attributes = classElement.attributes.filter((attr: string) => attr !== resolvedAttrId);
+      delete model.elements[resolvedAttrId];
       return model;
     }
 
     // Remove method
-    if ((methodId || methodName) && className) {
-      const classElementId = classId || this.findClassIdByName(model, className);
-      if (classElementId) {
-        const classElement = model.elements[classElementId];
-        if (classElement?.methods) {
-          const resolvedMethodId =
-            methodId ||
-            this.findMethodIdByClassAndName(model, className, methodName || modification.changes.name);
-          if (resolvedMethodId) {
-            classElement.methods = classElement.methods.filter((method: string) => method !== resolvedMethodId);
-            delete model.elements[resolvedMethodId];
-          }
-        }
+    if (methodId || methodName) {
+      if (!className) {
+        throw new Error(
+          `remove_element for method '${methodName || methodId}' requires a target className.`,
+        );
       }
+      const classElementId = classId || this.findClassIdByName(model, className);
+      if (!classElementId) {
+        throw new Error(`Class '${className}' not found in the model.`);
+      }
+      const classElement = model.elements[classElementId];
+      if (!classElement?.methods?.length) {
+        throw new Error(`Class '${className}' has no methods to remove.`);
+      }
+      const resolvedMethodId =
+        methodId ||
+        this.findMethodIdByClassAndName(model, className, methodName || changes.name);
+      if (!resolvedMethodId) {
+        throw new Error(
+          `Method '${methodName || methodId}' not found in class '${className}'.`,
+        );
+      }
+      classElement.methods = classElement.methods.filter((method: string) => method !== resolvedMethodId);
+      delete model.elements[resolvedMethodId];
       return model;
     }
 
-    // Remove entire class
-    const targetClassId = classId || this.findClassIdByName(model, className!);
-    if (targetClassId) {
-      return ModifierHelpers.removeElementWithChildren(model, targetClassId);
+    // Remove entire class (by id, className, or generic name fallback)
+    const lookupName = className || genericName;
+    if (!classId && !lookupName) {
+      throw new Error(
+        'remove_element requires a classId, className, attributeName, methodName, or relationshipName target.',
+      );
     }
-
-    return model;
+    const targetClassId = classId || this.findClassIdByName(model, lookupName!);
+    if (!targetClassId) {
+      throw new Error(`Class '${lookupName || classId}' not found in the model.`);
+    }
+    return ModifierHelpers.removeElementWithChildren(model, targetClassId);
   }
 
   // ─── Refactoring action handlers ───────────────────────────────────────────

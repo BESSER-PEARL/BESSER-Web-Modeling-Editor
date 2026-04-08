@@ -269,6 +269,237 @@ describe('ClassDiagramModifier', () => {
       expect(attrs[0].owner).toBe('enum1');
     });
   });
+
+  // ── modify_class (rename) ───────────────────────────────────────────────
+
+  describe('modify_class', () => {
+    function modelWithPerson(): BESSERModel {
+      const m = makeEmptyModel();
+      m.elements['cls1'] = {
+        id: 'cls1',
+        name: 'Person',
+        type: 'Class',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 220, height: 90 },
+        attributes: [],
+        methods: [],
+      };
+      return m;
+    }
+
+    it('renames a class via changes.name', () => {
+      const model = modelWithPerson();
+      const mod: ModelModification = {
+        action: 'modify_class',
+        target: { className: 'Person' },
+        changes: { name: 'Agent' },
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1'].name).toBe('Agent');
+    });
+
+    it('renames a class via changes.newName alias', () => {
+      const model = modelWithPerson();
+      const mod: ModelModification = {
+        action: 'modify_class',
+        target: { className: 'Person' },
+        changes: { newName: 'Agent' } as any,
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1'].name).toBe('Agent');
+    });
+
+    it('renames a class via changes.className alias', () => {
+      const model = modelWithPerson();
+      const mod: ModelModification = {
+        action: 'modify_class',
+        target: { className: 'Person' },
+        changes: { className: 'Agent' } as any,
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1'].name).toBe('Agent');
+    });
+
+    it('renames a class when target uses generic name field', () => {
+      const model = modelWithPerson();
+      const mod: ModelModification = {
+        action: 'modify_class',
+        target: { name: 'Person' } as any,
+        changes: { name: 'Agent' },
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1'].name).toBe('Agent');
+    });
+
+    it('finds the class case-insensitively when renaming', () => {
+      const model = modelWithPerson();
+      const mod: ModelModification = {
+        action: 'modify_class',
+        target: { className: 'person' },
+        changes: { name: 'Agent' },
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1'].name).toBe('Agent');
+    });
+
+    it('throws when the target class does not exist', () => {
+      const model = modelWithPerson();
+      const mod: ModelModification = {
+        action: 'modify_class',
+        target: { className: 'Unknown' },
+        changes: { name: 'Agent' },
+      };
+
+      expect(() => modifier.applyModification(model, mod)).toThrow(/not found/i);
+    });
+  });
+
+  // ── remove_element ──────────────────────────────────────────────────────
+
+  describe('remove_element', () => {
+    function modelWithClassAndRelationship(): BESSERModel {
+      const m = makeEmptyModel();
+      m.elements['cls1'] = {
+        id: 'cls1',
+        name: 'Person',
+        type: 'Class',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 220, height: 90 },
+        attributes: ['attr1'],
+        methods: [],
+      };
+      m.elements['cls2'] = {
+        id: 'cls2',
+        name: 'Address',
+        type: 'Class',
+        owner: null,
+        bounds: { x: 300, y: 0, width: 220, height: 90 },
+        attributes: [],
+        methods: [],
+      };
+      m.elements['attr1'] = {
+        id: 'attr1',
+        name: 'name',
+        type: 'ClassAttribute',
+        owner: 'cls1',
+        bounds: { x: 1, y: 50, width: 218, height: 25 },
+        visibility: 'public',
+        attributeType: 'str',
+      };
+      m.relationships['rel1'] = {
+        id: 'rel1',
+        name: 'lives_at',
+        type: 'ClassAssociation',
+        source: { element: 'cls1' },
+        target: { element: 'cls2' },
+      };
+      return m;
+    }
+
+    it('removes a class by className', () => {
+      const model = modelWithClassAndRelationship();
+      const mod: ModelModification = {
+        action: 'remove_element',
+        target: { className: 'Person' },
+        changes: {},
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1']).toBeUndefined();
+      // Cascading: child attribute removed too
+      expect(result.elements['attr1']).toBeUndefined();
+      // Cascading: relationships referencing the class removed too
+      expect(result.relationships['rel1']).toBeUndefined();
+    });
+
+    it('removes a class case-insensitively', () => {
+      const model = modelWithClassAndRelationship();
+      const mod: ModelModification = {
+        action: 'remove_element',
+        target: { className: 'person' },
+        changes: {},
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1']).toBeUndefined();
+    });
+
+    it('removes a class when target uses generic name field', () => {
+      const model = modelWithClassAndRelationship();
+      const mod: ModelModification = {
+        action: 'remove_element',
+        target: { name: 'Person' } as any,
+        changes: {},
+      };
+
+      const result = modifier.applyModification(model, mod);
+      expect(result.elements['cls1']).toBeUndefined();
+    });
+
+    it('throws when the class to remove does not exist', () => {
+      const model = modelWithClassAndRelationship();
+      const mod: ModelModification = {
+        action: 'remove_element',
+        target: { className: 'Unknown' },
+        changes: {},
+      };
+
+      expect(() => modifier.applyModification(model, mod)).toThrow(/not found/i);
+    });
+
+    it('throws when no target is provided', () => {
+      const model = modelWithClassAndRelationship();
+      const mod: ModelModification = {
+        action: 'remove_element',
+        target: {},
+        changes: {},
+      };
+
+      expect(() => modifier.applyModification(model, mod)).toThrow();
+    });
+
+    it('removes an attribute and throws when not found', () => {
+      const model = modelWithClassAndRelationship();
+      const ok: ModelModification = {
+        action: 'remove_element',
+        target: { className: 'Person', attributeName: 'name' },
+        changes: {},
+      };
+      const result = modifier.applyModification(model, ok);
+      expect(result.elements['attr1']).toBeUndefined();
+      expect(result.elements['cls1'].attributes).toEqual([]);
+
+      const missing: ModelModification = {
+        action: 'remove_element',
+        target: { className: 'Person', attributeName: 'unknown' },
+        changes: {},
+      };
+      expect(() => modifier.applyModification(model, missing)).toThrow(/not found/i);
+    });
+
+    it('removes a relationship by name and throws when not found', () => {
+      const model = modelWithClassAndRelationship();
+      const ok: ModelModification = {
+        action: 'remove_element',
+        target: { relationshipName: 'lives_at' },
+        changes: {},
+      };
+      const result = modifier.applyModification(model, ok);
+      expect(result.relationships['rel1']).toBeUndefined();
+
+      const missing: ModelModification = {
+        action: 'remove_element',
+        target: { relationshipName: 'unknown' },
+        changes: {},
+      };
+      expect(() => modifier.applyModification(model, missing)).toThrow(/not found/i);
+    });
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
