@@ -97,27 +97,6 @@ export const UMLElementCommonRepository = {
       });
     },
 
-  /** Start a connection to an element */
-  add:
-    (id?: string | string[]): AsyncAction =>
-    (dispatch, getState) => {
-      const { elements, selected } = getState();
-      const ids = id ? (Array.isArray(id) ? id : [id]) : selected;
-
-      const roots = filterRoots(ids, elements);
-      if (!roots.length) {
-        return;
-      }
-
-      dispatch<RemoveAction>(UMLContainerRepository.remove(roots));
-
-      dispatch<DeleteAction>({
-        type: UMLElementActionTypes.DELETE,
-        payload: { ids: getChildren(roots, elements) },
-        undoable: false,
-      });
-    },
-
   /** Composes the absolute position of an element */
   getAbsolutePosition:
     (id: string): AsyncAction<Point> =>

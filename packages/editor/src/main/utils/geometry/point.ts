@@ -14,7 +14,9 @@ export class Point implements IPoint {
   }
 
   normalize(): Point {
-    return new Point(this.x / this.length, this.y / this.length);
+    const len = this.length;
+    if (len === 0) return new Point(0, 0);
+    return new Point(this.x / len, this.y / len);
   }
 
   add(x: number, y: number): Point;

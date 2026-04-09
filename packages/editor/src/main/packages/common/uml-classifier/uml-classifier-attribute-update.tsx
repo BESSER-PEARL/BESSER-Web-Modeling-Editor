@@ -11,7 +11,7 @@ import { Visibility } from './uml-classifier-member';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 4px;
 `;
@@ -19,23 +19,27 @@ const Flex = styled.div`
 const AttributeRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 2px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+  }
 `;
 
 const ControlsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 `;
 
 const VisibilityDropdown = styled(Dropdown)`
-  min-width: 80px;
+  min-width: 44px;
   flex-shrink: 0;
 `;
 
 const TypeDropdown = styled(Dropdown)`
-  min-width: 100px;
+  min-width: 80px;
   flex-shrink: 0;
 `;
 
@@ -119,6 +123,7 @@ type AttributeValues = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
   defaultValue?: any;
   fillColor?: string;
   textColor?: string;
@@ -132,6 +137,7 @@ type Props = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
   defaultValue?: any;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
@@ -181,6 +187,7 @@ const UmlAttributeUpdate = ({
   visibility: propVisibility,
   attributeType: propAttributeType,
   isOptional: propIsOptional,
+  isDerived: propIsDerived,
   defaultValue: propDefaultValue,
   onChange,
   onSubmitKeyUp,
@@ -198,7 +205,7 @@ const UmlAttributeUpdate = ({
   // For enumerations, just use the value as-is (it's a literal name)
   if (isEnumeration) {
     const handleNameChange = (newName: string | number) => {
-      const nameStr = String(newName);
+      const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
       onChange(id, { name: nameStr });
     };
 
@@ -245,6 +252,7 @@ const UmlAttributeUpdate = ({
   }
 
   const isOptional = propIsOptional || false;
+  const isDerived = propIsDerived || false;
   const defaultValue = propDefaultValue;
 
   // Get available enumerations from the model
@@ -258,17 +266,19 @@ const UmlAttributeUpdate = ({
       visibility: vis,
       attributeType,
       isOptional,
+      isDerived,
       defaultValue,
     });
   };
 
   const handleNameChange = (newName: string | number) => {
-    const nameStr = String(newName);
+    const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
     onChange(id, {
       name: nameStr,
       visibility,
       attributeType,
       isOptional,
+      isDerived,
       defaultValue,
     });
   };
@@ -280,6 +290,7 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType: typeStr,
       isOptional,
+      isDerived,
       defaultValue,
     });
   };
@@ -290,6 +301,18 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional: checked,
+      isDerived,
+      defaultValue,
+    });
+  };
+
+  const handleDerivedChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      isOptional,
+      isDerived: checked,
       defaultValue,
     });
   };
@@ -300,6 +323,7 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional,
+      isDerived,
       defaultValue: newDefaultValue || undefined,
     });
   };
@@ -345,6 +369,8 @@ const UmlAttributeUpdate = ({
         textColor
         isOptional={isOptional}
         onOptionalChange={handleOptionalChange}
+        isDerived={isDerived}
+        onDerivedChange={handleDerivedChange}
         defaultValue={defaultValue}
         onDefaultValueChange={handleDefaultValueChange}
       />

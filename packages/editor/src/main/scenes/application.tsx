@@ -11,6 +11,7 @@ import { PartialModelState } from '../components/store/model-state';
 import { ModelStore, StoreProvider } from '../components/store/model-store';
 import { Styles } from '../components/theme/styles';
 import { Theme } from '../components/theme/theme';
+import { PropertiesPanel } from '../components/properties-panel';
 import { UpdatePane } from '../components/update-pane/update-pane';
 import { AssociationPopupComponent } from '../components/association-popup/association-popup';
 import { ILayer } from '../services/layouter/layer';
@@ -20,6 +21,7 @@ import { RootContext, RootProvider } from '../components/root/root-context';
 import { UMLModel } from '../typings';
 import { Patcher } from '../services/patcher';
 import { MouseEventListener } from '../components/canvas/mouse-eventlistener';
+import { settingsService } from '../services/settings/settings-service';
 
 type Props = {
   patcher: Patcher<UMLModel>;
@@ -28,15 +30,20 @@ type Props = {
   locale?: Locale;
 };
 
-const initialState = Object.freeze({
-  canvas: null as ILayer | null,
-  root: null as HTMLDivElement | null,
+type State = {
+  canvas: ILayer | null;
+  root: HTMLDivElement | null;
+  usePropertiesPanel: boolean;
+};
+
+const initialState: State = Object.freeze({
+  canvas: null,
+  root: null,
+  usePropertiesPanel: settingsService.shouldUsePropertiesPanel(),
 });
 
-type State = typeof initialState;
-
 export class Application extends React.Component<Props, State> {
-  state = initialState;
+  state = { ...initialState };
 
   store?: ModelStore;
 
@@ -44,6 +51,17 @@ export class Application extends React.Component<Props, State> {
   private initializedPromise: Promise<void> = new Promise((resolve) => {
     this.resolveInitialized = resolve;
   });
+  private unsubscribeSettings?: () => void;
+
+  componentDidMount() {
+    this.unsubscribeSettings = settingsService.onSettingsChange((settings) => {
+      this.setState({ usePropertiesPanel: settings.usePropertiesPanel });
+    });
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeSettings?.();
+  }
 
   setCanvas = (ref: CanvasComponent) => {
     if (ref && ref.layer.current) {
@@ -76,24 +94,27 @@ export class Application extends React.Component<Props, State> {
               <Theme styles={this.props.styles}>
                 <Layout className="apollon-editor" ref={this.setLayout}>
                   {rootContext && (
-                    <DraggableLayer>
-                      {canvasContext && (
-                        <>
-                          <UpdatePane />
-                          <AssociationPopupComponent />
-                          <Sidebar />
-                          <KeyboardEventListener />
-                        </>
-                      )}
-                      <Editor>
-                        <Canvas ref={this.setCanvas} />
-                      </Editor>
-                      {canvasContext && (
-                        <>
-                          <MouseEventListener />
-                        </>
-                      )}
-                    </DraggableLayer>
+                    <>
+                      <div style={{ flex: '1 1 0%', minWidth: 0, position: 'relative', display: 'flex' }}>
+                        <DraggableLayer>
+                          {canvasContext && (
+                            <>
+                              {!this.state.usePropertiesPanel && <UpdatePane />}
+                              <AssociationPopupComponent />
+                              <Sidebar />
+                              <KeyboardEventListener />
+                            </>
+                          )}
+                          <Editor>
+                            <Canvas ref={this.setCanvas} />
+                          </Editor>
+                          {canvasContext && (
+                            <MouseEventListener />
+                          )}
+                        </DraggableLayer>
+                      </div>
+                      {canvasContext && this.state.usePropertiesPanel && <PropertiesPanel />}
+                    </>
                   )}
                 </Layout>
               </Theme>

@@ -50,7 +50,8 @@
       "ClassDependency": "Dependency",
       "ClassInheritance": "Generalization",
       "ClassRealization": "Realization",
-      "ClassUnidirectional": "Association (unidirectional)"
+      "ClassUnidirectional": "Association (unidirectional)",
+      "ClassOCLConstraint": "OCL Constraint"
     },
     "ObjectDiagram": {
       "ObjectName": "Object",
@@ -198,6 +199,8 @@
       "BatchNormalizationLayer": "Batch Normalization Layer",
       "TensorOp": "Tensor Operation",
       "Configuration": "Configuration"
+    },
+    "OCLConstraint": {
+      "Constraint": "OCL Constraint"
     }
-  }
 }

@@ -110,7 +110,7 @@ export const registerMetricCardComponent = (editor: any, config: MetricCardConfi
         const dataSourceTrait = traits.where({ name: 'data-source' })[0];
         if (dataSourceTrait) {
           const classOptions = getClassOptions();
-          console.log('📊 Metric Card - Loading class options:', classOptions);
+          // console.log('📊 Metric Card - Loading class options:', classOptions);
           dataSourceTrait.set('options', classOptions);
         }
 

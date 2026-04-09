@@ -44,18 +44,22 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
   const fill = element.textColor ? { fill: element.textColor } : {};
 
   const getConditionName = () => {
-    if (!element.condition) return '';
+    const predefinedType = element.predefinedType;
 
+    if (element.transitionType === 'custom') {
+      return 'Custom Transition';
+    }
 
-    if (element.condition === 'when_intent_matched') {
+    if (!predefinedType) return '';
+    if (predefinedType === 'when_intent_matched') {
       return 'When Intent Matched:';
-    } else if (element.condition === 'when_no_intent_matched') {
+    } else if (predefinedType === 'when_no_intent_matched') {
       return 'When No Intent Matched';
-    } else if (element.condition === 'when_variable_operation_matched') {
+    } else if (predefinedType === 'when_variable_operation_matched') {
       return 'When Variable Operation Matched';
-    } else if (element.condition === 'when_file_received') {
+    } else if (predefinedType === 'when_file_received') {
       return 'When File Received';
-    } else if (element.condition === 'auto') {
+    } else if (predefinedType === 'auto') {
       return 'Auto';
     }
 
@@ -72,30 +76,38 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
   };
 
   const getConditionValue = () => {
-    if (!element.condition) return '';
+    const predefinedType = element.predefinedType;
 
-    if (element.condition === 'when_intent_matched') {
+    if (element.transitionType === 'custom') {
+      const eventValue = element.event || 'WildcardEvent';
+      const eventLabel = eventValue === 'None' ? 'No event' : eventValue;
+      const totalConditions = element.conditions?.length || 0;
+      return `${eventLabel} + ${totalConditions} condition(s)`;
+    }
+
+    if (!predefinedType) return '';
+    if (predefinedType === 'when_intent_matched') {
       if (element.intentName) {
         return `${element.intentName}`;
       }
       else {
         return 'No intent name provided';
       }
-    } else if (element.condition === 'when_no_intent_matched') {
+    } else if (predefinedType === 'when_no_intent_matched') {
       return '';
 
-    } else if (element.condition === 'when_variable_operation_matched') {
+    } else if (predefinedType === 'when_variable_operation_matched') {
       if (element.variable && element.operator && element.targetValue) {
         return `session(${element.variable}) ${element.operator} ${element.targetValue}`;
       }
       else {
         return 'Either variable, operator or target value is not provided';
       }
-    } else if (element.condition === 'when_file_received') {
+    } else if (predefinedType === 'when_file_received') {
       if (element.fileType) {
         return `${element.fileType}`;
       }
-    } else if (element.condition === 'auto') {
+    } else if (predefinedType === 'auto') {
       return '';
     }
     return "No condition value selected"

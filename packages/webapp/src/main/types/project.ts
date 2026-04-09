@@ -28,6 +28,7 @@ export interface ProjectDiagram {
   model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
   lastUpdate: string;
   description?: string;
+  config?: Record<string, unknown>;  // agent LLM/platform/IC config
 }
 
 export type ProjectDiagramModel = UMLModel | GrapesJSProjectData;

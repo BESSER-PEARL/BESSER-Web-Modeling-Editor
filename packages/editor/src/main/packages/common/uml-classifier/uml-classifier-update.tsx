@@ -30,8 +30,9 @@ import { diagramBridge } from '../../../services/diagram-bridge';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
 `;
 
 const InputRow = styled.div`
@@ -44,6 +45,18 @@ const QuickCodeButton = styled(Button)`
   white-space: nowrap;
   padding: 4px 12px;
   font-size: 12px;
+`;
+
+const Section = styled.section`
+  padding: 8px 0;
+`;
+
+const SectionHeader = styled(Header)`
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  margin-bottom: 4px;
 `;
 
 interface OwnProps {
@@ -125,7 +138,7 @@ class ClassifierUpdate extends Component<Props, State> {
 
     return (
       <div>
-        <section>
+        <Section>
           <Flex>
             <Textfield value={element.name} onChange={this.rename(element.id)} autoFocus />
             <ColorButton onClick={this.toggleColor} />
@@ -145,9 +158,9 @@ class ClassifierUpdate extends Component<Props, State> {
             lineColor
             textColor
           />
-          <Divider />
-        </section>
-        <section>
+        </Section>
+        <Divider />
+        <Section>
           <Switch value={element.type as keyof typeof ClassElementType} onChange={this.toggle} color="primary">
             <Switch.Item value={ClassElementType.AbstractClass}>
               {this.props.translate('packages.ClassDiagram.AbstractClass')}
@@ -160,14 +173,14 @@ class ClassifierUpdate extends Component<Props, State> {
               {this.props.translate('packages.ClassDiagram.Enumeration')}
             </Switch.Item>
           </Switch>
-          <Divider />
-        </section>
-        <section>
-          <Header>
-            {isEnumeration 
-              ? this.props.translate('popup.literals') 
+        </Section>
+        <Divider />
+        <Section>
+          <SectionHeader>
+            {isEnumeration
+              ? this.props.translate('popup.literals')
               : this.props.translate('popup.attributes')}
-          </Header>
+          </SectionHeader>
           {attributes.map((attribute, index) => {
             const attrMember = attribute as UMLClassifierMember;
             return (
@@ -178,6 +191,7 @@ class ClassifierUpdate extends Component<Props, State> {
                 visibility={attrMember.visibility}
                 attributeType={attrMember.attributeType}
                 isOptional={attrMember.isOptional}
+                isDerived={attrMember.isDerived}
                 defaultValue={attrMember.defaultValue}
                 onChange={this.props.update}
                 onSubmitKeyUp={() =>
@@ -233,18 +247,19 @@ class ClassifierUpdate extends Component<Props, State> {
               }
             }}
           />
-        </section>
+        </Section>
         {!isEnumeration && (
-          <section>
+          <>
             <Divider />
-            <Header>{this.props.translate('popup.methods')}</Header>
+            <Section>
+              <SectionHeader>{this.props.translate('popup.methods')}</SectionHeader>
             {methods.map((method, index) => {
               const methodMember = method as UMLClassifierMember;
               return (
                 <UmlMethodUpdate
                   id={method.id}
                   key={method.id}
-                  value={method.name}
+                  value={methodMember.displayName}
                   code={methodMember.code || ''}
                   implementationType={methodMember.implementationType || 'none'}
                   stateMachineId={methodMember.stateMachineId || ''}
@@ -296,7 +311,8 @@ class ClassifierUpdate extends Component<Props, State> {
                 📝 Code
               </QuickCodeButton>
             </InputRow>
-          </section>
+            </Section>
+          </>
         )}
       </div>
     );
@@ -338,7 +354,8 @@ class ClassifierUpdate extends Component<Props, State> {
   };
 
   private rename = (id: string) => (value: string) => {
-    this.props.update(id, { name: value });
+    const sanitized = value.replace(/[^a-zA-Z0-9_]/g, '');
+    this.props.update(id, { name: sanitized });
   };
 
   private toggle = (type: keyof typeof ClassElementType) => {

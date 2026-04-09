@@ -111,7 +111,6 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
         height: height || 50,
       };
     } catch (error) {
-      console.warn('Error parsing SVG:', error);
       return { width: 50, height: 50 };
     }
   }

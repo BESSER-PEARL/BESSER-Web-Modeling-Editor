@@ -116,6 +116,11 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
     if (!prevProps.isOpen && this.props.isOpen) {
       setTimeout(this.position, 0);
       this.ignoreNextDocumentClick = true;
+      // Safety timeout: reset the flag in case the expected click event never fires,
+      // preventing it from permanently blocking legitimate outside clicks.
+      setTimeout(() => {
+        this.ignoreNextDocumentClick = false;
+      }, 100);
     }
   }
 

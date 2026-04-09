@@ -12,6 +12,7 @@ The BESSER Web Modeling Editor supports a variety of diagram types to cover diff
    state-machine-diagram
    agent-diagram
    gui-diagram
+   quantum-circuit-diagram
 
 Overview
 --------
@@ -21,3 +22,4 @@ Overview
 *   **State Machine Diagrams**: Model the dynamic behavior of objects as they transition between states.
 *   **Agent Diagrams**: Design the flow and behavior of conversational agents.
 *   **GUI Diagrams**: Create mockups and designs for graphical user interfaces.
+*   **Quantum Circuit Diagrams**: Design quantum circuits with gates and qubits for Qiskit code generation.

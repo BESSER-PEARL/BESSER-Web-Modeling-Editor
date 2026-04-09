@@ -102,21 +102,61 @@ function* update(): SagaIterator {
       continue;
     }
     
-    // Skip recalculation for property panel updates if the relationship is manually laid out
+    // For property panel updates on manually laid out relationships,
+    // only skip recalculation if the connected elements haven't changed position.
+    // This ensures that endpoint positions stay correct when source/target elements move.
     if (isLikelyPanelUpdate && elements[value.id].isManuallyLayouted) {
-      // If this is a property panel update on a manually laid out relationship,
-      // ensure the isManuallyLayouted flag is preserved
-      yield put<UpdateAction>({
-        type: UMLElementActionTypes.UPDATE,
-        payload: { 
-          values: [{ 
-            id: value.id, 
-            isManuallyLayouted: true 
-          }]
-        },
-        undoable: false
-      });
-      continue;
+      const rel = elements[value.id] as IUMLRelationship;
+      const sourceEl = elements[rel.source.element];
+      const targetEl = elements[rel.target.element];
+
+      if (sourceEl && targetEl) {
+        // Compute current absolute positions of source and target
+        const sourceAbsPos: { x: number; y: number } = yield select((state: ModelState) => {
+          let el = state.elements[rel.source.element];
+          let x = el.bounds.x;
+          let y = el.bounds.y;
+          while (el.owner) {
+            el = state.elements[el.owner];
+            x += el.bounds.x;
+            y += el.bounds.y;
+          }
+          return { x, y };
+        });
+        const targetAbsPos: { x: number; y: number } = yield select((state: ModelState) => {
+          let el = state.elements[rel.target.element];
+          let x = el.bounds.x;
+          let y = el.bounds.y;
+          while (el.owner) {
+            el = state.elements[el.owner];
+            x += el.bounds.x;
+            y += el.bounds.y;
+          }
+          return { x, y };
+        });
+
+        // Compare with the relationship's current bounds to detect if elements moved.
+        // The relationship path is relative to its own bounds origin. If source/target
+        // absolute positions haven't changed relative to what we last computed, skip.
+        const relBounds = rel.bounds;
+        const pathStart = rel.path?.[0];
+        const pathEnd = rel.path?.[rel.path.length - 1];
+
+        const sourceChanged =
+          !pathStart ||
+          Math.abs(sourceAbsPos.x - (relBounds.x + pathStart.x)) > 1 ||
+          Math.abs(sourceAbsPos.y - (relBounds.y + pathStart.y)) > 1;
+        const targetChanged =
+          !pathEnd ||
+          Math.abs(targetAbsPos.x - (relBounds.x + pathEnd.x)) > 1 ||
+          Math.abs(targetAbsPos.y - (relBounds.y + pathEnd.y)) > 1;
+
+        if (!sourceChanged && !targetChanged) {
+          // Elements haven't moved - safe to skip recalculation
+          continue;
+        }
+        // Elements have moved - fall through to recalculate
+      }
     }
 
     yield call(recalc, value.id);
@@ -143,6 +183,7 @@ function* layoutElement(): SagaIterator {
         allUpdates.add(relationship.id);
         continue loop;
       }
+      if (!elements[source]) break;
       source = elements[source].owner;
     }
     let target: string | null = relationship.target.element;
@@ -152,6 +193,7 @@ function* layoutElement(): SagaIterator {
         allUpdates.add(relationship.id);
         continue loop;
       }
+      if (!elements[target]) break;
       target = elements[target].owner;
     }
   }
@@ -232,28 +274,52 @@ export function* recalc(id: string): SagaIterator {
 
   // Check if source is a relationship
   let source;
-  if (UMLRelationship.isUMLRelationship(elements[relationship.source.element])) {
-    source = UMLRelationshipRepository.get(elements[relationship.source.element]);
+  const sourceElement = elements[relationship.source.element];
+  if (!sourceElement) return;
+  if (UMLRelationship.isUMLRelationship(sourceElement)) {
+    source = UMLRelationshipRepository.get(sourceElement);
   } else {
-    source = UMLElementRepository.get(elements[relationship.source.element]);
+    source = UMLElementRepository.get(sourceElement);
   }
 
   // Check if target is a relationship
   let target;
-  if (UMLRelationship.isUMLRelationship(elements[relationship.target.element])) {
-    target = UMLRelationshipRepository.get(elements[relationship.target.element]);
+  const targetElement = elements[relationship.target.element];
+  if (!targetElement) return;
+  if (UMLRelationship.isUMLRelationship(targetElement)) {
+    target = UMLRelationshipRepository.get(targetElement);
   } else {
-    target = UMLElementRepository.get(elements[relationship.target.element]);
+    target = UMLElementRepository.get(targetElement);
   }
   
   if (!source || !target) {
     return;
   }
 
-  const sourcePosition = yield put(UMLElementRepository.getAbsolutePosition(relationship.source.element));
+  const sourcePosition = yield select((state: ModelState) => {
+    let element = state.elements[relationship.source.element];
+    let x = element.bounds.x;
+    let y = element.bounds.y;
+    while (element.owner) {
+      element = state.elements[element.owner];
+      x += element.bounds.x;
+      y += element.bounds.y;
+    }
+    return { x, y };
+  });
   source.bounds = { ...source.bounds, ...sourcePosition };
 
-  const targetPosition = yield put(UMLElementRepository.getAbsolutePosition(relationship.target.element));
+  const targetPosition = yield select((state: ModelState) => {
+    let element = state.elements[relationship.target.element];
+    let x = element.bounds.x;
+    let y = element.bounds.y;
+    while (element.owner) {
+      element = state.elements[element.owner];
+      x += element.bounds.x;
+      y += element.bounds.y;
+    }
+    return { x, y };
+  });
   target.bounds = { ...target.bounds, ...targetPosition };
 
   const original = elements[id] as any;
