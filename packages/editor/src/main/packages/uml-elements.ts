@@ -223,7 +223,7 @@ import {
   InputReusedAttributeDropout,
 } from './nn-diagram/nn-dropout-attributes/dropout-attributes';
 
-import { LayerNormalizationLayer } from './nn-diagram/nn-layernormalization-layer/nn-layernormalization';
+import { LayerNormalizationLayer } from './nn-diagram/nn-layernormalization-layer/nn-layernormalization-layer';
 import {
   NameAttributeLayerNormalization,
   NormalizedShapeAttributeLayerNormalization,

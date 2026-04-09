@@ -30,7 +30,7 @@ import { LinearLayer } from '../nn-linear-layer/nn-linear-layer';
 import { FlattenLayer } from '../nn-flatten-layer/nn-flatten-layer';
 import { EmbeddingLayer } from '../nn-embedding-layer/nn-embedding-layer';
 import { DropoutLayer } from '../nn-dropout-layer/nn-dropout-layer';
-import { LayerNormalizationLayer } from '../nn-layernormalization-layer/nn-layernormalization';
+import { LayerNormalizationLayer } from '../nn-layernormalization-layer/nn-layernormalization-layer';
 import { BatchNormalizationLayer } from '../nn-batchnormalization-layer/nn-batchnormalization-layer';
 import { TensorOp } from '../nn-tensorop/nn-tensorop';
 import { Configuration } from '../nn-configuration/nn-configuration';
