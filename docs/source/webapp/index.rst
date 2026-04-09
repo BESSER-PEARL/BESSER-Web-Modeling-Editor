@@ -1,26 +1,26 @@
 Web Application
 ===============
 
-The ``packages/webapp`` workspace is a React single-page application that wraps
-the editor engine with project management, collaboration, and code generation
-features. It is the application deployed at
-https://editor.besser-pearl.org.
+The ``packages/webapp2`` workspace is a React single-page application built with
+Vite, Radix UI, and Tailwind CSS. It wraps the editor engine with project
+management, collaboration, and code generation features. It is the application
+deployed at https://editor.besser-pearl.org.
 
 Highlights
 ----------
 
 * **Project-first experience** – users work on named projects that bundle
-  multiple diagrams (Class, Object, State Machine, Agent) stored in the browser
+  multiple diagrams (Class, Object, State Machine, Agent, GUI, Quantum Circuit) stored in the browser
   via ``ProjectStorageRepository``.
 * **Redux Toolkit architecture** – feature slices live under
-  ``src/main/services`` (for example, ``diagramSlice.ts`` and
-  ``projectSlice.ts``) with typed hooks in ``components/store``.
+  ``src/main/app/store`` (for example, ``workspaceSlice.ts`` and
+  ``errorManagementSlice.ts``) with typed hooks in ``hooks/``.
 * **Local-first collaboration** – collaboration components establish WebSocket
   connections to the Express server when the user enters a collaboration token.
   Diagram changes propagate through JSON Patch streams using the editor's
   patcher service.
 * **Code generation and deployment helpers** – hooks in
-  ``services/generate-code`` call the BESSER backend (`BACKEND_URL`) to produce
+  ``hooks/`` call the BESSER backend (`BACKEND_URL`) to produce
   Django, SQL, SQLAlchemy, JSON Schema, and agent artefacts.
 * **Observability and analytics** – optional PostHog and Sentry integration via
   env-configured keys.
@@ -28,22 +28,25 @@ Highlights
 Directory tour
 --------------
 
-``src/main/application.tsx``
+``src/main/app/application.tsx``
    Root component that wires routing, modals, the application bar, sidebar
    layout, project settings, and the editor containers.
 
-``components/apollon-editor-component``  
-   React wrappers around ``ApollonEditor``. ``ApollonEditorComponent`` handles
-   local editing, while ``ApollonEditorComponentWithConnection`` adds
-   WebSocket-based collaboration.
+``features/editors/uml/ApollonEditorComponent.tsx``
+   React wrapper around ``ApollonEditor``. Handles local editing with
+   autosave and palette integration.
 
-``services``  
-   Business logic split by domains (diagram, project, import/export, share,
-   generate-code, validation, storage). Each service exposes Redux slices,
-   repositories, or hooks with a consistent naming convention.
+``app/store``
+   Redux slices: ``workspaceSlice.ts`` manages project, diagram, and editor
+   state in a single unified slice. ``errorManagementSlice.ts`` handles error
+   boundaries.
 
-``templates`` and ``assets``  
-   Provide starter diagrams, UI icons, and static images copied to the build.
+``shared/services``
+   Business logic for storage, validation, analytics, and file operations.
+   Feature-specific logic (import, export, generation) lives under ``features/``.
+
+``templates``
+   Starter diagrams and static assets copied to the build.
 
 Integration points
 ------------------
@@ -57,5 +60,5 @@ Integration points
   (for example, ``besser_project_<id>``). See :doc:`local-projects` for details.
 
 Before modifying the webapp, familiarise yourself with the state shape defined
-in ``services/project/projectSlice.ts`` and the reusable hooks in
-``components/store/hooks.ts``. They are the backbone of the UI.
+in ``app/store/workspaceSlice.ts`` and the reusable hooks in
+``hooks/``. They are the backbone of the UI.

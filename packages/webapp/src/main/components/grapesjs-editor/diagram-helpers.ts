@@ -158,33 +158,48 @@ export function getEndsByClassId(classId: string, includeInherited: boolean = tr
     return [];
   }
 
-
-  // Get direct association ends, filtering out OCL constraint associations
+  // Only return association ends with navigability from the given class
   const directEnds = Object.values(classDiagram.relationships)
     .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
     .map((relationship: any) => {
-      let otherElementId: string | null = null;
-      let role: string | null = null;
-      if (relationship?.source?.element === classId) {
-        otherElementId = relationship.target.element;
-        role = relationship.target.role;
-      } else if (relationship?.target?.element === classId) {
-        otherElementId = relationship.source.element;
-        role = relationship.source.role;
-      }
-      if (otherElementId) {
-        // Check if the other element is an OCL constraint
-        const otherElement = classDiagram.elements?.[otherElementId];
-        if (otherElement?.type === 'ClassOCLConstraint') {
-          return null;
+      // For bidirectional, both ends are navigable
+      if (relationship.type === 'ClassBidirectional') {
+        if (relationship.source.element === classId) {
+          // Navigable from source to target
+          const otherElementId = relationship.target.element;
+          const role = relationship.target.role;
+          const otherElement = classDiagram.elements?.[otherElementId];
+          if (otherElement?.type === 'ClassOCLConstraint') return null;
+          let label = role;
+          if (!label || label.trim() === '') label = otherElement?.name || '';
+          return { value: otherElementId, label };
         }
-        // If role (end name) is missing, use the class name as label
-        let label = role;
-        if (!label || label.trim() === '') {
-          label = otherElement?.name || '';
+        if (relationship.target.element === classId) {
+          // Navigable from target to source
+          const otherElementId = relationship.source.element;
+          const role = relationship.source.role;
+          const otherElement = classDiagram.elements?.[otherElementId];
+          if (otherElement?.type === 'ClassOCLConstraint') return null;
+          let label = role;
+          if (!label || label.trim() === '') label = otherElement?.name || '';
+          return { value: otherElementId, label };
         }
-        return { value: otherElementId, label };
       }
+      // For unidirectional, only source can navigate to target
+      if (relationship.type === 'ClassUnidirectional') {
+        if (relationship.source.element === classId) {
+          // Navigable from source to target
+          const otherElementId = relationship.target.element;
+          const role = relationship.target.role;
+          const otherElement = classDiagram.elements?.[otherElementId];
+          if (otherElement?.type === 'ClassOCLConstraint') return null;
+          let label = role;
+          if (!label || label.trim() === '') label = otherElement?.name || '';
+          return { value: otherElementId, label };
+        }
+        // If classId is target, no navigability, so skip
+      }
+      // For other types, skip
       return null;
     })
     .filter((end): end is { value: string; label: string } => end !== null);

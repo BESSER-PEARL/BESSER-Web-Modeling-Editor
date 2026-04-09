@@ -29,17 +29,16 @@ const StyledEditor = styled.div<{ $scale: number }>`
 
   -ms-overflow-style: -ms-autohiding-scrollbar;
   border: ${borderWidth}px solid ${(props) => props.theme.color.gray};
+  background-color: ${(props) => props.theme.color.background};
   background-position: calc(50% + ${(grid * subdivisions - borderWidth) / 2}px)
     calc(50% + ${(grid * subdivisions - borderWidth) / 2}px);
   background-size:
     ${grid * subdivisions}px ${grid * subdivisions}px,
     ${grid * subdivisions}px ${grid * subdivisions}px,
-    ${grid}px ${grid}px,
     ${grid}px ${grid}px;
   background-image: linear-gradient(to right, ${(props) => props.theme.color.grid} 1px, transparent 1px),
     linear-gradient(to bottom, ${(props) => props.theme.color.grid} 1px, transparent 1px),
-    linear-gradient(to right, ${(props) => props.theme.color.gray} 1px, transparent 1px),
-    linear-gradient(to bottom, ${(props) => props.theme.color.gray} 1px, transparent 1px);
+    radial-gradient(circle, ${(props) => props.theme.color.gridMinor} 0.55px, transparent 0.75px);
   background-repeat: repeat;
   background-attachment: local;
   transition:
@@ -92,16 +91,22 @@ class EditorComponent extends Component<Props, State> {
   editor = createRef<HTMLDivElement>();
   zoomContainer = createRef<HTMLDivElement>();
 
+  private wheelHandler = (event: WheelEvent) => {
+    if (event.ctrlKey) {
+      event.preventDefault();
+      const step = 0.1;
+      const direction = event.deltaY < 0 ? step : -step;
+      const newZoom = clamp(this.props.scale + direction, minScale, maxScale);
+      this.props.setZoomFactor(newZoom);
+    }
+  };
+
   componentDidMount() {
-    window.addEventListener(
-      'wheel',
-      (event) => {
-        if (event.ctrlKey) {
-          event.preventDefault();
-        }
-      },
-      { passive: false },
-    );
+    window.addEventListener('wheel', this.wheelHandler, { passive: false });
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('wheel', this.wheelHandler);
   }
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
@@ -120,7 +125,7 @@ class EditorComponent extends Component<Props, State> {
   }
 
   render() {
-    const { moving, connecting, reconnecting, scale = 1.0, ...props } = this.props;
+    const { moving, connecting, reconnecting, scale = 1.0, move, setZoomFactor, ...props } = this.props;
 
     if (this.state.isMobile) {
       return (

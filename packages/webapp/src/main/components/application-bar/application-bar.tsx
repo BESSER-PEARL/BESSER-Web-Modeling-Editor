@@ -48,6 +48,7 @@ type UserProfileSummary = {
 };
 import { useGitHubAuth } from '../../services/github/useGitHubAuth';
 import { GitHubSidebar } from '../github-sidebar';
+import posthog from 'posthog-js';
 
 const DiagramTitle = styled.input`
   font-size: 1rem;
@@ -565,6 +566,34 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
     }
   };
 
+  // Helper to get model size metrics for analytics
+  const getModelMetrics = () => {
+    const empty = { elements_count: 0, classes_count: 0, abstract_classes_count: 0, attributes_count: 0, methods_count: 0, enumerations_count: 0, relationships_count: 0, total_size: 0 };
+    if (!diagram?.model) return empty;
+
+    const model = diagram.model as any;
+    const elements = model.elements ? Object.values(model.elements) as any[] : [];
+    const countByType = (types: string[]) => elements.filter((el) => types.includes(el.type)).length;
+
+    const classesCount = countByType(['Class']);
+    const abstractClassesCount = countByType(['AbstractClass']);
+    const attributesCount = countByType(['ClassAttribute']);
+    const methodsCount = countByType(['ClassMethod']);
+    const enumerationsCount = countByType(['Enumeration']);
+    const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+
+    return {
+      elements_count: elements.length,
+      classes_count: classesCount,
+      abstract_classes_count: abstractClassesCount,
+      attributes_count: attributesCount,
+      methods_count: methodsCount,
+      enumerations_count: enumerationsCount,
+      relationships_count: relationshipsCount,
+      total_size: elements.length + relationshipsCount
+    };
+  };
+
   const handleQualityCheck = async () => {
     if (
       location.pathname === '/quantum-editor' ||
@@ -574,6 +603,12 @@ export const ApplicationBar: React.FC<{ onOpenHome?: () => void }> = ({ onOpenHo
       toast.error('coming soon');
       return;
     }
+
+    posthog.capture('quality_check_used', {
+      diagram_type: currentType,
+      diagram_title: diagram?.title,
+      ...getModelMetrics()
+    });
 
     // For quantum circuits, diagram.model contains the circuit data
     // For UML diagrams, editor.model contains the model data

@@ -15,20 +15,26 @@
   "workspaces": [
     "packages/server",
     "packages/webapp",
-    "packages/editor"
+    "packages/editor",
+    "packages/webapp2"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run start:webapp\" \"npm run start:server\"",
-    "start": "concurrently \"npm run start:webapp\" \"npm run start:server\"",
+    "dev": "npm run start --workspace=webapp2",
+    "dev:editor": "npm run dev --workspace=@besser/wme",
+    "start": "concurrently \"npm run start:webapp2\" \"npm run start:server\"",
     "start:webapp": "npm run start --workspace=webapp",
+    "start:webapp2": "npm run start --workspace=webapp2",
     "start:server": "npm run start --workspace=server",
-    "build": "concurrently \"npm run build:webapp\" \"npm run build:server\"",
-    "build:local": "concurrently \"npm run build:webapp:local\" \"npm run build:server\"",
+    "build": "concurrently \"npm run build:webapp2\" \"npm run build:server\"",
+    "build:local": "concurrently \"npm run build:webapp2:local\" \"npm run build:server\"",
     "build:webapp": "npm run build --workspace=webapp",
+    "build:webapp2": "npm run build --workspace=webapp2",
     "build:webapp:local": "npm run build:local --workspace=webapp",
+    "build:webapp2:local": "npm run build:local --workspace=webapp2",
     "build:server": "npm run build --workspace=server",
-    "lint": "concurrently \"npm run lint:webapp\" \"npm run lint:server\"",
+    "lint": "concurrently \"npm run lint:webapp2\" \"npm run lint:server\"",
     "lint:webapp": "npm run lint --workspace=webapp",
+    "lint:webapp2": "npm run lint --workspace=webapp2",
     "lint:server": "npm run lint --workspace=server",
     "prettier:check": "prettier --check 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
     "prettier:write": "prettier --write 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
@@ -37,7 +43,10 @@
   "overrides": {
     "semver": "7.6.3",
     "postcss": "8.4.49",
-    "crypto-js": "4.2.0"
+    "crypto-js": "4.2.0",
+    "minimatch": ">=3.1.4",
+    "brace-expansion": ">=1.1.13",
+    "underscore": ">=1.13.7"
   },
   "dependencies": {
     "file-saver": "^2.0.5",
@@ -61,7 +70,7 @@
     "stylelint-config-recommended": "14.0.1",
     "ts-loader": "9.5.1",
     "typescript": "5.6.3",
-    "webpack": "5.96.1",
+    "webpack": "^5.105.4",
     "webpack-cli": "5.1.4",
     "webpack-dev-server": "^5.2.2",
     "webpack-merge": "6.0.1"

@@ -37,8 +37,40 @@ import { LayouterRepository } from '../../../services/layouter/layouter-reposito
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
+`;
+
+const Section = styled.section`
+  padding: 8px 0;
+`;
+
+const SectionHeader = styled.span`
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  margin-bottom: 4px;
+  display: block;
+`;
+
+const RadioGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+`;
+
+const DbFieldRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+  }
 `;
 
 const StyledTextArea = styled.textarea`
@@ -91,6 +123,14 @@ interface DispatchProps {
 }
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext;
+
+type DbReplyValues = {
+  dbSelectionType: string;
+  dbCustomName: string;
+  dbQueryMode: string;
+  dbOperation: string;
+  dbSqlQuery: string;
+};
 
 interface State {
   colorOpen: boolean;
@@ -196,6 +236,7 @@ class StateUpdate extends Component<Props, State> {
       ),
     );
     const ragBody = bodies.find((body) => body.replyType === 'rag');
+    const dbBody = bodies.find((body) => body.replyType === 'db_reply');
     const preserveTabs = (str: string): string => {
       return str.replace(/\t/g, '    ');
     };
@@ -203,6 +244,8 @@ class StateUpdate extends Component<Props, State> {
     this.bodyReplyType = 'text';
     if (bodies.some((body) => body.replyType === 'rag')) {
       this.bodyReplyType = 'rag';
+    } else if (bodies.some((body) => body.replyType === 'db_reply')) {
+      this.bodyReplyType = 'db_reply';
     } else if (bodies.some((body) => body.replyType === 'llm')) {
       this.bodyReplyType = 'llm';
     } else if (bodies.some((body) => body.replyType === 'code')) {
@@ -212,22 +255,25 @@ class StateUpdate extends Component<Props, State> {
     const fallbackBodies = children.filter(
       (child): child is AgentStateMember => child instanceof AgentStateFallbackBody
     );
+    const fallbackRagBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === 'rag');
+    const fallbackDbBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === 'db_reply');
 
-    fallbackBodies.forEach((fallbackBody) => {
-      if (fallbackBody.replyType === "llm") {
-        this.fallbackBodyReplyType = "llm"
-      } else if (fallbackBody.replyType === "code") {
-        this.fallbackBodyReplyType = "code"
-      } else {
-        this.fallbackBodyReplyType = "text"
-      }
-    });
+    this.fallbackBodyReplyType = 'text';
+    if (fallbackBodies.some((fb) => fb.replyType === 'rag')) {
+      this.fallbackBodyReplyType = 'rag';
+    } else if (fallbackBodies.some((fb) => fb.replyType === 'db_reply')) {
+      this.fallbackBodyReplyType = 'db_reply';
+    } else if (fallbackBodies.some((fb) => fb.replyType === 'llm')) {
+      this.fallbackBodyReplyType = 'llm';
+    } else if (fallbackBodies.some((fb) => fb.replyType === 'code')) {
+      this.fallbackBodyReplyType = 'code';
+    }
     const bodyRefs: (Textfield<string> | null)[] = [];
     const fallbackBodyRefs: (Textfield<string> | null)[] = [];
 
     return (
       <div>
-        <section>
+        <Section>
           <Flex>
             <Textfield value={element.name} onChange={this.rename(element.id)} autoFocus />
             <ColorButton onClick={this.toggleColor} />
@@ -244,10 +290,10 @@ class StateUpdate extends Component<Props, State> {
             textColor
           />
           <Divider />
-        </section>
-        <section>
-          Agent Action
-          <div>
+        </Section>
+        <Section>
+          <SectionHeader>Agent Action</SectionHeader>
+          <RadioGroup>
             <label>
               <input
                 type="radio"
@@ -258,7 +304,7 @@ class StateUpdate extends Component<Props, State> {
                   this.bodyReplyType = "text";
                   {
                     bodies.forEach((body) => {
-                      if (body.replyType === "llm" || body.replyType === "code" || body.replyType === "rag") {
+                      if (body.replyType === "llm" || body.replyType === "code" || body.replyType === "rag" || body.replyType === "db_reply") {
                         this.delete(body.id)();
                       }
                     })
@@ -280,7 +326,7 @@ class StateUpdate extends Component<Props, State> {
                   this.bodyReplyType = "llm"
                   {
                     bodies.forEach((body) => {
-                      if (body.replyType === "code" || body.replyType === "text" || body.replyType === "rag") {
+                      if (body.replyType === "code" || body.replyType === "text" || body.replyType === "rag" || body.replyType === "db_reply") {
                         this.delete(body.id)();
                       }
                     })
@@ -317,13 +363,42 @@ class StateUpdate extends Component<Props, State> {
               <input
                 type="radio"
                 name="actionType"
+                value="dbReply"
+                defaultChecked={this.bodyReplyType === "db_reply"}
+                onChange={() => {
+                  this.bodyReplyType = "db_reply";
+                  bodies.forEach((body) => {
+                    if (body.replyType !== "db_reply") {
+                      this.delete(body.id)();
+                    }
+                  });
+                  if (!bodies.some((body) => body.replyType === "db_reply")) {
+                    const defaultDbReplyValues = this.getDefaultDbReplyValues();
+                    this.create(AgentStateBody, "db_reply", defaultDbReplyValues)(
+                      this.getDbDisplayName(
+                        defaultDbReplyValues.dbSelectionType ?? 'default',
+                        defaultDbReplyValues.dbCustomName ?? '',
+                        defaultDbReplyValues.dbQueryMode ?? 'llm_query',
+                        defaultDbReplyValues.dbOperation ?? 'any',
+                      ),
+                    );
+                  }
+                  this.forceUpdate();
+                }}
+              />
+              DB action
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="actionType"
                 value="pythonCode"
                 defaultChecked={this.bodyReplyType === "code"}
                 onChange={() => {
                   this.bodyReplyType = "code"
                   {
                     bodies.forEach((body) => {
-                      if (body.replyType === "llm" || body.replyType === "text" || body.replyType === "rag") {
+                      if (body.replyType === "llm" || body.replyType === "text" || body.replyType === "rag" || body.replyType === "db_reply") {
                         this.delete(body.id)();
                       }
                     })
@@ -334,7 +409,7 @@ class StateUpdate extends Component<Props, State> {
               />
               Python Code
             </label>
-          </div>
+          </RadioGroup>
 
           {/* Conditionally render based on the selected radio button */}
           {this.bodyReplyType === "text" ? (
@@ -449,6 +524,8 @@ class StateUpdate extends Component<Props, State> {
             ) : (
               <p>No RAG databases available. Create one from the palette first.</p>
             )
+          ) : this.bodyReplyType === "db_reply" ? (
+            this.renderDbReplyEditor(dbBody, AgentStateBody)
           ) : (
             <>
               <>
@@ -456,14 +533,13 @@ class StateUpdate extends Component<Props, State> {
               </>
             </>
           )}
-        </section>
-        <section>
+        </Section>
+        <Section>
           <Divider />
-
-        </section>
-        <section>
-          Agent Fallback Action
-          <div>
+        </Section>
+        <Section>
+          <SectionHeader>Agent Fallback Action</SectionHeader>
+          <RadioGroup>
             <label>
               <input
                 type="radio"
@@ -474,7 +550,7 @@ class StateUpdate extends Component<Props, State> {
                   this.fallbackBodyReplyType = "text"
                   {
                     fallbackBodies.forEach((fallbackBody) => {
-                      if (fallbackBody.replyType === "llm") {
+                      if (fallbackBody.replyType === "llm" || fallbackBody.replyType === "rag" || fallbackBody.replyType === "code" || fallbackBody.replyType === "db_reply") {
                         this.delete(fallbackBody.id)();
                       }
                     })
@@ -495,7 +571,7 @@ class StateUpdate extends Component<Props, State> {
                   this.fallbackBodyReplyType = "llm"
                   {
                     fallbackBodies.forEach((body) => {
-                      if (body.replyType === "code" || body.replyType === "text") {
+                      if (body.replyType === "code" || body.replyType === "text" || body.replyType === "rag" || body.replyType === "db_reply") {
                         this.delete(body.id)();
                       }
                     })
@@ -509,7 +585,7 @@ class StateUpdate extends Component<Props, State> {
             <label>
               <input
                 type="radio"
-                name="actionType"
+                name="fallbackActionType"
                 value="rag"
                 defaultChecked={this.fallbackBodyReplyType === "rag"}
                 onChange={() => {
@@ -532,13 +608,42 @@ class StateUpdate extends Component<Props, State> {
               <input
                 type="radio"
                 name="fallbackActionType"
+                value="dbReply"
+                defaultChecked={this.fallbackBodyReplyType === "db_reply"}
+                onChange={() => {
+                  this.fallbackBodyReplyType = "db_reply";
+                  fallbackBodies.forEach((fallbackBody) => {
+                    if (fallbackBody.replyType !== "db_reply") {
+                      this.delete(fallbackBody.id)();
+                    }
+                  });
+                  if (!fallbackBodies.some((body) => body.replyType === "db_reply")) {
+                    const defaultDbReplyValues = this.getDefaultDbReplyValues();
+                    this.create(AgentStateFallbackBody, "db_reply", defaultDbReplyValues)(
+                      this.getDbDisplayName(
+                        defaultDbReplyValues.dbSelectionType ?? 'default',
+                        defaultDbReplyValues.dbCustomName ?? '',
+                        defaultDbReplyValues.dbQueryMode ?? 'llm_query',
+                        defaultDbReplyValues.dbOperation ?? 'any',
+                      ),
+                    );
+                  }
+                  this.forceUpdate();
+                }}
+              />
+              DB action
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="fallbackActionType"
                 value="pythonCode"
                 defaultChecked={this.fallbackBodyReplyType === "code"}
                 onChange={() => {
                   this.fallbackBodyReplyType = "code"
                   {
                     fallbackBodies.forEach((fallbackBody) => {
-                      if (fallbackBody.replyType === "llm" || fallbackBody.replyType === "text") {
+                      if (fallbackBody.replyType === "llm" || fallbackBody.replyType === "text" || fallbackBody.replyType === "rag" || fallbackBody.replyType === "db_reply") {
                         this.delete(fallbackBody.id)();
                       }
                     })
@@ -549,7 +654,7 @@ class StateUpdate extends Component<Props, State> {
               />
               Python Code
             </label>
-          </div>
+          </RadioGroup>
 
           {/* Conditionally render based on the selected radio button */}
           {this.fallbackBodyReplyType === "text" ? (
@@ -623,9 +728,39 @@ class StateUpdate extends Component<Props, State> {
               </ResizableCodeMirrorWrapper>
 
             </>
+          ) : this.fallbackBodyReplyType === "rag" ? (
+            ragDatabaseNames.length ? (
+              <Dropdown
+                value={fallbackRagBody?.ragDatabaseName || '__placeholder__'}
+                onChange={(value) => {
+                  const selected = value === '__placeholder__' ? '' : value;
+                  const displayName = this.getRagDisplayName(selected);
+                  if (fallbackRagBody) {
+                    this.props.update<AgentStateMember>(fallbackRagBody.id, { ragDatabaseName: selected, name: displayName });
+                  } else {
+                    this.create(AgentStateFallbackBody, 'rag', { ragDatabaseName: selected, name: displayName })(displayName);
+                  }
+                }}
+              >
+                {[
+                  <Dropdown.Item value="__placeholder__" key="fallback-rag-placeholder">
+                    Select RAG database
+                  </Dropdown.Item>,
+                  ...ragDatabaseNames.map((name, index) => (
+                    <Dropdown.Item key={`fallback-rag-${index}-${name}`} value={name}>
+                      {name}
+                    </Dropdown.Item>
+                  )),
+                ]}
+              </Dropdown>
+            ) : (
+              <p>No RAG databases available. Create one from the palette first.</p>
+            )
+          ) : this.fallbackBodyReplyType === "db_reply" ? (
+            this.renderDbReplyEditor(fallbackDbBody, AgentStateFallbackBody)
           ) : (<></>)}
 
-        </section>
+        </Section>
       </div>
     );
   }
@@ -633,6 +768,178 @@ class StateUpdate extends Component<Props, State> {
   private getRagDisplayName = (databaseName: string): string => {
     const trimmed = (databaseName || '').trim();
     return trimmed.length ? `RAG reply using ${trimmed} database` : 'RAG reply (select database)';
+  };
+
+  private getDefaultDbReplyValues = (): DbReplyValues => ({
+    dbSelectionType: 'default',
+    dbCustomName: '',
+    dbQueryMode: 'llm_query',
+    dbOperation: 'any',
+    dbSqlQuery: '',
+  });
+
+  private getDbDisplayName = (
+    dbSelectionType: string,
+    dbCustomName: string,
+    dbQueryMode: string,
+    dbOperation: string,
+  ): string => {
+    const customDatabaseName = (dbCustomName || '').trim();
+    const databaseLabel = dbSelectionType === 'custom'
+      ? (customDatabaseName.length ? customDatabaseName : 'custom database')
+      : 'Default database';
+    const modeLabel = dbQueryMode === 'sql' ? 'SQL' : 'LLM query';
+    const operationLabel = dbOperation === 'any' ? 'Any' : dbOperation.toUpperCase();
+
+    return `DB action using ${databaseLabel} (${modeLabel}, ${operationLabel})`;
+  };
+
+  private updateDbReply = (member: AgentStateMember, values: Partial<AgentStateMember>) => {
+    const dbSelectionType = values.dbSelectionType ?? member.dbSelectionType ?? 'default';
+    const dbCustomName = values.dbCustomName ?? member.dbCustomName ?? '';
+    const dbQueryMode = values.dbQueryMode ?? member.dbQueryMode ?? 'llm_query';
+    const dbOperation = values.dbOperation ?? member.dbOperation ?? 'any';
+
+    this.props.update<AgentStateMember>(member.id, {
+      ...values,
+      name: this.getDbDisplayName(dbSelectionType, dbCustomName, dbQueryMode, dbOperation),
+    });
+  };
+
+  private renderDbReplyEditor = (
+    member: AgentStateMember | undefined,
+    Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+  ) => {
+    if (!member) {
+      const handleInitializeDbReply = () => {
+        const defaultDbReplyValues = this.getDefaultDbReplyValues();
+        const displayName = this.getDbDisplayName(
+          defaultDbReplyValues.dbSelectionType ?? 'default',
+          defaultDbReplyValues.dbCustomName ?? '',
+          defaultDbReplyValues.dbQueryMode ?? 'llm_query',
+          defaultDbReplyValues.dbOperation ?? 'any',
+        );
+        this.create(Clazz, 'db_reply', defaultDbReplyValues)(displayName);
+      };
+
+      return (
+        <>
+          <p>Configuring database action...</p>
+          <Button color="primary" onClick={handleInitializeDbReply}>
+            Initialize database action
+          </Button>
+        </>
+      );
+    }
+
+    const dbSelectionType = member.dbSelectionType || 'default';
+    const dbQueryMode = member.dbQueryMode || 'llm_query';
+    const dbOperation = member.dbOperation || 'any';
+
+    return (
+      <>
+        <DbFieldRow>
+          <label>Select a Database</label>
+          <Dropdown
+            value={dbSelectionType}
+            onChange={(value) => {
+              const nextSelectionType = value === 'custom' ? 'custom' : 'default';
+              this.updateDbReply(member, {
+                dbSelectionType: nextSelectionType,
+                dbCustomName: nextSelectionType === 'default' ? '' : member.dbCustomName,
+              });
+            }}
+          >
+            {[
+              <Dropdown.Item value="default" key="db-default">
+                Default (using the app DB)
+              </Dropdown.Item>,
+              <Dropdown.Item value="custom" key="db-custom">
+                Custom
+              </Dropdown.Item>,
+            ]}
+          </Dropdown>
+
+          {dbSelectionType === 'custom' ? (
+            <Textfield
+              outline
+              placeholder="Custom database name"
+              value={member.dbCustomName || ''}
+              onChange={(value) => this.updateDbReply(member, { dbCustomName: value })}
+            />
+          ) : null}
+        </DbFieldRow>
+
+        <DbFieldRow>
+          <label>DB operation</label>
+          <Dropdown
+            value={dbOperation}
+            onChange={(value) => {
+              const allowedOperations = ['any', 'select', 'insert', 'update', 'delete'];
+              const nextOperation = allowedOperations.includes(value) ? value : 'any';
+              this.updateDbReply(member, { dbOperation: nextOperation });
+            }}
+          >
+            {[
+              <Dropdown.Item value="any" key="db-operation-any">
+                Any
+              </Dropdown.Item>,
+              <Dropdown.Item value="select" key="db-operation-select">
+                SELECT
+              </Dropdown.Item>,
+              <Dropdown.Item value="insert" key="db-operation-insert">
+                INSERT
+              </Dropdown.Item>,
+              <Dropdown.Item value="update" key="db-operation-update">
+                UPDATE
+              </Dropdown.Item>,
+              <Dropdown.Item value="delete" key="db-operation-delete">
+                DELETE
+              </Dropdown.Item>,
+            ]}
+          </Dropdown>
+        </DbFieldRow>
+
+        <DbFieldRow>
+          <RadioGroup>
+            <label>
+              <input
+                type="radio"
+                name={`dbQueryMode-${member.id}`}
+                value="llm_query"
+                checked={dbQueryMode === 'llm_query'}
+                onChange={() => this.updateDbReply(member, { dbQueryMode: 'llm_query', dbSqlQuery: '' })}
+              />
+              LLM query
+            </label>
+
+            <label>
+              <input
+                type="radio"
+                name={`dbQueryMode-${member.id}`}
+                value="sql"
+                checked={dbQueryMode === 'sql'}
+                onChange={() => this.updateDbReply(member, { dbQueryMode: 'sql' })}
+              />
+              SQL
+            </label>
+          </RadioGroup>
+
+          {dbQueryMode === 'sql' ? (
+            <Textfield
+              outline
+              multiline
+              enterToSubmit={false}
+              placeholder="SELECT * FROM table_name"
+              value={member.dbSqlQuery || ''}
+              onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
+            />
+          ) : (
+            <p>Answer will be generated with LLM during runtime</p>
+          )}
+        </DbFieldRow>
+      </>
+    );
   };
 
   private create = (

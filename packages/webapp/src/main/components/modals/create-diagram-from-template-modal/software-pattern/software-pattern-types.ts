@@ -16,6 +16,7 @@ export enum SoftwarePatternType {
   TEAMOCL = 'Team Player with OCL',
   DPP = 'Digital Product Passport ',
   AISANDBOX = 'AI Sandbox',
+  NEXACRM = 'NexaCRM',
   // Behavioral pattern
   COMMAND = 'Command',
   OBSERVER = 'Observer',
@@ -23,6 +24,7 @@ export enum SoftwarePatternType {
   FACTORY = 'Factory',
   // Agent patterns
   GREET_AGENT = 'Greeting Agent',
+  DB_AGENT = 'Database Agent',
   LIBRARY_AGENT = 'Library Agent',
   GYM_AGENT = 'Gym Agent',
   FAQ_RAG_AGENT = 'FAQ RAG Agent',

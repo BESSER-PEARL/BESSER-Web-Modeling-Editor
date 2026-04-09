@@ -1,12 +1,5 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
-import grapesjs, { Editor } from 'grapesjs';
-import 'grapesjs/dist/css/grapes.min.css';
-import gjsPresetWebpage from 'grapesjs-preset-webpage';
-import gjsStyleBg from 'grapesjs-style-bg';
-// @ts-ignore
-import gjsBlocksBasic from 'grapesjs-blocks-basic';
-// @ts-ignore
-import gjsPluginForms from 'grapesjs-plugin-forms';
+import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
 import { getClassOptions, getEndsByClassId, getClassMetadata as getClassMeta } from './diagram-helpers';
 import { chartConfigs } from './configs/chartConfigs';
@@ -36,10 +29,15 @@ export const GraphicalUIEditor: React.FC = () => {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    let cancelled = false;
+    let cleanupFn: (() => void) | undefined;
+
+    (async () => {
     try {
-      // Initialize GrapesJS editor
-      const editor = initializeEditor(containerRef.current);
-      
+      // Initialize GrapesJS editor (async - dynamically imports GrapesJS and plugins)
+      const editor = await initializeEditor(containerRef.current!);
+      if (cancelled) { editor.destroy(); return; }
+
       // Store editor reference
       editorRef.current = editor;
       (window as any).editor = editor;
@@ -62,30 +60,35 @@ export const GraphicalUIEditor: React.FC = () => {
         });
       });
 
-      // Cleanup on unmount
-      return () => {
-        // console.log('[GraphicalUIEditor] Cleaning up...');
-        
+      // Store cleanup so the synchronous teardown can call it
+      cleanupFn = () => {
         // Clear save interval
         if (saveIntervalRef.current) {
           clearInterval(saveIntervalRef.current);
           saveIntervalRef.current = null;
         }
-        
+
         // Call cleanup function
         if (cleanup) cleanup();
-        
+
         // Destroy editor
         if (editorRef.current) {
           editorRef.current.destroy();
           editorRef.current = null;
         }
-        
+
         console.log('[GraphicalUIEditor] Cleanup complete');
       };
     } catch (error) {
       console.error('[GraphicalUIEditor] Failed to initialize editor:', error);
     }
+    })();
+
+    // Synchronous cleanup returned to React
+    return () => {
+      cancelled = true;
+      if (cleanupFn) cleanupFn();
+    };
   }, []);
 
   return (
@@ -98,16 +101,33 @@ export const GraphicalUIEditor: React.FC = () => {
 // ============================================
 
 /**
- * Initialize GrapesJS editor with configuration
+ * Initialize GrapesJS editor with configuration.
+ * GrapesJS core and plugins are dynamically imported so they are only
+ * loaded when this editor component is actually mounted.
  */
-function initializeEditor(container: HTMLDivElement): Editor {
+async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
+  const [
+    { default: grapesjs },
+    { default: gjsPresetWebpage },
+    { default: gjsStyleBg },
+    { default: gjsBlocksBasic },
+  ] = await Promise.all([
+    import('grapesjs'),
+    import('grapesjs-preset-webpage'),
+    import('grapesjs-style-bg'),
+    // @ts-ignore
+    import('grapesjs-blocks-basic'),
+  ]);
+  // Load GrapesJS CSS as a side-effect
+  await import('grapesjs/dist/css/grapes.min.css');
+
   return grapesjs.init({
     container,
     height: '100vh',
     width: 'auto',
     fromElement: false,
     components: '', // Empty initially - pages will load default content
-    
+
     // Storage configuration
     storageManager: {
       type: 'remote',
@@ -118,12 +138,11 @@ function initializeEditor(container: HTMLDivElement): Editor {
 
     // Essential plugins only
     plugins: [
-      gjsPresetWebpage as any, 
+      gjsPresetWebpage as any,
       gjsStyleBg as any,
       gjsBlocksBasic as any,
-      // gjsPluginForms as any,
     ],
-    
+
     pluginsOpts: {
       'grapesjs-preset-webpage': {
         modalImportTitle: 'Import Template',
@@ -163,9 +182,6 @@ function initializeEditor(container: HTMLDivElement): Editor {
         blocks: ['column1', 'column2', 'column3', 'text', 'image'],
         flexGrid: true,
       },
-      // 'grapesjs-plugin-forms': {
-      //   blocks: ['form', 'input', 'textarea', 'select', 'button', 'label', 'checkbox'],
-      // },
     },
 
     showOffsets: true,
@@ -884,86 +900,130 @@ function addAutoGenerateGUIButton(editor: Editor) {
  * Auto-generate GUI pages and components from the class diagram
  */
 function autoGenerateGUIFromClassDiagram(editor: Editor) {
-  // Import helper functions (these are already available in the file)
+  // Import helper functions
   const { getClassOptions, getClassMetadata, getMethodsByClassId } = require('./diagram-helpers');
-  
-  // Get all classes from the class diagram
-  const classes = getClassOptions();
-  
-  if (classes.length === 0) {
-    throw new Error('No classes found in the Class Diagram. Please create a class diagram first.');
+  const { ProjectStorageRepository } = require('../../services/storage/ProjectStorageRepository');
+  const { validateDiagram } = require('../../services/validation/validateDiagram');
+
+  // Get class diagram model
+  const project = ProjectStorageRepository.getCurrentProject();
+  const classDiagram = project?.diagrams?.ClassDiagram?.model;
+  if (!classDiagram) {
+    throw new Error('No class diagram found. Please create a class diagram first.');
   }
-  
-  // Clear all existing pages
-  const pages = editor.Pages;
-  if (pages) {
-    const existingPages = pages.getAll();
-    existingPages.forEach((page: any) => {
-      pages.remove(page);
-    });
-  }
-  
-  // Create all pages and force render each one to ensure proper styling
-  const createdPages: any[] = [];
-  
-  classes.forEach((classOption: any, index: number) => {
-    const className = classOption.label;
-    const classId = classOption.value;
-    const pageName = className.toLowerCase().replace(/\s+/g, '-');
-    const pageRoute = `/${pageName}`;
-    
-    // Get class metadata (attributes and methods)
-    const classMetadata = getClassMetadata(classId);
-    const methods = getMethodsByClassId(classId);
-    
-    // Create the page with route_path
-    const page = pages.add({
-      id: `page-${pageName}-${index}`,
-      name: className,
-    });
-    
-    // Set the route_path on the page
-    if (page) {
-      page.set('route_path', pageRoute);
+
+  // Run backend validation before generating GUI
+  // Note: validateDiagram returns a Promise
+  // Suppress toasts for GUI generation validation
+  return validateDiagram(null, 'ClassDiagram', { ...classDiagram, _suppressToasts: true }).then((result: any) => {
+    if (!result.isValid) {
+      // Show errors in a custom modal
+      const modal = editor.Modal;
+      const errorList = (result.errors && result.errors.length > 0)
+        ? result.errors.map((e: string) => `<li style='margin-bottom:8px;'>${e}</li>`).join('')
+        : '<li>Unknown error</li>';
+      const modalContent = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <h2 style="color:#e74c3c; margin-bottom:1rem;">Class Diagram Quality Check Failed</h2>
+          <p style="font-size:1rem; color:#333; margin-bottom:1rem;">
+            Errors were found in your class diagram. Please solve them before generating the GUI.
+          </p>
+          <ul style="background:#fff3f3; border:1px solid #e74c3c; border-radius:6px; padding:1rem; color:#b30000; font-size:1rem;">
+            ${errorList}
+          </ul>
+          <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
+            <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">Close</button>
+          </div>
+        </div>
+      `;
+      modal.setTitle('Class Diagram Errors');
+      modal.setContent(modalContent);
+      modal.open();
+      setTimeout(() => {
+        const closeBtn = document.getElementById('modal-close-errors-btn');
+        if (closeBtn) {
+          closeBtn.onclick = () => modal.close();
+        }
+      }, 100);
+      return; // Abort GUI generation
     }
-    
-    // Store created page
-    createdPages.push({ page, className, classId, classMetadata, methods, index });
+
+    // Proceed with GUI generation
+    const classes = getClassOptions();
+    if (classes.length === 0) {
+      throw new Error('No classes found in the Class Diagram. Please create a class diagram first.');
+    }
+
+    // Clear all existing pages
+    const pages = editor.Pages;
+    if (pages) {
+      const existingPages = pages.getAll();
+      existingPages.forEach((page: any) => {
+        pages.remove(page);
+      });
+    }
+
+    // Create all pages and force render each one to ensure proper styling
+    const createdPages: any[] = [];
+
+    classes.forEach((classOption: any, index: number) => {
+      const className = classOption.label;
+      const classId = classOption.value;
+      const pageName = className.toLowerCase().replace(/\s+/g, '-');
+      const pageRoute = `/${pageName}`;
+
+      // Get class metadata (attributes and methods)
+      const classMetadata = getClassMetadata(classId);
+      const methods = getMethodsByClassId(classId);
+
+      // Create the page with route_path
+      const page = pages.add({
+        id: `page-${pageName}-${index}`,
+        name: className,
+      });
+
+      // Set the route_path on the page
+      if (page) {
+        page.set('route_path', pageRoute);
+      }
+
+      // Store created page
+      createdPages.push({ page, className, classId, classMetadata, methods, index });
+    });
+
+    // Process each page sequentially with delays to ensure GrapesJS renders each one
+    // This ensures all pages get proper IDs and normalized styles
+    const processPages = async () => {
+      for (let i = 0; i < createdPages.length; i++) {
+        const { page, className, classId, classMetadata, methods, index } = createdPages[i];
+
+        // Select the page to force GrapesJS to render it
+        pages.select(page);
+
+        // Build the page components
+        buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
+
+        // Wait for GrapesJS to process the page (render and assign IDs)
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // Trigger a canvas refresh to ensure components are processed
+        editor.refresh();
+      }
+
+      // Return to the first page after all pages are processed
+      if (createdPages.length > 0) {
+        pages.select(createdPages[0].page);
+      }
+
+      // Trigger a final save to persist all properly styled pages
+      setTimeout(() => {
+        editor.store();
+      }, 300);
+    };
+
+    // Execute the async page processing
+    processPages();
   });
-  
-  // Process each page sequentially with delays to ensure GrapesJS renders each one
-  // This ensures all pages get proper IDs and normalized styles
-  const processPages = async () => {
-    for (let i = 0; i < createdPages.length; i++) {
-      const { page, className, classId, classMetadata, methods, index } = createdPages[i];
-      
-      // Select the page to force GrapesJS to render it
-      pages.select(page);
-      
-      // Build the page components
-      buildPageComponents(editor, page, className, classId, classMetadata, methods, classes, index);
-      
-      // Wait for GrapesJS to process the page (render and assign IDs)
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // Trigger a canvas refresh to ensure components are processed
-      editor.refresh();
-    }
-    
-    // Return to the first page after all pages are processed
-    if (createdPages.length > 0) {
-      pages.select(createdPages[0].page);
-    }
-    
-    // Trigger a final save to persist all properly styled pages
-    setTimeout(() => {
-      editor.store();
-    }, 300);
-  };
-  
-  // Execute the async page processing
-  processPages();
-  
 }
 
 /**

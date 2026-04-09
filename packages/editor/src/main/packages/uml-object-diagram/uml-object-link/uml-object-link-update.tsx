@@ -23,15 +23,28 @@ import { UMLObjectLink } from './uml-object-link';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
+`;
+
+const Section = styled.section`
+  padding: 8px 0;
+`;
+
+const SectionHeader = styled(Header)`
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+  margin-bottom: 4px;
 `;
 
 const AssociationSelectionFlex = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 4px;
+  padding: 4px 0;
 `;
 
 type State = { colorOpen: boolean };
@@ -103,7 +116,7 @@ class ObjectLinkUpdate extends Component<Props, State> {
 
     return (
       <div>
-        <section>
+        <Section>
           <Flex>
             <Header gutter={false} style={{ flexGrow: 1 }}>
               {this.props.translate('popup.objectLink')}
@@ -124,19 +137,19 @@ class ObjectLinkUpdate extends Component<Props, State> {
             textColor
           />
           <Divider />
-        </section>
-        
-        <section>
-          <Header>
+        </Section>
+
+        <Section>
+          <SectionHeader>
             {this.props.translate('popup.linkDetails')} (
             <small>
               {source.name} ⟶ {target.name}
             </small>
             )
-          </Header>
-          
+          </SectionHeader>
+
           <Flex>
-            <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.name')}</Body>
+            <Body>{this.props.translate('popup.name')}</Body>
             <Textfield
               value={element.name || ''}
               onChange={(value) => this.props.update(element.id, { name: value })}
@@ -172,11 +185,11 @@ class ObjectLinkUpdate extends Component<Props, State> {
           )}
           
           {availableAssociations.length === 0 && (
-            <div style={{ marginTop: '8px', fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
+            <div style={{ padding: '4px 0', fontSize: '12px', color: '#999', fontStyle: 'italic' }}>
               {this.props.translate('popup.noAssociationsAvailable')}
             </div>
           )}
-        </section>
+        </Section>
       </div>
     );
   }
