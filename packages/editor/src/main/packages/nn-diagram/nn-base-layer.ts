@@ -1,6 +1,7 @@
 import { UMLClass } from '../uml-class-diagram/uml-class/uml-class';
 import { ILayer } from '../../services/layouter/layer';
 import { ILayoutable } from '../../services/layouter/layoutable';
+import { UMLRelationshipType } from '../uml-relationship-type';
 
 // Fixed dimensions for icon-based layer display (80px icon + text)
 const ICON_LAYER_WIDTH = 110;
@@ -12,6 +13,7 @@ const ICON_LAYER_HEIGHT = 110;
  * Attributes are shown only in the popup when clicking the layer.
  */
 export abstract class NNBaseLayer extends UMLClass {
+  static supportedRelationships: UMLRelationshipType[] = [];
   render(layer: ILayer, children: ILayoutable[] = []): ILayoutable[] {
     // Use fixed dimensions for icon-based display
     this.bounds.width = ICON_LAYER_WIDTH;

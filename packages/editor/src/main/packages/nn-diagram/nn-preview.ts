@@ -1,4 +1,4 @@
-import { ComposePreview } from '../compose-preview';
+import { ComposePreview, PreviewElement } from '../compose-preview';
 import { UMLElement } from '../../services/uml-element/uml-element';
 import { NNSectionTitle, NNSectionSeparator } from './nn-section-elements';
 import { Conv1DLayer } from './nn-conv1d-layer/nn-conv1d-layer';
@@ -18,7 +18,6 @@ import { TensorOp } from './nn-tensorop/nn-tensorop';
 import { Configuration } from './nn-configuration/nn-configuration';
 import { NNContainer } from './nn-container/nn-container';
 import { NNReference } from './nn-reference/nn-reference';
-import { NNElementType } from './index';
 import {
   NameAttributeConv1D,
   KernelDimAttributeConv1D,
@@ -88,8 +87,6 @@ import {
   LossFunctionAttributeConfiguration,
   MetricsAttributeConfiguration,
 } from './nn-configuration-attributes/configuration-attributes';
-import { localized } from '../../components/i18n/localized';
-import { computeDimension } from '../../utils/geometry/boundary';
 import { ILayer } from '../../services/layouter/layer';
 
 export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: string) => string): UMLElement[] => {
@@ -100,9 +97,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // Conv1DLayer setup
   const conv1DLayer = new Conv1DLayer({ name: translate('packages.NNDiagram.Conv1DLayer') });
-  conv1DLayer.bounds = { ...conv1DLayer.bounds,
-                        width: conv1DLayer.bounds.width,
-                        height: conv1DLayer.bounds.height, };
 
   const nameAttrConv1D = new NameAttributeConv1D({ owner: conv1DLayer.id });
   const kernelDimAttrConv1D = new KernelDimAttributeConv1D({ owner: conv1DLayer.id });
@@ -117,9 +111,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // Conv2DLayer setup
   const conv2DLayer = new Conv2DLayer({ name: translate('packages.NNDiagram.Conv2DLayer') });
-  conv2DLayer.bounds = { ...conv2DLayer.bounds,
-                        width: conv2DLayer.bounds.width,
-                        height: conv2DLayer.bounds.height, };
 
   const nameAttrConv2D = new NameAttributeConv2D({ owner: conv2DLayer.id });
   const kernelDimAttrConv2D = new KernelDimAttributeConv2D({ owner: conv2DLayer.id });
@@ -134,9 +125,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // Conv3DLayer setup
   const conv3DLayer = new Conv3DLayer({ name: translate('packages.NNDiagram.Conv3DLayer') });
-  conv3DLayer.bounds = { ...conv3DLayer.bounds,
-                        width: conv3DLayer.bounds.width,
-                        height: conv3DLayer.bounds.height, };
 
   const nameAttrConv3D = new NameAttributeConv3D({ owner: conv3DLayer.id });
   const kernelDimAttrConv3D = new KernelDimAttributeConv3D({ owner: conv3DLayer.id });
@@ -151,9 +139,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // PoolingLayer setup
   const poolingLayer = new PoolingLayer({ name: translate('packages.NNDiagram.PoolingLayer') });
-  poolingLayer.bounds = { ...poolingLayer.bounds,
-                        width: poolingLayer.bounds.width,
-                        height: poolingLayer.bounds.height, };
 
   const nameAttrPooling = new NameAttributePooling({ owner: poolingLayer.id });
   const poolingTypeAttrPooling = new PoolingTypeAttributePooling({ owner: poolingLayer.id });
@@ -168,9 +153,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // RNNLayer setup
   const rnnLayer = new RNNLayer({ name: translate('packages.NNDiagram.RNNLayer') });
-  rnnLayer.bounds = { ...rnnLayer.bounds,
-                        width: rnnLayer.bounds.width,
-                        height: rnnLayer.bounds.height, };
 
   const nameAttrRNN = new NameAttributeRNN({ owner: rnnLayer.id });
   const hiddenSizeAttrRNN = new HiddenSizeAttributeRNN({ owner: rnnLayer.id });
@@ -183,9 +165,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // LSTMLayer setup
   const lstmLayer = new LSTMLayer({ name: translate('packages.NNDiagram.LSTMLayer') });
-  lstmLayer.bounds = { ...lstmLayer.bounds,
-                        width: lstmLayer.bounds.width,
-                        height: lstmLayer.bounds.height, };
 
   const nameAttrLSTM = new NameAttributeLSTM({ owner: lstmLayer.id });
   const hiddenSizeAttrLSTM = new HiddenSizeAttributeLSTM({ owner: lstmLayer.id });
@@ -198,9 +177,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // GRULayer setup
   const gruLayer = new GRULayer({ name: translate('packages.NNDiagram.GRULayer') });
-  gruLayer.bounds = { ...gruLayer.bounds,
-                        width: gruLayer.bounds.width,
-                        height: gruLayer.bounds.height, };
 
   const nameAttrGRU = new NameAttributeGRU({ owner: gruLayer.id });
   const hiddenSizeAttrGRU = new HiddenSizeAttributeGRU({ owner: gruLayer.id });
@@ -213,9 +189,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // LinearLayer setup
   const linearLayer = new LinearLayer({ name: translate('packages.NNDiagram.LinearLayer') });
-  linearLayer.bounds = { ...linearLayer.bounds,
-                        width: linearLayer.bounds.width,
-                        height: linearLayer.bounds.height, };
 
   const nameAttrLinear = new NameAttributeLinear({ owner: linearLayer.id });
   const outFeaturesAttrLinear = new OutFeaturesAttributeLinear({ owner: linearLayer.id });
@@ -228,9 +201,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // FlattenLayer setup
   const flattenLayer = new FlattenLayer({ name: translate('packages.NNDiagram.FlattenLayer') });
-  flattenLayer.bounds = { ...flattenLayer.bounds,
-                        width: flattenLayer.bounds.width,
-                        height: flattenLayer.bounds.height, };
 
   const nameAttrFlatten = new NameAttributeFlatten({ owner: flattenLayer.id });
 
@@ -241,9 +211,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // EmbeddingLayer setup
   const embeddingLayer = new EmbeddingLayer({ name: translate('packages.NNDiagram.EmbeddingLayer') });
-  embeddingLayer.bounds = { ...embeddingLayer.bounds,
-                        width: embeddingLayer.bounds.width,
-                        height: embeddingLayer.bounds.height, };
 
   const nameAttrEmbedding = new NameAttributeEmbedding({ owner: embeddingLayer.id });
   const numEmbeddingsAttrEmbedding = new NumEmbeddingsAttributeEmbedding({ owner: embeddingLayer.id });
@@ -258,9 +225,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // DropoutLayer setup
   const dropoutLayer = new DropoutLayer({ name: translate('packages.NNDiagram.DropoutLayer') });
-  dropoutLayer.bounds = { ...dropoutLayer.bounds,
-                        width: dropoutLayer.bounds.width,
-                        height: dropoutLayer.bounds.height, };
 
   const nameAttrDropout = new NameAttributeDropout({ owner: dropoutLayer.id });
   const rateAttrDropout = new RateAttributeDropout({ owner: dropoutLayer.id });
@@ -273,9 +237,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // LayerNormalizationLayer setup
   const layerNormLayer = new LayerNormalizationLayer({ name: translate('packages.NNDiagram.LayerNormalizationLayer') });
-  layerNormLayer.bounds = { ...layerNormLayer.bounds,
-                        width: layerNormLayer.bounds.width,
-                        height: layerNormLayer.bounds.height, };
 
   const nameAttrLayerNorm = new NameAttributeLayerNormalization({ owner: layerNormLayer.id });
   const normalizedShapeAttrLayerNorm = new NormalizedShapeAttributeLayerNormalization({ owner: layerNormLayer.id });
@@ -288,9 +249,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // BatchNormalizationLayer setup
   const batchNormLayer = new BatchNormalizationLayer({ name: translate('packages.NNDiagram.BatchNormalizationLayer') });
-  batchNormLayer.bounds = { ...batchNormLayer.bounds,
-                        width: batchNormLayer.bounds.width,
-                        height: batchNormLayer.bounds.height, };
 
   const nameAttrBatchNorm = new NameAttributeBatchNormalization({ owner: batchNormLayer.id });
   const numFeaturesAttrBatchNorm = new NumFeaturesAttributeBatchNormalization({ owner: batchNormLayer.id });
@@ -305,9 +263,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // TensorOp setup
   const tensorOp = new TensorOp({ name: translate('packages.NNDiagram.TensorOp') });
-  tensorOp.bounds = { ...tensorOp.bounds,
-                        width: tensorOp.bounds.width,
-                        height: tensorOp.bounds.height, };
 
   const nameAttrTensorOp = new NameAttributeTensorOp({ owner: tensorOp.id });
   const tnsTypeAttrTensorOp = new TnsTypeAttributeTensorOp({ owner: tensorOp.id });
@@ -320,9 +275,6 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // Configuration setup
   const configuration = new Configuration({ name: translate('packages.NNDiagram.Configuration') });
-  configuration.bounds = { ...configuration.bounds,
-                        width: configuration.bounds.width,
-                        height: configuration.bounds.height, };
 
   const batchSizeAttr = new BatchSizeAttributeConfiguration({ owner: configuration.id });
   const epochsAttr = new EpochsAttributeConfiguration({ owner: configuration.id });
@@ -351,25 +303,25 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // Combine all elements with section titles and separators
   const structureTitle = new NNSectionTitle({ name: 'NN Structure' });
-  (structureTitle as any).styles = { pointerEvents: 'none', cursor: 'default' };
+  (structureTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   const layersTitle = new NNSectionTitle({ name: 'NN Layers' });
-  (layersTitle as any).styles = { pointerEvents: 'none', cursor: 'default' };
+  (layersTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   const tensorOpsTitle = new NNSectionTitle({ name: 'NN TensorOps' });
-  (tensorOpsTitle as any).styles = { pointerEvents: 'none', cursor: 'default' };
+  (tensorOpsTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   const configurationTitle = new NNSectionTitle({ name: 'NN Configuration' });
-  (configurationTitle as any).styles = { pointerEvents: 'none', cursor: 'default' };
+  (configurationTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   const separator0 = new NNSectionSeparator();
-  (separator0 as any).styles = { pointerEvents: 'none', cursor: 'default' };
+  (separator0 as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   const separator1 = new NNSectionSeparator();
-  (separator1 as any).styles = { pointerEvents: 'none', cursor: 'default' };
+  (separator1 as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   const separator2 = new NNSectionSeparator();
-  (separator2 as any).styles = { pointerEvents: 'none', cursor: 'default' };
+  (separator2 as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   // Structure section (NNContainer, NNReference)
   elements.push(structureTitle);
@@ -389,7 +341,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   // Add spacer after Configuration to prevent collision with Comment separator
   const spacer = new NNSectionSeparator({ bounds: { x: 0, y: 0, width: 100, height: 20 } });
-  (spacer as any).styles = { pointerEvents: 'none', cursor: 'default', opacity: 0 };
+  (spacer as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default', opacity: 0 };
   elements.push(spacer);
 
   return elements;

@@ -1,7 +1,9 @@
 import React, { FunctionComponent } from 'react';
+import { connect } from 'react-redux';
 import { UMLAssociation } from '../../common/uml-association/uml-association';
 import { ThemedPathContrast, ThemedPolyline } from '../../../components/theme/themedComponents';
-import { NNElementRegistry } from '../nn-element-registry';
+import { ModelState } from '../../../components/store/model-state';
+import { NNElementType } from '../index';
 
 const RhombusFilled = (id: string, color?: string) => (
   <marker
@@ -18,9 +20,19 @@ const RhombusFilled = (id: string, color?: string) => (
   </marker>
 );
 
-export const NNCompositionComponent: FunctionComponent<Props> = ({ element }) => {
+interface OwnProps {
+  element: UMLAssociation;
+}
+
+interface StateProps {
+  elements: ModelState['elements'];
+}
+
+type Props = OwnProps & StateProps;
+
+const NNCompositionComponentBase: FunctionComponent<Props> = ({ element, elements }) => {
   const id = `marker-${element.id}`;
-  const sourceIsContainer = NNElementRegistry.isNNContainer(element.source?.element);
+  const sourceIsContainer = elements[element.source?.element]?.type === NNElementType.NNContainer;
 
   // Reverse the path when NNContainer is the source so the diamond (markerEnd) is at NNContainer
   const path = sourceIsContainer ? [...element.path].reverse() : element.path;
@@ -39,6 +51,6 @@ export const NNCompositionComponent: FunctionComponent<Props> = ({ element }) =>
   );
 };
 
-interface Props {
-  element: UMLAssociation;
-}
+export const NNCompositionComponent = connect<StateProps, {}, OwnProps, ModelState>(
+  (state) => ({ elements: state.elements }),
+)(NNCompositionComponentBase);

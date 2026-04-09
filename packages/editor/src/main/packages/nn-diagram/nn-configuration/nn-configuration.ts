@@ -3,17 +3,12 @@ import { UMLElementType } from '../../uml-element-type';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { DeepPartial } from 'redux';
 import { NNBaseLayer } from '../nn-base-layer';
-import { NNElementRegistry } from '../nn-element-registry';
-
 export class Configuration extends NNBaseLayer {
   type: UMLElementType = NNElementType.Configuration;
   name: string = 'Configuration';
 
   constructor(values?: DeepPartial<Configuration>) {
     super(values);
-
-    // Register this Configuration so NNNext can prevent connections to it
-    NNElementRegistry.registerConfiguration(this.id);
 
     if (!values?.bounds) {
       this.bounds = { x: 0, y: 0, width: 0, height: 0 };
@@ -27,7 +22,7 @@ export class Configuration extends NNBaseLayer {
   }
 
   static supportedRelationships = [
-    NNRelationshipType.NNComposition as any,
+    NNRelationshipType.NNComposition,
   ];
 
   reorderChildren(children: IUMLElement[]): string[] {

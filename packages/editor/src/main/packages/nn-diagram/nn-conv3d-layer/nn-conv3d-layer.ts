@@ -23,7 +23,7 @@ export class Conv3DLayer extends NNBaseLayer {
   }
 
   static supportedRelationships = [
-    NNRelationshipType.NNNext as any,
+    NNRelationshipType.NNNext,
   ];
 
   reorderChildren(children: IUMLElement[]): string[] {

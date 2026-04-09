@@ -91,7 +91,7 @@ export class NormalizedShapeAttributeLayerNormalization extends LayerNormalizati
   type: UMLElementType = NNElementType.NormalizedShapeAttributeLayerNormalization;
   constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
     super({ attributeName: 'normalized_shape', value: '[-1]', isMandatory: true, ...values });
-    this.attributeType = 'list';
+    this.attributeType = 'List';
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

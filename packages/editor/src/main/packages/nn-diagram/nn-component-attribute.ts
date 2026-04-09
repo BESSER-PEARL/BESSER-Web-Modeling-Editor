@@ -2,6 +2,14 @@ import { DeepPartial } from 'redux';
 import { UMLClassifierAttribute } from '../common/uml-classifier/uml-classifier-attribute';
 import { IUMLClassifierMember } from '../common/uml-classifier/uml-classifier-member';
 import { IBoundary, computeDimension } from '../../utils/geometry/boundary';
+import { IUMLElement } from '../../services/uml-element/uml-element';
+
+export interface INNAttribute extends IUMLElement {
+  attributeName: string;
+  value: string;
+  isMandatory: boolean;
+  attributeType?: string;
+}
 
 /**
  * Base class for all NN component attributes (layers, tensorops, configuration).

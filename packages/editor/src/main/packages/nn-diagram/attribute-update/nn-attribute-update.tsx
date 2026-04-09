@@ -28,6 +28,8 @@ import { IBatchNormalizationAttribute, BatchNormalizationAttribute } from '../nn
 import { ITensorOpAttribute, TensorOpAttribute } from '../nn-tensorop-attributes/tensorop-attributes';
 import { IConfigurationAttribute, ConfigurationAttribute } from '../nn-configuration-attributes/configuration-attributes';
 import { NNElementType } from '../index';
+import { getAttributeDefaultValue, LIST_STRICT_REGEX, LIST_PERMISSIVE_REGEX, getListExpectation } from '../nn-validation-defaults';
+import { INNAttribute } from '../nn-component-attribute';
 
 type TextfieldValue = string | number;
 
@@ -97,10 +99,12 @@ type Props = OwnProps & StateProps & DispatchProps;
 interface ComponentState {
   colorOpen: boolean;
   multiSelectOpen: boolean;
+  validationError: string | null;
+  submitResetKey: number;
 }
 
 class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
-  state: ComponentState = { colorOpen: false, multiSelectOpen: false };
+  state: ComponentState = { colorOpen: false, multiSelectOpen: false, validationError: null, submitResetKey: 0 };
   multiSelectButtonRef = createRef<HTMLButtonElement>();
 
   private toggleColor = () => {
@@ -114,7 +118,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     update(element.id, {
       value: String(newValue),
       name: `${element.attributeName} = ${String(newValue)}`
-    } as any);
+    } as Partial<INNAttribute>);
   };
 
   // Special handler for Pooling dimension changes - updates kernel_dim, stride_dim, and output_dim
@@ -126,7 +130,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     update(element.id, {
       value: dimensionValue,
       name: `${element.attributeName} = ${dimensionValue}`
-    } as any);
+    } as Partial<INNAttribute>);
 
     // Find sibling kernel_dim, stride_dim, and output_dim attributes
     const ownerId = element.owner;
@@ -166,7 +170,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
         update(kernelDimAttr.id, {
           value: kernelValue,
           name: `kernel_dim = ${kernelValue}`
-        } as any);
+        } as Partial<INNAttribute>);
       }
 
       // Update stride_dim if it exists
@@ -177,7 +181,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
         update(strideDimAttr.id, {
           value: strideValue,
           name: `stride_dim = ${strideValue}`
-        } as any);
+        } as Partial<INNAttribute>);
       }
 
       // Update output_dim if it exists
@@ -188,7 +192,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
         update(outputDimAttr.id, {
           value: outputValue,
           name: `output_dim = ${outputValue}`
-        } as any);
+        } as Partial<INNAttribute>);
       }
     }
   };
@@ -241,7 +245,116 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     update(element.id, {
       value: newValue,
       name: `${element.attributeName} = ${newValue}`
-    } as any);
+    } as Partial<INNAttribute>);
+  };
+
+  private handleValidatedChange = (newValue: string | number) => {
+    const { element, update } = this.props;
+    const str = String(newValue);
+    const type = element.attributeType;
+
+    if (type === 'int') {
+      if (str === '' || str === '-') {
+        this.setState({ validationError: null });
+      } else if (/^-?\d+$/.test(str)) {
+        this.setState({ validationError: null });
+        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
+      } else {
+        this.setState({ validationError: `Must be an integer. Example: ${getAttributeDefaultValue(element)}` });
+      }
+    } else if (type === 'float') {
+      const isIntermediate = str === '' || str === '-' || str === '.' || /^-?\d*\.$/.test(str);
+      const isValid = !isIntermediate && !isNaN(Number(str)) && str !== '';
+      if (isIntermediate) {
+        this.setState({ validationError: null });
+      } else if (isValid) {
+        this.setState({ validationError: null });
+        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
+      } else {
+        this.setState({ validationError: `Must be a number. Example: ${getAttributeDefaultValue(element)}` });
+      }
+    } else if (type === 'List') {
+      if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
+        if (LIST_STRICT_REGEX.test(str)) {
+          const expected = getListExpectation(element.type, element.owner, this.props.elements);
+          if (expected.count !== null) {
+            const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
+            if (actualCount !== expected.count) {
+              this.setState({ validationError: `Must be a list with ${expected.count} integer${expected.count > 1 ? 's' : ''}. Example: ${expected.example}` });
+              return;
+            }
+          }
+          this.setState({ validationError: null });
+          update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
+        } else {
+          this.setState({ validationError: null });
+        }
+      } else {
+        const expected = getListExpectation(element.type, element.owner, this.props.elements);
+        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
+        this.setState({ validationError: `Must be a list${countMsg}. Example: ${expected.example}` });
+      }
+    }
+  };
+
+  private handleValidatedSubmit = (newValue: string | number) => {
+    const { element, update } = this.props;
+    const str = String(newValue).trim();
+    const type = element.attributeType;
+
+    if (type === 'int') {
+      if (/^-?\d+$/.test(str)) {
+        this.setState({ validationError: null });
+        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
+      } else {
+        const defaultVal = getAttributeDefaultValue(element);
+        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
+        const errorMsg = (str === '' || str === '-') ? null : `Must be an integer. Example: ${defaultVal}`;
+        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
+      }
+    } else if (type === 'float') {
+      if (!isNaN(Number(str)) && str !== '' && str !== '-' && str !== '.') {
+        this.setState({ validationError: null });
+        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
+      } else {
+        const defaultVal = getAttributeDefaultValue(element);
+        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
+        const isIncomplete = str === '' || str === '-' || str === '.';
+        const errorMsg = isIncomplete ? null : `Must be a number. Example: ${defaultVal}`;
+        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
+      }
+    } else if (type === 'List') {
+      if (LIST_STRICT_REGEX.test(str)) {
+        const expected = getListExpectation(element.type, element.owner, this.props.elements);
+        if (expected.count !== null) {
+          const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
+          if (actualCount !== expected.count) {
+            const defaultVal = expected.example;
+            update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
+            this.setState((s) => ({
+              validationError: `Must be a list with ${expected.count} integer${expected.count! > 1 ? 's' : ''}. Example: ${expected.example}`,
+              submitResetKey: s.submitResetKey + 1,
+            }));
+            return;
+          }
+        }
+        this.setState({ validationError: null });
+        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
+      } else if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
+        const defaultVal = getListExpectation(element.type, element.owner, this.props.elements).example;
+        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
+        this.setState((s) => ({ validationError: null, submitResetKey: s.submitResetKey + 1 }));
+      } else {
+        const expected = getListExpectation(element.type, element.owner, this.props.elements);
+        const defaultVal = expected.example;
+        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
+        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
+        this.setState((s) => ({
+          validationError: `Must be a list${countMsg}. Example: ${expected.example}`,
+          submitResetKey: s.submitResetKey + 1,
+        }));
+      }
+    }
   };
 
   render() {
@@ -439,6 +552,15 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                   </Dropdown.Item>
                 ))}
               </Dropdown>
+            ) : element.attributeType === 'int' || element.attributeType === 'float' || element.attributeType === 'List' ? (
+              <ValueTextfield
+                key={this.state.submitResetKey}
+                gutter
+                value={element.value || ''}
+                onChange={this.handleValidatedChange}
+                onSubmit={this.handleValidatedSubmit}
+                placeholder="value"
+              />
             ) : (
               <ValueTextfield
                 gutter
@@ -450,6 +572,11 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
           </AttributeInputContainer>
           <ColorButton onClick={this.toggleColor} />
         </Flex>
+        {this.state.validationError && (
+          <span style={{ color: 'red', fontSize: '11px', display: 'block', marginTop: '-2px', marginBottom: '4px' }}>
+            {this.state.validationError}
+          </span>
+        )}
         <StylePane open={colorOpen} element={element} onColorChange={this.props.update} fillColor textColor />
       </>
     );

@@ -8,7 +8,11 @@ import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { UMLContainerRepository } from '../../../services/uml-container/uml-container-repository';
 import { Conv1DAttribute } from '../nn-conv1d-attributes/conv1d-attributes';
-import { NNElementType, NNRelationshipType } from '../index';
+import { INNAttribute } from '../nn-component-attribute';
+import { IUMLRelationship } from '../../../services/uml-relationship/uml-relationship';
+import { NNRelationshipType } from '../index';
+import { getAttributeDefaultValue, LIST_STRICT_REGEX, LIST_PERMISSIVE_REGEX, getListExpectation } from '../nn-validation-defaults';
+import { getWidgetConfig } from '../nn-attribute-widget-config';
 
 const AttributeInputContainer = styled.div`
   display: flex;
@@ -54,6 +58,8 @@ interface LocalState {
   // For layers_of_tensors - track selections before both are filled
   tensor1: string;
   tensor2: string;
+  validationError: string | null;
+  submitResetKey: number;
 }
 
 class OptionalAttributeRowComponent extends Component<Props, LocalState> {
@@ -67,6 +73,8 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
       isChecked: !!props.existingAttribute,
       tensor1: t1,
       tensor2: t2,
+      validationError: null,
+      submitResetKey: 0,
     };
   }
 
@@ -101,28 +109,6 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
     }
   }
 
-  // Helper to check if attribute type is name_module_input
-  private isNameModuleInputType = (attrType: string): boolean => {
-    return attrType === NNElementType.NameModuleInputAttributeConv1D ||
-           attrType === NNElementType.NameModuleInputAttributeConv2D ||
-           attrType === NNElementType.NameModuleInputAttributeConv3D ||
-           attrType === NNElementType.NameModuleInputAttributePooling ||
-           attrType === NNElementType.NameModuleInputAttributeRNN ||
-           attrType === NNElementType.NameModuleInputAttributeLSTM ||
-           attrType === NNElementType.NameModuleInputAttributeGRU ||
-           attrType === NNElementType.NameModuleInputAttributeLinear ||
-           attrType === NNElementType.NameModuleInputAttributeFlatten ||
-           attrType === NNElementType.NameModuleInputAttributeEmbedding ||
-           attrType === NNElementType.NameModuleInputAttributeDropout ||
-           attrType === NNElementType.NameModuleInputAttributeLayerNormalization ||
-           attrType === NNElementType.NameModuleInputAttributeBatchNormalization;
-  };
-
-  // Helper to check if attribute type is layers_of_tensors
-  private isLayersOfTensorsType = (attrType: string): boolean => {
-    return attrType === NNElementType.LayersOfTensorsAttributeTensorOp;
-  };
-
   // Parse layers_of_tensors value like "['a', 'b']" into [tensor1, tensor2]
   private parseLayersOfTensors = (value: string): [string, string] => {
     if (!value || value === '[]') return ['', ''];
@@ -148,15 +134,10 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
     this.setState({ isChecked: isChecking });
 
     if (isChecking) {
-      // For name_module_input: don't create attribute yet, wait for user to select a value
-      if (this.isNameModuleInputType(attributeType)) {
-        // Just show the dropdown, attribute will be created when a value is selected
-        return;
-      }
+      const config = getWidgetConfig(attributeType);
 
-      // For layers_of_tensors: don't create attribute yet, wait for user to select both values
-      if (this.isLayersOfTensorsType(attributeType)) {
-        // Just show the dropdowns, attribute will be created when both values are selected
+      // For predecessor / layers_of_tensors: don't create attribute yet, wait for user selection
+      if (config.widget === 'predecessor' || config.widget === 'layers_of_tensors') {
         return;
       }
 
@@ -164,37 +145,9 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
       if (!existingAttribute) {
         const instance = new attributeCtor({ owner: layerId });
 
-        // For Pooling kernel_dim, stride_dim, and output_dim, adjust value based on current dimension
-        if (attributeType === NNElementType.KernelDimAttributePooling ||
-            attributeType === NNElementType.StrideDimAttributePooling ||
-            attributeType === NNElementType.OutputDimAttributePooling) {
-          // Find the dimension attribute for this Pooling layer
-          const dimensionAttr = Object.values(elements).find(
-            (el: any) => el.owner === layerId && el.type === NNElementType.DimensionAttributePooling
-          );
-          const dimension = (dimensionAttr as any)?.value || '2D';
-
-          // Set the correct value based on dimension
-          if (attributeType === NNElementType.KernelDimAttributePooling) {
-            switch (dimension) {
-              case '1D': instance.value = '[3]'; break;
-              case '3D': instance.value = '[3, 3, 3]'; break;
-              default: instance.value = '[3, 3]'; break;
-            }
-          } else if (attributeType === NNElementType.StrideDimAttributePooling) {
-            switch (dimension) {
-              case '1D': instance.value = '[1]'; break;
-              case '3D': instance.value = '[1, 1, 1]'; break;
-              default: instance.value = '[1, 1]'; break;
-            }
-          } else if (attributeType === NNElementType.OutputDimAttributePooling) {
-            // output_dim for adaptive pooling - list size matches dimension
-            switch (dimension) {
-              case '1D': instance.value = '[16]'; break;
-              case '3D': instance.value = '[16, 16, 16]'; break;
-              default: instance.value = '[16, 16]'; break;
-            }
-          }
+        // Apply dimension-aware initial value if defined in config (e.g. pooling kernel/stride/output)
+        if (config.getInitialValue) {
+          instance.value = config.getInitialValue(elements, layerId);
           instance.name = `${instance.attributeName} = ${instance.value}`;
         }
 
@@ -219,8 +172,8 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
     const valueStr = String(newValue);
     const { existingAttribute, attributeCtor, layerId, attributeType } = this.props;
 
-    // For name_module_input: handle empty value specially
-    if (this.isNameModuleInputType(attributeType)) {
+    // For predecessor: handle empty value specially (create on select, delete on clear)
+    if (getWidgetConfig(attributeType).widget === 'predecessor') {
       if (valueStr === '') {
         // Empty value selected - delete the attribute if it exists
         if (existingAttribute) {
@@ -245,6 +198,141 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
         value: valueStr,
         name: `${existingAttribute.attributeName} = ${valueStr}`
       } as Partial<Conv1DAttribute>);
+    }
+  };
+
+  private handleValidatedTextChange = (newValue: string | number) => {
+    const { existingAttribute } = this.props;
+    const str = String(newValue);
+    const attrType = existingAttribute?.attributeType;
+
+    if (attrType === 'int') {
+      if (str === '' || str === '-') {
+        this.setState({ validationError: null });
+      } else if (/^-?\d+$/.test(str)) {
+        this.setState({ validationError: null });
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: str, name: `${existingAttribute!.attributeName} = ${str}`
+        } as Partial<Conv1DAttribute>);
+      } else {
+        this.setState({ validationError: `Must be an integer. Example: ${getAttributeDefaultValue(existingAttribute!)}` });
+      }
+    } else if (attrType === 'float') {
+      const isIntermediate = str === '' || str === '-' || str === '.' || /^-?\d*\.$/.test(str);
+      const isValid = !isIntermediate && !isNaN(Number(str)) && str !== '';
+      if (isIntermediate) {
+        this.setState({ validationError: null });
+      } else if (isValid) {
+        this.setState({ validationError: null });
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: str, name: `${existingAttribute!.attributeName} = ${str}`
+        } as Partial<Conv1DAttribute>);
+      } else {
+        this.setState({ validationError: `Must be a number. Example: ${getAttributeDefaultValue(existingAttribute!)}` });
+      }
+    } else if (attrType === 'List') {
+      if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
+        if (LIST_STRICT_REGEX.test(str)) {
+          const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
+          if (expected.count !== null) {
+            const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
+            if (actualCount !== expected.count) {
+              this.setState({ validationError: `Must be a list with ${expected.count} integer${expected.count > 1 ? 's' : ''}. Example: ${expected.example}` });
+              return;
+            }
+          }
+          this.setState({ validationError: null });
+          this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+            value: str, name: `${existingAttribute!.attributeName} = ${str}`
+          } as Partial<Conv1DAttribute>);
+        } else {
+          this.setState({ validationError: null });
+        }
+      } else {
+        const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
+        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
+        this.setState({ validationError: `Must be a list${countMsg}. Example: ${expected.example}` });
+      }
+    } else {
+      this.handleValueChange(newValue);
+    }
+  };
+
+  private handleValidatedTextSubmit = (newValue: string | number) => {
+    const { existingAttribute } = this.props;
+    const str = String(newValue).trim();
+    const attrType = existingAttribute?.attributeType;
+
+    if (attrType === 'int') {
+      if (/^-?\d+$/.test(str)) {
+        this.setState({ validationError: null });
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: str, name: `${existingAttribute!.attributeName} = ${str}`
+        } as Partial<Conv1DAttribute>);
+      } else {
+        const defaultVal = getAttributeDefaultValue(existingAttribute!);
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
+        } as Partial<Conv1DAttribute>);
+        const errorMsg = (str === '' || str === '-') ? null : `Must be an integer. Example: ${defaultVal}`;
+        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
+      }
+    } else if (attrType === 'float') {
+      if (!isNaN(Number(str)) && str !== '' && str !== '-' && str !== '.') {
+        this.setState({ validationError: null });
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: str, name: `${existingAttribute!.attributeName} = ${str}`
+        } as Partial<Conv1DAttribute>);
+      } else {
+        const defaultVal = getAttributeDefaultValue(existingAttribute!);
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
+        } as Partial<Conv1DAttribute>);
+        const isIncomplete = str === '' || str === '-' || str === '.';
+        const errorMsg = isIncomplete ? null : `Must be a number. Example: ${defaultVal}`;
+        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
+      }
+    } else if (attrType === 'List') {
+      if (LIST_STRICT_REGEX.test(str)) {
+        const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
+        if (expected.count !== null) {
+          const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
+          if (actualCount !== expected.count) {
+            const defaultVal = expected.example;
+            this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+              value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
+            } as Partial<Conv1DAttribute>);
+            this.setState((s) => ({
+              validationError: `Must be a list with ${expected.count} integer${expected.count! > 1 ? 's' : ''}. Example: ${expected.example}`,
+              submitResetKey: s.submitResetKey + 1,
+            }));
+            return;
+          }
+        }
+        this.setState({ validationError: null });
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: str, name: `${existingAttribute!.attributeName} = ${str}`
+        } as Partial<Conv1DAttribute>);
+      } else if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
+        const defaultVal = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements).example;
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
+        } as Partial<Conv1DAttribute>);
+        this.setState((s) => ({ validationError: null, submitResetKey: s.submitResetKey + 1 }));
+      } else {
+        const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
+        const defaultVal = expected.example;
+        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
+          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
+        } as Partial<Conv1DAttribute>);
+        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
+        this.setState((s) => ({
+          validationError: `Must be a list${countMsg}. Example: ${expected.example}`,
+          submitResetKey: s.submitResetKey + 1,
+        }));
+      }
+    } else {
+      this.handleValueChange(newValue);
     }
   };
 
@@ -296,98 +384,19 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
   render() {
     const { label, attributeType, attributeValue, predecessorNames } = this.props;
     const { isChecked } = this.state;
+    const config = getWidgetConfig(attributeType);
 
     // Always use Redux value if available (handles external updates like dimension change)
     const localValue = attributeValue || '';
 
-    // Check if this is a name_module_input attribute
-    const isNameModuleInput = attributeType === NNElementType.NameModuleInputAttributeConv1D ||
-                              attributeType === NNElementType.NameModuleInputAttributeConv2D ||
-                              attributeType === NNElementType.NameModuleInputAttributeConv3D ||
-                              attributeType === NNElementType.NameModuleInputAttributePooling ||
-                              attributeType === NNElementType.NameModuleInputAttributeRNN ||
-                              attributeType === NNElementType.NameModuleInputAttributeLSTM ||
-                              attributeType === NNElementType.NameModuleInputAttributeGRU ||
-                              attributeType === NNElementType.NameModuleInputAttributeLinear ||
-                              attributeType === NNElementType.NameModuleInputAttributeFlatten ||
-                              attributeType === NNElementType.NameModuleInputAttributeEmbedding ||
-                              attributeType === NNElementType.NameModuleInputAttributeDropout ||
-                              attributeType === NNElementType.NameModuleInputAttributeLayerNormalization ||
-                              attributeType === NNElementType.NameModuleInputAttributeBatchNormalization;
+    // For dropdowns: if the stored value is not in the options list (e.g. legacy values like
+    // 'zeros' for padding or 'output' for return_type), fall back to the config's defaultValue.
+    const displayValue = (config.widget === 'dropdown' && config.options && !config.options.includes(localValue))
+      ? config.defaultValue ?? ''
+      : localValue;
 
-    // Check if this is a layers_of_tensors attribute (TensorOp - requires two predecessors)
-    const isLayersOfTensors = this.isLayersOfTensorsType(attributeType);
     // Use local state for tensor values (allows tracking before both are selected)
     const { tensor1, tensor2 } = this.state;
-
-    // Check if this is a padding_type attribute
-    const isPaddingType = attributeType === NNElementType.PaddingTypeAttributeConv1D ||
-                          attributeType === NNElementType.PaddingTypeAttributeConv2D ||
-                          attributeType === NNElementType.PaddingTypeAttributeConv3D ||
-                          attributeType === NNElementType.PaddingTypeAttributePooling;
-    const paddingTypeOptions = ['valid', 'same'];
-
-    // Check if this is a tns_type attribute
-    const isTnsType = attributeType === NNElementType.TnsTypeAttributeTensorOp;
-    const tnsTypeOptions = ['reshape', 'concatenate', 'multiply', 'matmultiply', 'transpose', 'permute'];
-
-    // Check if this is a return_type attribute
-    const isReturnType = attributeType === NNElementType.ReturnTypeAttributeRNN ||
-                         attributeType === NNElementType.ReturnTypeAttributeLSTM ||
-                         attributeType === NNElementType.ReturnTypeAttributeGRU;
-    const returnTypeOptions = ['hidden', 'last', 'full'];
-
-    // Check if this is an actv_func attribute
-    const isActvFunc = attributeType === NNElementType.ActvFuncAttributeConv1D ||
-                       attributeType === NNElementType.ActvFuncAttributeConv2D ||
-                       attributeType === NNElementType.ActvFuncAttributeConv3D ||
-                       attributeType === NNElementType.ActvFuncAttributePooling ||
-                       attributeType === NNElementType.ActvFuncAttributeRNN ||
-                       attributeType === NNElementType.ActvFuncAttributeLSTM ||
-                       attributeType === NNElementType.ActvFuncAttributeGRU ||
-                       attributeType === NNElementType.ActvFuncAttributeLinear ||
-                       attributeType === NNElementType.ActvFuncAttributeFlatten ||
-                       attributeType === NNElementType.ActvFuncAttributeEmbedding ||
-                       attributeType === NNElementType.ActvFuncAttributeLayerNormalization ||
-                       attributeType === NNElementType.ActvFuncAttributeBatchNormalization;
-    const actvFuncOptions = ['relu', 'leaky_relu', 'sigmoid', 'softmax', 'tanh'];
-
-    // Check if this is a boolean attribute (permute_in, permute_out, input_reused, batch_first, bidirectional)
-    const isBooleanAttr = attributeType === NNElementType.PermuteInAttributeConv1D ||
-                          attributeType === NNElementType.PermuteOutAttributeConv1D ||
-                          attributeType === NNElementType.PermuteInAttributeConv2D ||
-                          attributeType === NNElementType.PermuteOutAttributeConv2D ||
-                          attributeType === NNElementType.PermuteInAttributeConv3D ||
-                          attributeType === NNElementType.PermuteOutAttributeConv3D ||
-                          attributeType === NNElementType.PermuteInAttributePooling ||
-                          attributeType === NNElementType.PermuteOutAttributePooling ||
-                          attributeType === NNElementType.InputReusedAttributeConv1D ||
-                          attributeType === NNElementType.InputReusedAttributeConv2D ||
-                          attributeType === NNElementType.InputReusedAttributeConv3D ||
-                          attributeType === NNElementType.InputReusedAttributePooling ||
-                          attributeType === NNElementType.InputReusedAttributeRNN ||
-                          attributeType === NNElementType.InputReusedAttributeLSTM ||
-                          attributeType === NNElementType.InputReusedAttributeGRU ||
-                          attributeType === NNElementType.InputReusedAttributeLinear ||
-                          attributeType === NNElementType.InputReusedAttributeFlatten ||
-                          attributeType === NNElementType.InputReusedAttributeEmbedding ||
-                          attributeType === NNElementType.InputReusedAttributeDropout ||
-                          attributeType === NNElementType.InputReusedAttributeLayerNormalization ||
-                          attributeType === NNElementType.InputReusedAttributeBatchNormalization ||
-                          attributeType === NNElementType.InputReusedAttributeTensorOp ||
-                          attributeType === NNElementType.BidirectionalAttributeRNN ||
-                          attributeType === NNElementType.BidirectionalAttributeLSTM ||
-                          attributeType === NNElementType.BidirectionalAttributeGRU ||
-                          attributeType === NNElementType.BatchFirstAttributeRNN ||
-                          attributeType === NNElementType.BatchFirstAttributeLSTM ||
-                          attributeType === NNElementType.BatchFirstAttributeGRU;
-    const booleanOptions = ['true', 'false'];
-
-    // Handle legacy 'zeros' value by defaulting to 'valid'
-    // Handle legacy 'output' value by defaulting to 'last' for return_type
-    const displayValue = isPaddingType && localValue === 'zeros' ? 'valid' :
-                         isReturnType && localValue === 'output' ? 'last' :
-                         localValue;
 
     return (
       <div style={{ marginTop: '8px' }}>
@@ -400,7 +409,7 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
           <AttributeInputContainer>
             <AttributeLabel>{label} = </AttributeLabel>
             {isChecked ? (
-              isLayersOfTensors ? (
+              config.widget === 'layers_of_tensors' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexGrow: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <span style={{ fontSize: '11px', minWidth: '25px' }}>1st:</span>
@@ -443,7 +452,7 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                     </Dropdown>
                   </div>
                 </div>
-              ) : isNameModuleInput ? (
+              ) : config.widget === 'predecessor' ? (
                 <Dropdown
                   value={localValue || ''}
                   onChange={this.handleValueChange}
@@ -461,66 +470,14 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                     ))
                   ]}
                 </Dropdown>
-              ) : isPaddingType ? (
+              ) : config.widget === 'dropdown' ? (
                 <Dropdown
-                  value={displayValue || 'valid'}
+                  value={displayValue || config.defaultValue || ''}
                   onChange={this.handleValueChange}
                   size="sm"
                   outline
                 >
-                  {paddingTypeOptions.map(option => (
-                    <Dropdown.Item key={option} value={option}>
-                      {option}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown>
-              ) : isTnsType ? (
-                <Dropdown
-                  value={displayValue || 'reshape'}
-                  onChange={this.handleValueChange}
-                  size="sm"
-                  outline
-                >
-                  {tnsTypeOptions.map(option => (
-                    <Dropdown.Item key={option} value={option}>
-                      {option}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown>
-              ) : isReturnType ? (
-                <Dropdown
-                  value={displayValue || 'last'}
-                  onChange={this.handleValueChange}
-                  size="sm"
-                  outline
-                >
-                  {returnTypeOptions.map(option => (
-                    <Dropdown.Item key={option} value={option}>
-                      {option}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown>
-              ) : isActvFunc ? (
-                <Dropdown
-                  value={displayValue || 'relu'}
-                  onChange={this.handleValueChange}
-                  size="sm"
-                  outline
-                >
-                  {actvFuncOptions.map(option => (
-                    <Dropdown.Item key={option} value={option}>
-                      {option}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown>
-              ) : isBooleanAttr ? (
-                <Dropdown
-                  value={displayValue || 'false'}
-                  onChange={this.handleValueChange}
-                  size="sm"
-                  outline
-                >
-                  {booleanOptions.map(option => (
+                  {config.options!.map(option => (
                     <Dropdown.Item key={option} value={option}>
                       {option}
                     </Dropdown.Item>
@@ -528,9 +485,11 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                 </Dropdown>
               ) : (
                 <Textfield
+                  key={this.state.submitResetKey}
                   gutter
                   value={localValue}
-                  onChange={this.handleValueChange}
+                  onChange={this.handleValidatedTextChange}
+                  onSubmit={this.handleValidatedTextSubmit}
                   placeholder="value"
                   style={{ flexGrow: 1 }}
                 />
@@ -540,6 +499,11 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
             )}
           </AttributeInputContainer>
         </div>
+        {this.state.validationError && (
+          <span style={{ color: 'red', fontSize: '11px', display: 'block', marginLeft: '24px' }}>
+            {this.state.validationError}
+          </span>
+        )}
       </div>
     );
   }
@@ -566,7 +530,7 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
     const nameAttr = Object.values(state.elements).find(
       (el: any) => el.owner === elementId && el.type?.includes('NameAttribute')
     );
-    return (nameAttr as any)?.value || element.name || null;
+    return (nameAttr as INNAttribute)?.value || element.name || null;
   };
 
   // Recursively find all predecessors
@@ -577,7 +541,7 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
     );
 
     for (const rel of incomingRelationships) {
-      const sourceId = (rel as any).source?.element;
+      const sourceId = (rel as IUMLRelationship).source?.element;
       if (sourceId && !visitedIds.has(sourceId)) {
         visitedIds.add(sourceId);
         const name = getElementName(sourceId);
@@ -596,7 +560,7 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
   return {
     existingAttribute,
     elements: state.elements,
-    attributeValue: (existingAttribute as any)?.value,  // Explicit value to trigger re-render
+    attributeValue: (existingAttribute as INNAttribute)?.value,  // Explicit value to trigger re-render
     predecessorNames,
   };
 };

@@ -8,7 +8,6 @@ import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-eleme
 import { UMLElementFeatures } from '../../../services/uml-element/uml-element-features';
 import { computeBoundingBoxForElements } from '../../../utils/geometry/boundary';
 import { calculateNameBounds } from '../../../utils/name-bounds';
-import { NNElementRegistry } from '../nn-element-registry';
 
 export class NNContainer extends UMLContainer {
   static features: UMLElementFeatures = {
@@ -20,7 +19,7 @@ export class NNContainer extends UMLContainer {
   type: UMLElementType = NNElementType.NNContainer;
 
   static supportedRelationships = [
-    NNRelationshipType.NNComposition as any,
+    NNRelationshipType.NNComposition,
   ];
 
   // Minimum dimensions for the container
@@ -38,7 +37,6 @@ export class NNContainer extends UMLContainer {
     if (values) {
       Object.assign(this, values);
     }
-    NNElementRegistry.registerContainer(this.id);
   }
 
   /**

@@ -206,15 +206,6 @@ export const NNElementType = {
 } as const;
 
 export const NNRelationshipType = {
-  ClassBidirectional: 'ClassBidirectional',
-  ClassUnidirectional: 'ClassUnidirectional',
-  ClassInheritance: 'ClassInheritance',
-  ClassRealization: 'ClassRealization',
-  ClassDependency: 'ClassDependency',
-  ClassAggregation: 'ClassAggregation',
-  ClassComposition: 'ClassComposition',
-  ClassOCLLink: 'ClassOCLLink',
-  ClassLinkRel: 'ClassLinkRel',
   NNNext: 'NNNext', // NN-specific unidirectional with "next" label
   NNComposition: 'NNComposition', // NN-specific composition (diamond always on NNContainer side)
 } as const;

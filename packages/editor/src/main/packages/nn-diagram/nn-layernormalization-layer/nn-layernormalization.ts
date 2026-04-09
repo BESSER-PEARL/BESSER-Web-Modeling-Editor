@@ -23,7 +23,7 @@ export class LayerNormalizationLayer extends NNBaseLayer {
   }
 
   static supportedRelationships = [
-    NNRelationshipType.NNNext as any,
+    NNRelationshipType.NNNext,
   ];
 
   reorderChildren(children: IUMLElement[]): string[] {

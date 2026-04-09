@@ -1,18 +1,19 @@
-import { Component } from 'react';
+import { Component, ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
-import { ClassRelationshipType } from '../../uml-class-diagram';
-import { NNElementType } from '../index';
+import { NNElementType, NNRelationshipType } from '../index';
 import { UMLRelationship } from '../../../services/uml-relationship/uml-relationship';
+import { INNAttribute } from '../nn-component-attribute';
 
 type StateProps = {
   elements: ModelState['elements'];
 };
 
 type DispatchProps = {
+  delete: typeof UMLElementRepository.delete;
   update: typeof UMLElementRepository.update;
-  getById: (id: string) => any;
 };
 
 type Props = StateProps & DispatchProps;
@@ -23,54 +24,110 @@ class NNAssociationMonitorComponent extends Component<Props> {
   }
 
   componentDidUpdate(prevProps: Readonly<Props>) {
-    // Check if elements changed
     if (prevProps.elements !== this.props.elements) {
       this.checkAndUpdateAssociations();
+      this.renameNewDuplicateNameAttributes(prevProps.elements);
     }
   }
 
-  private isNNLayer(type: string): boolean {
-    return (
-      type === NNElementType.Conv1DLayer ||
-      type === NNElementType.Conv2DLayer ||
-      type === NNElementType.Conv3DLayer
-    );
-  }
-
   private checkAndUpdateAssociations() {
-    const { elements, update, getById } = this.props;
+    const { elements } = this.props;
 
-    // Find all ClassUnidirectional associations
     Object.values(elements).forEach((element: any) => {
-      if (
-        UMLRelationship.isUMLRelationship(element) &&
-        element.type === ClassRelationshipType.ClassUnidirectional
-      ) {
-        const source = element.source && getById(element.source.element);
-        const target = element.target && getById(element.target.element);
+      if (!UMLRelationship.isUMLRelationship(element)) return;
 
-        // Check if both are NN layers
-        if (source && target && this.isNNLayer(source.type) && this.isNNLayer(target.type)) {
-          // Set name to "next" if it's not already
-          if (element.name !== 'next') {
-            update(element.id, { name: 'next' });
-          }
+      // Delete any NNNext connection involving NNContainer or Configuration
+      if (element.type === NNRelationshipType.NNNext) {
+        const source = elements[element.source?.element];
+        const target = elements[element.target?.element];
+        const isInvalid =
+          source?.type === NNElementType.NNContainer ||
+          source?.type === NNElementType.Configuration ||
+          target?.type === NNElementType.NNContainer ||
+          target?.type === NNElementType.Configuration;
+        if (isInvalid) {
+          this.props.delete(element.id);
+          return;
         }
       }
     });
   }
 
+  private renameNewDuplicateNameAttributes(prevElements: ModelState['elements']) {
+    const { elements } = this.props;
+
+    // --- Handle layer name attributes (attributeName === 'name') ---
+    const newNameAttrs = Object.values(elements).filter(
+      (el) => !prevElements[el.id] && (el as INNAttribute).attributeName === 'name'
+    );
+
+    if (newNameAttrs.length > 0) {
+      const takenNames = new Set<string>(
+        Object.values(prevElements)
+          .filter((el) => (el as INNAttribute).attributeName === 'name')
+          .map((el) => (el as INNAttribute).value)
+      );
+
+      for (const attr of newNameAttrs) {
+        const baseName = (attr as INNAttribute).value;
+        let uniqueName = baseName;
+        let counter = 2;
+        while (takenNames.has(uniqueName)) {
+          uniqueName = `${baseName}${counter}`;
+          counter++;
+        }
+        takenNames.add(uniqueName);
+
+        if (uniqueName !== baseName) {
+          this.props.update(attr.id, { value: uniqueName, name: `name = ${uniqueName}` } as Partial<INNAttribute>);
+        }
+      }
+    }
+
+    // --- Handle NNContainer elements (name stored directly on the element) ---
+    const newContainers = Object.values(elements).filter(
+      (el) => !prevElements[el.id] && el.type === NNElementType.NNContainer
+    );
+
+    if (newContainers.length > 0) {
+      const takenContainerNames = new Set<string>(
+        Object.values(prevElements)
+          .filter((el) => el.type === NNElementType.NNContainer)
+          .map((el) => el.name)
+      );
+
+      for (const container of newContainers) {
+        const baseName = container.name;
+        let uniqueName = baseName;
+        let counter = 2;
+        while (takenContainerNames.has(uniqueName)) {
+          uniqueName = `${baseName}${counter}`;
+          counter++;
+        }
+        takenContainerNames.add(uniqueName);
+
+        if (uniqueName !== baseName) {
+          this.props.update(container.id, { name: uniqueName });
+        }
+      }
+    }
+  }
+
   render() {
-    return null; // This component doesn't render anything
+    return null;
   }
 }
 
-export const NNAssociationMonitor = connect<StateProps, DispatchProps, {}, ModelState>(
-  (state) => ({
-    elements: state.elements,
-  }),
-  {
-    update: UMLElementRepository.update,
-    getById: UMLElementRepository.getById as any,
-  }
-)(NNAssociationMonitorComponent);
+const enhance = compose<ComponentClass>(
+  connect<StateProps, DispatchProps, {}, ModelState>(
+    (state) => ({
+      elements: state.elements,
+    }),
+    {
+      delete: UMLElementRepository.delete,
+      update: UMLElementRepository.update,
+    }
+  )
+);
+
+export const NNAssociationMonitor = enhance(NNAssociationMonitorComponent);

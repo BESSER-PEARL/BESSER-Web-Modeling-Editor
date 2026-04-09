@@ -18,6 +18,7 @@ import { UMLContainerRepository } from '../../../services/uml-container/uml-cont
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { notEmpty } from '../../../utils/not-empty';
 import { NNAttributeUpdate } from '../attribute-update/nn-attribute-update';
+import { INNAttribute } from '../nn-component-attribute';
 import { Conv1DLayer } from '../nn-conv1d-layer/nn-conv1d-layer';
 import { Conv2DLayer } from '../nn-conv2d-layer/nn-conv2d-layer';
 import { Conv3DLayer } from '../nn-conv3d-layer/nn-conv3d-layer';
@@ -517,16 +518,35 @@ class NNComponentUpdateComponent extends Component<Props, State> {
   };
 
   private createMandatoryAttributes = () => {
-    const { element } = this.props;
+    const { element, elements } = this.props;
     const config = LAYER_CONFIG[element.type];
 
     if (!config) return;
 
-    // Create all mandatory attributes with default values
+    // Collect existing name values to avoid duplicates (fallback for legacy/loaded diagrams)
+    const existingNames = new Set<string>(
+      Object.values(elements)
+        .filter((el: any) => (el as INNAttribute).attributeName === 'name')
+        .map((el: any) => (el as INNAttribute).value as string)
+    );
+
     config.mandatoryAttributes.forEach(({ ctor }) => {
       const attr = new ctor({ owner: element.id });
+
+      if ((attr as INNAttribute).attributeName === 'name') {
+        const baseName = (attr as INNAttribute).value;
+        let uniqueName = baseName;
+        let counter = 2;
+        while (existingNames.has(uniqueName)) {
+          uniqueName = `${baseName}${counter}`;
+          counter++;
+        }
+        (attr as INNAttribute).value = uniqueName;
+        attr.name = `name = ${uniqueName}`;
+        existingNames.add(uniqueName);
+      }
+
       this.props.create(attr, element.id);
-      // Save to parent's ownedElements so it persists
       this.props.appendToParent(attr.id, element.id);
     });
   };
@@ -540,7 +560,7 @@ class NNComponentUpdateComponent extends Component<Props, State> {
     // Check if mandatory attributes already exist (element was loaded from saved state)
     const hasMandatoryAttributes = Object.values(elements).some(
       (el) => el.owner === element.id &&
-        (el as any).isMandatory === true &&
+        (el as INNAttribute).isMandatory === true &&
         config.attributeFilter(el.type)
     );
 
@@ -616,7 +636,7 @@ class NNComponentUpdateComponent extends Component<Props, State> {
     const children = allElementsArray.filter(
       (el): el is Conv1DAttribute | Conv2DAttribute | Conv3DAttribute | PoolingAttribute | RNNAttribute | LSTMAttribute | GRUAttribute | LinearAttribute | FlattenAttribute | EmbeddingAttribute | DropoutAttribute | LayerNormalizationAttribute | BatchNormalizationAttribute | TensorOpAttribute | ConfigurationAttribute =>
         el.owner === element.id &&
-        (el as any).attributeName !== undefined &&
+        (el as INNAttribute).attributeName !== undefined &&
         config.attributeFilter(el.type)
     ) as (Conv1DAttribute | Conv2DAttribute | Conv3DAttribute | PoolingAttribute | RNNAttribute | LSTMAttribute | GRUAttribute | LinearAttribute | FlattenAttribute | EmbeddingAttribute | DropoutAttribute | LayerNormalizationAttribute | BatchNormalizationAttribute | TensorOpAttribute | ConfigurationAttribute)[];
 
