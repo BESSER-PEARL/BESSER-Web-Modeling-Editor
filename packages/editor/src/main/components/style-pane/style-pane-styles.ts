@@ -75,16 +75,24 @@ export const Button = styled.button`
 
 export const FieldRow = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
   padding: 10px 14px;
   background-color: ${(props) => props.theme.color.background};
   color: ${(props) => props.theme.color.primaryContrast};
+  align-items: center;
+  gap: 12px;
 
   label {
     font-size: 0.85em;
     font-weight: 600;
-    margin-bottom: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  > *:last-child {
+    flex: 1;
+    min-width: 0;
   }
 `;
 
