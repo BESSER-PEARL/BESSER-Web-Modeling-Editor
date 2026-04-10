@@ -255,15 +255,6 @@ export const useGenerateCode = () => {
           }
         }
 
-        // Fix filename for NN generators based on generation_type
-        if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
-          const nnConfig = config as NNConfig;
-          const generationType = nnConfig?.generation_type || 'subclassing';
-          if (generationType === 'sequential' && filename.includes('subclassing')) {
-            filename = filename.replace('subclassing', 'sequential');
-          }
-        }
-
         downloadFile({ file: blob, filename });
         toast.success('Code generation completed successfully');
       } catch (error) {
