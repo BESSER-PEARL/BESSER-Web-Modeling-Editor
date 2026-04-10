@@ -142,8 +142,8 @@ export class PaddingTypeAttributePooling extends PoolingAttribute {
 export class OutputDimAttributePooling extends PoolingAttribute {
   type: UMLElementType = NNElementType.OutputDimAttributePooling;
   constructor(values?: DeepPartial<IPoolingAttribute>) {
-    super({ attributeName: 'output_dim', value: '16', isMandatory: false, ...values });
-    this.attributeType = 'int';
+    super({ attributeName: 'output_dim', value: '[16, 16]', isMandatory: false, ...values });
+    this.attributeType = 'List';
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

@@ -7,7 +7,7 @@ export const NN_ATTRIBUTE_DEFAULTS: Record<string, string> = {
   in_channels: '3',
   padding_amount: '0',
   // Pooling-specific
-  output_dim: '16',
+  output_dim: '[16, 16]',
   // Linear
   out_features: '128',
   in_features: '64',
@@ -70,6 +70,19 @@ export function getListExpectation(
         }
       }
       return { count: 2, example: isKernel ? '[3, 3]' : '[1, 1]' };
+    }
+    case NNElementType.OutputDimAttributePooling: {
+      if (ownerId) {
+        const dimAttr = Object.values(elements).find(
+          (el: any) => el.owner === ownerId && el.type === NNElementType.DimensionAttributePooling,
+        );
+        switch ((dimAttr as INNAttribute)?.value) {
+          case '1D': return { count: 1, example: '[16]' };
+          case '3D': return { count: 3, example: '[16, 16, 16]' };
+          default:   return { count: 2, example: '[16, 16]' };
+        }
+      }
+      return { count: 2, example: '[16, 16]' };
     }
     default: return { count: null, example: '[1]' };
   }
