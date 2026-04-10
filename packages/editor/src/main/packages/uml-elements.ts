@@ -79,7 +79,197 @@ import { AgentState } from './agent-state-diagram/agent-state/agent-state';
 import { AgentStateBody } from './agent-state-diagram/agent-state-body/agent-state-body';
 import { AgentStateFallbackBody } from './agent-state-diagram/agent-state-fallback-body/agent-state-fallback-body';
 
+import { NNElementType } from './nn-diagram';
+import { Conv1DLayer } from './nn-diagram/nn-conv1d-layer/nn-conv1d-layer';
+import {
+  NameAttributeConv1D,
+  KernelDimAttributeConv1D,
+  OutChannelsAttributeConv1D,
+  StrideDimAttributeConv1D,
+  InChannelsAttributeConv1D,
+  PaddingAmountAttributeConv1D,
+  PaddingTypeAttributeConv1D,
+  ActvFuncAttributeConv1D,
+  NameModuleInputAttributeConv1D,
+  InputReusedAttributeConv1D,
+  PermuteInAttributeConv1D,
+  PermuteOutAttributeConv1D,
+} from './nn-diagram/nn-conv1d-attributes/conv1d-attributes';
+import { Conv2DLayer } from './nn-diagram/nn-conv2d-layer/nn-conv2d-layer';
+import {
+  NameAttributeConv2D,
+  KernelDimAttributeConv2D,
+  OutChannelsAttributeConv2D,
+  StrideDimAttributeConv2D,
+  InChannelsAttributeConv2D,
+  PaddingAmountAttributeConv2D,
+  PaddingTypeAttributeConv2D,
+  ActvFuncAttributeConv2D,
+  NameModuleInputAttributeConv2D,
+  InputReusedAttributeConv2D,
+  PermuteInAttributeConv2D,
+  PermuteOutAttributeConv2D,
+} from './nn-diagram/nn-conv2d-attributes/conv2d-attributes';
+import { Conv3DLayer } from './nn-diagram/nn-conv3d-layer/nn-conv3d-layer';
+import {
+  NameAttributeConv3D,
+  KernelDimAttributeConv3D,
+  OutChannelsAttributeConv3D,
+  StrideDimAttributeConv3D,
+  InChannelsAttributeConv3D,
+  PaddingAmountAttributeConv3D,
+  PaddingTypeAttributeConv3D,
+  ActvFuncAttributeConv3D,
+  NameModuleInputAttributeConv3D,
+  InputReusedAttributeConv3D,
+  PermuteInAttributeConv3D,
+  PermuteOutAttributeConv3D,
+} from './nn-diagram/nn-conv3d-attributes/conv3d-attributes';
 
+import { PoolingLayer } from './nn-diagram/nn-pooling-layer/nn-pooling-layer';
+import {
+  NameAttributePooling,
+  PoolingTypeAttributePooling,
+  DimensionAttributePooling,
+  KernelDimAttributePooling,
+  StrideDimAttributePooling,
+  PaddingAmountAttributePooling,
+  PaddingTypeAttributePooling,
+  OutputDimAttributePooling,
+  ActvFuncAttributePooling,
+  NameModuleInputAttributePooling,
+  InputReusedAttributePooling,
+  PermuteInAttributePooling,
+  PermuteOutAttributePooling,
+} from './nn-diagram/nn-pooling-attributes/pooling-attributes';
+
+import { RNNLayer } from './nn-diagram/nn-rnn-layer/nn-rnn-layer';
+import {
+  NameAttributeRNN,
+  HiddenSizeAttributeRNN,
+  ReturnTypeAttributeRNN,
+  InputSizeAttributeRNN,
+  BidirectionalAttributeRNN,
+  DropoutAttributeRNN,
+  BatchFirstAttributeRNN,
+  ActvFuncAttributeRNN,
+  NameModuleInputAttributeRNN,
+  InputReusedAttributeRNN,
+} from './nn-diagram/nn-rnn-attributes/rnn-attributes';
+
+import { LSTMLayer } from './nn-diagram/nn-lstm-layer/nn-lstm-layer';
+import {
+  NameAttributeLSTM,
+  HiddenSizeAttributeLSTM,
+  ReturnTypeAttributeLSTM,
+  InputSizeAttributeLSTM,
+  BidirectionalAttributeLSTM,
+  DropoutAttributeLSTM,
+  BatchFirstAttributeLSTM,
+  ActvFuncAttributeLSTM,
+  NameModuleInputAttributeLSTM,
+  InputReusedAttributeLSTM,
+} from './nn-diagram/nn-lstm-attributes/lstm-attributes';
+
+import { GRULayer } from './nn-diagram/nn-gru-layer/nn-gru-layer';
+import {
+  NameAttributeGRU,
+  HiddenSizeAttributeGRU,
+  ReturnTypeAttributeGRU,
+  InputSizeAttributeGRU,
+  BidirectionalAttributeGRU,
+  DropoutAttributeGRU,
+  BatchFirstAttributeGRU,
+  ActvFuncAttributeGRU,
+  NameModuleInputAttributeGRU,
+  InputReusedAttributeGRU,
+} from './nn-diagram/nn-gru-attributes/gru-attributes';
+
+import { LinearLayer } from './nn-diagram/nn-linear-layer/nn-linear-layer';
+import {
+  NameAttributeLinear,
+  OutFeaturesAttributeLinear,
+  InFeaturesAttributeLinear,
+  ActvFuncAttributeLinear,
+  NameModuleInputAttributeLinear,
+  InputReusedAttributeLinear,
+} from './nn-diagram/nn-linear-attributes/linear-attributes';
+
+import { FlattenLayer } from './nn-diagram/nn-flatten-layer/nn-flatten-layer';
+import {
+  NameAttributeFlatten,
+  StartDimAttributeFlatten,
+  EndDimAttributeFlatten,
+  ActvFuncAttributeFlatten,
+  NameModuleInputAttributeFlatten,
+  InputReusedAttributeFlatten,
+} from './nn-diagram/nn-flatten-attributes/flatten-attributes';
+
+import { EmbeddingLayer } from './nn-diagram/nn-embedding-layer/nn-embedding-layer';
+import {
+  NameAttributeEmbedding,
+  NumEmbeddingsAttributeEmbedding,
+  EmbeddingDimAttributeEmbedding,
+  ActvFuncAttributeEmbedding,
+  NameModuleInputAttributeEmbedding,
+  InputReusedAttributeEmbedding,
+} from './nn-diagram/nn-embedding-attributes/embedding-attributes';
+
+import { DropoutLayer } from './nn-diagram/nn-dropout-layer/nn-dropout-layer';
+import {
+  NameAttributeDropout,
+  RateAttributeDropout,
+  NameModuleInputAttributeDropout,
+  InputReusedAttributeDropout,
+} from './nn-diagram/nn-dropout-attributes/dropout-attributes';
+
+import { LayerNormalizationLayer } from './nn-diagram/nn-layernormalization-layer/nn-layernormalization-layer';
+import {
+  NameAttributeLayerNormalization,
+  NormalizedShapeAttributeLayerNormalization,
+  ActvFuncAttributeLayerNormalization,
+  NameModuleInputAttributeLayerNormalization,
+  InputReusedAttributeLayerNormalization,
+} from './nn-diagram/nn-layernormalization-attributes/layernormalization-attributes';
+
+import { BatchNormalizationLayer } from './nn-diagram/nn-batchnormalization-layer/nn-batchnormalization-layer';
+import {
+  NameAttributeBatchNormalization,
+  NumFeaturesAttributeBatchNormalization,
+  DimensionAttributeBatchNormalization,
+  ActvFuncAttributeBatchNormalization,
+  NameModuleInputAttributeBatchNormalization,
+  InputReusedAttributeBatchNormalization,
+} from './nn-diagram/nn-batchnormalization-attributes/batchnormalization-attributes';
+
+import { TensorOp } from './nn-diagram/nn-tensorop/nn-tensorop';
+import {
+  NameAttributeTensorOp,
+  TnsTypeAttributeTensorOp,
+  ConcatenateDimAttributeTensorOp,
+  LayersOfTensorsAttributeTensorOp,
+  ReshapeDimAttributeTensorOp,
+  TransposeDimAttributeTensorOp,
+  PermuteDimAttributeTensorOp,
+  InputReusedAttributeTensorOp,
+  TensorOpAttribute,
+} from './nn-diagram/nn-tensorop-attributes/tensorop-attributes';
+
+import { Configuration } from './nn-diagram/nn-configuration/nn-configuration';
+import { NNSectionTitle, NNSectionSeparator } from './nn-diagram/nn-section-elements';
+import { NNContainer } from './nn-diagram/nn-container/nn-container';
+import { NNReference } from './nn-diagram/nn-reference/nn-reference';
+import {
+  BatchSizeAttributeConfiguration,
+  EpochsAttributeConfiguration,
+  LearningRateAttributeConfiguration,
+  OptimizerAttributeConfiguration,
+  LossFunctionAttributeConfiguration,
+  MetricsAttributeConfiguration,
+  WeightDecayAttributeConfiguration,
+  MomentumAttributeConfiguration,
+  ConfigurationAttribute,
+} from './nn-diagram/nn-configuration-attributes/configuration-attributes';
 
 export const UMLElements = {
   [UMLElementType.Package]: UMLClassPackage,
@@ -159,4 +349,199 @@ export const UMLElements = {
   [UMLElementType.AgentState]: AgentState,
   [UMLElementType.AgentStateBody]: AgentStateBody,
   [UMLElementType.AgentStateFallbackBody]: AgentStateFallbackBody,
+  [NNElementType.Conv1DLayer]: Conv1DLayer,
+  // Conv1D Attributes - Mandatory
+  [NNElementType.NameAttributeConv1D]: NameAttributeConv1D,
+  [NNElementType.KernelDimAttributeConv1D]: KernelDimAttributeConv1D,
+  [NNElementType.OutChannelsAttributeConv1D]: OutChannelsAttributeConv1D,
+  // Conv1D Attributes - Optional
+  [NNElementType.StrideDimAttributeConv1D]: StrideDimAttributeConv1D,
+  [NNElementType.InChannelsAttributeConv1D]: InChannelsAttributeConv1D,
+  [NNElementType.PaddingAmountAttributeConv1D]: PaddingAmountAttributeConv1D,
+  [NNElementType.PaddingTypeAttributeConv1D]: PaddingTypeAttributeConv1D,
+  [NNElementType.ActvFuncAttributeConv1D]: ActvFuncAttributeConv1D,
+  [NNElementType.NameModuleInputAttributeConv1D]: NameModuleInputAttributeConv1D,
+  [NNElementType.InputReusedAttributeConv1D]: InputReusedAttributeConv1D,
+  [NNElementType.PermuteInAttributeConv1D]: PermuteInAttributeConv1D,
+  [NNElementType.PermuteOutAttributeConv1D]: PermuteOutAttributeConv1D,
+
+  [NNElementType.Conv2DLayer]: Conv2DLayer,
+  // Conv2D Attributes - Mandatory
+  [NNElementType.NameAttributeConv2D]: NameAttributeConv2D,
+  [NNElementType.KernelDimAttributeConv2D]: KernelDimAttributeConv2D,
+  [NNElementType.OutChannelsAttributeConv2D]: OutChannelsAttributeConv2D,
+  // Conv2D Attributes - Optional
+  [NNElementType.StrideDimAttributeConv2D]: StrideDimAttributeConv2D,
+  [NNElementType.InChannelsAttributeConv2D]: InChannelsAttributeConv2D,
+  [NNElementType.PaddingAmountAttributeConv2D]: PaddingAmountAttributeConv2D,
+  [NNElementType.PaddingTypeAttributeConv2D]: PaddingTypeAttributeConv2D,
+  [NNElementType.ActvFuncAttributeConv2D]: ActvFuncAttributeConv2D,
+  [NNElementType.NameModuleInputAttributeConv2D]: NameModuleInputAttributeConv2D,
+  [NNElementType.InputReusedAttributeConv2D]: InputReusedAttributeConv2D,
+  [NNElementType.PermuteInAttributeConv2D]: PermuteInAttributeConv2D,
+  [NNElementType.PermuteOutAttributeConv2D]: PermuteOutAttributeConv2D,
+
+  [NNElementType.Conv3DLayer]: Conv3DLayer,
+  // Conv3D Attributes - Mandatory
+  [NNElementType.NameAttributeConv3D]: NameAttributeConv3D,
+  [NNElementType.KernelDimAttributeConv3D]: KernelDimAttributeConv3D,
+  [NNElementType.OutChannelsAttributeConv3D]: OutChannelsAttributeConv3D,
+  // Conv3D Attributes - Optional
+  [NNElementType.StrideDimAttributeConv3D]: StrideDimAttributeConv3D,
+  [NNElementType.InChannelsAttributeConv3D]: InChannelsAttributeConv3D,
+  [NNElementType.PaddingAmountAttributeConv3D]: PaddingAmountAttributeConv3D,
+  [NNElementType.PaddingTypeAttributeConv3D]: PaddingTypeAttributeConv3D,
+  [NNElementType.ActvFuncAttributeConv3D]: ActvFuncAttributeConv3D,
+  [NNElementType.NameModuleInputAttributeConv3D]: NameModuleInputAttributeConv3D,
+  [NNElementType.InputReusedAttributeConv3D]: InputReusedAttributeConv3D,
+  [NNElementType.PermuteInAttributeConv3D]: PermuteInAttributeConv3D,
+  [NNElementType.PermuteOutAttributeConv3D]: PermuteOutAttributeConv3D,
+
+  [NNElementType.PoolingLayer]: PoolingLayer,
+  // Pooling Attributes - Mandatory
+  [NNElementType.NameAttributePooling]: NameAttributePooling,
+  [NNElementType.PoolingTypeAttributePooling]: PoolingTypeAttributePooling,
+  [NNElementType.DimensionAttributePooling]: DimensionAttributePooling,
+  // Pooling Attributes - Optional
+  [NNElementType.KernelDimAttributePooling]: KernelDimAttributePooling,
+  [NNElementType.StrideDimAttributePooling]: StrideDimAttributePooling,
+  [NNElementType.PaddingAmountAttributePooling]: PaddingAmountAttributePooling,
+  [NNElementType.PaddingTypeAttributePooling]: PaddingTypeAttributePooling,
+  [NNElementType.OutputDimAttributePooling]: OutputDimAttributePooling,
+  [NNElementType.ActvFuncAttributePooling]: ActvFuncAttributePooling,
+  [NNElementType.NameModuleInputAttributePooling]: NameModuleInputAttributePooling,
+  [NNElementType.InputReusedAttributePooling]: InputReusedAttributePooling,
+  [NNElementType.PermuteInAttributePooling]: PermuteInAttributePooling,
+  [NNElementType.PermuteOutAttributePooling]: PermuteOutAttributePooling,
+
+  [NNElementType.RNNLayer]: RNNLayer,
+  // RNN Attributes - Mandatory
+  [NNElementType.NameAttributeRNN]: NameAttributeRNN,
+  [NNElementType.HiddenSizeAttributeRNN]: HiddenSizeAttributeRNN,
+  // RNN Attributes - Optional
+  [NNElementType.ReturnTypeAttributeRNN]: ReturnTypeAttributeRNN,
+  [NNElementType.InputSizeAttributeRNN]: InputSizeAttributeRNN,
+  [NNElementType.BidirectionalAttributeRNN]: BidirectionalAttributeRNN,
+  [NNElementType.DropoutAttributeRNN]: DropoutAttributeRNN,
+  [NNElementType.BatchFirstAttributeRNN]: BatchFirstAttributeRNN,
+  [NNElementType.ActvFuncAttributeRNN]: ActvFuncAttributeRNN,
+  [NNElementType.NameModuleInputAttributeRNN]: NameModuleInputAttributeRNN,
+  [NNElementType.InputReusedAttributeRNN]: InputReusedAttributeRNN,
+
+  [NNElementType.LSTMLayer]: LSTMLayer,
+  // LSTM Attributes - Mandatory
+  [NNElementType.NameAttributeLSTM]: NameAttributeLSTM,
+  [NNElementType.HiddenSizeAttributeLSTM]: HiddenSizeAttributeLSTM,
+  // LSTM Attributes - Optional
+  [NNElementType.ReturnTypeAttributeLSTM]: ReturnTypeAttributeLSTM,
+  [NNElementType.InputSizeAttributeLSTM]: InputSizeAttributeLSTM,
+  [NNElementType.BidirectionalAttributeLSTM]: BidirectionalAttributeLSTM,
+  [NNElementType.DropoutAttributeLSTM]: DropoutAttributeLSTM,
+  [NNElementType.BatchFirstAttributeLSTM]: BatchFirstAttributeLSTM,
+  [NNElementType.ActvFuncAttributeLSTM]: ActvFuncAttributeLSTM,
+  [NNElementType.NameModuleInputAttributeLSTM]: NameModuleInputAttributeLSTM,
+  [NNElementType.InputReusedAttributeLSTM]: InputReusedAttributeLSTM,
+
+  [NNElementType.GRULayer]: GRULayer,
+  // GRU Attributes - Mandatory
+  [NNElementType.NameAttributeGRU]: NameAttributeGRU,
+  [NNElementType.HiddenSizeAttributeGRU]: HiddenSizeAttributeGRU,
+  // GRU Attributes - Optional
+  [NNElementType.ReturnTypeAttributeGRU]: ReturnTypeAttributeGRU,
+  [NNElementType.InputSizeAttributeGRU]: InputSizeAttributeGRU,
+  [NNElementType.BidirectionalAttributeGRU]: BidirectionalAttributeGRU,
+  [NNElementType.DropoutAttributeGRU]: DropoutAttributeGRU,
+  [NNElementType.BatchFirstAttributeGRU]: BatchFirstAttributeGRU,
+  [NNElementType.ActvFuncAttributeGRU]: ActvFuncAttributeGRU,
+  [NNElementType.NameModuleInputAttributeGRU]: NameModuleInputAttributeGRU,
+  [NNElementType.InputReusedAttributeGRU]: InputReusedAttributeGRU,
+
+  [NNElementType.LinearLayer]: LinearLayer,
+  // Linear Attributes - Mandatory
+  [NNElementType.NameAttributeLinear]: NameAttributeLinear,
+  [NNElementType.OutFeaturesAttributeLinear]: OutFeaturesAttributeLinear,
+  // Linear Attributes - Optional
+  [NNElementType.InFeaturesAttributeLinear]: InFeaturesAttributeLinear,
+  [NNElementType.ActvFuncAttributeLinear]: ActvFuncAttributeLinear,
+  [NNElementType.NameModuleInputAttributeLinear]: NameModuleInputAttributeLinear,
+  [NNElementType.InputReusedAttributeLinear]: InputReusedAttributeLinear,
+
+  [NNElementType.FlattenLayer]: FlattenLayer,
+  // Flatten Attributes - Mandatory
+  [NNElementType.NameAttributeFlatten]: NameAttributeFlatten,
+  // Flatten Attributes - Optional
+  [NNElementType.StartDimAttributeFlatten]: StartDimAttributeFlatten,
+  [NNElementType.EndDimAttributeFlatten]: EndDimAttributeFlatten,
+  [NNElementType.ActvFuncAttributeFlatten]: ActvFuncAttributeFlatten,
+  [NNElementType.NameModuleInputAttributeFlatten]: NameModuleInputAttributeFlatten,
+  [NNElementType.InputReusedAttributeFlatten]: InputReusedAttributeFlatten,
+
+  [NNElementType.EmbeddingLayer]: EmbeddingLayer,
+  // Embedding Attributes - Mandatory
+  [NNElementType.NameAttributeEmbedding]: NameAttributeEmbedding,
+  [NNElementType.NumEmbeddingsAttributeEmbedding]: NumEmbeddingsAttributeEmbedding,
+  [NNElementType.EmbeddingDimAttributeEmbedding]: EmbeddingDimAttributeEmbedding,
+  // Embedding Attributes - Optional
+  [NNElementType.ActvFuncAttributeEmbedding]: ActvFuncAttributeEmbedding,
+  [NNElementType.NameModuleInputAttributeEmbedding]: NameModuleInputAttributeEmbedding,
+  [NNElementType.InputReusedAttributeEmbedding]: InputReusedAttributeEmbedding,
+
+  [NNElementType.DropoutLayer]: DropoutLayer,
+  // Dropout Attributes - Mandatory
+  [NNElementType.NameAttributeDropout]: NameAttributeDropout,
+  [NNElementType.RateAttributeDropout]: RateAttributeDropout,
+  // Dropout Attributes - Optional
+  [NNElementType.NameModuleInputAttributeDropout]: NameModuleInputAttributeDropout,
+  [NNElementType.InputReusedAttributeDropout]: InputReusedAttributeDropout,
+
+  [NNElementType.LayerNormalizationLayer]: LayerNormalizationLayer,
+  // LayerNormalization Attributes - Mandatory
+  [NNElementType.NameAttributeLayerNormalization]: NameAttributeLayerNormalization,
+  [NNElementType.NormalizedShapeAttributeLayerNormalization]: NormalizedShapeAttributeLayerNormalization,
+  // LayerNormalization Attributes - Optional
+  [NNElementType.ActvFuncAttributeLayerNormalization]: ActvFuncAttributeLayerNormalization,
+  [NNElementType.NameModuleInputAttributeLayerNormalization]: NameModuleInputAttributeLayerNormalization,
+  [NNElementType.InputReusedAttributeLayerNormalization]: InputReusedAttributeLayerNormalization,
+
+  [NNElementType.BatchNormalizationLayer]: BatchNormalizationLayer,
+  // BatchNormalization Attributes - Mandatory
+  [NNElementType.NameAttributeBatchNormalization]: NameAttributeBatchNormalization,
+  [NNElementType.NumFeaturesAttributeBatchNormalization]: NumFeaturesAttributeBatchNormalization,
+  [NNElementType.DimensionAttributeBatchNormalization]: DimensionAttributeBatchNormalization,
+  // BatchNormalization Attributes - Optional
+  [NNElementType.ActvFuncAttributeBatchNormalization]: ActvFuncAttributeBatchNormalization,
+  [NNElementType.NameModuleInputAttributeBatchNormalization]: NameModuleInputAttributeBatchNormalization,
+  [NNElementType.InputReusedAttributeBatchNormalization]: InputReusedAttributeBatchNormalization,
+
+  [NNElementType.TensorOp]: TensorOp,
+  // TensorOp Attributes - Mandatory
+  [NNElementType.NameAttributeTensorOp]: NameAttributeTensorOp,
+  [NNElementType.TnsTypeAttributeTensorOp]: TnsTypeAttributeTensorOp,
+  // TensorOp Attributes - Optional
+  [NNElementType.ConcatenateDimAttributeTensorOp]: ConcatenateDimAttributeTensorOp,
+  [NNElementType.LayersOfTensorsAttributeTensorOp]: LayersOfTensorsAttributeTensorOp,
+  [NNElementType.ReshapeDimAttributeTensorOp]: ReshapeDimAttributeTensorOp,
+  [NNElementType.TransposeDimAttributeTensorOp]: TransposeDimAttributeTensorOp,
+  [NNElementType.PermuteDimAttributeTensorOp]: PermuteDimAttributeTensorOp,
+  [NNElementType.InputReusedAttributeTensorOp]: InputReusedAttributeTensorOp,
+
+  [NNElementType.Configuration]: Configuration,
+  // Configuration Attributes - Mandatory
+  [NNElementType.BatchSizeAttributeConfiguration]: BatchSizeAttributeConfiguration,
+  [NNElementType.EpochsAttributeConfiguration]: EpochsAttributeConfiguration,
+  [NNElementType.LearningRateAttributeConfiguration]: LearningRateAttributeConfiguration,
+  [NNElementType.OptimizerAttributeConfiguration]: OptimizerAttributeConfiguration,
+  [NNElementType.LossFunctionAttributeConfiguration]: LossFunctionAttributeConfiguration,
+  [NNElementType.MetricsAttributeConfiguration]: MetricsAttributeConfiguration,
+  // Configuration Attributes - Optional
+  [NNElementType.WeightDecayAttributeConfiguration]: WeightDecayAttributeConfiguration,
+  [NNElementType.MomentumAttributeConfiguration]: MomentumAttributeConfiguration,
+
+  // Section elements for sidebar organization
+  [NNElementType.NNSectionTitle]: NNSectionTitle,
+  [NNElementType.NNSectionSeparator]: NNSectionSeparator,
+
+  // Container and Reference elements
+  [NNElementType.NNContainer]: NNContainer,
+  [NNElementType.NNReference]: NNReference,
 };

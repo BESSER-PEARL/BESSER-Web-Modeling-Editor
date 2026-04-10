@@ -84,6 +84,15 @@ class CanvasElementComponent extends Component<Props> {
     if (UMLContainer.isUMLContainer(element) && ChildComponent) {
       elements = element.ownedElements
         .filter(id => !!allElements[id])
+        // For NN layers, only display mandatory attributes (optional ones are hidden but persist)
+        .filter(id => {
+          const child = allElements[id];
+          // If child has isMandatory property, only show if it's true
+          if (child && 'isMandatory' in child) {
+            return (child as any).isMandatory === true;
+          }
+          return true; // Show non-attribute children (like other elements)
+        })
         .map((id) => <ChildComponent key={id} id={id} />);
     }
     const ElementComponent = Components[element.type as UMLElementType];

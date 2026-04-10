@@ -45,6 +45,11 @@ export interface AgentConfig {
   configurations?: AgentConfigurationSelection[];
 }
 
+export interface NNConfig {
+  generation_type: 'subclassing' | 'sequential';
+  channel_last?: boolean;
+}
+
 export type GeneratorConfig = {
   django: DjangoConfig;
   sql: SQLConfig;
@@ -52,6 +57,8 @@ export type GeneratorConfig = {
   jsonschema: JSONSchemaConfig;
   qiskit: QiskitConfig;
   agent: AgentConfig;
+  pytorch: NNConfig;
+  tensorflow: NNConfig;
   [key: string]: any;
 };
 
@@ -69,6 +76,23 @@ export const useGenerateCode = () => {
 
       // For Qiskit generator, it uses project data not editor
       if (generatorType === 'qiskit') {
+        return await generateCodeFromProject(generatorType, config);
+      }
+
+      // For PyTorch/TensorFlow NN generators, they use project data
+      if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
+        // Check if project has NNDiagram before making network request
+        const currentProject = ProjectStorageRepository.getCurrentProject();
+        if (!currentProject) {
+          toast.error('No project available for code generation');
+          return;
+        }
+        if (!currentProject.diagrams?.NNDiagram) {
+          toast.error('No Neural Network diagram found in project');
+          return;
+        }
+        // Show immediate feedback
+        toast.info('Generating NN code...', { autoClose: 2000 });
         return await generateCodeFromProject(generatorType, config);
       }
 

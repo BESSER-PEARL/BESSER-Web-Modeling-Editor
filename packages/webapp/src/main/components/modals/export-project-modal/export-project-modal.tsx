@@ -321,6 +321,7 @@ const diagramLabels: Record<SupportedDiagramType, string> = {
   ObjectDiagram: 'Object Diagram',
   StateMachineDiagram: 'State Machine Diagram',
   AgentDiagram: 'Agent Diagram',
+  NNDiagram: 'NN Diagram',
   UserDiagram: 'User Diagram',
   GUINoCodeDiagram: 'GUI No-Code Diagram',
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',

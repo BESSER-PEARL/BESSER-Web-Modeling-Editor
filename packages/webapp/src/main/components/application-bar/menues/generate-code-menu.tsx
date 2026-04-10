@@ -164,9 +164,11 @@ export const GenerateCodeMenu: React.FC = () => {
     (BACKEND_URL ?? '').includes('localhost') ||
     (BACKEND_URL ?? '').includes('127.0.0.1');
 
-  const handleGenerateCode = async (generatorType: string) => {
-    // For GUI/No-Code diagrams and Quantum diagrams, we don't need the apollon editor
-    if (!isGUINoCodeDiagram && !isQuantumDiagram && !editor) {
+  // config param: passes generator options (e.g., NN generation_type, channel_last)
+  const handleGenerateCode = async (generatorType: string, config?: Record<string, any>) => {
+    // For GUI/No-Code diagrams, Quantum diagrams, and NN diagrams, we don't need the apollon editor
+    const isNNDiagram = currentDiagramType === UMLDiagramType.NNDiagram;
+    if (!isGUINoCodeDiagram && !isQuantumDiagram && !isNNDiagram && !editor) {
       toast.error('No diagram available to generate code from');
       return;
     }
@@ -270,6 +272,15 @@ export const GenerateCodeMenu: React.FC = () => {
       if (isQuantumDiagram && generatorType === 'qiskit') {
         setShowQiskitConfig(true);
         return;
+      } else if (isNNDiagram && (generatorType === 'pytorch' || generatorType === 'tensorflow')) {
+        // NN diagrams use project data like quantum diagrams
+        await generateCode(null, generatorType, diagram.title, config);
+        posthog.capture('generator_used', {
+          generator_type: generatorType,
+          diagram_title: diagram.title,
+          diagram_type: currentDiagramType,
+          generation_type: config?.generation_type || 'subclassing'
+        });
       } else if (editor) {
         // Regular UML diagrams use editor
         await generateCode(editor, generatorType, diagram.title);
@@ -627,6 +638,25 @@ export const GenerateCodeMenu: React.FC = () => {
         ) : isAgentDiagram ? (
           // Agent Diagram: Show agent generation option
           <Dropdown.Item onClick={() => handleGenerateCode('agent')}>BESSER Agent</Dropdown.Item>
+        ) : currentDiagramType === UMLDiagramType.NNDiagram ? (
+          // NN Diagram: Show PyTorch and TensorFlow generation options with generation type selection
+          <>
+            <Dropdown.Header>PyTorch</Dropdown.Header>
+            <Dropdown.Item onClick={() => handleGenerateCode('pytorch', { generation_type: 'subclassing' })}>
+              Subclassing
+            </Dropdown.Item>
+            <Dropdown.Item onClick={() => handleGenerateCode('pytorch', { generation_type: 'sequential' })}>
+              Sequential
+            </Dropdown.Item>
+            <Dropdown.Divider />
+            <Dropdown.Header>TensorFlow</Dropdown.Header>
+            <Dropdown.Item onClick={() => handleGenerateCode('tensorflow', { generation_type: 'subclassing' })}>
+              Subclassing
+            </Dropdown.Item>
+            <Dropdown.Item onClick={() => handleGenerateCode('tensorflow', { generation_type: 'sequential' })}>
+              Sequential
+            </Dropdown.Item>
+          </>
         ) : isUserDiagram ? (
           <Dropdown.Item onClick={handleJsonObjectGenerate}>JSON Object</Dropdown.Item>
         ) : currentDiagramType === UMLDiagramType.ClassDiagram ? (
