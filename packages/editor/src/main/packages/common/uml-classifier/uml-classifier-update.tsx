@@ -206,6 +206,7 @@ class ClassifierUpdate extends Component<Props, State> {
                 element={attribute}
                 isEnumeration={isEnumeration}
                 availableEnumerations={availableEnumerations}
+                elements={elements}
               />
             );
           })}
