@@ -199,13 +199,54 @@ export class ObjectDiagramModifier implements DiagramModifier {
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const { objectId, objectName } = modification.target;
-    const targetId = objectId || ModifierHelpers.findElementByName(model, objectName!, 'ObjectName');
+    const target = modification.target || {};
+    const { objectId } = target;
+
+    // Collect every possible name/identifier the LLM may have sent. Users
+    // phrase this many ways ("remove the class book1", "remove book1") and
+    // the LLM sometimes puts the name in className, name, or objectName.
+    const candidates: string[] = [];
+    for (const key of ['objectName', 'name', 'className', 'targetName', 'elementName']) {
+      const v = (target as any)[key];
+      if (typeof v === 'string' && v.trim()) candidates.push(v.trim());
+    }
+    if (modification.changes) {
+      for (const v of Object.values(modification.changes)) {
+        if (typeof v === 'string' && v.trim()) candidates.push(v.trim());
+      }
+    }
+
+    let targetId: string | null = objectId || null;
+
+    // Try to resolve against ObjectName elements. Their `name` is stored as
+    // "instanceName: ClassName" in Apollon, so exact matching on just the
+    // instance name fails — do a prefix/case-insensitive match on the part
+    // before the colon.
+    if (!targetId) {
+      for (const cand of candidates) {
+        const normalized = cand.toLowerCase();
+        for (const [id, el] of Object.entries(model.elements || {})) {
+          if ((el as any).type !== 'ObjectName') continue;
+          const elName = ((el as any).name || '').toLowerCase();
+          const beforeColon = elName.split(':')[0].trim();
+          if (elName === normalized || beforeColon === normalized) {
+            targetId = id;
+            break;
+          }
+        }
+        if (targetId) break;
+      }
+    }
 
     if (targetId) {
       return ModifierHelpers.removeElementWithChildren(model, targetId);
     }
 
+    // Idempotent: already removed in an earlier batch modification — no-op.
+    console.warn(
+      `[ObjectDiagramModifier] removeElement: no object matching ${JSON.stringify(candidates)} — ` +
+      `treating as already removed (no-op).`
+    );
     return model;
   }
 }
