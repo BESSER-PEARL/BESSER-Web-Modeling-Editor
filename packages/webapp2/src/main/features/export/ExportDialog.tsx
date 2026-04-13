@@ -52,7 +52,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       if (!currentProject) return [];
       return Object.entries(currentProject.diagrams)
         .map(([type, diagrams]) => {
-          const withContent = (diagrams as ProjectDiagram[]).filter(diagramHasContent);
+          const arr = Array.isArray(diagrams) ? diagrams : [];
+          const withContent = (arr as ProjectDiagram[]).filter(diagramHasContent);
           return [type as SupportedDiagramType, withContent] as [SupportedDiagramType, ProjectDiagram[]];
         })
         .filter(([, diagrams]) => diagrams.length > 0);

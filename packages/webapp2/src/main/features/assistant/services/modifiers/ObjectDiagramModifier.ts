@@ -44,8 +44,24 @@ export class ObjectDiagramModifier implements DiagramModifier {
     const changes = modification.changes;
     const target = modification.target;
 
-    const objectName = changes.objectName || target.objectName || changes.name || 'object';
+    let objectName = changes.objectName || target.objectName || changes.name || 'object';
     const className = changes.className || '';
+
+    // Sanitize objectName: strip any ": ClassName" suffix the LLM may have included
+    if (objectName.includes(':')) {
+      objectName = objectName.split(':')[0].trim();
+    }
+
+    // If objectName is empty or equals className, generate a proper instance name
+    if (!objectName || (className && objectName.toLowerCase() === className.toLowerCase())) {
+      let count = 1;
+      for (const el of Object.values(model.elements)) {
+        if (el.type === 'ObjectName' && typeof el.name === 'string' && el.name.includes(`: ${className}`)) {
+          count++;
+        }
+      }
+      objectName = `${className.charAt(0).toLowerCase()}${className.slice(1)}${count}`;
+    }
 
     // Auto-position: find max Y of existing elements and place below
     let maxY = 0;
@@ -83,7 +99,8 @@ export class ObjectDiagramModifier implements DiagramModifier {
         name: `${attr.name} = ${attr.value || ''}`,
         type: 'ObjectAttribute',
         owner: objectId,
-        bounds: { x: pos.x + 1, y: currentY, width: 238, height: 30 }
+        bounds: { x: pos.x + 1, y: currentY, width: 238, height: 30 },
+        attributeType: attr.type || 'str'
       };
       currentY += 30;
     }
@@ -182,13 +199,54 @@ export class ObjectDiagramModifier implements DiagramModifier {
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const { objectId, objectName } = modification.target;
-    const targetId = objectId || ModifierHelpers.findElementByName(model, objectName!, 'ObjectName');
+    const target = modification.target || {};
+    const { objectId } = target;
+
+    // Collect every possible name/identifier the LLM may have sent. Users
+    // phrase this many ways ("remove the class book1", "remove book1") and
+    // the LLM sometimes puts the name in className, name, or objectName.
+    const candidates: string[] = [];
+    for (const key of ['objectName', 'name', 'className', 'targetName', 'elementName']) {
+      const v = (target as any)[key];
+      if (typeof v === 'string' && v.trim()) candidates.push(v.trim());
+    }
+    if (modification.changes) {
+      for (const v of Object.values(modification.changes)) {
+        if (typeof v === 'string' && v.trim()) candidates.push(v.trim());
+      }
+    }
+
+    let targetId: string | null = objectId || null;
+
+    // Try to resolve against ObjectName elements. Their `name` is stored as
+    // "instanceName: ClassName" in Apollon, so exact matching on just the
+    // instance name fails — do a prefix/case-insensitive match on the part
+    // before the colon.
+    if (!targetId) {
+      for (const cand of candidates) {
+        const normalized = cand.toLowerCase();
+        for (const [id, el] of Object.entries(model.elements || {})) {
+          if ((el as any).type !== 'ObjectName') continue;
+          const elName = ((el as any).name || '').toLowerCase();
+          const beforeColon = elName.split(':')[0].trim();
+          if (elName === normalized || beforeColon === normalized) {
+            targetId = id;
+            break;
+          }
+        }
+        if (targetId) break;
+      }
+    }
 
     if (targetId) {
       return ModifierHelpers.removeElementWithChildren(model, targetId);
     }
 
+    // Idempotent: already removed in an earlier batch modification — no-op.
+    console.warn(
+      `[ObjectDiagramModifier] removeElement: no object matching ${JSON.stringify(candidates)} — ` +
+      `treating as already removed (no-op).`
+    );
     return model;
   }
 }

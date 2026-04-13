@@ -194,7 +194,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         navigate('/');
       }
 
-      toast.success(`Loaded template: ${selectedTemplate.type}`);
+      // toast.success(`Loaded template: ${selectedTemplate.type}`);
       onOpenChange(false);
     } catch (error) {
       toast.error(`Failed to load template: ${error instanceof Error ? error.message : 'Unknown error'}`);

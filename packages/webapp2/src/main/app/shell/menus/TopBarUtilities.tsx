@@ -62,16 +62,16 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
         {isDarkTheme ? <Sun className="size-4" /> : <Moon className="size-4" />}
       </Button>
 
-      {isAuthenticated && (
+      {isAuthenticated && !hasStarred && (
         <Button
           variant="outline"
-          className={`gap-1.5 ${outlineButtonClass} ${hasStarred ? 'text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300' : ''}`}
+          className={`gap-1.5 ${outlineButtonClass}`}
           onClick={onToggleStar}
           disabled={starLoading}
-          title={hasStarred ? 'Unstar BESSER on GitHub' : 'Star BESSER on GitHub'}
+          title="Star BESSER on GitHub"
         >
-          <Star className={`size-4 ${hasStarred ? 'fill-current' : ''}`} />
-          <span className="hidden xl:inline">{hasStarred ? 'Starred' : 'Star'}</span>
+          <Star className="size-4" />
+          <span className="hidden xl:inline">Star</span>
         </Button>
       )}
 

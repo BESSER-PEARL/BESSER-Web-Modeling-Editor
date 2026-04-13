@@ -243,7 +243,7 @@ export function MessageInput({
             onPaste={onPaste}
             onKeyDown={onKeyDown}
             className={cn(
-              "relative z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-24 text-sm ring-offset-background transition-[color,border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+              "relative z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-32 text-sm ring-offset-background transition-[color,border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.1)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
               showFileList && "pb-16",
               className
             )}

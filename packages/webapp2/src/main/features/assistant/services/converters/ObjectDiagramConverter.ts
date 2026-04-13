@@ -20,10 +20,19 @@ export class ObjectDiagramConverter implements DiagramConverter {
     const attrHeight = (spec.attributes?.length || 0) * 30;
     const totalHeight = baseHeight + attrHeight;
     
+    // Sanitize objectName: strip any ": ClassName" suffix the LLM may have included
+    let objectName = spec.objectName || 'object';
+    if (objectName.includes(':')) {
+      objectName = objectName.split(':')[0].trim();
+    }
+    if (!objectName || (spec.className && objectName.toLowerCase() === spec.className.toLowerCase())) {
+      objectName = `${spec.className.charAt(0).toLowerCase()}${spec.className.slice(1)}1`;
+    }
+
     const objectElement: any = {
       type: "ObjectName",
       id: objectId,
-      name: `${spec.objectName}: ${spec.className}`,
+      name: `${objectName}: ${spec.className}`,
       owner: null,
       bounds: { x: pos.x, y: pos.y, width: 240, height: totalHeight },
       attributes: [] as string[],
@@ -110,9 +119,10 @@ export class ObjectDiagramConverter implements DiagramConverter {
         name: `${attr.name} = ${attr.value}`,
         type: "ObjectAttribute",
         owner: objectId,
-        bounds: { x: startX + 1, y: currentY, width: 238, height: 30 }
+        bounds: { x: startX + 1, y: currentY, width: 238, height: 30 },
+        attributeType: attr.type || 'str'
       };
-      
+
       // Add attributeId reference if provided (links to class diagram attribute)
       if (attr.attributeId) {
         attributeElement.attributeId = attr.attributeId;

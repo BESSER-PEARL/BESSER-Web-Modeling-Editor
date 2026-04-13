@@ -339,6 +339,59 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           console.log(`Project "${convertedProject.name}" imported successfully (Legacy format converted)`);
           resolve(convertedProject);
 
+        } else if (jsonData && jsonData.model && typeof jsonData.model === 'object' && jsonData.model.type) {
+          // Raw single-diagram JSON (e.g., exported from old editor as bare diagram)
+          const diagramType = (jsonData.model.type as string) || 'ClassDiagram';
+          const supportedType = (diagramType in UMLDiagramType ? diagramType : 'ClassDiagram') as SupportedDiagramType;
+          const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+          const allTypes: SupportedDiagramType[] = [
+            'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
+            'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+          ];
+
+          const diagrams: any = {};
+          for (const t of allTypes) {
+            if (t === supportedType) {
+              diagrams[t] = [{
+                id: jsonData.id || `${t}_${Date.now()}`,
+                title: jsonData.title || t.replace(/([A-Z])/g, ' $1').trim(),
+                model: jsonData.model,
+                lastUpdate: jsonData.lastUpdate || new Date().toISOString(),
+              }];
+            } else {
+              const umlType = t === 'GUINoCodeDiagram' || t === 'QuantumCircuitDiagram'
+                ? null : (UMLDiagramType as any)[t] ?? null;
+              const kind = t === 'GUINoCodeDiagram' ? 'gui' : t === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+              diagrams[t] = [createEmptyDiagram(t.replace(/([A-Z])/g, ' $1').trim(), umlType, kind)];
+            }
+          }
+
+          const importedProject: BesserProject = {
+            id: newProjectId,
+            type: 'Project',
+            schemaVersion: 3,
+            name: jsonData.title || 'Imported Diagram',
+            description: '',
+            owner: '',
+            createdAt: new Date().toISOString(),
+            currentDiagramType: supportedType,
+            currentDiagramIndices: {
+              ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
+              AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+            },
+            diagrams,
+            settings: {
+              defaultDiagramType: 'ClassDiagram',
+              autoSave: true,
+              collaborationEnabled: false,
+            },
+          };
+
+          storeImportedProject(importedProject);
+          console.log(`Project "${importedProject.name}" imported successfully (raw diagram format)`);
+          resolve(importedProject);
+
         } else {
           throw new Error('Invalid project file format - unsupported structure');
         }

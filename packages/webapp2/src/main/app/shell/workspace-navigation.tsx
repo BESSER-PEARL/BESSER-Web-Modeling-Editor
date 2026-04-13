@@ -1,6 +1,18 @@
 import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
-import { Atom, Bot, Layers3, Network, PackageOpen, Repeat2, Settings, SlidersHorizontal } from 'lucide-react';
+import {
+  Atom,
+  Bot,
+  Layers3,
+  Network,
+  PanelsTopLeft,
+  PackageOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Repeat2,
+  Settings,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../shared/constants/constant';
 import type { SupportedDiagramType, BesserProject, ProjectDiagram } from '../../shared/types/project';
 import { diagramHasContent } from '../../shared/types/project';
@@ -58,7 +70,7 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React
 ];
 
 export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; icon: React.ReactNode }> = [
-  { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PackageOpen className="size-4" /> },
+  { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PanelsTopLeft className="size-4" /> },
   { type: 'QuantumCircuitDiagram', label: 'Quantum', icon: <Atom className="size-4" /> },
 ];
 
@@ -89,15 +101,5 @@ export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boo
   ].join(' ');
 }
 
-export const SidebarToggleIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-    <path
-      fillRule="evenodd"
-      d="M11.28 9.53L8.81 12l2.47 2.47a.75.75 0 11-1.06 1.06l-3-3a.75.75 0 010-1.06l3-3a.75.75 0 111.06 1.06z"
-    />
-    <path
-      fillRule="evenodd"
-      d="M3.75 2A1.75 1.75 0 002 3.75v16.5c0 .966.784 1.75 1.75 1.75h16.5A1.75 1.75 0 0022 20.25V3.75A1.75 1.75 0 0020.25 2H3.75zM3.5 3.75a.25.25 0 01.25-.25H15v17H3.75a.25.25 0 01-.25-.25V3.75zm13 16.75v-17h3.75a.25.25 0 01.25.25v16.5a.25.25 0 01-.25.25H16.5z"
-    />
-  </svg>
-);
+export const SidebarToggleIcon: React.FC<{ expanded: boolean; size?: number }> = ({ expanded, size = 18 }) =>
+  expanded ? <PanelLeftClose size={size} /> : <PanelLeftOpen size={size} />;

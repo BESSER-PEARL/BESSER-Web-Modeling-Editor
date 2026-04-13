@@ -104,7 +104,7 @@
             },
             "c629ac2b-4ce7-40bf-8382-41af767383c9": {
                 "id": "c629ac2b-4ce7-40bf-8382-41af767383c9",
-                "name": "Greeting",
+                "name": "Greeting_intent",
                 "type": "AgentIntent",
                 "owner": null,
                 "bounds": {
@@ -186,7 +186,7 @@
             },
             "4331ac3a-aac0-439e-a43b-622ceec672b4": {
                 "id": "4331ac3a-aac0-439e-a43b-622ceec672b4",
-                "name": "Good",
+                "name": "Good_intent",
                 "type": "AgentIntent",
                 "owner": null,
                 "bounds": {
@@ -239,7 +239,7 @@
             },
             "e999a3c8-25d5-4180-9c77-cdd78dcd9f74": {
                 "id": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
-                "name": "Bad",
+                "name": "Bad_intent",
                 "type": "AgentIntent",
                 "owner": null,
                 "bounds": {
@@ -323,7 +323,7 @@
                 },
                 "isManuallyLayouted": false,
                 "condition": "when_intent_matched",
-                "conditionValue": "Greeting"
+                "conditionValue": "Greeting_intent"
             },
             "44b4863b-d7da-4316-bfc1-8dc0cfefc2d0": {
                 "id": "44b4863b-d7da-4316-bfc1-8dc0cfefc2d0",
@@ -395,7 +395,7 @@
                 },
                 "isManuallyLayouted": true,
                 "condition": "when_intent_matched",
-                "conditionValue": "Good"
+                "conditionValue": "Good_intent"
             },
             "08c4c033-e087-4e5a-948d-d694f951fd9e": {
                 "id": "08c4c033-e087-4e5a-948d-d694f951fd9e",
@@ -436,7 +436,7 @@
                 },
                 "isManuallyLayouted": false,
                 "condition": "when_intent_matched",
-                "conditionValue": "Bad"
+                "conditionValue": "Bad_intent"
             },
             "b10d2d94-f9b2-431b-bce1-dea689ea34ae": {
                 "id": "b10d2d94-f9b2-431b-bce1-dea689ea34ae",
