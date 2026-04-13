@@ -795,7 +795,15 @@ export class ClassDiagramModifier implements DiagramModifier {
       return ModifierHelpers.removeElementWithChildren(model, targetClassId);
     }
 
-    throw new Error(`Cannot remove: class '${className || classId}' not found in the model.`);
+    // Idempotent: if the class can't be found, it might already have been removed
+    // by an earlier modification in the same batch. Log a warning and no-op instead
+    // of throwing, so a single "remove the class X" request that generates multiple
+    // remove_element entries for the same class doesn't fail on the second one.
+    console.warn(
+      `[ClassDiagramModifier] removeElement: class '${className || classId}' not found — ` +
+      `treating as already removed (no-op).`
+    );
+    return model;
   }
 
   // ─── Refactoring action handlers ───────────────────────────────────────────
