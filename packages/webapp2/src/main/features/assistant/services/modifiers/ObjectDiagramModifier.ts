@@ -99,7 +99,8 @@ export class ObjectDiagramModifier implements DiagramModifier {
         name: `${attr.name} = ${attr.value || ''}`,
         type: 'ObjectAttribute',
         owner: objectId,
-        bounds: { x: pos.x + 1, y: currentY, width: 238, height: 30 }
+        bounds: { x: pos.x + 1, y: currentY, width: 238, height: 30 },
+        attributeType: attr.type || 'str'
       };
       currentY += 30;
     }

@@ -119,9 +119,10 @@ export class ObjectDiagramConverter implements DiagramConverter {
         name: `${attr.name} = ${attr.value}`,
         type: "ObjectAttribute",
         owner: objectId,
-        bounds: { x: startX + 1, y: currentY, width: 238, height: 30 }
+        bounds: { x: startX + 1, y: currentY, width: 238, height: 30 },
+        attributeType: attr.type || 'str'
       };
-      
+
       // Add attributeId reference if provided (links to class diagram attribute)
       if (attr.attributeId) {
         attributeElement.attributeId = attr.attributeId;
