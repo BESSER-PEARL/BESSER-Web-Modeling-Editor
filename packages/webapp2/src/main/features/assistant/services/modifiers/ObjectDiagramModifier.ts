@@ -44,8 +44,24 @@ export class ObjectDiagramModifier implements DiagramModifier {
     const changes = modification.changes;
     const target = modification.target;
 
-    const objectName = changes.objectName || target.objectName || changes.name || 'object';
+    let objectName = changes.objectName || target.objectName || changes.name || 'object';
     const className = changes.className || '';
+
+    // Sanitize objectName: strip any ": ClassName" suffix the LLM may have included
+    if (objectName.includes(':')) {
+      objectName = objectName.split(':')[0].trim();
+    }
+
+    // If objectName is empty or equals className, generate a proper instance name
+    if (!objectName || (className && objectName.toLowerCase() === className.toLowerCase())) {
+      let count = 1;
+      for (const el of Object.values(model.elements)) {
+        if (el.type === 'ObjectName' && typeof el.name === 'string' && el.name.includes(`: ${className}`)) {
+          count++;
+        }
+      }
+      objectName = `${className.charAt(0).toLowerCase()}${className.slice(1)}${count}`;
+    }
 
     // Auto-position: find max Y of existing elements and place below
     let maxY = 0;

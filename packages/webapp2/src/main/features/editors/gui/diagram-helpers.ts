@@ -202,7 +202,6 @@ export function getEndsByClassId(classId: string, includeInherited: boolean = tr
       // For unidirectional, only source can navigate to target
       if (relationship.type === 'ClassUnidirectional') {
         if (relationship.source.element === classId) {
-          // Navigable from source to target
           const otherElementId = relationship.target.element;
           const role = relationship.target.role;
           const otherElement = classDiagram.elements?.[otherElementId];
@@ -211,9 +210,28 @@ export function getEndsByClassId(classId: string, includeInherited: boolean = tr
           if (!label || label.trim() === '') label = otherElement?.name || '';
           return { value: otherElementId, label };
         }
-        // If classId is target, no navigability, so skip
       }
-      // For other types, skip
+      // For composition/aggregation, both ends are navigable (same as bidirectional)
+      if (relationship.type === 'ClassComposition' || relationship.type === 'ClassAggregation') {
+        if (relationship.source.element === classId) {
+          const otherElementId = relationship.target.element;
+          const role = relationship.target.role;
+          const otherElement = classDiagram.elements?.[otherElementId];
+          if (otherElement?.type === 'ClassOCLConstraint') return null;
+          let label = role;
+          if (!label || label.trim() === '') label = otherElement?.name || '';
+          return { value: otherElementId, label };
+        }
+        if (relationship.target.element === classId) {
+          const otherElementId = relationship.source.element;
+          const role = relationship.source.role;
+          const otherElement = classDiagram.elements?.[otherElementId];
+          if (otherElement?.type === 'ClassOCLConstraint') return null;
+          let label = role;
+          if (!label || label.trim() === '') label = otherElement?.name || '';
+          return { value: otherElementId, label };
+        }
+      }
       return null;
     })
     .filter((end): end is { value: string; label: string } => end !== null);

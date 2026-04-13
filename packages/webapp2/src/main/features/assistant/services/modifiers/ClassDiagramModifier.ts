@@ -767,7 +767,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       return ModifierHelpers.removeElementWithChildren(model, targetClassId);
     }
 
-    return model;
+    throw new Error(`Cannot remove: class '${className || classId}' not found in the model.`);
   }
 
   // ─── Refactoring action handlers ───────────────────────────────────────────
