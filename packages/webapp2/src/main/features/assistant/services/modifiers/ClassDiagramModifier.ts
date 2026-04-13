@@ -707,8 +707,36 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
+    let { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
       modification.target;
+
+    // Defensive fallback: some LLMs misplace the class name into other fields
+    // (e.g. target.name, target.element) or leave className undefined even
+    // when the action is clearly removing a class. Scan the target object for
+    // any string value and try to match it as a class name if we have nothing.
+    if (!className && !classId && !relationshipId && !relationshipName && !attributeId && !attributeName && !methodId && !methodName) {
+      const candidates = Object.values(modification.target || {}).filter(
+        (v): v is string => typeof v === 'string' && v.trim().length > 0
+      );
+      for (const cand of candidates) {
+        if (this.findClassIdByName(model, cand)) {
+          className = cand;
+          break;
+        }
+      }
+      // Also check modification.changes (some LLMs put the target name there)
+      if (!className && modification.changes) {
+        const changeCandidates = Object.values(modification.changes).filter(
+          (v): v is string => typeof v === 'string' && v.trim().length > 0
+        );
+        for (const cand of changeCandidates) {
+          if (this.findClassIdByName(model, cand)) {
+            className = cand;
+            break;
+          }
+        }
+      }
+    }
 
     // Remove relationship
     if (relationshipId || relationshipName) {
