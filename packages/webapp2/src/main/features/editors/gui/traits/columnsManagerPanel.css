@@ -26,6 +26,8 @@
   background: #fff;
   border-radius: 0;
   padding: 12px 10px 8px 10px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .column-row {

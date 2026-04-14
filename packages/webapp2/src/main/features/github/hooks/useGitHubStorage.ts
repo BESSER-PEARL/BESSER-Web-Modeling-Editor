@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { BesserProject } from '../../../shared/types/project';
@@ -71,6 +71,33 @@ export const useGitHubStorage = () => {
       return null;
     }
   }, []);
+
+  /**
+   * Derive JSON filename from a project name (mirrors GitHubSidebar.toProjectJsonFileName).
+   */
+  const toProjectJsonFileName = useCallback((name: string): string => {
+    const normalized = name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_-]/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return `${normalized || 'project'}.json`;
+  }, []);
+
+  /**
+   * Update the filePath in a linked repo to match the current project name.
+   * Preserves any folder prefix (e.g., "models/old_name.json" → "models/new_name.json").
+   */
+  const updateLinkedRepoFilePath = useCallback((projectId: string, projectName: string) => {
+    const link = getLinkedRepo(projectId);
+    if (!link) return;
+    const dir = link.filePath.includes('/') ? link.filePath.substring(0, link.filePath.lastIndexOf('/') + 1) : '';
+    const newFilePath = dir + toProjectJsonFileName(projectName);
+    if (newFilePath !== link.filePath) {
+      saveLinkedRepo(projectId, { ...link, filePath: newFilePath });
+    }
+  }, [getLinkedRepo, toProjectJsonFileName]);
 
   /**
    * Save linked repository for a project to localStorage
@@ -296,6 +323,10 @@ export const useGitHubStorage = () => {
     branch: string = 'main',
     filePath: string = 'besser-project.json'
   ): Promise<{ success: boolean; commitSha?: string }> => {
+    // Derive filePath from current project name so renames are reflected (#99)
+    const dir = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/') + 1) : '';
+    const resolvedFilePath = dir + toProjectJsonFileName(project.name);
+
     setIsLoading(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -310,7 +341,7 @@ export const useGitHubStorage = () => {
           owner,
           repo,
           branch,
-          file_path: filePath,
+          file_path: resolvedFilePath,
           commit_message: commitMessage,
           project_data: project,
         }),
@@ -324,12 +355,12 @@ export const useGitHubStorage = () => {
 
       const result = await response.json();
 
-      // Update linked repo info
+      // Update linked repo info with resolved file path
       saveLinkedRepo(project.id, {
         owner,
         repo,
         branch,
-        filePath,
+        filePath: resolvedFilePath,
         lastSyncedAt: new Date().toISOString(),
         lastCommitSha: result.commit_sha,
       });
@@ -349,7 +380,7 @@ export const useGitHubStorage = () => {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, [saveLinkedRepo]);
+  }, [saveLinkedRepo, toProjectJsonFileName]);
 
   /**
    * Load project from GitHub repository
@@ -546,11 +577,32 @@ export const useGitHubStorage = () => {
   /**
    * Initialize linked repo state for a project
    */
+  const activeProjectIdRef = useRef<string | null>(null);
+
   const initLinkedRepo = useCallback((projectId: string) => {
+    activeProjectIdRef.current = projectId;
     const link = getLinkedRepo(projectId);
     setLinkedRepo(link);
     return link;
   }, [getLinkedRepo]);
+
+  // Cross-tab sync: when another tab updates the linked repo in localStorage,
+  // re-read it so this tab stays in sync (#93).
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== GITHUB_LINKED_REPOS_KEY) return;
+      const pid = activeProjectIdRef.current;
+      if (!pid) return;
+      try {
+        const links = e.newValue ? JSON.parse(e.newValue) : {};
+        setLinkedRepo(links[pid] || null);
+      } catch {
+        // Ignore parse errors
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   /**
    * Fetch contents of a repository path
@@ -704,6 +756,7 @@ export const useGitHubStorage = () => {
     unlinkRepo,
     initLinkedRepo,
     linkRepoOnly,
+    updateLinkedRepoFilePath,
 
     // Diff & Gist
     getRemoteProjectSilent,

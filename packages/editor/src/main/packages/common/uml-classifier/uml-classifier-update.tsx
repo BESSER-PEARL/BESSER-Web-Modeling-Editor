@@ -206,6 +206,7 @@ class ClassifierUpdate extends Component<Props, State> {
                 element={attribute}
                 isEnumeration={isEnumeration}
                 availableEnumerations={availableEnumerations}
+                elements={elements}
               />
             );
           })}
@@ -306,7 +307,7 @@ class ClassifierUpdate extends Component<Props, State> {
               <QuickCodeButton
                 color="primary"
                 onClick={this.createMethodWithCode}
-                title="Create method with Python code editor"
+                title="Create method with code behaviour"
               >
                 📝 Code
               </QuickCodeButton>
