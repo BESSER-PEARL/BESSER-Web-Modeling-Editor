@@ -19,9 +19,16 @@ export interface DeployToGitHubResult {
   deployment_urls: {
     github: string;
     render: string;
+    // Populated on redeploys (when the backend reused a prior render.yaml
+    // suffix). First deploys only have ``github`` and ``render``.
+    live_frontend?: string;
+    live_backend?: string;
+    render_dashboard?: string;
   };
   files_uploaded: number;
   message: string;
+  // True on the very first deploy to a repo, false on subsequent redeploys.
+  is_first_deploy?: boolean;
 }
 
 /**

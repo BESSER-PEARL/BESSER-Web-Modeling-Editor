@@ -3,6 +3,16 @@ import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 
+export interface GitHubDeploymentUrls {
+  github: string;
+  render: string;
+  // Populated on redeploys when the backend reuses an existing render.yaml
+  // suffix. Absent on a first deploy (no stable Render hostname yet).
+  live_frontend?: string;
+  live_backend?: string;
+  render_dashboard?: string;
+}
+
 export interface GitHubRepoResult {
   success: boolean;
   repo_url: string;
@@ -10,6 +20,9 @@ export interface GitHubRepoResult {
   owner: string;
   files_uploaded: number;
   message: string;
+  deployment_urls: GitHubDeploymentUrls;
+  // True on the very first deploy to a repo, false on subsequent redeploys.
+  is_first_deploy: boolean;
 }
 
 export interface CreateRepoOptions {
@@ -68,8 +81,7 @@ export const useGitHubRepo = () => {
         }
 
         const result = await response.json();
-        
-        // Extract GitHub-specific result
+
         const repoResult: GitHubRepoResult = {
           success: result.success,
           repo_url: result.repo_url,
@@ -77,6 +89,11 @@ export const useGitHubRepo = () => {
           owner: result.owner,
           files_uploaded: result.files_uploaded,
           message: result.message,
+          deployment_urls: result.deployment_urls ?? {
+            github: result.repo_url,
+            render: `https://render.com/deploy?repo=${encodeURIComponent(result.repo_url)}`,
+          },
+          is_first_deploy: result.is_first_deploy ?? true,
         };
         
         setRepoResult(repoResult);

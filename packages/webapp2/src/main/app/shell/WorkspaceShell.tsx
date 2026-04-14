@@ -672,8 +672,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         open={isDeployResultOpen}
         deploymentResult={deploymentResult}
         onOpenChange={setIsDeployResultOpen}
-        onOpenRender={() => deploymentResult && openExternalUrl(deploymentResult.deployment_urls.render)}
-        onOpenRepository={() => deploymentResult && openExternalUrl(deploymentResult.repo_url)}
+        onOpenExternal={(url) => openExternalUrl(url)}
       />
 
       <AboutDialog
