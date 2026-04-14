@@ -188,6 +188,11 @@ export const useGenerateCode = () => {
         return await generateCodeFromProject(generatorType, config);
       }
 
+      // For NN generators, use project data (like Qiskit)
+      if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
+        return await generateCodeFromProject(generatorType, config);
+      }
+
       // For other generators, we need the editor and model
       if (!editor || !editor.model) {
         console.error('No editor or model available');

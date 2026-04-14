@@ -22,6 +22,7 @@ const colorByType: Record<SupportedDiagramType, string> = {
   AgentDiagram: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
   GUINoCodeDiagram: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
   QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
+  NNDiagram: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
 };
 
 export const ProjectSettingsPanel: React.FC = () => {

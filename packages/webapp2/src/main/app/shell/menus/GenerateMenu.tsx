@@ -20,18 +20,18 @@ interface GenerateMenuProps {
   mode: GeneratorMenuMode;
   isGenerating: boolean;
   primaryGenerateClass: string;
-  onGenerate: (type: GeneratorType) => void;
+  onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onSwitchDiagramType?: (type: SupportedDiagramType) => void;
 }
 
-const renderGeneratorMenuEntry = (entry: GeneratorMenuEntry, onGenerate: (type: GeneratorType) => void) => {
+const renderGeneratorMenuEntry = (entry: GeneratorMenuEntry, onGenerate: (type: GeneratorType, config?: Record<string, any>) => void) => {
   if (entry.kind === 'group') {
     return (
       <DropdownMenuSub key={entry.label}>
         <DropdownMenuSubTrigger>{entry.label}</DropdownMenuSubTrigger>
         <DropdownMenuSubContent>
           {entry.actions.map((action) => (
-            <DropdownMenuItem key={action.generator} onClick={() => onGenerate(action.generator)}>
+            <DropdownMenuItem key={action.generator} onClick={() => onGenerate(action.generator, action.config)}>
               {action.label}
             </DropdownMenuItem>
           ))}
@@ -49,7 +49,7 @@ const renderGeneratorMenuEntry = (entry: GeneratorMenuEntry, onGenerate: (type: 
   }
 
   return (
-    <DropdownMenuItem key={entry.generator} onClick={() => onGenerate(entry.generator)}>
+    <DropdownMenuItem key={entry.generator} onClick={() => onGenerate(entry.generator, entry.config)}>
       {entry.label}
     </DropdownMenuItem>
   );

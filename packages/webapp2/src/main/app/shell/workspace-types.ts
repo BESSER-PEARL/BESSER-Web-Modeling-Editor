@@ -11,6 +11,8 @@ export type GeneratorType =
   | 'smartdata'
   | 'agent'
   | 'qiskit'
-  | 'jsonobject';
+  | 'jsonobject'
+  | 'pytorch'
+  | 'tensorflow';
 
-export type GeneratorMenuMode = 'class' | 'object' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'none';
+export type GeneratorMenuMode = 'class' | 'object' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'none';
