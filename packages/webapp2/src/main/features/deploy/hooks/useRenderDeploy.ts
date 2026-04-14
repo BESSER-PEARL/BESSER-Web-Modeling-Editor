@@ -1,10 +1,8 @@
 import { useCallback, useState } from 'react';
-import { useGitHubRepo, GitHubRepoResult, CreateRepoOptions } from '../../github/hooks/useGitHubRepo';
+import { useGitHubRepo, GitHubRepoResult, CreateRepoOptions, GitHubDeploymentUrls } from '../../github/hooks/useGitHubRepo';
 
-export interface RenderDeploymentUrls {
-  github: string;
-  render: string;
-}
+// Re-exported under the old name so existing imports keep working.
+export type RenderDeploymentUrls = GitHubDeploymentUrls;
 
 export interface DeployToRenderResult {
   success: boolean;
@@ -14,6 +12,7 @@ export interface DeployToRenderResult {
   deployment_urls: RenderDeploymentUrls;
   files_uploaded: number;
   message: string;
+  is_first_deploy: boolean;
 }
 
 /**
@@ -59,20 +58,19 @@ export const useRenderDeploy = () => {
           return null;
         }
 
-        // Generate deployment URLs
-        const deploymentUrls: RenderDeploymentUrls = {
-          github: repoResult.repo_url,
-          render: getRenderDeployUrl(repoResult.repo_url),
-        };
-
+        // The backend already computed the correct ``deployment_urls`` (including
+        // live_frontend/live_backend on redeploys and is_first_deploy). Pass
+        // them through — do NOT rebuild them locally, or the "Create Blueprint"
+        // URL will override the live-site link we want to use on redeploys.
         const result: DeployToRenderResult = {
           success: repoResult.success,
           repo_url: repoResult.repo_url,
           repo_name: repoResult.repo_name,
           owner: repoResult.owner,
-          deployment_urls: deploymentUrls,
+          deployment_urls: repoResult.deployment_urls,
           files_uploaded: repoResult.files_uploaded,
           message: repoResult.message,
+          is_first_deploy: repoResult.is_first_deploy,
         };
 
         setDeploymentResult(result);
