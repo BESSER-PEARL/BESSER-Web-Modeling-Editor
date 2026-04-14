@@ -31,7 +31,7 @@ const defaultProps = (overrides: Partial<React.ComponentProps<typeof WorkspaceSi
 // ── Tests ────────────────────────────────────────────────────────────────
 
 describe('WorkspaceSidebar', () => {
-  // There are 4 UML items (Class, Object, State, Agent) + 2 non-UML (GUI, Quantum) + 1 Settings route = 7 nav buttons
+  // There are 5 UML items (Class, Object, State, Agent, BPMN) + 2 non-UML (GUI, Quantum) + 1 Settings route = 8 nav buttons
   // Plus the collapse/expand toggle button at the bottom.
 
   it('renders navigation buttons for all diagram types and settings', () => {
@@ -42,6 +42,7 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('Object')).toBeInTheDocument();
     expect(screen.getByText('State')).toBeInTheDocument();
     expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(screen.getByText('BPMN')).toBeInTheDocument();
 
     // Non-UML items
     expect(screen.getByText('GUI')).toBeInTheDocument();
@@ -77,6 +78,7 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('Object')).toBeInTheDocument();
     expect(screen.getByText('State')).toBeInTheDocument();
     expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(screen.getByText('BPMN')).toBeInTheDocument();
     expect(screen.getByText('GUI')).toBeInTheDocument();
     expect(screen.getByText('Quantum')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
