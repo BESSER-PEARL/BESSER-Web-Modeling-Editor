@@ -379,24 +379,22 @@ export function getRelatedClassAttributeOptions(classId: string): { value: strin
 }
 
 /**
- * Get agent options from AgentDiagram - returns the entire diagram as an option
+ * Get agent options for the AgentComponent dropdown.
+ *
+ * Returns every AgentDiagram in the project, so multi-agent projects can
+ * bind different GUI components to different agents. Previously this helper
+ * returned only the GUI diagram's per-diagram reference, which silently
+ * collapsed every project to a single selectable agent.
  */
 export function getAgentOptions(): { value: string; label: string }[] {
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) {
-    console.warn('[diagram-helpers] No project available');
     return [];
   }
-  // Use the active GUI diagram's per-diagram reference to find the correct Agent
-  const activeGUI = getActiveDiagram(project, 'GUINoCodeDiagram');
-  const agentDiagramData = getReferencedDiagram(project, activeGUI, 'AgentDiagram');
-
-  if (agentDiagramData?.title) {
-    return [{ value: agentDiagramData.title, label: agentDiagramData.title }];
-  }
-
-  console.warn('[diagram-helpers] No Agent diagram data available');
-  return [];
+  const agents = project.diagrams.AgentDiagram ?? [];
+  return agents
+    .filter((d) => !!d?.title)
+    .map((d) => ({ value: d.title as string, label: d.title as string }));
 }
 
 /**

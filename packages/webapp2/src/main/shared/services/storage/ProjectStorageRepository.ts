@@ -245,8 +245,29 @@ export class ProjectStorageRepository {
 
     const umlType = toUMLDiagramType(diagramType);
     const kind = diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-    const defaultTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
-    const diagram = createEmptyDiagram(defaultTitle, umlType, kind);
+
+    // Pick a title that doesn't collide with an existing one (case-insensitive).
+    // If the caller passed a title, start from it and append " 2", " 3", ... on
+    // collision so templates / duplicate actions keep working. If no title,
+    // use the default ``<Type> <n>`` scheme. Bounded by MAX_DIAGRAMS_PER_TYPE
+    // so pathological states can't infinite-loop.
+    const existingTitles = new Set(diagrams.map((d) => d.title.trim().toLowerCase()));
+    const baseTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
+    let uniqueTitle = baseTitle;
+    if (existingTitles.has(uniqueTitle.trim().toLowerCase())) {
+      const maxAttempts = MAX_DIAGRAMS_PER_TYPE + 1;
+      for (let attempt = 2; attempt <= maxAttempts + 1; attempt += 1) {
+        const candidate = `${baseTitle} ${attempt}`;
+        if (!existingTitles.has(candidate.trim().toLowerCase())) {
+          uniqueTitle = candidate;
+          break;
+        }
+      }
+      if (existingTitles.has(uniqueTitle.trim().toLowerCase())) {
+        return null;
+      }
+    }
+    const diagram = createEmptyDiagram(uniqueTitle, umlType, kind);
 
     // Populate default cross-references for diagram types that need them
     if (diagramType === 'GUINoCodeDiagram' || diagramType === 'ObjectDiagram') {

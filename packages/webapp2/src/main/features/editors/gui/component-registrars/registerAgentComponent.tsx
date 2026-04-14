@@ -203,16 +203,28 @@ export const registerAgentComponent = (editor: any) => {
       defaults: baseDefaults,
       init(this: any) {
         const traits = this.get('traits');
-        
+
         // Define traits for the agent component
         const agentOptions = getAgentOptions();
-        
+
+        // Preserve any previously-bound agent name (e.g. when reloading a saved
+        // project that contains multiple agents). If the existing value is no
+        // longer in the list — the agent was deleted or renamed — fall back to
+        // the first available option so the dropdown never shows a phantom
+        // selection.
+        const existingAttrs = this.get('attributes') || {};
+        const existingAgentName = existingAttrs['agent-name'];
+        const defaultAgentValue =
+          existingAgentName && agentOptions.some((o) => o.value === existingAgentName)
+            ? existingAgentName
+            : agentOptions[0]?.value ?? '';
+
         traits.reset([
           {
             type: 'select',
             label: 'Agent',
             name: 'agent-name',
-            value: agentOptions.length > 0 ? agentOptions[0].value : '',
+            value: defaultAgentValue,
             changeProp: 1,
             options: agentOptions,
           },
