@@ -1,0 +1,275 @@
+{
+  "version": "3.0.0",
+  "type": "AgentDiagram",
+  "size": { "width": 1080, "height": 400 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+            "0c1693ac-768b-44b0-83c4-7686fea85ee0": {
+              "id": "0c1693ac-768b-44b0-83c4-7686fea85ee0",
+              "name": "",
+              "type": "StateInitialNode",
+              "owner": null,
+              "bounds": {
+                "x": -640,
+                "y": -120,
+                "width": 45,
+                "height": 45
+              }
+            },
+            "8aa7d581-a5b7-4180-b205-0151cb7451d3": {
+              "id": "8aa7d581-a5b7-4180-b205-0151cb7451d3",
+              "name": "Greeting",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": -350,
+                "y": -170,
+                "width": 420,
+                "height": 70
+              },
+              "bodies": [
+                "0914f151-3e00-4fba-ba2d-89efb0e1467e"
+              ],
+              "fallbackBodies": []
+            },
+            "0914f151-3e00-4fba-ba2d-89efb0e1467e": {
+              "id": "0914f151-3e00-4fba-ba2d-89efb0e1467e",
+              "name": "Hi, I am your friendly assistant, I can answer questions related to BESSER.",
+              "type": "AgentStateBody",
+              "owner": "8aa7d581-a5b7-4180-b205-0151cb7451d3",
+              "bounds": {
+                "x": -349.5,
+                "y": -129.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f": {
+              "id": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
+              "name": "Idle",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": 350,
+                "y": -200,
+                "width": 420,
+                "height": 70
+              },
+              "bodies": [
+                "4ab8c422-2c84-493b-ae49-52bd0817e3d6"
+              ],
+              "fallbackBodies": []
+            },
+            "4ab8c422-2c84-493b-ae49-52bd0817e3d6": {
+              "id": "4ab8c422-2c84-493b-ae49-52bd0817e3d6",
+              "name": "What would you like to know about BESSER?",
+              "type": "AgentStateBody",
+              "owner": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
+              "bounds": {
+                "x": 350.5,
+                "y": -159.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "text",
+              "ragDatabaseName": ""
+            },
+            "72a9a181-3dc0-4f95-8adb-bddade2fccf4": {
+              "id": "72a9a181-3dc0-4f95-8adb-bddade2fccf4",
+              "name": "BESSER",
+              "type": "AgentRagElement",
+              "owner": null,
+              "bounds": {
+                "x": -200,
+                "y": 0,
+                "width": 120,
+                "height": 110
+              }
+            },
+            "ceeeda0d-b8f2-4025-ab23-4953ae07c264": {
+              "id": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
+              "name": "Response",
+              "type": "AgentState",
+              "owner": null,
+              "bounds": {
+                "x": 270,
+                "y": 120,
+                "width": 420,
+                "height": 70
+              },
+              "bodies": [
+                "10da515c-b8a4-489f-b3d9-fdf698922546"
+              ],
+              "fallbackBodies": []
+            },
+            "10da515c-b8a4-489f-b3d9-fdf698922546": {
+              "id": "10da515c-b8a4-489f-b3d9-fdf698922546",
+              "name": "RAG reply using BESSER database",
+              "type": "AgentStateBody",
+              "owner": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
+              "bounds": {
+                "x": 270.5,
+                "y": 160.5,
+                "width": 419,
+                "height": 30
+              },
+              "replyType": "rag",
+              "ragDatabaseName": "BESSER"
+            }
+          },
+        "relationships": {
+            "20b192c6-49fd-4260-b958-5c85fab9cdfa": {
+              "id": "20b192c6-49fd-4260-b958-5c85fab9cdfa",
+              "name": "",
+              "type": "AgentStateTransitionInit",
+              "owner": null,
+              "bounds": {
+                "x": -595,
+                "y": -152.5,
+                "width": 245,
+                "height": 55
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 55
+                },
+                {
+                  "x": 122.5,
+                  "y": 55
+                },
+                {
+                  "x": 122.5,
+                  "y": 0
+                },
+                {
+                  "x": 245,
+                  "y": 0
+                }
+              ],
+              "source": {
+                "direction": "Right",
+                "element": "0c1693ac-768b-44b0-83c4-7686fea85ee0"
+              },
+              "target": {
+                "direction": "Upleft",
+                "element": "8aa7d581-a5b7-4180-b205-0151cb7451d3"
+              },
+              "isManuallyLayouted": false
+            },
+            "db270a25-0697-4201-9275-da9c30a07dc2": {
+              "id": "db270a25-0697-4201-9275-da9c30a07dc2",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": 70,
+                "y": -150,
+                "width": 280,
+                "height": 1
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 0
+                },
+                {
+                  "x": 280,
+                  "y": 0
+                }
+              ],
+              "source": {
+                "direction": "Right",
+                "element": "8aa7d581-a5b7-4180-b205-0151cb7451d3"
+              },
+              "target": {
+                "direction": "Upleft",
+                "element": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
+              },
+              "isManuallyLayouted": false,
+              "condition": "auto",
+              "conditionValue": ""
+            },
+            "b8e27aba-df6f-4816-afb5-0bb39ebc1fda": {
+              "id": "b8e27aba-df6f-4816-afb5-0bb39ebc1fda",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": 230,
+                "y": -130,
+                "width": 225,
+                "height": 285
+              },
+              "path": [
+                {
+                  "x": 225,
+                  "y": 0
+                },
+                {
+                  "x": 225,
+                  "y": 40
+                },
+                {
+                  "x": 0,
+                  "y": 40
+                },
+                {
+                  "x": 0,
+                  "y": 285
+                },
+                {
+                  "x": 40,
+                  "y": 285
+                }
+              ],
+              "source": {
+                "direction": "Bottomleft",
+                "element": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
+              },
+              "target": {
+                "direction": "Left",
+                "element": "ceeeda0d-b8f2-4025-ab23-4953ae07c264"
+              },
+              "isManuallyLayouted": false,
+              "condition": "when_no_intent_matched",
+              "conditionValue": ""
+            },
+            "ee33f473-5d40-4a58-b5e8-5ad985e15644": {
+              "id": "ee33f473-5d40-4a58-b5e8-5ad985e15644",
+              "name": "",
+              "type": "AgentStateTransition",
+              "owner": null,
+              "bounds": {
+                "x": 520,
+                "y": -130,
+                "width": 1,
+                "height": 250
+              },
+              "path": [
+                {
+                  "x": 0,
+                  "y": 250
+                },
+                {
+                  "x": 0,
+                  "y": 0
+                }
+              ],
+              "source": {
+                "direction": "Topleft",
+                "element": "ceeeda0d-b8f2-4025-ab23-4953ae07c264"
+              },
+              "target": {
+                "direction": "Bottomleft",
+                "element": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
+              },
+              "isManuallyLayouted": false,
+              "condition": "auto",
+              "conditionValue": ""
+            }
+          },
+  "assessments": {}
+}

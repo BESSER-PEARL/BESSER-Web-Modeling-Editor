@@ -33,70 +33,111 @@ export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, chil
   }
 };
 
-const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
+const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, className?: string) => {
+  const clipId = `clip-${element.id}`;
+  const displayText = `${element.name}${className ? ` : ${className}` : ''}`;
+  // Left-align long text so the beginning is always visible
+  const textFitsBox = displayText.length * 8 < element.bounds.width;
+// const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   return (
     <g>
-      <ThemedRect
-        fillColor={fillColor || element.fillColor}
-        strokeColor="none"
-        width="100%"
-        height={element.stereotype ? 50 : 40}
-      />
-      <ThemedRect
-        y={element.stereotype ? 50 : 40}
-        width="100%"
-        height={element.bounds.height - (element.stereotype ? 50 : 40)}
-        strokeColor="none"
-      />
-      <ThemedPath d={`M 0 ${element.headerHeight} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
-      {/* MOVE THIS TO THE END TO APPEAR ON TOP */}
-      
+      <defs>
+        <clipPath id={clipId}>
+          <rect width={element.bounds.width} height={element.bounds.height} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <ThemedRect
+          fillColor={fillColor || element.fillColor}
+          strokeColor="none"
+          width="100%"
+          height={element.stereotype ? 50 : 40}
+        />
+        <ThemedRect
+          y={element.stereotype ? 50 : 40}
+          width="100%"
+          height={element.bounds.height - (element.stereotype ? 50 : 40)}
+          strokeColor="none"
+        />
         <svg height={40}>
           <Text
             fill={element.textColor}
             fontStyle={element.italic ? 'italic' : undefined}
             textDecoration={element.underline ? 'underline' : undefined}
+            x={textFitsBox ? '50%' : 8}
+            textAnchor={textFitsBox ? 'middle' : 'start'}
           >
-            {displayLabel}
+            {displayText}
+     <!--       {displayLabel} -->
           </Text>
         </svg>
-    
-
-      {children}
-      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointer-events="none" />
+        {children}
+      </g>
+      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointerEvents="none" />
+      <ThemedPath d={`M 0 ${element.headerHeight} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
     </g>
   );
 };
 
-const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
+const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, className?: string) => {
+  const clipId = `clip-${element.id}`;
+  const displayText = `${element.name}${className ? ` : ${className}` : ''}`;
+  const textFitsBox = displayText.length * 8 < element.bounds.width;
+//const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   return (
     <g>
-      <ThemedRect
-        fillColor={fillColor || element.fillColor}
-        strokeColor="none"
-        width="100%"
-        height={element.stereotype ? 50 : 40}
-      />
-      <ThemedRect
-        y={element.stereotype ? 50 : 40}
-        width="100%"
-        height={element.bounds.height - (element.stereotype ? 50 : 40)}
-        strokeColor="none"
-      />
-      {element.stereotype ? (
-        <svg height={50}>
-          <Text fill={element.textColor}>
-            <tspan x="50%" dy={-8} textAnchor="middle" fontSize="85%">
-              {`«${element.stereotype}»`}
-            </tspan>
-            <tspan
-              x="50%"
-              dy={18}
-              textAnchor="middle"
+      <defs>
+        <clipPath id={clipId}>
+          <rect width={element.bounds.width} height={element.bounds.height} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clipId})`}>
+        <ThemedRect
+          fillColor={fillColor || element.fillColor}
+          strokeColor="none"
+          width="100%"
+          height={element.stereotype ? 50 : 40}
+        />
+        <ThemedRect
+          y={element.stereotype ? 50 : 40}
+          width="100%"
+          height={element.bounds.height - (element.stereotype ? 50 : 40)}
+          strokeColor="none"
+        />
+        {element.stereotype ? (
+          <svg height={50}>
+            <Text fill={element.textColor}>
+              <tspan x="50%" dy={-8} textAnchor="middle" fontSize="85%">
+                {`«${element.stereotype}»`}
+              </tspan>
+              <tspan
+                x={textFitsBox ? '50%' : 8}
+                dy={18}
+                textAnchor={textFitsBox ? 'middle' : 'start'}
+                fontStyle={element.italic ? 'italic' : undefined}
+                textDecoration="underline"
+              >
+                {displayText}
+              </tspan>
+            </Text>
+          </svg>
+        ) : (
+          <svg height={40}>
+            <Text
+              fill={element.textColor}
               fontStyle={element.italic ? 'italic' : undefined}
               textDecoration="underline"
+              x={textFitsBox ? '50%' : 8}
+              textAnchor={textFitsBox ? 'middle' : 'start'}
             >
-              {displayLabel}
+              {displayText}
+            </Text>
+          </svg>
+        )}
+        {children}
+      </g>
+      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointerEvents="none" />
+       <!--       {displayLabel}
             </tspan>
           </Text>
         </svg>
@@ -112,7 +153,7 @@ const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fil
         </svg>
       )}
       {children}
-      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointer-events="none" />
+      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointer-events="none" /> -->
       {element.hasAttributes && (
         <ThemedPath d={`M 0 ${element.headerHeight} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
       )}

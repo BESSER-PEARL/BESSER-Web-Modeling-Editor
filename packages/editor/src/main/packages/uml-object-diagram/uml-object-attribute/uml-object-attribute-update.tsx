@@ -14,22 +14,22 @@ type TextfieldValue = string | number;
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
 `;
 
 const AttributeInputContainer = styled.div`
   display: flex;
   align-items: center;
   flex-grow: 1;
-  margin-right: 8px;
+  gap: 4px;
 `;
 
 const AttributeNameLabel = styled.span`
   font-family: inherit;
   font-size: inherit;
   color: inherit;
-  margin-right: 4px;
   white-space: nowrap;
 `;
 

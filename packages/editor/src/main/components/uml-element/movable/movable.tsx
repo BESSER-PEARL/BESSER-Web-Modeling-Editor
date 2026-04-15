@@ -44,6 +44,35 @@ const enhance = connect<StateProps, DispatchProps, UMLElementComponentProps, Mod
   },
 );
 
+/**
+ * HOC that makes a UML element draggable on the canvas.
+ *
+ * FIX (2026-03-30): Replaced React `this.state.offset` with a plain instance
+ * variable `this.lastPointer` for pointer position tracking during drag.
+ *
+ * PROBLEM: The original code used `this.setState()` to store the last pointer
+ * position and `this.state.offset` to read it back in the next `pointermove`.
+ * Because React batches `setState` calls asynchronously, rapid pointer events
+ * would read a stale `this.state.offset`, producing wildly wrong deltas
+ * (e.g., dx jumps from +10 to -800 and back). This caused elements to
+ * visually teleport/jump while being dragged.
+ *
+ * FIX: `this.lastPointer` is a plain class field — reads and writes are
+ * synchronous, so the delta calculation in `onPointerMove` always uses the
+ * true previous pointer position. The `move()` method still batches Redux
+ * dispatches via `requestAnimationFrame` for performance.
+ *
+ * BEFORE (broken):
+ *   onPointerDown:  this.setState({ offset: new Point(clientX, clientY) })
+ *   onPointerMove:  dx = (clientX - this.state.offset.x) / zoom   // STALE!
+ *   move():         this.setState(s => ({ offset: s.offset.add(dx * zoom, ...) }))
+ *
+ * AFTER (fixed):
+ *   onPointerDown:  this.lastPointer = new Point(clientX, clientY)
+ *   onPointerMove:  dx = (clientX - this.lastPointer.x) / zoom    // always fresh
+ *                   this.lastPointer = new Point(clientX, clientY)  // update before move
+ *   move():         (no offset state needed)
+ */
 export const movable = (
   WrappedComponent: ComponentType<UMLElementComponentProps>,
 ): ConnectedComponent<ComponentType<Props>, UMLElementComponentProps> => {
@@ -51,23 +80,39 @@ export const movable = (
     state = initialState;
     private moveWindow = new Point();
     private moveRaf: number | null = null;
+    /** Synchronous pointer tracking — replaces the old async this.state.offset */
+    private lastPointer = new Point();
 
+    // FIX (2026-04-14): slow drags were stuttering because each pointer-move delta
+    // was rounded to the nearest 10 px and any sub-5-px motion was dropped entirely.
+    // Now we accumulate raw (fractional) deltas in moveWindow, dispatch the integer
+    // part once per animation frame, and keep the remainder so sub-pixel motion
+    // adds up across frames instead of being discarded.
+    //
+    // OLD CODE (revert to this to restore 10-px grid snap during drag):
+    //   move = (x: number, y: number) => {
+    //     x = Math.round(x / 10) * 10;
+    //     y = Math.round(y / 10) * 10;
+    //     if (x === 0 && y === 0) return;
+    //     this.moveWindow = new Point(this.moveWindow.x + x, this.moveWindow.y + y);
+    //     if (!this.moveRaf) {
+    //       this.moveRaf = requestAnimationFrame(() => {
+    //         this.props.move({ x: this.moveWindow.x, y: this.moveWindow.y });
+    //         this.moveWindow = new Point();
+    //         this.moveRaf = null;
+    //       });
+    //     }
+    //   };
     move = (x: number, y: number) => {
-      const { zoomFactor = 1 } = this.props;
-
-      x = Math.round(x / 10) * 10;
-      y = Math.round(y / 10) * 10;
-      if (x === 0 && y === 0) return;
-
-      // Update visual position immediately via local state
-      this.setState((state) => ({ offset: state.offset.add(x * zoomFactor, y * zoomFactor) }));
-
-      // Batch Redux dispatches to one per animation frame to avoid flooding re-renders
       this.moveWindow = new Point(this.moveWindow.x + x, this.moveWindow.y + y);
       if (!this.moveRaf) {
         this.moveRaf = requestAnimationFrame(() => {
-          this.props.move({ x: this.moveWindow.x, y: this.moveWindow.y });
-          this.moveWindow = new Point();
+          const dx = Math.round(this.moveWindow.x);
+          const dy = Math.round(this.moveWindow.y);
+          if (dx !== 0 || dy !== 0) {
+            this.props.move({ x: dx, y: dy });
+            this.moveWindow = new Point(this.moveWindow.x - dx, this.moveWindow.y - dy);
+          }
           this.moveRaf = null;
         });
       }
@@ -115,15 +160,15 @@ export const movable = (
     }
 
     private onPointerDown = (event: PointerEvent | TouchEvent) => {
-      const { zoomFactor = 1 } = this.props;
-
       if (event.which && event.which !== 1) {
         return;
       }
 
       const clientEventCoordinates = getClientEventCoordinates(event);
 
-      this.setState({ offset: new Point(clientEventCoordinates.clientX, clientEventCoordinates.clientY) });
+      // Store pointer position synchronously — no setState race condition
+      this.lastPointer = new Point(clientEventCoordinates.clientX, clientEventCoordinates.clientY);
+
       if (isMobile({ tablet: true })) {
         document.addEventListener('touchmove', this.onPointerMove);
         document.addEventListener('touchend', this.onPointerUp, { once: true });
@@ -138,14 +183,16 @@ export const movable = (
       const { zoomFactor = 1 } = this.props;
 
       const clientEventCoordinates = getClientEventCoordinates(event);
-      const x = (clientEventCoordinates.clientX - this.state.offset.x) / zoomFactor;
-      const y = (clientEventCoordinates.clientY - this.state.offset.y) / zoomFactor;
+      const x = (clientEventCoordinates.clientX - this.lastPointer.x) / zoomFactor;
+      const y = (clientEventCoordinates.clientY - this.lastPointer.y) / zoomFactor;
 
       if (!this.props.moving) {
         if (Math.abs(x) > 5 || Math.abs(y) > 5) {
           this.props.start();
         }
       } else {
+        // Update lastPointer synchronously BEFORE calling move
+        this.lastPointer = new Point(clientEventCoordinates.clientX, clientEventCoordinates.clientY);
         this.move(x, y);
       }
     };
@@ -170,7 +217,7 @@ export const movable = (
         }
       }
 
-      this.setState(initialState);
+      this.lastPointer = new Point();
       this.props.end();
     };
   }

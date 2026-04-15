@@ -105,13 +105,12 @@ export class Dropdown<T> extends Component<Props<T>, State> {
     }
 
     const parent = this.getScrollableParent(this.activator.current);
-    const parentBounds: ClientRect = parent.getBoundingClientRect();
-    const activatorBounds: ClientRect = this.activator.current.getBoundingClientRect();
+    const activatorBounds = this.activator.current.getBoundingClientRect();
 
     this.setState({
       show: true,
-      top: activatorBounds.top - parentBounds.top + activatorBounds.height,
-      left: activatorBounds.left - parentBounds.left,
+      top: activatorBounds.bottom,
+      left: activatorBounds.left,
       width: activatorBounds.width,
     });
 

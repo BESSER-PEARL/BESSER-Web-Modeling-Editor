@@ -133,27 +133,40 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
     let attributeType = 'str';
 
     // Check for visibility symbol at the start
+    let afterVisibility = trimmed;
     const visibilityMatch = trimmed.match(/^([+\-#~])\s*/);
     if (visibilityMatch) {
       visibility = SYMBOL_TO_VISIBILITY[visibilityMatch[1]] || 'public';
-      const afterVisibility = trimmed.substring(visibilityMatch[0].length);
+      afterVisibility = trimmed.substring(visibilityMatch[0].length);
+    }
 
-      // Check for type (after colon)
+    // Method signatures contain '(' — split at the colon AFTER the last ')'
+    // so parameter type colons (e.g. "param: str") are not misinterpreted.
+    if (afterVisibility.includes('(')) {
+      const lastParen = afterVisibility.lastIndexOf(')');
+      if (lastParen >= 0) {
+        const signaturePart = afterVisibility.substring(0, lastParen + 1);
+        const afterParen = afterVisibility.substring(lastParen + 1).trim();
+        if (afterParen.startsWith(':')) {
+          parsedName = signaturePart.trim();
+          attributeType = normalizeType(afterParen.substring(1).trim());
+        } else {
+          parsedName = afterVisibility.trim();
+          attributeType = '';
+        }
+      } else {
+        // Has '(' but no ')' — malformed, store as-is
+        parsedName = afterVisibility.trim();
+        attributeType = '';
+      }
+    } else {
+      // Attribute format: split at first colon
       const typeMatch = afterVisibility.match(/^([^:]+):\s*(.+)$/);
       if (typeMatch) {
         parsedName = typeMatch[1].trim();
         attributeType = normalizeType(typeMatch[2].trim());
       } else {
         parsedName = afterVisibility.trim();
-      }
-    } else {
-      // No visibility symbol, check for type
-      const typeMatch = trimmed.match(/^([^:]+):\s*(.+)$/);
-      if (typeMatch) {
-        parsedName = typeMatch[1].trim();
-        attributeType = normalizeType(typeMatch[2].trim());
-      } else {
-        parsedName = trimmed;
       }
     }
 

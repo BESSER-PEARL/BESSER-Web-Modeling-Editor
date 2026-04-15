@@ -19,6 +19,8 @@ import { isUMLModel } from '../../types/project';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { BACKEND_URL } from '../../constant';
 import { setCreateNewEditor, updateDiagramThunk } from '../../services/diagram/diagramSlice';
+import { useProject } from '../../hooks/useProject';
+import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
 
 const defaultInterfaceStyle: InterfaceStyleSetting = {
     size: 16,
@@ -410,6 +412,7 @@ const knownLLMModels = ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'mistral-7b', 'falc
 
 export const AgentConfigScreen: React.FC = () => {
     const dispatch = useAppDispatch();
+    const { currentProject } = useProject();
     const diagram = useAppSelector((state) => state.diagram.diagram);
     const currentDiagramType = useAppSelector((state) => state.diagram.editorOptions.type);
 
@@ -852,6 +855,15 @@ export const AgentConfigScreen: React.FC = () => {
             setConfigurationName(savedEntry.name);
             localStorage.setItem(configKey, JSON.stringify(config));
 
+            // Persist agent config into the diagram so it travels with the project
+            if (currentProject) {
+                const agentDiagram = currentProject.diagrams.AgentDiagram;
+                ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+                    ...agentDiagram,
+                    config: config as unknown as Record<string, unknown>,
+                });
+            }
+
             try {
                 window.dispatchEvent(new Event(AGENT_CONFIG_CHANGED_EVENT));
             } catch {
@@ -956,7 +968,7 @@ export const AgentConfigScreen: React.FC = () => {
             const normalizedBaseRaw = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
             const normalizedBase = normalizedBaseRaw || '';
             const apiBase = normalizedBase.endsWith('/besser_api') ? normalizedBase : `${normalizedBase}/besser_api`;
-            const transformUrl = `${apiBase}/transform_agent_model_json`;
+            const transformUrl = `${apiBase}/transform-agent-model-json`;
 
             const response = await fetch(transformUrl, {
                 method: 'POST',

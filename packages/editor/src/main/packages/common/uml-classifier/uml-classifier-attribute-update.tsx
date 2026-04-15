@@ -7,11 +7,12 @@ import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { IUMLContainer } from '../../../services/uml-container/uml-container';
 import { Visibility } from './uml-classifier-member';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 4px;
 `;
@@ -19,23 +20,27 @@ const Flex = styled.div`
 const AttributeRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 2px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+  }
 `;
 
 const ControlsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 `;
 
 const VisibilityDropdown = styled(Dropdown)`
-  min-width: 80px;
+  min-width: 44px;
   flex-shrink: 0;
 `;
 
 const TypeDropdown = styled(Dropdown)`
-  min-width: 100px;
+  min-width: 80px;
   flex-shrink: 0;
 `;
 
@@ -141,6 +146,7 @@ type Props = {
   element: IUMLElement;
   isEnumeration?: boolean;
   availableEnumerations?: Array<{ value: string; label: string }>;
+  elements?: Record<string, IUMLElement>;
 };
 
 // Helper function to parse legacy name format for backward compatibility
@@ -190,7 +196,8 @@ const UmlAttributeUpdate = ({
   onDelete,
   element,
   isEnumeration = false,
-  availableEnumerations = []
+  availableEnumerations = [],
+  elements = {}
 }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
 
@@ -201,7 +208,7 @@ const UmlAttributeUpdate = ({
   // For enumerations, just use the value as-is (it's a literal name)
   if (isEnumeration) {
     const handleNameChange = (newName: string | number) => {
-      const nameStr = String(newName);
+      const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
       onChange(id, { name: nameStr });
     };
 
@@ -268,7 +275,7 @@ const UmlAttributeUpdate = ({
   };
 
   const handleNameChange = (newName: string | number) => {
-    const nameStr = String(newName);
+    const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
     onChange(id, {
       name: nameStr,
       visibility,
@@ -328,6 +335,24 @@ const UmlAttributeUpdate = ({
     onDelete(id)();
   };
 
+  // Check if the attribute type is an enumeration and get its literals
+  let enumerationLiterals: string[] | undefined;
+  if (attributeType && availableEnumerations.some(e => e.value === attributeType)) {
+    // Find the enumeration element with matching name
+    const enumerationElement = Object.values(elements).find(
+      el => el.name === attributeType && el.type === 'Enumeration'
+    );
+    
+    if (enumerationElement && 'ownedElements' in enumerationElement) {
+      // Get the literal names from the enumeration's owned elements
+      const containerElement = enumerationElement as IUMLContainer;
+      enumerationLiterals = containerElement.ownedElements
+        .map((literalId: string) => elements[literalId])
+        .filter((literal: IUMLElement) => literal && literal.name)
+        .map((literal: IUMLElement) => literal.name);
+    }
+  }
+
   return (
     <AttributeRow>
       <ControlsRow>
@@ -369,6 +394,8 @@ const UmlAttributeUpdate = ({
         onDerivedChange={handleDerivedChange}
         defaultValue={defaultValue}
         onDefaultValueChange={handleDefaultValueChange}
+        attributeType={attributeType}
+        enumerationLiterals={enumerationLiterals}
       />
     </AttributeRow>
   );

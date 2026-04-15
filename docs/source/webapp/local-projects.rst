@@ -1,26 +1,28 @@
 Local Projects
 ==============
 
-The webapp stores user projects entirely in the browser. Each project maintains
-one diagram per supported type and tracks the active diagram for the session.
+The webapp stores user projects entirely in the browser. Each project can contain
+**multiple diagrams per type** and tracks the active diagram for each type.
 Understanding the layout of this storage makes it easier to add new features or
 diagnose issues.
 
 Data model
 ----------
 
-``packages/webapp/src/main/types/project.ts`` defines the core types:
+``packages/webapp2/src/main/shared/types/project.ts`` defines the core types:
 
 ``BesserProject``
    Project metadata (name, description, owner, timestamps), current diagram type
-   (`SupportedDiagramType`), per-diagram settings, and a ``diagrams`` map with a
-   ``ProjectDiagram`` entry for each supported type (Class, Object, State
-   Machine, Agent).
+   (`SupportedDiagramType`), ``currentDiagramIndices`` (tracks the active diagram
+   index per type), and a ``diagrams`` map with a **list** of ``ProjectDiagram``
+   entries for each supported type (Class, Object, State Machine, Agent, GUI,
+   Quantum Circuit).
 
 ``ProjectDiagram``
-   Holds the diagram ``id``, ``title``, optional ``model`` (``UMLModel``),
-   ``lastUpdate`` timestamp, and free-form description. The initial model is a
-   basic diagram created via ``createEmptyDiagram``.
+   Holds the diagram ``id``, ``title``, optional ``model`` (``UMLModel``, ``GrapesJSProjectData``, or ``QuantumCircuitData`` depending on diagram type),
+   ``lastUpdate`` timestamp, free-form description, and optional ``references``
+   (a map of diagram type to referenced diagram ID for cross-diagram resolution).
+   The initial model is a basic diagram created via ``createEmptyDiagram``.
 
 ``SupportedDiagramType`` / ``toUMLDiagramType``  
    Guard the subset of diagram types available through the project UI.
@@ -28,7 +30,7 @@ Data model
 Persistence
 -----------
 
-``ProjectStorageRepository`` (``services/storage/ProjectStorageRepository.ts``)
+``ProjectStorageRepository`` (``shared/services/storage/ProjectStorageRepository.ts``)
 handles read/write operations:
 
 * Projects are serialised to JSON and stored in ``localStorage`` under keys with
@@ -38,21 +40,18 @@ handles read/write operations:
 * Helper methods exist to save projects, switch active diagram types, retrieve
   metadata lists, and delete projects safely.
 
-Redux slices
-------------
+Redux slice
+-----------
 
-Two slices coordinate project state with the editor:
+A single unified slice coordinates project and diagram state with the editor:
 
-``projectSlice`` (``services/project/projectSlice.ts``)
-   Manages the current project, active diagram, diagram switching, and updates
-   to diagram metadata. Async thunks load projects from storage, create new
-   projects, and keep the diagram slice in sync. It also updates the diagram
-   bridge when object diagrams need class diagram context.
-
-``diagramSlice`` (``services/diagram/diagramSlice.ts``)
-   Keeps the editor options, autosave logic, and current diagram instance in
-   lockstep with project changes. All edits flow back into ``projectSlice`` via
-   the ``updateCurrentDiagramThunk`` thunk.
+``workspaceSlice`` (``app/store/workspaceSlice.ts``)
+   Manages the current project, active diagram, diagram switching, editor
+   options, autosave logic, and updates to diagram metadata. Async thunks
+   load projects from storage, create new projects, and keep the editor
+   in sync. It also updates the diagram bridge when object diagrams need
+   class diagram context. All diagram edits flow back through the
+   ``updateDiagramModelThunk`` thunk.
 
 Adding a new supported diagram type
 -----------------------------------

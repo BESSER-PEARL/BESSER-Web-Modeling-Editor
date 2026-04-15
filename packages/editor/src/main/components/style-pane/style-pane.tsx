@@ -9,8 +9,9 @@ import { I18nContext } from '../i18n/i18n-context';
 import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
 import { Textfield } from '../controls/textfield/textfield';
+import { Dropdown } from '../controls/dropdown/dropdown';
 import { ColorSelector } from './color-selector';
-import { Color, Container, Divider, Row, FieldRow } from './style-pane-styles';
+import { Color, Container, Divider, Row, FieldRow, CheckboxRow } from './style-pane-styles';
 
 type OwnProps = {
   open: boolean;
@@ -29,6 +30,8 @@ type OwnProps = {
   onDerivedChange?: (checked: boolean) => void;
   defaultValue?: any;
   onDefaultValueChange?: (value: string) => void;
+  attributeType?: string;
+  enumerationLiterals?: string[];
 };
 
 type StateProps = {};
@@ -45,6 +48,7 @@ const getInitialState = () => ({
   fillSelectOpen: false,
   strokeSelectOpen: false,
   textSelectOpen: false,
+  prevAttributeType: undefined as string | undefined,
 });
 
 type State = ReturnType<typeof getInitialState>;
@@ -68,6 +72,13 @@ const enhance = compose<ComponentClass<OwnProps>>(
 
 class StylePaneComponent extends Component<Props, State> {
   state = getInitialState();
+
+  componentDidUpdate(prevProps: Props) {
+    // Reset default value when attribute type changes
+    if (this.props.attributeType !== prevProps.attributeType && this.props.onDefaultValueChange) {
+      this.props.onDefaultValueChange('');
+    }
+  }
 
   handleFillColorChange = (color: string | undefined) => {
     const { element, onColorChange } = this.props;
@@ -127,42 +138,153 @@ class StylePaneComponent extends Component<Props, State> {
     }));
   };
 
+  renderDefaultValueInput = () => {
+    const { defaultValue, onDefaultValueChange, attributeType, enumerationLiterals } = this.props;
+
+    if (!onDefaultValueChange) return null;
+
+    const isEnumType = enumerationLiterals && enumerationLiterals.length > 0;
+
+    // Enumeration type - render dropdown with literals
+    if (isEnumType) {
+      return (
+        <Dropdown
+          value={defaultValue || ''}
+          onChange={(value: string) => onDefaultValueChange(value)}
+          size="sm"
+        >
+          {[
+            <Dropdown.Item key="_empty" value="">
+              (none)
+            </Dropdown.Item>,
+            ...enumerationLiterals.map((literal) => (
+              <Dropdown.Item key={literal} value={literal}>
+                {literal}
+              </Dropdown.Item>
+            ))
+          ]}
+        </Dropdown>
+      );
+    }
+
+    // Type-specific inputs
+    switch (attributeType) {
+      case 'int':
+      case 'float':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={(value) => {
+              // Allow only numbers, decimal point, and minus sign
+              const sanitized = value.replace(/[^0-9.\-]/g, '');
+              onDefaultValueChange(sanitized);
+            }}
+            placeholder={attributeType === 'int' ? 'Enter integer...' : 'Enter number...'}
+            size="sm"
+          />
+        );
+
+      case 'bool':
+        return (
+          <Dropdown
+            value={defaultValue || ''}
+            onChange={(value: string) => onDefaultValueChange(value)}
+            size="sm"
+          >
+            <Dropdown.Item key="_empty" value="">
+              (none)
+            </Dropdown.Item>
+            <Dropdown.Item key="true" value="true">
+              true
+            </Dropdown.Item>
+            <Dropdown.Item key="false" value="false">
+              false
+            </Dropdown.Item>
+          </Dropdown>
+        );
+
+      case 'date':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder="YYYY-MM-DD"
+            size="sm"
+            type="date"
+          />
+        );
+
+      case 'datetime':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder="YYYY-MM-DD HH:MM:SS"
+            size="sm"
+            type="datetime-local"
+          />
+        );
+
+      case 'time':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder="HH:MM:SS"
+            size="sm"
+            type="time"
+          />
+        );
+
+      default:
+        // String and other types - regular text input
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder="Enter default value..."
+            size="sm"
+          />
+        );
+    }
+  };
+
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, defaultValue, onDefaultValueChange } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, defaultValue, onDefaultValueChange, enumerationLiterals } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
+
+    const isEnumType = enumerationLiterals && enumerationLiterals.length > 0;
 
     return (
       <Container>
         {onOptionalChange && (
           <>
-            <Row>
-              <label htmlFor={`optional-${element?.id}`} style={{ cursor: 'pointer', margin: 0 }}>Optional</label>
+            <CheckboxRow as="label" htmlFor={`optional-${element?.id}`}>
+              <span>Optional</span>
               <input
                 id={`optional-${element?.id}`}
                 type="checkbox"
                 checked={isOptional || false}
                 onChange={(e) => onOptionalChange(e.target.checked)}
-                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
               />
-            </Row>
+            </CheckboxRow>
             <Divider />
           </>
         )}
         {onDerivedChange && (
           <>
-            <Row>
-              <label htmlFor={`derived-${element?.id}`} style={{ cursor: 'pointer', margin: 0 }}>Derived</label>
+            <CheckboxRow as="label" htmlFor={`derived-${element?.id}`}>
+              <span>Derived</span>
               <input
                 id={`derived-${element?.id}`}
                 type="checkbox"
                 checked={isDerived || false}
                 onChange={(e) => onDerivedChange(e.target.checked)}
-                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
               />
-            </Row>
+            </CheckboxRow>
             <Divider />
           </>
         )}
@@ -170,12 +292,7 @@ class StylePaneComponent extends Component<Props, State> {
           <>
             <FieldRow>
               <label>Default</label>
-              <Textfield
-                value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
-                onChange={onDefaultValueChange}
-                placeholder="Enter default value..."
-                size="sm"
-              />
+              {this.renderDefaultValueInput()}
             </FieldRow>
             <Divider />
           </>

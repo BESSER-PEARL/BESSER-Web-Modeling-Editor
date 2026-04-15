@@ -106,7 +106,7 @@ export const AgentIntentComponent: FunctionComponent<Props> = ({ element, childr
             height="100%"
             strokeColor="none"
             fillColor="none"
-            pointer-events="none"
+            pointerEvents="none"
             rx={cornerRadius}
           />
           {(element.hasBody || hasIntentDescription) && (
