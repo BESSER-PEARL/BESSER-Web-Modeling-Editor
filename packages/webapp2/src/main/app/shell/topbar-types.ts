@@ -24,7 +24,7 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onOpenProjectPreview: () => void;
-  onGenerate: (type: GeneratorType) => void;
+  onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => void;
   onToggleTheme: () => void;
   onGitHubLogin: () => void;

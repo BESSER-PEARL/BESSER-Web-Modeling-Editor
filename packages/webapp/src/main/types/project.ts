@@ -1,6 +1,7 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 // Supported diagram types in projects
-export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'UserDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
+
+export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram' | 'NNDiagram' | 'UserDiagram';
 
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
@@ -49,6 +50,7 @@ export interface BesserProject {
     UserDiagram: ProjectDiagram;
     GUINoCodeDiagram: ProjectDiagram;
     QuantumCircuitDiagram: ProjectDiagram;
+    NNDiagram: ProjectDiagram;
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -68,6 +70,8 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'StateMachineDiagram';
     case UMLDiagramType.AgentDiagram:
       return 'AgentDiagram';
+    case UMLDiagramType.NNDiagram:
+      return 'NNDiagram';
     case UMLDiagramType.UserDiagram:
       return 'UserDiagram';
     default:
@@ -86,6 +90,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.StateMachineDiagram;
     case 'AgentDiagram':
       return UMLDiagramType.AgentDiagram;
+    case 'NNDiagram':
+      return UMLDiagramType.NNDiagram;
     case 'UserDiagram':
       return UMLDiagramType.UserDiagram;
     case 'GUINoCodeDiagram':
@@ -231,6 +237,7 @@ export const createDefaultProject = (
       ObjectDiagram: createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram),
       StateMachineDiagram: createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram),
       AgentDiagram: createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram),
+      NNDiagram: createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram),
       UserDiagram: createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram),
       GUINoCodeDiagram: createEmptyDiagram('GUI Diagram', null, 'gui'),
       QuantumCircuitDiagram: createEmptyDiagram('Quantum Circuit', null, 'quantum'),
@@ -259,6 +266,7 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
+    obj.diagrams.NNDiagram &&
     obj.diagrams.UserDiagram &&
     obj.diagrams.GUINoCodeDiagram;
 

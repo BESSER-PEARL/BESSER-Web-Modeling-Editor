@@ -15,5 +15,6 @@ export const UMLDiagramType = {
   BPMN: 'BPMN',
   StateMachineDiagram: 'StateMachineDiagram',
   AgentDiagram: 'AgentDiagram',
-  UserDiagram: 'UserDiagram'
+  UserDiagram: 'UserDiagram',
+  NNDiagram: 'NNDiagram',
 } as const;

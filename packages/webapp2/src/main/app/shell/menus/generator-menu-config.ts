@@ -4,6 +4,7 @@ export interface GeneratorMenuAction {
   kind: 'action';
   label: string;
   generator: GeneratorType;
+  config?: Record<string, any>;
 }
 
 export interface GeneratorMenuGroup {
@@ -82,6 +83,25 @@ const QUANTUM_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'action', label: 'Qiskit Code', generator: 'qiskit' },
 ];
 
+const NN_GENERATORS: GeneratorMenuEntry[] = [
+  {
+    kind: 'group',
+    label: 'PyTorch',
+    actions: [
+      { kind: 'action', label: 'Subclassing', generator: 'pytorch', config: { generation_type: 'subclassing' } },
+      { kind: 'action', label: 'Sequential', generator: 'pytorch', config: { generation_type: 'sequential' } },
+    ],
+  },
+  {
+    kind: 'group',
+    label: 'TensorFlow',
+    actions: [
+      { kind: 'action', label: 'Subclassing', generator: 'tensorflow', config: { generation_type: 'subclassing' } },
+      { kind: 'action', label: 'Sequential', generator: 'tensorflow', config: { generation_type: 'sequential' } },
+    ],
+  },
+];
+
 const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [{ kind: 'notice', label: 'Not yet available for this diagram' }];
 
 export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry[]> = {
@@ -91,5 +111,6 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   agent: AGENT_GENERATORS,
   gui: GUI_GENERATORS,
   quantum: QUANTUM_GENERATORS,
+  nn: NN_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };

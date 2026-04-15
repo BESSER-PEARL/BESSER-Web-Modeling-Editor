@@ -83,7 +83,7 @@ interface WorkspaceShellProps {
   onOpenProjectHub: () => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
-  onGenerate: (type: GeneratorType) => void;
+  onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => void;
   showQualityCheck?: boolean;
   generatorMode: GeneratorMenuMode;

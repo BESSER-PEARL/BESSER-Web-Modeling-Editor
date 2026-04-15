@@ -1,0 +1,34 @@
+import { NNElementType, NNRelationshipType } from '..';
+import { UMLElementType } from '../../uml-element-type';
+import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { DeepPartial } from 'redux';
+import { NNBaseLayer } from '../nn-base-layer';
+
+export class Conv1DLayer extends NNBaseLayer {
+  type: UMLElementType = NNElementType.Conv1DLayer;
+  name: string = 'Conv1DLayer';
+
+  constructor(values?: DeepPartial<Conv1DLayer>) {
+    super(values);
+
+    // Ensure bounds is an object even if not provided in 'values'
+    if (!values?.bounds) {
+      this.bounds = { x: 0, y: 0, width: 0, height: 0 };
+    }
+    if (!values?.name) {
+      this.name = 'Conv1D Layer';
+    }
+    if (values?.ownedElements) {
+      this.ownedElements = values.ownedElements.filter((id): id is string => id !== undefined);
+    }
+  }
+
+  static supportedRelationships = [
+    NNRelationshipType.NNNext,
+  ];
+
+  reorderChildren(children: IUMLElement[]): string[] {
+    // Preserve all children as-is, no reordering
+    return children.filter(child => child && child.id).map(child => child.id);
+  }
+}

@@ -52,7 +52,6 @@ import { FlowchartInputOutputComponent } from './flowchart/flowchart-input-outpu
 import { ColorLegendComponent } from './common/color-legend/color-legend-component';
 import { CommentsComponent } from './common/comments/comments-component';
 
-
 import { BPMNFlowComponent } from './bpmn/bpmn-flow/bpmn-flow-component';
 import { BPMNTaskComponent } from './bpmn/bpmn-task/bpmn-task-component';
 import { BPMNSubprocessComponent } from './bpmn/bpmn-subprocess/bpmn-subprocess-component';
@@ -87,6 +86,17 @@ import { AgentStateComponent } from './agent-state-diagram/agent-state/agent-sta
 import { AgentStateMemberComponent } from './agent-state-diagram/agent-state/agent-state-member-component';
 import { AgentStateTransitionComponent } from './agent-state-diagram/agent-state-transition/agent-state-transition-component';
 import { AgentStateTransitionInitComponent } from './agent-state-diagram/agent-state-transition-init/agent-state-transition-init-component';
+
+import { NNElementType } from './nn-diagram';
+import { NNRelationshipType } from './nn-diagram';
+import { NNAssociationComponent } from './nn-diagram/nn-association/nn-association-component';
+import { NNCompositionComponent } from './nn-diagram/nn-composition/nn-composition-component';
+import { NNSectionTitleComponent } from './nn-diagram/nn-section-title-component';
+import { NNSectionSeparatorComponent } from './nn-diagram/nn-section-separator-component';
+import { NNContainerComponent } from './nn-diagram/nn-container/nn-container-component';
+import { NNReferenceComponent } from './nn-diagram/nn-reference/nn-reference-component';
+import { NNComponentMemberComponent } from './nn-diagram/nn-component-member-component';
+import { NNLayerIconComponent } from './nn-diagram/nn-layer-icon/nn-layer-icon-component';
 
 export const Components: {
   [key in UMLElementType | UMLRelationshipType]:
@@ -205,4 +215,188 @@ export const Components: {
   [UMLElementType.AgentStateFallbackBody]: AgentStateMemberComponent,
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionComponent,
   [UMLRelationshipType.AgentStateTransitionInit]: AgentStateTransitionInitComponent,
+
+  [NNElementType.Conv1DLayer]: NNLayerIconComponent,
+  // Conv1D Attributes
+  [NNElementType.NameAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.KernelDimAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.OutChannelsAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.StrideDimAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.InChannelsAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.PaddingAmountAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.PaddingTypeAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributeConv1D]: NNComponentMemberComponent,
+
+  [NNElementType.Conv2DLayer]: NNLayerIconComponent,
+  // Conv2D Attributes
+  [NNElementType.NameAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.KernelDimAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.OutChannelsAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.StrideDimAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.InChannelsAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.PaddingAmountAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.PaddingTypeAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributeConv2D]: NNComponentMemberComponent,
+
+  [NNElementType.Conv3DLayer]: NNLayerIconComponent,
+  // Conv3D Attributes
+  [NNElementType.NameAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.KernelDimAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.OutChannelsAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.StrideDimAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.InChannelsAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.PaddingAmountAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.PaddingTypeAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributeConv3D]: NNComponentMemberComponent,
+
+  [NNElementType.PoolingLayer]: NNLayerIconComponent,
+  // Pooling Attributes
+  [NNElementType.NameAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.PoolingTypeAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.DimensionAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.KernelDimAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.StrideDimAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.PaddingAmountAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.PaddingTypeAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.OutputDimAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributePooling]: NNComponentMemberComponent,
+
+  [NNElementType.RNNLayer]: NNLayerIconComponent,
+  // RNN Attributes
+  [NNElementType.NameAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenSizeAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.ReturnTypeAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.InputSizeAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.BidirectionalAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.DropoutAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.BatchFirstAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeRNN]: NNComponentMemberComponent,
+
+  [NNElementType.LSTMLayer]: NNLayerIconComponent,
+  // LSTM Attributes
+  [NNElementType.NameAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenSizeAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.ReturnTypeAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.InputSizeAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.BidirectionalAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.DropoutAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.BatchFirstAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeLSTM]: NNComponentMemberComponent,
+
+  [NNElementType.GRULayer]: NNLayerIconComponent,
+  // GRU Attributes
+  [NNElementType.NameAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenSizeAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.ReturnTypeAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.InputSizeAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.BidirectionalAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.DropoutAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.BatchFirstAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeGRU]: NNComponentMemberComponent,
+
+  [NNElementType.LinearLayer]: NNLayerIconComponent,
+  // Linear Attributes
+  [NNElementType.NameAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.OutFeaturesAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.InFeaturesAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeLinear]: NNComponentMemberComponent,
+
+  [NNElementType.FlattenLayer]: NNLayerIconComponent,
+  // Flatten Attributes
+  [NNElementType.NameAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.StartDimAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.EndDimAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeFlatten]: NNComponentMemberComponent,
+
+  [NNElementType.EmbeddingLayer]: NNLayerIconComponent,
+  // Embedding Attributes
+  [NNElementType.NameAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.NumEmbeddingsAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.EmbeddingDimAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeEmbedding]: NNComponentMemberComponent,
+
+  [NNElementType.DropoutLayer]: NNLayerIconComponent,
+  // Dropout Attributes
+  [NNElementType.NameAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.RateAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeDropout]: NNComponentMemberComponent,
+
+  [NNElementType.LayerNormalizationLayer]: NNLayerIconComponent,
+  // LayerNormalization Attributes
+  [NNElementType.NameAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.NormalizedShapeAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeLayerNormalization]: NNComponentMemberComponent,
+
+  [NNElementType.BatchNormalizationLayer]: NNLayerIconComponent,
+  // BatchNormalization Attributes
+  [NNElementType.NameAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.NumFeaturesAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.DimensionAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.ActvFuncAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.NameModuleInputAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeBatchNormalization]: NNComponentMemberComponent,
+
+  [NNElementType.TensorOp]: NNLayerIconComponent,
+  // TensorOp Attributes
+  [NNElementType.NameAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.TnsTypeAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ConcatenateDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.LayersOfTensorsAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ReshapeDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.TransposeDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PermuteDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InputReusedAttributeTensorOp]: NNComponentMemberComponent,
+
+  [NNElementType.Configuration]: NNLayerIconComponent,
+  // Configuration Attributes
+  [NNElementType.BatchSizeAttributeConfiguration]: NNComponentMemberComponent,
+  [NNElementType.EpochsAttributeConfiguration]: NNComponentMemberComponent,
+  [NNElementType.LearningRateAttributeConfiguration]: NNComponentMemberComponent,
+  [NNElementType.OptimizerAttributeConfiguration]: NNComponentMemberComponent,
+  [NNElementType.LossFunctionAttributeConfiguration]: NNComponentMemberComponent,
+  [NNElementType.MetricsAttributeConfiguration]: NNComponentMemberComponent,
+  [NNElementType.WeightDecayAttributeConfiguration]: NNComponentMemberComponent,
+  [NNElementType.MomentumAttributeConfiguration]: NNComponentMemberComponent,
+
+  // Section elements for sidebar organization
+  [NNElementType.NNSectionTitle]: NNSectionTitleComponent as any,
+  [NNElementType.NNSectionSeparator]: NNSectionSeparatorComponent as any,
+
+  // Container and Reference elements
+  [NNElementType.NNContainer]: NNContainerComponent,
+  [NNElementType.NNReference]: NNReferenceComponent,
+
+  [UMLRelationshipType.NNNext]: NNAssociationComponent,
+  [UMLRelationshipType.NNComposition]: NNCompositionComponent,
 };

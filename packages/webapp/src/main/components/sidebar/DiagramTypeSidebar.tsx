@@ -9,6 +9,7 @@ import {
   ArrowRepeat,
   House,
   Cpu,
+  ShareFill,
   Person
 } from 'react-bootstrap-icons';
 import { UMLDiagramType } from '@besser/wme';
@@ -170,6 +171,7 @@ const sidebarItems: SidebarItem[] = [
   { type: UMLDiagramType.ObjectDiagram, label: 'Object Diagram', icon: <Diagram2 size={20} /> },
   { type: UMLDiagramType.StateMachineDiagram, label: 'State Machine', icon: <ArrowRepeat size={20} /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent Diagram', icon: <Robot size={20} /> },
+  { type: UMLDiagramType.NNDiagram, label: 'NN Diagram', icon: <ShareFill size={20} /> },
   // uncomment when User Diagram is completed
   //{ type: UMLDiagramType.UserDiagram, label: 'User Diagram', icon: <Person size={20} /> },
   { type: 'graphical-ui-editor', label: 'Graphical UI', icon: <PencilSquare size={20} />, path: '/graphical-ui-editor' },
@@ -249,6 +251,10 @@ export const DiagramTypeSidebar: React.FC = () => {
     // Handle items with explicit paths
     if (item.path) {
       return location.pathname === item.path;
+    }
+
+    if (item.type === UMLDiagramType.NNDiagram) {
+      return location.pathname === '/' && toUMLDiagramType(currentDiagramType) === UMLDiagramType.NNDiagram;
     }
 
     // For Agent Diagram, only active if on main editor AND agent diagram type

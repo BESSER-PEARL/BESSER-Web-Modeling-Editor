@@ -370,8 +370,10 @@ class ClassifierUpdate extends Component<Props, State> {
       bounds: element.bounds,
       ownedElements: element.ownedElements,
     });
-    const { id: _ignoredId, ...values } = instance.serialize();
-    update(element.id, values as Partial<UMLElement>);
+    // Cast needed: Redux stores plain objects, not class instances
+    update(element.id, instance as any);
+    // const { id: _ignoredId, ...values } = instance.serialize();
+    // update(element.id, values as Partial<UMLElement>);
   };
 
   private delete = (id: string) => () => {
