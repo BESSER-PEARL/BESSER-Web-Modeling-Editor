@@ -37,7 +37,7 @@ export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentA
 export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
 
 // feature flags
-export const SHOW_FULL_AGENT_CONFIGURATION = false;
+export const SHOW_FULL_AGENT_CONFIGURATION = true;
 export const DEFAULT_AGENT_CONFIGURATION_NAME = 'Default Agent Configuration';
 
 // Project constants
