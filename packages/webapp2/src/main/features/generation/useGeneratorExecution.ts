@@ -873,8 +873,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
     if (selectedAgentLanguages.length > 0) {
       baseConfig = { languages: { source: sourceLanguage, target: selectedAgentLanguages } };
-    } else {
-      // Read agent config from the project diagram (single source of truth)
+    } else if (hasSavedAgentConfiguration) {
+      // Only reuse persisted agent configuration when configurations exist.
+      // This avoids sending diagram metadata (e.g., variant snapshots) as config payload.
       const activeAgentDiagramForConfig = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
       const diagramConfig = activeAgentDiagramForConfig?.config;
       if (diagramConfig && Object.keys(diagramConfig).length > 0) {
@@ -1057,7 +1058,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }
     }
 
-    await executeGenerator('agent', finalConfig);
+    const shouldSendConfig = Object.keys(finalConfig).length > 0;
+    await executeGenerator('agent', shouldSendConfig ? finalConfig : undefined);
     setConfigDialog('none');
   }, [
     currentProject,
@@ -1067,6 +1069,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     selectedAgentVariantId,
     agentVariantOptions,
     agentGenerationMode,
+    hasSavedAgentConfiguration,
   ]);
 
   const handleQiskitGenerate = useCallback(async () => {
