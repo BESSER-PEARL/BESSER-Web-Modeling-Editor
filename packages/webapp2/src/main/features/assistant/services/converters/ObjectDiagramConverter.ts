@@ -29,16 +29,21 @@ export class ObjectDiagramConverter implements DiagramConverter {
       objectName = `${spec.className.charAt(0).toLowerCase()}${spec.className.slice(1)}1`;
     }
 
+    // When classId is set, the ObjectName component (uml-object-name-component.tsx)
+    // automatically appends " : ClassName" from diagramBridge.getClassById(), so
+    // `.name` must hold ONLY the instance name. Embedding the suffix here would
+    // double-render as "author2: Author : Author". Fall back to the explicit
+    // suffix when there's no classId so the label is still meaningful.
     const objectElement: any = {
       type: "ObjectName",
       id: objectId,
-      name: `${objectName}: ${spec.className}`,
+      name: spec.classId ? objectName : `${objectName}: ${spec.className}`,
       owner: null,
       bounds: { x: pos.x, y: pos.y, width: 240, height: totalHeight },
       attributes: [] as string[],
       methods: []
     };
-    
+
     // Add classId reference if provided
     if (spec.classId) {
       objectElement.classId = spec.classId;

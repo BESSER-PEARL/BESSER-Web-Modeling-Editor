@@ -49,9 +49,10 @@ export interface ModificationChanges {
   target?: string;
   label?: string;
   value?: string;
-  // add_class fields
+  // add_class / add_object fields
   className?: string;
-  attributes?: Array<{ name: string; type?: string; visibility?: string; value?: string }>;
+  classId?: string;
+  attributes?: Array<{ name: string; type?: string; visibility?: string; value?: string; attributeId?: string }>;
   methods?: Array<{ name: string; returnType?: string; visibility?: string; parameters?: Array<{ name: string; type: string }> }>;
   // add_state fields
   stateType?: string;

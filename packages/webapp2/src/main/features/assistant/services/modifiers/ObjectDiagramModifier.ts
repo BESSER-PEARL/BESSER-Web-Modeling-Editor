@@ -77,16 +77,27 @@ export class ObjectDiagramModifier implements DiagramModifier {
     const attrHeight = attrs.length * 30;
     const totalHeight = baseHeight + attrHeight;
 
-    // Create ObjectName element
+    // Create ObjectName element. Propagate classId from the agent so the
+    // update panel can link this object to its class definition (otherwise
+    // the "class:" dropdown in the object popup shows nothing).
+    //
+    // When classId is set, store ONLY the instance name in `.name`; the
+    // component at uml-object-name-component.tsx appends " : ClassName"
+    // automatically via diagramBridge.getClassById(). Embedding the suffix
+    // here would double-render as "author2: Author : Author".
+    const displayName = changes.classId ? objectName : `${objectName}: ${className}`;
     const objectElement: any = {
       type: 'ObjectName',
       id: objectId,
-      name: `${objectName}: ${className}`,
+      name: displayName,
       owner: null,
       bounds: { x: pos.x, y: pos.y, width: 240, height: totalHeight },
       attributes: [] as string[],
       methods: []
     };
+    if (changes.classId) {
+      objectElement.classId = changes.classId;
+    }
 
     // Create ObjectAttribute children
     let currentY = pos.y + 60;
@@ -94,7 +105,7 @@ export class ObjectDiagramModifier implements DiagramModifier {
       const attrId = ModifierHelpers.generateUniqueId('attr');
       objectElement.attributes.push(attrId);
 
-      model.elements[attrId] = {
+      const attributeElement: any = {
         id: attrId,
         name: `${attr.name} = ${attr.value || ''}`,
         type: 'ObjectAttribute',
@@ -102,6 +113,12 @@ export class ObjectDiagramModifier implements DiagramModifier {
         bounds: { x: pos.x + 1, y: currentY, width: 238, height: 30 },
         attributeType: attr.type || 'str'
       };
+      // Library attribute id — the update panel uses this to tie the
+      // object attribute back to its class-diagram definition.
+      if (attr.attributeId) {
+        attributeElement.attributeId = attr.attributeId;
+      }
+      model.elements[attrId] = attributeElement;
       currentY += 30;
     }
 
