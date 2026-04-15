@@ -14,6 +14,7 @@ import { BPMNPool } from './bpmn-pool/bpmn-pool';
 import { BPMNDataObject } from './bpmn-data-object/bpmn-data-object';
 import { BPMNGroup } from './bpmn-group/bpmn-group';
 import { BPMNDataStore } from './bpmn-data-store/bpmn-data-store';
+import { BPMNSwimlane } from './bpmn-swimlane/bpmn-swimlane';
 
 export const composeBPMNPreview: ComposePreview = (
   layer: ILayer,
@@ -102,6 +103,13 @@ export const composeBPMNPreview: ComposePreview = (
   elements.push(
     new BPMNPool({
       name: translate('packages.BPMN.BPMNPool'),
+      bounds: { x: 0, y: 0, width: 160, height: 80 },
+    }),
+  );
+
+  elements.push(
+    new BPMNSwimlane({
+      name: translate('packages.BPMN.BPMNSwimlane'),
       bounds: { x: 0, y: 0, width: 160, height: 80 },
     }),
   );
