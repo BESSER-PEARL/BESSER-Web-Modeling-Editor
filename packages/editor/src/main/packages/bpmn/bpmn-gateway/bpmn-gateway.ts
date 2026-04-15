@@ -1,4 +1,4 @@
-import { BPMNElementType } from '..';
+import { BPMNElementType, BPMNRelationshipType } from '..';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { UMLElementType } from '../../uml-element-type';
@@ -14,6 +14,7 @@ export type BPMNGatewayType = 'complex' | 'event-based' | 'exclusive' | 'inclusi
 export class BPMNGateway extends UMLContainer {
   static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false };
   static defaultGatewayType: BPMNGatewayType = 'exclusive';
+  static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
 
   type: UMLElementType = BPMNElementType.BPMNGateway;
   bounds: IBoundary = { ...this.bounds, width: 40, height: 40 };

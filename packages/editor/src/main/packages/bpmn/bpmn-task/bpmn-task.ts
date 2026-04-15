@@ -1,4 +1,4 @@
-import { BPMNElementType } from '..';
+import { BPMNElementType, BPMNRelationshipType } from '..';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { UMLElementType } from '../../uml-element-type';
@@ -13,6 +13,7 @@ export type BPMNTaskType = 'default' | 'user' | 'send' | 'receive' | 'manual' | 
 export class BPMNTask extends UMLContainer {
   static defaultTaskType: BPMNTaskType = 'default';
   static defaultMarker: BPMNMarkerType = 'none';
+  static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
 
   type: UMLElementType = BPMNElementType.BPMNTask;
   taskType: BPMNTaskType;
