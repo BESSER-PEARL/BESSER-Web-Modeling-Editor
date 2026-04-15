@@ -56,7 +56,7 @@ function migrateOldWebappProject(data: any): BesserProject {
   const migratedDiagrams: any = {};
   const allTypes: SupportedDiagramType[] = [
     'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
-    'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+    'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
   ];
 
   for (const diagramType of allTypes) {
@@ -79,11 +79,9 @@ function migrateOldWebappProject(data: any): BesserProject {
     }
   }
 
-  // Drop UserDiagram (not supported in webapp2) — just skip it silently
-
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
     ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-    AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+    AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
   };
 
   return {
@@ -112,6 +110,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
+    'UserDiagram',
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram'
   ];
@@ -121,6 +120,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: UMLDiagramType.ObjectDiagram,
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
+    UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
     QuantumCircuitDiagram: null,
   };
@@ -130,6 +130,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: 'Object Diagram',
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
+    UserDiagram: 'User Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
     QuantumCircuitDiagram: 'Quantum Circuit'
   };
@@ -347,7 +348,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
           const allTypes: SupportedDiagramType[] = [
             'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
-            'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+            'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
           ];
 
           const diagrams: any = {};
@@ -378,7 +379,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             currentDiagramType: supportedType,
             currentDiagramIndices: {
               ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-              AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+              AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
             },
             diagrams,
             settings: {

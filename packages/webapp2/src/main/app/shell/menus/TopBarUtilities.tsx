@@ -1,6 +1,8 @@
 import React from 'react';
 import { CheckCircle, ChevronDown, GitBranch, Github, LogOut, Moon, Star, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { QualityCheckResult, QualityCheckState } from '../../../features/generation/types';
+import type { AgentVariantOption } from '../topbar-types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +21,12 @@ interface TopBarUtilitiesProps {
   githubLoading: boolean;
   hasStarred: boolean;
   starLoading: boolean;
-  onQualityCheck: () => void;
+  qualityCheckState?: QualityCheckState;
+  showAgentVariantSelector?: boolean;
+  agentVariantOptions?: AgentVariantOption[];
+  activeAgentVariantId?: string;
+  onAgentVariantChange?: (variantId: string) => void;
+  onQualityCheck: () => Promise<QualityCheckResult>;
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;
@@ -36,6 +43,11 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   githubLoading,
   hasStarred,
   starLoading,
+  qualityCheckState,
+  showAgentVariantSelector,
+  agentVariantOptions,
+  activeAgentVariantId,
+  onAgentVariantChange,
   onQualityCheck,
   onToggleTheme,
   onGitHubLogin,
@@ -43,12 +55,62 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   onOpenGitHubSidebar,
   onToggleStar,
 }) => {
+  const qualityStateLabel = qualityCheckState === 'valid'
+    ? 'Validated'
+    : qualityCheckState === 'errors'
+      ? 'Issues'
+      : qualityCheckState === 'stale'
+        ? 'Needs recheck'
+        : qualityCheckState === 'not_validated'
+          ? 'Not validated'
+          : null;
+
+  const qualityStateDotClass = qualityCheckState === 'valid'
+    ? 'bg-emerald-500'
+    : qualityCheckState === 'errors'
+      ? 'bg-red-500'
+      : qualityCheckState === 'stale'
+        ? 'bg-amber-500'
+        : 'bg-slate-400';
+
   return (
     <>
+      {showAgentVariantSelector && (
+        <div className="hidden items-center gap-2 xl:flex">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Variant</span>
+          <select
+            className="h-9 min-w-[210px] rounded-md border border-input bg-background px-3 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+            value={activeAgentVariantId ?? ''}
+            onChange={(event) => onAgentVariantChange?.(event.target.value)}
+            aria-label="Select agent model variant"
+          >
+            <option value="">Base agent model</option>
+            {(agentVariantOptions ?? []).map((option) => (
+              <option key={option.id} value={option.id} title={option.description}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {showQualityCheck && (
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} onClick={onQualityCheck} title="Quality Check">
+        <Button
+          variant="outline"
+          className={`gap-2 ${outlineButtonClass}`}
+          onClick={() => {
+            void onQualityCheck();
+          }}
+          title={qualityStateLabel ? `Quality Check (${qualityStateLabel})` : 'Quality Check'}
+        >
           <CheckCircle className="size-4" />
           <span className="hidden xl:inline">Quality Check</span>
+          {qualityStateLabel && (
+            <span className="hidden items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium xl:inline-flex">
+              <span className={`size-1.5 rounded-full ${qualityStateDotClass}`} aria-hidden="true" />
+              <span>{qualityStateLabel}</span>
+            </span>
+          )}
         </Button>
       )}
 

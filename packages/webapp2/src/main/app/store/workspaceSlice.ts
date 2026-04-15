@@ -15,6 +15,7 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
+import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -160,6 +161,14 @@ export const switchDiagramTypeThunk = createAsyncThunk(
         } catch {
           /* bridge not available */
         }
+      }
+    } else if (diagramType === UMLDiagramType.UserDiagram) {
+      try {
+        const { diagramBridge } = await import('@besser/wme');
+        // User modeling depends on this metamodel being present in the bridge.
+        diagramBridge.setClassDiagramData(userMetaModel as unknown as UMLModel);
+      } catch {
+        /* bridge not available */
       }
     }
 

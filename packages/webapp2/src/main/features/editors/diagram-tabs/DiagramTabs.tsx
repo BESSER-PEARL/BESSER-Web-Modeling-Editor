@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import type { QualityCheckState } from '../../generation/types';
 import {
   addDiagramThunk,
   removeDiagramThunk,
@@ -19,6 +20,11 @@ import {
   selectActiveDiagramType,
   selectProject,
 } from '../../../app/store/workspaceSlice';
+
+interface DiagramTabsProps {
+  onRequestTabSwitch?: (index: number) => Promise<boolean> | boolean;
+  userModelValidationStatusById?: Record<string, QualityCheckState>;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Small inline tooltip used for info icons next to reference labels  */
@@ -97,7 +103,10 @@ const isDiagramEmpty = (diagram: ProjectDiagram | undefined): boolean => {
   return false;
 };
 
-export const DiagramTabs: React.FC = () => {
+export const DiagramTabs: React.FC<DiagramTabsProps> = ({
+  onRequestTabSwitch,
+  userModelValidationStatusById,
+}) => {
   const dispatch = useAppDispatch();
   const diagrams = useAppSelector(selectDiagramsForActiveType);
   const currentIndex = useAppSelector(selectActiveDiagramIndex);
@@ -178,12 +187,21 @@ export const DiagramTabs: React.FC = () => {
       : 'Select which Class Diagram provides the data model for this GUI';
 
   const handleSwitchTab = useCallback(
-    (index: number) => {
-      if (index !== safeIndex) {
-        dispatch(switchDiagramIndexThunk({ diagramType: currentDiagramType, index }));
+    async (index: number) => {
+      if (index === safeIndex) {
+        return;
       }
+
+      if (onRequestTabSwitch) {
+        const canSwitch = await onRequestTabSwitch(index);
+        if (!canSwitch) {
+          return;
+        }
+      }
+
+      dispatch(switchDiagramIndexThunk({ diagramType: currentDiagramType, index }));
     },
-    [dispatch, currentDiagramType, safeIndex],
+    [dispatch, currentDiagramType, safeIndex, onRequestTabSwitch],
   );
 
   const handleAddDiagram = useCallback(() => {
@@ -245,6 +263,17 @@ export const DiagramTabs: React.FC = () => {
           {diagrams.map((diagram: ProjectDiagram, index: number) => {
             const isActive = index === safeIndex;
             const isRenaming = renamingIndex === index;
+            const userValidationStatus = currentDiagramType === 'UserDiagram'
+              ? userModelValidationStatusById?.[diagram.id] ?? 'not_validated'
+              : undefined;
+
+            const validationBadge = userValidationStatus === 'valid'
+              ? { label: 'Validated', className: 'bg-emerald-500' }
+              : userValidationStatus === 'errors'
+                ? { label: 'Issues', className: 'bg-red-500' }
+                : userValidationStatus === 'stale'
+                  ? { label: 'Needs validation', className: 'bg-amber-500' }
+                  : { label: 'Not validated', className: 'bg-slate-400' };
 
             return (
               <div
@@ -258,7 +287,9 @@ export const DiagramTabs: React.FC = () => {
                     ? 'border-b-2 border-brand bg-card text-brand-dark shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_hsl(var(--brand)/0.1)]'
                     : 'text-muted-foreground hover:bg-brand/[0.04] hover:text-foreground',
                 ].join(' ')}
-                onClick={() => handleSwitchTab(index)}
+                onClick={() => {
+                  void handleSwitchTab(index);
+                }}
                 onDoubleClick={() => handleStartRename(index)}
               >
                 {isRenaming ? (
@@ -276,6 +307,13 @@ export const DiagramTabs: React.FC = () => {
                   <>
                     <FileText className={`size-3 shrink-0 ${isActive ? 'text-brand' : 'text-muted-foreground'}`} />
                     <span className="max-w-[140px] truncate">{diagram.title}</span>
+                    {currentDiagramType === 'UserDiagram' && (
+                      <span
+                        className={`size-2 rounded-full ${validationBadge.className}`}
+                        title={validationBadge.label}
+                        aria-label={`Validation status: ${validationBadge.label}`}
+                      />
+                    )}
                   </>
                 )}
 

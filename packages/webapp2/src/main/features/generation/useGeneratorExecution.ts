@@ -32,7 +32,7 @@ import {
   AgentConfig,
   QiskitConfig,
 } from './hooks/useGenerateCode';
-import type { GenerationResult } from './types';
+import type { GenerationResult, QualityCheckResult } from './types';
 import { useDeployLocally } from './hooks/useDeployLocally';
 import { GrapesJSProjectData, isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../shared/types/project';
 import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
@@ -85,6 +85,16 @@ function isGuiModelEmpty(guiModel: GrapesJSProjectData | undefined): boolean {
     const components = page?.component?.components;
     return !Array.isArray(components) || components.length === 0;
   });
+}
+
+function didValidationPass(result: any): boolean {
+  if (!result || !result.isValid) {
+    return false;
+  }
+
+  const hasErrors = Array.isArray(result.errors) && result.errors.length > 0;
+  const hasInvalidConstraints = Array.isArray(result.invalid_constraints) && result.invalid_constraints.length > 0;
+  return !hasErrors && !hasInvalidConstraints;
 }
 
 // ─── Model metrics for analytics ────────────────────────────────────────────
@@ -361,7 +371,7 @@ export interface UseGeneratorExecutionReturn {
   /** Passed to WorkspaceShell → onAssistantGenerate  and UMLAgentModeling */
   handleAssistantGenerate: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   /** Passed to WorkspaceShell → onQualityCheck */
-  handleQualityCheck: () => Promise<void>;
+  handleQualityCheck: () => Promise<QualityCheckResult>;
   /** Props bag to spread onto <GeneratorConfigDialogs /> */
   configState: GeneratorConfigState;
   /** Whether the app is running against localhost */
@@ -690,31 +700,33 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     [executeGenerator],
   );
 
-  const handleQualityCheck = useCallback(async () => {
+  const handleQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
     if (!currentProject) {
       toast.error('Create or load a project before validating.');
-      return;
+      return { executed: false, passed: false };
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
       toast.error('coming soon');
-      return;
+      return { executed: false, passed: false };
     }
 
     try {
       if (activeDiagram?.model && !isUMLModel(activeDiagram.model)) {
-        await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
-        return;
+        const result = await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
+        return { executed: true, passed: didValidationPass(result) };
       }
 
       if (editor) {
-        await validateDiagram(editor, activeDiagramTitle);
-        return;
+        const result = await validateDiagram(editor, activeDiagramTitle);
+        return { executed: true, passed: didValidationPass(result) };
       }
 
       toast.error('No diagram available to validate');
+      return { executed: false, passed: false };
     } catch (error) {
       toast.error(`Quality check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return { executed: true, passed: false };
     }
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle]);
 

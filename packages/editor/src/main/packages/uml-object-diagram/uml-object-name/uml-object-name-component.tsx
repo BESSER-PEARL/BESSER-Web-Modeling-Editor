@@ -33,12 +33,11 @@ export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, chil
   }
 };
 
-const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, className?: string) => {
+const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   const clipId = `clip-${element.id}`;
-  const displayText = `${element.name}${className ? ` : ${className}` : ''}`;
+  const displayText = displayLabel || element.name;
   // Left-align long text so the beginning is always visible
   const textFitsBox = displayText.length * 8 < element.bounds.width;
-// const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   return (
     <g>
       <defs>
@@ -68,7 +67,6 @@ const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillC
             textAnchor={textFitsBox ? 'middle' : 'start'}
           >
             {displayText}
-     <!--       {displayLabel} -->
           </Text>
         </svg>
         {children}
@@ -79,11 +77,10 @@ const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillC
   );
 };
 
-const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, className?: string) => {
+const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   const clipId = `clip-${element.id}`;
-  const displayText = `${element.name}${className ? ` : ${className}` : ''}`;
+  const displayText = displayLabel || element.name;
   const textFitsBox = displayText.length * 8 < element.bounds.width;
-//const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   return (
     <g>
       <defs>
@@ -137,23 +134,6 @@ const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fil
         {children}
       </g>
       <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointerEvents="none" />
-       <!--       {displayLabel}
-            </tspan>
-          </Text>
-        </svg>
-      ) : (
-        <svg height={40}>
-          <Text
-            fill={element.textColor}
-            fontStyle={element.italic ? 'italic' : undefined}
-            textDecoration="underline"
-          >
-            {displayLabel}
-          </Text>
-        </svg>
-      )}
-      {children}
-      <ThemedRect width="100%" height="100%" strokeColor={element.strokeColor} fillColor="none" pointer-events="none" /> -->
       {element.hasAttributes && (
         <ThemedPath d={`M 0 ${element.headerHeight} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
       )}

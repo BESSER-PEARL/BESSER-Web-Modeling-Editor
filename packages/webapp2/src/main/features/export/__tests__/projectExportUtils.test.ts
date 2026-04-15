@@ -227,7 +227,7 @@ describe('buildExportableProjectPayload', () => {
     const originalDiagramCount = Object.keys(project.diagrams).length;
     buildExportableProjectPayload(project);
 
-    // Original project should still have all 6 diagram types
+    // Original project should still have all supported diagram types
     expect(Object.keys(project.diagrams)).toHaveLength(originalDiagramCount);
     expect(project.name).toBe('Original');
   });
@@ -269,6 +269,7 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       ObjectDiagram: UMLDiagramType.ObjectDiagram,
       StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
       AgentDiagram: UMLDiagramType.AgentDiagram,
+      UserDiagram: UMLDiagramType.UserDiagram,
       GUINoCodeDiagram: null,
       QuantumCircuitDiagram: null,
     };
@@ -277,6 +278,7 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       ObjectDiagram: 'Object Diagram',
       StateMachineDiagram: 'State Machine Diagram',
       AgentDiagram: 'Agent Diagram',
+      UserDiagram: 'User Diagram',
       GUINoCodeDiagram: 'GUI Diagram',
       QuantumCircuitDiagram: 'Quantum Circuit',
     };
