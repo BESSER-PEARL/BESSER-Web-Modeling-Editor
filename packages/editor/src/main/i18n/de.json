@@ -148,7 +148,7 @@
       "BPMNSignalIntermediateCatchEvent": "Signal Intermediate Catch Event",
       "BPMNSignalIntermediateThrowEvent": "Signal Intermediate Throw Event",
       "BPMNEndEvent": "End-Ereignis",
-      "BPMNMessageEndEvent:": "Message End Event",
+      "BPMNMessageEndEvent": "Message End Event",
       "BPMNEscalationEndEvent": "Escalation End Event",
       "BPMNErrorEndEvent": "Error End Event",
       "BPMNCompensationEndEvent": "Compensation End Event",
