@@ -322,6 +322,52 @@ const updateActiveAgentDiagramConfig = (
   });
 };
 
+const resolveProfileNameFromVariant = (
+  configRecord: Record<string, unknown> | undefined,
+  availableProfiles: StoredUserProfile[],
+): string => {
+  if (!configRecord) {
+    return '';
+  }
+
+  const activeVariantId = typeof configRecord.activePersonalizedVariantId === 'string'
+    ? configRecord.activePersonalizedVariantId
+    : '';
+  if (!activeVariantId) {
+    return '';
+  }
+
+  const activeVariant = toVariantList(configRecord.personalizedVariants)
+    .find((entry) => entry.id === activeVariantId);
+  if (!activeVariant) {
+    return '';
+  }
+
+  return availableProfiles.some((profile) => profile.name === activeVariant.profileName)
+    ? activeVariant.profileName
+    : '';
+};
+
+const resolveProfileNameFromMapping = (
+  configurationId: string,
+  availableProfiles: StoredUserProfile[],
+): string => {
+  if (!configurationId) {
+    return '';
+  }
+
+  const mapping = LocalStorageRepository.getAgentProfileConfigurationMappings()
+    .find((entry) => entry.agentConfigurationId === configurationId);
+
+  if (!mapping) {
+    return '';
+  }
+
+  return availableProfiles.some((profile) => profile.name === mapping.userProfileName)
+    ? mapping.userProfileName
+    : '';
+};
+
 const buildApiUrl = (path: string): string => {
   const normalizedBaseRaw = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
   const normalizedBase = normalizedBaseRaw || '';
@@ -484,6 +530,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const applyConfiguration = useCallback((
     incomingConfig: AgentConfigurationPayload,
     source?: { id?: string | null; name?: string },
+    options?: { preferredUserProfileName?: string },
   ) => {
     const normalized = normalizeAgentConfiguration(incomingConfig);
     setAgentLanguage(normalized.agentLanguage);
@@ -516,7 +563,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     setAvatarData(normalized.avatar || null);
     setUseAbbreviations(normalized.useAbbreviations);
     setAdaptContentToUserProfile(normalized.adaptContentToUserProfile);
-    setSelectedUserProfileName(normalized.userProfileName || '');
+    setSelectedUserProfileName(normalized.userProfileName || options?.preferredUserProfileName || '');
     setIntentRecognitionTechnology(normalized.intentRecognitionTechnology);
 
     if (source) {
@@ -541,9 +588,15 @@ export const AgentConfigurationPanel: React.FC = () => {
 
     const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
     const diagramConfig = agentDiagram?.config as Partial<AgentConfigurationPayload> | undefined;
+    const diagramConfigRecord = (agentDiagram?.config ?? {}) as Record<string, unknown>;
 
     if (diagramConfig && Object.keys(diagramConfig).length > 0) {
-      applyConfiguration(normalizeAgentConfiguration(diagramConfig));
+      const preferredProfileName = resolveProfileNameFromVariant(diagramConfigRecord, tabUserProfiles)
+        || resolveProfileNameFromMapping(LocalStorageRepository.getActiveAgentConfigurationId() || '', tabUserProfiles);
+
+      applyConfiguration(normalizeAgentConfiguration(diagramConfig), undefined, {
+        preferredUserProfileName: preferredProfileName,
+      });
       return;
     }
 
@@ -565,7 +618,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     } catch {
       // Ignore broken legacy payloads
     }
-  }, [currentProject?.id, applyConfiguration]);
+  }, [currentProject?.id, applyConfiguration, tabUserProfiles]);
 
   const getConfigObject = useCallback((): AgentConfigurationPayload => {
     const resolvedModel = llmModel === 'other' ? customModel.trim() : llmModel;
@@ -700,7 +753,10 @@ export const AgentConfigurationPanel: React.FC = () => {
       return;
     }
 
-    applyConfiguration(stored.config, { id: stored.id, name: stored.name });
+    const preferredProfileName = resolveProfileNameFromMapping(stored.id, tabUserProfiles);
+    applyConfiguration(stored.config, { id: stored.id, name: stored.name }, {
+      preferredUserProfileName: preferredProfileName,
+    });
 
     if (currentProject) {
       updateActiveAgentDiagramConfig(currentProject, stored.config as unknown as Record<string, unknown>);
@@ -714,6 +770,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     currentProject,
     refreshSavedConfigurations,
     selectedConfigId,
+    tabUserProfiles,
   ]);
 
   const handleDeleteSavedConfiguration = useCallback((configId?: string) => {

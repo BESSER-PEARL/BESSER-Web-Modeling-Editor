@@ -290,6 +290,56 @@ export interface WebAppChecklistInfo {
   canGenerate: boolean;
 }
 
+interface AgentModelVariantSnapshot {
+  id: string;
+  profileName: string;
+  configurationId: string;
+  configurationName: string;
+  createdAt: string;
+  model: unknown;
+}
+
+export interface AgentGenerationVariantOption {
+  id: string;
+  label: string;
+  description: string;
+  configurationId: string;
+  model: Record<string, any>;
+}
+
+export type AgentGenerationMode = 'single' | 'personalization';
+
+const readAgentGenerationVariants = (diagram: ProjectDiagram | undefined): AgentGenerationVariantOption[] => {
+  const raw = (diagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .filter((entry): entry is AgentModelVariantSnapshot => {
+      if (!entry || typeof entry !== 'object') {
+        return false;
+      }
+      const variant = entry as Partial<AgentModelVariantSnapshot>;
+      return (
+        typeof variant.id === 'string' &&
+        typeof variant.profileName === 'string' &&
+        typeof variant.configurationId === 'string' &&
+        typeof variant.configurationName === 'string' &&
+        typeof variant.createdAt === 'string' &&
+        isUMLModel(variant.model) &&
+        variant.model.type === UMLDiagramType.AgentDiagram
+      );
+    })
+    .map((variant) => ({
+      id: variant.id,
+      label: `${variant.profileName} (${variant.configurationName})`,
+      description: `Created ${new Date(variant.createdAt).toLocaleString()}`,
+      configurationId: variant.configurationId,
+      model: variant.model as Record<string, any>,
+    }));
+};
+
 export interface GeneratorConfigState {
   // ── Dialog control ───────────────────────────────────────────────────────
   /** Which config dialog is currently visible ('none' when closed). */
@@ -328,6 +378,12 @@ export interface GeneratorConfigState {
   storedAgentMappings: any[];
   /** IDs of the currently selected stored configurations / mappings. */
   selectedStoredAgentConfigIds: string[];
+  /** Personalized variants available in the active Agent tab. */
+  agentVariantOptions: AgentGenerationVariantOption[];
+  /** Selected personalized variant to generate. Empty means base/original model. */
+  selectedAgentVariantId: string;
+  /** Generation strategy for agent variants. */
+  agentGenerationMode: AgentGenerationMode;
 
   // ── Qiskit ───────────────────────────────────────────────────────────────
   qiskitBackend: QiskitConfig['backend'];
@@ -347,6 +403,8 @@ export interface GeneratorConfigState {
   onQiskitShotsChange: (v: number) => void;
   onAgentModeChange: (v: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
+  onSelectedAgentVariantIdChange: (v: string) => void;
+  onAgentGenerationModeChange: (v: AgentGenerationMode) => void;
 
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
@@ -427,6 +485,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
   const [storedAgentMappings, setStoredAgentMappings] = useState<any[]>([]);
   const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
+  const [agentVariantOptions, setAgentVariantOptions] = useState<AgentGenerationVariantOption[]>([]);
+  const [selectedAgentVariantId, setSelectedAgentVariantId] = useState('');
+  const [agentGenerationMode, setAgentGenerationMode] = useState<AgentGenerationMode>('single');
 
   // ── Web App checklist (computed from current project) ─────────────────────
   const webAppChecklist = useMemo(
@@ -482,13 +543,28 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           setSelectedStoredAgentConfigIds([usableConfigs[0].id]);
         }
       }
+
+      const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+      const variants = readAgentGenerationVariants(activeAgentDiagram);
+      setAgentVariantOptions(variants);
+
+      const activeVariantId = (activeAgentDiagram?.config as Record<string, unknown> | undefined)?.activePersonalizedVariantId;
+      if (typeof activeVariantId === 'string' && variants.some((variant) => variant.id === activeVariantId)) {
+        setSelectedAgentVariantId(activeVariantId);
+      } else {
+        setSelectedAgentVariantId('');
+      }
+      setAgentGenerationMode('single');
     } catch (error) {
       console.error('Failed to load agent configurations:', error);
       setStoredAgentConfigurations([]);
       setStoredAgentMappings([]);
       setSelectedStoredAgentConfigIds([]);
+      setAgentVariantOptions([]);
+      setSelectedAgentVariantId('');
+      setAgentGenerationMode('single');
     }
-  }, [configDialog]);
+  }, [configDialog, currentProject]);
 
   // ── Core execution ─────────────────────────────────────────────────────────
 
@@ -808,7 +884,97 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
     let finalConfig: AgentConfig = baseConfig;
 
-    if (SHOW_FULL_AGENT_CONFIGURATION) {
+    const selectedVariant = agentGenerationMode === 'single' && selectedAgentVariantId
+      ? agentVariantOptions.find((variant) => variant.id === selectedAgentVariantId)
+      : null;
+
+    if (agentGenerationMode === 'personalization') {
+      const localProfiles = LocalStorageRepository.getUserProfiles();
+      const projectProfiles = (currentProject?.diagrams?.UserDiagram ?? [])
+        .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
+        .map((diagram) => ({ id: diagram.id, name: diagram.title, model: diagram.model as Record<string, any> }));
+
+      const profileByName = new Map<string, { id: string; name: string; model: Record<string, any> }>();
+      for (const profile of localProfiles) {
+        if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
+          profileByName.set(profile.name, { id: profile.id, name: profile.name, model: profile.model });
+        }
+      }
+      for (const profile of projectProfiles) {
+        profileByName.set(profile.name, profile);
+      }
+
+      const configs = LocalStorageRepository.getAgentConfigurations();
+      const configById = new Map(configs.map((entry) => [entry.id, entry]));
+      const variantByConfigurationId = new Map(agentVariantOptions.map((variant) => [variant.configurationId, variant]));
+
+      const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+      const personalizationMapping = mappings
+        .map((entry) => {
+          const profile = profileByName.get(entry.userProfileName) || null;
+          const config = configById.get(entry.agentConfigurationId) || null;
+          const variantModel = variantByConfigurationId.get(entry.agentConfigurationId)?.model;
+          const fallbackAgentModel = config?.personalizedAgentModel || config?.baseAgentModel || null;
+          const agentModel = variantModel || fallbackAgentModel;
+
+          if (!profile || !agentModel || !config) {
+            return null;
+          }
+
+          return {
+            name: profile.name,
+            configuration: structuredClone(config.config),
+            user_profile: structuredClone(profile.model),
+            agent_model: structuredClone(agentModel),
+          };
+        })
+        .filter((entry): entry is {
+          name: string;
+          configuration: Record<string, any>;
+          user_profile: Record<string, any>;
+          agent_model: Record<string, any>;
+        } => Boolean(entry));
+
+      if (personalizationMapping.length === 0) {
+        toast.error('No valid personalization mappings found. Create mappings and save personalized variants first.');
+        return;
+      }
+
+      finalConfig = {
+        ...baseConfig,
+        personalizationMapping,
+      };
+    }
+
+    if (selectedVariant) {
+      const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+      const activeAgentModel = activeAgentDiagram?.model;
+      const baseModelFromStorage = activeAgentDiagram?.id
+        ? LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id)
+        : null;
+      const baseModel =
+        baseModelFromStorage ||
+        (isUMLModel(activeAgentModel) && activeAgentModel.type === UMLDiagramType.AgentDiagram
+          ? activeAgentModel
+          : null);
+      const variantConfig = LocalStorageRepository
+        .getAgentConfigurations()
+        .find((entry) => entry.id === selectedVariant.configurationId)?.config;
+
+      finalConfig = {
+        ...baseConfig,
+        ...(baseModel ? { baseModel: structuredClone(baseModel) } : {}),
+        variations: [
+          {
+            name: selectedVariant.label,
+            model: structuredClone(selectedVariant.model),
+            config: structuredClone(variantConfig || {}),
+          },
+        ],
+      };
+    }
+
+    if (SHOW_FULL_AGENT_CONFIGURATION && !selectedVariant && agentGenerationMode === 'single') {
       const storedAgentConfigurations = LocalStorageRepository.getAgentConfigurations().filter((entry) =>
         Boolean(entry.personalizedAgentModel || entry.baseAgentModel || entry.originalAgentModel)
       );
@@ -893,7 +1059,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
     await executeGenerator('agent', finalConfig);
     setConfigDialog('none');
-  }, [currentProject, selectedAgentLanguages, sourceLanguage, executeGenerator]);
+  }, [
+    currentProject,
+    selectedAgentLanguages,
+    sourceLanguage,
+    executeGenerator,
+    selectedAgentVariantId,
+    agentVariantOptions,
+    agentGenerationMode,
+  ]);
 
   const handleQiskitGenerate = useCallback(async () => {
     await executeGenerator('qiskit', {
@@ -935,6 +1109,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     storedAgentConfigurations,
     storedAgentMappings,
     selectedStoredAgentConfigIds,
+    agentVariantOptions,
+    selectedAgentVariantId,
+    agentGenerationMode,
     webAppChecklist,
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
@@ -949,6 +1126,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onQiskitShotsChange: setQiskitShots,
     onAgentModeChange: setAgentMode,
     onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
+    onSelectedAgentVariantIdChange: setSelectedAgentVariantId,
+    onAgentGenerationModeChange: setAgentGenerationMode,
     onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError('Django generation')); },
     onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError('Django deployment')); },
     onSqlGenerate: () => { handleSqlGenerate().catch(notifyError('SQL generation')); },

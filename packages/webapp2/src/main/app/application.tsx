@@ -189,6 +189,9 @@ function AppContentInner() {
         storedAgentConfigurations={configState.storedAgentConfigurations}
         storedAgentMappings={configState.storedAgentMappings}
         selectedStoredAgentConfigIds={configState.selectedStoredAgentConfigIds}
+        agentVariantOptions={configState.agentVariantOptions}
+        selectedAgentVariantId={configState.selectedAgentVariantId}
+        agentGenerationMode={configState.agentGenerationMode}
         // ── Qiskit config ────────────────────────────────────────────
         qiskitBackend={configState.qiskitBackend}
         qiskitShots={configState.qiskitShots}
@@ -208,6 +211,8 @@ function AppContentInner() {
         onQiskitShotsChange={configState.onQiskitShotsChange}
         onAgentModeChange={configState.onAgentModeChange}
         onStoredAgentConfigToggle={configState.onStoredAgentConfigToggle}
+        onSelectedAgentVariantIdChange={configState.onSelectedAgentVariantIdChange}
+        onAgentGenerationModeChange={configState.onAgentGenerationModeChange}
         // ── Execution callbacks (validate → generate → close dialog) ─
         onDjangoGenerate={configState.onDjangoGenerate}
         onDjangoDeploy={configState.onDjangoDeploy}

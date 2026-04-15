@@ -4,7 +4,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Menu, X } from 'lucide-react';
 import { useProject } from '../hooks/useProject';
-import { getActiveDiagram, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
+import { getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } from '../store/workspaceSlice';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';

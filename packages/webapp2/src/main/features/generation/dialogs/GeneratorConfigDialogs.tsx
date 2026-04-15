@@ -17,7 +17,7 @@ import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from
 import type { ConfigDialog } from '../generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../shared/constants/constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../shared/services/storage/local-storage-types';
-import type { WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
+import type { AgentGenerationMode, AgentGenerationVariantOption, WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
 import { validateProjectName, validateNumberRange } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
 
@@ -73,6 +73,12 @@ interface GeneratorConfigDialogsProps {
   storedAgentMappings: Array<StoredAgentProfileConfigurationMapping & { userProfileLabel: string; agentConfigurationLabel: string }>;
   /** IDs of the currently selected stored configurations / mappings. */
   selectedStoredAgentConfigIds: string[];
+  /** Personalized variants available in the active Agent tab. */
+  agentVariantOptions: AgentGenerationVariantOption[];
+  /** Selected personalized variant to generate. Empty means base/original model. */
+  selectedAgentVariantId: string;
+  /** Generation strategy for variants: one selected variant or personalization-all. */
+  agentGenerationMode: AgentGenerationMode;
 
   // ── Qiskit ───────────────────────────────────────────────────────────────
   qiskitBackend: QiskitConfig['backend'];
@@ -92,6 +98,8 @@ interface GeneratorConfigDialogsProps {
   onQiskitShotsChange: (value: number) => void;
   onAgentModeChange: (value: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
+  onSelectedAgentVariantIdChange: (value: string) => void;
+  onAgentGenerationModeChange: (value: AgentGenerationMode) => void;
 
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
@@ -133,6 +141,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   storedAgentConfigurations,
   storedAgentMappings,
   selectedStoredAgentConfigIds,
+  agentVariantOptions,
+  selectedAgentVariantId,
+  agentGenerationMode,
   onDjangoProjectNameChange,
   onDjangoAppNameChange,
   onUseDockerChange,
@@ -146,6 +157,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onQiskitShotsChange,
   onAgentModeChange,
   onStoredAgentConfigToggle,
+  onSelectedAgentVariantIdChange,
+  onAgentGenerationModeChange,
   webAppChecklist,
   onDjangoGenerate,
   onDjangoDeploy,
@@ -401,6 +414,70 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                 <span>Adding more languages will increase the generation time.</span>
               </div>
             </div>
+
+            {agentVariantOptions.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Personalization Strategy</Label>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="variant-mode-single"
+                      name="agentVariantMode"
+                      checked={agentGenerationMode === 'single'}
+                      onChange={() => onAgentGenerationModeChange('single')}
+                      className="size-4"
+                    />
+                    <Label htmlFor="variant-mode-single" className="text-sm font-normal">Single variant</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="variant-mode-personalization"
+                      name="agentVariantMode"
+                      checked={agentGenerationMode === 'personalization'}
+                      onChange={() => onAgentGenerationModeChange('personalization')}
+                      className="size-4"
+                    />
+                    <Label htmlFor="variant-mode-personalization" className="text-sm font-normal">Personalization (all)</Label>
+                  </div>
+                </div>
+
+                {agentGenerationMode === 'single' ? (
+                  <>
+                    <Label>Generate from model</Label>
+                    <Select
+                      value={selectedAgentVariantId || 'base'}
+                      onValueChange={(value) => onSelectedAgentVariantIdChange(value === 'base' ? '' : value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select generation target" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="base">Original Agent Model</SelectItem>
+                        {agentVariantOptions.map((variant) => (
+                          <SelectItem key={variant.id} value={variant.id}>
+                            {variant.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedAgentVariantId && (
+                      <p className="text-xs text-muted-foreground">
+                        {agentVariantOptions.find((variant) => variant.id === selectedAgentVariantId)?.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Generates one personalized BESSER Agent from the selected variant.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Sends all available profile-to-configuration personalization mappings to the backend.
+                  </p>
+                )}
+              </div>
+            )}
 
             {SHOW_FULL_AGENT_CONFIGURATION && (
               <div className="flex flex-col gap-1.5">
