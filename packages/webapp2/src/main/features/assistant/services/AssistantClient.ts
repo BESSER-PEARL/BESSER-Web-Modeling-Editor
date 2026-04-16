@@ -80,6 +80,7 @@ const KNOWN_ACTIONS = new Set([
   'switch_diagram',
   'create_diagram_tab',
   'trigger_generator',
+  'trigger_smart_generator',
   'trigger_export',
   'trigger_deploy',
   'auto_generate_gui',

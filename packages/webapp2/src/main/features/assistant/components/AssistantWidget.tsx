@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Check, CircleHelp, Code, Loader2, X } from 'lucide-react';
+import { AlertTriangle, Check, CircleHelp, Code, Loader2, Settings, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
+import { openByokDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
@@ -212,6 +213,17 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
               </div>
             </div>
             <div className="flex items-center gap-2.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                onClick={() => dispatch(openByokDialog(null))}
+                title="Smart Generator settings — change API key, provider, or model"
+                aria-label="Smart Generator settings"
+              >
+                <Settings className="size-3.5" />
+              </Button>
               <Button
                 type="button"
                 variant="ghost"

@@ -92,6 +92,15 @@ class KeyboardEventListenerComponent extends Component<Props> {
       return;
     }
 
+    // Let the browser handle Ctrl/Cmd+C when the user has a real text selection
+    // (e.g. chat messages, tooltips, SVG labels that aren't editable inputs).
+    if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
+      const selection = window.getSelection();
+      if (selection && selection.toString().length > 0) {
+        return;
+      }
+    }
+
     switch (event.key) {
       case 'ArrowUp':
         event.preventDefault();

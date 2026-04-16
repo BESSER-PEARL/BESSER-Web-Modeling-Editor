@@ -591,7 +591,21 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
         </Suspense>
 
-        {/* TODO: re-enable assistant drawer after release
+        {/*
+          Bottom-sheet assistant drawer. Renders a 28-px drag handle at
+          the bottom of the viewport in its closed state; the user drags
+          up to expand into the full-page assistant surface. When the
+          drawer is open, ``AssistantWidget`` (the floating FAB) hides
+          itself automatically via the ``besser:assistant-drawer``
+          custom event so only one assistant surface is visible at a
+          time.
+
+          The drawer internally calls ``useAssistantLogic`` (the same
+          hook the FAB uses), so the ``trigger_smart_generator`` action
+          from the modeling agent is handled there too — a smart-gen
+          run started from the drawer streams its events into the same
+          chat as the modeling-agent conversation.
+        */}
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
@@ -603,7 +617,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onSwitchDiagram={handleAssistantSwitchDiagram}
           />
         </Suspense>
-        */}
       </div>
 
       <AssistantImportDialog

@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles } from 'lucide-react';
+import { ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -17,6 +17,8 @@ import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
 import { QuickActions } from './QuickActions';
+import { useAppDispatch } from '../../../app/store/hooks';
+import { openByokDialog } from '../../smart-generation/state/smartGeneratorSlice';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -127,6 +129,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   onTriggerGenerator,
   onSwitchDiagram,
 }) => {
+  /* ---- Redux ---- */
+
+  const dispatch = useAppDispatch();
+
   /* ---- Drag gesture state ---- */
 
   const drawerRef = useRef<HTMLDivElement | null>(null);
@@ -656,6 +662,16 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
+                        onClick={() => dispatch(openByokDialog(null))}
+                        title="Smart Generator settings — change API key, provider, or model"
+                      >
+                        <Settings className="size-3.5" />
+                        Settings
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

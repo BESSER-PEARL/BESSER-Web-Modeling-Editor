@@ -61,6 +61,21 @@ export const localStorageProjectPrefix = localStoragePrefix + 'project_';
 export const localStorageLatestProject = localStoragePrefix + 'latest_project';
 export const localStorageProjectsList = localStoragePrefix + 'projects';
 
+// Smart Generator — BYOK session-storage keys.
+// The raw API key is stored ONLY in sessionStorage (tab-lifetime, cleared on
+// tab close). It is never written to localStorage or Redux state.
+export const sessionStorageSmartGenApiKey = localStoragePrefix + 'smart_gen_api_key';
+export const sessionStorageSmartGenProvider = localStoragePrefix + 'smart_gen_provider';
+// Optional model override alongside the key. Empty / missing means "use
+// the backend default for this provider" (gpt-4o for openai,
+// claude-sonnet-4-6 for anthropic).
+export const sessionStorageSmartGenLlmModel = localStoragePrefix + 'smart_gen_llm_model';
+
+// Smart Generator backend endpoints (derived from BACKEND_URL).
+export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/smart-generate`;
+export const smartGenDownloadUrl = (runId: string): string =>
+  `${BACKEND_URL}/download-smart/${runId}`;
+
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';
 

@@ -60,6 +60,9 @@ const GeneratorConfigDialogs = React.lazy(() =>
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
+const SmartGenByokDialog = React.lazy(() =>
+  import('../features/smart-generation/components/SmartGenByokDialog').then((m) => ({ default: m.SmartGenByokDialog })),
+);
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -236,6 +239,9 @@ function AppContentInner() {
       <ErrorPanel />
       <Suspense fallback={null}>
         <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
+      </Suspense>
+      <Suspense fallback={null}>
+        <SmartGenByokDialog />
       </Suspense>
       <GeneratingOverlay visible={isGenerating} />
       <ToastContainer />

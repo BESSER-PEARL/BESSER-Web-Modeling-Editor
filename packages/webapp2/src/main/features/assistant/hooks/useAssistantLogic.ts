@@ -39,6 +39,8 @@ import type { GenerationResult } from '../../generation/types';
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
+import { useSmartGenTrigger } from '../../smart-generation/hooks/useSmartGenTrigger';
+import type { TriggerSmartGeneratorPayload } from '../../smart-generation/types';
 
 /* ------------------------------------------------------------------ */
 /*  Types  (re-exported so consumers keep importing from here)         */
@@ -296,6 +298,17 @@ export function useAssistantLogic({
     setProgressMessage: streaming.setProgressMessage,
   });
 
+  /* ---- Smart Generator trigger handler ---- */
+
+  // Pass stable React state setters directly — wrapping them in an
+  // arrow function creates a new identity on every render, thrashing
+  // the downstream useCallback deps in `useSmartGenTrigger`.
+  const smartGen = useSmartGenTrigger({
+    currentProjectRef,
+    setMessages,
+    setIsGenerating: streaming.setIsGenerating,
+  });
+
   /* ---- workspace context builder ---- */
 
   function buildWorkspaceContext() {
@@ -463,6 +476,48 @@ export function useAssistantLogic({
               ? 'Generation completed successfully.'
               : result.error,
         metadata: result.ok && result.filename ? { filename: result.filename } : undefined,
+      });
+      return;
+    }
+
+    if (payload.action === 'trigger_smart_generator') {
+      // Emitted by the modeling agent when the user's request is a
+      // complex custom build ("full-stack FastAPI + JWT + Postgres").
+      // The smart generator runs server-side with the user's BYOK key
+      // and streams its progress back into this chat.
+      const smartPayload: TriggerSmartGeneratorPayload = {
+        action: 'trigger_smart_generator',
+        instructions:
+          typeof payload.instructions === 'string' ? payload.instructions : '',
+        provider:
+          payload.provider === 'anthropic' || payload.provider === 'openai'
+            ? payload.provider
+            : undefined,
+        llmModel: typeof payload.llmModel === 'string' ? payload.llmModel : undefined,
+        message: typeof payload.message === 'string' ? payload.message : undefined,
+      };
+      if (!smartPayload.instructions) {
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            'Smart Generator: missing instructions from the modeling agent.',
+            { isError: true },
+          ),
+        ]);
+        return;
+      }
+      // Fire-and-forget: a smart-gen run can take 5-15 minutes, and the
+      // action queue serialises handleAction calls. Awaiting here would
+      // block every other incoming WebSocket action (modeling agent
+      // stream chunks, injections, progress markers) for the duration.
+      // The hook manages its own streaming lifecycle independently.
+      // Explicit .catch so an unhandled rejection can't poison the
+      // React root — the hook already handles user-facing errors
+      // internally, but a thrown Redux / dispatch error would otherwise
+      // surface as an unhandled promise rejection.
+      smartGen.handleTrigger(smartPayload).catch((err) => {
+        console.error('[useAssistantLogic] smartGen.handleTrigger rejected', err);
       });
       return;
     }
@@ -780,9 +835,19 @@ export function useAssistantLogic({
     }
   };
 
-  const stopGenerating = () => streaming.setIsGenerating(false);
+  const stopGenerating = () => {
+    // Also abort any in-flight Smart Generator run so the SSE stream
+    // disconnects and the user stops paying for LLM tokens.
+    smartGen.abortActive();
+    streaming.setIsGenerating(false);
+  };
 
   const clearConversation = () => {
+    // Abort any in-flight Smart Generator run first — otherwise the
+    // stream keeps firing events into a cleared message list, where
+    // the message-lookup-by-id silently no-ops and the user's BYOK
+    // budget keeps draining.
+    smartGen.abortActive();
     setMessages([]);
     streaming.setIsGenerating(false);
     setInputValue('');
