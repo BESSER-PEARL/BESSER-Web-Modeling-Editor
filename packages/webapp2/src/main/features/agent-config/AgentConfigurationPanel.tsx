@@ -622,7 +622,10 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const getConfigObject = useCallback((): AgentConfigurationPayload => {
     const resolvedModel = llmModel === 'other' ? customModel.trim() : llmModel;
-    const llm = llmProvider && resolvedModel ? { provider: llmProvider, model: resolvedModel } : {};
+    const llm: AgentLLMConfiguration | Record<string, never> =
+      llmProvider && resolvedModel
+        ? { provider: llmProvider, model: resolvedModel }
+        : {};
 
     return {
       agentLanguage: normalizeAgentLanguage(agentLanguage),
@@ -1216,6 +1219,8 @@ export const AgentConfigurationPanel: React.FC = () => {
                           <option value="spanish">Spanish</option>
                           <option value="french">French</option>
                           <option value="german">German</option>
+                          <option value="portuguese">Portuguese</option>
+                          <option value="luxembourgish">Luxembourgish</option>
                           <option value="italian">Italian</option>
                         </select>
                       </div>
@@ -1304,6 +1309,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                           <option value="monospace">Monospace</option>
                           <option value="neutral">Neutral</option>
                           <option value="grotesque">Grotesque</option>
+                          <option value="condensed">Condensed</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
