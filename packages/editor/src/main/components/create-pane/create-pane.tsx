@@ -38,6 +38,8 @@ import { composeBotPreview } from '../../packages/agent-state-diagram/agent-stat
 import { setPalette } from '../../services/palette/palette-types';
 import { settingsService } from '../../services/settings/settings-service';
 
+import { BPMNElementType } from '../../packages/bpmn';
+
 
 type OwnProps = {};
 
@@ -45,6 +47,7 @@ type StateProps = {
   type: UMLDiagramType;
   colorEnabled: boolean;
   previewScaleFactor?: number;
+  elements: UMLElementState;
 };
 
 type DispatchProps = {
@@ -133,6 +136,7 @@ const enhance = compose<ComponentClass<OwnProps>>(
     (state) => ({
       type: state.diagram.type,
       colorEnabled: state.editor.colorEnabled,
+      elements: state.elements,
     }),
     {
       create: UMLElementRepository.create,
@@ -223,6 +227,28 @@ class CreatePaneComponent extends Component<Props, State> {
   }
 
   create = (preview: UMLElement, owner?: string) => {
+    if (preview.type === BPMNElementType.BPMNSwimlane) {
+      if (!owner) {
+        return;
+      }
+
+      const ownerElement = this.props.elements[owner];
+      let resolvedOwner = owner;
+
+      if (ownerElement?.type === BPMNElementType.BPMNSwimlane) {
+        const parentOwner = ownerElement.owner ? this.props.elements[ownerElement.owner] : undefined;
+
+        if (parentOwner?.type !== BPMNElementType.BPMNPool || !ownerElement.owner) {
+          return;
+        }
+
+        resolvedOwner = ownerElement.owner;
+      } else if (ownerElement?.type !== BPMNElementType.BPMNPool) {
+        return;
+      }
+
+      owner = resolvedOwner;
+    }
     const elements = clone(preview, this.state.previews);
     this.props.create(elements, owner);
   };

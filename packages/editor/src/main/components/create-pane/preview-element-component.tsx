@@ -38,10 +38,6 @@ export class PreviewElementComponent extends Component<Props> {
       bounds: { ...this.props.element.bounds, ...event.position },
     });
 
-    if (element.type === 'BPMNSwimlane' && !event.owner) {
-      return;
-    }
-
     this.props.create(element, event.owner);
   };
 }
