@@ -13,6 +13,10 @@ import { IUMLElement } from '../uml-element';
 import { IPath } from '../../../utils/geometry/path';
 import { canHaveCenterPort } from '../../uml-relationship/uml-relationship-port';
 
+import { UMLDiagramType } from '../../../packages/diagram-type';
+import { BPMNRelationshipType } from '../../../packages/bpmn';
+import { BPMNFlow } from '../../../packages/bpmn/bpmn-flow/bpmn-flow';
+import { getAllowedBpmnFlowTypes, getDefaultBpmnFlowType } from '../../../packages/bpmn/bpmn-flow/bpmn-flow-semantics';
 
 export const Connectable = {
   startConnecting:
@@ -182,6 +186,22 @@ export const Connectable = {
             // Create the relationship with the connection
             const Classifier = UMLRelationships[relationshipType];
             const relationship = new Classifier(connection);
+
+            if (getState().diagram.type === UMLDiagramType.BPMN && relationshipType === BPMNRelationshipType.BPMNFlow) {
+              const sourceType = sourceElement.type as UMLElementType;
+              const targetType = targetElement.type as UMLElementType;
+              const allowed = getAllowedBpmnFlowTypes(sourceType, targetType);
+
+              if (!allowed.length) {
+                console.warn('[BPMN] Illegal flow connection blocked', {
+                  sourceType,
+                  targetType,
+                });
+                return null;
+              }
+
+              (relationship as BPMNFlow).flowType = getDefaultBpmnFlowType(allowed);
+            }
 
             // Calculate the path directly using Connection.computePath
             const path = Connection.computePath(

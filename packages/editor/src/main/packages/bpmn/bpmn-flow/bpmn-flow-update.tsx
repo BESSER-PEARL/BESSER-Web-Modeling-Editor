@@ -16,12 +16,18 @@ import { ColorButton } from '../../../components/controls/color-button/color-but
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { Divider } from '../../../components/controls/divider/divider';
+import { UMLElement } from '../../../services/uml-element/uml-element';
+import { getAllowedBpmnFlowTypes } from './bpmn-flow-semantics';
+import { UMLElementType } from '../../uml-element-type';
 
 interface OwnProps {
   element: BPMNFlow;
 }
 
-type StateProps = {};
+type StateProps = {
+  sourceElement?: UMLElement;
+  targetElement?: UMLElement;
+};
 
 interface DispatchProps {
   update: typeof UMLElementRepository.update;
@@ -33,11 +39,17 @@ type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-    update: UMLElementRepository.update,
-    delete: UMLElementRepository.delete,
-    flip: UMLRelationshipRepository.flip,
-  }),
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(
+    (state, ownProps) => ({
+      sourceElement: state.elements[ownProps.element.source.element] as UMLElement | undefined,
+      targetElement: state.elements[ownProps.element.target.element] as UMLElement | undefined,
+    }), 
+    {
+      update: UMLElementRepository.update,
+      delete: UMLElementRepository.delete,
+      flip: UMLRelationshipRepository.flip,
+    }
+  ),
 );
 
 const Flex = styled.div`
@@ -58,7 +70,29 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
   };
 
   render() {
-    const { element } = this.props;
+    const { element, sourceElement, targetElement } = this.props;
+    const allowedTypes = sourceElement && targetElement
+        ? getAllowedBpmnFlowTypes(sourceElement.type as UMLElementType, targetElement.type as UMLElementType)
+        : ['sequence', 'message', 'association', 'data association'];
+
+    const flowTypeItems = [
+      allowedTypes.includes('sequence') ? (
+        <Dropdown.Item value={'sequence'}>{this.props.translate('packages.BPMN.BPMNSequenceFlow')}</Dropdown.Item>
+      ) : null,
+      allowedTypes.includes('message') ? (
+        <Dropdown.Item value={'message'}>{this.props.translate('packages.BPMN.BPMNMessageFlow')}</Dropdown.Item>
+      ) : null,
+      allowedTypes.includes('association') ? (
+        <Dropdown.Item value={'association'}>
+          {this.props.translate('packages.BPMN.BPMNAssociationFlow')}
+        </Dropdown.Item>
+      ) : null,
+      allowedTypes.includes('data association') ? (
+        <Dropdown.Item value={'data association'}>
+          {this.props.translate('packages.BPMN.BPMNDataAssociationFlow')}
+        </Dropdown.Item>
+      ) : null,
+    ].filter((item): item is React.ReactElement => item !== null);
 
     return (
       <div>
@@ -77,14 +111,7 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
         <Divider />
         <section>
           <Dropdown value={element.flowType} onChange={this.changeFlowType(element.id)}>
-            <Dropdown.Item value={'sequence'}>{this.props.translate('packages.BPMN.BPMNSequenceFlow')}</Dropdown.Item>
-            <Dropdown.Item value={'message'}>{this.props.translate('packages.BPMN.BPMNMessageFlow')}</Dropdown.Item>
-            <Dropdown.Item value={'association'}>
-              {this.props.translate('packages.BPMN.BPMNAssociationFlow')}
-            </Dropdown.Item>
-            <Dropdown.Item value={'data association'}>
-              {this.props.translate('packages.BPMN.BPMNDataAssociationFlow')}
-            </Dropdown.Item>
+            {flowTypeItems}
           </Dropdown>
         </section>
         <StylePane
