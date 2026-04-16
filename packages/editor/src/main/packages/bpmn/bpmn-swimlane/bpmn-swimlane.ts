@@ -8,6 +8,7 @@ import { UMLContainer } from '../../../services/uml-container/uml-container';
 
 export class BPMNSwimlane extends UMLContainer {
   static DEFAULT_HEIGHT = 80;
+  static MIN_WIDTH = 80;
   static MIN_HEIGHT = 80;
 
   static features: UMLElementFeatures = {
@@ -16,12 +17,16 @@ export class BPMNSwimlane extends UMLContainer {
     movable: false,
     connectable: false,
     updatable: false,
-    resizable: 'HEIGHT',
+    resizable: true,
   };
 
   type: UMLElementType = BPMNElementType.BPMNSwimlane;
 
   render(layer: ILayer, children: ILayoutable[] = []): ILayoutable[] {
+    if (this.bounds.width < BPMNSwimlane.MIN_WIDTH) {
+      this.bounds.width = BPMNSwimlane.MIN_WIDTH;
+    }
+
     if (this.bounds.height < BPMNSwimlane.MIN_HEIGHT) {
       this.bounds.height = BPMNSwimlane.MIN_HEIGHT;
     }
