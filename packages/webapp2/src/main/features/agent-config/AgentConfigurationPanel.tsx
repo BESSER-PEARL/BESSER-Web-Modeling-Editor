@@ -983,7 +983,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         config: requestConfig,
       };
 
-      const response = await fetch(buildApiUrl('transform_agent_model_json'), {
+      const response = await fetch(buildApiUrl('transform-agent-model-json'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
