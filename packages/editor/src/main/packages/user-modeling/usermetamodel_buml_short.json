@@ -2566,6 +2566,58 @@
       },
       "attributeType": "",
       "visibility": "public"
+    },
+    "c8a6f6b0-3baf-4cf4-8b7a-25ea19f7d18c": {
+      "id": "c8a6f6b0-3baf-4cf4-8b7a-25ea19f7d18c",
+      "name": "pi_age_range",
+      "type": "ClassOCLConstraint",
+      "owner": null,
+      "bounds": {
+        "x": -1120,
+        "y": -140,
+        "width": 240,
+        "height": 90
+      },
+      "constraint": "context Personal_Information inv age_range: self.age >= 0 and self.age <= 120"
+    },
+    "74d2b6f1-3176-4d97-b67d-4d2ae7a9a513": {
+      "id": "74d2b6f1-3176-4d97-b67d-4d2ae7a9a513",
+      "name": "skill_name_not_empty",
+      "type": "ClassOCLConstraint",
+      "owner": null,
+      "bounds": {
+        "x": 340,
+        "y": 360,
+        "width": 210,
+        "height": 90
+      },
+      "constraint": "context Skill inv name_not_empty: self.name <> ''"
+    },
+    "c0f6ce3d-9f43-4fd3-b214-efc97d36216c": {
+      "id": "c0f6ce3d-9f43-4fd3-b214-efc97d36216c",
+      "name": "education_required_fields",
+      "type": "ClassOCLConstraint",
+      "owner": null,
+      "bounds": {
+        "x": -630,
+        "y": 2060,
+        "width": 260,
+        "height": 90
+      },
+      "constraint": "context Education inv required_degree_fields: self.degreeName <> '' and self.providedBy <> ''"
+    },
+    "8ca86244-d5ec-4bd6-abce-1a46c88dd8fa": {
+      "id": "8ca86244-d5ec-4bd6-abce-1a46c88dd8fa",
+      "name": "disability_description_not_empty",
+      "type": "ClassOCLConstraint",
+      "owner": null,
+      "bounds": {
+        "x": 1170,
+        "y": 240,
+        "width": 260,
+        "height": 90
+      },
+      "constraint": "context Disability inv description_not_empty: self.description <> ''"
     }
   },
   "relationships": {
