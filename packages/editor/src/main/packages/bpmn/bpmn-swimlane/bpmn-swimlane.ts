@@ -17,7 +17,7 @@ export class BPMNSwimlane extends UMLContainer {
     movable: false,
     connectable: false,
     updatable: false,
-    resizable: true,
+    resizable: 'HEIGHT',
   };
 
   type: UMLElementType = BPMNElementType.BPMNSwimlane;
