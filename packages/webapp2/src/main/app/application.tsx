@@ -34,12 +34,7 @@ import { selectActiveDiagram } from './store/workspaceSlice';
 const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
 );
-const AgentPersonalizationRulesPanel = React.lazy(() =>
-  import('../features/agent-config/AgentPersonalizationRulesPanel').then((m) => ({ default: m.AgentPersonalizationRulesPanel })),
-);
-const AgentPersonalizationMappingPanel = React.lazy(() =>
-  import('../features/agent-config/AgentPersonalizationMappingPanel').then((m) => ({ default: m.AgentPersonalizationMappingPanel })),
-);
+
 const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
 );
@@ -137,8 +132,6 @@ function AppContentInner() {
           <Routes>
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
-            <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
-            <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

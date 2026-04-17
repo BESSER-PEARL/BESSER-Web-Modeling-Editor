@@ -41,6 +41,20 @@ type AgentModelVariantSnapshot = {
   model: UMLModel;
 };
 
+type MappingMatchedRule = {
+  id?: string;
+  label?: string;
+  summary?: string;
+  priority?: number;
+  evidence?: string[];
+};
+
+type MappingRecommendationSignals = {
+  age: number | null;
+  detectedLanguages: string[];
+  isMultilingual: boolean;
+};
+
 const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
 const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
 
@@ -70,7 +84,7 @@ const createDefaultConfig = (): AgentConfigurationPayload => ({
   agentPlatform: 'streamlit',
   responseTiming: 'instant',
   agentStyle: 'original',
-  llm: {},
+  llm: {'provider': 'openai', 'model': 'gpt-5'},
   languageComplexity: 'original',
   sentenceLength: 'original',
   interfaceStyle: { ...defaultInterfaceStyle },
@@ -79,7 +93,7 @@ const createDefaultConfig = (): AgentConfigurationPayload => ({
   useAbbreviations: false,
   adaptContentToUserProfile: false,
   userProfileName: null,
-  intentRecognitionTechnology: 'classical',
+  intentRecognitionTechnology: 'llm-based',
 });
 
 const normalizeAgentLanguage = (value?: string): string => {
@@ -291,6 +305,40 @@ const toVariantList = (raw: unknown): AgentModelVariantSnapshot[] => {
   });
 };
 
+const toMappingMatchedRules = (raw: unknown): MappingMatchedRule[] => {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry && typeof entry === 'object'))
+    .map((entry) => ({
+      id: typeof entry.id === 'string' ? entry.id : undefined,
+      label: typeof entry.label === 'string' ? entry.label : undefined,
+      summary: typeof entry.summary === 'string' ? entry.summary : undefined,
+      priority: typeof entry.priority === 'number' ? entry.priority : undefined,
+      evidence: Array.isArray(entry.evidence)
+        ? entry.evidence.filter((value): value is string => typeof value === 'string')
+        : undefined,
+    }));
+};
+
+const toMappingRecommendationSignals = (raw: unknown): MappingRecommendationSignals | null => {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const value = raw as Record<string, unknown>;
+
+  return {
+    age: typeof value.age === 'number' ? value.age : null,
+    detectedLanguages: Array.isArray(value.detectedLanguages)
+      ? value.detectedLanguages.filter((language): language is string => typeof language === 'string')
+      : [],
+    isMultilingual: Boolean(value.isMultilingual),
+  };
+};
+
 const buildUserProfilesFromProjectTabs = (project: ReturnType<typeof useProject>['currentProject']): StoredUserProfile[] => {
   if (!project) {
     return [];
@@ -437,6 +485,8 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Preparing your configuration...');
+  const [mappingMatchedRules, setMappingMatchedRules] = useState<MappingMatchedRule[]>([]);
+  const [mappingSignals, setMappingSignals] = useState<MappingRecommendationSignals | null>(null);
 
   const [userProfiles, setUserProfiles] = useState<StoredUserProfile[]>([]);
   const [selectedUserProfileName, setSelectedUserProfileName] = useState<string>(initialConfig.userProfileName || '');
@@ -837,13 +887,84 @@ export const AgentConfigurationPanel: React.FC = () => {
     setInterfaceStyle((previous) => ({ ...previous, [field]: value }));
   };
 
-  const handleAutoProposeConfigurationRules = () => {
+  const resolveSelectedUserProfile = useCallback((): StoredUserProfile | null => {
+    const availableProfiles = userProfiles.length > 0
+      ? userProfiles
+      : buildUserProfilesFromProjectTabs(currentProject);
+
+    const selectedProfile = availableProfiles.find((profile) => profile.name === selectedUserProfileName);
+    if (!selectedProfile || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+      return null;
+    }
+
+    return selectedProfile;
+  }, [currentProject, selectedUserProfileName, userProfiles]);
+
+  const handleAutoProposeConfigurationRules = async () => {
     if (!selectedUserProfileName.trim()) {
       toast.error('Please select a user profile mapping first.');
       return;
     }
 
-    toast.info('Automatic configuration proposal using predefined rules will be available soon.');
+    const selectedProfile = resolveSelectedUserProfile();
+    if (!selectedProfile) {
+      toast.error('The selected user profile is not available. Please select a valid saved user profile.');
+      return;
+    }
+
+    try {
+      setLoadingMessage('Applying predefined literature-based mapping to recommend a fitting configuration.');
+      setIsLoading(true);
+
+      const payload = {
+        userProfileName: selectedProfile.name,
+        userProfileModel: cloneModel(selectedProfile.model),
+        currentConfig: buildStructuredExport(getConfigObject()),
+      };
+
+      const response = await fetch(buildApiUrl('recommend-agent-config-mapping'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`Failed to get mapping-based recommendation: ${errorText || response.statusText}`);
+        return;
+      }
+
+      const recommendation = await response.json();
+      if (!recommendation || typeof recommendation !== 'object' || !('config' in recommendation) || !recommendation.config) {
+        toast.error('Invalid mapping recommendation response received from backend.');
+        return;
+      }
+
+      const prepared = flattenStructuredConfig(recommendation.config);
+      const normalized = normalizeAgentConfiguration({
+        ...prepared,
+        adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
+        userProfileName: selectedProfile.name,
+      });
+
+      const matchedRules = toMappingMatchedRules((recommendation as Record<string, unknown>).matchedRules);
+      const detectedSignals = toMappingRecommendationSignals((recommendation as Record<string, unknown>).signals);
+
+      applyConfiguration(normalized);
+      setMappingMatchedRules(matchedRules);
+      setMappingSignals(detectedSignals);
+
+      if (matchedRules.length > 0) {
+        toast.success(`Predefined-rule recommendation applied (${matchedRules.length} rule${matchedRules.length > 1 ? 's' : ''} matched).`);
+      } else {
+        toast.success('Predefined-rule recommendation applied. No specific rule matched, so defaults were preserved.');
+      }
+    } catch (error) {
+      console.error('Failed to fetch mapping-based recommendation:', error);
+      toast.error('An unexpected error occurred while requesting a predefined-rule recommendation.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAutoProposeConfigurationRAG = () => {
@@ -861,12 +982,8 @@ export const AgentConfigurationPanel: React.FC = () => {
       return;
     }
 
-    const availableProfiles = userProfiles.length > 0
-      ? userProfiles
-      : buildUserProfilesFromProjectTabs(currentProject);
-
-    const selectedProfile = availableProfiles.find((profile) => profile.name === selectedUserProfileName);
-    if (!selectedProfile || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+    const selectedProfile = resolveSelectedUserProfile();
+    if (!selectedProfile) {
       toast.error('The selected user profile is not available. Please select a valid saved user profile.');
       return;
     }
@@ -908,6 +1025,8 @@ export const AgentConfigurationPanel: React.FC = () => {
       });
 
       applyConfiguration(normalized);
+      setMappingMatchedRules([]);
+      setMappingSignals(null);
       toast.success('LLM-based recommendation applied to the current configuration.');
     } catch (error) {
       console.error('Failed to fetch LLM recommendation:', error);
@@ -1178,6 +1297,40 @@ export const AgentConfigurationPanel: React.FC = () => {
                   Automatically propose configuration using RAG based
                 </Button>
               </div>
+
+              {(mappingMatchedRules.length > 0 || mappingSignals) && (
+                <div className="rounded-lg border border-brand/20 bg-brand/5 p-3">
+                  <p className="text-sm font-medium">Latest predefined-rule recommendation</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {mappingMatchedRules.length > 0
+                      ? `${mappingMatchedRules.length} literature-based rule${mappingMatchedRules.length > 1 ? 's' : ''} matched.`
+                      : 'No specific literature rule matched. Baseline defaults were preserved.'}
+                  </p>
+
+                  {mappingSignals && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Detected signals: age {mappingSignals.age ?? 'n/a'}, languages{' '}
+                      {mappingSignals.detectedLanguages.length > 0
+                        ? mappingSignals.detectedLanguages.join(', ')
+                        : 'n/a'}, multilingual {mappingSignals.isMultilingual ? 'yes' : 'no'}.
+                    </p>
+                  )}
+
+                  {mappingMatchedRules.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {mappingMatchedRules.map((rule, index) => (
+                        <div
+                          key={`${rule.id || rule.label || 'rule'}-${index}`}
+                          className="rounded-md border border-border bg-background px-3 py-2"
+                        >
+                          <p className="text-xs font-medium">{rule.label || rule.id || 'Matched rule'}</p>
+                          {rule.summary && <p className="text-xs text-muted-foreground">{rule.summary}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
