@@ -22,6 +22,13 @@ export type GeneratorMenuEntry = GeneratorMenuAction | GeneratorMenuGroup | Gene
 const CLASS_GENERATORS: GeneratorMenuEntry[] = [
   {
     kind: 'group',
+    label: 'Platform',
+    actions: [
+      { kind: 'action', label: 'Instance Editor Platform', generator: 'platform' },
+    ],
+  },
+  {
+    kind: 'group',
     label: 'Web',
     actions: [
       { kind: 'action', label: 'Django Project', generator: 'django' },

@@ -11,6 +11,7 @@ export type GeneratorType =
   | 'smartdata'
   | 'agent'
   | 'qiskit'
-  | 'jsonobject';
+  | 'jsonobject'
+  | 'platform';
 
 export type GeneratorMenuMode = 'class' | 'object' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'none';
