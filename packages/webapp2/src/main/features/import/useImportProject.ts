@@ -56,8 +56,13 @@ function migrateOldWebappProject(data: any): BesserProject {
   const migratedDiagrams: any = {};
   const allTypes: SupportedDiagramType[] = [
     'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
-    'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+    'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram',
+    'PlatformCustomizationDiagram',
   ];
+
+  const nonUmlTypes = new Set<SupportedDiagramType>([
+    'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'PlatformCustomizationDiagram',
+  ]);
 
   for (const diagramType of allTypes) {
     const existing = project.diagrams[diagramType];
@@ -69,12 +74,20 @@ function migrateOldWebappProject(data: any): BesserProject {
     } else if (Array.isArray(existing)) {
       migratedDiagrams[diagramType] = existing;
     } else {
+      const kind: 'gui' | 'quantum' | 'platform-customization' | undefined =
+        diagramType === 'GUINoCodeDiagram'
+          ? 'gui'
+          : diagramType === 'QuantumCircuitDiagram'
+            ? 'quantum'
+            : diagramType === 'PlatformCustomizationDiagram'
+              ? 'platform-customization'
+              : undefined;
       migratedDiagrams[diagramType] = [createEmptyDiagram(
         diagramType.replace(/([A-Z])/g, ' $1').trim(),
-        diagramType === 'GUINoCodeDiagram' || diagramType === 'QuantumCircuitDiagram'
+        nonUmlTypes.has(diagramType)
           ? null
           : (UMLDiagramType as any)[diagramType] ?? null,
-        diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined
+        kind,
       )];
     }
   }
@@ -84,6 +97,7 @@ function migrateOldWebappProject(data: any): BesserProject {
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
     ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
     AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+    PlatformCustomizationDiagram: 0,
   };
 
   return {
@@ -113,7 +127,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'StateMachineDiagram',
     'AgentDiagram',
     'GUINoCodeDiagram',
-    'QuantumCircuitDiagram'
+    'QuantumCircuitDiagram',
+    'PlatformCustomizationDiagram',
   ];
 
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -123,6 +138,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     AgentDiagram: UMLDiagramType.AgentDiagram,
     GUINoCodeDiagram: null,
     QuantumCircuitDiagram: null,
+    PlatformCustomizationDiagram: null,
   };
 
   const diagramTitles: Record<SupportedDiagramType, string> = {
@@ -131,12 +147,14 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
-    QuantumCircuitDiagram: 'Quantum Circuit'
+    QuantumCircuitDiagram: 'Quantum Circuit',
+    PlatformCustomizationDiagram: 'Platform Customization',
   };
 
-  const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
+  const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum' | 'platform-customization'>> = {
     GUINoCodeDiagram: 'gui',
     QuantumCircuitDiagram: 'quantum',
+    PlatformCustomizationDiagram: 'platform-customization',
   };
 
   // Ensure all diagram types exist as arrays
@@ -379,6 +397,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             currentDiagramIndices: {
               ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
               AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+              PlatformCustomizationDiagram: 0,
             },
             diagrams,
             settings: {

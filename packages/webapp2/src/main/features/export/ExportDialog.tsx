@@ -32,6 +32,7 @@ const diagramLabels: Record<SupportedDiagramType, string> = {
   AgentDiagram: 'Agent Diagram',
   GUINoCodeDiagram: 'GUI No-Code Diagram',
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',
+  PlatformCustomizationDiagram: 'Platform Customization',
 };
 
 const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);

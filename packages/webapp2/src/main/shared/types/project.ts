@@ -1,13 +1,36 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 // Supported diagram types in projects
-export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
+export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram' | 'PlatformCustomizationDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 3;
+export const PROJECT_SCHEMA_VERSION = 4;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram',
+  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'PlatformCustomizationDiagram',
 ];
+
+// Platform Customization data — overrides applied when generating a platform editor
+export interface PlatformClassOverride {
+  isContainer?: boolean;
+  defaultWidth?: number;
+  defaultHeight?: number;
+}
+
+export interface PlatformAssociationOverride {
+  edgeColor?: string;
+}
+
+export interface PlatformCustomizationData {
+  classOverrides: Record<string, PlatformClassOverride>;
+  associationOverrides: Record<string, PlatformAssociationOverride>;
+  version?: string;
+}
+
+export const createEmptyPlatformCustomizationData = (): PlatformCustomizationData => ({
+  classOverrides: {},
+  associationOverrides: {},
+  version: '1.0.0',
+});
 
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
@@ -31,7 +54,7 @@ export interface QuantumCircuitData {
 export interface ProjectDiagram {
   id: string;
   title: string;
-  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
+  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData | PlatformCustomizationData;
   lastUpdate: string;
   description?: string;
   config?: Record<string, unknown>;  // agent LLM/platform/IC config
@@ -40,7 +63,7 @@ export interface ProjectDiagram {
   references?: Partial<Record<SupportedDiagramType, string>>;
 }
 
-export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData;
+export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData | PlatformCustomizationData;
 
 // New centralized project structure
 export interface BesserProject {
@@ -60,6 +83,7 @@ export interface BesserProject {
     AgentDiagram: ProjectDiagram[];
     GUINoCodeDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
+    PlatformCustomizationDiagram: ProjectDiagram[];
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -113,6 +137,7 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   AgentDiagram: 0,
   GUINoCodeDiagram: 0,
   QuantumCircuitDiagram: 0,
+  PlatformCustomizationDiagram: 0,
 });
 
 // Migrate v1 project (single diagram per type) to v2 (array per type)
@@ -172,6 +197,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
     case 'QuantumCircuitDiagram':
       return null; // QuantumCircuitDiagram doesn't have a UML diagram type
+    case 'PlatformCustomizationDiagram':
+      return null; // PlatformCustomizationDiagram is a form-based view, not UML
     default:
       return null;
   }
@@ -192,7 +219,21 @@ const generateUUID = (): string => {
 };
 
 // Default diagram factory
-export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
+export const createEmptyDiagram = (
+  title: string,
+  type: UMLDiagramType | null,
+  diagramKind?: 'gui' | 'quantum' | 'platform-customization',
+): ProjectDiagram => {
+  // For Platform Customization diagram (form-based, no canvas)
+  if (diagramKind === 'platform-customization') {
+    return {
+      id: generateUUID(),
+      title,
+      model: createEmptyPlatformCustomizationData(),
+      lastUpdate: new Date().toISOString(),
+    };
+  }
+
   // For Quantum Circuit diagram
   if (diagramKind === 'quantum') {
     return {
@@ -329,6 +370,7 @@ export const createDefaultProject = (
       AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
+      PlatformCustomizationDiagram: [createEmptyDiagram('Platform Customization', null, 'platform-customization')],
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -356,6 +398,8 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.GUINoCodeDiagram &&
     obj.diagrams.QuantumCircuitDiagram;
 
+  // Platform Customization is optional for backward compatibility — old
+  // projects that predate v4 simply didn't have this tab.
   return !!hasRequiredDiagrams;
 };
 
@@ -366,6 +410,14 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
   }
 
+  // Add PlatformCustomizationDiagram if missing (introduced in schema v4)
+  if (!obj.diagrams.PlatformCustomizationDiagram) {
+    obj.diagrams.PlatformCustomizationDiagram = [createEmptyDiagram('Platform Customization', null, 'platform-customization')];
+    if (obj.currentDiagramIndices) {
+      obj.currentDiagramIndices.PlatformCustomizationDiagram = 0;
+    }
+  }
+
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)
   if (!obj.schemaVersion || obj.schemaVersion < 2) {
     obj = migrateProjectToV2(obj);
@@ -374,6 +426,11 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // Migrate v2 → v3: convert index-based references to ID-based and populate defaults
   if (!obj.schemaVersion || obj.schemaVersion < 3) {
     obj = migrateReferencesToIds(obj);
+  }
+
+  // Migrate v3 → v4: bump schema version (Platform Customization diagram added above)
+  if (!obj.schemaVersion || obj.schemaVersion < 4) {
+    obj.schemaVersion = 4;
   }
 
   return obj;
@@ -387,7 +444,7 @@ const migrateReferencesToIds = (project: BesserProject): BesserProject => {
   const indices = project.currentDiagramIndices ?? defaultDiagramIndices();
 
   // Types that should have cross-references to ClassDiagram
-  const classRefTypes: SupportedDiagramType[] = ['GUINoCodeDiagram', 'ObjectDiagram'];
+  const classRefTypes: SupportedDiagramType[] = ['GUINoCodeDiagram', 'ObjectDiagram', 'PlatformCustomizationDiagram'];
   // GUI also references AgentDiagram
   const agentRefTypes: SupportedDiagramType[] = ['GUINoCodeDiagram'];
 
@@ -477,6 +534,19 @@ export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitDat
   return Array.isArray(candidate.cols);
 };
 
+export const isPlatformCustomizationData = (model: unknown): model is PlatformCustomizationData => {
+  if (!model || typeof model !== 'object') {
+    return false;
+  }
+  const candidate = model as any;
+  // Distinguish from UMLModel / GrapesJS / Quantum by checking for either of our buckets.
+  // Both can coexist with a plain object without a 'version' / 'elements' / 'cols' / 'pages' field.
+  return (
+    (typeof candidate.classOverrides === 'object' && candidate.classOverrides !== null) ||
+    (typeof candidate.associationOverrides === 'object' && candidate.associationOverrides !== null)
+  );
+};
+
 
 /** Check whether a single diagram has meaningful content (non-empty model). */
 export function diagramHasContent(diagram: ProjectDiagram): boolean {
@@ -500,6 +570,12 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
 
   if (isQuantumCircuitData(model)) {
     return Array.isArray(model.cols) && model.cols.length > 0;
+  }
+
+  if (isPlatformCustomizationData(model)) {
+    const classKeys = Object.keys(model.classOverrides ?? {});
+    const assocKeys = Object.keys(model.associationOverrides ?? {});
+    return classKeys.length > 0 || assocKeys.length > 0;
   }
 
   return false;
