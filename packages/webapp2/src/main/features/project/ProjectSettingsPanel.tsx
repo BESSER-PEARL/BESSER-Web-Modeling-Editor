@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { settingsService } from '@besser/wme';
+import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Download, FolderKanban, Layers3, Monitor, Settings } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
@@ -29,6 +29,7 @@ export const ProjectSettingsPanel: React.FC = () => {
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
   const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
+  const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
 
   const { currentProject, loading, error, updateProject, exportProject } = useProject();
 
@@ -36,6 +37,7 @@ export const ProjectSettingsPanel: React.FC = () => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
     setShowAssociationNames(settingsService.shouldShowAssociationNames());
     setUsePropertiesPanel(settingsService.shouldUsePropertiesPanel());
+    setClassNotation(settingsService.getClassNotation());
   }, []);
 
   const diagrams = useMemo(() => {
@@ -240,6 +242,41 @@ export const ProjectSettingsPanel: React.FC = () => {
                     }}
                   />
                 </label>
+                <Separator />
+                <div className="flex items-center justify-between gap-4 rounded-lg px-1 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Class Diagram Notation</p>
+                    <p className="text-xs text-muted-foreground">
+                      UML (default) shows standard UML classes; ER shows a Chen-style entity/relationship rendering
+                    </p>
+                  </div>
+                  <div
+                    role="radiogroup"
+                    aria-label="Class diagram notation"
+                    className="inline-flex overflow-hidden rounded-md border border-border/60"
+                  >
+                    {(['UML', 'ER'] as const).map((value) => (
+                      <button
+                        key={value}
+                        role="radio"
+                        type="button"
+                        aria-checked={classNotation === value}
+                        data-testid={`class-notation-${value.toLowerCase()}`}
+                        className={`px-3 py-1 text-xs transition-colors ${
+                          classNotation === value
+                            ? 'bg-brand text-brand-foreground'
+                            : 'bg-background hover:bg-muted/40'
+                        }`}
+                        onClick={() => {
+                          setClassNotation(value);
+                          settingsService.updateSetting('classNotation', value);
+                        }}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
