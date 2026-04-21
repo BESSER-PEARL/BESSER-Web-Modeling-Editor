@@ -280,6 +280,7 @@ class ClassifierUpdate extends Component<Props, State> {
                     attributeType={attrMember.attributeType}
                     isOptional={attrMember.isOptional}
                     isDerived={attrMember.isDerived}
+                    isId={attrMember.isId}
                     defaultValue={attrMember.defaultValue}
                     onChange={this.props.update}
                     onSubmitKeyUp={() =>

@@ -70,6 +70,7 @@ export interface IUMLClassifierMember extends IUMLElement {
   quantumCircuitId?: string;
   isOptional?: boolean;
   isDerived?: boolean;
+  isId?: boolean;
   defaultValue?: any;
 }
 
@@ -94,6 +95,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   quantumCircuitId: string = '';
   isOptional: boolean = false;
   isDerived: boolean = false;
+  isId: boolean = false;
   defaultValue: any = undefined;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
@@ -113,10 +115,11 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       }
       const derivedPrefix = this.isDerived ? '/' : '';
       const optionalMarker = this.isOptional ? '?' : '';
+      const idSuffix = this.isId ? ' {id}' : '';
       const defaultSuffix = (this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== '')
         ? ` = ${this.defaultValue}`
         : '';
-      return `${visSymbol} ${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
+      return `${visSymbol} ${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}${idSuffix}`;
     }
     // Fallback to name for backward compatibility or simple display
     return this.name;
@@ -185,6 +188,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       quantumCircuitId: this.quantumCircuitId,
       isOptional: this.isOptional,
       isDerived: this.isDerived,
+      isId: this.isId,
       defaultValue: this.defaultValue,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
@@ -202,6 +206,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.attributeType = memberValues.attributeType || 'str';
       this.isOptional = memberValues.isOptional || false;
       this.isDerived = memberValues.isDerived || false;
+      this.isId = memberValues.isId || false;
     } else {
       // Legacy format - parse from name to extract visibility and type
       const parsed = UMLClassifierMember.parseNameFormat(this.name);
@@ -209,6 +214,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.attributeType = parsed.attributeType;
       this.isOptional = false;
       this.isDerived = false;
+      this.isId = false;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }
