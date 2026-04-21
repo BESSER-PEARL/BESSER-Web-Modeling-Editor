@@ -123,6 +123,7 @@ export type UMLClassifierMember = UMLElement & {
   isOptional?: boolean;
   isDerived?: boolean;
   isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
 };
 

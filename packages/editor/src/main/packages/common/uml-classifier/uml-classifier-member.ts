@@ -71,6 +71,7 @@ export interface IUMLClassifierMember extends IUMLElement {
   isOptional?: boolean;
   isDerived?: boolean;
   isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
 }
 
@@ -96,6 +97,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   isOptional: boolean = false;
   isDerived: boolean = false;
   isId: boolean = false;
+  isExternalId: boolean = false;
   defaultValue: any = undefined;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
@@ -115,7 +117,11 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       }
       const derivedPrefix = this.isDerived ? '/' : '';
       const optionalMarker = this.isOptional ? '?' : '';
-      const idSuffix = this.isId ? ' {id}' : '';
+      const idMarkers = [
+        this.isId ? 'id' : null,
+        this.isExternalId ? 'external id' : null,
+      ].filter(Boolean);
+      const idSuffix = idMarkers.length > 0 ? ` {${idMarkers.join(', ')}}` : '';
       const defaultSuffix = (this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== '')
         ? ` = ${this.defaultValue}`
         : '';
@@ -189,6 +195,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       isOptional: this.isOptional,
       isDerived: this.isDerived,
       isId: this.isId,
+      isExternalId: this.isExternalId,
       defaultValue: this.defaultValue,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
@@ -207,6 +214,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.isOptional = memberValues.isOptional || false;
       this.isDerived = memberValues.isDerived || false;
       this.isId = memberValues.isId || false;
+      this.isExternalId = memberValues.isExternalId || false;
     } else {
       // Legacy format - parse from name to extract visibility and type
       const parsed = UMLClassifierMember.parseNameFormat(this.name);
@@ -215,6 +223,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.isOptional = false;
       this.isDerived = false;
       this.isId = false;
+      this.isExternalId = false;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }
