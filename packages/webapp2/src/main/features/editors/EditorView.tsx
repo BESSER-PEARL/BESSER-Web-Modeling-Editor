@@ -17,6 +17,11 @@ const GraphicalUIEditor = React.lazy(() =>
 const QuantumEditorComponent = React.lazy(() =>
   import('./quantum/QuantumEditorComponent').then((m) => ({ default: m.QuantumEditorComponent })),
 );
+const PlatformCustomizationPanel = React.lazy(() =>
+  import('../platform-customization/PlatformCustomizationPanel').then((m) => ({
+    default: m.PlatformCustomizationPanel,
+  })),
+);
 
 export const EditorView: React.FC = () => {
   const activeDiagramType = useAppSelector(selectActiveDiagramType);
@@ -42,6 +47,16 @@ export const EditorView: React.FC = () => {
       <EditorErrorBoundary>
         <Suspense fallback={<SuspenseFallback message="Loading quantum editor..." />}>
           <QuantumEditorComponent key={`quantum-${activeDiagramIndex}`} />
+        </Suspense>
+      </EditorErrorBoundary>
+    );
+  }
+
+  if (activeDiagramType === 'PlatformCustomizationDiagram') {
+    return (
+      <EditorErrorBoundary>
+        <Suspense fallback={<SuspenseFallback message="Loading platform customization..." />}>
+          <PlatformCustomizationPanel key={`platform-${activeDiagramIndex}`} />
         </Suspense>
       </EditorErrorBoundary>
     );

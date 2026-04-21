@@ -107,7 +107,10 @@ export const DiagramTabs: React.FC = () => {
   const [renameValue, setRenameValue] = useState('');
 
   // --- Cross-diagram references ---
-  const needsClassRef = currentDiagramType === 'ObjectDiagram' || currentDiagramType === 'GUINoCodeDiagram';
+  const needsClassRef =
+    currentDiagramType === 'ObjectDiagram' ||
+    currentDiagramType === 'GUINoCodeDiagram' ||
+    currentDiagramType === 'PlatformCustomizationDiagram';
   // Agent diagrams are referenced per-component inside the GUI editor (drag & drop),
   // not as a single diagram-level reference, so no dropdown is needed here.
 
@@ -175,7 +178,9 @@ export const DiagramTabs: React.FC = () => {
   const classRefTooltip =
     currentDiagramType === 'ObjectDiagram'
       ? 'Select which Class Diagram provides the data model for this Object Diagram'
-      : 'Select which Class Diagram provides the data model for this GUI';
+      : currentDiagramType === 'PlatformCustomizationDiagram'
+        ? 'Select which Class Diagram this Platform Customization applies to'
+        : 'Select which Class Diagram provides the data model for this GUI';
 
   const handleSwitchTab = useCallback(
     (index: number) => {

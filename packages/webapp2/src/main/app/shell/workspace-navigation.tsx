@@ -11,6 +11,7 @@ import {
   PanelLeftOpen,
   Repeat2,
   Settings,
+  Sliders,
   SlidersHorizontal,
 } from 'lucide-react';
 import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../shared/constants/constant';
@@ -43,6 +44,10 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     generators: ['qiskit'],
     label: '1 generator',
   },
+  PlatformCustomizationDiagram: {
+    generators: ['platform'],
+    label: 'Platform generator',
+  },
 };
 
 // Re-export for backwards compatibility
@@ -72,6 +77,7 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React
 export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; icon: React.ReactNode }> = [
   { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PanelsTopLeft className="size-4" /> },
   { type: 'QuantumCircuitDiagram', label: 'Quantum', icon: <Atom className="size-4" /> },
+  { type: 'PlatformCustomizationDiagram', label: 'Platform', icon: <Sliders className="size-4" /> },
 ];
 
 const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
