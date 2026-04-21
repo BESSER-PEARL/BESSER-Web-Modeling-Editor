@@ -19,6 +19,22 @@ export const useImportDiagramPictureFromImage = () => {
       formData.append('image_file', file);
       formData.append('api_key', apiKey);
 
+      // If the active ClassDiagram already has elements, send it so the backend
+      // merges the image into it instead of replacing.
+      const currentForMerge = ProjectStorageRepository.getCurrentProject();
+      const classDiagramsForMerge = currentForMerge?.diagrams?.['ClassDiagram'] ?? [];
+      const classActiveIndex = currentForMerge?.currentDiagramIndices?.['ClassDiagram'] ?? 0;
+      const activeClassDiagram = classDiagramsForMerge[
+        Math.min(classActiveIndex, Math.max(classDiagramsForMerge.length - 1, 0))
+      ];
+      const activeClassElements = (activeClassDiagram as any)?.model?.elements;
+      if (activeClassElements && Object.keys(activeClassElements).length > 0) {
+        formData.append('existing_model', JSON.stringify({
+          title: activeClassDiagram.title,
+          model: (activeClassDiagram as any).model,
+        }));
+      }
+
       const response = await fetch(`${BACKEND_URL}/get-json-model-from-image`, {
         method: 'POST',
         body: formData,
