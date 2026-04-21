@@ -262,6 +262,13 @@ class StylePaneComponent extends Component<Props, State> {
 
     const isEnumType = enumerationLiterals && enumerationLiterals.length > 0;
 
+    // Metamodel rule: an attribute marked as an identifier (primary or
+    // external) cannot also be optional. Lock the conflicting checkbox
+    // on each side so the user can't save invalid state — on submit it
+    // would fail validation in the backend Property() setter anyway.
+    const optionalLockedByIdFlag = Boolean(isId || isExternalId);
+    const idLockedByOptional = Boolean(isOptional);
+
     return (
       <Container>
         {onOptionalChange && (
@@ -272,6 +279,8 @@ class StylePaneComponent extends Component<Props, State> {
                 id={`optional-${element?.id}`}
                 type="checkbox"
                 checked={isOptional || false}
+                disabled={optionalLockedByIdFlag}
+                title={optionalLockedByIdFlag ? 'Identifier attributes cannot be optional.' : undefined}
                 onChange={(e) => onOptionalChange(e.target.checked)}
               />
             </CheckboxRow>
@@ -300,6 +309,8 @@ class StylePaneComponent extends Component<Props, State> {
                 id={`id-${element?.id}`}
                 type="checkbox"
                 checked={isId || false}
+                disabled={idLockedByOptional}
+                title={idLockedByOptional ? 'Optional attributes cannot be the identifier.' : undefined}
                 onChange={(e) => onIdChange(e.target.checked)}
               />
             </CheckboxRow>
@@ -314,6 +325,8 @@ class StylePaneComponent extends Component<Props, State> {
                 id={`external-id-${element?.id}`}
                 type="checkbox"
                 checked={isExternalId || false}
+                disabled={idLockedByOptional}
+                title={idLockedByOptional ? 'Optional attributes cannot be the external identifier.' : undefined}
                 onChange={(e) => onExternalIdChange(e.target.checked)}
               />
             </CheckboxRow>
