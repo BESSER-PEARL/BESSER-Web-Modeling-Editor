@@ -28,6 +28,10 @@ type OwnProps = {
   onOptionalChange?: (checked: boolean) => void;
   isDerived?: boolean;
   onDerivedChange?: (checked: boolean) => void;
+  isId?: boolean;
+  onIdChange?: (checked: boolean) => void;
+  isExternalId?: boolean;
+  onExternalIdChange?: (checked: boolean) => void;
   defaultValue?: any;
   onDefaultValueChange?: (value: string) => void;
   attributeType?: string;
@@ -251,12 +255,19 @@ class StylePaneComponent extends Component<Props, State> {
 
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, defaultValue, onDefaultValueChange, enumerationLiterals } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, isId, onIdChange, isExternalId, onExternalIdChange, defaultValue, onDefaultValueChange, enumerationLiterals } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
 
     const isEnumType = enumerationLiterals && enumerationLiterals.length > 0;
+
+    // Metamodel rule: an attribute marked as an identifier (primary or
+    // external) cannot also be optional. Lock the conflicting checkbox
+    // on each side so the user can't save invalid state — on submit it
+    // would fail validation in the backend Property() setter anyway.
+    const optionalLockedByIdFlag = Boolean(isId || isExternalId);
+    const idLockedByOptional = Boolean(isOptional);
 
     return (
       <Container>
@@ -268,6 +279,8 @@ class StylePaneComponent extends Component<Props, State> {
                 id={`optional-${element?.id}`}
                 type="checkbox"
                 checked={isOptional || false}
+                disabled={optionalLockedByIdFlag}
+                title={optionalLockedByIdFlag ? 'Identifier attributes cannot be optional.' : undefined}
                 onChange={(e) => onOptionalChange(e.target.checked)}
               />
             </CheckboxRow>
@@ -283,6 +296,38 @@ class StylePaneComponent extends Component<Props, State> {
                 type="checkbox"
                 checked={isDerived || false}
                 onChange={(e) => onDerivedChange(e.target.checked)}
+              />
+            </CheckboxRow>
+            <Divider />
+          </>
+        )}
+        {onIdChange && (
+          <>
+            <CheckboxRow as="label" htmlFor={`id-${element?.id}`}>
+              <span>ID</span>
+              <input
+                id={`id-${element?.id}`}
+                type="checkbox"
+                checked={isId || false}
+                disabled={idLockedByOptional}
+                title={idLockedByOptional ? 'Optional attributes cannot be the identifier.' : undefined}
+                onChange={(e) => onIdChange(e.target.checked)}
+              />
+            </CheckboxRow>
+            <Divider />
+          </>
+        )}
+        {onExternalIdChange && (
+          <>
+            <CheckboxRow as="label" htmlFor={`external-id-${element?.id}`}>
+              <span>External ID</span>
+              <input
+                id={`external-id-${element?.id}`}
+                type="checkbox"
+                checked={isExternalId || false}
+                disabled={idLockedByOptional}
+                title={idLockedByOptional ? 'Optional attributes cannot be the external identifier.' : undefined}
+                onChange={(e) => onExternalIdChange(e.target.checked)}
               />
             </CheckboxRow>
             <Divider />
