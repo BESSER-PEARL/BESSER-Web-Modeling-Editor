@@ -18,7 +18,6 @@ import { UMLElement } from '../../../services/uml-element/uml-element';
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { BPMNElementType } from '../index';
 import { Header } from '../../../components/controls/typography/typography';
-import UmlAttributeUpdate from '../../common/uml-classifier/uml-classifier-attribute-update';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { StylePane } from '../../../components/style-pane/style-pane';
 
@@ -53,6 +52,10 @@ const Flex = styled.div`
   justify-content: space-between;
 `;
 
+const SwimlaneRow = styled(Flex)`
+  margin-bottom: 0.5rem;
+`;
+
 type State = {
   fieldToFocus?: Textfield<string> | null;
   colorOpen: boolean;
@@ -71,8 +74,6 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
 
   render() {
     const { element, getById } = this.props;
-
-    const swimlaneRefs: (Textfield<string> | null)[] = [];
 
     const swimlanes = element.ownedElements
       .map((id) => getById(id))
@@ -104,22 +105,15 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
           <Divider />
           <Header>{this.props.translate('packages.BPMN.BPMNSwimlanes')}</Header>
           {swimlanes.reverse().map((swimlane, index) => (
-            <UmlAttributeUpdate
-              id={swimlane.id}
-              key={swimlane.id}
-              value={swimlane.name}
-              onChange={this.props.update}
-              onSubmitKeyUp={() =>
-                index === swimlanes.length - 1
-                  ? this.newSwimlaneField.current?.focus()
-                  : this.setState({
-                      fieldToFocus: swimlaneRefs[index + 1],
-                    })
-              }
-              onDelete={(id) => () => this.delete(id)}
-              onRefChange={(ref) => (swimlaneRefs[index] = ref)}
-              element={swimlane}
-            />
+            <SwimlaneRow key={swimlane.id}>
+              <Textfield
+                value={swimlane.name}
+                onChange={(value) => this.props.update(swimlane.id, { name: value })}
+              />
+              <Button color="link" tabIndex={-1} onClick={() => this.delete(swimlane.id)}>
+                <TrashIcon />
+              </Button>
+            </SwimlaneRow>
           ))}
           <Textfield
             ref={this.newSwimlaneField}
@@ -203,7 +197,7 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
       ownedElements: convertToSwimlaneBased ? [swimlane.id] : [swimlane.id, ...this.props.element.ownedElements],
     });
 
-    this.props.update(owner, pool);
+    this.props.update(owner, pool as UMLElement);
 
     // As the last step, all child elements that were transferred from the pool to a swimlane then have their owner
     // field set to the new swimlane element.
