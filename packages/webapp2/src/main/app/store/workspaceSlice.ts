@@ -137,8 +137,13 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
+    // Non-UML diagram types are already SupportedDiagramType strings; don't
+    // route them through toSupportedDiagramType (which would drop unknowns to
+    // the 'ClassDiagram' fallback and send the user to the wrong view).
     const supportedType =
-      diagramType === 'QuantumCircuitDiagram' || diagramType === 'GUINoCodeDiagram'
+      diagramType === 'QuantumCircuitDiagram' ||
+      diagramType === 'GUINoCodeDiagram' ||
+      diagramType === 'PlatformCustomizationDiagram'
         ? (diagramType as SupportedDiagramType)
         : toSupportedDiagramType(diagramType as UMLDiagramType);
 

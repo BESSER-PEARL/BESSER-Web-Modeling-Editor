@@ -244,12 +244,19 @@ export class ProjectStorageRepository {
     }
 
     const umlType = toUMLDiagramType(diagramType);
-    const kind = diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+    const kind: 'gui' | 'quantum' | 'platform-customization' | undefined =
+      diagramType === 'GUINoCodeDiagram'
+        ? 'gui'
+        : diagramType === 'QuantumCircuitDiagram'
+          ? 'quantum'
+          : diagramType === 'PlatformCustomizationDiagram'
+            ? 'platform-customization'
+            : undefined;
     const defaultTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
     const diagram = createEmptyDiagram(defaultTitle, umlType, kind);
 
     // Populate default cross-references for diagram types that need them
-    if (diagramType === 'GUINoCodeDiagram' || diagramType === 'ObjectDiagram') {
+    if (diagramType === 'GUINoCodeDiagram' || diagramType === 'ObjectDiagram' || diagramType === 'PlatformCustomizationDiagram') {
       const refs: Partial<Record<SupportedDiagramType, string>> = {};
       const classDiagrams = project.diagrams.ClassDiagram;
       if (classDiagrams.length > 0) {

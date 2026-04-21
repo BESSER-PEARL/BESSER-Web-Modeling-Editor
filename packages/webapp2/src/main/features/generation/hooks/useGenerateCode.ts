@@ -188,6 +188,12 @@ export const useGenerateCode = () => {
         return await generateCodeFromProject(generatorType, config);
       }
 
+      // Platform generator: needs both the ClassDiagram AND the (optional)
+      // PlatformCustomizationDiagram, so it must go through the project endpoint.
+      if (generatorType === 'platform') {
+        return await generateCodeFromProject(generatorType, config);
+      }
+
       // For other generators, we need the editor and model
       if (!editor || !editor.model) {
         console.error('No editor or model available');
