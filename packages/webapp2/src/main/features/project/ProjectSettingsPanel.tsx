@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
@@ -250,32 +251,25 @@ export const ProjectSettingsPanel: React.FC = () => {
                       UML (default) shows standard UML classes; ER shows a Chen-style entity/relationship rendering
                     </p>
                   </div>
-                  <div
-                    role="radiogroup"
+                  <RadioGroup
                     aria-label="Class diagram notation"
-                    className="inline-flex overflow-hidden rounded-md border border-border/60"
+                    value={classNotation}
+                    onValueChange={(value) => {
+                      const next = value as ClassNotation;
+                      setClassNotation(next);
+                      settingsService.updateSetting('classNotation', next);
+                    }}
                   >
                     {(['UML', 'ER'] as const).map((value) => (
-                      <button
+                      <RadioGroupItem
                         key={value}
-                        role="radio"
-                        type="button"
-                        aria-checked={classNotation === value}
+                        value={value}
                         data-testid={`class-notation-${value.toLowerCase()}`}
-                        className={`px-3 py-1 text-xs transition-colors ${
-                          classNotation === value
-                            ? 'bg-brand text-brand-foreground'
-                            : 'bg-background hover:bg-muted/40'
-                        }`}
-                        onClick={() => {
-                          setClassNotation(value);
-                          settingsService.updateSetting('classNotation', value);
-                        }}
                       >
                         {value}
-                      </button>
+                      </RadioGroupItem>
                     ))}
-                  </div>
+                  </RadioGroup>
                 </div>
               </CardContent>
             </Card>
