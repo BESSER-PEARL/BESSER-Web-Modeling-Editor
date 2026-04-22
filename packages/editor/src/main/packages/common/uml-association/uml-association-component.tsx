@@ -188,18 +188,20 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
   const isER = notation === 'ER';
 
   // In ER (Chen) mode, replace the UML arrow/rhombus end markers with a named
-  // diamond drawn at the midpoint. Inheritance/realization keep their UML
-  // syntax (explicit requirement of the issue); OCL and link relationships
-  // keep their existing rendering because they have no ER equivalent.
-  const isERClassBinary =
-    isER &&
-    !isInheritance &&
-    !isLinkRel &&
-    element.type !== ClassRelationshipType.ClassRealization &&
-    element.type !== ClassRelationshipType.ClassOCLLink &&
-    element.type !== ClassRelationshipType.ClassDependency;
+  // diamond drawn at the midpoint — but only for the four "plain" binary
+  // associations that have an ER counterpart. Inheritance, realization, OCL,
+  // dependency, and link relationships keep their UML rendering. Using an
+  // explicit allow-list here (instead of excluding types) means new
+  // relationship types won't silently inherit the ER diamond.
+  const ER_DIAMOND_RELATIONSHIP_TYPES: ReadonlyArray<string> = [
+    ClassRelationshipType.ClassBidirectional,
+    ClassRelationshipType.ClassUnidirectional,
+    ClassRelationshipType.ClassAggregation,
+    ClassRelationshipType.ClassComposition,
+  ];
+  const showsERDiamond = isER && ER_DIAMOND_RELATIONSHIP_TYPES.includes(element.type);
 
-  const marker = isERClassBinary ? undefined : getMarkerForTypeForUMLAssociation(element.type);
+  const marker = showsERDiamond ? undefined : getMarkerForTypeForUMLAssociation(element.type);
 
   const stroke = ((type) => {
     switch (type) {
@@ -231,7 +233,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
         markerEnd={`url(#${id})`}
         strokeDasharray={stroke}
       />
-      {showAssociationNames && element.name && !isInheritance && !isLinkRel && !isERClassBinary && (
+      {showAssociationNames && element.name && !isInheritance && !isLinkRel && !showsERDiamond && (
         <text
           x={middle.x || 0}
           y={middle.y || 0}
@@ -243,7 +245,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
           {element.name}
         </text>
       )}
-      {isERClassBinary && (
+      {showsERDiamond && (
         <g
           transform={`translate(${middle.x || 0} ${middle.y || 0})`}
           pointerEvents="none"
