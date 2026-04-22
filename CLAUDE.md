@@ -228,12 +228,6 @@ When you see `M besser/utilities/web_modeling_editor/frontend` in the parent rep
 - **Linting**: ESLint (permissive — `any` and `ts-ignore` are warnings, not errors)
 - **Formatting**: Prettier (check with `npm run prettier:check`)
 
-Known environment quirks (verified April 2026):
-- On Node >= 25, Playwright 1.58 fails every spec with "test.describe() not expected here" — it's a harness-loading regression, not a test bug. Use Node 20/22 LTS locally, or rely on CI. All existing specs fail identically with my env so don't chase green locally if you see it.
-- `src/main/shared/services/storage/__tests__/ProjectStorageRepository.test.ts` currently fails every assertion with `localStorage.clear is not a function` — pre-existing jsdom setup bug in this repo, unrelated to individual changes. Confirm with `git stash` before assuming your edits broke it.
-
-E2E-testing gotcha: only the **GUI** editor exposes itself via `(window as any).editor`. The UML/class diagram editor instance is NOT on `window`, so Playwright can't drive the class diagram model through a JS handle — use UI interactions, or (for setup) write a project JSON directly to `localStorage['besser_project_<uuid>']` and reload. The project shape is `{id, name, diagrams: {ClassDiagram: [{model: {elements, relationships, ...}}], ...}, currentDiagramType, currentDiagramIndices, ...}`. Inside `elements`, ClassAttribute entries need both the legacy `name: "+ foo: str"` AND the new-format fields (`visibility`, `attributeType`, `isId`, `isOptional`, `isDerived`, `isExternalId`, `defaultValue`) — deserialize takes the legacy-parse branch and *resets* these booleans to false when the new-format fields are missing, so pre-injecting `isId: true` alone won't stick unless visibility+attributeType are also present.
-
 ## Important Conventions
 
 ### Code Style
