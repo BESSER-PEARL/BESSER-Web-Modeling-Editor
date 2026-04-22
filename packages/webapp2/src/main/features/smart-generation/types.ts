@@ -29,7 +29,8 @@ export type SmartGenErrorCode =
   | 'COST_CAP'
   | 'TIMEOUT'
   | 'INTERNAL'
-  | 'BAD_REQUEST';
+  | 'BAD_REQUEST'
+  | 'CANCELLED';
 
 export interface StartEvent {
   event: 'start';
