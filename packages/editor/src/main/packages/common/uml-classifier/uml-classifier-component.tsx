@@ -5,12 +5,13 @@ import { ThemedPath, ThemedRect } from '../../../components/theme/themedComponen
 import { settingsService } from '../../../services/settings/settings-service';
 import { ClassElementType } from '../../uml-class-diagram';
 
-// Classifier types that represent class-diagram entities and can thus be
-// rendered with ER flavor. Enumerations are excluded — they are not an ER concept.
+// Classifier types that map to ER entities and can thus be rendered with
+// ER flavor (no methods compartment). Enumerations and interfaces have no
+// ER equivalent — interfaces in particular define an operation contract,
+// which is the exact opposite of an entity.
 const ER_CAPABLE_CLASSIFIER_TYPES: ReadonlyArray<string> = [
   ClassElementType.Class,
   ClassElementType.AbstractClass,
-  ClassElementType.Interface,
 ];
 
 export const UMLClassifierComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
