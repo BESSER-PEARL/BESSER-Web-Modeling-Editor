@@ -10,6 +10,19 @@ export { useGitHubRepo, type GitHubRepoResult, type CreateRepoOptions } from './
 // Re-export from render deploy service
 export { useRenderDeploy, type DeployToRenderResult, type RenderDeploymentUrls } from '../../deploy/hooks/useRenderDeploy';
 
+export type DeploymentTarget = 'webapp' | 'agent';
+type BackendDeploymentTarget = 'webapp' | 'chatbot';
+
+const toBackendDeploymentTarget = (target: DeploymentTarget): BackendDeploymentTarget => (
+  target === 'agent' ? 'chatbot' : 'webapp'
+);
+
+const fromBackendDeploymentTarget = (target: unknown): DeploymentTarget | undefined => {
+  if (target === 'chatbot') return 'agent';
+  if (target === 'webapp') return 'webapp';
+  return undefined;
+};
+
 // Legacy interface - kept for backward compatibility
 export interface DeployToGitHubResult {
   success: boolean;
@@ -23,12 +36,15 @@ export interface DeployToGitHubResult {
     // suffix). First deploys only have ``github`` and ``render``.
     live_frontend?: string;
     live_backend?: string;
+    live_chatbot?: string;
     render_dashboard?: string;
   };
   files_uploaded: number;
   message: string;
   // True on the very first deploy to a repo, false on subsequent redeploys.
   is_first_deploy?: boolean;
+  // Deployment flavor returned by backend.
+  deployment_type?: DeploymentTarget;
 }
 
 /**
@@ -48,7 +64,9 @@ export const useDeployToGitHub = () => {
       isPrivate: boolean,
       githubSession: string,
       useExisting: boolean = false,
-      commitMessage: string = ''
+      commitMessage: string = '',
+      deploymentTarget: DeploymentTarget = 'webapp',
+      personalizationMapping: ReadonlyArray<Record<string, unknown>> | null = null,
     ): Promise<DeployToGitHubResult | null> => {
       console.log('Starting GitHub deployment...');
       setIsDeploying(true);
@@ -67,11 +85,55 @@ export const useDeployToGitHub = () => {
           intentRecognitionTechnology: 'classical',
         };
 
+        // The deploy backend reads the agent config from the AgentDiagram's own
+        // ``config`` field (preferred over ``settings.config``), so to trigger
+        // the personalization-aware codegen path we must inject the mapping
+        // directly into that diagram's config in the payload.
+        let projectForBackend: any = projectData;
+        if (
+          personalizationMapping
+          && personalizationMapping.length > 0
+          && Array.isArray(agentDiagrams)
+          && activeAgentDiagram
+        ) {
+          const clonedDiagrams = [...agentDiagrams];
+          clonedDiagrams[activeAgentIndex] = {
+            ...activeAgentDiagram,
+            config: {
+              ...(activeAgentDiagram.config ?? {}),
+              personalizationMapping,
+            },
+          };
+          projectForBackend = {
+            ...projectData,
+            diagrams: {
+              ...(projectData.diagrams ?? {}),
+              AgentDiagram: clonedDiagrams,
+            },
+          };
+          console.log(
+            '[deploy] injecting personalizationMapping with',
+            personalizationMapping.length,
+            'entries into AgentDiagram config at index',
+            activeAgentIndex,
+          );
+        } else if (personalizationMapping && personalizationMapping.length > 0) {
+          console.warn(
+            '[deploy] personalizationMapping provided but could not be injected — agentDiagrams:',
+            Array.isArray(agentDiagrams),
+            'activeAgentDiagram:',
+            !!activeAgentDiagram,
+          );
+        }
+
         const requestBody = {
-          ...projectData,
+          ...projectForBackend,
           name: normalizeProjectName(projectData?.name || 'project'),
           settings: {
             ...(projectData.settings || {}),
+            // ``settings.config`` is only a fallback when the diagram carries
+            // no config of its own — the deploy backend prefers the diagram's
+            // ``config`` field (see github_deploy_api.py).
             config: agentConfig ?? defaultAgentConfig,
           },
           deploy_config: {
@@ -79,6 +141,7 @@ export const useDeployToGitHub = () => {
             description: description,
             is_private: isPrivate,
             use_existing: useExisting,
+            target: toBackendDeploymentTarget(deploymentTarget),
             ...(commitMessage ? { commit_message: commitMessage } : {}),
           },
         };
@@ -97,7 +160,11 @@ export const useDeployToGitHub = () => {
           throw new Error(errorData.detail || `HTTP error: ${response.status}`);
         }
 
-        const result: DeployToGitHubResult = await response.json();
+        const rawResult = await response.json();
+        const result: DeployToGitHubResult = {
+          ...rawResult,
+          deployment_type: fromBackendDeploymentTarget(rawResult.deployment_type) ?? deploymentTarget,
+        };
         setDeploymentResult(result);
 
         if (result.success) {

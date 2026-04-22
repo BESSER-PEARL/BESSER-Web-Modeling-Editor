@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import type {
 import { isUMLModel, getActiveDiagram } from '../../shared/types/project';
 import { useProject } from '../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -364,9 +365,18 @@ const updateActiveAgentDiagramConfig = (
     return;
   }
 
+  const previousConfig = (latestAgentDiagram.config ?? {}) as Record<string, unknown>;
+  const mergedConfig: Record<string, unknown> = { ...nextConfig };
+  if (!('personalizedVariants' in nextConfig) && 'personalizedVariants' in previousConfig) {
+    mergedConfig.personalizedVariants = previousConfig.personalizedVariants;
+  }
+  if (!('activePersonalizedVariantId' in nextConfig) && 'activePersonalizedVariantId' in previousConfig) {
+    mergedConfig.activePersonalizedVariantId = previousConfig.activePersonalizedVariantId;
+  }
+
   ProjectStorageRepository.updateDiagram(project.id, 'AgentDiagram', {
     ...latestAgentDiagram,
-    config: nextConfig,
+    config: mergedConfig,
   });
 };
 
@@ -783,8 +793,32 @@ export const AgentConfigurationPanel: React.FC = () => {
     refreshSavedConfigurations,
   ]);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  // Warn before overwriting an existing configuration that shares this name
+  // with a *different* entry. Editing the currently active config is allowed
+  // silently since the user is updating their own record. Returns false when
+  // the user cancels — callers must abort the save in that case.
+  const confirmOverwriteIfNameCollides = useCallback(async (name: string): Promise<boolean> => {
+    const trimmed = name.trim();
+    if (!trimmed) return true;
+    const lowered = trimmed.toLowerCase();
+    const existing = LocalStorageRepository.getAgentConfigurations()
+      .find((entry) => entry.name.toLowerCase() === lowered);
+    if (!existing || existing.id === activeConfigId) {
+      return true;
+    }
+    return globalConfirm({
+      title: 'Replace existing configuration?',
+      description: `A configuration named "${existing.name}" already exists. Saving will replace it.`,
+      confirmLabel: 'Replace',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+    });
+  }, [activeConfigId]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const proceed = await confirmOverwriteIfNameCollides(configurationName);
+    if (!proceed) return;
     const result = saveConfiguration();
     if (!result.ok || !result.savedEntry) {
       return;
@@ -1053,6 +1087,9 @@ export const AgentConfigurationPanel: React.FC = () => {
       return;
     }
 
+    const proceed = await confirmOverwriteIfNameCollides(trimmedName);
+    if (!proceed) return;
+
     const storedBaseModel = currentAgentDiagram?.id
       ? LocalStorageRepository.getAgentBaseModel(currentAgentDiagram.id)
       : null;
@@ -1229,6 +1266,21 @@ export const AgentConfigurationPanel: React.FC = () => {
     setActiveCustomizationSection((previous) => (previous === section ? null : section));
   };
 
+  // When a customization section opens, scroll it into view. Otherwise the
+  // previously open (taller) section collapsing above this one can push the
+  // newly opened section off the top of the viewport.
+  const customizationSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    if (!activeCustomizationSection) return;
+    const el = customizationSectionRefs.current[activeCustomizationSection];
+    if (!el) return;
+    // Defer one frame so the expanded panel is in the DOM before we scroll.
+    const handle = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [activeCustomizationSection]);
+
   const showVoiceControls = outputModalities.includes('speech');
 
   return (
@@ -1342,7 +1394,10 @@ export const AgentConfigurationPanel: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="rounded-xl border border-border">
+              <div
+                ref={(el) => { customizationSectionRefs.current.presentation = el; }}
+                className="rounded-xl border border-border"
+              >
                 <button
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
@@ -1568,7 +1623,10 @@ export const AgentConfigurationPanel: React.FC = () => {
                 )}
               </div>
 
-              <div className="rounded-xl border border-border">
+              <div
+                ref={(el) => { customizationSectionRefs.current.modality = el; }}
+                className="rounded-xl border border-border"
+              >
                 <button
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
@@ -1614,7 +1672,10 @@ export const AgentConfigurationPanel: React.FC = () => {
                 )}
               </div>
 
-              <div className="rounded-xl border border-border">
+              <div
+                ref={(el) => { customizationSectionRefs.current.content = el; }}
+                className="rounded-xl border border-border"
+              >
                 <button
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
@@ -1649,7 +1710,10 @@ export const AgentConfigurationPanel: React.FC = () => {
                 )}
               </div>
 
-              <div className="rounded-xl border border-border">
+              <div
+                ref={(el) => { customizationSectionRefs.current.behavior = el; }}
+                className="rounded-xl border border-border"
+              >
                 <button
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"

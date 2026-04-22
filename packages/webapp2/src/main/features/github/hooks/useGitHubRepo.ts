@@ -3,6 +3,19 @@ import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 
+export type DeploymentTarget = 'webapp' | 'agent';
+type BackendDeploymentTarget = 'webapp' | 'chatbot';
+
+const toBackendDeploymentTarget = (target: DeploymentTarget): BackendDeploymentTarget => (
+  target === 'agent' ? 'chatbot' : 'webapp'
+);
+
+const fromBackendDeploymentTarget = (target: unknown): DeploymentTarget | undefined => {
+  if (target === 'chatbot') return 'agent';
+  if (target === 'webapp') return 'webapp';
+  return undefined;
+};
+
 export interface GitHubDeploymentUrls {
   github: string;
   render: string;
@@ -10,6 +23,7 @@ export interface GitHubDeploymentUrls {
   // suffix. Absent on a first deploy (no stable Render hostname yet).
   live_frontend?: string;
   live_backend?: string;
+  live_chatbot?: string;
   render_dashboard?: string;
 }
 
@@ -23,6 +37,8 @@ export interface GitHubRepoResult {
   deployment_urls: GitHubDeploymentUrls;
   // True on the very first deploy to a repo, false on subsequent redeploys.
   is_first_deploy: boolean;
+  // Deployment flavor returned by backend.
+  deployment_type?: DeploymentTarget;
 }
 
 export interface CreateRepoOptions {
@@ -30,6 +46,7 @@ export interface CreateRepoOptions {
   description: string;
   isPrivate: boolean;
   githubSession: string;
+  deploymentTarget?: DeploymentTarget;
 }
 
 /**
@@ -63,6 +80,7 @@ export const useGitHubRepo = () => {
             repo_name: options.repoName,
             description: options.description,
             is_private: options.isPrivate,
+            target: toBackendDeploymentTarget(options.deploymentTarget ?? 'webapp'),
           },
         };
 
@@ -94,6 +112,7 @@ export const useGitHubRepo = () => {
             render: `https://render.com/deploy?repo=${encodeURIComponent(result.repo_url)}`,
           },
           is_first_deploy: result.is_first_deploy ?? true,
+          deployment_type: fromBackendDeploymentTarget(result.deployment_type) ?? options.deploymentTarget ?? 'webapp',
         };
         
         setRepoResult(repoResult);

@@ -209,15 +209,21 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     useExistingRepo,
     linkedRepo,
     commitMessage,
+    deploymentTarget,
+    availableDeployTargets,
     isDeployingToRender,
     deploymentResult,
+    includePersonalization,
+    showPersonalizationOption,
     setIsDeployDialogOpen,
     setIsDeployResultOpen,
     setGithubRepoName,
     setGithubRepoDescription,
     setGithubRepoPrivate,
     setCommitMessage,
+    setIncludePersonalization,
     handleOpenDeployDialog,
+    handleDeploymentTargetChange,
     handlePublishToRender,
     handleCreateNewInstead,
   } = useDeployment({ currentProject, isDeploymentAvailable });
@@ -949,11 +955,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         useExistingRepo={useExistingRepo}
         linkedRepo={linkedRepo}
         commitMessage={commitMessage}
+        deploymentTarget={deploymentTarget}
+        availableTargets={availableDeployTargets}
+        includePersonalization={includePersonalization}
+        showPersonalizationOption={showPersonalizationOption}
         onOpenChange={setIsDeployDialogOpen}
+        onDeploymentTargetChange={handleDeploymentTargetChange}
         onRepoNameChange={setGithubRepoName}
         onRepoDescriptionChange={setGithubRepoDescription}
         onRepoPrivateChange={setGithubRepoPrivate}
         onCommitMessageChange={setCommitMessage}
+        onIncludePersonalizationChange={setIncludePersonalization}
         onCreateNewInstead={handleCreateNewInstead}
         onPublish={() => { handlePublishToRender().catch(console.error); }}
       />

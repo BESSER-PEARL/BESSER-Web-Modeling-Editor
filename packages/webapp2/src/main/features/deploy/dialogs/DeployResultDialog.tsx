@@ -19,23 +19,35 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
   // Redeploys reuse the existing render.yaml suffix so the live frontend URL
   // is stable. On a first deploy we still send the user through Render's
   // "Create Blueprint" flow since no services exist yet.
+  const deploymentType = deploymentResult?.deployment_type ?? 'webapp';
+  const isAgentDeployment = deploymentType === 'agent';
   const isRedeploy = deploymentResult?.is_first_deploy === false;
   const liveFrontend = deploymentResult?.deployment_urls.live_frontend;
+  const liveAgent = deploymentResult?.deployment_urls.live_chatbot;
   const renderUrl = deploymentResult?.deployment_urls.render;
-  const primaryUrl = isRedeploy && liveFrontend ? liveFrontend : renderUrl;
-  const primaryLabel = isRedeploy && liveFrontend ? 'Open Live App' : 'Open Render Deployment';
+  const liveTarget = isAgentDeployment ? liveAgent : liveFrontend;
+  const primaryUrl = isRedeploy && liveTarget ? liveTarget : renderUrl;
+  const primaryLabel = isRedeploy && liveTarget
+    ? (isAgentDeployment ? 'Open Live Agent' : 'Open Live App')
+    : 'Open Render Deployment';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
-            {isRedeploy ? 'Repository Updated Successfully' : 'Repository Created Successfully'}
+            {isRedeploy
+              ? (isAgentDeployment ? 'Agent Repository Updated' : 'Repository Updated Successfully')
+              : (isAgentDeployment ? 'Agent Repository Created' : 'Repository Created Successfully')}
           </DialogTitle>
           <DialogDescription>
             {isRedeploy
-              ? 'Your changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.'
-              : 'Continue with one-click Render deployment or inspect the generated repository.'}
+              ? (isAgentDeployment
+                ? 'Your agent changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.'
+                : 'Your changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.')
+              : (isAgentDeployment
+                ? 'Continue with one-click Render deployment for your standalone agent or inspect the generated repository.'
+                : 'Continue with one-click Render deployment or inspect the generated repository.')}
           </DialogDescription>
         </DialogHeader>
         {deploymentResult && (
@@ -52,7 +64,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
                 <p className="mt-1 text-xs">
                   Open your Blueprint on Render and click{' '}
                   <span className="font-semibold">Manual Sync</span>. That redeploys every
-                  service in the blueprint (backend, frontend, agents) from the latest commit in
+                  service in the blueprint{isAgentDeployment ? '' : ' (backend, frontend, agents)'} from the latest commit in
                   one click. Render&rsquo;s auto-deploy can miss pushes when the GitHub App
                   isn&rsquo;t granted access to the repo, so Manual Sync is the reliable path.
                 </p>
