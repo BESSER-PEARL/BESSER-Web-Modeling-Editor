@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseMultiplicity, toERCardinality } from '@besser/wme';
+import { parseMultiplicity, toERCardinality, erCardinalityToUML } from '@besser/wme';
 
 describe('parseMultiplicity', () => {
   it('parses range form "1..1"', () => {
@@ -76,5 +76,62 @@ describe('toERCardinality', () => {
   it('returns malformed input verbatim so user intent is preserved', () => {
     expect(toERCardinality('1..')).toBe('1..');
     expect(toERCardinality('1..2..3')).toBe('1..2..3');
+  });
+});
+
+describe('erCardinalityToUML', () => {
+  it('maps "(0,N)" to "0..*"', () => {
+    expect(erCardinalityToUML('(0,N)')).toBe('0..*');
+  });
+
+  it('maps "(1,N)" to "1..*"', () => {
+    expect(erCardinalityToUML('(1,N)')).toBe('1..*');
+  });
+
+  it('maps "(1,1)" to "1..1"', () => {
+    expect(erCardinalityToUML('(1,1)')).toBe('1..1');
+  });
+
+  it('maps "(2,5)" to "2..5"', () => {
+    expect(erCardinalityToUML('(2,5)')).toBe('2..5');
+  });
+
+  it('accepts lowercase "n" as max', () => {
+    expect(erCardinalityToUML('(0,n)')).toBe('0..*');
+  });
+
+  it('accepts literal "*" in the max position', () => {
+    expect(erCardinalityToUML('(1,*)')).toBe('1..*');
+  });
+
+  it('tolerates whitespace inside and around parentheses', () => {
+    expect(erCardinalityToUML('  (0, N)  ')).toBe('0..*');
+    expect(erCardinalityToUML('( 2 , 5 )')).toBe('2..5');
+  });
+
+  it('returns UML input unchanged (safe to apply unconditionally)', () => {
+    expect(erCardinalityToUML('1..*')).toBe('1..*');
+    expect(erCardinalityToUML('1..1')).toBe('1..1');
+    expect(erCardinalityToUML('*')).toBe('*');
+    expect(erCardinalityToUML('1')).toBe('1');
+  });
+
+  it('returns empty string for empty/undefined input', () => {
+    expect(erCardinalityToUML('')).toBe('');
+    expect(erCardinalityToUML(undefined)).toBe('');
+  });
+
+  it('returns malformed parenthesized input verbatim', () => {
+    expect(erCardinalityToUML('(1,)')).toBe('(1,)');
+    expect(erCardinalityToUML('(,N)')).toBe('(,N)');
+    expect(erCardinalityToUML('(1,2,3)')).toBe('(1,2,3)');
+    expect(erCardinalityToUML('(1')).toBe('(1');
+  });
+
+  it('is the inverse of toERCardinality for canonical inputs', () => {
+    const canonicalUMLInputs = ['0..*', '1..*', '1..1', '2..5'];
+    for (const uml of canonicalUMLInputs) {
+      expect(erCardinalityToUML(toERCardinality(uml))).toBe(uml);
+    }
   });
 });

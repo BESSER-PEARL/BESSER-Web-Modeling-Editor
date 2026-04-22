@@ -33,3 +33,27 @@ export const toERCardinality = (multiplicity: string | undefined): string => {
   const max = parsed.max === '*' ? 'N' : parsed.max;
   return `(${parsed.min},${max})`;
 };
+
+/**
+ * Inverse of toERCardinality: normalize an ER-style "(min,max)" input to
+ * the UML storage form. "(0,N)" -> "0..*", "(1,1)" -> "1..1", "(2,5)" ->
+ * "2..5". "N"/"n" in the max position map to "*". Input that is not wrapped
+ * in parentheses is assumed to already be UML form and returned unchanged —
+ * the function is safe to call on every multiplicity value regardless of
+ * which syntax the user typed.
+ */
+export const erCardinalityToUML = (value: string | undefined): string => {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('(') || !trimmed.endsWith(')')) {
+    return value;
+  }
+  const inner = trimmed.slice(1, -1);
+  const parts = inner.split(',');
+  if (parts.length !== 2) return value;
+  const min = parts[0].trim();
+  const rawMax = parts[1].trim();
+  if (!min || !rawMax) return value;
+  const max = /^n$/i.test(rawMax) ? '*' : rawMax;
+  return `${min}..${max}`;
+};
