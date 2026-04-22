@@ -164,7 +164,8 @@ export const updatable = (
     /**
      * Show the update dialog of the wrapped element
      */
-    private onStartUpdate = () => {
+    private onStartUpdate = (event?: Event) => {
+      event?.stopPropagation();
       this.props.updateStart(this.props.id);
     };
 

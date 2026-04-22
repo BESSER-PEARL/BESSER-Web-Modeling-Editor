@@ -11,6 +11,7 @@ import { useExportPNG } from './useExportPng';
 import { useExportSVG } from './useExportSvg';
 import { useExportBUML } from './useExportBuml';
 import { useExportJSON } from './useExportJson';
+import { useExportBpmnXml } from './useExportBpmnXml';
 import { exportProjectById } from './useExportProjectJSON';
 import { exportProjectAsSingleBUMLFile } from './useExportProjectBUML';
 import { useAppSelector } from '../../app/store/hooks';
@@ -23,7 +24,7 @@ interface ExportDialogProps {
   currentDiagramTitle: string;
 }
 
-type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML';
+type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML' | 'BPMN_XML';
 
 const diagramLabels: Record<SupportedDiagramType, string> = {
   ClassDiagram: 'Class Diagram',
@@ -44,6 +45,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   const exportAsPNG = useExportPNG();
   const exportAsBUML = useExportBUML();
   const exportAsJSON = useExportJSON();
+  const exportAsBpmnXml = useExportBpmnXml();
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
   const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
 
@@ -86,7 +88,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
   const handleExport = async (format: ExportFormat) => {
     const isImageExport = format === 'SVG' || format === 'PNG' || format === 'PNG_WHITE';
-    const isSingleDiagramExport = format === 'SINGLE_JSON' || format === 'SINGLE_BUML';
+    const isSingleDiagramExport = format === 'SINGLE_JSON' || format === 'SINGLE_BUML' || format === 'BPMN_XML';
     const normalizedTitle = currentDiagramTitle.trim() || 'Diagram';
 
     if ((isImageExport || isSingleDiagramExport) && !editor) {
@@ -132,6 +134,8 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
         await exportAsBUML(editor!, normalizedTitle, refData);
       } else if (format === 'SINGLE_JSON') {
         if (diagram) exportAsJSON(editor!, diagram as any);
+      } else if (format === 'BPMN_XML') {
+        exportAsBpmnXml(editor!, normalizedTitle);
       }
 
       onOpenChange(false);
@@ -232,6 +236,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <FileCode2 className="size-4" />
                 Export Diagram as B-UML
               </Button>
+              {editor?.model?.type === 'BPMN' && (
+                <Button variant="outline" onClick={() => handleExport('BPMN_XML')} className="justify-start gap-2 border-border/50">
+                  <FileCode2 className="size-4" />
+                  Export as BPMN 2.0 XML
+                </Button>
+              )}
             </div>
 
             {!editor && (

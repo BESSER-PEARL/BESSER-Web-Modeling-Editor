@@ -1,7 +1,7 @@
 import React, { FunctionComponent, SVGProps } from 'react';
 import { Point } from '../../../utils/geometry/point';
 import { BPMNFlow } from './bpmn-flow';
-import { ThemedCircle, ThemedPath, ThemedPolyline } from '../../../components/theme/themedComponents';
+import { ThemedCircle, ThemedPath, ThemedPathContrast, ThemedPolyline } from '../../../components/theme/themedComponents';
 
 export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
   let position = { x: 0, y: 0 };
@@ -72,10 +72,11 @@ export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
           orient="auto"
           markerUnits="strokeWidth"
         >
-          <ThemedPath
+          <ThemedPathContrast
             d={`M0,0 L10,5 L0,10, L0,0 z`}
             fillRule="evenodd"
-            fillColor="strokeColor"
+            fillColor={element.strokeColor}
+            strokeColor={element.strokeColor}
             strokeLinejoin="round"
           />
         </marker>
