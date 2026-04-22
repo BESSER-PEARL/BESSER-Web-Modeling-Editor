@@ -38,7 +38,10 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 
-import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
+import type {
+  Message as ChatKitMessage,
+  SmartGenMessageState,
+} from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { BesserProject } from '../../../shared/types/project';
 import { smartGenDownloadUrl } from '../../../shared/constants/constant';
@@ -191,47 +194,34 @@ export function useSmartGenTrigger(
     [setMessages],
   );
 
-  // Per-message bookkeeping so we can cleanly separate "line" events
-  // (phase / tool_call / warning) from "delta" events (LLM text stream).
-  // Without this, the first text delta that arrives after a tool_call
-  // line gets concatenated directly — producing artefacts like
-  // ``🔧 turn 8: write_fileI've set up a basic Flask project…`` where
-  // the LLM's prose bleeds into the tool-call label.
-  const lastAppendModeRef = useRef<Record<string, 'line' | 'delta'>>({});
+  // Initial structured state for a fresh smart-gen run. Stored on the
+  // streaming message under ``smartGen`` and rendered as a card by
+  // ``ChatMessage``.
+  const emptySmartGen = (): SmartGenMessageState => ({
+    phases: [],
+    warnings: [],
+    text: '',
+    status: 'running',
+  });
 
-  const appendLineToMessage = useCallback(
-    (messageId: string, line: string) => {
+  const updateSmartGen = useCallback(
+    (
+      messageId: string,
+      updater: (s: SmartGenMessageState) => SmartGenMessageState,
+      opts: { stopStreaming?: boolean } = {},
+    ) => {
       setMessages((prev) => {
         const idx = prev.findIndex((m) => m.id === messageId);
         if (idx === -1) return prev;
-        const updated = { ...prev[idx] };
-        const body = typeof updated.content === 'string' ? updated.content : '';
-        updated.content = body ? `${body}\n${line}` : line;
-        updated.isStreaming = true;
+        const current = prev[idx];
+        const before = current.smartGen ?? emptySmartGen();
+        const updated: ChatKitMessage = {
+          ...current,
+          smartGen: updater(before),
+          isStreaming: opts.stopStreaming ? false : true,
+        };
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
       });
-      lastAppendModeRef.current[messageId] = 'line';
-    },
-    [setMessages],
-  );
-
-  const appendDeltaToMessage = useCallback(
-    (messageId: string, delta: string) => {
-      const previousMode = lastAppendModeRef.current[messageId];
-      // First delta after a line-event — insert a blank line so the
-      // LLM's prose starts on its own paragraph instead of glueing onto
-      // the last ``🔧 turn N: tool`` label.
-      const separator = previousMode === 'line' ? '\n\n' : '';
-      setMessages((prev) => {
-        const idx = prev.findIndex((m) => m.id === messageId);
-        if (idx === -1) return prev;
-        const updated = { ...prev[idx] };
-        const body = typeof updated.content === 'string' ? updated.content : '';
-        updated.content = body + separator + delta;
-        updated.isStreaming = true;
-        return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
-      });
-      lastAppendModeRef.current[messageId] = 'delta';
     },
     [setMessages],
   );
@@ -241,7 +231,21 @@ export function useSmartGenTrigger(
       setMessages((prev) => {
         const idx = prev.findIndex((m) => m.id === messageId);
         if (idx === -1) return prev;
-        const updated = { ...prev[idx], isStreaming: false };
+        const current = prev[idx];
+        const updated: ChatKitMessage = {
+          ...current,
+          isStreaming: false,
+          smartGen: current.smartGen
+            ? {
+                ...current.smartGen,
+                // Only flip to 'done' if not already 'error' — error is
+                // terminal and shouldn't be overwritten by a finalize call
+                // that comes from the natural end of the stream.
+                status:
+                  current.smartGen.status === 'error' ? 'error' : 'done',
+              }
+            : current.smartGen,
+        };
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
       });
     },
@@ -342,35 +346,78 @@ export function useSmartGenTrigger(
             console.warn('[useSmartGenTrigger] start event with invalid provider', event);
           }
           dispatch(beginRun({ runId: event.runId }));
-          appendLineToMessage(
-            streamingId,
-            `▸ Run ${event.runId.slice(0, 8)}… provider=${event.provider} model=${event.llmModel}`,
-          );
+          updateSmartGen(streamingId, (s) => ({
+            ...s,
+            runId: event.runId,
+            provider: event.provider,
+            model: event.llmModel,
+          }));
           return;
         }
         case 'phase': {
           if (!isValidPhase(event.phase)) {
             console.warn('[useSmartGenTrigger] phase event with unknown phase', event);
-            // Render the raw text rather than the mapped label so dev
-            // visibility is preserved.
-            appendLineToMessage(streamingId, `[${String(event.phase)}] ${event.message}`);
+            updateSmartGen(streamingId, (s) => ({
+              ...s,
+              phases: [
+                ...s.phases,
+                {
+                  phase: String(event.phase),
+                  label: String(event.phase),
+                  message: event.message,
+                  toolCalls: [],
+                },
+              ],
+            }));
             return;
           }
           dispatch(updatePhase(event.phase));
           const label = PHASE_LABELS[event.phase];
-          appendLineToMessage(streamingId, `[${event.phase}] ${label}: ${event.message}`);
+          updateSmartGen(streamingId, (s) => ({
+            ...s,
+            phases: [
+              ...s.phases,
+              {
+                phase: event.phase,
+                label,
+                message: event.message,
+                toolCalls: [],
+              },
+            ],
+          }));
           return;
         }
         case 'tool_call': {
-          const tail = event.summary ? ` — ${event.summary}` : '';
-          appendLineToMessage(
-            streamingId,
-            `🔧 turn ${event.turn}: ${event.tool}${tail}`,
-          );
+          updateSmartGen(streamingId, (s) => {
+            const phases = [...s.phases];
+            // If a tool call arrives before any phase event, attach it to
+            // an implicit "Working" phase so the row still has a home in
+            // the timeline rather than disappearing.
+            if (phases.length === 0) {
+              phases.push({
+                phase: 'working',
+                label: 'Working',
+                message: '',
+                toolCalls: [],
+              });
+            }
+            const last = phases[phases.length - 1];
+            phases[phases.length - 1] = {
+              ...last,
+              toolCalls: [
+                ...last.toolCalls,
+                { turn: event.turn, tool: event.tool, summary: event.summary },
+              ],
+            };
+            return { ...s, phases };
+          });
           return;
         }
         case 'text': {
-          appendDeltaToMessage(streamingId, event.delta);
+          updateSmartGen(streamingId, (s) => ({
+            ...s,
+            text: s.text + event.delta,
+          }));
           return;
         }
         case 'cost': {
@@ -423,7 +470,13 @@ export function useSmartGenTrigger(
             // Warning — stream continues; the `done` event will follow.
             // But if the backend hangs and never sends `done`, the
             // failsafe timer finalises the run ourselves after 45s.
-            appendLineToMessage(streamingId, `⚠ ${event.code}: ${event.message}`);
+            updateSmartGen(streamingId, (s) => ({
+              ...s,
+              warnings: [
+                ...s.warnings,
+                { code: event.code, message: event.message },
+              ],
+            }));
             if (failsafeTimerRef.current === null) {
               failsafeTimerRef.current = setTimeout(() => {
                 if (!isRunningRef.current || abortRequestedRef.current) return;
@@ -444,7 +497,21 @@ export function useSmartGenTrigger(
             dispatch(setApiKeyPresent(false));
           }
           clearFailsafeTimer();
-          finalizeStreamingMessage(streamingId);
+          // Mark the streaming card as terminally errored before flipping
+          // ``isStreaming`` off — the card's status pill becomes red so the
+          // user can see the run failed without scrolling to the toast.
+          updateSmartGen(
+            streamingId,
+            (s) => ({
+              ...s,
+              status: 'error',
+              warnings: [
+                ...s.warnings,
+                { code: event.code, message: event.message },
+              ],
+            }),
+            { stopStreaming: true },
+          );
           appendErrorToChat(
             `❌ Smart Generator error (${event.code}): ${event.message}`,
           );
@@ -467,13 +534,12 @@ export function useSmartGenTrigger(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       appendAssistantMessage,
-      appendDeltaToMessage,
       appendErrorToChat,
-      appendLineToMessage,
       clearFailsafeTimer,
       dispatch,
       fetchAndSaveDownload,
       finalizeStreamingMessage,
+      updateSmartGen,
     ],
   );
 

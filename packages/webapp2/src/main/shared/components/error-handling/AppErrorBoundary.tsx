@@ -29,24 +29,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('[ErrorBoundary] Uncaught error:', error, errorInfo);
-
-    // Auto-recovery: if this is the first crash this session, clear stale
-    // localStorage and reload. The sessionStorage guard prevents loops.
-    const GUARD = 'besser_crash_recovery';
-    if (sessionStorage.getItem(GUARD) !== 'recovered') {
-      sessionStorage.setItem(GUARD, 'recovered');
-      const keys: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k?.startsWith('besser_')) keys.push(k);
-      }
-      keys.forEach((k) => localStorage.removeItem(k));
-      ['latestDiagram', 'agentConfig', 'agentPersonalization', 'github_session',
-       'github_username', 'last_published_token', 'last_published_type',
-       'umlAgentRateLimiterState'].forEach((k) => localStorage.removeItem(k));
-      window.location.reload();
-    }
   }
+
+  private handleResetAndReload = (): void => {
+    // Opt-in recovery for genuinely-corrupted storage. Wipes besser_* keys
+    // and known legacy keys, then reloads. Triggered only by the user
+    // clicking the "Reset and reload" button in the fallback UI — never
+    // automatically, because that silently destroys the user's project.
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k?.startsWith('besser_')) keys.push(k);
+    }
+    keys.forEach((k) => localStorage.removeItem(k));
+    ['latestDiagram', 'agentConfig', 'agentPersonalization', 'github_session',
+     'github_username', 'last_published_token', 'last_published_type',
+     'umlAgentRateLimiterState'].forEach((k) => localStorage.removeItem(k));
+    window.location.reload();
+  };
 
   private handleReload = (): void => {
     window.location.reload();
@@ -74,13 +74,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </pre>
             )}
 
-            <button
-              onClick={this.handleReload}
-              className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
-            >
-              <RefreshCw className="size-4" />
-              Reload
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={this.handleReload}
+                className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"
+              >
+                <RefreshCw className="size-4" />
+                Reload
+              </button>
+              <button
+                onClick={this.handleResetAndReload}
+                className="text-xs text-slate-500 underline-offset-2 hover:text-red-600 hover:underline dark:text-slate-400 dark:hover:text-red-400"
+              >
+                Reset local data and reload (deletes your projects)
+              </button>
+            </div>
           </div>
         </div>
       );

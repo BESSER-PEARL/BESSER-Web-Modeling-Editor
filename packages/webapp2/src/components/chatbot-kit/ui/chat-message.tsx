@@ -1,7 +1,18 @@
 import React, { useMemo, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { motion } from "framer-motion"
-import { Ban, ChevronRight, Code2, Loader2, Terminal } from "lucide-react"
+import {
+  AlertTriangle,
+  Ban,
+  CheckCircle2,
+  ChevronRight,
+  Code2,
+  Loader2,
+  Sparkles,
+  Terminal,
+  Wrench,
+  XCircle,
+} from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
@@ -125,6 +136,34 @@ type MessagePart =
   | FilePart
   | StepStartPart
 
+export interface SmartGenToolCallView {
+  turn: number
+  tool: string
+  summary?: string | null
+}
+
+export interface SmartGenPhaseView {
+  phase: string
+  label: string
+  message: string
+  toolCalls: SmartGenToolCallView[]
+}
+
+export interface SmartGenWarningView {
+  code: string
+  message: string
+}
+
+export interface SmartGenMessageState {
+  runId?: string
+  provider?: string
+  model?: string
+  phases: SmartGenPhaseView[]
+  warnings: SmartGenWarningView[]
+  text: string
+  status: "running" | "done" | "error"
+}
+
 export interface Message {
   id: string
   role: "user" | "assistant" | (string & {})
@@ -145,6 +184,8 @@ export interface Message {
   isStreaming?: boolean
   /** The injection action type, if the message was the result of an injection. */
   injectionType?: string
+  /** Structured smart-generator run state, rendered as a card. */
+  smartGen?: SmartGenMessageState
 }
 
 export interface ChatMessageProps extends Message {
@@ -236,6 +277,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     isError,
     isStreaming,
     injectionType,
+    smartGen,
   } = props
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -396,6 +438,29 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     )
   }
 
+  /* ---- Smart Generator: structured run card ---- */
+  if (smartGen) {
+    return (
+      <div className="flex w-full flex-col items-start sm:max-w-[85%]">
+        <SmartGenCard
+          smartGen={smartGen}
+          isStreaming={isStreaming === true}
+        />
+        {showTimeStamp && createdAt ? (
+          <time
+            dateTime={createdAt.toISOString()}
+            className={cn(
+              "mt-1 block px-1 text-xs opacity-50",
+              animation !== "none" && "duration-500 animate-in fade-in-0"
+            )}
+          >
+            {formattedTime}
+          </time>
+        ) : null}
+      </div>
+    )
+  }
+
   /* ---- Default assistant / fallback message ---- */
   return (
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
@@ -472,6 +537,146 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
           </motion.div>
         </CollapsibleContent>
       </Collapsible>
+    </div>
+  )
+}
+
+function SmartGenStatusPill({ status }: { status: SmartGenMessageState["status"] }) {
+  if (status === "running") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
+        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+        Running
+      </span>
+    )
+  }
+  if (status === "done") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 className="h-2.5 w-2.5" />
+        Done
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+      <XCircle className="h-2.5 w-2.5" />
+      Error
+    </span>
+  )
+}
+
+function SmartGenCard({
+  smartGen,
+  isStreaming,
+}: {
+  smartGen: SmartGenMessageState
+  isStreaming: boolean
+}) {
+  const { runId, provider, model, phases, warnings, text, status } = smartGen
+  return (
+    <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/60 px-3 py-2 text-xs">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <span className="font-medium text-foreground">Smart Generator</span>
+        {runId ? (
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {runId.slice(0, 8)}…
+          </span>
+        ) : null}
+        {provider ? (
+          <span className="text-muted-foreground">
+            • {provider}
+            {model ? ` / ${model}` : ""}
+          </span>
+        ) : null}
+        <span className="ml-auto">
+          <SmartGenStatusPill status={status} />
+        </span>
+      </div>
+
+      {/* Phases timeline */}
+      {phases.length > 0 ? (
+        <ol className="flex flex-col">
+          {phases.map((phase, i) => {
+            const isLast = i === phases.length - 1
+            const isActivePhase = isLast && status === "running"
+            return (
+              <li
+                key={`${phase.phase}-${i}`}
+                className="border-b border-border/40 last:border-b-0"
+              >
+                <div className="flex items-baseline gap-2 px-3 py-1.5">
+                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {phase.phase}
+                  </span>
+                  <span className="text-[13px] font-medium text-foreground">
+                    {phase.label}
+                  </span>
+                  {phase.message && phase.message !== phase.label ? (
+                    <span className="truncate text-xs text-muted-foreground">
+                      — {phase.message}
+                    </span>
+                  ) : null}
+                  {isActivePhase ? (
+                    <Loader2 className="ml-1 h-3 w-3 animate-spin text-primary" />
+                  ) : null}
+                </div>
+                {phase.toolCalls.length > 0 ? (
+                  <ul className="flex flex-col gap-0.5 px-3 pb-2 pl-6">
+                    {phase.toolCalls.map((tc, j) => (
+                      <li
+                        key={`${tc.turn}-${tc.tool}-${j}`}
+                        className="flex items-center gap-2 text-xs text-muted-foreground"
+                      >
+                        <Wrench className="h-3 w-3 shrink-0 text-primary/60" />
+                        <span className="font-mono text-foreground">
+                          {tc.tool}
+                        </span>
+                        <span className="text-[10px] opacity-60">
+                          turn {tc.turn}
+                        </span>
+                        {tc.summary ? (
+                          <span className="truncate">— {tc.summary}</span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            )
+          })}
+        </ol>
+      ) : (
+        <div className="px-3 py-2 text-xs text-muted-foreground">
+          Waiting for the first event…
+        </div>
+      )}
+
+      {/* Warnings */}
+      {warnings.length > 0 ? (
+        <div className="flex flex-col gap-1 border-t border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/30 dark:bg-amber-950/20">
+          {warnings.map((w, i) => (
+            <div
+              key={`${w.code}-${i}`}
+              className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200"
+            >
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+              <span className="font-mono">{w.code}</span>
+              <span className="break-words">— {w.message}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* LLM prose */}
+      {text ? (
+        <div className="border-t border-border/60 bg-background/40 px-3 py-2">
+          <MarkdownRenderer>{text}</MarkdownRenderer>
+          {isStreaming ? <StreamingCursor /> : null}
+        </div>
+      ) : null}
     </div>
   )
 }
