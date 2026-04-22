@@ -139,7 +139,9 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     if (!project) throw new Error('No active project');
 
     const supportedType =
-      diagramType === 'QuantumCircuitDiagram' || diagramType === 'GUINoCodeDiagram'
+      diagramType === 'QuantumCircuitDiagram' ||
+      diagramType === 'GUINoCodeDiagram' ||
+      diagramType === 'KnowledgeGraphDiagram'
         ? (diagramType as SupportedDiagramType)
         : toSupportedDiagramType(diagramType as UMLDiagramType);
 

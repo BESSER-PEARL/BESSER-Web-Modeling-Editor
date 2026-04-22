@@ -1,12 +1,12 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 // Supported diagram types in projects
-export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
+export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'KnowledgeGraphDiagram' | 'QuantumCircuitDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
 export const PROJECT_SCHEMA_VERSION = 3;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram',
+  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'KnowledgeGraphDiagram', 'QuantumCircuitDiagram',
 ];
 
 // GrapesJS project data structure
@@ -18,7 +18,7 @@ export interface GrapesJSProjectData {
   version: string;
 }
 
-// Quantum Circuit data structure 
+// Quantum Circuit data structure
 export interface QuantumCircuitData {
   cols: any[][]; // Each column is an array where 1 = empty, strings = gate symbols
   gates: any[]; // Custom gates (optional)
@@ -27,11 +27,84 @@ export interface QuantumCircuitData {
   version?: string;
 }
 
+// Knowledge Graph data structure (rendered with Cytoscape.js)
+export type KGNodeType = 'class' | 'individual' | 'property' | 'literal' | 'blank';
+
+export interface KGNodeData {
+  id: string;
+  nodeType: KGNodeType;
+  label: string;
+  iri?: string;
+  value?: string;      // for literals
+  datatype?: string;   // for literals
+  position?: { x: number; y: number };
+}
+
+export interface KGEdgeData {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  iri?: string;
+}
+
+export type KnowledgeGraphLayout = 'concentric' | 'fcose' | 'grid';
+
+export interface KnowledgeGraphSettings {
+  /** Soft limit: on import / fresh load, this many nodes are auto-shown.
+   *  Users can enable more via the node list or palette drop (up to the
+   *  hard limit). Undefined means "use the default (50)". */
+  softLimit?: number;
+  /** Hard limit: a node cannot be made visible if it would push the
+   *  visible count past this. Undefined means "use the default (100)". */
+  hardLimit?: number;
+  /** Layout algorithm for the initial / after-layout-change arrangement.
+   *  Once run, positions are persisted in `nodes[i].position` and the
+   *  layout does not rerun unless the user picks a different one here. */
+  layout?: KnowledgeGraphLayout;
+  /** The exact set of node ids currently visualized on the canvas. Persisted
+   *  so the selection survives navigating away and back to the editor.
+   *  Fresh imports (no value here) fall back to the soft-limit seed. */
+  visibleIds?: string[];
+  /** @deprecated Legacy field from the first settings revision. Still read
+   *  as a fallback for `softLimit` on projects saved before the two-limit
+   *  rework; never written. */
+  maxVisibleNodes?: number;
+}
+
+export interface KnowledgeGraphData {
+  type?: 'KnowledgeGraphDiagram';
+  version: string;
+  nodes: KGNodeData[];
+  edges: KGEdgeData[];
+  settings?: KnowledgeGraphSettings;
+}
+
+export const DEFAULT_KG_SOFT_LIMIT = 50;
+export const DEFAULT_KG_HARD_LIMIT = 100;
+export const DEFAULT_KG_LAYOUT: KnowledgeGraphLayout = 'concentric';
+/** @deprecated use DEFAULT_KG_SOFT_LIMIT */
+export const DEFAULT_KG_MAX_VISIBLE_NODES = DEFAULT_KG_SOFT_LIMIT;
+
+export function getKgSoftLimit(settings?: KnowledgeGraphSettings): number {
+  return settings?.softLimit ?? settings?.maxVisibleNodes ?? DEFAULT_KG_SOFT_LIMIT;
+}
+
+export function getKgHardLimit(settings?: KnowledgeGraphSettings): number {
+  return settings?.hardLimit ?? DEFAULT_KG_HARD_LIMIT;
+}
+
+export function getKgLayout(settings?: KnowledgeGraphSettings): KnowledgeGraphLayout {
+  const l = settings?.layout;
+  if (l === 'concentric' || l === 'fcose' || l === 'grid') return l;
+  return DEFAULT_KG_LAYOUT;
+}
+
 // Diagram structure within a project
 export interface ProjectDiagram {
   id: string;
   title: string;
-  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
+  model?: UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
   lastUpdate: string;
   description?: string;
   config?: Record<string, unknown>;  // agent LLM/platform/IC config
@@ -40,7 +113,7 @@ export interface ProjectDiagram {
   references?: Partial<Record<SupportedDiagramType, string>>;
 }
 
-export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData;
+export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData | KnowledgeGraphData;
 
 // New centralized project structure
 export interface BesserProject {
@@ -59,6 +132,7 @@ export interface BesserProject {
     StateMachineDiagram: ProjectDiagram[];
     AgentDiagram: ProjectDiagram[];
     GUINoCodeDiagram: ProjectDiagram[];
+    KnowledgeGraphDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
   };
   settings: {
@@ -112,6 +186,7 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   StateMachineDiagram: 0,
   AgentDiagram: 0,
   GUINoCodeDiagram: 0,
+  KnowledgeGraphDiagram: 0,
   QuantumCircuitDiagram: 0,
 });
 
@@ -133,7 +208,7 @@ export const migrateProjectToV2 = (project: any): BesserProject => {
     } else if (!value) {
       // Create empty diagram for missing types
       const umlType = toUMLDiagramType(type);
-      const kind = type === 'GUINoCodeDiagram' ? 'gui' : type === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+      const kind = type === 'GUINoCodeDiagram' ? 'gui' : type === 'QuantumCircuitDiagram' ? 'quantum' : type === 'KnowledgeGraphDiagram' ? 'kg' : undefined;
       migrated.diagrams[type] = [createEmptyDiagram(type.replace('Diagram', ' Diagram'), umlType, kind)];
     }
   }
@@ -172,6 +247,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
     case 'QuantumCircuitDiagram':
       return null; // QuantumCircuitDiagram doesn't have a UML diagram type
+    case 'KnowledgeGraphDiagram':
+      return null; // KnowledgeGraphDiagram doesn't have a UML diagram type
     default:
       return null;
   }
@@ -192,7 +269,7 @@ const generateUUID = (): string => {
 };
 
 // Default diagram factory
-export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
+export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum' | 'kg'): ProjectDiagram => {
   // For Quantum Circuit diagram
   if (diagramKind === 'quantum') {
     return {
@@ -205,6 +282,21 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
         initialStates: [],
         version: '1.0.0'
       } as QuantumCircuitData,
+      lastUpdate: new Date().toISOString(),
+    };
+  }
+
+  // For Knowledge Graph diagram (Cytoscape-backed)
+  if (diagramKind === 'kg') {
+    return {
+      id: generateUUID(),
+      title,
+      model: {
+        type: 'KnowledgeGraphDiagram',
+        version: '1.0.0',
+        nodes: [],
+        edges: [],
+      } as KnowledgeGraphData,
       lastUpdate: new Date().toISOString(),
     };
   }
@@ -328,6 +420,7 @@ export const createDefaultProject = (
       StateMachineDiagram: [createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram)],
       AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
+      KnowledgeGraphDiagram: [createEmptyDiagram('Knowledge Graph', null, 'kg')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
     },
     settings: {
@@ -348,13 +441,15 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
+  // KnowledgeGraphDiagram and QuantumCircuitDiagram are back-filled by
+  // ensureProjectMigrated when missing, so only the original core types are
+  // required here (prevents older projects from being rejected after upgrade).
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
-    obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram;
+    obj.diagrams.GUINoCodeDiagram;
 
   return !!hasRequiredDiagrams;
 };
@@ -364,6 +459,16 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
+  }
+
+  // Add KnowledgeGraphDiagram if missing
+  if (!obj.diagrams.KnowledgeGraphDiagram) {
+    obj.diagrams.KnowledgeGraphDiagram = [createEmptyDiagram('Knowledge Graph', null, 'kg')];
+  }
+
+  // Back-fill missing entry in currentDiagramIndices
+  if (obj.currentDiagramIndices && (obj.currentDiagramIndices as any).KnowledgeGraphDiagram == null) {
+    obj.currentDiagramIndices = { ...obj.currentDiagramIndices, KnowledgeGraphDiagram: 0 };
   }
 
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)
@@ -477,6 +582,14 @@ export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitDat
   return Array.isArray(candidate.cols);
 };
 
+export const isKnowledgeGraphData = (model: unknown): model is KnowledgeGraphData => {
+  if (!model || typeof model !== 'object') {
+    return false;
+  }
+  const candidate = model as any;
+  return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
+};
+
 
 /** Check whether a single diagram has meaningful content (non-empty model). */
 export function diagramHasContent(diagram: ProjectDiagram): boolean {
@@ -500,6 +613,10 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
 
   if (isQuantumCircuitData(model)) {
     return Array.isArray(model.cols) && model.cols.length > 0;
+  }
+
+  if (isKnowledgeGraphData(model)) {
+    return model.nodes.length > 0 || model.edges.length > 0;
   }
 
   return false;

@@ -17,6 +17,9 @@ const GraphicalUIEditor = React.lazy(() =>
 const QuantumEditorComponent = React.lazy(() =>
   import('./quantum/QuantumEditorComponent').then((m) => ({ default: m.QuantumEditorComponent })),
 );
+const KnowledgeGraphEditor = React.lazy(() =>
+  import('./kg').then((m) => ({ default: m.KnowledgeGraphEditor })),
+);
 
 export const EditorView: React.FC = () => {
   const activeDiagramType = useAppSelector(selectActiveDiagramType);
@@ -42,6 +45,16 @@ export const EditorView: React.FC = () => {
       <EditorErrorBoundary>
         <Suspense fallback={<SuspenseFallback message="Loading quantum editor..." />}>
           <QuantumEditorComponent key={`quantum-${activeDiagramIndex}`} />
+        </Suspense>
+      </EditorErrorBoundary>
+    );
+  }
+
+  if (activeDiagramType === 'KnowledgeGraphDiagram') {
+    return (
+      <EditorErrorBoundary>
+        <Suspense fallback={<SuspenseFallback message="Loading knowledge graph editor..." />}>
+          <KnowledgeGraphEditor key={`kg-${activeDiagramIndex}`} />
         </Suspense>
       </EditorErrorBoundary>
     );

@@ -23,6 +23,7 @@ export interface WorkspaceTopBarProps {
   onImportSingleDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
+  onImportOwl: () => void;
   onOpenProjectPreview: () => void;
   onGenerate: (type: GeneratorType) => void;
   onQualityCheck: () => void;

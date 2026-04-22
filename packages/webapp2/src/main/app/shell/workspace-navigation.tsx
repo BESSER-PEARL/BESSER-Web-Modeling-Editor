@@ -11,6 +11,7 @@ import {
   PanelLeftOpen,
   Repeat2,
   Settings,
+  Share2,
   SlidersHorizontal,
 } from 'lucide-react';
 import { SHOW_AGENT_PERSONALIZATION_BUTTON } from '../../shared/constants/constant';
@@ -43,6 +44,10 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     generators: ['qiskit'],
     label: '1 generator',
   },
+  KnowledgeGraphDiagram: {
+    generators: [],
+    label: 'Visual only',
+  },
 };
 
 // Re-export for backwards compatibility
@@ -71,6 +76,7 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React
 
 export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; icon: React.ReactNode }> = [
   { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PanelsTopLeft className="size-4" /> },
+  { type: 'KnowledgeGraphDiagram', label: 'KG', icon: <Share2 className="size-4" /> },
   { type: 'QuantumCircuitDiagram', label: 'Quantum', icon: <Atom className="size-4" /> },
 ];
 
@@ -84,6 +90,10 @@ const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
 export const AGENT_ROUTE_ITEMS = [
   { path: '/agent-config', label: 'Agent Config', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
+] as const;
+
+export const KG_ROUTE_ITEMS = [
+  { path: '/kg-settings', label: 'KG Settings', icon: <SlidersHorizontal className="size-4" /> },
 ] as const;
 
 export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', icon: <Settings className="size-4" /> }] as const;

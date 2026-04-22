@@ -13,27 +13,33 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+import type { SupportedDiagramType } from '../../../shared/types/project';
+
 interface FileMenuProps {
   outlineButtonClass: string;
   hasProject: boolean;
+  activeDiagramType: SupportedDiagramType;
   onOpenProjectHub: () => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onImportSingleDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
+  onImportOwl: () => void;
   onOpenProjectPreview: () => void;
 }
 
 export const FileMenu: React.FC<FileMenuProps> = ({
   outlineButtonClass,
   hasProject,
+  activeDiagramType,
   onOpenProjectHub,
   onOpenTemplateDialog,
   onExportProject,
   onImportSingleDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
+  onImportOwl,
   onOpenProjectPreview,
 }) => {
   return (
@@ -62,6 +68,11 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             <DropdownMenuItem onClick={onOpenAssistantImportKg}>KG to Project</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        {activeDiagramType === 'KnowledgeGraphDiagram' && (
+          <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
+            Import KG (OWL)
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
           Preview Project
         </DropdownMenuItem>

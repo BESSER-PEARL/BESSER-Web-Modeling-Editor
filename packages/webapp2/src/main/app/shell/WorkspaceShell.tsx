@@ -32,6 +32,7 @@ import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDi
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
+import { useImportOwlToKg } from '../../features/import/useImportOwlToKg';
 import { useProjectPreview } from './hooks/useProjectPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
@@ -181,6 +182,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     handleAssistantImport,
   } = useAssistantImport({ currentProject });
 
+  const { openPickerAndImport: openImportOwlPicker } = useImportOwlToKg();
+
   const {
     isProjectPreviewOpen,
     projectPreviewJson,
@@ -327,7 +330,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       navigate('/');
     }
     // Don't skip the switch when the active UML type already matches AND we're on /
-    if (location.pathname === '/' && activeUmlType === type && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram') {
+    if (
+      location.pathname === '/' &&
+      activeUmlType === type &&
+      currentDiagramType !== 'GUINoCodeDiagram' &&
+      currentDiagramType !== 'QuantumCircuitDiagram' &&
+      currentDiagramType !== 'KnowledgeGraphDiagram'
+    ) {
       return;
     }
     switchDiagramType(type);
@@ -463,6 +472,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onImportSingleDiagram={handleImportSingleDiagram}
         onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
+        onImportOwl={openImportOwlPicker}
         onOpenProjectPreview={handleOpenProjectPreview}
         onGenerate={onGenerate}
         onQualityCheck={onQualityCheck}

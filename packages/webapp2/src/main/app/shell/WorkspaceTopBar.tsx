@@ -31,6 +31,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onImportSingleDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
+  onImportOwl,
   onOpenProjectPreview,
   onGenerate,
   onQualityCheck,
@@ -92,12 +93,14 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}
+            activeDiagramType={activeDiagramType}
             onOpenProjectHub={onOpenProjectHub}
             onOpenTemplateDialog={onOpenTemplateDialog}
             onExportProject={onExportProject}
             onImportSingleDiagram={onImportSingleDiagram}
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
+            onImportOwl={onImportOwl}
             onOpenProjectPreview={onOpenProjectPreview}
           />
           <GenerateMenu

@@ -83,7 +83,7 @@ function migrateOldWebappProject(data: any): BesserProject {
 
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
     ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-    AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+    AgentDiagram: 0, GUINoCodeDiagram: 0, KnowledgeGraphDiagram: 0, QuantumCircuitDiagram: 0,
   };
 
   return {
@@ -113,6 +113,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'StateMachineDiagram',
     'AgentDiagram',
     'GUINoCodeDiagram',
+    'KnowledgeGraphDiagram',
     'QuantumCircuitDiagram'
   ];
 
@@ -122,6 +123,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
     GUINoCodeDiagram: null,
+    KnowledgeGraphDiagram: null,
     QuantumCircuitDiagram: null,
   };
 
@@ -131,6 +133,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
+    KnowledgeGraphDiagram: 'Knowledge Graph',
     QuantumCircuitDiagram: 'Quantum Circuit'
   };
 
@@ -378,7 +381,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             currentDiagramType: supportedType,
             currentDiagramIndices: {
               ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-              AgentDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+              AgentDiagram: 0, GUINoCodeDiagram: 0, KnowledgeGraphDiagram: 0, QuantumCircuitDiagram: 0,
             },
             diagrams,
             settings: {

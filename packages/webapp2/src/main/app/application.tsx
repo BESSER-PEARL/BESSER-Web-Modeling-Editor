@@ -43,6 +43,9 @@ const AgentPersonalizationMappingPanel = React.lazy(() =>
 const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
 );
+const KnowledgeGraphSettingsPanel = React.lazy(() =>
+  import('../features/kg-settings').then((m) => ({ default: m.KnowledgeGraphSettingsPanel })),
+);
 
 // Lazy-loaded dialogs (only fetched when opened)
 const ProjectHubDialog = React.lazy(() =>
@@ -140,6 +143,7 @@ function AppContentInner() {
             <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
             <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
+            <Route path="/kg-settings" element={<KnowledgeGraphSettingsPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

@@ -46,8 +46,8 @@ export const buildProjectPayloadForBackend = (
 
   // Filter out empty diagrams, then remove types with no content
   const diagrams: Record<string, ProjectDiagram[]> = {};
-  for (const type of Object.keys(payload.diagrams)) {
-    const arr = payload.diagrams[type];
+  for (const type of Object.keys(payload.diagrams) as SupportedDiagramType[]) {
+    const arr = (payload.diagrams as Record<SupportedDiagramType, ProjectDiagram[]>)[type];
     if (Array.isArray(arr)) {
       const withContent = arr.filter(diagramHasContent);
       if (withContent.length > 0) {
@@ -64,9 +64,9 @@ export const buildProjectPayloadForBackend = (
         filtered[type] = diagrams[type];
       }
     }
-    payload.diagrams = filtered;
+    payload.diagrams = filtered as BesserProject['diagrams'];
   } else {
-    payload.diagrams = diagrams;
+    payload.diagrams = diagrams as BesserProject['diagrams'];
   }
 
   return payload;

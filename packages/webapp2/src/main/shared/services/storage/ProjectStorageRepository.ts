@@ -244,7 +244,10 @@ export class ProjectStorageRepository {
     }
 
     const umlType = toUMLDiagramType(diagramType);
-    const kind = diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+    const kind = diagramType === 'GUINoCodeDiagram' ? 'gui'
+      : diagramType === 'QuantumCircuitDiagram' ? 'quantum'
+      : diagramType === 'KnowledgeGraphDiagram' ? 'kg'
+      : undefined;
 
     // Pick a title that doesn't collide with an existing one (case-insensitive).
     // If the caller passed a title, start from it and append " 2", " 3", ... on
