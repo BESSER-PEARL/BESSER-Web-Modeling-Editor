@@ -4,7 +4,7 @@ import { Point } from '../../../utils/geometry/point';
 import { ClassRelationshipType } from '../../uml-class-diagram';
 import { UMLAssociation } from './uml-association';
 import { GeneralRelationshipType, UMLRelationshipType } from '../../uml-relationship-type';
-import { ThemedPath, ThemedPathContrast, ThemedPolyline } from '../../../components/theme/themedComponents';
+import { ThemedPath, ThemedPathContrast, ThemedPolygon, ThemedPolyline } from '../../../components/theme/themedComponents';
 import { settingsService } from '../../../services/settings/settings-service';
 
 const Marker = {
@@ -249,10 +249,10 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
           pointerEvents="none"
           data-testid="er-relationship-diamond"
         >
-          <polygon
+          <ThemedPolygon
             points="-30,0 0,-15 30,0 0,15"
-            fill={element.fillColor || 'white'}
-            stroke={element.strokeColor || 'currentColor'}
+            fillColor={element.fillColor}
+            strokeColor={element.strokeColor}
             strokeWidth={1}
           />
           {element.name && (
