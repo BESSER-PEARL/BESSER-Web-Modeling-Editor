@@ -114,7 +114,7 @@ export const computeTextPositionForUMLAssociation = (alignmentPath: Point[], has
  * caller maps it to the target notation (UML `*` or ER `N`). Returns `null`
  * for unparseable input so the caller can fall back to the original text.
  */
-const parseMultiplicity = (value: string): { min: string; max: string } | null => {
+export const parseMultiplicity = (value: string): { min: string; max: string } | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (trimmed.includes('..')) {
@@ -144,20 +144,10 @@ export const toERCardinality = (multiplicity: string | undefined): string => {
   return `(${parsed.min},${max})`;
 };
 
-/**
- * Canonicalize a UML multiplicity for display in UML mode. Collapses the
- * explicit forms to their shorthand equivalents so toggling ER ↔ UML is
- * symmetric with the ER mapping: "1..1" -> "1", "0..*" -> "*", "5..5" -> "5".
- * Mixed-bound ranges like "0..1" or "1..*" are left intact.
- */
-export const toUMLMultiplicity = (multiplicity: string | undefined): string => {
-  if (!multiplicity) return '';
-  const parsed = parseMultiplicity(multiplicity);
-  if (!parsed) return multiplicity;
-  if (parsed.min === '0' && parsed.max === '*') return '*';
-  if (parsed.min === parsed.max) return parsed.min;
-  return `${parsed.min}..${parsed.max}`;
-};
+// Note: UML mode deliberately renders the user's typed multiplicity string
+// verbatim. Collapsing "1..1" → "1" at display time would silently rewrite
+// every existing class diagram, so normalization only happens for ER mode
+// via toERCardinality above.
 
 export const computeMiddlePositionForUMLAssociation = (alignmentPath: Point[]): Point => {
   if (alignmentPath.length < 2) return new Point();
@@ -287,7 +277,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
             pointerEvents="none"
             style={{ ...textFill }}
           >
-            {isER ? toERCardinality(element.source.multiplicity) : toUMLMultiplicity(element.source.multiplicity)}
+            {isER ? toERCardinality(element.source.multiplicity) : element.source.multiplicity}
           </text>
           <text
             x={target.x || 0}
@@ -296,7 +286,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
             pointerEvents="none"
             style={{ ...textFill }}
           >
-            {isER ? toERCardinality(element.target.multiplicity) : toUMLMultiplicity(element.target.multiplicity)}
+            {isER ? toERCardinality(element.target.multiplicity) : element.target.multiplicity}
           </text>
           <text
             x={source.x || 0}
