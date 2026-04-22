@@ -46,24 +46,18 @@ const UMLClassifierMemberComponentUnconnected: FunctionComponent<Props> = ({ ele
   // Check if owner is enumeration
   const isEnumeration = owner && 'stereotype' in owner && (owner as any).stereotype === 'enumeration';
 
-  // Build the label. In ER mode, strip UML visibility symbols and the "{id}"
-  // suffix since ER has no visibility semantics and uses underline for PKs.
+  // Build the label. ER class attributes get the ER-flavored display
+  // (no visibility symbol, no {id} suffix) plus underline when isId is set;
+  // ER has no visibility semantics and identifies PKs via underline.
+  // The ER formatting itself lives on UMLClassifierMember.displayNameER so
+  // it stays in sync with displayName if the shared fields evolve.
   let displayText: string;
   let underlineText = false;
   if (isEnumeration) {
     displayText = element.name;
   } else if (isEREnabled && isClassAttribute) {
-    const attr = element as UMLClassifierMember;
-    const derivedPrefix = attr.isDerived ? '/' : '';
-    const optionalMarker = attr.isOptional ? '?' : '';
-    const defaultSuffix =
-      attr.defaultValue !== undefined && attr.defaultValue !== null && attr.defaultValue !== ''
-        ? ` = ${attr.defaultValue}`
-        : '';
-    displayText = attr.attributeType
-      ? `${derivedPrefix}${attr.name}${optionalMarker}: ${attr.attributeType}${defaultSuffix}`
-      : `${derivedPrefix}${attr.name}${optionalMarker}${defaultSuffix}`;
-    underlineText = !!attr.isId;
+    displayText = element.displayNameER;
+    underlineText = !!element.isId;
   } else {
     displayText = element.displayName || element.name;
   }

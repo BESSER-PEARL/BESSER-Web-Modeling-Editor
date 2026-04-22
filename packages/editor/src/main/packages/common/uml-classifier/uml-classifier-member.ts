@@ -132,6 +132,26 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   }
 
   /**
+   * Get the display name for rendering in ER (Chen) mode. Drops the UML
+   * visibility symbol and the `{id, external id}` suffix — ER has no
+   * visibility semantics and marks identifying attributes with an underline
+   * on the attribute name itself (rendered by the classifier-member
+   * component). Keeps `/` for derived, `?` for optional, and ` = default`.
+   */
+  get displayNameER(): string {
+    const derivedPrefix = this.isDerived ? '/' : '';
+    const optionalMarker = this.isOptional ? '?' : '';
+    const defaultSuffix =
+      this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== ''
+        ? ` = ${this.defaultValue}`
+        : '';
+    if (this.name && this.attributeType) {
+      return `${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
+    }
+    return `${derivedPrefix}${this.name}${optionalMarker}${defaultSuffix}`;
+  }
+
+  /**
    * Parse legacy name format and extract visibility, name, and attributeType
    * Used for backward compatibility when loading old diagrams
    */
