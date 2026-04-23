@@ -260,13 +260,12 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
-  // Check for required diagram types (QuantumCircuitDiagram is optional for backward compatibility)
+  // Check for required diagram types (newer types are optional for backward compatibility)
   const hasRequiredDiagrams =
     obj.diagrams.ClassDiagram &&
     obj.diagrams.ObjectDiagram &&
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
-    obj.diagrams.NNDiagram &&
     obj.diagrams.UserDiagram &&
     obj.diagrams.GUINoCodeDiagram;
 
@@ -274,9 +273,12 @@ export const isProject = (obj: any): obj is BesserProject => {
     return false;
   }
 
-  // Add QuantumCircuitDiagram if missing (for backward compatibility with older projects)
+  // Backfill newer diagram types if missing (for backward compatibility with older projects)
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = createEmptyDiagram('Quantum Circuit', null, 'quantum');
+  }
+  if (!obj.diagrams.NNDiagram) {
+    obj.diagrams.NNDiagram = createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram);
   }
 
   return true;

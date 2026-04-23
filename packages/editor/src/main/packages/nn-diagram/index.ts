@@ -1,13 +1,4 @@
 export const NNElementType = {
-  Package: 'Package',
-  Class: 'Class',
-  AbstractClass: 'AbstractClass',
-  Interface: 'Interface',
-  Enumeration: 'Enumeration',
-  ClassAttribute: 'ClassAttribute',
-  ClassMethod: 'ClassMethod',
-  ClassOCLConstraint: 'ClassOCLConstraint',
-
   Conv1DLayer: 'Conv1DLayer',
   // Conv1D Layer Attributes - Mandatory
   NameAttributeConv1D: 'NameAttributeConv1D',
