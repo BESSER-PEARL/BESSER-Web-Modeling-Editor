@@ -198,7 +198,10 @@
       "LayerNormalizationLayer": "Layer Normalization Layer",
       "BatchNormalizationLayer": "Batch Normalization Layer",
       "TensorOp": "Tensor Operation",
-      "Configuration": "Configuration"
+      "Configuration": "Configuration",
+      "TrainingDataset": "Training Dataset",
+      "TestDataset": "Test Dataset",
+      "Datasets": "NN Datasets"
     },
     "OCLConstraint": {
       "Constraint": "OCL Constraint"

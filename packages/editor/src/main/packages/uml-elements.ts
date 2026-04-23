@@ -270,6 +270,15 @@ import {
   MomentumAttributeConfiguration,
   ConfigurationAttribute,
 } from './nn-diagram/nn-configuration-attributes/configuration-attributes';
+import { TrainingDataset, TestDataset } from './nn-diagram/nn-dataset/nn-dataset';
+import {
+  NameAttributeDataset,
+  PathDataAttributeDataset,
+  TaskTypeAttributeDataset,
+  InputFormatAttributeDataset,
+  ShapeAttributeDataset,
+  NormalizeAttributeDataset,
+} from './nn-diagram/nn-dataset-attributes/dataset-attributes';
 
 export const UMLElements = {
   [UMLElementType.Package]: UMLClassPackage,
@@ -536,6 +545,17 @@ export const UMLElements = {
   // Configuration Attributes - Optional
   [NNElementType.WeightDecayAttributeConfiguration]: WeightDecayAttributeConfiguration,
   [NNElementType.MomentumAttributeConfiguration]: MomentumAttributeConfiguration,
+
+  // Datasets
+  [NNElementType.TrainingDataset]: TrainingDataset,
+  [NNElementType.TestDataset]: TestDataset,
+  // Dataset Attributes
+  [NNElementType.NameAttributeDataset]: NameAttributeDataset,
+  [NNElementType.PathDataAttributeDataset]: PathDataAttributeDataset,
+  [NNElementType.TaskTypeAttributeDataset]: TaskTypeAttributeDataset,
+  [NNElementType.InputFormatAttributeDataset]: InputFormatAttributeDataset,
+  [NNElementType.ShapeAttributeDataset]: ShapeAttributeDataset,
+  [NNElementType.NormalizeAttributeDataset]: NormalizeAttributeDataset,
 
   // Section elements for sidebar organization
   [NNElementType.NNSectionTitle]: NNSectionTitle,

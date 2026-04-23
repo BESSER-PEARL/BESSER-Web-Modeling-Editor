@@ -21,11 +21,13 @@ function getPoolingDimension(elements: Record<string, any>, layerId: string): st
   return (dimAttr as INNAttribute)?.value || '2D';
 }
 
-const ACTV_FUNC_OPTIONS = ['relu', 'leaky_relu', 'sigmoid', 'softmax', 'tanh'];
-const BOOLEAN_OPTIONS   = ['true', 'false'];
-const PADDING_OPTIONS   = ['valid', 'same'];
-const RETURN_OPTIONS    = ['hidden', 'last', 'full'];
-const TNS_TYPE_OPTIONS  = ['reshape', 'concatenate', 'multiply', 'matmultiply', 'transpose', 'permute'];
+const ACTV_FUNC_OPTIONS    = ['relu', 'leaky_relu', 'sigmoid', 'softmax', 'tanh'];
+const BOOLEAN_OPTIONS      = ['true', 'false'];
+const PADDING_OPTIONS      = ['valid', 'same'];
+const RETURN_OPTIONS       = ['hidden', 'last', 'full'];
+const TNS_TYPE_OPTIONS     = ['reshape', 'concatenate', 'multiply', 'matmultiply', 'transpose', 'permute'];
+const TASK_TYPE_OPTIONS    = ['binary', 'multi_class', 'regression'];
+const INPUT_FORMAT_OPTIONS = ['csv', 'images'];
 
 const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   // ── Predecessor (name_module_input) ─────────────────────────────────────────
@@ -126,6 +128,11 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
       }
     },
   },
+
+  // ── Dataset enum attributes ───────────────────────────────────────────────────
+  [NNElementType.TaskTypeAttributeDataset]:    { widget: 'dropdown', options: TASK_TYPE_OPTIONS,    defaultValue: 'multi_class' },
+  [NNElementType.InputFormatAttributeDataset]: { widget: 'dropdown', options: INPUT_FORMAT_OPTIONS, defaultValue: 'images' },
+  [NNElementType.NormalizeAttributeDataset]:   { widget: 'dropdown', options: BOOLEAN_OPTIONS,      defaultValue: 'false' },
 };
 
 const DEFAULT_CONFIG: AttributeWidgetConfig = { widget: 'text' };

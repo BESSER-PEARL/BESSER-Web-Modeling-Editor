@@ -207,6 +207,14 @@ import {
   MomentumAttributeConfiguration,
   ConfigurationAttribute,
 } from '../nn-configuration-attributes/configuration-attributes';
+import {
+  NameAttributeDataset,
+  PathDataAttributeDataset,
+  TaskTypeAttributeDataset,
+  InputFormatAttributeDataset,
+  ShapeAttributeDataset,
+  NormalizeAttributeDataset,
+} from '../nn-dataset-attributes/dataset-attributes';
 import { NNElementType } from '..';
 import { OptionalAttributeRow } from './optional-attribute-row';
 
@@ -501,6 +509,32 @@ const LAYER_CONFIG: {
       { type: NNElementType.MomentumAttributeConfiguration, ctor: MomentumAttributeConfiguration, label: 'momentum' },
     ],
   },
+  [NNElementType.TrainingDataset]: {
+    attributeFilter: (type: string) => type.includes('Dataset'),
+    mandatoryAttributes: [
+      { ctor: NameAttributeDataset },
+      { ctor: PathDataAttributeDataset },
+    ],
+    optionalAttributes: [
+      { type: NNElementType.TaskTypeAttributeDataset, ctor: TaskTypeAttributeDataset, label: 'task_type' },
+      { type: NNElementType.InputFormatAttributeDataset, ctor: InputFormatAttributeDataset, label: 'input_format' },
+      { type: NNElementType.ShapeAttributeDataset, ctor: ShapeAttributeDataset, label: 'shape' },
+      { type: NNElementType.NormalizeAttributeDataset, ctor: NormalizeAttributeDataset, label: 'normalize' },
+    ],
+  },
+  [NNElementType.TestDataset]: {
+    attributeFilter: (type: string) => type.includes('Dataset'),
+    mandatoryAttributes: [
+      { ctor: NameAttributeDataset },
+      { ctor: PathDataAttributeDataset },
+    ],
+    optionalAttributes: [
+      { type: NNElementType.TaskTypeAttributeDataset, ctor: TaskTypeAttributeDataset, label: 'task_type' },
+      { type: NNElementType.InputFormatAttributeDataset, ctor: InputFormatAttributeDataset, label: 'input_format' },
+      { type: NNElementType.ShapeAttributeDataset, ctor: ShapeAttributeDataset, label: 'shape' },
+      { type: NNElementType.NormalizeAttributeDataset, ctor: NormalizeAttributeDataset, label: 'normalize' },
+    ],
+  },
 };
 
 class NNComponentUpdateComponent extends Component<Props, State> {
@@ -599,6 +633,18 @@ class NNComponentUpdateComponent extends Component<Props, State> {
     }
   };
 
+  // Helper to filter Dataset optional attributes based on input_format value
+  private getDatasetOptionalAttributes = (
+    inputFormat: string,
+    optionalAttributes: Array<{ type: string; ctor: any; label: string }>,
+  ) => {
+    // shape and normalize only apply to image datasets
+    if (inputFormat !== 'images') {
+      return optionalAttributes.filter((attr) => attr.label !== 'shape' && attr.label !== 'normalize');
+    }
+    return optionalAttributes;
+  };
+
   // Helper to filter Pooling optional attributes based on pooling_type value
   private getPoolingOptionalAttributes = (
     poolingType: string,
@@ -657,6 +703,12 @@ class NNComponentUpdateComponent extends Component<Props, State> {
       ) as PoolingAttribute | undefined;
       const poolingType = poolingTypeAttr?.value || 'max';
       optionalAttributes = this.getPoolingOptionalAttributes(poolingType, config.optionalAttributes);
+    } else if (element.type === NNElementType.TrainingDataset || element.type === NNElementType.TestDataset) {
+      const inputFormatAttr = children.find(
+        (attr) => (attr as INNAttribute).attributeName === 'input_format'
+      ) as INNAttribute | undefined;
+      const inputFormat = inputFormatAttr?.value || '';
+      optionalAttributes = this.getDatasetOptionalAttributes(inputFormat, config.optionalAttributes);
     }
 
     return (

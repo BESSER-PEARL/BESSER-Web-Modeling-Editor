@@ -19,6 +19,8 @@ const LAYER_ICONS: { [key: string]: string } = {
   [NNElementType.BatchNormalizationLayer]: 'batchnorm.png',
   [NNElementType.TensorOp]: 'tensorop.png',
   [NNElementType.Configuration]: 'configuration.png',
+  [NNElementType.TrainingDataset]: 'train_data.png',
+  [NNElementType.TestDataset]: 'test_data.png',
 };
 
 // Base path for layer icons - assets folder is copied to root by webpack

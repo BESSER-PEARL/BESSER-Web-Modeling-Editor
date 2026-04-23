@@ -404,6 +404,14 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     const selectedMetrics = cleanedMetricsValue ? cleanedMetricsValue.split(',').map(v => v.trim()) : [];
     const metricsDisplayValue = selectedMetrics.length > 0 ? `[${selectedMetrics.join(', ')}]` : 'Select metrics';
 
+    // Check if this is a task_type attribute (Dataset)
+    const isTaskType = element.type === NNElementType.TaskTypeAttributeDataset;
+    const taskTypeOptions = ['binary', 'multi_class', 'regression'];
+
+    // Check if this is an input_format attribute (Dataset)
+    const isInputFormat = element.type === NNElementType.InputFormatAttributeDataset;
+    const inputFormatOptions = ['csv', 'images'];
+
     // Check if this is an actv_func attribute
     const isActvFunc = element.type === NNElementType.ActvFuncAttributeConv1D ||
                        element.type === NNElementType.ActvFuncAttributeConv2D ||
@@ -539,6 +547,32 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                   </DropdownMenu>
                 )}
               </MultiSelectContainer>
+            ) : isTaskType ? (
+              <Dropdown
+                value={element.value || 'multi_class'}
+                onChange={this.handleValueChange}
+                size="sm"
+                outline
+              >
+                {taskTypeOptions.map(option => (
+                  <Dropdown.Item key={option} value={option}>
+                    {option}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown>
+            ) : isInputFormat ? (
+              <Dropdown
+                value={element.value || 'images'}
+                onChange={this.handleValueChange}
+                size="sm"
+                outline
+              >
+                {inputFormatOptions.map(option => (
+                  <Dropdown.Item key={option} value={option}>
+                    {option}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown>
             ) : isActvFunc ? (
               <Dropdown
                 value={element.value || 'relu'}

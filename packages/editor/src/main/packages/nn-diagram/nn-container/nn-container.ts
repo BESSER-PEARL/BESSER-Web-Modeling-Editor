@@ -20,6 +20,7 @@ export class NNContainer extends UMLContainer {
 
   static supportedRelationships = [
     NNRelationshipType.NNComposition,
+    NNRelationshipType.NNAssociation,
   ];
 
   // Minimum dimensions for the container

@@ -91,6 +91,7 @@ import { NNElementType } from './nn-diagram';
 import { NNRelationshipType } from './nn-diagram';
 import { NNAssociationComponent } from './nn-diagram/nn-association/nn-association-component';
 import { NNCompositionComponent } from './nn-diagram/nn-composition/nn-composition-component';
+import { NNAssociationLineComponent } from './nn-diagram/nn-association-line/nn-association-line-component';
 import { NNSectionTitleComponent } from './nn-diagram/nn-section-title-component';
 import { NNSectionSeparatorComponent } from './nn-diagram/nn-section-separator-component';
 import { NNContainerComponent } from './nn-diagram/nn-container/nn-container-component';
@@ -389,6 +390,17 @@ export const Components: {
   [NNElementType.WeightDecayAttributeConfiguration]: NNComponentMemberComponent,
   [NNElementType.MomentumAttributeConfiguration]: NNComponentMemberComponent,
 
+  // Datasets
+  [NNElementType.TrainingDataset]: NNLayerIconComponent,
+  [NNElementType.TestDataset]: NNLayerIconComponent,
+  // Dataset Attributes
+  [NNElementType.NameAttributeDataset]: NNComponentMemberComponent,
+  [NNElementType.PathDataAttributeDataset]: NNComponentMemberComponent,
+  [NNElementType.TaskTypeAttributeDataset]: NNComponentMemberComponent,
+  [NNElementType.InputFormatAttributeDataset]: NNComponentMemberComponent,
+  [NNElementType.ShapeAttributeDataset]: NNComponentMemberComponent,
+  [NNElementType.NormalizeAttributeDataset]: NNComponentMemberComponent,
+
   // Section elements for sidebar organization
   [NNElementType.NNSectionTitle]: NNSectionTitleComponent as any,
   [NNElementType.NNSectionSeparator]: NNSectionSeparatorComponent as any,
@@ -399,4 +411,5 @@ export const Components: {
 
   [UMLRelationshipType.NNNext]: NNAssociationComponent,
   [UMLRelationshipType.NNComposition]: NNCompositionComponent,
+  [UMLRelationshipType.NNAssociation]: NNAssociationLineComponent,
 };

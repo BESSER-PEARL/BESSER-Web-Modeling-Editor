@@ -87,6 +87,11 @@ import {
   LossFunctionAttributeConfiguration,
   MetricsAttributeConfiguration,
 } from './nn-configuration-attributes/configuration-attributes';
+import { TrainingDataset, TestDataset } from './nn-dataset/nn-dataset';
+import {
+  NameAttributeDataset,
+  PathDataAttributeDataset,
+} from './nn-dataset-attributes/dataset-attributes';
 import { ILayer } from '../../services/layouter/layer';
 
 export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: string) => string): UMLElement[] => {
@@ -94,6 +99,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   const layerElements: UMLElement[] = [];
   const tensorOpElements: UMLElement[] = [];
   const configurationElements: UMLElement[] = [];
+  const datasetElements: UMLElement[] = [];
 
   // Conv1DLayer setup
   const conv1DLayer = new Conv1DLayer({ name: translate('packages.NNDiagram.Conv1DLayer') });
@@ -293,6 +299,28 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   ];
   configurationElements.push(...(configuration.render(layer, [batchSizeAttr, epochsAttr, learningRateAttr, optimizerAttr, lossFunctionAttr, metricsAttr]) as UMLElement[]));
 
+  // TrainingDataset setup
+  const trainingDataset = new TrainingDataset({ name: translate('packages.NNDiagram.TrainingDataset') });
+  const nameAttrTrainingDataset = new NameAttributeDataset({ owner: trainingDataset.id, value: 'train_data' });
+  const pathAttrTrainingDataset = new PathDataAttributeDataset({ owner: trainingDataset.id });
+
+  trainingDataset.ownedElements = [
+    nameAttrTrainingDataset.id,
+    pathAttrTrainingDataset.id,
+  ];
+  datasetElements.push(...(trainingDataset.render(layer, [nameAttrTrainingDataset, pathAttrTrainingDataset]) as UMLElement[]));
+
+  // TestDataset setup
+  const testDataset = new TestDataset({ name: translate('packages.NNDiagram.TestDataset') });
+  const nameAttrTestDataset = new NameAttributeDataset({ owner: testDataset.id, value: 'test_data' });
+  const pathAttrTestDataset = new PathDataAttributeDataset({ owner: testDataset.id });
+
+  testDataset.ownedElements = [
+    nameAttrTestDataset.id,
+    pathAttrTestDataset.id,
+  ];
+  datasetElements.push(...(testDataset.render(layer, [nameAttrTestDataset, pathAttrTestDataset]) as UMLElement[]));
+
   // NNContainer setup - compact in sidebar, clone() sets tall bounds when dropped
   const nnContainer = new NNContainer({ name: translate('packages.NNDiagram.NNContainer') });
   nnContainer.bounds = { ...nnContainer.bounds, width: 280, height: 150 };
@@ -314,6 +342,9 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   const configurationTitle = new NNSectionTitle({ name: 'NN Configuration' });
   (configurationTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
+  const datasetsTitle = new NNSectionTitle({ name: translate('packages.NNDiagram.Datasets') });
+  (datasetsTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
+
   const separator0 = new NNSectionSeparator();
   (separator0 as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
@@ -322,6 +353,9 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
 
   const separator2 = new NNSectionSeparator();
   (separator2 as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
+
+  const separator3 = new NNSectionSeparator();
+  (separator3 as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   // Structure section (NNContainer, NNReference)
   elements.push(structureTitle);
@@ -338,6 +372,9 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   elements.push(separator2);
   elements.push(configurationTitle);
   elements.push(...configurationElements);
+  elements.push(separator3);
+  elements.push(datasetsTitle);
+  elements.push(...datasetElements);
 
   // Add spacer after Configuration to prevent collision with Comment separator
   const spacer = new NNSectionSeparator({ bounds: { x: 0, y: 0, width: 100, height: 20 } });

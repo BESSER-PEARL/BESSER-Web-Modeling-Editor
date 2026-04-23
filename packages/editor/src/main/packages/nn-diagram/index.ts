@@ -196,6 +196,18 @@ export const NNElementType = {
   WeightDecayAttributeConfiguration: 'WeightDecayAttributeConfiguration',
   MomentumAttributeConfiguration: 'MomentumAttributeConfiguration',
 
+  // Training/Test Datasets
+  TrainingDataset: 'TrainingDataset',
+  TestDataset: 'TestDataset',
+  // Dataset Attributes - Mandatory
+  NameAttributeDataset: 'NameAttributeDataset',
+  PathDataAttributeDataset: 'PathDataAttributeDataset',
+  // Dataset Attributes - Optional
+  TaskTypeAttributeDataset: 'TaskTypeAttributeDataset',
+  InputFormatAttributeDataset: 'InputFormatAttributeDataset',
+  ShapeAttributeDataset: 'ShapeAttributeDataset',
+  NormalizeAttributeDataset: 'NormalizeAttributeDataset',
+
   // Section elements for sidebar organization
   NNSectionTitle: 'NNSectionTitle',
   NNSectionSeparator: 'NNSectionSeparator',
@@ -208,4 +220,5 @@ export const NNElementType = {
 export const NNRelationshipType = {
   NNNext: 'NNNext', // NN-specific unidirectional with "next" label
   NNComposition: 'NNComposition', // NN-specific composition (diamond always on NNContainer side)
+  NNAssociation: 'NNAssociation', // Plain association line (Dataset ↔ NNContainer only)
 } as const;
