@@ -5,10 +5,12 @@ import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { NNElementType, NNRelationshipType } from '../index';
 import { UMLRelationship } from '../../../services/uml-relationship/uml-relationship';
+import { UMLDiagramType } from '../../diagram-type';
 import { INNAttribute } from '../nn-component-attribute';
 
 type StateProps = {
   elements: ModelState['elements'];
+  diagramType: string | undefined;
 };
 
 type DispatchProps = {
@@ -20,15 +22,21 @@ type Props = StateProps & DispatchProps;
 
 class NNAssociationMonitorComponent extends Component<Props> {
   componentDidMount() {
+    if (!this.isActive()) return;
     this.checkAndUpdateAssociations();
   }
 
   componentDidUpdate(prevProps: Readonly<Props>) {
+    if (!this.isActive()) return;
     if (prevProps.elements !== this.props.elements) {
       this.checkAndUpdateAssociations();
       this.renameNewDuplicateNameAttributes(prevProps.elements);
       this.cleanupHiddenOptionalAttributes();
     }
+  }
+
+  private isActive(): boolean {
+    return this.props.diagramType === UMLDiagramType.NNDiagram;
   }
 
   private checkAndUpdateAssociations() {
@@ -202,6 +210,7 @@ const enhance = compose<ComponentClass>(
   connect<StateProps, DispatchProps, {}, ModelState>(
     (state) => ({
       elements: state.elements,
+      diagramType: state.diagram?.type,
     }),
     {
       delete: UMLElementRepository.delete,
