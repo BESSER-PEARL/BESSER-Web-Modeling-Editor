@@ -5,6 +5,8 @@ import styled from 'styled-components';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { Divider } from '../../../components/controls/divider/divider';
+import { ArrowDownIcon } from '../../../components/controls/icon/arrow-down';
+import { ArrowUpIcon } from '../../../components/controls/icon/arrow-up';
 import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Switch } from '../../../components/controls/switch/switch';
 import { Textfield } from '../../../components/controls/textfield/textfield';
@@ -57,6 +59,40 @@ const SectionHeader = styled(Header)`
   letter-spacing: 0.5px;
   opacity: 0.6;
   margin-bottom: 4px;
+`;
+
+const ReorderRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+`;
+
+const ReorderControls = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding-top: 6px;
+`;
+
+const ReorderButton = styled(Button)`
+  padding: 0 2px;
+  line-height: 1;
+  min-height: 12px;
+  font-size: 10px;
+  opacity: 0.55;
+  &:hover:not(:disabled) {
+    opacity: 1;
+  }
+  &:disabled {
+    opacity: 0.15;
+    cursor: default;
+  }
+`;
+
+const ReorderChild = styled.div`
+  flex: 1;
+  min-width: 0;
 `;
 
 interface OwnProps {
@@ -112,6 +148,35 @@ class ClassifierUpdate extends Component<Props, State> {
 
   private onFieldChange = (id: string, values: { description?: string; uri?: string }) => {
     this.props.update(id, values);
+  };
+
+  private moveMember = (memberId: string, direction: -1 | 1) => () => {
+    const { element, elements, update } = this.props;
+    const live = elements[element.id] as UMLClassifier | undefined;
+    const ownedElements = live?.ownedElements ?? element.ownedElements;
+
+    const isAttribute = (id: string) => elements[id]?.type === ClassElementType.ClassAttribute;
+    const isMethod = (id: string) => elements[id]?.type === ClassElementType.ClassMethod;
+    const sameKind = isAttribute(memberId) ? isAttribute : isMethod(memberId) ? isMethod : null;
+    if (!sameKind) return;
+
+    const siblings = ownedElements.filter(sameKind);
+    const index = siblings.indexOf(memberId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= siblings.length) return;
+
+    const reordered = [...siblings];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+
+    const attributes = ownedElements.filter(isAttribute);
+    const methods = ownedElements.filter(isMethod);
+    const others = ownedElements.filter((id) => !isAttribute(id) && !isMethod(id));
+    const newAttributes = isAttribute(memberId) ? reordered : attributes;
+    const newMethods = isMethod(memberId) ? reordered : methods;
+
+    update<UMLClassifier>(element.id, {
+      ownedElements: [...newAttributes, ...newMethods, ...others],
+    } as Partial<UMLClassifier>);
   };
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<{}>, snapshot?: any) {
@@ -183,31 +248,58 @@ class ClassifierUpdate extends Component<Props, State> {
           </SectionHeader>
           {attributes.map((attribute, index) => {
             const attrMember = attribute as UMLClassifierMember;
+            const canMoveUp = index > 0;
+            const canMoveDown = index < attributes.length - 1;
             return (
-              <UmlAttributeUpdate
-                id={attribute.id}
-                key={attribute.id}
-                value={attribute.name}
-                visibility={attrMember.visibility}
-                attributeType={attrMember.attributeType}
-                isOptional={attrMember.isOptional}
-                isDerived={attrMember.isDerived}
-                defaultValue={attrMember.defaultValue}
-                onChange={this.props.update}
-                onSubmitKeyUp={() =>
-                  index === attributes.length - 1
-                    ? this.newAttributeField.current?.focus()
-                    : this.setState({
-                        fieldToFocus: attributeRefs[index + 1],
-                      })
-                }
-                onDelete={this.delete}
-                onRefChange={(ref) => (attributeRefs[index] = ref)}
-                element={attribute}
-                isEnumeration={isEnumeration}
-                availableEnumerations={availableEnumerations}
-                elements={elements}
-              />
+              <ReorderRow key={attribute.id}>
+                <ReorderControls>
+                  <ReorderButton
+                    color="link"
+                    tabIndex={-1}
+                    disabled={!canMoveUp}
+                    onClick={canMoveUp ? this.moveMember(attribute.id, -1) : undefined}
+                    title="Move up"
+                  >
+                    <ArrowUpIcon width={10} height={10} />
+                  </ReorderButton>
+                  <ReorderButton
+                    color="link"
+                    tabIndex={-1}
+                    disabled={!canMoveDown}
+                    onClick={canMoveDown ? this.moveMember(attribute.id, 1) : undefined}
+                    title="Move down"
+                  >
+                    <ArrowDownIcon />
+                  </ReorderButton>
+                </ReorderControls>
+                <ReorderChild>
+                  <UmlAttributeUpdate
+                    id={attribute.id}
+                    value={attribute.name}
+                    visibility={attrMember.visibility}
+                    attributeType={attrMember.attributeType}
+                    isOptional={attrMember.isOptional}
+                    isDerived={attrMember.isDerived}
+                    isId={attrMember.isId}
+                    isExternalId={attrMember.isExternalId}
+                    defaultValue={attrMember.defaultValue}
+                    onChange={this.props.update}
+                    onSubmitKeyUp={() =>
+                      index === attributes.length - 1
+                        ? this.newAttributeField.current?.focus()
+                        : this.setState({
+                            fieldToFocus: attributeRefs[index + 1],
+                          })
+                    }
+                    onDelete={this.delete}
+                    onRefChange={(ref) => (attributeRefs[index] = ref)}
+                    element={attribute}
+                    isEnumeration={isEnumeration}
+                    availableEnumerations={availableEnumerations}
+                    elements={elements}
+                  />
+                </ReorderChild>
+              </ReorderRow>
             );
           })}
           <Textfield
@@ -256,29 +348,54 @@ class ClassifierUpdate extends Component<Props, State> {
               <SectionHeader>{this.props.translate('popup.methods')}</SectionHeader>
             {methods.map((method, index) => {
               const methodMember = method as UMLClassifierMember;
+              const canMoveUp = index > 0;
+              const canMoveDown = index < methods.length - 1;
               return (
-                <UmlMethodUpdate
-                  id={method.id}
-                  key={method.id}
-                  value={methodMember.displayName}
-                  code={methodMember.code || ''}
-                  implementationType={methodMember.implementationType || 'none'}
-                  stateMachineId={methodMember.stateMachineId || ''}
-                  quantumCircuitId={methodMember.quantumCircuitId || ''}
-                  availableStateMachines={diagramBridge.getStateMachineDiagrams()}
-                  availableQuantumCircuits={diagramBridge.getQuantumCircuitDiagrams()}
-                  onChange={this.props.update}
-                  onSubmitKeyUp={() =>
-                    index === methods.length - 1
-                      ? this.newMethodField.current?.focus()
-                      : this.setState({
-                          fieldToFocus: methodRefs[index + 1],
-                        })
-                  }
-                  onDelete={this.delete}
-                  onRefChange={(ref) => (methodRefs[index] = ref)}
-                  element={method}
-                />
+                <ReorderRow key={method.id}>
+                  <ReorderControls>
+                    <ReorderButton
+                      color="link"
+                      tabIndex={-1}
+                      disabled={!canMoveUp}
+                      onClick={canMoveUp ? this.moveMember(method.id, -1) : undefined}
+                      title="Move up"
+                    >
+                      <ArrowUpIcon />
+                    </ReorderButton>
+                    <ReorderButton
+                      color="link"
+                      tabIndex={-1}
+                      disabled={!canMoveDown}
+                      onClick={canMoveDown ? this.moveMember(method.id, 1) : undefined}
+                      title="Move down"
+                    >
+                      <ArrowDownIcon />
+                    </ReorderButton>
+                  </ReorderControls>
+                  <ReorderChild>
+                    <UmlMethodUpdate
+                      id={method.id}
+                      value={methodMember.displayName}
+                      code={methodMember.code || ''}
+                      implementationType={methodMember.implementationType || 'none'}
+                      stateMachineId={methodMember.stateMachineId || ''}
+                      quantumCircuitId={methodMember.quantumCircuitId || ''}
+                      availableStateMachines={diagramBridge.getStateMachineDiagrams()}
+                      availableQuantumCircuits={diagramBridge.getQuantumCircuitDiagrams()}
+                      onChange={this.props.update}
+                      onSubmitKeyUp={() =>
+                        index === methods.length - 1
+                          ? this.newMethodField.current?.focus()
+                          : this.setState({
+                              fieldToFocus: methodRefs[index + 1],
+                            })
+                      }
+                      onDelete={this.delete}
+                      onRefChange={(ref) => (methodRefs[index] = ref)}
+                      element={method}
+                    />
+                  </ReorderChild>
+                </ReorderRow>
               );
             })}
             <InputRow>
