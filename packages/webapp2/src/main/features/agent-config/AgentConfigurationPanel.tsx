@@ -57,7 +57,13 @@ type MappingRecommendationSignals = {
 };
 
 const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
-const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
+
+// Feature flag — hides agent configuration fields whose runtime support
+// isn't fully wired up yet (voice gender/speed, avatar upload, response
+// timing). Flip to ``true`` to re-expose them in the UI; the underlying
+// state + serialization are intentionally kept so turning this back on is
+// a one-line change.
+const SHOW_WIP_AGENT_CONFIG_FIELDS = false;
 
 const baseTextModality = ['text'];
 const speechEnabledModality = ['text', 'speech'];
@@ -206,9 +212,9 @@ const buildSparseGenerationConfig = (config: AgentConfigurationPayload): Partial
   const sparseConfig: Partial<AgentConfigurationPayload> = {};
   const configKeys = Object.keys(normalizedConfig) as Array<keyof AgentConfigurationPayload>;
 
-  configKeys.forEach((key) => {
+  configKeys.forEach(<K extends keyof AgentConfigurationPayload>(key: K) => {
     if (!deepEqual(normalizedConfig[key], defaults[key])) {
-      (sparseConfig as any)[key] = normalizedConfig[key];
+      sparseConfig[key] = normalizedConfig[key];
     }
   });
 
@@ -450,7 +456,7 @@ const loadInitialState = () => {
   }
 
   try {
-    const stored = localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+    const stored = LocalStorageRepository.getLegacyAgentConfig();
     if (stored) {
       const legacyConfig = JSON.parse(stored);
       return {
@@ -673,7 +679,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
 
     try {
-      const stored = localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+      const stored = LocalStorageRepository.getLegacyAgentConfig();
       if (stored) {
         const legacyConfig = normalizeAgentConfiguration(JSON.parse(stored) as Partial<AgentConfigurationPayload>);
         applyConfiguration(legacyConfig);
@@ -685,7 +691,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           });
         }
 
-        localStorage.removeItem(LEGACY_AGENT_CONFIG_KEY);
+        LocalStorageRepository.clearLegacyAgentConfig();
       }
     } catch {
       // Ignore broken legacy payloads
@@ -1166,10 +1172,11 @@ export const AgentConfigurationPanel: React.FC = () => {
         return;
       }
 
-      const transformedModel = await response.json();
-      const snapshotModel = (transformedModel && typeof transformedModel === 'object' && 'model' in transformedModel)
-        ? (transformedModel as any).model
-        : transformedModel;
+      const transformedModel: unknown = await response.json();
+      const snapshotModel: UMLModel | undefined =
+        transformedModel && typeof transformedModel === 'object' && 'model' in transformedModel
+          ? ((transformedModel as { model: UMLModel }).model)
+          : (transformedModel as UMLModel | undefined);
 
       if (snapshotModel) {
         await dispatch(updateDiagramModelThunk({ model: snapshotModel })).unwrap();
@@ -1731,7 +1738,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                       </div>
                     </div>
 
-                    {showVoiceControls && (
+                    {SHOW_WIP_AGENT_CONFIG_FIELDS && showVoiceControls && (
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-1.5">
                           <Label htmlFor="voice-gender">Voice Gender</Label>
@@ -1765,17 +1772,19 @@ export const AgentConfigurationPanel: React.FC = () => {
                       </div>
                     )}
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="avatar-upload">Avatar</Label>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} />
-                        {avatarData && (
-                          <Button type="button" variant="outline" onClick={handleAvatarRemove}>
-                            Remove avatar
-                          </Button>
-                        )}
+                    {SHOW_WIP_AGENT_CONFIG_FIELDS && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="avatar-upload">Avatar</Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} />
+                          {avatarData && (
+                            <Button type="button" variant="outline" onClick={handleAvatarRemove}>
+                              Remove avatar
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1867,38 +1876,40 @@ export const AgentConfigurationPanel: React.FC = () => {
                 )}
               </div>
 
-              <div
-                ref={(el) => { customizationSectionRefs.current.behavior = el; }}
-                className="rounded-xl border border-border"
-              >
-                <button
-                  type="button"
-                  className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
-                  onClick={() => toggleCustomizationSection('behavior')}
+              {SHOW_WIP_AGENT_CONFIG_FIELDS && (
+                <div
+                  ref={(el) => { customizationSectionRefs.current.behavior = el; }}
+                  className="rounded-xl border border-border"
                 >
-                  <div>
-                    <p className="font-medium">Behavior</p>
-                    <p className="text-xs text-muted-foreground">
-                      Define response timing and delivery style.
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{activeCustomizationSection === 'behavior' ? 'Hide' : 'Show'}</span>
-                </button>
-                {activeCustomizationSection === 'behavior' && (
-                  <div className="space-y-1.5 border-t border-border px-4 py-4 md:max-w-sm">
-                    <Label htmlFor="response-timing">Response Timing</Label>
-                    <select
-                      id="response-timing"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={responseTiming}
-                      onChange={(event) => setResponseTiming(event.target.value)}
-                    >
-                      <option value="instant">Instant</option>
-                      <option value="delayed">Simulated Thinking</option>
-                    </select>
-                  </div>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
+                    onClick={() => toggleCustomizationSection('behavior')}
+                  >
+                    <div>
+                      <p className="font-medium">Behavior</p>
+                      <p className="text-xs text-muted-foreground">
+                        Define response timing and delivery style.
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{activeCustomizationSection === 'behavior' ? 'Hide' : 'Show'}</span>
+                  </button>
+                  {activeCustomizationSection === 'behavior' && (
+                    <div className="space-y-1.5 border-t border-border px-4 py-4 md:max-w-sm">
+                      <Label htmlFor="response-timing">Response Timing</Label>
+                      <select
+                        id="response-timing"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={responseTiming}
+                        onChange={(event) => setResponseTiming(event.target.value)}
+                      >
+                        <option value="instant">Instant</option>
+                        <option value="delayed">Simulated Thinking</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

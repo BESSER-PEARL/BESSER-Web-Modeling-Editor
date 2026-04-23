@@ -17,6 +17,12 @@ import { UMLModel } from '@besser/wme';
 import { uuid } from '../../utils/uuid';
 import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
 
+/**
+ * Pre-prefix key retained for one-shot migration. All new keys MUST be defined
+ * in ``shared/constants/constant.ts`` with the ``besser_`` prefix.
+ */
+const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
+
 export interface SystemConfiguration {
   agentPlatform: string;
   intentRecognitionTechnology: IntentRecognitionTechnology;
@@ -287,6 +293,20 @@ export const LocalStorageRepository = {
 
   getAgentConfigurations: (): StoredAgentConfiguration[] => {
     return getStoredAgentConfigurations();
+  },
+
+  /**
+   * Legacy pre-projects-era key (``'agentConfig'``, without the ``besser_``
+   * prefix) — still read at startup so existing users' settings don't silently
+   * disappear. Paired with ``clearLegacyAgentConfig`` which is called once the
+   * value has been migrated into the new per-project storage.
+   */
+  getLegacyAgentConfig: (): string | null => {
+    return localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+  },
+
+  clearLegacyAgentConfig: () => {
+    localStorage.removeItem(LEGACY_AGENT_CONFIG_KEY);
   },
 
   loadAgentConfiguration: (id: string): StoredAgentConfiguration | null => {
