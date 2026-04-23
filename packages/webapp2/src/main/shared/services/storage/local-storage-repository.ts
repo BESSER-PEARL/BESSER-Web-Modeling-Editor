@@ -8,13 +8,52 @@ import {
   localStorageAgentConfigurations,
   localStorageAgentProfileMappings,
   localStorageActiveAgentConfiguration,
+  localStorageSystemConfig,
   localStorageSystemThemePreference,
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constants/constant';
 import { UMLModel } from '@besser/wme';
 import { uuid } from '../../utils/uuid';
-import { AgentConfigurationPayload } from '../../types/agent-config';
+import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
+
+export interface SystemConfiguration {
+  agentPlatform: string;
+  intentRecognitionTechnology: IntentRecognitionTechnology;
+  agentLlmProvider: AgentLLMProvider;
+  agentLlmModel: string;
+  agentCustomLlmModel: string;
+}
+
+export const DEFAULT_SYSTEM_CONFIGURATION: SystemConfiguration = {
+  agentPlatform: 'streamlit',
+  intentRecognitionTechnology: 'llm-based',
+  agentLlmProvider: 'openai',
+  agentLlmModel: 'gpt-5',
+  agentCustomLlmModel: '',
+};
+
+const normalizeSystemConfig = (raw: Partial<SystemConfiguration> | null | undefined): SystemConfiguration => {
+  if (!raw || typeof raw !== 'object') {
+    return { ...DEFAULT_SYSTEM_CONFIGURATION };
+  }
+  const provider: AgentLLMProvider =
+    raw.agentLlmProvider === 'openai' ||
+    raw.agentLlmProvider === 'huggingface' ||
+    raw.agentLlmProvider === 'huggingfaceapi' ||
+    raw.agentLlmProvider === 'replicate'
+      ? raw.agentLlmProvider
+      : '';
+  const intent: IntentRecognitionTechnology =
+    raw.intentRecognitionTechnology === 'classical' ? 'classical' : 'llm-based';
+  return {
+    agentPlatform: typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'streamlit',
+    intentRecognitionTechnology: intent,
+    agentLlmProvider: provider,
+    agentLlmModel: typeof raw.agentLlmModel === 'string' ? raw.agentLlmModel : '',
+    agentCustomLlmModel: typeof raw.agentCustomLlmModel === 'string' ? raw.agentCustomLlmModel : '',
+  };
+};
 
 type AgentBaseModelMap = Record<string, UMLModel>;
 
@@ -120,6 +159,23 @@ export const LocalStorageRepository = {
 
   setUserThemePreference: (value: string) => {
     safeSetItem(localStorageUserThemePreference, value);
+  },
+
+  getSystemConfiguration: (): SystemConfiguration => {
+    const json = localStorage.getItem(localStorageSystemConfig);
+    if (!json) {
+      return { ...DEFAULT_SYSTEM_CONFIGURATION };
+    }
+    try {
+      return normalizeSystemConfig(JSON.parse(json));
+    } catch (error) {
+      console.warn('Failed to parse stored system configuration:', error);
+      return { ...DEFAULT_SYSTEM_CONFIGURATION };
+    }
+  },
+
+  saveSystemConfiguration: (value: SystemConfiguration) => {
+    safeSetItem(localStorageSystemConfig, JSON.stringify(normalizeSystemConfig(value)));
   },
 
   getSystemThemePreference: () => {

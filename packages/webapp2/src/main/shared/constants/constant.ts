@@ -50,6 +50,7 @@ export const localStorageAgentConfigurations = localStoragePrefix + 'agentConfig
 export const localStorageAgentProfileMappings = localStoragePrefix + 'agentProfileMappings';
 export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentActiveConfig';
 export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
+export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
 
 // feature flags
 export const SHOW_FULL_AGENT_CONFIGURATION = false;

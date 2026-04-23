@@ -10,6 +10,7 @@ import {
   buildPersonalizationMapping,
   hasPersonalizationVariants,
 } from '../../../features/deploy/utils/agentPersonalizationPayload';
+import { restoreBaseAgentModels } from '../../../features/deploy/utils/restoreBaseAgentModels';
 
 // localStorage helpers for tracking previously deployed repos per project
 const DEPLOY_LINKED_REPO_PREFIX = 'besser_deploy_linked_';
@@ -253,8 +254,15 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       personalizationMapping = mapping as unknown as Array<Record<string, unknown>>;
     }
 
+    // Webapp deploys embed the agent model directly in the generated app, so
+    // always ship the base (pre-personalization) snapshot — even if the user
+    // has applied personalization to the active AgentDiagram in the editor.
+    const projectForPayload = deploymentTarget === 'webapp'
+      ? restoreBaseAgentModels(projectForDeploy)
+      : projectForDeploy;
+
     const result = await deployToGitHub(
-      buildProjectPayloadForBackend(projectForDeploy),
+      buildProjectPayloadForBackend(projectForPayload),
       sanitizeRepoName(githubRepoName),
       githubRepoDescription.trim() || defaultDescriptionForTarget(deploymentTarget),
       githubRepoPrivate,

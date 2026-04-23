@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
-import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+import { LocalStorageRepository, type SystemConfiguration } from '../../shared/services/storage/local-storage-repository';
 import type {
   StoredAgentConfiguration,
   StoredUserProfile,
@@ -521,6 +521,18 @@ export const AgentConfigurationPanel: React.FC = () => {
     initialConfig.intentRecognitionTechnology,
   );
   const [activeCustomizationSection, setActiveCustomizationSection] = useState<string | null>(null);
+
+  const [activeTab, setActiveTab] = useState<'system' | 'personalization'>('system');
+  const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(() =>
+    LocalStorageRepository.getSystemConfiguration(),
+  );
+  const updateSystemConfig = useCallback((patch: Partial<SystemConfiguration>) => {
+    setSystemConfig((prev) => {
+      const next = { ...prev, ...patch };
+      LocalStorageRepository.saveSystemConfiguration(next);
+      return next;
+    });
+  }, []);
 
   const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
 
@@ -1303,7 +1315,152 @@ export const AgentConfigurationPanel: React.FC = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <div
+          role="tablist"
+          aria-label="Agent configuration sections"
+          className="inline-flex w-fit gap-1 rounded-lg border border-border bg-muted/30 p-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'system'}
+            onClick={() => setActiveTab('system')}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'system'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            System Configuration
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'personalization'}
+            onClick={() => setActiveTab('personalization')}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'personalization'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Personalization
+          </button>
+        </div>
+
+        {activeTab === 'system' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>System Configuration</CardTitle>
+              <CardDescription>
+                These runtime settings are used every time an agent is generated. Changes are saved automatically.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="system-agent-platform">Platform</Label>
+                  <select
+                    id="system-agent-platform"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={systemConfig.agentPlatform}
+                    onChange={(event) => updateSystemConfig({ agentPlatform: event.target.value })}
+                  >
+                    <option value="websocket">WebSocket</option>
+                    <option value="streamlit">WebSocket with Streamlit interface</option>
+                    <option value="telegram">Telegram</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="system-intent-recognition">Intent Recognition</Label>
+                  <select
+                    id="system-intent-recognition"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={systemConfig.intentRecognitionTechnology}
+                    onChange={(event) =>
+                      updateSystemConfig({
+                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
+                      })
+                    }
+                  >
+                    <option value="classical">Classical</option>
+                    <option value="llm-based">LLM-based</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="system-llm-provider">LLM Provider (optional)</Label>
+                  <select
+                    id="system-llm-provider"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    value={systemConfig.agentLlmProvider}
+                    onChange={(event) => {
+                      const provider = event.target.value as AgentLLMProvider;
+                      updateSystemConfig({
+                        agentLlmProvider: provider,
+                        agentLlmModel: '',
+                        agentCustomLlmModel: '',
+                      });
+                    }}
+                  >
+                    <option value="">None</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="huggingface">HuggingFace</option>
+                    <option value="huggingfaceapi">HuggingFace API</option>
+                    <option value="replicate">Replicate</option>
+                  </select>
+                </div>
+
+                {systemConfig.agentLlmProvider === 'openai' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="system-openai-model">OpenAI Model</Label>
+                    <select
+                      id="system-openai-model"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={systemConfig.agentLlmModel}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        updateSystemConfig({
+                          agentLlmModel: value,
+                          ...(value !== 'other' ? { agentCustomLlmModel: '' } : {}),
+                        });
+                      }}
+                    >
+                      <option value="">None</option>
+                      <option value="gpt-5">GPT-5</option>
+                      <option value="gpt-5-mini">GPT-5 Mini</option>
+                      <option value="gpt-5-nano">GPT-5 Nano</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                )}
+
+                {systemConfig.agentLlmProvider === 'openai' && systemConfig.agentLlmModel === 'other' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="system-openai-custom-model">Custom Model Name</Label>
+                    <Input
+                      id="system-openai-custom-model"
+                      value={systemConfig.agentCustomLlmModel}
+                      onChange={(event) => updateSystemConfig({ agentCustomLlmModel: event.target.value })}
+                      placeholder="Enter model name"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                These values are saved to browser storage as you type and are used whenever you generate an agent.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        <form
+          onSubmit={handleSubmit}
+          className={`flex flex-col gap-6 ${activeTab === 'personalization' ? '' : 'hidden'}`}
+          aria-hidden={activeTab !== 'personalization'}
+        >
           <Card>
             <CardHeader>
               <CardTitle>User Profile Mapping</CardTitle>

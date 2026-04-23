@@ -17,7 +17,7 @@ import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from
 import type { ConfigDialog } from '../generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../shared/constants/constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../shared/services/storage/local-storage-types';
-import type { AgentLLMProvider, IntentRecognitionTechnology } from '../../../shared/types/agent-config';
+import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
 import type { AgentGenerationMode, AgentGenerationVariantOption, WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
 import { validateProjectName, validateNumberRange } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
@@ -78,16 +78,6 @@ interface GeneratorConfigDialogsProps {
   agentVariantOptions: AgentGenerationVariantOption[];
   /** Selected personalized variant to generate. Empty means base/original model. */
   selectedAgentVariantId: string;
-  /** Agent runtime platform selected in generation dialog. */
-  agentPlatform: string;
-  /** Intent recognition mode selected in generation dialog. */
-  intentRecognitionTechnology: IntentRecognitionTechnology;
-  /** Optional LLM provider selected in generation dialog. */
-  agentLlmProvider: AgentLLMProvider;
-  /** Optional selected model for OpenAI provider. */
-  agentLlmModel: string;
-  /** Optional custom model name when "other" is selected. */
-  agentCustomLlmModel: string;
   /** Generation strategy for variants: one selected variant or personalization-all. */
   agentGenerationMode: AgentGenerationMode;
 
@@ -110,11 +100,6 @@ interface GeneratorConfigDialogsProps {
   onAgentModeChange: (value: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
   onSelectedAgentVariantIdChange: (value: string) => void;
-  onAgentPlatformChange: (value: string) => void;
-  onIntentRecognitionTechnologyChange: (value: IntentRecognitionTechnology) => void;
-  onAgentLlmProviderChange: (value: AgentLLMProvider) => void;
-  onAgentLlmModelChange: (value: string) => void;
-  onAgentCustomLlmModelChange: (value: string) => void;
   onAgentGenerationModeChange: (value: AgentGenerationMode) => void;
 
   // ── Web App checklist ──────────────────────────────────────────────────
@@ -159,11 +144,6 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   selectedStoredAgentConfigIds,
   agentVariantOptions,
   selectedAgentVariantId,
-  agentPlatform,
-  intentRecognitionTechnology,
-  agentLlmProvider,
-  agentLlmModel,
-  agentCustomLlmModel,
   agentGenerationMode,
   onDjangoProjectNameChange,
   onDjangoAppNameChange,
@@ -179,11 +159,6 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onAgentModeChange,
   onStoredAgentConfigToggle,
   onSelectedAgentVariantIdChange,
-  onAgentPlatformChange,
-  onIntentRecognitionTechnologyChange,
-  onAgentLlmProviderChange,
-  onAgentLlmModelChange,
-  onAgentCustomLlmModelChange,
   onAgentGenerationModeChange,
   webAppChecklist,
   onDjangoGenerate,
@@ -209,6 +184,40 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
     shots: () => validateNumberRange(qiskitShots, 1, 100000, 'Shots'),
   }), [qiskitShots]);
   const qiskitValidation = useFieldValidation(qiskitValidators);
+
+  // ── Agent system config preview (read-only snapshot of global config) ─
+  const agentSystemConfig = useMemo(
+    () => (configDialog === 'agent' ? LocalStorageRepository.getSystemConfiguration() : null),
+    [configDialog],
+  );
+  const agentPlatformLabel = useMemo(() => {
+    switch (agentSystemConfig?.agentPlatform) {
+      case 'websocket':
+        return 'WebSocket';
+      case 'streamlit':
+        return 'WebSocket with Streamlit interface';
+      case 'telegram':
+        return 'Telegram';
+      default:
+        return agentSystemConfig?.agentPlatform ?? '—';
+    }
+  }, [agentSystemConfig]);
+  const agentLlmLabel = useMemo(() => {
+    if (!agentSystemConfig?.agentLlmProvider) return 'None';
+    const providerLabels: Record<string, string> = {
+      openai: 'OpenAI',
+      huggingface: 'HuggingFace',
+      huggingfaceapi: 'HuggingFace API',
+      replicate: 'Replicate',
+    };
+    const providerLabel = providerLabels[agentSystemConfig.agentLlmProvider] ?? agentSystemConfig.agentLlmProvider;
+    if (agentSystemConfig.agentLlmProvider !== 'openai') return providerLabel;
+    const model =
+      agentSystemConfig.agentLlmModel === 'other'
+        ? agentSystemConfig.agentCustomLlmModel.trim()
+        : agentSystemConfig.agentLlmModel;
+    return model ? `${providerLabel} · ${model}` : providerLabel;
+  }, [agentSystemConfig]);
 
   return (
     <>
@@ -441,93 +450,39 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </div>
             </div>
 
-            <div className="grid gap-4 rounded-md border border-border/70 bg-muted/20 p-4 md:grid-cols-2">
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-platform">Platform</Label>
-                  <select
-                    id="agent-platform"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={agentPlatform}
-                    onChange={(event) => onAgentPlatformChange(event.target.value)}
-                  >
-                    <option value="websocket">WebSocket</option>
-                    <option value="streamlit">WebSocket with Streamlit interface</option>
-                    <option value="telegram">Telegram</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="intent-recognition">Intent Recognition</Label>
-                  <select
-                    id="intent-recognition"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={intentRecognitionTechnology}
-                    onChange={(event) => onIntentRecognitionTechnologyChange(event.target.value as IntentRecognitionTechnology)}
-                  >
-                    <option value="classical">Classical</option>
-                    <option value="llm-based">LLM-based</option>
-                  </select>
-                </div>
+            <div className="rounded-md border border-border/70 bg-muted/20 p-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">System configuration</p>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0"
+                  onClick={() => {
+                    closeDialog(setConfigDialog);
+                    navigate('/agent-config');
+                  }}
+                >
+                  Edit in Agent Config
+                </Button>
               </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="llm-provider">LLM Provider (optional)</Label>
-                  <select
-                    id="llm-provider"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={agentLlmProvider}
-                    onChange={(event) => {
-                      const value = event.target.value as AgentLLMProvider;
-                      onAgentLlmProviderChange(value);
-                      onAgentLlmModelChange('');
-                      onAgentCustomLlmModelChange('');
-                    }}
-                  >
-                    <option value="">None</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="huggingface">HuggingFace</option>
-                    <option value="huggingfaceapi">HuggingFace API</option>
-                    <option value="replicate">Replicate</option>
-                  </select>
+              <dl className="grid gap-2 text-sm md:grid-cols-2">
+                <div className="flex justify-between gap-2 md:block">
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Platform</dt>
+                  <dd>{agentPlatformLabel}</dd>
                 </div>
-
-                {agentLlmProvider === 'openai' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="openai-model">OpenAI Model</Label>
-                    <select
-                      id="openai-model"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={agentLlmModel}
-                      onChange={(event) => {
-                        onAgentLlmModelChange(event.target.value);
-                        if (event.target.value !== 'other') {
-                          onAgentCustomLlmModelChange('');
-                        }
-                      }}
-                    >
-                      <option value="">None</option>
-                      <option value="gpt-5">GPT-5</option>
-                      <option value="gpt-5-mini">GPT-5 Mini</option>
-                      <option value="gpt-5-nano">GPT-5 Nano</option>
-                      <option value="other">Other</option>
-                    </select>
-
-                    {agentLlmModel === 'other' && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="openai-custom-model">Custom Model Name</Label>
-                        <Input
-                          id="openai-custom-model"
-                          value={agentCustomLlmModel}
-                          onChange={(event) => onAgentCustomLlmModelChange(event.target.value)}
-                          placeholder="Enter model name"
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                <div className="flex justify-between gap-2 md:block">
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Intent Recognition</dt>
+                  <dd>{agentSystemConfig?.intentRecognitionTechnology === 'classical' ? 'Classical' : 'LLM-based'}</dd>
+                </div>
+                <div className="flex justify-between gap-2 md:col-span-2 md:block">
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">LLM</dt>
+                  <dd>{agentLlmLabel}</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-xs text-muted-foreground">
+                These values come from the System Configuration tab in Agent Config and are used for every generation.
+              </p>
             </div>
 
             {agentVariantOptions.length > 0 && (
