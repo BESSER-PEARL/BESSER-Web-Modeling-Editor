@@ -153,6 +153,18 @@ All prefixed with `besser_`:
 - `besser_userThemePreference` - dark/light mode
 - `besser_agentConfigs` / `besser_agentProfileMappings` - agent state
 - `besser_userProfiles` - user profiles
+- `besser-standalone-settings` - application display settings (managed by `settingsService`), including `classNotation: 'UML' | 'ER'` which selects the class-diagram rendering flavor (pure rendering — no metamodel change)
+
+### Global Display Settings (settingsService)
+`packages/editor/src/main/services/settings/settings-service.ts` holds display preferences in localStorage under `besser-standalone-settings`. Rendering components read these **synchronously at render time** (e.g. `settingsService.shouldShowAssociationNames()`), they don't subscribe. For a toggle to actually repaint the canvas live, extend the existing `settingsService.onSettingsChange` listener in `packages/editor/src/main/scenes/application.tsx` and mirror the new field into component state — the `setState` call is what forces the subtree to re-render. Rendering components keep reading from `settingsService` directly (no props drilling needed). Don't bump `editorRevision` for view-only toggles — that clears undo history.
+
+### Custom SVG Rendering
+The editor uses custom SVG elements, **not** React-Flow or Apollon Canvas. Theme-aware wrappers live in `packages/editor/src/main/components/theme/themedComponents` (`ThemedRect`, `ThemedPath`, `ThemedPolyline`) — they pull fill/stroke from styled-components theme. Raw SVG primitives (`<polygon>`, `<rect>`, `<ellipse>`) **bypass the theme**, so always provide a fallback when using them with an optional `element.strokeColor`/`element.fillColor`:
+```tsx
+stroke={element.strokeColor || 'currentColor'}
+fill={element.fillColor || 'white'}
+```
+The `Text` component at `packages/editor/src/main/components/controls/text/text.tsx` forwards unknown props to the underlying `<text>`, so SVG presentation attributes like `textDecoration="underline"` work directly.
 
 ## Adding a New Diagram Element
 
@@ -212,7 +224,7 @@ When you see `M besser/utilities/web_modeling_editor/frontend` in the parent rep
 ## Testing Approach
 
 - **Unit tests**: Vitest with jsdom. Config in `vitest.config.ts`, setup in `src/test/setup.ts`
-- **E2E tests**: Playwright. Run with `npm run test:e2e`
+- **E2E tests**: Playwright. Run from `packages/webapp2` (not the monorepo root) with `npm run test:e2e`
 - **Linting**: ESLint (permissive — `any` and `ts-ignore` are warnings, not errors)
 - **Formatting**: Prettier (check with `npm run prettier:check`)
 

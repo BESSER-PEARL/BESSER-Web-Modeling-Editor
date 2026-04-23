@@ -1,4 +1,11 @@
 /**
+ * Rendering flavor for class diagrams.
+ * - 'UML' (default) — standard UML class notation
+ * - 'ER' — Chen-style entity-relationship flavor (rendering-only; no metamodel change)
+ */
+export type ClassNotation = 'UML' | 'ER';
+
+/**
  * Interface for application settings
  */
 export interface IApplicationSettings {
@@ -10,6 +17,8 @@ export interface IApplicationSettings {
   showAssociationNames: boolean;
   /** Whether to use the right-side properties panel instead of the floating popover */
   usePropertiesPanel: boolean;
+  /** Rendering flavor for class diagrams */
+  classNotation: ClassNotation;
   /** Other settings can be added here */
   // theme: 'light' | 'dark';
   // autoSave: boolean;
@@ -23,6 +32,7 @@ export const DEFAULT_SETTINGS: IApplicationSettings = {
   showIconView: false, // Default to false to hide class icons
   showAssociationNames: false, // Default to false to hide association names
   usePropertiesPanel: true, // Default to true to use the right-side properties panel
+  classNotation: 'UML', // Default to UML notation for class diagrams
 };
 
 /**
@@ -185,6 +195,13 @@ export class SettingsService implements ISettingsService {
    */
   shouldUsePropertiesPanel(): boolean {
     return this.settings.usePropertiesPanel;
+  }
+
+  /**
+   * Get the current class-diagram rendering notation
+   */
+  getClassNotation(): ClassNotation {
+    return this.settings.classNotation;
   }
 }
 

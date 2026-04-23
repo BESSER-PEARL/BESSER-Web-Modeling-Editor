@@ -20,6 +20,8 @@ import { UMLElementRepository } from '../../../services/uml-element/uml-element-
 import { UMLRelationshipRepository } from '../../../services/uml-relationship/uml-relationship-repository';
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { UMLAssociation } from '../../common/uml-association/uml-association';
+import { erCardinalityToUML } from '../../common/uml-association/multiplicity';
+import { settingsService } from '../../../services/settings/settings-service';
 
 type OwnProps = {
   element: UMLAssociation;
@@ -71,6 +73,12 @@ class ClassAssociationComponent extends Component<Props, State> {
     if (!source || !target) return null;
 
     const isInheritance = element.type === ClassRelationshipType.ClassInheritance;
+    // Hint both accepted syntaxes when ER display mode is active. The
+    // stored value is still UML, so the textfield itself shows the UML
+    // form — the placeholder is just there so ER-native users know
+    // "(1,N)" is accepted as input.
+    const multiplicityPlaceholder =
+      settingsService.getClassNotation() === 'ER' ? '(1,1) or 1..1' : '1..1';
 
     return (
       <div>
@@ -147,7 +155,7 @@ class ClassAssociationComponent extends Component<Props, State> {
                   value={element.source.multiplicity}
                   onChange={this.onUpdate('multiplicity', 'source')}
                   autoFocus
-                  placeholder={`1..1`}
+                  placeholder={multiplicityPlaceholder}
                 />
               </Flex>
               <Flex>
@@ -165,7 +173,7 @@ class ClassAssociationComponent extends Component<Props, State> {
                   gutter
                   value={element.target.multiplicity}
                   onChange={this.onUpdate('multiplicity', 'target')}
-                  placeholder={`1..1`}
+                  placeholder={multiplicityPlaceholder}
                 />
               </Flex>
               <Flex>
@@ -185,7 +193,13 @@ class ClassAssociationComponent extends Component<Props, State> {
 
   private onUpdate = (type: 'multiplicity' | 'role', end: 'source' | 'target') => (value: string) => {
     const { element, update } = this.props;
-    update<UMLAssociation>(element.id, { [end]: { ...element[end], [type]: value } });
+    // Accept ER-style "(min,max)" input and normalize to UML form before
+    // storing. Storage is always UML — ER is a display-only flavor — so a
+    // user typing "(0,N)" in ER mode has the same effect as typing "0..*".
+    // UML input is returned unchanged by erCardinalityToUML, so this is
+    // safe to apply regardless of the active notation.
+    const storedValue = type === 'multiplicity' ? erCardinalityToUML(value) : value;
+    update<UMLAssociation>(element.id, { [end]: { ...element[end], [type]: storedValue } });
   };
 }
 

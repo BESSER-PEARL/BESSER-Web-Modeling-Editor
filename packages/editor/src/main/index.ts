@@ -31,6 +31,11 @@ export * from './services/diagram-bridge';
 // Provides configuration management for standalone applications
 export * from './services/settings/settings-service';
 
+// Export the multiplicity helpers used by the ER-notation rendering
+// (parseMultiplicity / toERCardinality). Pure functions, safe to import
+// from tests and from consumer webapps.
+export * from './packages/common/uml-association/multiplicity';
+
 // Export only the Patch type (not the implementation) for type safety
 // Used when working with patching operations in TypeScript
 export type { Patch } from './services/patcher';
