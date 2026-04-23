@@ -1,7 +1,10 @@
 import { UMLDiagramType } from '@besser/wme';
 import type { BesserProject } from '../../../shared/types/project';
 import { isUMLModel } from '../../../shared/types/project';
-import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import {
+  LocalStorageRepository,
+  type SystemConfiguration,
+} from '../../../shared/services/storage/local-storage-repository';
 
 /**
  * Return a clone of `project` with each AgentDiagram's `model` swapped back to
@@ -31,6 +34,49 @@ export const restoreBaseAgentModels = (project: BesserProject): BesserProject =>
   });
 
   if (!swapped) return project;
+
+  return {
+    ...project,
+    diagrams: {
+      ...project.diagrams,
+      AgentDiagram: nextAgentDiagrams,
+    },
+  };
+};
+
+const buildSystemOnlyAgentConfig = (system: SystemConfiguration): Record<string, unknown> => {
+  const config: Record<string, unknown> = {
+    agentPlatform: system.agentPlatform,
+    intentRecognitionTechnology: system.intentRecognitionTechnology,
+  };
+  if (system.agentLlmProvider) {
+    const resolvedModel = system.agentLlmModel === 'other'
+      ? system.agentCustomLlmModel.trim()
+      : system.agentLlmModel;
+    config.llm = {
+      provider: system.agentLlmProvider,
+      ...(resolvedModel ? { model: resolvedModel } : {}),
+    };
+  }
+  return config;
+};
+
+/**
+ * Replace each AgentDiagram's `config` with a system-only config derived from
+ * the global System Configuration in localStorage. Used before generating /
+ * deploying so the backend does not see stale personalization fields (style,
+ * language complexity, modalities, saved variants, ...) that would trigger
+ * the personalization codegen branch. Mirrors the payload the standalone
+ * agent generator sends when "None" is selected in the generation dialog.
+ */
+export const stripAgentConfigToSystem = (project: BesserProject): BesserProject => {
+  const agentDiagrams = project.diagrams?.AgentDiagram;
+  if (!Array.isArray(agentDiagrams) || agentDiagrams.length === 0) {
+    return project;
+  }
+
+  const systemConfig = buildSystemOnlyAgentConfig(LocalStorageRepository.getSystemConfiguration());
+  const nextAgentDiagrams = agentDiagrams.map((diagram) => ({ ...diagram, config: { ...systemConfig } }));
 
   return {
     ...project,

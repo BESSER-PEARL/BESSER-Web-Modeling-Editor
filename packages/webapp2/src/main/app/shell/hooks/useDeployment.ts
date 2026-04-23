@@ -10,7 +10,10 @@ import {
   buildPersonalizationMapping,
   hasPersonalizationVariants,
 } from '../../../features/deploy/utils/agentPersonalizationPayload';
-import { restoreBaseAgentModels } from '../../../features/deploy/utils/restoreBaseAgentModels';
+import {
+  restoreBaseAgentModels,
+  stripAgentConfigToSystem,
+} from '../../../features/deploy/utils/restoreBaseAgentModels';
 
 // localStorage helpers for tracking previously deployed repos per project
 const DEPLOY_LINKED_REPO_PREFIX = 'besser_deploy_linked_';
@@ -255,10 +258,12 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     }
 
     // Webapp deploys embed the agent model directly in the generated app, so
-    // always ship the base (pre-personalization) snapshot — even if the user
-    // has applied personalization to the active AgentDiagram in the editor.
+    // always ship the base (pre-personalization) snapshot — and a system-only
+    // agent config — even if the user ran Save & Apply in the Agent
+    // Configuration panel. This matches the "None" selection in the
+    // standalone agent generator.
     const projectForPayload = deploymentTarget === 'webapp'
-      ? restoreBaseAgentModels(projectForDeploy)
+      ? stripAgentConfigToSystem(restoreBaseAgentModels(projectForDeploy))
       : projectForDeploy;
 
     const result = await deployToGitHub(
