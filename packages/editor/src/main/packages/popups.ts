@@ -345,6 +345,17 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.WeightDecayAttributeConfiguration]: NNAttributeUpdate,
   [NNElementType.MomentumAttributeConfiguration]: NNAttributeUpdate,
 
+  // Datasets
+  [NNElementType.TrainingDataset]: NNComponentUpdate,
+  [NNElementType.TestDataset]: NNComponentUpdate,
+  // Dataset Attributes
+  [NNElementType.NameAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.PathDataAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.TaskTypeAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.InputFormatAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.ShapeAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.NormalizeAttributeDataset]: NNAttributeUpdate,
+
   // Section elements for sidebar organization (no popups needed)
   [NNElementType.NNSectionTitle]: null,
   [NNElementType.NNSectionSeparator]: null,
@@ -355,4 +366,5 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
 
   [UMLRelationshipType.NNNext]: null,
   [UMLRelationshipType.NNComposition]: null,
+  [UMLRelationshipType.NNAssociation]: null,
 };

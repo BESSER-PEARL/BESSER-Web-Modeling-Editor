@@ -27,25 +27,43 @@ class NNAssociationMonitorComponent extends Component<Props> {
     if (prevProps.elements !== this.props.elements) {
       this.checkAndUpdateAssociations();
       this.renameNewDuplicateNameAttributes(prevProps.elements);
+      this.cleanupHiddenOptionalAttributes();
     }
   }
 
   private checkAndUpdateAssociations() {
     const { elements } = this.props;
 
+    const isDataset = (t: string | undefined) =>
+      t === NNElementType.TrainingDataset || t === NNElementType.TestDataset;
+
     Object.values(elements).forEach((element: any) => {
       if (!UMLRelationship.isUMLRelationship(element)) return;
 
-      // Delete any NNNext connection involving NNContainer or Configuration
+      const source = elements[element.source?.element];
+      const target = elements[element.target?.element];
+
+      // Delete any NNNext connection involving NNContainer, Configuration, or Datasets
       if (element.type === NNRelationshipType.NNNext) {
-        const source = elements[element.source?.element];
-        const target = elements[element.target?.element];
         const isInvalid =
           source?.type === NNElementType.NNContainer ||
           source?.type === NNElementType.Configuration ||
+          isDataset(source?.type) ||
           target?.type === NNElementType.NNContainer ||
-          target?.type === NNElementType.Configuration;
+          target?.type === NNElementType.Configuration ||
+          isDataset(target?.type);
         if (isInvalid) {
+          this.props.delete(element.id);
+          return;
+        }
+      }
+
+      // NNAssociation must connect a Dataset to an NNContainer (either direction)
+      if (element.type === NNRelationshipType.NNAssociation) {
+        const validPair =
+          (isDataset(source?.type) && target?.type === NNElementType.NNContainer) ||
+          (isDataset(target?.type) && source?.type === NNElementType.NNContainer);
+        if (!validPair) {
           this.props.delete(element.id);
           return;
         }
@@ -111,6 +129,68 @@ class NNAssociationMonitorComponent extends Component<Props> {
         }
       }
     }
+  }
+
+  // Delete optional attribute children that are no longer valid for the parent's
+  // current selector value (e.g. input_format, pooling_type, tns_type). Keeps the
+  // underlying model consistent with what the popup UI shows.
+  private cleanupHiddenOptionalAttributes() {
+    const { elements } = this.props;
+    const all = Object.values(elements);
+    const attrName = (el: any) => (el ? (el as INNAttribute).attributeName : undefined);
+    const attrValue = (el: any) => (el ? (el as INNAttribute).value : undefined);
+
+    const childrenOf = (ownerId: string) => all.filter((el: any) => el.owner === ownerId);
+    const findAttr = (children: any[], name: string) => children.find((c) => attrName(c) === name);
+    const deleteByNames = (children: any[], names: string[]) => {
+      children.forEach((child) => {
+        const name = attrName(child);
+        if (name && names.includes(name)) {
+          this.props.delete(child.id);
+        }
+      });
+    };
+
+    all.forEach((owner: any) => {
+      // Datasets: shape/normalize only apply when input_format === 'images'
+      if (owner.type === NNElementType.TrainingDataset || owner.type === NNElementType.TestDataset) {
+        const children = childrenOf(owner.id);
+        const inputFormat = attrValue(findAttr(children, 'input_format'));
+        if (inputFormat && inputFormat !== 'images') {
+          deleteByNames(children, ['shape', 'normalize']);
+        }
+      }
+
+      // Pooling: hidden optionals depend on pooling_type
+      if (owner.type === NNElementType.PoolingLayer) {
+        const children = childrenOf(owner.id);
+        const poolingType = attrValue(findAttr(children, 'pooling_type'));
+        if (poolingType === 'global_average' || poolingType === 'global_max') {
+          deleteByNames(children, ['kernel_dim', 'stride_dim', 'padding_amount', 'padding_type', 'output_dim']);
+        } else if (poolingType === 'adaptive_average' || poolingType === 'adaptive_max') {
+          deleteByNames(children, ['kernel_dim', 'stride_dim', 'padding_amount', 'padding_type']);
+        } else if (poolingType === 'average' || poolingType === 'max') {
+          deleteByNames(children, ['output_dim']);
+        }
+      }
+
+      // TensorOp: each tns_type reveals a specific set of list attributes
+      if (owner.type === NNElementType.TensorOp) {
+        const children = childrenOf(owner.id);
+        const tnsType = attrValue(findAttr(children, 'tns_type'));
+        const allDims = ['reshape_dim', 'concatenate_dim', 'transpose_dim', 'permute_dim'];
+        let keep: string[] = [];
+        switch (tnsType) {
+          case 'reshape':     keep = ['reshape_dim']; break;
+          case 'concatenate': keep = ['concatenate_dim']; break;
+          case 'transpose':   keep = ['transpose_dim']; break;
+          case 'permute':     keep = ['permute_dim']; break;
+          default:            keep = []; break;
+        }
+        const toDelete = allDims.filter((n) => !keep.includes(n));
+        deleteByNames(children, toDelete);
+      }
+    });
   }
 
   render() {

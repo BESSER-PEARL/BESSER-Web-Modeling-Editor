@@ -35,6 +35,7 @@ import { AgentStateTransitionInit } from './agent-state-diagram/agent-state-tran
 import { NNRelationshipType } from './nn-diagram';
 import { NNNext } from './nn-diagram/nn-unidirectional/nn-unidirectional';
 import { NNComposition } from './nn-diagram/nn-composition/nn-composition';
+import { NNAssociation } from './nn-diagram/nn-association-line/nn-association-line';
 
 type UMLRelationships = { [key in UMLRelationshipType]: new (values?: IUMLRelationship) => UMLRelationship };
 
@@ -74,4 +75,5 @@ export const UMLRelationships = {
   [UMLRelationshipType.AgentStateTransitionInit]: AgentStateTransitionInit,
   [NNRelationshipType.NNNext]: NNNext,
   [NNRelationshipType.NNComposition]: NNComposition,
+  [NNRelationshipType.NNAssociation]: NNAssociation,
 };
