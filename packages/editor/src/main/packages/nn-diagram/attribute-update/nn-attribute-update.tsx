@@ -121,6 +121,46 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     } as Partial<INNAttribute>);
   };
 
+  /**
+   * Normalize legacy attribute values that the popup renders as a display-safe
+   * fallback (e.g. 'zeros' → 'valid' for padding_type, 'cross_entropy' →
+   * 'crossentropy', a numeric '2' → '2D' for Pooling/BatchNorm dimension).
+   *
+   * The dropdowns previously showed the normalized label but never wrote it
+   * back to Redux, so an unchanged legacy project was exported with the
+   * stale value. Dispatch a one-shot migration on mount.
+   */
+  componentDidMount() {
+    const { element, update } = this.props;
+    const oldValue = element.value;
+    let newValue: string | null = null;
+
+    const type = element.type;
+    if (oldValue === 'zeros' && (
+      type === NNElementType.PaddingTypeAttributeConv1D ||
+      type === NNElementType.PaddingTypeAttributeConv2D ||
+      type === NNElementType.PaddingTypeAttributeConv3D ||
+      type === NNElementType.PaddingTypeAttributePooling
+    )) {
+      newValue = 'valid';
+    } else if (oldValue === 'cross_entropy' && type === NNElementType.LossFunctionAttributeConfiguration) {
+      newValue = 'crossentropy';
+    } else if (
+      (type === NNElementType.DimensionAttributePooling ||
+       type === NNElementType.DimensionAttributeBatchNormalization) &&
+      oldValue && !['1D', '2D', '3D'].includes(oldValue)
+    ) {
+      newValue = '2D';
+    }
+
+    if (newValue !== null && newValue !== oldValue) {
+      update(element.id, {
+        value: newValue,
+        name: `${element.attributeName} = ${newValue}`,
+      } as Partial<INNAttribute>);
+    }
+  }
+
   // Special handler for Pooling dimension changes - updates kernel_dim, stride_dim, and output_dim
   private handleDimensionChange = (newValue: TextfieldValue) => {
     const { element, update, elements } = this.props;

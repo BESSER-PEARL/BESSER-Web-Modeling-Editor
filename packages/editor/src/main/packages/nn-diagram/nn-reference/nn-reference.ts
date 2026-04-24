@@ -24,14 +24,21 @@ export class NNReference extends UMLElement implements INNReference {
     this.name = 'SubNN';
     this.bounds = { x: 0, y: 0, width: NNReference.minWidth, height: NNReference.height };
 
+    // Remember whether the caller supplied a real label so we don't clobber
+    // it with the referenced NN's name below. Without this, a clone / paste
+    // of a reference with a user-chosen label silently reset the label.
+    const callerSuppliedName =
+      values?.name !== undefined && values.name !== '' && values.name !== 'SubNN';
+
     if (values) {
       Object.assign(this, values);
       // Clone bounds to avoid mutating the Redux state's bounds object
       this.bounds = { ...this.bounds };
     }
 
-    // Display name shows the referenced NN
-    if (this.referencedNN) {
+    // Display name falls back to the referenced NN only when the caller
+    // didn't provide their own label.
+    if (!callerSuppliedName && this.referencedNN) {
       this.name = this.referencedNN;
     }
 
