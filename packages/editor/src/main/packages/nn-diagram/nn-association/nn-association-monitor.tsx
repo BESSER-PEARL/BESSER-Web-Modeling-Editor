@@ -84,11 +84,27 @@ class NNAssociationMonitorComponent extends Component<Props> {
     if (renames.length === 0) return;
 
     const renameMap = new Map(renames);
+    // Collapse rename chains: if the same dispatch renamed "A"→"B" AND
+    // "B"→"C", a reference originally pointing at "A" must end up at "C",
+    // not "B". Follow each chain until it stabilizes (cycle-safe via a
+    // visited set).
+    const resolve = (name: string): string => {
+      let current = name;
+      const seen = new Set<string>([current]);
+      while (renameMap.has(current)) {
+        const next = renameMap.get(current)!;
+        if (seen.has(next)) break;  // cyclic rename (A→B→A) — bail
+        seen.add(next);
+        current = next;
+      }
+      return current;
+    };
     for (const el of Object.values(elements)) {
       if (el.type !== NNElementType.NNReference) continue;
       const ref = el as any;
-      const newTarget = renameMap.get(ref.referencedNN);
-      if (!newTarget) continue;
+      if (!renameMap.has(ref.referencedNN)) continue;
+      const newTarget = resolve(ref.referencedNN);
+      if (newTarget === ref.referencedNN) continue;
       const patch: any = { referencedNN: newTarget };
       // Only rewrite the visible label if it was tracking the old target —
       // preserve user-supplied custom labels (see NNReference constructor).

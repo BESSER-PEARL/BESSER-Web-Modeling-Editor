@@ -550,25 +550,29 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
   };
 };
 
-// Module-level memoization keyed on the ``state.elements`` object reference.
-// When the underlying Redux slice hasn't changed, every row re-uses the same
-// array reference — which lets us drop the ``{ pure: false }`` override on
-// connect() and rely on shallow equality to skip re-renders.
+// Module-level memoization keyed on the ``state.elements`` object reference
+// via a WeakMap. When the Redux slice hasn't changed, every row re-uses the
+// same array reference — which lets us drop the ``{ pure: false }`` override
+// on connect() and rely on shallow equality to skip re-renders.
 //
-// Without this, a layer with ~10 optional rows would re-walk the NNNext
-// graph ~10x per Redux dispatch (each row re-runs mapStateToProps under
-// pure:false). With this, the graph is walked once per unique (elements, id)
-// pair and reused across all rows for that layer.
-let _predecessorsCache: {
-  elements: unknown;
-  byTarget: Map<string, string[]>;
-} | null = null;
+// WeakMap (rather than a single-slot cache) means the per-slice cache is GC'd
+// with the elements ref: if the user loads a second diagram, the first's
+// cache entries become unreachable automatically, so we never risk serving
+// stale predecessor lists from a prior diagram instance.
+//
+// Without this memoization, a layer with ~10 optional rows would re-walk
+// the NNNext graph ~10x per Redux dispatch (each row re-runs mapStateToProps
+// under pure:false). With it, the graph is walked once per unique
+// (elements, id) pair and reused across every row bound to that elements ref.
+const _predecessorsCache = new WeakMap<object, Map<string, string[]>>();
 
 function _computePredecessors(elements: any, targetId: string): string[] {
-  if (!_predecessorsCache || _predecessorsCache.elements !== elements) {
-    _predecessorsCache = { elements, byTarget: new Map() };
+  let byTarget = _predecessorsCache.get(elements);
+  if (!byTarget) {
+    byTarget = new Map<string, string[]>();
+    _predecessorsCache.set(elements, byTarget);
   }
-  const cached = _predecessorsCache.byTarget.get(targetId);
+  const cached = byTarget.get(targetId);
   if (cached) return cached;
 
   const allElements = Object.values(elements) as any[];
@@ -600,7 +604,7 @@ function _computePredecessors(elements: any, targetId: string): string[] {
   };
   visit(targetId);
 
-  _predecessorsCache.byTarget.set(targetId, names);
+  byTarget.set(targetId, names);
   return names;
 }
 
