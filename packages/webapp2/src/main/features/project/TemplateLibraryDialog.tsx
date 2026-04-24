@@ -115,9 +115,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   const hasExistingModel = useMemo(() => {
     if (!currentProject || !selectedTemplate) return false;
-    const supportedType = selectedTemplate.diagramType as
-      | 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram'
-      | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
+    const supportedType = selectedTemplate.diagramType as SupportedDiagramType;
     const existing = getActiveDiagram(currentProject, supportedType);
     return existing ? diagramHasContent(existing) : false;
   }, [currentProject, selectedTemplate]);

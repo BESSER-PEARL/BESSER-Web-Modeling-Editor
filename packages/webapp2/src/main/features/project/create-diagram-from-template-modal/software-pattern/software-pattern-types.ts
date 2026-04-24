@@ -30,7 +30,7 @@ export enum SoftwarePatternType {
   NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN',
   NN_ALEXNET = 'AlexNet',
   NN_LSTM = 'LSTM',
-  NN_CIFAR_WITH_TRAINING = 'CIFAR-10 CNN with Training',
+  NN_CIFAR_WITH_TRAINING = 'CIFAR-10 CNN (Training + Test)',
   // Quantum Circuit patterns
   QUANTUM_EMPTY = 'Empty Circuit',
   QUANTUM_SINGLE_GATES = 'Single Qubit Gates',
