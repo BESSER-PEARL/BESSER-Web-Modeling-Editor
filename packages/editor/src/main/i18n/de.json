@@ -171,6 +171,30 @@
       "BPMNSwimlane": "Bahn",
       "BPMNSwimlanes": "Bahnen",
       "BPMNGroup": "Gruppe"
+    },
+    "NNDiagram": {
+      "NNContainer": "Neuronales Netz",
+      "NNReference": "Sub-NN-Referenz",
+      "SelectNN": "Neuronales Netz auswählen",
+      "SelectNNPlaceholder": "-- NN auswählen --",
+      "Conv1DLayer": "Conv1D-Schicht",
+      "Conv2DLayer": "Conv2D-Schicht",
+      "Conv3DLayer": "Conv3D-Schicht",
+      "PoolingLayer": "Pooling-Schicht",
+      "RNNLayer": "RNN-Schicht",
+      "LSTMLayer": "LSTM-Schicht",
+      "GRULayer": "GRU-Schicht",
+      "LinearLayer": "Lineare Schicht",
+      "FlattenLayer": "Flatten-Schicht",
+      "EmbeddingLayer": "Embedding-Schicht",
+      "DropoutLayer": "Dropout-Schicht",
+      "LayerNormalizationLayer": "Schicht-Normalisierung",
+      "BatchNormalizationLayer": "Batch-Normalisierung",
+      "TensorOp": "Tensor-Operation",
+      "Configuration": "Konfiguration",
+      "TrainingDataset": "Trainingsdatensatz",
+      "TestDataset": "Testdatensatz",
+      "Datasets": "NN-Datensätze"
     }
   }
 }
