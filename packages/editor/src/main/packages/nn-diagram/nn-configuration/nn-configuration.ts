@@ -5,7 +5,6 @@ import { DeepPartial } from 'redux';
 import { NNBaseLayer } from '../nn-base-layer';
 export class Configuration extends NNBaseLayer {
   type: UMLElementType = NNElementType.Configuration;
-  name: string = 'Configuration';
 
   constructor(values?: DeepPartial<Configuration>) {
     super(values);

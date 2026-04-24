@@ -27,7 +27,6 @@ abstract class Dataset extends NNBaseLayer {
 
 export class TrainingDataset extends Dataset {
   type: UMLElementType = NNElementType.TrainingDataset;
-  name: string = 'TrainingDataset';
 
   constructor(values?: DeepPartial<TrainingDataset>) {
     super(values);
@@ -39,7 +38,6 @@ export class TrainingDataset extends Dataset {
 
 export class TestDataset extends Dataset {
   type: UMLElementType = NNElementType.TestDataset;
-  name: string = 'TestDataset';
 
   constructor(values?: DeepPartial<TestDataset>) {
     super(values);

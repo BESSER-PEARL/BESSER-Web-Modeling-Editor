@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class PoolingLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.PoolingLayer;
-  name: string = 'PoolingLayer';
 
   constructor(values?: DeepPartial<PoolingLayer>) {
     super(values);

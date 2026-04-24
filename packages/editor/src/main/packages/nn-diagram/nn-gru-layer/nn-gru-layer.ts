@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class GRULayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.GRULayer;
-  name: string = 'GRULayer';
 
   constructor(values?: DeepPartial<GRULayer>) {
     super(values);

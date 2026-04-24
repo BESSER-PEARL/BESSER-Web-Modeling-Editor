@@ -7,7 +7,10 @@ import { NNBaseLayer } from '../nn-base-layer';
 // Conv2D Layer implementation
 export class Conv2DLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.Conv2DLayer;
-  name: string = 'Conv2DLayer';
+
+  // Do NOT redeclare `name` with a class-field initializer. In TS it runs
+  // *after* super(values), overwriting whatever the caller passed in. Leave
+  // naming to the constructor fallback below.
 
   constructor(values?: DeepPartial<Conv2DLayer>) {
     super(values);

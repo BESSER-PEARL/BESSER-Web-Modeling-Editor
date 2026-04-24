@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class RNNLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.RNNLayer;
-  name: string = 'RNNLayer';
 
   constructor(values?: DeepPartial<RNNLayer>) {
     super(values);

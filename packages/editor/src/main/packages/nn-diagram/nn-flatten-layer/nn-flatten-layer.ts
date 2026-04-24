@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class FlattenLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.FlattenLayer;
-  name: string = 'FlattenLayer';
 
   constructor(values?: DeepPartial<FlattenLayer>) {
     super(values);

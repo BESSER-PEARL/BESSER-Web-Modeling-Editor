@@ -4,7 +4,6 @@ import { DeepPartial } from 'redux';
 
 export class NNNext extends UMLAssociation {
   type = NNRelationshipType.NNNext;
-  name: string = 'next';
 
   constructor(values?: DeepPartial<IUMLAssociation>) {
     super(values);

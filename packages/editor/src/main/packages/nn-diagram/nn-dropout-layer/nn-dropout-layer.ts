@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class DropoutLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.DropoutLayer;
-  name: string = 'DropoutLayer';
 
   constructor(values?: DeepPartial<DropoutLayer>) {
     super(values);

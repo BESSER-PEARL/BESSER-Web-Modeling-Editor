@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class Conv1DLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.Conv1DLayer;
-  name: string = 'Conv1DLayer';
 
   constructor(values?: DeepPartial<Conv1DLayer>) {
     super(values);

@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class LSTMLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.LSTMLayer;
-  name: string = 'LSTMLayer';
 
   constructor(values?: DeepPartial<LSTMLayer>) {
     super(values);

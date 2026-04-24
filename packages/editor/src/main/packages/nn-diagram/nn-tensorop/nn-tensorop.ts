@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class TensorOp extends NNBaseLayer {
   type: UMLElementType = NNElementType.TensorOp;
-  name: string = 'TensorOp';
 
   constructor(values?: DeepPartial<TensorOp>) {
     super(values);

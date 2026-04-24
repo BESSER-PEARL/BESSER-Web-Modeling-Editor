@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class BatchNormalizationLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.BatchNormalizationLayer;
-  name: string = 'BatchNormalizationLayer';
 
   constructor(values?: DeepPartial<BatchNormalizationLayer>) {
     super(values);

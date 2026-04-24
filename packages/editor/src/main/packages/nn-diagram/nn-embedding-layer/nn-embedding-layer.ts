@@ -6,7 +6,6 @@ import { NNBaseLayer } from '../nn-base-layer';
 
 export class EmbeddingLayer extends NNBaseLayer {
   type: UMLElementType = NNElementType.EmbeddingLayer;
-  name: string = 'EmbeddingLayer';
 
   constructor(values?: DeepPartial<EmbeddingLayer>) {
     super(values);
