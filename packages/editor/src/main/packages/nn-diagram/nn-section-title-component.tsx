@@ -28,7 +28,10 @@ export const NNSectionTitleComponent: FC<OwnProps> = ({ element }) => {
         style={{
           fontWeight: 'bold',
           fontSize: '22px',
-          fill: '#1976d2',
+          // Inherit theme text color so the title stays legible in dark
+          // mode. The previous hardcoded brand-blue stuck around regardless
+          // of the canvas background.
+          fill: 'currentColor',
           pointerEvents: 'none',
           userSelect: 'none',
         }}

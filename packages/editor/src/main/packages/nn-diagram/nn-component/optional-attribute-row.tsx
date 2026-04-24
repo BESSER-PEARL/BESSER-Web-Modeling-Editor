@@ -78,6 +78,29 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
     };
   }
 
+  componentDidMount() {
+    // Migrate legacy dropdown values on mount: if the stored attribute
+    // value isn't in the current options list, normalize to the config's
+    // defaultValue and dispatch once so the Redux store no longer holds
+    // the stale value. Without this, the popup renders the normalized
+    // label but the exported JSON/BUML still carries e.g. 'output' (for
+    // return_type) or any other legacy dropdown string.
+    const { existingAttribute, update, attributeType } = this.props;
+    if (!existingAttribute || !existingAttribute.value) return;
+    const config = getWidgetConfig(attributeType);
+    if (
+      config.widget === 'dropdown' &&
+      Array.isArray(config.options) &&
+      !config.options.includes(existingAttribute.value) &&
+      config.defaultValue
+    ) {
+      update(existingAttribute.id, {
+        value: config.defaultValue,
+        name: `${attributeType} = ${config.defaultValue}`,
+      } as any);
+    }
+  }
+
   componentDidUpdate(prevProps: Props) {
     // Update local state when Redux state changes
     if (!prevProps.existingAttribute && this.props.existingAttribute) {

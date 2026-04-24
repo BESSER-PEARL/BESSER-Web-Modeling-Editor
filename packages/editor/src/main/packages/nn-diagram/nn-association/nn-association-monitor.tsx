@@ -31,7 +31,43 @@ class NNAssociationMonitorComponent extends Component<Props> {
     if (prevProps.elements !== this.props.elements) {
       this.checkAndUpdateAssociations();
       this.renameNewDuplicateNameAttributes(prevProps.elements);
+      this.propagateContainerRenames(prevProps.elements);
       this.cleanupHiddenOptionalAttributes();
+    }
+  }
+
+  /**
+   * NNReference.referencedNN stores the target NNContainer's name (not its id).
+   * When the user renames a container, every reference pointing at the old
+   * name becomes stale and can't resolve on the backend. Diff prev vs current
+   * for NNContainer name changes and rewrite matching ``referencedNN`` (and
+   * display ``name`` when it still mirrored the old target name).
+   */
+  private propagateContainerRenames(prevElements: ModelState['elements']) {
+    const { elements, update } = this.props;
+    const renames: Array<[string, string]> = [];
+    for (const el of Object.values(elements)) {
+      if (el.type !== NNElementType.NNContainer) continue;
+      const prev = prevElements[el.id];
+      if (prev && prev.type === NNElementType.NNContainer && prev.name !== el.name) {
+        renames.push([prev.name, el.name]);
+      }
+    }
+    if (renames.length === 0) return;
+
+    const renameMap = new Map(renames);
+    for (const el of Object.values(elements)) {
+      if (el.type !== NNElementType.NNReference) continue;
+      const ref = el as any;
+      const newTarget = renameMap.get(ref.referencedNN);
+      if (!newTarget) continue;
+      const patch: any = { referencedNN: newTarget };
+      // Only rewrite the visible label if it was tracking the old target —
+      // preserve user-supplied custom labels (see NNReference constructor).
+      if (el.name === ref.referencedNN) {
+        patch.name = newTarget;
+      }
+      update(el.id, patch);
     }
   }
 
