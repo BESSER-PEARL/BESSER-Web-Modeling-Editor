@@ -605,6 +605,12 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
             )}
           </AttributeInputContainer>
           <ColorButton onClick={this.toggleColor} />
+          {/* Wire up handleDelete so users can drop an optional attribute
+              from the layer directly, instead of having to untoggle it in
+              the parent layer popup. Mirrors nn-component-update.tsx. */}
+          <Button color="link" tabIndex={-1} onClick={this.handleDelete} title="Remove attribute">
+            <TrashIcon />
+          </Button>
         </Flex>
         {this.state.validationError && (
           <span style={{ color: 'red', fontSize: '11px', display: 'block', marginTop: '-2px', marginBottom: '4px' }}>
