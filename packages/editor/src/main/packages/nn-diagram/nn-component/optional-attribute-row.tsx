@@ -540,45 +540,7 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
       el.type === ownProps.attributeType
   );
 
-  // Find ALL predecessors via NNNext relationships (traverse backwards through the chain)
-  const predecessorNames: string[] = [];
-  const visitedIds = new Set<string>();
-
-  // Helper function to get the name of a layer/tensor op
-  const getElementName = (elementId: string): string | null => {
-    const element = state.elements[elementId];
-    if (!element) return null;
-
-    // Get the name attribute value from the layer/tensor op
-    const nameAttr = Object.values(state.elements).find(
-      (el: any) => el.owner === elementId && el.type?.includes('NameAttribute')
-    );
-    return (nameAttr as INNAttribute)?.value || element.name || null;
-  };
-
-  // Recursively find all predecessors
-  const findPredecessors = (targetId: string) => {
-    // Get all NNNext relationships where this element is the target
-    const incomingRelationships = Object.values(state.elements).filter(
-      (el: any) => el.type === NNRelationshipType.NNNext && el.target?.element === targetId
-    );
-
-    for (const rel of incomingRelationships) {
-      const sourceId = (rel as IUMLRelationship).source?.element;
-      if (sourceId && !visitedIds.has(sourceId)) {
-        visitedIds.add(sourceId);
-        const name = getElementName(sourceId);
-        if (name) {
-          predecessorNames.push(name);
-        }
-        // Recursively find predecessors of this source
-        findPredecessors(sourceId);
-      }
-    }
-  };
-
-  // Start finding predecessors from the current layer
-  findPredecessors(ownProps.layerId);
+  const predecessorNames = _computePredecessors(state.elements, ownProps.layerId);
 
   return {
     existingAttribute,
@@ -587,6 +549,60 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
     predecessorNames,
   };
 };
+
+// Module-level memoization keyed on the ``state.elements`` object reference.
+// When the underlying Redux slice hasn't changed, every row re-uses the same
+// array reference — which lets us drop the ``{ pure: false }`` override on
+// connect() and rely on shallow equality to skip re-renders.
+//
+// Without this, a layer with ~10 optional rows would re-walk the NNNext
+// graph ~10x per Redux dispatch (each row re-runs mapStateToProps under
+// pure:false). With this, the graph is walked once per unique (elements, id)
+// pair and reused across all rows for that layer.
+let _predecessorsCache: {
+  elements: unknown;
+  byTarget: Map<string, string[]>;
+} | null = null;
+
+function _computePredecessors(elements: any, targetId: string): string[] {
+  if (!_predecessorsCache || _predecessorsCache.elements !== elements) {
+    _predecessorsCache = { elements, byTarget: new Map() };
+  }
+  const cached = _predecessorsCache.byTarget.get(targetId);
+  if (cached) return cached;
+
+  const allElements = Object.values(elements) as any[];
+  const names: string[] = [];
+  const visited = new Set<string>();
+
+  const getElementName = (elementId: string): string | null => {
+    const element = elements[elementId];
+    if (!element) return null;
+    const nameAttr = allElements.find(
+      (el) => el.owner === elementId && el.type?.includes('NameAttribute')
+    );
+    return (nameAttr as INNAttribute)?.value || element.name || null;
+  };
+
+  const visit = (id: string) => {
+    const incoming = allElements.filter(
+      (el) => el.type === NNRelationshipType.NNNext && el.target?.element === id
+    );
+    for (const rel of incoming) {
+      const sourceId = (rel as IUMLRelationship).source?.element;
+      if (sourceId && !visited.has(sourceId)) {
+        visited.add(sourceId);
+        const name = getElementName(sourceId);
+        if (name) names.push(name);
+        visit(sourceId);
+      }
+    }
+  };
+  visit(targetId);
+
+  _predecessorsCache.byTarget.set(targetId, names);
+  return names;
+}
 
 const enhance = compose<ComponentClass<OwnProps>>(
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
@@ -597,8 +613,10 @@ const enhance = compose<ComponentClass<OwnProps>>(
       delete: UMLElementRepository.delete,
       appendToParent: UMLContainerRepository.append,
     },
-    null,  // mergeProps
-    { pure: false }  // Disable shallow comparison to ensure re-render on Redux updates
+    // Default (shallow) mergeProps + default pure:true. Previously pure:false
+    // forced mapStateToProps to run on every dispatch; now we return stable
+    // object/array references when elements haven't changed, so shallow
+    // comparison correctly short-circuits unchanged rows.
   ),
 );
 
