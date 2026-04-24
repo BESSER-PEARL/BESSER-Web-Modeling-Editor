@@ -25,15 +25,13 @@ interface OwnProps {
 }
 
 interface StateProps {
-  elements: ModelState['elements'];
+  sourceIsContainer: boolean;
 }
 
 type Props = OwnProps & StateProps;
 
-const NNCompositionComponentBase: FunctionComponent<Props> = ({ element, elements }) => {
+const NNCompositionComponentBase: FunctionComponent<Props> = ({ element, sourceIsContainer }) => {
   const id = `marker-${element.id}`;
-  const sourceIsContainer = elements[element.source?.element]?.type === NNElementType.NNContainer;
-
   // Reverse the path when NNContainer is the source so the diamond (markerEnd) is at NNContainer
   const path = sourceIsContainer ? [...element.path].reverse() : element.path;
 
@@ -51,6 +49,12 @@ const NNCompositionComponentBase: FunctionComponent<Props> = ({ element, element
   );
 };
 
+// Subscribe only to the source element's type (a boolean derived prop) rather
+// than the entire ``state.elements`` map — otherwise every Redux mutation of
+// any element triggers a re-render of every composition line on the canvas.
 export const NNCompositionComponent = connect<StateProps, {}, OwnProps, ModelState>(
-  (state) => ({ elements: state.elements }),
+  (state, ownProps) => ({
+    sourceIsContainer:
+      state.elements[ownProps.element.source?.element]?.type === NNElementType.NNContainer,
+  }),
 )(NNCompositionComponentBase);
