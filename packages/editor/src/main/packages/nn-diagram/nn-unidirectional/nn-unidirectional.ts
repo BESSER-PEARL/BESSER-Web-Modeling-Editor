@@ -14,9 +14,12 @@ export class NNNext extends UMLAssociation {
   }
 
   serialize() {
+    // The constructor already supplies the default label, so don't re-coerce
+    // an empty name back to 'next' here — an empty label means the user
+    // explicitly cleared it in the popup and we should export what they see.
     return {
       ...super.serialize(),
-      name: this.name || 'next',
+      name: this.name,
     };
   }
 }

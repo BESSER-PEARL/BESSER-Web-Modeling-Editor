@@ -61,9 +61,11 @@ export const NNLayerIconComponent: FunctionComponent<Props> = ({ element }) => {
         preserveAspectRatio="xMidYMid meet"
       />
 
-      {/* Layer name */}
+      {/* Layer name. Fall back to currentColor (theme text color) instead of
+          hardcoded black — otherwise labels disappear on the dark canvas
+          whenever the user hasn't explicitly set textColor. */}
       <svg y={textY} height={textHeight} width="100%">
-        <Text fill={element.textColor || '#000000'} fontSize="11px">
+        <Text fill={element.textColor || 'currentColor'} fontSize="11px">
           <tspan x="50%" textAnchor="middle">
             {element.name}
           </tspan>
