@@ -60,7 +60,7 @@ export const NNContainerComponent: FunctionComponent<Props> = ({ element, childr
         y1={tabHeight + headerHeight}
         x2={element.bounds.width}
         y2={tabHeight + headerHeight}
-        stroke={element.strokeColor || '#000'}
+        stroke={element.strokeColor || 'currentColor'}
         strokeWidth={1}
       />
 

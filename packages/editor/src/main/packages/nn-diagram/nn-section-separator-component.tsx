@@ -24,7 +24,8 @@ export const NNSectionSeparatorComponent: FC<OwnProps> = ({ element }) => {
         y1={centerY}
         x2={width + centerOffset}
         y2={centerY}
-        stroke="#999"
+        stroke="currentColor"
+        strokeOpacity={0.4}
         strokeWidth={2}
         style={{ pointerEvents: 'none' }}
       />
