@@ -32,7 +32,35 @@ class NNAssociationMonitorComponent extends Component<Props> {
       this.checkAndUpdateAssociations();
       this.renameNewDuplicateNameAttributes(prevProps.elements);
       this.propagateContainerRenames(prevProps.elements);
+      this.enforceConfigurationSingleton(prevProps.elements);
       this.cleanupHiddenOptionalAttributes();
+    }
+  }
+
+  /**
+   * The NN metamodel allows at most one Configuration per NN. Dropping a
+   * second Configuration element produces a diagram that fails backend
+   * validation. Detect any NNContainer that has more than one Configuration
+   * child, delete the newest one, and let the older instance remain.
+   */
+  private enforceConfigurationSingleton(prevElements: ModelState['elements']) {
+    const { elements } = this.props;
+    const byContainer: Record<string, string[]> = {};
+    for (const el of Object.values(elements)) {
+      if (el.type !== NNElementType.Configuration) continue;
+      const owner = (el as any).owner;
+      if (!owner) continue;
+      (byContainer[owner] = byContainer[owner] || []).push(el.id);
+    }
+    for (const [_owner, configIds] of Object.entries(byContainer)) {
+      if (configIds.length <= 1) continue;
+      // Prefer keeping any Configuration that existed before this update,
+      // so a drag-drop that creates a duplicate removes only the fresh one.
+      const newlyAdded = configIds.filter(id => !prevElements[id]);
+      const toDelete = newlyAdded.length > 0 ? newlyAdded : configIds.slice(1);
+      for (const id of toDelete) {
+        this.props.delete(id);
+      }
     }
   }
 
