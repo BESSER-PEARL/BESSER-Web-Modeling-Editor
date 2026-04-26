@@ -317,6 +317,18 @@ const ClassRow: React.FC<{
                   onCheckedChange={(v: boolean) => onPatch({ isContainer: v || undefined })}
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <Label
+                  className="text-xs uppercase tracking-wider text-muted-foreground"
+                  title="Show drag handles on instances so the user can resize the node"
+                >
+                  Resizable
+                </Label>
+                <Switch
+                  checked={!!override.isResizable}
+                  onCheckedChange={(v: boolean) => onPatch({ isResizable: v || undefined })}
+                />
+              </div>
               <NumberField
                 label="Width (px)"
                 value={override.defaultWidth}

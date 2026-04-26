@@ -29,6 +29,8 @@ export type ThemeName = 'light' | 'dark' | 'auto';
 
 export interface PlatformClassOverride {
   isContainer?: boolean;
+  /** When true, instances expose drag handles to resize the node interactively. */
+  isResizable?: boolean;
   defaultWidth?: number;
   defaultHeight?: number;
 
