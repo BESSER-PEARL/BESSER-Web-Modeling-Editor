@@ -34,11 +34,28 @@ export function dashFromLineStyle(name: string | undefined): string | undefined 
   return undefined;
 }
 
-/** Compact 96×64 SVG preview of a class node, reflecting every override field. */
+/** Compact 96×64 preview of a class node. When the class has an SVG icon
+ * attached via metadata, the icon is shown in place of the shape so the panel
+ * matches what the generated editor will render. */
 export const ClassNodePreview: React.FC<{
   override?: PlatformClassOverride;
+  /** Raw SVG markup attached to the class via metadata.icon, when available. */
+  icon?: string;
   label?: string;
-}> = ({ override, label = 'Aa' }) => {
+}> = ({ override, icon, label = 'Aa' }) => {
+  // Icons take precedence over node_shape — same rule the generated editor uses
+  // (see InstanceNode.tsx in the platform generator templates).
+  if (icon) {
+    return (
+      <div
+        className="flex size-full items-center justify-center [&_svg]:h-full [&_svg]:w-full"
+        style={{ color: override?.fontColor ?? 'hsl(var(--primary))' }}
+        // Icons are user-uploaded SVG strings; same handling as the generated InstanceNode.
+        dangerouslySetInnerHTML={{ __html: icon }}
+      />
+    );
+  }
+
   const shape = override?.nodeShape ?? 'rounded_rect';
   const fill = override?.fillColor ?? 'hsl(var(--card))';
   const stroke = override?.borderColor ?? 'hsl(var(--primary))';

@@ -60,17 +60,27 @@ import { ClassNodePreview, EdgeStylePreview } from './nodePreview';
 import { COLOR_SWATCHES, hasLowContrast } from './colorSwatches';
 
 // ---------------------------------------------------------------------------
-// Class / association name extraction (unchanged from v1)
+// Class / association extraction
 // ---------------------------------------------------------------------------
 
-function extractClassNames(model: UMLModel): string[] {
-  const names = new Set<string>();
+interface ClassInfo {
+  name: string;
+  /** Raw SVG markup attached to the class via the metadata icon picker, if any. */
+  icon?: string;
+}
+
+function extractClasses(model: UMLModel): ClassInfo[] {
+  const byName = new Map<string, ClassInfo>();
   for (const el of Object.values(model.elements ?? {})) {
-    if ((el as any)?.owner === null && typeof el?.name === 'string' && el.name.trim() !== '') {
-      names.add(el.name);
-    }
+    if ((el as any)?.owner !== null) continue;
+    if (typeof el?.name !== 'string' || el.name.trim() === '') continue;
+    const icon = typeof (el as any)?.icon === 'string' ? (el as any).icon : undefined;
+    // Last write wins if the diagram somehow has two classes with the same name —
+    // the platform generator keys overrides by name anyway, so this matches its
+    // semantics.
+    byName.set(el.name, { name: el.name, icon });
   }
-  return Array.from(names).sort();
+  return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function extractAssociationNames(model: UMLModel): string[] {
@@ -243,9 +253,10 @@ const ColorField: React.FC<{
 
 const ClassRow: React.FC<{
   name: string;
+  icon?: string;
   override: PlatformClassOverride;
   onPatch: (patch: Partial<PlatformClassOverride>) => void;
-}> = ({ name, override, onPatch }) => {
+}> = ({ name, icon, override, onPatch }) => {
   const [open, setOpen] = React.useState(false);
   return (
     <li>
@@ -268,7 +279,7 @@ const ClassRow: React.FC<{
               </span>
             </div>
             <div className="h-12 w-24 overflow-hidden rounded border bg-muted/20 p-0.5">
-              <ClassNodePreview override={override} label={name.slice(0, 2)} />
+              <ClassNodePreview override={override} icon={icon} label={name.slice(0, 2)} />
             </div>
             <span /> {/* spacer */}
           </button>
@@ -581,10 +592,11 @@ export const PlatformCustomizationPanel: React.FC = () => {
   }, [project, activeDiagram]);
 
   const classDiagramModel = referencedClassDiagram?.model;
-  const classNames = useMemo(
-    () => (isUMLModel(classDiagramModel) ? extractClassNames(classDiagramModel) : []),
+  const classes = useMemo(
+    () => (isUMLModel(classDiagramModel) ? extractClasses(classDiagramModel) : []),
     [classDiagramModel],
   );
+  const classNames = useMemo(() => classes.map((c) => c.name), [classes]);
   const associationNames = useMemo(
     () => (isUMLModel(classDiagramModel) ? extractAssociationNames(classDiagramModel) : []),
     [classDiagramModel],
@@ -714,12 +726,13 @@ export const PlatformCustomizationPanel: React.FC = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <ul className="divide-y">
-                  {classNames.map((name) => (
+                  {classes.map((cls) => (
                     <ClassRow
-                      key={name}
-                      name={name}
-                      override={customization.classOverrides[name] ?? {}}
-                      onPatch={(patch) => patchClass(name, patch)}
+                      key={cls.name}
+                      name={cls.name}
+                      icon={cls.icon}
+                      override={customization.classOverrides[cls.name] ?? {}}
+                      onPatch={(patch) => patchClass(cls.name, patch)}
                     />
                   ))}
                 </ul>
