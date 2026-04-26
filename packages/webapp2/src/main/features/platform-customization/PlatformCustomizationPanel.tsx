@@ -317,6 +317,13 @@ const ClassRow: React.FC<{
                   onCheckedChange={(v: boolean) => onPatch({ isContainer: v || undefined })}
                 />
               </div>
+              {override.isContainer && (
+                <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
+                  Tip: open each relationship below and turn on{' '}
+                  <span className="font-semibold">Container association</span> for the ones whose
+                  targets should nest inside this container at runtime.
+                </p>
+              )}
               <div className="flex items-center justify-between">
                 <Label
                   className="text-xs uppercase tracking-wider text-muted-foreground"
