@@ -3,7 +3,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
-import { toSupportedDiagramType } from '../../shared/types/project';
+import { toSupportedDiagramType, toUMLDiagramType } from '../../shared/types/project';
 import {
   AGENT_ROUTE_ITEMS,
   NON_UML_EDITOR_ITEMS,
@@ -65,8 +65,9 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   onNavigate,
   onToggleExpanded,
 }) => {
-  // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
-  const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
+  // When a non-UML editor (GUI / Quantum / Platform) is active, no UML button should appear selected.
+  // Use the helper so any future non-UML diagram type is automatically picked up.
+  const isNonUmlActive = toUMLDiagramType(activeDiagramType) === null;
   const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
   const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath);
   const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;

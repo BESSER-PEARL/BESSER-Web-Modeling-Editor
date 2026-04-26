@@ -9,27 +9,72 @@ export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'PlatformCustomizationDiagram',
 ];
 
-// Platform Customization data — overrides applied when generating a platform editor
+// Platform Customization data — overrides applied when generating a platform editor.
+// v2 mirrors the BESSER `PlatformCustomization` BUML metamodel: per-class shape /
+// fill / border / font, per-association line / arrows / label, plus diagram-level
+// background / grid / theme. All fields optional; empty-elision happens on save.
+
+export type NodeShape = 'rectangle' | 'rounded_rect' | 'ellipse' | 'diamond' | 'hexagon';
+export type LineStyleName = 'solid' | 'dashed' | 'dotted';
+export type ArrowStyleName =
+  | 'none'
+  | 'filled_triangle'
+  | 'open_triangle'
+  | 'diamond'
+  | 'open_diamond'
+  | 'circle';
+export type FontWeightName = 'normal' | 'bold';
+export type LabelPositionName = 'top' | 'bottom' | 'inside';
+export type ThemeName = 'light' | 'dark' | 'auto';
+
 export interface PlatformClassOverride {
   isContainer?: boolean;
   defaultWidth?: number;
   defaultHeight?: number;
+
+  nodeShape?: NodeShape;
+  fillColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderStyle?: LineStyleName;
+  borderRadius?: number;
+
+  fontSize?: number;
+  fontWeight?: FontWeightName;
+  fontColor?: string;
+  labelPosition?: LabelPositionName;
 }
 
 export interface PlatformAssociationOverride {
   edgeColor?: string;
+  lineWidth?: number;
+  lineStyle?: LineStyleName;
+  sourceArrowStyle?: ArrowStyleName;
+  targetArrowStyle?: ArrowStyleName;
+  labelVisible?: boolean;
+  labelFontSize?: number;
+  labelFontColor?: string;
+}
+
+export interface PlatformDiagramOverride {
+  backgroundColor?: string;
+  gridVisible?: boolean;
+  gridSize?: number;
+  snapToGrid?: boolean;
+  theme?: ThemeName;
 }
 
 export interface PlatformCustomizationData {
   classOverrides: Record<string, PlatformClassOverride>;
   associationOverrides: Record<string, PlatformAssociationOverride>;
+  diagramCustomization?: PlatformDiagramOverride;
   version?: string;
 }
 
 export const createEmptyPlatformCustomizationData = (): PlatformCustomizationData => ({
   classOverrides: {},
   associationOverrides: {},
-  version: '1.0.0',
+  version: '2.0.0',
 });
 
 // GrapesJS project data structure
@@ -575,7 +620,8 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   if (isPlatformCustomizationData(model)) {
     const classKeys = Object.keys(model.classOverrides ?? {});
     const assocKeys = Object.keys(model.associationOverrides ?? {});
-    return classKeys.length > 0 || assocKeys.length > 0;
+    const diagramKeys = Object.keys(model.diagramCustomization ?? {});
+    return classKeys.length > 0 || assocKeys.length > 0 || diagramKeys.length > 0;
   }
 
   return false;

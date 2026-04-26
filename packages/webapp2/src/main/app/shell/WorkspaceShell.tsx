@@ -326,8 +326,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     if (location.pathname !== '/') {
       navigate('/');
     }
-    // Don't skip the switch when the active UML type already matches AND we're on /
-    if (location.pathname === '/' && activeUmlType === type && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram') {
+    // Skip the dispatch only when we're already on a UML diagram of the same type.
+    // Coming from any non-UML perspective (GUI / Quantum / Platform Customization)
+    // must always re-dispatch — toUMLDiagramType returns null for those.
+    const currentIsUml = toUMLDiagramType(currentDiagramType) !== null;
+    if (location.pathname === '/' && activeUmlType === type && currentIsUml) {
       return;
     }
     switchDiagramType(type);
