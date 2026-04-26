@@ -83,14 +83,33 @@ function extractClasses(model: UMLModel): ClassInfo[] {
   return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function extractAssociationNames(model: UMLModel): string[] {
-  const names = new Set<string>();
+interface AssociationInfo {
+  name: string;
+  /** Union of class names that participate in any same-named relationship. */
+  endpointClassNames: string[];
+}
+
+function extractAssociations(model: UMLModel): AssociationInfo[] {
+  const elements = model.elements ?? {};
+  const resolveClassName = (elementId: string | undefined): string | undefined => {
+    if (!elementId) return undefined;
+    const el = elements[elementId];
+    if (!el || typeof (el as any).name !== 'string') return undefined;
+    return (el as any).name;
+  };
+  const byName = new Map<string, Set<string>>();
   for (const rel of Object.values(model.relationships ?? {})) {
-    if (typeof rel?.name === 'string' && rel.name.trim() !== '') {
-      names.add(rel.name);
-    }
+    if (typeof rel?.name !== 'string' || rel.name.trim() === '') continue;
+    const set = byName.get(rel.name) ?? new Set<string>();
+    const sourceName = resolveClassName((rel as any)?.source?.element);
+    const targetName = resolveClassName((rel as any)?.target?.element);
+    if (sourceName) set.add(sourceName);
+    if (targetName) set.add(targetName);
+    byName.set(rel.name, set);
   }
-  return Array.from(names).sort();
+  return Array.from(byName.entries())
+    .map(([name, set]) => ({ name, endpointClassNames: Array.from(set) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 const EmptyState: React.FC<{ title: string; message: string }> = ({ title, message }) => (
@@ -418,8 +437,12 @@ const ClassRow: React.FC<{
 const AssociationRow: React.FC<{
   name: string;
   override: PlatformAssociationOverride;
+  /** True when at least one endpoint class is flagged as a container — used
+   * to surface the "Container association" toggle without disabling other
+   * associations the user might want to keep as ordinary edges. */
+  hasContainerEndpoint: boolean;
   onPatch: (patch: Partial<PlatformAssociationOverride>) => void;
-}> = ({ name, override, onPatch }) => {
+}> = ({ name, override, hasContainerEndpoint, onPatch }) => {
   const [open, setOpen] = React.useState(false);
   return (
     <li>
@@ -447,7 +470,35 @@ const AssociationRow: React.FC<{
             <span />
           </button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="border-t bg-muted/10 px-6 py-4">
+        <CollapsibleContent className="border-t bg-muted/10 px-6 py-4 space-y-4">
+          {/* Container behaviour: when on, dropping a target instance inside a
+              container source instance auto-creates this association and
+              visually nests the child node. */}
+          <div
+            className={`flex items-start justify-between gap-3 rounded-md border p-3 ${
+              hasContainerEndpoint
+                ? 'border-brand/30 bg-brand/5'
+                : 'border-muted bg-muted/20'
+            }`}
+          >
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold text-foreground">
+                Container association
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {hasContainerEndpoint
+                  ? 'When enabled, dropping a target instance inside a container source instance auto-creates this link and nests the child visually. The edge is hidden because the nesting already conveys it.'
+                  : 'Enable on a container class first; this toggle is only honoured when the source of this association is a container.'}
+              </p>
+            </div>
+            <Switch
+              checked={!!override.isContainerAssociation}
+              onCheckedChange={(v: boolean) =>
+                onPatch({ isContainerAssociation: v ? true : undefined })
+              }
+            />
+          </div>
+
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Line */}
             <section className="space-y-3">
@@ -597,16 +648,25 @@ export const PlatformCustomizationPanel: React.FC = () => {
     [classDiagramModel],
   );
   const classNames = useMemo(() => classes.map((c) => c.name), [classes]);
-  const associationNames = useMemo(
-    () => (isUMLModel(classDiagramModel) ? extractAssociationNames(classDiagramModel) : []),
+  const associations = useMemo(
+    () => (isUMLModel(classDiagramModel) ? extractAssociations(classDiagramModel) : []),
     [classDiagramModel],
   );
+  const associationNames = useMemo(() => associations.map((a) => a.name), [associations]);
 
   const customization: PlatformCustomizationData = useMemo(() => {
     const raw = activeDiagram?.model;
     if (isPlatformCustomizationData(raw)) return raw;
     return createEmptyPlatformCustomizationData();
   }, [activeDiagram?.model]);
+
+  const containerClassNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const [className, override] of Object.entries(customization.classOverrides)) {
+      if (override.isContainer) set.add(className);
+    }
+    return set;
+  }, [customization.classOverrides]);
 
   const persist = useCallback(
     (next: PlatformCustomizationData) => {
@@ -747,14 +807,20 @@ export const PlatformCustomizationPanel: React.FC = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <ul className="divide-y">
-                  {associationNames.map((name) => (
-                    <AssociationRow
-                      key={name}
-                      name={name}
-                      override={customization.associationOverrides[name] ?? {}}
-                      onPatch={(patch) => patchAssociation(name, patch)}
-                    />
-                  ))}
+                  {associations.map((assoc) => {
+                    const hasContainerEndpoint = assoc.endpointClassNames.some((n) =>
+                      containerClassNames.has(n),
+                    );
+                    return (
+                      <AssociationRow
+                        key={assoc.name}
+                        name={assoc.name}
+                        override={customization.associationOverrides[assoc.name] ?? {}}
+                        hasContainerEndpoint={hasContainerEndpoint}
+                        onPatch={(patch) => patchAssociation(assoc.name, patch)}
+                      />
+                    );
+                  })}
                 </ul>
               </CardContent>
             </Card>

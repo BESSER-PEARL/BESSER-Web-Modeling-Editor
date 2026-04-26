@@ -54,6 +54,9 @@ export interface PlatformAssociationOverride {
   labelVisible?: boolean;
   labelFontSize?: number;
   labelFontColor?: string;
+  /** When true, dropping a target instance inside a container source instance
+   * auto-creates this link and visually nests the child node. */
+  isContainerAssociation?: boolean;
 }
 
 export interface PlatformDiagramOverride {
