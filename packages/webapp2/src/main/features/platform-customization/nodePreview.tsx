@@ -127,10 +127,12 @@ export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride
         {makeMarker(targetId, override?.targetArrowStyle, 'end')}
         {makeMarker(sourceId, override?.sourceArrowStyle, 'start')}
       </defs>
+      {/* Inset the line by ~14 user units on each side so the markers have
+          space to render without being clipped by the viewBox edges. */}
       <line
-        x1="8"
+        x1="16"
         y1="16"
-        x2="88"
+        x2="80"
         y2="16"
         stroke={stroke}
         strokeWidth={sw}
@@ -149,6 +151,9 @@ function makeMarker(
 ): React.ReactNode {
   if (!arrow || arrow === 'none') return null;
   const orient = end === 'end' ? 'auto-start-reverse' : 'auto';
+  // markerUnits="userSpaceOnUse" stops the marker from scaling with the line's
+  // strokeWidth — otherwise lineWidth=2 would render the marker at 2x its
+  // declared size and overflow the preview's viewBox.
   const base = {
     id,
     viewBox: '0 0 12 12',
@@ -156,6 +161,7 @@ function makeMarker(
     refY: 6,
     markerWidth: 12,
     markerHeight: 12,
+    markerUnits: 'userSpaceOnUse' as const,
     orient,
   };
   switch (arrow) {
