@@ -29,6 +29,7 @@ import { isUMLModel, getActiveDiagram } from '../../shared/types/project';
 import { useProject } from '../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
+import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -481,6 +482,7 @@ const loadInitialState = () => {
 export const AgentConfigurationPanel: React.FC = () => {
   const dispatch = useAppDispatch();
   const { currentProject } = useProject();
+  const { githubSession } = useGitHubAuth();
 
   const [initialLoad] = useState(loadInitialState);
   const initialConfig = initialLoad.config;
@@ -964,6 +966,11 @@ export const AgentConfigurationPanel: React.FC = () => {
       return;
     }
 
+    if (!githubSession) {
+      toast.error('Sign in to GitHub to use recommendations.');
+      return;
+    }
+
     try {
       setLoadingMessage('Applying predefined literature-based mapping to recommend a fitting configuration.');
       setIsLoading(true);
@@ -976,7 +983,10 @@ export const AgentConfigurationPanel: React.FC = () => {
 
       const response = await fetch(buildApiUrl('recommend-agent-config-mapping'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-GitHub-Session': githubSession,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -1040,6 +1050,11 @@ export const AgentConfigurationPanel: React.FC = () => {
       return;
     }
 
+    if (!githubSession) {
+      toast.error('Sign in to GitHub to use recommendations.');
+      return;
+    }
+
     try {
       setLoadingMessage('This might take a while to cook up the best LLM-based configuration for your selected user profile.');
       setIsLoading(true);
@@ -1053,7 +1068,10 @@ export const AgentConfigurationPanel: React.FC = () => {
 
       const response = await fetch(buildApiUrl('recommend-agent-config-llm'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-GitHub-Session': githubSession,
+        },
         body: JSON.stringify(payload),
       });
 
