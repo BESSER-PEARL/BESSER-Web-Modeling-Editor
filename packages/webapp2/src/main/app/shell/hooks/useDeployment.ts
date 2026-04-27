@@ -3,55 +3,19 @@ import { toast } from 'react-toastify';
 import { useGitHubAuth } from '../../../features/github/hooks/useGitHubAuth';
 import { type DeploymentTarget } from '../../../features/github/hooks/useGitHubRepo';
 import { useRenderDeploy } from '../../../features/deploy/hooks/useRenderDeploy';
+import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import type { BesserProject } from '../../../shared/types/project';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import {
   buildPersonalizationMapping,
   hasPersonalizationVariants,
+  type PersonalizationMappingEntry,
 } from '../../../features/deploy/utils/agentPersonalizationPayload';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
 } from '../../../features/deploy/utils/restoreBaseAgentModels';
-
-// localStorage helpers for tracking previously deployed repos per project
-const DEPLOY_LINKED_REPO_PREFIX = 'besser_deploy_linked_';
-
-function getDeployLinkedRepo(projectId: string, target: DeploymentTarget): { owner: string; repo: string } | null {
-  try {
-    const scopedKey = `${DEPLOY_LINKED_REPO_PREFIX}${projectId}_${target}`;
-    let raw = localStorage.getItem(scopedKey);
-    if (!raw && target === 'agent') {
-      // Backward compatibility with previously stored agent deployments.
-      raw = localStorage.getItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}_chatbot`);
-    }
-    if (!raw && target === 'webapp') {
-      // Backward compatibility with previously stored webapp deployments.
-      raw = localStorage.getItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}`);
-    }
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.owner && parsed.repo) return parsed;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function saveDeployLinkedRepo(projectId: string, target: DeploymentTarget, owner: string, repo: string): void {
-  localStorage.setItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}_${target}`, JSON.stringify({ owner, repo }));
-}
-
-function clearDeployLinkedRepo(projectId: string, target: DeploymentTarget): void {
-  localStorage.removeItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}_${target}`);
-  if (target === 'agent') {
-    localStorage.removeItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}_chatbot`);
-  }
-  if (target === 'webapp') {
-    localStorage.removeItem(`${DEPLOY_LINKED_REPO_PREFIX}${projectId}`);
-  }
-}
 
 const sanitizeRepoName = (name: string): string => {
   return name
@@ -143,7 +107,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
   // Reset linked repo state when project/target changes.
   useEffect(() => {
     if (currentProject) {
-      const linked = getDeployLinkedRepo(currentProject.id, deploymentTarget);
+      const linked = LocalStorageRepository.getDeployLinkedRepo(currentProject.id, deploymentTarget);
       setLinkedRepo(linked);
       setUseExistingRepo(!!linked);
     } else {
@@ -177,7 +141,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     setDeploymentTarget(initialTarget);
 
     setCommitMessage('');
-    const linked = getDeployLinkedRepo(currentProject.id, initialTarget);
+    const linked = LocalStorageRepository.getDeployLinkedRepo(currentProject.id, initialTarget);
     if (linked) {
       setLinkedRepo(linked);
       setGithubRepoName(linked.repo);
@@ -217,7 +181,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
       return;
     }
 
-    const linked = getDeployLinkedRepo(currentProject.id, target);
+    const linked = LocalStorageRepository.getDeployLinkedRepo(currentProject.id, target);
     if (linked) {
       setLinkedRepo(linked);
       setUseExistingRepo(true);
@@ -247,14 +211,14 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
 
     const projectForDeploy = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
 
-    let personalizationMapping: Array<Record<string, unknown>> | null = null;
+    let personalizationMapping: PersonalizationMappingEntry[] | null = null;
     if (deploymentTarget === 'agent' && includePersonalization) {
       const mapping = buildPersonalizationMapping(projectForDeploy);
       if (mapping.length === 0) {
         toast.error('No valid personalization mappings found. Save personalized variants before enabling this option.');
         return;
       }
-      personalizationMapping = mapping as unknown as Array<Record<string, unknown>>;
+      personalizationMapping = mapping;
     }
 
     // Webapp deploys embed the agent model directly in the generated app, so
@@ -278,7 +242,10 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     });
 
     if (result?.success) {
-      saveDeployLinkedRepo(currentProject.id, deploymentTarget, result.owner, result.repo_name);
+      LocalStorageRepository.setDeployLinkedRepo(currentProject.id, deploymentTarget, {
+        owner: result.owner,
+        repo: result.repo_name,
+      });
       setIsDeployDialogOpen(false);
       setIsDeployResultOpen(true);
 
@@ -306,7 +273,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
 
   const handleCreateNewInstead = useCallback(() => {
     if (currentProject?.id) {
-      clearDeployLinkedRepo(currentProject.id, deploymentTarget);
+      LocalStorageRepository.clearDeployLinkedRepo(currentProject.id, deploymentTarget);
     }
     setLinkedRepo(null);
     setUseExistingRepo(false);

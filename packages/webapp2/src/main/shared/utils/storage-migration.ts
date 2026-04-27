@@ -1,5 +1,7 @@
+import { LocalStorageRepository } from '../services/storage/local-storage-repository';
+
 const STORAGE_VERSION_KEY = 'besser_storage_version';
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 interface Migration {
   version: number;
@@ -64,6 +66,18 @@ const migrations: Migration[] = [
         localStorage.removeItem(key);
       }
       console.info('[storage-migration] v2: Cleared legacy webapp data');
+    },
+  },
+  // v3: Seed `besser_systemConfig` so existing v2 users get the new system-config
+  // surface (default LLM model, intent-recognition technology, …) on next launch
+  // instead of the missing-key fallbacks that were defaulting to `gpt-5` (which is
+  // not a real OpenAI model id; the v7.3.0 release flips the default to `gpt-5.5`).
+  // Idempotent: skips if `besser_systemConfig` is already present.
+  {
+    version: 3,
+    migrate: () => {
+      LocalStorageRepository.migrateToV3();
+      console.info('[storage-migration] v3: Seeded besser_systemConfig with defaults');
     },
   },
 ];

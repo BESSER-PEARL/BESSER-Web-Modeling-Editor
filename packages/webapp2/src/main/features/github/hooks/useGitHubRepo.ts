@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { apiClient, ApiError } from '../../../shared/api/api-client';
+import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
@@ -54,8 +55,10 @@ export interface CreateRepoOptions {
   // Optional agent personalization payload. When present (and the project
   // contains an active AgentDiagram), it is injected into that diagram's
   // ``config.personalizationMapping`` before the request body is built so
-  // the backend's personalization-aware codegen path runs.
-  personalizationMapping?: ReadonlyArray<Record<string, unknown>> | null;
+  // the backend's personalization-aware codegen path runs. Typed as
+  // ``unknown[]`` so callers can pass concrete entry interfaces (e.g.
+  // ``PersonalizationMappingEntry[]``) without an explicit cast.
+  personalizationMapping?: ReadonlyArray<unknown> | null;
 }
 
 type DeployWebappResponse = {
@@ -82,7 +85,7 @@ const toGitHubRepoResult = (
   message: resp.message,
   deployment_urls: resp.deployment_urls ?? {
     github: resp.repo_url,
-    render: `https://render.com/deploy?repo=${encodeURIComponent(resp.repo_url)}`,
+    render: `${RENDER_DEPLOY_URL_BASE}?repo=${encodeURIComponent(resp.repo_url)}`,
   },
   is_first_deploy: resp.is_first_deploy ?? true,
   deployment_type: fromBackendDeploymentTarget(resp.deployment_type) ?? fallbackTarget ?? 'webapp',
@@ -172,19 +175,23 @@ export const useGitHubRepo = () => {
               AgentDiagram: clonedDiagrams,
             },
           } as BesserProject;
-          console.log(
-            '[deploy] injecting personalizationMapping with',
-            personalizationMapping.length,
-            'entries into AgentDiagram config at index',
-            activeAgentIndex,
-          );
+          if (import.meta.env.DEV) {
+            console.log(
+              '[deploy] injecting personalizationMapping with',
+              personalizationMapping.length,
+              'entries into AgentDiagram config at index',
+              activeAgentIndex,
+            );
+          }
         } else if (personalizationMapping && personalizationMapping.length > 0) {
-          console.warn(
-            '[deploy] personalizationMapping provided but could not be injected — agentDiagrams:',
-            Array.isArray(agentDiagrams),
-            'activeAgentDiagram:',
-            !!activeAgentDiagram,
-          );
+          if (import.meta.env.DEV) {
+            console.warn(
+              '[deploy] personalizationMapping provided but could not be injected — agentDiagrams:',
+              Array.isArray(agentDiagrams),
+              'activeAgentDiagram:',
+              !!activeAgentDiagram,
+            );
+          }
         }
 
         // Build the V2 project-export shape the editor uses for "Export Project"

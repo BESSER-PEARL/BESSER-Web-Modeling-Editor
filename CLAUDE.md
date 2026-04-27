@@ -152,7 +152,11 @@ All prefixed with `besser_`:
 - `besser_diagrams` / `besser_latest` - legacy diagram storage
 - `besser_userThemePreference` - dark/light mode
 - `besser_agentConfigs` / `besser_agentProfileMappings` - agent state
-- `besser_userProfiles` - user profiles
+- `besser_userProfiles` - saved per-user UML profile snapshots used for agent personalization variants
+- `besser_systemConfig` - global agent system configuration (platform, IC technology, default LLM provider/model)
+- `besser_activeAgentConfiguration` - id of the currently active stored agent configuration
+- `besser_agentBaseModels` - per-AgentDiagram base (pre-personalization) UML model snapshots, keyed by diagram id
+- `besser_deploy_linked_<projectId>_<target>` - per-project, per-target ({owner, repo}) of the last successful Render deploy
 - `besser-standalone-settings` - application display settings (managed by `settingsService`), including `classNotation: 'UML' | 'ER'` which selects the class-diagram rendering flavor (pure rendering — no metamodel change)
 
 ### Global Display Settings (settingsService)

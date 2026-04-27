@@ -563,7 +563,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
         const success = ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
           ...activeAgentDiagram,
-          model: JSON.parse(JSON.stringify(baseModel)),
+          model: structuredClone(baseModel),
           config: {
             ...currentConfigRecord,
             activePersonalizedVariantId: null,
@@ -586,7 +586,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         return;
       }
 
-      const variantModel = JSON.parse(JSON.stringify(selectedVariant.model));
+      const variantModel = structuredClone(selectedVariant.model);
 
       const success = ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
         ...activeAgentDiagram,
