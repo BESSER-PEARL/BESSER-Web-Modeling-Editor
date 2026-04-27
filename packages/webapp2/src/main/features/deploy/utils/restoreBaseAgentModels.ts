@@ -3,7 +3,8 @@ import type { BesserProject } from '../../../shared/types/project';
 import { isUMLModel } from '../../../shared/types/project';
 import {
   LocalStorageRepository,
-  type SystemConfiguration,
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+  type AgentRuntimeConfig,
 } from '../../../shared/services/storage/local-storage-repository';
 
 /**
@@ -44,7 +45,7 @@ export const restoreBaseAgentModels = (project: BesserProject): BesserProject =>
   };
 };
 
-const buildSystemOnlyAgentConfig = (system: SystemConfiguration): Record<string, unknown> => {
+const buildSystemOnlyAgentConfig = (system: AgentRuntimeConfig): Record<string, unknown> => {
   const config: Record<string, unknown> = {
     agentPlatform: system.agentPlatform,
     intentRecognitionTechnology: system.intentRecognitionTechnology,
@@ -63,11 +64,12 @@ const buildSystemOnlyAgentConfig = (system: SystemConfiguration): Record<string,
 
 /**
  * Replace each AgentDiagram's `config` with a system-only config derived from
- * the global System Configuration in localStorage. Used before generating /
- * deploying so the backend does not see stale personalization fields (style,
- * language complexity, modalities, saved variants, ...) that would trigger
- * the personalization codegen branch. Mirrors the payload the standalone
- * agent generator sends when "None" is selected in the generation dialog.
+ * the hardcoded `DEFAULT_AGENT_RUNTIME_CONFIG` defaults. Used before
+ * generating / deploying so the backend does not see stale personalization
+ * fields (style, language complexity, modalities, saved variants, ...) that
+ * would trigger the personalization codegen branch. Mirrors the payload the
+ * standalone agent generator sends when "None" is selected in the generation
+ * dialog.
  */
 export const stripAgentConfigToSystem = (project: BesserProject): BesserProject => {
   const agentDiagrams = project.diagrams?.AgentDiagram;
@@ -75,7 +77,7 @@ export const stripAgentConfigToSystem = (project: BesserProject): BesserProject 
     return project;
   }
 
-  const systemConfig = buildSystemOnlyAgentConfig(LocalStorageRepository.getSystemConfiguration());
+  const systemConfig = buildSystemOnlyAgentConfig({ ...DEFAULT_AGENT_RUNTIME_CONFIG });
   const nextAgentDiagrams = agentDiagrams.map((diagram) => ({ ...diagram, config: { ...systemConfig } }));
 
   return {

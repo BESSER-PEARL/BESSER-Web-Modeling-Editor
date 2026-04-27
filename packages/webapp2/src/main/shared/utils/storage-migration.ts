@@ -68,16 +68,17 @@ const migrations: Migration[] = [
       console.info('[storage-migration] v2: Cleared legacy webapp data');
     },
   },
-  // v3: Seed `besser_systemConfig` so existing v2 users get the new system-config
-  // surface (default LLM model, intent-recognition technology, …) on next launch
-  // instead of the missing-key fallbacks that were defaulting to `gpt-5` (which is
-  // not a real OpenAI model id; the v7.3.0 release flips the default to `gpt-5.5`).
-  // Idempotent: skips if `besser_systemConfig` is already present.
+  // v3: Deletes the deprecated `besser_systemConfig` top-level key — agent
+  // runtime config now lives on the agent diagram itself
+  // (`AgentDiagram.config`) with hardcoded defaults at agent-creation time.
+  // The previous global-default-vs-per-agent split caused the v7.3.0
+  // stuck-`gpt-5` migration mess; collapsing to a single source of truth
+  // eliminates that class of bug. Idempotent: no-op when the key is absent.
   {
     version: 3,
     migrate: () => {
       LocalStorageRepository.migrateToV3();
-      console.info('[storage-migration] v3: Seeded besser_systemConfig with defaults');
+      console.info('[storage-migration] v3: Removed deprecated besser_systemConfig key');
     },
   },
 ];

@@ -153,11 +153,12 @@ All prefixed with `besser_`:
 - `besser_userThemePreference` - dark/light mode
 - `besser_agentConfigs` / `besser_agentProfileMappings` - agent state
 - `besser_userProfiles` - saved per-user UML profile snapshots used for agent personalization variants
-- `besser_systemConfig` - global agent system configuration (platform, IC technology, default LLM provider/model)
 - `besser_activeAgentConfiguration` - id of the currently active stored agent configuration
 - `besser_agentBaseModels` - per-AgentDiagram base (pre-personalization) UML model snapshots, keyed by diagram id
 - `besser_deploy_linked_<projectId>_<target>` - per-project, per-target ({owner, repo}) of the last successful Render deploy
 - `besser-standalone-settings` - application display settings (managed by `settingsService`), including `classNotation: 'UML' | 'ER'` which selects the class-diagram rendering flavor (pure rendering — no metamodel change)
+
+> **Deprecated (v7.3.0):** `besser_systemConfig` was removed as a top-level localStorage key. Agent runtime config (platform, intent-recognition technology, LLM provider/model) now lives on the agent diagram itself (`AgentDiagram.config`) — single source of truth. The v3 storage migration deletes the legacy key on next launch.
 
 ### Global Display Settings (settingsService)
 `packages/editor/src/main/services/settings/settings-service.ts` holds display preferences in localStorage under `besser-standalone-settings`. Rendering components read these **synchronously at render time** (e.g. `settingsService.shouldShowAssociationNames()`), they don't subscribe. For a toggle to actually repaint the canvas live, extend the existing `settingsService.onSettingsChange` listener in `packages/editor/src/main/scenes/application.tsx` and mirror the new field into component state — the `setState` call is what forces the subtree to re-render. Rendering components keep reading from `settingsService` directly (no props drilling needed). Don't bump `editorRevision` for view-only toggles — that clears undo history.

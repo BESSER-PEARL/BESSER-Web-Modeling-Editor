@@ -17,10 +17,16 @@ import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from
 import type { ConfigDialog } from '../generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../shared/constants/constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../shared/services/storage/local-storage-types';
-import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import {
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+  normalizeAgentRuntimeConfig,
+  type AgentRuntimeConfig,
+} from '../../../shared/services/storage/local-storage-repository';
 import type { AgentGenerationMode, AgentGenerationVariantOption, WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
 import { validateProjectName, validateNumberRange } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
+import { useProject } from '../../../app/hooks/useProject';
+import { getActiveDiagram } from '../../../shared/types/project';
 
 /**
  * Props for the <GeneratorConfigDialogs /> component.
@@ -185,11 +191,29 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   }), [qiskitShots]);
   const qiskitValidation = useFieldValidation(qiskitValidators);
 
-  // ── Agent system config preview (read-only snapshot of global config) ─
-  const agentSystemConfig = useMemo(
-    () => (configDialog === 'agent' ? LocalStorageRepository.getSystemConfiguration() : null),
-    [configDialog],
-  );
+  // ── Agent runtime config preview (read-only snapshot from active agent diagram) ─
+  // Single source of truth: AgentDiagram.config. Falls back to hardcoded
+  // defaults when the project has no agent diagram (edge case — the agent
+  // generator dialog should normally only be reachable when one exists).
+  const { currentProject } = useProject();
+  const agentSystemConfig = useMemo<AgentRuntimeConfig | null>(() => {
+    if (configDialog !== 'agent') return null;
+    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+    const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
+    if (!diagramConfig) {
+      return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
+    }
+    const llmBlock = typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
+      ? (diagramConfig.llm as Record<string, any>)
+      : null;
+    return normalizeAgentRuntimeConfig({
+      agentPlatform: typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+      intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
+      agentLlmProvider: llmBlock?.provider,
+      agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
+      agentCustomLlmModel: undefined,
+    });
+  }, [configDialog, currentProject]);
   const agentPlatformLabel = useMemo(() => {
     switch (agentSystemConfig?.agentPlatform) {
       case 'websocket':

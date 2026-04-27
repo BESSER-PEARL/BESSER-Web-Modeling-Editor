@@ -36,7 +36,11 @@ import type { GenerationResult, QualityCheckResult } from './types';
 import { useDeployLocally } from './hooks/useDeployLocally';
 import { GrapesJSProjectData, isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../shared/types/project';
 import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
-import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+import {
+  LocalStorageRepository,
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+  normalizeAgentRuntimeConfig,
+} from '../../shared/services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
@@ -869,16 +873,33 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   }, [jsonSchemaMode, executeGenerator]);
 
   const handleAgentGenerate = useCallback(async () => {
-    const stored = LocalStorageRepository.getSystemConfiguration();
+    // Read agent runtime config from the active AgentDiagram's `config` block —
+    // single source of truth. Falls back to hardcoded defaults when no agent
+    // diagram exists in the project (edge case: generator triggered without an
+    // agent diagram present).
+    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+    const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
+    const llmBlock = diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
+      ? (diagramConfig.llm as Record<string, any>)
+      : null;
+    const agentConfig = diagramConfig
+      ? normalizeAgentRuntimeConfig({
+        agentPlatform: typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+        intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
+        agentLlmProvider: llmBlock?.provider,
+        agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
+        agentCustomLlmModel: undefined,
+      })
+      : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
     const resolvedOpenAiModel =
-      stored.agentLlmModel === 'other' ? stored.agentCustomLlmModel.trim() : stored.agentLlmModel;
+      agentConfig.agentLlmModel === 'other' ? agentConfig.agentCustomLlmModel.trim() : agentConfig.agentLlmModel;
     const systemConfig: AgentConfig = {
-      agentPlatform: stored.agentPlatform,
-      intentRecognitionTechnology: stored.intentRecognitionTechnology,
-      ...(stored.agentLlmProvider
+      agentPlatform: agentConfig.agentPlatform,
+      intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
+      ...(agentConfig.agentLlmProvider
         ? {
           llm: {
-            provider: stored.agentLlmProvider,
+            provider: agentConfig.agentLlmProvider,
             ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
           },
         }

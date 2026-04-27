@@ -10,7 +10,11 @@ import { Separator } from '@/components/ui/separator';
 import { apiClient, ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
-import { LocalStorageRepository, type SystemConfiguration } from '../../shared/services/storage/local-storage-repository';
+import {
+  LocalStorageRepository,
+  AgentRuntimeConfig,
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+} from '../../shared/services/storage/local-storage-repository';
 import type {
   StoredAgentConfiguration,
   StoredUserProfile,
@@ -523,22 +527,58 @@ export const AgentConfigurationPanel: React.FC = () => {
   );
   const [activeCustomizationSection, setActiveCustomizationSection] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'system' | 'personalization'>('system');
-  const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(() =>
-    LocalStorageRepository.getSystemConfiguration(),
-  );
-  const updateSystemConfig = useCallback((patch: Partial<SystemConfiguration>) => {
-    setSystemConfig((prev) => {
-      const next = { ...prev, ...patch };
-      LocalStorageRepository.saveSystemConfiguration(next);
-      return next;
-    });
-  }, []);
-
   const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
 
   const currentAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
   const currentUserDiagram = currentProject ? getActiveDiagram(currentProject, 'UserDiagram') : undefined;
+
+  // Agent Runtime config — bound to the active agent diagram's `config` block
+  // (`AgentDiagram.config`), NOT to a global localStorage key. Single source of
+  // truth: the diagram. We re-derive from the project whenever it changes.
+  const runtimeConfigInitial = useMemo<AgentRuntimeConfig>(() => {
+    const activeAgent = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : null;
+    const cfg = (activeAgent?.config ?? {}) as Partial<AgentRuntimeConfig>;
+    return {
+      agentPlatform: cfg.agentPlatform || DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatform,
+      intentRecognitionTechnology:
+        cfg.intentRecognitionTechnology || DEFAULT_AGENT_RUNTIME_CONFIG.intentRecognitionTechnology,
+      agentLlmProvider: cfg.agentLlmProvider ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmProvider,
+      agentLlmModel: cfg.agentLlmModel ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmModel,
+      agentCustomLlmModel: cfg.agentCustomLlmModel ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentCustomLlmModel,
+    };
+  }, [currentProject]);
+
+  const [agentRuntimeConfig, setAgentRuntimeConfig] = useState<AgentRuntimeConfig>(runtimeConfigInitial);
+
+  // Re-sync local runtime state when the active agent diagram changes.
+  useEffect(() => {
+    setAgentRuntimeConfig(runtimeConfigInitial);
+  }, [runtimeConfigInitial]);
+
+  const updateAgentRuntimeConfig = useCallback(
+    (patch: Partial<AgentRuntimeConfig>) => {
+      setAgentRuntimeConfig((prev) => {
+        const next: AgentRuntimeConfig = { ...prev, ...patch };
+        if (currentProject) {
+          // Read latest config off the diagram so we don't overwrite
+          // personalization fields (personalizedVariants /
+          // activePersonalizedVariantId, plus any AgentConfigurationPayload
+          // fields the personalization flow writes here). The existing
+          // updateActiveAgentDiagramConfig helper only auto-merges the two
+          // personalization keys, so we explicitly merge the rest ourselves.
+          const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+          const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram');
+          const latestConfig = (latestAgentDiagram?.config ?? {}) as Record<string, unknown>;
+          updateActiveAgentDiagramConfig(currentProject, {
+            ...latestConfig,
+            ...next,
+          });
+        }
+        return next;
+      });
+    },
+    [currentProject],
+  );
 
   const currentAgentModel = useMemo(() => {
     const model = currentAgentDiagram?.model;
@@ -1333,151 +1373,9 @@ export const AgentConfigurationPanel: React.FC = () => {
           </p>
         </div>
 
-        <div
-          role="tablist"
-          aria-label="Agent configuration sections"
-          className="inline-flex w-fit gap-1 rounded-lg border border-border bg-muted/30 p-1"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'system'}
-            onClick={() => setActiveTab('system')}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'system'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            System Configuration
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'personalization'}
-            onClick={() => setActiveTab('personalization')}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'personalization'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Personalization
-          </button>
-        </div>
-
-        {activeTab === 'system' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>System Configuration</CardTitle>
-              <CardDescription>
-                These runtime settings are used every time an agent is generated. Changes are saved automatically.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="system-agent-platform">Platform</Label>
-                  <select
-                    id="system-agent-platform"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={systemConfig.agentPlatform}
-                    onChange={(event) => updateSystemConfig({ agentPlatform: event.target.value })}
-                  >
-                    <option value="websocket">WebSocket</option>
-                    <option value="streamlit">WebSocket with Streamlit interface</option>
-                    <option value="telegram">Telegram</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="system-intent-recognition">Intent Recognition</Label>
-                  <select
-                    id="system-intent-recognition"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={systemConfig.intentRecognitionTechnology}
-                    onChange={(event) =>
-                      updateSystemConfig({
-                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
-                      })
-                    }
-                  >
-                    <option value="classical">Classical</option>
-                    <option value="llm-based">LLM-based</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="system-llm-provider">LLM Provider (optional)</Label>
-                  <select
-                    id="system-llm-provider"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={systemConfig.agentLlmProvider}
-                    onChange={(event) => {
-                      const provider = event.target.value as AgentLLMProvider;
-                      updateSystemConfig({
-                        agentLlmProvider: provider,
-                        agentLlmModel: '',
-                        agentCustomLlmModel: '',
-                      });
-                    }}
-                  >
-                    <option value="">None</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="huggingface">HuggingFace</option>
-                    <option value="huggingfaceapi">HuggingFace API</option>
-                    <option value="replicate">Replicate</option>
-                  </select>
-                </div>
-
-                {systemConfig.agentLlmProvider === 'openai' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="system-openai-model">OpenAI Model</Label>
-                    <select
-                      id="system-openai-model"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={systemConfig.agentLlmModel}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        updateSystemConfig({
-                          agentLlmModel: value,
-                          ...(value !== 'other' ? { agentCustomLlmModel: '' } : {}),
-                        });
-                      }}
-                    >
-                      <option value="">None</option>
-                      <option value="gpt-5">GPT-5</option>
-                      <option value="gpt-5-mini">GPT-5 Mini</option>
-                      <option value="gpt-5-nano">GPT-5 Nano</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                )}
-
-                {systemConfig.agentLlmProvider === 'openai' && systemConfig.agentLlmModel === 'other' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="system-openai-custom-model">Custom Model Name</Label>
-                    <Input
-                      id="system-openai-custom-model"
-                      value={systemConfig.agentCustomLlmModel}
-                      onChange={(event) => updateSystemConfig({ agentCustomLlmModel: event.target.value })}
-                      placeholder="Enter model name"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                These values are saved to browser storage as you type and are used whenever you generate an agent.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
         <form
           onSubmit={handleSubmit}
-          className={`flex flex-col gap-6 ${activeTab === 'personalization' ? '' : 'hidden'}`}
-          aria-hidden={activeTab !== 'personalization'}
+          className="flex flex-col gap-6"
         >
           <Card>
             <CardHeader>
@@ -1558,6 +1456,104 @@ export const AgentConfigurationPanel: React.FC = () => {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Runtime</CardTitle>
+              <CardDescription>
+                Runtime settings for the active agent diagram (platform, intent recognition, LLM provider/model).
+                These values live on the agent diagram itself, not in global storage.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="agent-runtime-platform">Platform</Label>
+                  <select
+                    id="agent-runtime-platform"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                    value={agentRuntimeConfig.agentPlatform}
+                    onChange={(event) => updateAgentRuntimeConfig({ agentPlatform: event.target.value })}
+                  >
+                    <option value="streamlit">Streamlit</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="websocket">WebSocket</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="agent-runtime-intent">Intent Recognition</Label>
+                  <select
+                    id="agent-runtime-intent"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                    value={agentRuntimeConfig.intentRecognitionTechnology}
+                    onChange={(event) =>
+                      updateAgentRuntimeConfig({
+                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
+                      })
+                    }
+                  >
+                    <option value="classical">Classical</option>
+                    <option value="llm-based">LLM-based</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="agent-runtime-llm-provider">LLM Provider</Label>
+                  <select
+                    id="agent-runtime-llm-provider"
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                    value={agentRuntimeConfig.agentLlmProvider}
+                    onChange={(event) =>
+                      updateAgentRuntimeConfig({
+                        agentLlmProvider: event.target.value as AgentLLMProvider,
+                      })
+                    }
+                  >
+                    <option value="">None</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="huggingface">Hugging Face</option>
+                    <option value="huggingfaceapi">Hugging Face API</option>
+                    <option value="replicate">Replicate</option>
+                  </select>
+                </div>
+
+                {agentRuntimeConfig.agentLlmProvider === 'openai' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="agent-runtime-llm-model">OpenAI Model</Label>
+                    <select
+                      id="agent-runtime-llm-model"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                      value={agentRuntimeConfig.agentLlmModel}
+                      onChange={(event) =>
+                        updateAgentRuntimeConfig({ agentLlmModel: event.target.value })
+                      }
+                    >
+                      <option value="gpt-5">gpt-5</option>
+                      <option value="gpt-5-mini">gpt-5-mini</option>
+                      <option value="gpt-5-nano">gpt-5-nano</option>
+                      <option value="gpt-5.5">gpt-5.5</option>
+                      <option value="other">Other (custom)</option>
+                    </select>
+                  </div>
+                )}
+
+                {agentRuntimeConfig.agentLlmProvider === 'openai' && agentRuntimeConfig.agentLlmModel === 'other' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="agent-runtime-custom-model">Custom Model Name</Label>
+                    <Input
+                      id="agent-runtime-custom-model"
+                      value={agentRuntimeConfig.agentCustomLlmModel}
+                      placeholder="e.g. gpt-5-2025-04-01"
+                      onChange={(event) =>
+                        updateAgentRuntimeConfig({ agentCustomLlmModel: event.target.value })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 

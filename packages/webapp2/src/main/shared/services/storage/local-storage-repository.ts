@@ -24,7 +24,7 @@ import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTech
  */
 const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
 
-export interface SystemConfiguration {
+export interface AgentRuntimeConfig {
   agentPlatform: string;
   intentRecognitionTechnology: IntentRecognitionTechnology;
   agentLlmProvider: AgentLLMProvider;
@@ -32,17 +32,19 @@ export interface SystemConfiguration {
   agentCustomLlmModel: string;
 }
 
-export const DEFAULT_SYSTEM_CONFIGURATION: SystemConfiguration = {
+export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   agentPlatform: 'streamlit',
-  intentRecognitionTechnology: 'llm-based',
+  intentRecognitionTechnology: 'classical',
   agentLlmProvider: 'openai',
   agentLlmModel: 'gpt-5.5',
   agentCustomLlmModel: '',
 };
 
-const normalizeSystemConfig = (raw: Partial<SystemConfiguration> | null | undefined): SystemConfiguration => {
+export const normalizeAgentRuntimeConfig = (
+  raw: Partial<AgentRuntimeConfig> | null | undefined,
+): AgentRuntimeConfig => {
   if (!raw || typeof raw !== 'object') {
-    return { ...DEFAULT_SYSTEM_CONFIGURATION };
+    return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
   }
   const provider: AgentLLMProvider =
     raw.agentLlmProvider === 'openai' ||
@@ -52,7 +54,7 @@ const normalizeSystemConfig = (raw: Partial<SystemConfiguration> | null | undefi
       ? raw.agentLlmProvider
       : '';
   const intent: IntentRecognitionTechnology =
-    raw.intentRecognitionTechnology === 'classical' ? 'classical' : 'llm-based';
+    raw.intentRecognitionTechnology === 'llm-based' ? 'llm-based' : 'classical';
   return {
     agentPlatform: typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'streamlit',
     intentRecognitionTechnology: intent,
@@ -195,37 +197,18 @@ const parseDeployLinkedRepo = (raw: string | null): DeployLinkedRepo | null => {
 };
 
 /**
- * v2 -> v3: seed ``localStorageSystemConfig`` from the pre-projects-era
- * ``agentConfig`` flat key (if present), otherwise from defaults. Idempotent —
- * if ``localStorageSystemConfig`` already exists, the function no-ops.
+ * v2 -> v3: delete the deprecated ``besser_systemConfig`` top-level key.
  *
- * The legacy ``agentConfig`` key was already cleaned up by the v2 migration,
- * but this migration handles the (rare) case where v2 ran on an older browser
- * that still had the key, OR where a user hand-imported a settings export.
+ * Agent runtime config (platform, intent-recognition technology, LLM
+ * provider/model) now lives ON the agent diagram itself
+ * (``AgentDiagram.config``) with hardcoded defaults supplied at agent-creation
+ * time. The single source of truth is the diagram. Idempotent — if the key is
+ * already absent, this is a no-op.
  */
 const migrateToV3 = (): void => {
-  if (localStorage.getItem(localStorageSystemConfig)) {
-    return;
+  if (localStorage.getItem(localStorageSystemConfig) !== null) {
+    localStorage.removeItem(localStorageSystemConfig);
   }
-
-  let legacyAgentLlmModel: string | null = null;
-  try {
-    const legacyJson = localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
-    if (legacyJson) {
-      const parsed = JSON.parse(legacyJson);
-      if (parsed && typeof parsed.agentLlmModel === 'string' && parsed.agentLlmModel) {
-        legacyAgentLlmModel = parsed.agentLlmModel;
-      }
-    }
-  } catch {
-    // ignore — fall through to defaults
-  }
-
-  const seeded: SystemConfiguration = {
-    ...DEFAULT_SYSTEM_CONFIGURATION,
-    agentLlmModel: legacyAgentLlmModel ?? DEFAULT_SYSTEM_CONFIGURATION.agentLlmModel,
-  };
-  safeSetItem(localStorageSystemConfig, JSON.stringify(seeded));
 };
 
 export const LocalStorageRepository = {
@@ -235,23 +218,6 @@ export const LocalStorageRepository = {
 
   setUserThemePreference: (value: string) => {
     safeSetItem(localStorageUserThemePreference, value);
-  },
-
-  getSystemConfiguration: (): SystemConfiguration => {
-    const json = localStorage.getItem(localStorageSystemConfig);
-    if (!json) {
-      return { ...DEFAULT_SYSTEM_CONFIGURATION };
-    }
-    try {
-      return normalizeSystemConfig(JSON.parse(json));
-    } catch (error) {
-      console.warn('Failed to parse stored system configuration:', error);
-      return { ...DEFAULT_SYSTEM_CONFIGURATION };
-    }
-  },
-
-  saveSystemConfiguration: (value: SystemConfiguration) => {
-    safeSetItem(localStorageSystemConfig, JSON.stringify(normalizeSystemConfig(value)));
   },
 
   getSystemThemePreference: () => {
