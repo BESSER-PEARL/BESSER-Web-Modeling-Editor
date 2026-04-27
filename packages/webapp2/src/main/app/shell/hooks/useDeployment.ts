@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useGitHubAuth } from '../../../features/github/hooks/useGitHubAuth';
-import { useDeployToGitHub, type DeploymentTarget } from '../../../features/github/hooks/useGitHubDeploy';
+import { type DeploymentTarget } from '../../../features/github/hooks/useGitHubRepo';
+import { useRenderDeploy } from '../../../features/deploy/hooks/useRenderDeploy';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
-import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import {
@@ -103,7 +103,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     isAuthenticated,
     githubSession,
   } = useGitHubAuth();
-  const { deployToGitHub, isDeploying: isDeployingToRender, deploymentResult } = useDeployToGitHub();
+  const { deployToRender, isDeploying: isDeployingToRender, deploymentResult } = useRenderDeploy();
 
   const [isDeployDialogOpen, setIsDeployDialogOpen] = useState(false);
   const [isDeployResultOpen, setIsDeployResultOpen] = useState(false);
@@ -262,21 +262,20 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     // agent config — even if the user ran Save & Apply in the Agent
     // Configuration panel. This matches the "None" selection in the
     // standalone agent generator.
-    const projectForPayload = deploymentTarget === 'webapp'
+    const projectForPayload: BesserProject = deploymentTarget === 'webapp'
       ? stripAgentConfigToSystem(restoreBaseAgentModels(projectForDeploy))
       : projectForDeploy;
 
-    const result = await deployToGitHub(
-      buildProjectPayloadForBackend(projectForPayload),
-      sanitizeRepoName(githubRepoName),
-      githubRepoDescription.trim() || defaultDescriptionForTarget(deploymentTarget),
-      githubRepoPrivate,
+    const result = await deployToRender(projectForPayload, {
+      repoName: sanitizeRepoName(githubRepoName),
+      description: githubRepoDescription.trim() || defaultDescriptionForTarget(deploymentTarget),
+      isPrivate: githubRepoPrivate,
       githubSession,
-      useExistingRepo,
+      useExisting: useExistingRepo,
       commitMessage,
       deploymentTarget,
       personalizationMapping,
-    );
+    });
 
     if (result?.success) {
       saveDeployLinkedRepo(currentProject.id, deploymentTarget, result.owner, result.repo_name);
@@ -303,7 +302,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
         deployment_target: deploymentTarget,
       });
     }
-  }, [currentProject, githubSession, githubRepoName, githubRepoDescription, githubRepoPrivate, useExistingRepo, commitMessage, deployToGitHub, deploymentTarget]);
+  }, [currentProject, githubSession, githubRepoName, githubRepoDescription, githubRepoPrivate, useExistingRepo, commitMessage, deployToRender, deploymentTarget, includePersonalization]);
 
   const handleCreateNewInstead = useCallback(() => {
     if (currentProject?.id) {

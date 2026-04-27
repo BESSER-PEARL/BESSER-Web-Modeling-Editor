@@ -51,6 +51,11 @@ export interface CreateRepoOptions {
   deploymentTarget?: DeploymentTarget;
   useExisting?: boolean;
   commitMessage?: string;
+  // Optional agent personalization payload. When present (and the project
+  // contains an active AgentDiagram), it is injected into that diagram's
+  // ``config.personalizationMapping`` before the request body is built so
+  // the backend's personalization-aware codegen path runs.
+  personalizationMapping?: ReadonlyArray<Record<string, unknown>> | null;
 }
 
 type DeployWebappResponse = {
@@ -116,18 +121,88 @@ export const useGitHubRepo = () => {
       setRepoResult(null);
 
       try {
+        const useExisting = options.useExisting ?? false;
+        const commitMessage = options.commitMessage ?? '';
+        const personalizationMapping = options.personalizationMapping ?? null;
+
+        // Resolve the active AgentDiagram (if any) so we can both:
+        //   (1) inject ``personalizationMapping`` into its ``config`` when
+        //       provided — the deploy backend prefers the diagram's own
+        //       ``config`` over ``settings.config`` and uses that to trigger
+        //       the personalization-aware codegen path.
+        //   (2) build a ``settings.config`` fallback from the diagram's
+        //       config (or a sensible default) so the backend's
+        //       ``agent_config = agent_diagram_data.get("config") or settings_config``
+        //       lookup always finds something.
+        const agentDiagrams = projectData?.diagrams?.AgentDiagram;
+        const activeAgentIndex = projectData?.currentDiagramIndices?.AgentDiagram ?? 0;
+        const activeAgentDiagram = Array.isArray(agentDiagrams)
+          ? (agentDiagrams[activeAgentIndex] ?? agentDiagrams[0])
+          : null;
+        const agentConfig = activeAgentDiagram?.config ?? null;
+
+        // Default agent config: websocket+streamlit, classical IC (no API key needed)
+        const defaultAgentConfig = {
+          agentPlatform: 'streamlit',
+          intentRecognitionTechnology: 'classical',
+        };
+
+        // Inject the personalization mapping into the active AgentDiagram's
+        // ``config`` field before envelope construction so both the deploy
+        // payload AND the bundled ``projectExport`` carry it.
+        let projectForBackend: BesserProject = projectData;
+        if (
+          personalizationMapping
+          && personalizationMapping.length > 0
+          && Array.isArray(agentDiagrams)
+          && activeAgentDiagram
+        ) {
+          const clonedDiagrams = [...agentDiagrams];
+          clonedDiagrams[activeAgentIndex] = {
+            ...activeAgentDiagram,
+            config: {
+              ...(activeAgentDiagram.config ?? {}),
+              personalizationMapping,
+            },
+          };
+          projectForBackend = {
+            ...projectData,
+            diagrams: {
+              ...(projectData.diagrams ?? {}),
+              AgentDiagram: clonedDiagrams,
+            },
+          } as BesserProject;
+          console.log(
+            '[deploy] injecting personalizationMapping with',
+            personalizationMapping.length,
+            'entries into AgentDiagram config at index',
+            activeAgentIndex,
+          );
+        } else if (personalizationMapping && personalizationMapping.length > 0) {
+          console.warn(
+            '[deploy] personalizationMapping provided but could not be injected — agentDiagrams:',
+            Array.isArray(agentDiagrams),
+            'activeAgentDiagram:',
+            !!activeAgentDiagram,
+          );
+        }
+
         // Build the V2 project-export shape the editor uses for "Export Project"
         // and ship it alongside the deploy payload, so the backend can drop it
         // into the repo as `diagrams.json` and the file stays re-importable via
         // the editor's "Import Project" action.
-        const projectExport = buildProjectExportEnvelope(projectData);
-
-        const useExisting = options.useExisting ?? false;
-        const commitMessage = options.commitMessage ?? '';
+        const projectExport = buildProjectExportEnvelope(projectForBackend);
 
         const requestBody = {
-          ...projectData,
+          ...projectForBackend,
           name: normalizeProjectName(projectData?.name || 'project'),
+          settings: {
+            ...((projectData as { settings?: Record<string, unknown> }).settings ?? {}),
+            // ``settings.config`` is only a fallback when the diagram carries
+            // no config of its own — the deploy backend prefers the diagram's
+            // ``config`` field (see github_deploy_api.py).
+            config: agentConfig ?? defaultAgentConfig,
+          },
           deploy_config: {
             repo_name: options.repoName,
             description: options.description,
