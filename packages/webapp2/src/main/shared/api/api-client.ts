@@ -20,6 +20,14 @@ class ApiClient {
 
   /**
    * Generic request helper.  All other convenience methods delegate here.
+   *
+   * Header precedence: caller-supplied headers in ``options.headers`` are
+   * merged FIRST, then ``Content-Type: application/json`` is applied LAST so
+   * the JSON content-type cannot be silently clobbered by a call-site that
+   * only meant to add an auth header. Pass ``Content-Type`` explicitly in
+   * ``options.headers`` only if you really want a different content type
+   * (e.g. ``multipart/form-data`` — but for FormData prefer ``upload()``,
+   * which omits Content-Type so the browser sets the boundary).
    */
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const controller = new AbortController();
@@ -30,8 +38,8 @@ class ApiClient {
         ...options,
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
           ...options.headers,
+          'Content-Type': 'application/json',
         },
       });
 
@@ -104,8 +112,8 @@ class ApiClient {
         body: JSON.stringify(data),
         signal: controller.signal,
         headers: {
-          'Content-Type': 'application/json',
           ...options?.headers,
+          'Content-Type': 'application/json',
         },
       });
 

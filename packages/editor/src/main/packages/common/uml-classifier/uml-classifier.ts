@@ -110,8 +110,11 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
     }
 
     if (this.className) {
-      const text = this.name + (this.className ? ': ' + this.className : '');
-      const rawClassLabelWidth = Text.size(layer, text).width + 40;
+      const isUserModelElement = this.type === UMLElementType.UserModelName;
+      const text = isUserModelElement
+        ? this.className
+        : this.name + (this.className ? ': ' + this.className : '');
+      const rawClassLabelWidth = Text.size(layer, text).width + 40; // add some padding
       const roundedClassLabelWidth = Math.round(rawClassLabelWidth / radix) * radix;
       textFitWidth = Math.max(textFitWidth, roundedClassLabelWidth);
     }

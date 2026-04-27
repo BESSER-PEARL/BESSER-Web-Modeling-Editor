@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Card, Form, Button, Row, Col, Badge } from 'react-bootstrap';
+import { Accordion, Form, Button, Row, Col, Badge, Spinner } from 'react-bootstrap';
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
 import { LocalStorageRepository } from '../../services/local-storage/local-storage-repository';
@@ -17,7 +17,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { isUMLModel } from '../../types/project';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import { BACKEND_URL, DEFAULT_AGENT_CONFIGURATION_NAME, SHOW_FULL_AGENT_CONFIGURATION } from '../../constant';
+import { BACKEND_URL } from '../../constant';
 import { setCreateNewEditor, updateDiagramThunk } from '../../services/diagram/diagramSlice';
 import { useProject } from '../../hooks/useProject';
 import { ProjectStorageRepository } from '../../services/storage/ProjectStorageRepository';
@@ -89,12 +89,6 @@ const Section = styled.div`
   }
 `;
 
-const StackedSectionColumn = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-`;
-
 const SectionTitle = styled.h5`
   color: var(--apollon-primary-contrast);
   margin: 0 0 20px 0;
@@ -113,19 +107,65 @@ const SectionTitle = styled.h5`
   }
 `;
 
-const AgentCard = styled.div`
-  width: 100%;
-  background-color: var(--apollon-background);
+const SectionDescription = styled.p`
+    margin: 0 0 18px 0;
+    color: var(--apollon-secondary);
+    font-size: 0.95rem;
 `;
 
-const CardHeader = styled.div`
-  display: none;
+const OverviewAccordion = styled(Accordion)`
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .accordion-item {
+        border: 1px solid var(--apollon-switch-box-border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--apollon-background);
+    }
+
+    .accordion-button {
+        background: var(--apollon-background);
+        color: var(--apollon-primary-contrast);
+        box-shadow: none;
+        padding: 18px 20px;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: rgba(0, 123, 255, 0.06);
+        color: var(--apollon-primary-contrast);
+        box-shadow: none;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+    }
+
+    .accordion-body {
+        padding: 20px;
+        border-top: 1px solid var(--apollon-switch-box-border-color);
+        background: var(--apollon-background);
+    }
 `;
 
-const CardBody = styled.div`
-  padding: 0;
-  background-color: var(--apollon-background);
-  color: var(--apollon-primary-contrast);
+const AccordionHeaderContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+`;
+
+const AccordionHeaderTitle = styled.span`
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--apollon-primary-contrast);
+`;
+
+const AccordionHeaderDescription = styled.span`
+    font-size: 0.9rem;
+    color: var(--apollon-secondary);
+    text-align: left;
 `;
 
 const ActionBar = styled.div`
@@ -147,6 +187,43 @@ const StyledButton = styled(Button)`
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
+`;
+
+const LoadingOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+`;
+
+const LoadingCard = styled.div`
+    width: min(560px, 100%);
+    border-radius: 16px;
+    background: var(--apollon-background);
+    border: 1px solid var(--apollon-switch-box-border-color);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+`;
+
+const LoadingTitle = styled.h4`
+    margin: 0;
+    color: var(--apollon-primary-contrast);
+    font-weight: 700;
+`;
+
+const LoadingDescription = styled.p`
+    margin: 0;
+    color: var(--apollon-secondary);
+    font-size: 0.98rem;
 `;
 
 const configKey = 'agentConfig';
@@ -354,6 +431,7 @@ export const AgentConfigScreen: React.FC = () => {
     const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
     const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || '');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState<string>('Preparing your configuration...');
     const [userProfiles, setUserProfiles] = useState<StoredUserProfile[]>([]);
     const [selectedUserProfileName, setSelectedUserProfileName] = useState<string>(initialConfig.userProfileName || '');
 
@@ -374,6 +452,7 @@ export const AgentConfigScreen: React.FC = () => {
     const [useAbbreviations, setUseAbbreviations] = useState<boolean>(initialConfig.useAbbreviations);
     const [adaptContentToUserProfile, setAdaptContentToUserProfile] = useState<boolean>(initialConfig.adaptContentToUserProfile);
     const [intentRecognitionTechnology, setIntentRecognitionTechnology] = useState<IntentRecognitionTechnology>(initialConfig.intentRecognitionTechnology);
+    const [activeCustomizationSection, setActiveCustomizationSection] = useState<string | null>(null);
 
     const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
 
@@ -403,9 +482,6 @@ export const AgentConfigScreen: React.FC = () => {
 
     const handleAdaptContentToggle = (checked: boolean) => {
         setAdaptContentToUserProfile(checked);
-        if (!checked) {
-            setSelectedUserProfileName('');
-        }
     };
 
     const updateInterfaceStyle = (field: keyof InterfaceStyleSetting, value: InterfaceStyleSetting[keyof InterfaceStyleSetting]) => {
@@ -565,6 +641,93 @@ export const AgentConfigScreen: React.FC = () => {
         alert('Configuration deleted.');
     }, [selectedConfigId, refreshSavedConfigurations, activeConfigId]);
 
+    const handleAutoProposeConfigurationRules = () => {
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile mapping first.');
+            return;
+        }
+
+        toast.info('Automatic configuration proposal using predefined rules will be available soon.');
+    };
+
+    const handleAutoProposeConfigurationRAG = () => {
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile mapping first.');
+            return;
+        }
+
+        toast.info('RAG-based automatic configuration proposal will be available soon.');
+    };
+
+    const handleAutoProposeConfigurationLLM = async () => {
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile mapping first.');
+            return;
+        }
+
+        const availableProfiles = (userProfiles.length > 0
+            ? userProfiles
+            : LocalStorageRepository.getUserProfiles()
+                .filter((profile) => profile.model?.type === UMLDiagramType.UserDiagram));
+
+        const selectedProfile = availableProfiles.find((profile) => profile.name === selectedUserProfileName);
+        if (!selectedProfile || !selectedProfile.model || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+            alert('The selected user profile is not available. Please select a valid saved user profile.');
+            return;
+        }
+
+        try {
+            setLoadingMessage('This might take a while to cook up the best LLM-based configuration for your selected user profile.');
+            setIsLoading(true);
+
+            const normalizedBaseRaw = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+            const normalizedBase = normalizedBaseRaw || '';
+            const apiBase = normalizedBase.endsWith('/besser_api') ? normalizedBase : `${normalizedBase}/besser_api`;
+            const recommendUrl = `${apiBase}/recommend-agent-config-llm`;
+
+            const payload = {
+                userProfileName: selectedProfile.name,
+                userProfileModel: JSON.parse(JSON.stringify(selectedProfile.model)),
+                currentConfig: buildStructuredExport(getConfigObject()),
+                model: 'gpt-5',
+            };
+
+            const response = await fetch(recommendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                alert(`Failed to get LLM recommendation: ${errorText || response.statusText}`);
+                return;
+            }
+
+            const recommendation = await response.json();
+            if (!recommendation || typeof recommendation !== 'object' || !recommendation.config) {
+                alert('Invalid recommendation response received from backend.');
+                return;
+            }
+
+            const prepared = flattenStructuredConfig(recommendation.config);
+            const normalized = normalizeAgentConfiguration({
+                ...prepared,
+                adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
+                userProfileName: selectedProfile.name,
+            });
+
+            applyConfiguration(normalized);
+            localStorage.setItem(configKey, JSON.stringify(normalized));
+            toast.success('LLM-based recommendation applied to the current configuration.');
+        } catch (error) {
+            console.error('Failed to fetch LLM recommendation:', error);
+            alert('An unexpected error occurred while requesting an LLM-based recommendation.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const getConfigObject = (): AgentConfigurationPayload => ({
         agentLanguage: normalizeAgentLanguage(agentLanguage),
         inputModalities: normalizeModalityList(inputModalities),
@@ -661,11 +824,9 @@ export const AgentConfigScreen: React.FC = () => {
         },
     ) => {
         const trimmedName = configurationName.trim();
-        const resolvedName = SHOW_FULL_AGENT_CONFIGURATION
-            ? trimmedName
-            : (trimmedName || DEFAULT_AGENT_CONFIGURATION_NAME);
+        const resolvedName = trimmedName;
 
-        if (SHOW_FULL_AGENT_CONFIGURATION && !trimmedName) {
+        if (!trimmedName) {
             alert('Please provide a configuration name before saving.');
             return { ok: false, snapshotCaptured: false } as const;
         }
@@ -730,6 +891,13 @@ export const AgentConfigScreen: React.FC = () => {
         toast.success(`Configuration "${result.savedEntry.name}" saved.`);
     };
 
+    const handleResetToDefaults = () => {
+        applyConfiguration(createDefaultConfig());
+        localStorage.setItem(configKey, JSON.stringify(createDefaultConfig()));
+        setActiveCustomizationSection(null);
+        toast.info('Configuration reset to default values.');
+    };
+
     const handleSaveAndApply = async () => {
         const trimmedName = configurationName.trim();
         if (!trimmedName) {
@@ -756,6 +924,21 @@ export const AgentConfigScreen: React.FC = () => {
             return;
         }
 
+        if (!selectedUserProfileName.trim()) {
+            alert('Please select a user profile to map before saving and applying.');
+            return;
+        }
+
+        const selectedProfile = selectedUserProfileName
+            ? (userProfiles.length > 0 ? userProfiles : LocalStorageRepository.getUserProfiles())
+                .find((profile) => profile.name === selectedUserProfileName)
+            : null;
+
+        if (!selectedProfile || !selectedProfile.model || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
+            alert('The selected user profile is not available. Please select a valid saved user profile.');
+            return;
+        }
+
         const requestConfig: AgentTransformationConfig = buildSparseGenerationConfig(config);
         if (config.adaptContentToUserProfile && config.userProfileName) {
             const trimmedProfileName = config.userProfileName.trim();
@@ -769,6 +952,7 @@ export const AgentConfigScreen: React.FC = () => {
         }
 
         try {
+            setLoadingMessage('This might take a while to cook up the best transformed agent setup and apply it to your diagram.');
             setIsLoading(true);
             const referenceDiagramData = (diagram as any)?.referenceDiagramData;
             const payload = {
@@ -814,6 +998,9 @@ export const AgentConfigScreen: React.FC = () => {
                 originalAgentModel: agentModel,
             });
             if (result.ok) {
+                if (selectedProfile && result.savedEntry) {
+                    LocalStorageRepository.saveAgentProfileConfigurationMapping(selectedProfile, result.savedEntry);
+                }
                 window.dispatchEvent(new Event(AGENT_CONFIG_CHANGED_EVENT));
                 toast.success('Configuration transformed, saved, and applied successfully.');
                 setSelectedConfigId(result.savedEntry?.id || activeConfigId || '');
@@ -866,6 +1053,15 @@ export const AgentConfigScreen: React.FC = () => {
 
     return (
         <PageContainer>
+            {isLoading && (
+                <LoadingOverlay>
+                    <LoadingCard role="status" aria-live="polite" aria-busy="true">
+                        <Spinner animation="border" role="status" />
+                        <LoadingTitle>Working on it...</LoadingTitle>
+                        <LoadingDescription>{loadingMessage}</LoadingDescription>
+                    </LoadingCard>
+                </LoadingOverlay>
+            )}
             <PageHeader>
                 <h1>🤖 Agent Configuration</h1>
                 <p>Configure your agent's behavior, language, and interaction settings</p>
@@ -873,513 +1069,362 @@ export const AgentConfigScreen: React.FC = () => {
             
             <Form onSubmit={handleSubmit}>
                 <ContentGrid>
-                    {SHOW_FULL_AGENT_CONFIGURATION && (
-                        <Section>
-                            <SectionTitle>Saved Configurations</SectionTitle>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Configuration Name</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    value={configurationName}
-                                    placeholder="Give this setup a name"
-                                    onChange={e => setConfigurationName(e.target.value)}
-                                />
-                                {activeConfigId ? (
-                                    <div className="mt-2 d-flex align-items-center gap-2">
-                                        <Badge bg="secondary">Active</Badge>
-                                        <span className="text-muted small">{activeConfigName || 'Unnamed configuration'}</span>
-                                    </div>
-                                ) : (
-                                    <Form.Text className="text-muted">Not linked to a saved configuration yet.</Form.Text>
-                                )}
-                            </Form.Group>
-                            
-                            <Form.Group className="mb-3">
-                                <Form.Label>Saved Configurations</Form.Label>
-                                <Form.Select
-                                    value={selectedConfigId}
-                                    onChange={e => setSelectedConfigId(e.target.value)}
-                                    disabled={savedConfigs.length === 0}
-                                >
-                                    <option value="">
-                                        {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
+                    <Section style={{ gridColumn: '1 / -1' }}>
+                        <SectionTitle>User Profile Mapping</SectionTitle>
+                        <SectionDescription>
+                            Start by selecting the user profile that should guide personalization and future automatic configuration proposals.
+                        </SectionDescription>
+                        <Form.Group className="mb-3">
+                            <Form.Label>User Profile Mapping (for Save & Apply)</Form.Label>
+                            <Form.Select
+                                value={selectedUserProfileName || ''}
+                                onChange={e => setSelectedUserProfileName(e.target.value)}
+                                disabled={userProfiles.length === 0}
+                            >
+                                <option value="">
+                                    {userProfiles.length === 0 ? 'No user profiles saved yet' : 'Select a user profile'}
+                                </option>
+                                {userProfiles.map((profile) => (
+                                    <option key={profile.id} value={profile.name}>
+                                        {profile.name}
                                     </option>
-                                    {savedConfigs.map((entry) => (
-                                        <option key={entry.id} value={entry.id}>
-                                            {entry.name}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                                {selectedConfig && (
-                                    <div className="mt-2 text-muted small">
-                                        Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
-                                    </div>
-                                )}
-                            </Form.Group>
-                            
-                            <div className="d-flex flex-wrap gap-2 mt-3">
-                                <StyledButton
-                                    variant="outline-primary"
-                                    type="button"
-                                    onClick={() => handleLoadSavedConfiguration()}
-                                    disabled={!selectedConfigId}
-                                >
-                                    Load Selected
-                                </StyledButton>
-                                <StyledButton
-                                    variant="outline-danger"
-                                    type="button"
-                                    onClick={() => handleDeleteSavedConfiguration()}
-                                    disabled={!selectedConfigId}
-                                >
-                                    Delete
-                                </StyledButton>
-                            </div>
+                                ))}
+                            </Form.Select>
+                            {userProfiles.length === 0 && (
+                                <Form.Text className="text-muted">
+                                    Save a user profile from the User Diagram first.
+                                </Form.Text>
+                            )}
+                        </Form.Group>
 
-                            <ActionBar>
-                                <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
-                                    {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
-                                </StyledButton>
-                                <StyledButton variant="primary" type="submit" disabled={isLoading}>
-                                    Save Configuration
-                                </StyledButton>
-                            </ActionBar>
-                        </Section>
-                    )}
-                    
-                    <Section>
-                        <SectionTitle>Import / Export</SectionTitle>
-                        <p className="text-muted mb-3">Download or upload configuration files</p>
                         <div className="d-flex flex-wrap gap-2">
-                            <StyledButton variant="outline-secondary" type="button" onClick={handleDownload}>
-                                Download JSON
+                            <StyledButton
+                                variant="outline-secondary"
+                                type="button"
+                                onClick={handleAutoProposeConfigurationRules}
+                                disabled={!selectedUserProfileName.trim() || isLoading}
+                            >
+                                Automatically propose configuration using predefined rules
                             </StyledButton>
-                            <label className="btn btn-outline-secondary mb-0" style={{ borderRadius: '8px', padding: '10px 24px', fontWeight: 500 }}>
-                                Upload JSON
-                                <input
-                                    type="file"
-                                    accept="application/json"
-                                    style={{ display: 'none' }}
-                                    onChange={handleUpload}
-                                />
-                            </label>
+                            <StyledButton
+                                variant="outline-primary"
+                                type="button"
+                                onClick={handleAutoProposeConfigurationLLM}
+                                disabled={!selectedUserProfileName.trim() || isLoading}
+                            >
+                                Automatically propose configuration using LLMs
+                            </StyledButton>
+                            <StyledButton
+                                variant="outline-dark"
+                                type="button"
+                                onClick={handleAutoProposeConfigurationRAG}
+                                disabled={!selectedUserProfileName.trim() || isLoading}
+                            >
+                                Automatically propose configuration using RAG based
+                            </StyledButton>
                         </div>
-                        <Form.Text className="text-muted d-block mt-2">
-                            Uploading replaces the current form values but does not auto-save.
-                        </Form.Text>
-                        {!SHOW_FULL_AGENT_CONFIGURATION && (
-                            <ActionBar>
-                                <StyledButton variant="primary" type="submit" disabled={isLoading}>
-                                    Save Configuration
-                                </StyledButton>
-                            </ActionBar>
-                        )}
                     </Section>
                 </ContentGrid>
 
-                {SHOW_FULL_AGENT_CONFIGURATION && (
                 <ContentGrid style={{ marginTop: '24px' }}>
-                    <Section>
-                        <SectionTitle>Presentation</SectionTitle>
-                        <Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Language</Form.Label>
-                                    <Form.Select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}>
-                                        <option value="original">Original</option>
-                                        <option value="english">English</option>
-                                        <option value="french">French</option>
-                                        <option value="german">German</option>
-                                        <option value="spanish">Spanish</option>
-                                        <option value="luxembourgish">Luxembourgish</option>
-                                        <option value="portuguese">Portuguese</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Style</Form.Label>
-                                    <div className="d-flex gap-3">
-                                        <Form.Check
-                                            type="radio"
-                                            label="Original"
-                                            name="agentStyle"
-                                            id="agentStyleOriginal"
-                                            value="original"
-                                            checked={agentStyle === 'original'}
-                                            onChange={e => setAgentStyle(e.target.value)}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Formal"
-                                            name="agentStyle"
-                                            id="agentStyleFormal"
-                                            value="formal"
-                                            checked={agentStyle === 'formal'}
-                                            onChange={e => setAgentStyle(e.target.value)}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Informal"
-                                            name="agentStyle"
-                                            id="agentStyleInformal"
-                                            value="informal"
-                                            checked={agentStyle === 'informal'}
-                                            onChange={e => setAgentStyle(e.target.value)}
-                                        />
-                                    </div>
-                                </Form.Group>
-                            </Col>
-                            <Row></Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Abbreviations</Form.Label>
-                                    <Form.Check
-                                        type="switch"
-                                        label="Use abbreviations"
-                                        checked={useAbbreviations}
-                                        onChange={e => setUseAbbreviations(e.target.checked)}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md={4}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Language Complexity</Form.Label>
-                                    <div className="d-flex flex-column gap-2">
-                                        <Form.Check
-                                            type="radio"
-                                            label="Original"
-                                            name="languageComplexity"
-                                            id="languageComplexityOriginal"
-                                            value="original"
-                                            checked={languageComplexity === 'original'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Simple"
-                                            name="languageComplexity"
-                                            id="languageComplexitySimple"
-                                            value="simple"
-                                            checked={languageComplexity === 'simple'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Medium"
-                                            name="languageComplexity"
-                                            id="languageComplexityMedium"
-                                            value="medium"
-                                            checked={languageComplexity === 'medium'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Complex"
-                                            name="languageComplexity"
-                                            id="languageComplexityComplex"
-                                            value="complex"
-                                            checked={languageComplexity === 'complex'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')}
-                                        />
-                                    </div>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row className="mb-2">
-                            <Col>
-                                <Form.Label className="fw-semibold">Style of text in interface</Form.Label>
-                            </Col>
-                        </Row>
-                        <Row className="mb-3">
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Size (px)</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        min={10}
-                                        max={32}
-                                        value={interfaceStyle.size}
-                                        onChange={e => updateInterfaceStyle('size', Number(e.target.value))}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Font</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.font}
-                                        onChange={e => updateInterfaceStyle('font', e.target.value as InterfaceStyleSetting['font'])}
-                                    >
-                                        <option value="sans">Sans</option>
-                                        <option value="serif">Serif</option>
-                                        <option value="monospace">Monospace</option>
-                                        <option value="neutral">Neutral</option>
-                                        <option value="grotesque">Grotesque</option>
-                                        <option value="condensed">Condensed</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Line Spacing</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        min={1}
-                                        max={3}
-                                        step={0.1}
-                                        value={interfaceStyle.lineSpacing}
-                                        onChange={e => updateInterfaceStyle('lineSpacing', Number(e.target.value))}
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row className="mb-4">
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Alignment</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.alignment}
-                                        onChange={e => updateInterfaceStyle('alignment', e.target.value as InterfaceStyleSetting['alignment'])}
-                                    >
-                                        <option value="left">Left</option>
-                                        <option value="center">Center</option>
-                                        <option value="justify">Justify</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Color</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.color}
-                                        onChange={e => updateInterfaceStyle('color', e.target.value)}
-                                    >
-                                        <option value="var(--apollon-primary-contrast)">Default Contrast</option>
-                                        <option value="#000000">Black</option>
-                                        <option value="#ffffff">White</option>
-                                        <option value="#1a73e8">Blue</option>
-                                        <option value="#34a853">Green</option>
-                                        <option value="#fbbc05">Yellow</option>
-                                        <option value="#db4437">Red</option>
-                                        <option value="#6a1b9a">Purple</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={3}>
-                                <Form.Group>
-                                    <Form.Label>Contrast</Form.Label>
-                                    <Form.Select
-                                        value={interfaceStyle.contrast}
-                                        onChange={e => updateInterfaceStyle('contrast', e.target.value as InterfaceStyleSetting['contrast'])}
-                                    >
-                                        <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="high">High</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Sentence Length</Form.Label>
-                                    <div className="d-flex gap-3">
-                                        <Form.Check
-                                            type="radio"
-                                            label="Original"
-                                            name="sentenceLength"
-                                            id="sentenceLengthOriginal"
-                                            value="original"
-                                            checked={sentenceLength === 'original'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Concise"
-                                            name="sentenceLength"
-                                            id="sentenceLengthConcise"
-                                            value="concise"
-                                            checked={sentenceLength === 'concise'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
-                                        />
-                                        <Form.Check
-                                            type="radio"
-                                            label="Verbose"
-                                            name="sentenceLength"
-                                            id="sentenceLengthVerbose"
-                                            value="verbose"
-                                            checked={sentenceLength === 'verbose'}
-                                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')}
-                                        />
-                                    </div>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-
-                        {outputModalities.includes('speech') && (
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Style of voice</Form.Label>
-                                        <div className="d-flex flex-column gap-2">
-                                            <Form.Select
-                                                value={voiceStyle.gender}
-                                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                                                    setVoiceStyle(prev => ({ ...prev, gender: e.target.value as VoiceStyleSetting['gender'] }))
-                                                }
-                                            >
-                                                <option value="male">Male</option>
-                                                <option value="female">Female</option>
-                                                <option value="ambiguous">Ambiguous</option>
-                                            </Form.Select>
-
-                                            <Form.Group>
-                                                <Form.Label>Voice speed ({voiceStyle.speed.toFixed(1)}x)</Form.Label>
-                                                <Form.Range
-                                                    min={0.5}
-                                                    max={2}
-                                                    step={0.05}
-                                                    value={voiceStyle.speed}
-                                                    onChange={e => setVoiceStyle(prev => ({ ...prev, speed: Number(e.target.value) }))}
+                    <Section style={{ gridColumn: '1 / -1' }}>
+                        <SectionTitle>Personalization Overview</SectionTitle>
+                        <SectionDescription>
+                            Review what each area controls, then open one panel at a time to make focused changes without losing track of the overall setup.
+                        </SectionDescription>
+                        <OverviewAccordion
+                            activeKey={activeCustomizationSection ?? undefined}
+                            onSelect={(eventKey) => setActiveCustomizationSection(typeof eventKey === 'string' ? eventKey : null)}
+                        >
+                            <Accordion.Item eventKey="presentation">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Presentation</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Adjust how the agent sounds and looks, including language, tone, text style, voice, and avatar.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Language</Form.Label>
+                                                <Form.Select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}>
+                                                    <option value="original">Original</option>
+                                                    <option value="english">English</option>
+                                                    <option value="french">French</option>
+                                                    <option value="german">German</option>
+                                                    <option value="spanish">Spanish</option>
+                                                    <option value="luxembourgish">Luxembourgish</option>
+                                                    <option value="portuguese">Portuguese</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Style</Form.Label>
+                                                <div className="d-flex gap-3">
+                                                    <Form.Check
+                                                        type="radio"
+                                                        label="Original"
+                                                        name="agentStyle"
+                                                        id="agentStyleOriginal"
+                                                        value="original"
+                                                        checked={agentStyle === 'original'}
+                                                        onChange={e => setAgentStyle(e.target.value)}
+                                                    />
+                                                    <Form.Check
+                                                        type="radio"
+                                                        label="Formal"
+                                                        name="agentStyle"
+                                                        id="agentStyleFormal"
+                                                        value="formal"
+                                                        checked={agentStyle === 'formal'}
+                                                        onChange={e => setAgentStyle(e.target.value)}
+                                                    />
+                                                    <Form.Check
+                                                        type="radio"
+                                                        label="Informal"
+                                                        name="agentStyle"
+                                                        id="agentStyleInformal"
+                                                        value="informal"
+                                                        checked={agentStyle === 'informal'}
+                                                        onChange={e => setAgentStyle(e.target.value)}
+                                                    />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                        <Row></Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Abbreviations</Form.Label>
+                                                <Form.Check
+                                                    type="switch"
+                                                    label="Use abbreviations"
+                                                    checked={useAbbreviations}
+                                                    onChange={e => setUseAbbreviations(e.target.checked)}
                                                 />
                                             </Form.Group>
-                                        </div>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        )}
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Language Complexity</Form.Label>
+                                                <div className="d-flex flex-column gap-2">
+                                                    <Form.Check type="radio" label="Original" name="languageComplexity" id="languageComplexityOriginal" value="original" checked={languageComplexity === 'original'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                    <Form.Check type="radio" label="Simple" name="languageComplexity" id="languageComplexitySimple" value="simple" checked={languageComplexity === 'simple'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                    <Form.Check type="radio" label="Medium" name="languageComplexity" id="languageComplexityMedium" value="medium" checked={languageComplexity === 'medium'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                    <Form.Check type="radio" label="Complex" name="languageComplexity" id="languageComplexityComplex" value="complex" checked={languageComplexity === 'complex'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLanguageComplexity(e.target.value as 'original' | 'simple' | 'medium' | 'complex')} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-2">
+                                        <Col>
+                                            <Form.Label className="fw-semibold">Style of text in interface</Form.Label>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-3">
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Size (px)</Form.Label>
+                                                <Form.Control type="number" min={10} max={32} value={interfaceStyle.size} onChange={e => updateInterfaceStyle('size', Number(e.target.value))} />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Font</Form.Label>
+                                                <Form.Select value={interfaceStyle.font} onChange={e => updateInterfaceStyle('font', e.target.value as InterfaceStyleSetting['font'])}>
+                                                    <option value="sans">Sans</option>
+                                                    <option value="serif">Serif</option>
+                                                    <option value="monospace">Monospace</option>
+                                                    <option value="neutral">Neutral</option>
+                                                    <option value="grotesque">Grotesque</option>
+                                                    <option value="condensed">Condensed</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Line Spacing</Form.Label>
+                                                <Form.Control type="number" min={1} max={3} step={0.1} value={interfaceStyle.lineSpacing} onChange={e => updateInterfaceStyle('lineSpacing', Number(e.target.value))} />
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row className="mb-4">
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Alignment</Form.Label>
+                                                <Form.Select value={interfaceStyle.alignment} onChange={e => updateInterfaceStyle('alignment', e.target.value as InterfaceStyleSetting['alignment'])}>
+                                                    <option value="left">Left</option>
+                                                    <option value="center">Center</option>
+                                                    <option value="justify">Justify</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Color</Form.Label>
+                                                <Form.Select value={interfaceStyle.color} onChange={e => updateInterfaceStyle('color', e.target.value)}>
+                                                    <option value="var(--apollon-primary-contrast)">Default Contrast</option>
+                                                    <option value="#000000">Black</option>
+                                                    <option value="#ffffff">White</option>
+                                                    <option value="#1a73e8">Blue</option>
+                                                    <option value="#34a853">Green</option>
+                                                    <option value="#fbbc05">Yellow</option>
+                                                    <option value="#db4437">Red</option>
+                                                    <option value="#6a1b9a">Purple</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={3}>
+                                            <Form.Group>
+                                                <Form.Label>Contrast</Form.Label>
+                                                <Form.Select value={interfaceStyle.contrast} onChange={e => updateInterfaceStyle('contrast', e.target.value as InterfaceStyleSetting['contrast'])}>
+                                                    <option value="low">Low</option>
+                                                    <option value="medium">Medium</option>
+                                                    <option value="high">High</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Sentence Length</Form.Label>
+                                                <div className="d-flex gap-3">
+                                                    <Form.Check type="radio" label="Original" name="sentenceLength" id="sentenceLengthOriginal" value="original" checked={sentenceLength === 'original'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')} />
+                                                    <Form.Check type="radio" label="Concise" name="sentenceLength" id="sentenceLengthConcise" value="concise" checked={sentenceLength === 'concise'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')} />
+                                                    <Form.Check type="radio" label="Verbose" name="sentenceLength" id="sentenceLengthVerbose" value="verbose" checked={sentenceLength === 'verbose'} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSentenceLength(e.target.value as 'original' | 'concise' | 'verbose')} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
 
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label className="d-flex align-items-center gap-2">
-                                        2D Avatar
-                                    </Form.Label>
-                                    {avatarData && (
-                                        <div className="d-flex flex-column gap-2">
-                                            <img
-                                                src={avatarData}
-                                                alt="Agent avatar"
-                                                style={{ width: 128, height: 128, objectFit: 'cover', borderRadius: '50%', border: '1px solid var(--apollon-switch-box-border-color)' }}
-                                            />
-                                            <Button variant="outline-danger" size="sm" onClick={handleAvatarRemove}>
-                                                Remove avatar
-                                            </Button>
-                                        </div>
+                                    {outputModalities.includes('speech') && (
+                                        <Row>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Style of voice</Form.Label>
+                                                    <div className="d-flex flex-column gap-2">
+                                                        <Form.Select value={voiceStyle.gender} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVoiceStyle(prev => ({ ...prev, gender: e.target.value as VoiceStyleSetting['gender'] }))}>
+                                                            <option value="male">Male</option>
+                                                            <option value="female">Female</option>
+                                                            <option value="ambiguous">Ambiguous</option>
+                                                        </Form.Select>
+                                                        <Form.Group>
+                                                            <Form.Label>Voice speed ({voiceStyle.speed.toFixed(1)}x)</Form.Label>
+                                                            <Form.Range min={0.5} max={2} step={0.05} value={voiceStyle.speed} onChange={e => setVoiceStyle(prev => ({ ...prev, speed: Number(e.target.value) }))} />
+                                                        </Form.Group>
+                                                    </div>
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
                                     )}
-                                    <Form.Control
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleAvatarUpload}
-                                        className="mt-2"
-                                    />
-                                    <Form.Text className="text-muted">
-                                        Upload an image for your agent avatar; it will be stored as base64 when saving the configuration.
+
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label className="d-flex align-items-center gap-2">2D Avatar</Form.Label>
+                                                {avatarData && (
+                                                    <div className="d-flex flex-column gap-2">
+                                                        <img src={avatarData} alt="Agent avatar" style={{ width: 128, height: 128, objectFit: 'cover', borderRadius: '50%', border: '1px solid var(--apollon-switch-box-border-color)' }} />
+                                                        <Button variant="outline-danger" size="sm" onClick={handleAvatarRemove}>Remove avatar</Button>
+                                                    </div>
+                                                )}
+                                                <Form.Control type="file" accept="image/*" onChange={handleAvatarUpload} className="mt-2" />
+                                                <Form.Text className="text-muted">Upload an image for your agent avatar; it will be stored as base64 when saving the configuration.</Form.Text>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
+
+                            <Accordion.Item eventKey="modality">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Modality</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Choose how people interact with the agent, including optional speech input and speech output.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Row>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Input Modalities</Form.Label>
+                                                <Form.Text className="text-muted d-block mb-2">Text input is always enabled.</Form.Text>
+                                                <div>
+                                                    <Form.Check type="checkbox" label="Enable speech input" value="speech" checked={inputModalities.includes('speech')} onChange={handleInputSpeechToggle} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Output Modalities</Form.Label>
+                                                <Form.Text className="text-muted d-block mb-2">Text output is always enabled.</Form.Text>
+                                                <div>
+                                                    <Form.Check type="checkbox" label="Enable speech output" value="speech" checked={outputModalities.includes('speech')} onChange={handleOutputSpeechToggle} />
+                                                </div>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
+
+                            <Accordion.Item eventKey="content">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Content</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Personalize generated replies based on a saved user profile when that context should shape the response.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Form.Group className="mb-3">
+                                        <Form.Check type="switch" id="adaptContentToUserProfile" label="Adapt content to user profile" checked={adaptContentToUserProfile} onChange={e => handleAdaptContentToggle(e.target.checked)} />
+                                    </Form.Group>
+                                    <Form.Text className="text-muted d-block mb-2">
+                                        The user profile for adaptation is selected in Configuration Actions under "User Profile Mapping (for Save & Apply)".
                                     </Form.Text>
-                                </Form.Group>
-                            </Col>
-                        </Row>
+                                    <Form.Text className="text-muted">
+                                        Enable this option to tailor generated responses to the active user profile. This option requires user profiles to be defined. You'll have then to select a profile and attributes you think are relevant for the agent to consider when adapting responses.
+                                    </Form.Text>
+                                </Accordion.Body>
+                            </Accordion.Item>
 
+                            <Accordion.Item eventKey="behavior">
+                                <Accordion.Header>
+                                    <AccordionHeaderContent>
+                                        <AccordionHeaderTitle>Behavior</AccordionHeaderTitle>
+                                        <AccordionHeaderDescription>
+                                            Define how the agent delivers responses, from immediate replies to a more deliberate simulated-thinking rhythm.
+                                        </AccordionHeaderDescription>
+                                    </AccordionHeaderContent>
+                                </Accordion.Header>
+                                <Accordion.Body>
+                                    <Row>
+                                        <Col md={4}>
+                                            <Form.Group className="mb-3">
+                                                <Form.Label>Response Timing</Form.Label>
+                                                <Form.Select value={responseTiming} onChange={e => setResponseTiming(e.target.value)}>
+                                                    <option value="instant">Instant</option>
+                                                    <option value="delayed">Simulated Thinking</option>
+                                                </Form.Select>
+                                            </Form.Group>
+                                        </Col>
+                                    </Row>
+                                </Accordion.Body>
+                            </Accordion.Item>
+                        </OverviewAccordion>
                     </Section>
-                    <StackedSectionColumn>
-                        <Section>
-                            <SectionTitle>Modality</SectionTitle>
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Input Modalities</Form.Label>
-                                        <Form.Text className="text-muted d-block mb-2">
-                                            Text input is always enabled.
-                                        </Form.Text>
-                                        <div>
-                                            <Form.Check
-                                                type="checkbox"
-                                                label="Enable speech input"
-                                                value="speech"
-                                                checked={inputModalities.includes('speech')}
-                                                onChange={handleInputSpeechToggle}
-                                            />
-                                        </div>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Output Modalities</Form.Label>
-                                        <Form.Text className="text-muted d-block mb-2">
-                                            Text output is always enabled.
-                                        </Form.Text>
-                                        <div>
-                                            <Form.Check
-                                                type="checkbox"
-                                                label="Enable speech output"
-                                                value="speech"
-                                                checked={outputModalities.includes('speech')}
-                                                onChange={handleOutputSpeechToggle}
-                                            />
-                                        </div>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Section>
 
-                        <Section>
-                            <SectionTitle>Content</SectionTitle>
-                            <Form.Group className="mb-3">
-                                <Form.Check
-                                    type="switch"
-                                    id="adaptContentToUserProfile"
-                                    label="Adapt content to user profile"
-                                    checked={adaptContentToUserProfile}
-                                    onChange={e => handleAdaptContentToggle(e.target.checked)}
-                                />
-                            </Form.Group>
-                            {adaptContentToUserProfile && (
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Select user profile</Form.Label>
-                                    <Form.Select
-                                        value={selectedUserProfileName || ''}
-                                        onChange={e => setSelectedUserProfileName(e.target.value)}
-                                    >
-                                        <option value="">None</option>
-                                        {userProfiles.map((profile) => (
-                                            <option key={profile.id} value={profile.name}>
-                                                {profile.name}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                    {userProfiles.length === 0 && (
-                                        <Form.Text className="text-muted">
-                                            No saved user profiles available. Save one from the user diagram screen first.
-                                        </Form.Text>
-                                    )}
-                                </Form.Group>
-                            )}
-                            <Form.Text className="text-muted">
-                                Enable this option to tailor generated responses to the active user profile. This option requires user profiles to be defined. You'll have then to select a profile and attributes you think are relevant for the agent to consider when adapting responses.
-                            </Form.Text>
-                        </Section>
-
-                        <Section>
-                            <SectionTitle>Behavior</SectionTitle>
-                            <Row>
-                                <Col md={4}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Response Timing</Form.Label>
-                                        <Form.Select value={responseTiming} onChange={e => setResponseTiming(e.target.value)}>
-                                            <option value="instant">Instant</option>
-                                            <option value="delayed">Simulated Thinking</option>
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Section>
-                    </StackedSectionColumn>
-                  
                     <Section style={{ gridColumn: '1 / -1' }}>
                         <SectionTitle>System Configuration</SectionTitle>
                         <Row>
@@ -1456,136 +1501,106 @@ export const AgentConfigScreen: React.FC = () => {
                             </Col>
                         </Row>
                     </Section>
-                    <Section style={{ gridColumn: '1 / -1' }}>
+                </ContentGrid>
+
+                <ContentGrid style={{ marginTop: '24px' }}>
+                    <Section>
                         <SectionTitle>Configuration Actions</SectionTitle>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Configuration Name</Form.Label>
+                            <Form.Control
+                                type="text"
+                                value={configurationName}
+                                placeholder="Give this setup a name"
+                                onChange={e => setConfigurationName(e.target.value)}
+                            />
+                            {activeConfigId ? (
+                                <div className="mt-2 d-flex align-items-center gap-2">
+                                    <Badge bg="secondary">Active</Badge>
+                                    <span className="text-muted small">{activeConfigName || 'Unnamed configuration'}</span>
+                                </div>
+                            ) : (
+                                <Form.Text className="text-muted">Not linked to a saved configuration yet.</Form.Text>
+                            )}
+                        </Form.Group>
+
+                        <Form.Group className="mb-3">
+                            <Form.Label>Saved Configurations</Form.Label>
+                            <Form.Select
+                                value={selectedConfigId}
+                                onChange={e => setSelectedConfigId(e.target.value)}
+                                disabled={savedConfigs.length === 0}
+                            >
+                                <option value="">
+                                    {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
+                                </option>
+                                {savedConfigs.map((entry) => (
+                                    <option key={entry.id} value={entry.id}>
+                                        {entry.name}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            {selectedConfig && (
+                                <div className="mt-2 text-muted small">
+                                    Last updated {new Date(selectedConfig.savedAt).toLocaleString()}
+                                </div>
+                            )}
+                        </Form.Group>
+
+                        <div className="d-flex flex-wrap gap-2 mt-3">
+                            <StyledButton
+                                variant="outline-primary"
+                                type="button"
+                                onClick={() => handleLoadSavedConfiguration()}
+                                disabled={!selectedConfigId}
+                            >
+                                Load Selected
+                            </StyledButton>
+                            <StyledButton
+                                variant="outline-danger"
+                                type="button"
+                                onClick={() => handleDeleteSavedConfiguration()}
+                                disabled={!selectedConfigId}
+                            >
+                                Delete
+                            </StyledButton>
+                        </div>
+
                         <ActionBar>
                             <StyledButton variant="success" type="button" onClick={handleSaveAndApply} disabled={isLoading}>
                                 {isLoading ? 'Applying...' : 'Save & Apply Configuration'}
+                            </StyledButton>
+                            <StyledButton variant="outline-secondary" type="button" onClick={handleResetToDefaults} disabled={isLoading}>
+                                Reset to Defaults
                             </StyledButton>
                             <StyledButton variant="primary" type="submit" disabled={isLoading}>
                                 Save Configuration
                             </StyledButton>
                         </ActionBar>
                     </Section>
+
+                    <Section>
+                        <SectionTitle>Import / Export</SectionTitle>
+                        <p className="text-muted mb-3">Download or upload configuration files</p>
+                        <div className="d-flex flex-wrap gap-2">
+                            <StyledButton variant="outline-secondary" type="button" onClick={handleDownload}>
+                                Download JSON
+                            </StyledButton>
+                            <label className="btn btn-outline-secondary mb-0" style={{ borderRadius: '8px', padding: '10px 24px', fontWeight: 500 }}>
+                                Upload JSON
+                                <input
+                                    type="file"
+                                    accept="application/json"
+                                    style={{ display: 'none' }}
+                                    onChange={handleUpload}
+                                />
+                            </label>
+                        </div>
+                        <Form.Text className="text-muted d-block mt-2">
+                            Uploading replaces the current form values but does not auto-save.
+                        </Form.Text>
+                    </Section>
                 </ContentGrid>
-                )}
-
-                {!SHOW_FULL_AGENT_CONFIGURATION && (
-                    <ContentGrid style={{ marginTop: '24px' }}>
-                        <Section>
-                            <SectionTitle>Modality</SectionTitle>
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Input</Form.Label>
-                                        <Form.Text className="text-muted d-block mb-2">
-                                            Text input is always enabled.
-                                        </Form.Text>
-                                        <Form.Check
-                                            type="checkbox"
-                                            label="Enable speech input"
-                                            value="speech"
-                                            checked={inputModalities.includes('speech')}
-                                            onChange={handleInputSpeechToggle}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Output</Form.Label>
-                                        <Form.Text className="text-muted d-block mb-2">
-                                            Text output is always enabled.
-                                        </Form.Text>
-                                        <Form.Check
-                                            type="checkbox"
-                                            label="Enable speech output"
-                                            value="speech"
-                                            checked={outputModalities.includes('speech')}
-                                            onChange={handleOutputSpeechToggle}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Section>
-
-                        <Section style={{ gridColumn: '1 / -1' }}>
-                            <SectionTitle>System Configuration</SectionTitle>
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        {renderSelectLabel('Platform', 'Choose where the generated agent will run.')}
-                                        <Form.Select value={agentPlatform} onChange={e => setAgentPlatform(e.target.value)}>
-                                            <option value="websocket">WebSocket</option>
-                                            <option value="streamlit">WebSocket with Streamlit interface</option>
-                                            <option value="telegram">Telegram</option>
-                                        </Form.Select>
-                                    </Form.Group>
-
-                                    <Form.Group className="mb-3">
-                                        {renderSelectLabel('Intent recognition', 'Classical is free but usually less accurate. LLM-based generally performs best, but requires either an API key or sufficient compute resources.')}
-                                        <Form.Select value={intentRecognitionTechnology} onChange={e => setIntentRecognitionTechnology(e.target.value as IntentRecognitionTechnology)}>
-                                            <option value="classical">Classical</option>
-                                            <option value="llm-based">LLM-based</option>
-                                        </Form.Select>
-                                    </Form.Group>
-
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group className="mb-3">
-                                        {renderSelectLabel('LLM Provider (optional)', 'Choose an LLM provider if you want automatic LLM-generated responses.')}
-                                        <Form.Select value={llmProvider} onChange={e => { setLlmProvider(e.target.value as AgentLLMProvider); setLlmModel(''); }}>
-                                            <option value="">None</option>
-                                            <option value="openai">OpenAI</option>
-                                            <option value="huggingface">HuggingFace</option>
-                                            <option value="huggingfaceapi">HuggingFace API</option>
-                                            <option value="replicate">Replicate</option>
-                                        </Form.Select>
-                                    </Form.Group>
-                                    {(llmProvider === 'openai') && (
-                                        <Form.Group className="mb-3">
-                                            {renderSelectLabel('OpenAI Model', 'Choose which OpenAI model should be used for generation.')}
-                                            <Form.Select value={llmModel} onChange={e => { setLlmModel(e.target.value); if (e.target.value !== 'other') setCustomModel(''); }} disabled={!llmProvider}>
-                                                <option value="">None</option>
-                                                <option value="gpt-5">GPT-5</option>
-                                                <option value="gpt-5-mini">GPT-5 Mini</option>
-                                                <option value="gpt-5-nano">GPT-5 Nano</option>
-                                                <option value="other">Other</option>
-                                            </Form.Select>
-                                            {llmModel === 'other' && (
-                                                <Form.Group className="mt-2">
-                                                    <Form.Label>Custom Model Name</Form.Label>
-                                                    <Form.Control type="text" value={customModel} onChange={e => setCustomModel(e.target.value)} placeholder="Enter model name" />
-                                                </Form.Group>
-                                            )}
-                                        </Form.Group>
-                                    )}
-                                    {(llmProvider === 'huggingface' || llmProvider === 'huggingfaceapi' || llmProvider === 'replicate') && (
-                                        <Form.Group className="mb-3">
-                                            {renderSelectLabel(
-                                                llmProvider === 'huggingface' ? 'HuggingFace Model' : llmProvider === 'huggingfaceapi' ? 'HuggingFace API Model' : 'Replicate Model',
-                                                'Choose the model identifier to use with the selected provider.'
-                                            )}
-                                            <Form.Select value={llmModel} onChange={e => { setLlmModel(e.target.value); if (e.target.value !== 'other') setCustomModel(''); }} disabled={!llmProvider}>
-                                                <option value="">None</option>
-                                                <option value="mistral-7b">Mistral-7B</option>
-                                                <option value="falcon-40b">Falcon-40B</option>
-                                                <option value="llama-3-8b">Llama-3 8B</option>
-                                                <option value="bloom-176b">Bloom-176B</option>
-                                                <option value="other">Other</option>
-                                            </Form.Select>
-                                            {llmModel === 'other' && (
-                                                <Form.Group className="mt-2">
-                                                    <Form.Label>Custom Model Name</Form.Label>
-                                                    <Form.Control type="text" value={customModel} onChange={e => setCustomModel(e.target.value)} placeholder="Enter model name" />
-                                                </Form.Group>
-                                            )}
-                                        </Form.Group>
-                                    )}
-                                </Col>
-                            </Row>
-                        </Section>
-                    </ContentGrid>
-                )}
                     </Form>
         </PageContainer>
     );

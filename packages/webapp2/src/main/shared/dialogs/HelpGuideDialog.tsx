@@ -31,6 +31,7 @@ interface HelpGuideDialogProps {
 
 const sharedLinkClass = 'font-medium text-brand underline-offset-4 hover:underline';
 const DOCS_URL = 'https://besser.readthedocs.io/en/latest/';
+const USER_STUDY_PDF_URL = '/Low_code_CA_personalization_study_instructions.pdf';
 
 const sections: GuideSection[] = [
   {
@@ -558,6 +559,10 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
         </div>
 
         <DialogFooter className="border-t border-border/70 px-6 py-4">
+          <Button variant="outline" onClick={() => openExternalUrl(USER_STUDY_PDF_URL)} className="gap-2">
+            Open User Study Instructions
+            <ExternalLink className="size-3.5" />
+          </Button>
           <Button variant="outline" onClick={() => openExternalUrl(DOCS_URL)} className="gap-2">
             Open BESSER Docs
             <ExternalLink className="size-3.5" />

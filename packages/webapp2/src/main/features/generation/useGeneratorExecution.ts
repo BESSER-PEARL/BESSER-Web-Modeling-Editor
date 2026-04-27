@@ -32,7 +32,7 @@ import {
   AgentConfig,
   QiskitConfig,
 } from './hooks/useGenerateCode';
-import type { GenerationResult } from './types';
+import type { GenerationResult, QualityCheckResult } from './types';
 import { useDeployLocally } from './hooks/useDeployLocally';
 import { GrapesJSProjectData, isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../shared/types/project';
 import type { BesserProject, ProjectDiagram } from '../../shared/types/project';
@@ -85,6 +85,16 @@ function isGuiModelEmpty(guiModel: GrapesJSProjectData | undefined): boolean {
     const components = page?.component?.components;
     return !Array.isArray(components) || components.length === 0;
   });
+}
+
+function didValidationPass(result: any): boolean {
+  if (!result || !result.isValid) {
+    return false;
+  }
+
+  const hasErrors = Array.isArray(result.errors) && result.errors.length > 0;
+  const hasInvalidConstraints = Array.isArray(result.invalid_constraints) && result.invalid_constraints.length > 0;
+  return !hasErrors && !hasInvalidConstraints;
 }
 
 // ─── Model metrics for analytics ────────────────────────────────────────────
@@ -280,6 +290,56 @@ export interface WebAppChecklistInfo {
   canGenerate: boolean;
 }
 
+interface AgentModelVariantSnapshot {
+  id: string;
+  profileName: string;
+  configurationId: string;
+  configurationName: string;
+  createdAt: string;
+  model: unknown;
+}
+
+export interface AgentGenerationVariantOption {
+  id: string;
+  label: string;
+  description: string;
+  configurationId: string;
+  model: Record<string, any>;
+}
+
+export type AgentGenerationMode = 'none' | 'personalization';
+
+const readAgentGenerationVariants = (diagram: ProjectDiagram | undefined): AgentGenerationVariantOption[] => {
+  const raw = (diagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .filter((entry): entry is AgentModelVariantSnapshot => {
+      if (!entry || typeof entry !== 'object') {
+        return false;
+      }
+      const variant = entry as Partial<AgentModelVariantSnapshot>;
+      return (
+        typeof variant.id === 'string' &&
+        typeof variant.profileName === 'string' &&
+        typeof variant.configurationId === 'string' &&
+        typeof variant.configurationName === 'string' &&
+        typeof variant.createdAt === 'string' &&
+        isUMLModel(variant.model) &&
+        variant.model.type === UMLDiagramType.AgentDiagram
+      );
+    })
+    .map((variant) => ({
+      id: variant.id,
+      label: `${variant.profileName} (${variant.configurationName})`,
+      description: `Created ${new Date(variant.createdAt).toLocaleString()}`,
+      configurationId: variant.configurationId,
+      model: variant.model as Record<string, any>,
+    }));
+};
+
 export interface GeneratorConfigState {
   // ── Dialog control ───────────────────────────────────────────────────────
   /** Which config dialog is currently visible ('none' when closed). */
@@ -318,6 +378,12 @@ export interface GeneratorConfigState {
   storedAgentMappings: any[];
   /** IDs of the currently selected stored configurations / mappings. */
   selectedStoredAgentConfigIds: string[];
+  /** Personalized variants available in the active Agent tab. */
+  agentVariantOptions: AgentGenerationVariantOption[];
+  /** Selected personalized variant to generate. Empty means base/original model. */
+  selectedAgentVariantId: string;
+  /** Generation strategy for agent variants. */
+  agentGenerationMode: AgentGenerationMode;
 
   // ── Qiskit ───────────────────────────────────────────────────────────────
   qiskitBackend: QiskitConfig['backend'];
@@ -337,6 +403,8 @@ export interface GeneratorConfigState {
   onQiskitShotsChange: (v: number) => void;
   onAgentModeChange: (v: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
+  onSelectedAgentVariantIdChange: (v: string) => void;
+  onAgentGenerationModeChange: (v: AgentGenerationMode) => void;
 
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
@@ -361,7 +429,7 @@ export interface UseGeneratorExecutionReturn {
   /** Passed to WorkspaceShell → onAssistantGenerate  and UMLAgentModeling */
   handleAssistantGenerate: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   /** Passed to WorkspaceShell → onQualityCheck */
-  handleQualityCheck: () => Promise<void>;
+  handleQualityCheck: () => Promise<QualityCheckResult>;
   /** Props bag to spread onto <GeneratorConfigDialogs /> */
   configState: GeneratorConfigState;
   /** Whether the app is running against localhost */
@@ -417,6 +485,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [storedAgentConfigurations, setStoredAgentConfigurations] = useState<any[]>([]);
   const [storedAgentMappings, setStoredAgentMappings] = useState<any[]>([]);
   const [selectedStoredAgentConfigIds, setSelectedStoredAgentConfigIds] = useState<string[]>([]);
+  const [agentVariantOptions, setAgentVariantOptions] = useState<AgentGenerationVariantOption[]>([]);
+  const [selectedAgentVariantId, setSelectedAgentVariantId] = useState('');
+  const [agentGenerationMode, setAgentGenerationMode] = useState<AgentGenerationMode>('none');
 
   // ── Web App checklist (computed from current project) ─────────────────────
   const webAppChecklist = useMemo(
@@ -472,13 +543,28 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           setSelectedStoredAgentConfigIds([usableConfigs[0].id]);
         }
       }
+
+      const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+      const variants = readAgentGenerationVariants(activeAgentDiagram);
+      setAgentVariantOptions(variants);
+
+      const activeVariantId = (activeAgentDiagram?.config as Record<string, unknown> | undefined)?.activePersonalizedVariantId;
+      if (typeof activeVariantId === 'string' && variants.some((variant) => variant.id === activeVariantId)) {
+        setSelectedAgentVariantId(activeVariantId);
+      } else {
+        setSelectedAgentVariantId('');
+      }
+      setAgentGenerationMode('none');
     } catch (error) {
       console.error('Failed to load agent configurations:', error);
       setStoredAgentConfigurations([]);
       setStoredAgentMappings([]);
       setSelectedStoredAgentConfigIds([]);
+      setAgentVariantOptions([]);
+      setSelectedAgentVariantId('');
+      setAgentGenerationMode('none');
     }
-  }, [configDialog]);
+  }, [configDialog, currentProject]);
 
   // ── Core execution ─────────────────────────────────────────────────────────
 
@@ -690,31 +776,33 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     [executeGenerator],
   );
 
-  const handleQualityCheck = useCallback(async () => {
+  const handleQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
     if (!currentProject) {
       toast.error('Create or load a project before validating.');
-      return;
+      return { executed: false, passed: false };
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
       toast.error('coming soon');
-      return;
+      return { executed: false, passed: false };
     }
 
     try {
       if (activeDiagram?.model && !isUMLModel(activeDiagram.model)) {
-        await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
-        return;
+        const result = await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
+        return { executed: true, passed: didValidationPass(result) };
       }
 
       if (editor) {
-        await validateDiagram(editor, activeDiagramTitle);
-        return;
+        const result = await validateDiagram(editor, activeDiagramTitle);
+        return { executed: true, passed: didValidationPass(result) };
       }
 
       toast.error('No diagram available to validate');
+      return { executed: false, passed: false };
     } catch (error) {
       toast.error(`Quality check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return { executed: true, passed: false };
     }
   }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle]);
 
@@ -781,107 +869,104 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   }, [jsonSchemaMode, executeGenerator]);
 
   const handleAgentGenerate = useCallback(async () => {
-    let baseConfig: AgentConfig = {};
+    const stored = LocalStorageRepository.getSystemConfiguration();
+    const resolvedOpenAiModel =
+      stored.agentLlmModel === 'other' ? stored.agentCustomLlmModel.trim() : stored.agentLlmModel;
+    const systemConfig: AgentConfig = {
+      agentPlatform: stored.agentPlatform,
+      intentRecognitionTechnology: stored.intentRecognitionTechnology,
+      ...(stored.agentLlmProvider
+        ? {
+          llm: {
+            provider: stored.agentLlmProvider,
+            ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
+          },
+        }
+        : {}),
+    };
+
+    let baseConfig: AgentConfig = {
+      ...systemConfig,
+    };
 
     if (selectedAgentLanguages.length > 0) {
-      baseConfig = { languages: { source: sourceLanguage, target: selectedAgentLanguages } };
-    } else {
-      // Read agent config from the project diagram (single source of truth)
-      const activeAgentDiagramForConfig = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
-      const diagramConfig = activeAgentDiagramForConfig?.config;
-      if (diagramConfig && Object.keys(diagramConfig).length > 0) {
-        baseConfig = { ...diagramConfig } as AgentConfig;
-      }
+      baseConfig = {
+        ...baseConfig,
+        languages: { source: sourceLanguage, target: selectedAgentLanguages },
+      };
     }
 
     let finalConfig: AgentConfig = baseConfig;
 
-    if (SHOW_FULL_AGENT_CONFIGURATION) {
-      const storedAgentConfigurations = LocalStorageRepository.getAgentConfigurations().filter((entry) =>
-        Boolean(entry.personalizedAgentModel || entry.baseAgentModel || entry.originalAgentModel)
-      );
+    if (agentGenerationMode === 'personalization') {
+      const localProfiles = LocalStorageRepository.getUserProfiles();
+      const projectProfiles = (currentProject?.diagrams?.UserDiagram ?? [])
+        .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
+        .map((diagram) => ({ id: diagram.id, name: diagram.title, model: diagram.model as Record<string, any> }));
 
-      const activeConfigId = LocalStorageRepository.getActiveAgentConfigurationId();
-      const selectedEntries = activeConfigId
-        ? storedAgentConfigurations.filter((entry) => entry.id === activeConfigId)
-        : storedAgentConfigurations.slice(0, 1);
-
-      if (selectedEntries.length > 0) {
-        const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
-        const agentDiagramId = activeAgentDiagram?.id;
-        const baseModelSource = agentDiagramId ? LocalStorageRepository.getAgentBaseModel(agentDiagramId) : null;
-        const fallbackOriginal = selectedEntries.find((entry) => entry.originalAgentModel)?.originalAgentModel;
-        const agentDiagramModel = activeAgentDiagram?.model;
-        const currentAgentModel =
-          isUMLModel(agentDiagramModel) && agentDiagramModel.type === UMLDiagramType.AgentDiagram
-            ? agentDiagramModel
-            : null;
-        const baseModel = baseModelSource || fallbackOriginal || currentAgentModel;
-
-        const variations = selectedEntries
-          .map((entry) => {
-            const variantModel = entry.personalizedAgentModel || entry.baseAgentModel;
-            if (!variantModel) {
-              return null;
-            }
-            return {
-              name: entry.name,
-              model: structuredClone(variantModel),
-              config: structuredClone(entry.config),
-            };
-          })
-          .filter((entry): entry is { name: string; model: any; config: any } => Boolean(entry));
-
-        if (baseModel && variations.length > 0) {
-          finalConfig = {
-            ...baseConfig,
-            baseModel: structuredClone(baseModel),
-            variations,
-          };
+      const profileByName = new Map<string, { id: string; name: string; model: Record<string, any> }>();
+      for (const profile of localProfiles) {
+        if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
+          profileByName.set(profile.name, { id: profile.id, name: profile.name, model: profile.model });
         }
       }
-
-      const hasVariationPayload = Boolean(finalConfig.baseModel && finalConfig.variations?.length);
-
-      if (!hasVariationPayload) {
-        const profiles = LocalStorageRepository.getUserProfiles();
-        const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
-        const personalizationMapping = mappings
-          .map((entry) => {
-            const profile = profiles.find((profileEntry) => profileEntry.id === entry.userProfileId);
-            const config = storedAgentConfigurations.find((configEntry) => configEntry.id === entry.agentConfigurationId);
-            const agentModel = config?.personalizedAgentModel || config?.baseAgentModel;
-
-            if (!profile || !profile.model || !config || !agentModel) {
-              return null;
-            }
-
-            return {
-              name: profile.name,
-              configuration: structuredClone(config.config),
-              user_profile: structuredClone(profile.model),
-              agent_model: structuredClone(agentModel),
-            };
-          })
-          .filter((entry): entry is {
-            name: string;
-            configuration: any;
-            user_profile: any;
-            agent_model: any;
-          } => Boolean(entry));
-
-        if (personalizationMapping.length > 0) {
-          finalConfig = {
-            ...baseConfig,
-            personalizationMapping,
-          };
-        }
+      for (const profile of projectProfiles) {
+        profileByName.set(profile.name, profile);
       }
+
+      const configs = LocalStorageRepository.getAgentConfigurations();
+      const configById = new Map(configs.map((entry) => [entry.id, entry]));
+      const variantByConfigurationId = new Map(agentVariantOptions.map((variant) => [variant.configurationId, variant]));
+
+      const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+      const personalizationMapping = mappings
+        .map((entry) => {
+          const profile = profileByName.get(entry.userProfileName) || null;
+          const config = configById.get(entry.agentConfigurationId) || null;
+          const variantModel = variantByConfigurationId.get(entry.agentConfigurationId)?.model;
+          const fallbackAgentModel = config?.personalizedAgentModel || config?.baseAgentModel || null;
+          const agentModel = variantModel || fallbackAgentModel;
+
+          if (!profile || !agentModel || !config) {
+            return null;
+          }
+
+          return {
+            name: profile.name,
+            configuration: structuredClone(config.config),
+            user_profile: structuredClone(profile.model),
+            agent_model: structuredClone(agentModel),
+          };
+        })
+        .filter((entry): entry is {
+          name: string;
+          configuration: Record<string, any>;
+          user_profile: Record<string, any>;
+          agent_model: Record<string, any>;
+        } => Boolean(entry));
+
+      if (personalizationMapping.length === 0) {
+        toast.error('No valid personalization mappings found. Create mappings and save personalized variants first.');
+        return;
+      }
+
+      finalConfig = {
+        ...baseConfig,
+        personalizationMapping,
+      };
     }
 
-    await executeGenerator('agent', finalConfig);
+    const shouldSendConfig = Object.keys(finalConfig).length > 0;
+    await executeGenerator('agent', shouldSendConfig ? finalConfig : undefined);
     setConfigDialog('none');
-  }, [currentProject, selectedAgentLanguages, sourceLanguage, executeGenerator]);
+  }, [
+    currentProject,
+    selectedAgentLanguages,
+    sourceLanguage,
+    executeGenerator,
+    agentGenerationMode,
+    agentVariantOptions,
+  ]);
 
   const handleQiskitGenerate = useCallback(async () => {
     await executeGenerator('qiskit', {
@@ -923,6 +1008,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     storedAgentConfigurations,
     storedAgentMappings,
     selectedStoredAgentConfigIds,
+    agentVariantOptions,
+    selectedAgentVariantId,
+    agentGenerationMode,
     webAppChecklist,
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
@@ -937,6 +1025,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onQiskitShotsChange: setQiskitShots,
     onAgentModeChange: setAgentMode,
     onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
+    onSelectedAgentVariantIdChange: setSelectedAgentVariantId,
+    onAgentGenerationModeChange: setAgentGenerationMode,
     onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError('Django generation')); },
     onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError('Django deployment')); },
     onSqlGenerate: () => { handleSqlGenerate().catch(notifyError('SQL generation')); },

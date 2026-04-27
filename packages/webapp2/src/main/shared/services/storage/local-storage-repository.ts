@@ -8,13 +8,58 @@ import {
   localStorageAgentConfigurations,
   localStorageAgentProfileMappings,
   localStorageActiveAgentConfiguration,
+  localStorageSystemConfig,
   localStorageSystemThemePreference,
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constants/constant';
 import { UMLModel } from '@besser/wme';
 import { uuid } from '../../utils/uuid';
-import { AgentConfigurationPayload } from '../../types/agent-config';
+import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
+
+/**
+ * Pre-prefix key retained for one-shot migration. All new keys MUST be defined
+ * in ``shared/constants/constant.ts`` with the ``besser_`` prefix.
+ */
+const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
+
+export interface SystemConfiguration {
+  agentPlatform: string;
+  intentRecognitionTechnology: IntentRecognitionTechnology;
+  agentLlmProvider: AgentLLMProvider;
+  agentLlmModel: string;
+  agentCustomLlmModel: string;
+}
+
+export const DEFAULT_SYSTEM_CONFIGURATION: SystemConfiguration = {
+  agentPlatform: 'streamlit',
+  intentRecognitionTechnology: 'llm-based',
+  agentLlmProvider: 'openai',
+  agentLlmModel: 'gpt-5',
+  agentCustomLlmModel: '',
+};
+
+const normalizeSystemConfig = (raw: Partial<SystemConfiguration> | null | undefined): SystemConfiguration => {
+  if (!raw || typeof raw !== 'object') {
+    return { ...DEFAULT_SYSTEM_CONFIGURATION };
+  }
+  const provider: AgentLLMProvider =
+    raw.agentLlmProvider === 'openai' ||
+    raw.agentLlmProvider === 'huggingface' ||
+    raw.agentLlmProvider === 'huggingfaceapi' ||
+    raw.agentLlmProvider === 'replicate'
+      ? raw.agentLlmProvider
+      : '';
+  const intent: IntentRecognitionTechnology =
+    raw.intentRecognitionTechnology === 'classical' ? 'classical' : 'llm-based';
+  return {
+    agentPlatform: typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'streamlit',
+    intentRecognitionTechnology: intent,
+    agentLlmProvider: provider,
+    agentLlmModel: typeof raw.agentLlmModel === 'string' ? raw.agentLlmModel : '',
+    agentCustomLlmModel: typeof raw.agentCustomLlmModel === 'string' ? raw.agentCustomLlmModel : '',
+  };
+};
 
 type AgentBaseModelMap = Record<string, UMLModel>;
 
@@ -120,6 +165,23 @@ export const LocalStorageRepository = {
 
   setUserThemePreference: (value: string) => {
     safeSetItem(localStorageUserThemePreference, value);
+  },
+
+  getSystemConfiguration: (): SystemConfiguration => {
+    const json = localStorage.getItem(localStorageSystemConfig);
+    if (!json) {
+      return { ...DEFAULT_SYSTEM_CONFIGURATION };
+    }
+    try {
+      return normalizeSystemConfig(JSON.parse(json));
+    } catch (error) {
+      console.warn('Failed to parse stored system configuration:', error);
+      return { ...DEFAULT_SYSTEM_CONFIGURATION };
+    }
+  },
+
+  saveSystemConfiguration: (value: SystemConfiguration) => {
+    safeSetItem(localStorageSystemConfig, JSON.stringify(normalizeSystemConfig(value)));
   },
 
   getSystemThemePreference: () => {
@@ -231,6 +293,20 @@ export const LocalStorageRepository = {
 
   getAgentConfigurations: (): StoredAgentConfiguration[] => {
     return getStoredAgentConfigurations();
+  },
+
+  /**
+   * Legacy pre-projects-era key (``'agentConfig'``, without the ``besser_``
+   * prefix) — still read at startup so existing users' settings don't silently
+   * disappear. Paired with ``clearLegacyAgentConfig`` which is called once the
+   * value has been migrated into the new per-project storage.
+   */
+  getLegacyAgentConfig: (): string | null => {
+    return localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+  },
+
+  clearLegacyAgentConfig: () => {
+    localStorage.removeItem(LEGACY_AGENT_CONFIG_KEY);
   },
 
   loadAgentConfiguration: (id: string): StoredAgentConfiguration | null => {

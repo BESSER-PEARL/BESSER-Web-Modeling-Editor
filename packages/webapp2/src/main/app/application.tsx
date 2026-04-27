@@ -34,12 +34,7 @@ import { selectActiveDiagram } from './store/workspaceSlice';
 const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
 );
-const AgentPersonalizationRulesPanel = React.lazy(() =>
-  import('../features/agent-config/AgentPersonalizationRulesPanel').then((m) => ({ default: m.AgentPersonalizationRulesPanel })),
-);
-const AgentPersonalizationMappingPanel = React.lazy(() =>
-  import('../features/agent-config/AgentPersonalizationMappingPanel').then((m) => ({ default: m.AgentPersonalizationMappingPanel })),
-);
+
 const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
 );
@@ -137,8 +132,6 @@ function AppContentInner() {
           <Routes>
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
-            <Route path="/agent-personalization" element={<AgentPersonalizationRulesPanel />} />
-            <Route path="/agent-personalization-2" element={<AgentPersonalizationMappingPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -189,6 +182,9 @@ function AppContentInner() {
         storedAgentConfigurations={configState.storedAgentConfigurations}
         storedAgentMappings={configState.storedAgentMappings}
         selectedStoredAgentConfigIds={configState.selectedStoredAgentConfigIds}
+        agentVariantOptions={configState.agentVariantOptions}
+        selectedAgentVariantId={configState.selectedAgentVariantId}
+        agentGenerationMode={configState.agentGenerationMode}
         // ── Qiskit config ────────────────────────────────────────────
         qiskitBackend={configState.qiskitBackend}
         qiskitShots={configState.qiskitShots}
@@ -208,6 +204,8 @@ function AppContentInner() {
         onQiskitShotsChange={configState.onQiskitShotsChange}
         onAgentModeChange={configState.onAgentModeChange}
         onStoredAgentConfigToggle={configState.onStoredAgentConfigToggle}
+        onSelectedAgentVariantIdChange={configState.onSelectedAgentVariantIdChange}
+        onAgentGenerationModeChange={configState.onAgentGenerationModeChange}
         // ── Execution callbacks (validate → generate → close dialog) ─
         onDjangoGenerate={configState.onDjangoGenerate}
         onDjangoDeploy={configState.onDjangoDeploy}
