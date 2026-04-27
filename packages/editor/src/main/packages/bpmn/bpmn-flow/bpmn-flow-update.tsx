@@ -16,9 +16,21 @@ import { ColorButton } from '../../../components/controls/color-button/color-but
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { Divider } from '../../../components/controls/divider/divider';
+import { Switch } from '../../../components/controls/switch/switch';
 import { UMLElement } from '../../../services/uml-element/uml-element';
 import { getAllowedBpmnFlowTypes } from './bpmn-flow-semantics';
 import { UMLElementType } from '../../uml-element-type';
+
+const ALLOWED_DEFAULT_SOURCES: ReadonlySet<UMLElementType> = new Set([
+  UMLElementType.BPMNGateway,
+  UMLElementType.BPMNTask,
+  UMLElementType.BPMNSubprocess,
+  UMLElementType.BPMNTransaction,
+  UMLElementType.BPMNCallActivity,
+]);
+
+const canBeDefault = (flowType: BPMNFlowType, sourceType?: UMLElementType): boolean =>
+  flowType === 'sequence' && !!sourceType && ALLOWED_DEFAULT_SOURCES.has(sourceType);
 
 interface OwnProps {
   element: BPMNFlow;
@@ -43,12 +55,12 @@ const enhance = compose<ComponentClass<OwnProps>>(
     (state, ownProps) => ({
       sourceElement: state.elements[ownProps.element.source.element] as UMLElement | undefined,
       targetElement: state.elements[ownProps.element.target.element] as UMLElement | undefined,
-    }), 
+    }),
     {
       update: UMLElementRepository.update,
       delete: UMLElementRepository.delete,
       flip: UMLRelationshipRepository.flip,
-    }
+    },
   ),
 );
 
@@ -71,7 +83,8 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
 
   render() {
     const { element, sourceElement, targetElement } = this.props;
-    const allowedTypes = sourceElement && targetElement
+    const allowedTypes =
+      sourceElement && targetElement
         ? getAllowedBpmnFlowTypes(sourceElement.type as UMLElementType, targetElement.type as UMLElementType)
         : ['sequence', 'message', 'association', 'data association'];
 
@@ -83,9 +96,7 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
         <Dropdown.Item value={'message'}>{this.props.translate('packages.BPMN.BPMNMessageFlow')}</Dropdown.Item>
       ) : null,
       allowedTypes.includes('association') ? (
-        <Dropdown.Item value={'association'}>
-          {this.props.translate('packages.BPMN.BPMNAssociationFlow')}
-        </Dropdown.Item>
+        <Dropdown.Item value={'association'}>{this.props.translate('packages.BPMN.BPMNAssociationFlow')}</Dropdown.Item>
       ) : null,
       allowedTypes.includes('data association') ? (
         <Dropdown.Item value={'data association'}>
@@ -114,6 +125,22 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
             {flowTypeItems}
           </Dropdown>
         </section>
+        {canBeDefault(element.flowType, sourceElement?.type as UMLElementType | undefined) && (
+          <>
+            <Divider />
+            <section>
+              <Switch
+                value={element.isDefault ? 'default' : ''}
+                onChange={this.toggleDefault(element.id)}
+                color="primary"
+              >
+                <Switch.Item value={'default'}>
+                  {this.props.translate('packages.BPMN.BPMNDefaultSequenceFlow')}
+                </Switch.Item>
+              </Switch>
+            </section>
+          </>
+        )}
         <StylePane
           open={this.state.colorOpen}
           element={element}
@@ -135,6 +162,11 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
    */
   private changeFlowType = (id: string) => (value: string) => {
     this.props.update<BPMNFlow>(id, { flowType: value as BPMNFlowType });
+  };
+
+  // The "one default per source" invariant is enforced at the validator level (O3, deferred).
+  private toggleDefault = (id: string) => (_value: string) => {
+    this.props.update<BPMNFlow>(id, { isDefault: !this.props.element.isDefault });
   };
 
   private delete = (id: string) => () => {

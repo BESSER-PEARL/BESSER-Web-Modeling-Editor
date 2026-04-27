@@ -1,7 +1,12 @@
 import React, { FunctionComponent, SVGProps } from 'react';
 import { Point } from '../../../utils/geometry/point';
 import { BPMNFlow } from './bpmn-flow';
-import { ThemedCircle, ThemedPath, ThemedPathContrast, ThemedPolyline } from '../../../components/theme/themedComponents';
+import {
+  ThemedCircle,
+  ThemedPath,
+  ThemedPathContrast,
+  ThemedPolyline,
+} from '../../../components/theme/themedComponents';
 
 export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
   let position = { x: 0, y: 0 };
@@ -119,6 +124,24 @@ export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
       >
         {element.name}
       </text>
+      {element.isDefault &&
+        element.flowType === 'sequence' &&
+        path.length >= 2 &&
+        (() => {
+          const dir = path[1].subtract(path[0]).normalize();
+          const at = path[0].add(dir.scale(12));
+          const perp = new Point(-dir.y, dir.x).scale(5);
+          const a = at.subtract(perp);
+          const b = at.add(perp);
+          return (
+            <ThemedPath
+              d={`M${a.x} ${a.y} L${b.x} ${b.y}`}
+              strokeColor={element.strokeColor}
+              strokeLinecap="round"
+              fillColor="none"
+            />
+          );
+        })()}
     </g>
   );
 };

@@ -8,7 +8,7 @@ import { assign } from '../../../utils/fx/assign';
 import * as Apollon from '../../../typings';
 import { BPMNMarkerType } from '../common/types';
 
-export type BPMNTaskType = 'default' | 'user' | 'send' | 'receive' | 'manual' | 'business-rule' | 'script';
+export type BPMNTaskType = 'default' | 'user' | 'service' | 'send' | 'receive' | 'manual' | 'business-rule' | 'script';
 
 export class BPMNTask extends UMLContainer {
   static defaultTaskType: BPMNTaskType = 'default';

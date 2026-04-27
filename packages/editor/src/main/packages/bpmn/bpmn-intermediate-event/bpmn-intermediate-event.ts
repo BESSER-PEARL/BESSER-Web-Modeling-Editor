@@ -14,6 +14,7 @@ export type BPMNIntermediateEventType =
   | 'message-catch'
   | 'message-throw'
   | 'timer-catch'
+  | 'timer-throw'
   | 'escalation-throw'
   | 'conditional-catch'
   | 'link-catch'

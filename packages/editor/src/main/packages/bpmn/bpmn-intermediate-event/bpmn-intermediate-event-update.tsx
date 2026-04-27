@@ -92,6 +92,9 @@ class BPMNIntermediateEventUpdateComponent extends Component<Props, State> {
             <Dropdown.Item value={'timer-catch'}>
               {this.props.translate('packages.BPMN.BPMNTimerIntermediateCatchEvent')}
             </Dropdown.Item>
+            <Dropdown.Item value={'timer-throw'}>
+              {this.props.translate('packages.BPMN.BPMNTimerIntermediateThrowEvent')}
+            </Dropdown.Item>
             <Dropdown.Item value={'escalation-throw'}>
               {this.props.translate('packages.BPMN.BPMNEscalationIntermediateThrowEvent')}
             </Dropdown.Item>

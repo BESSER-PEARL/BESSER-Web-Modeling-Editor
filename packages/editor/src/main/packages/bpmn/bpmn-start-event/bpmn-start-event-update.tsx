@@ -91,6 +91,14 @@ class BPMNStartEventUpdateComponent extends Component<Props, State> {
               {this.props.translate('packages.BPMN.BPMNConditionalStartEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'signal'}>{this.props.translate('packages.BPMN.BPMNSignalStartEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'escalation'}>
+              {this.props.translate('packages.BPMN.BPMNEscalationStartEvent')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'error'}>{this.props.translate('packages.BPMN.BPMNErrorStartEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'compensation'}>
+              {this.props.translate('packages.BPMN.BPMNCompensationStartEvent')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'link'}>{this.props.translate('packages.BPMN.BPMNLinkStartEvent')}</Dropdown.Item>
           </Dropdown>
         </section>
       </div>

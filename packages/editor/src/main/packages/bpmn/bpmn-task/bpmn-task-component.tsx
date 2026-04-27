@@ -8,6 +8,7 @@ import { BPMNScriptIcon } from '../common/icons/bpmn-script-icon';
 import { BPMNBusinessRuleIcon } from '../common/icons/bpmn-business-rule-icon';
 import { BPMNManualIcon } from '../common/icons/bpmn-manual-icon';
 import { BPMNUserIcon } from '../common/icons/bpmn-user-icon';
+import { BPMNServiceIcon } from '../common/icons/bpmn-service-icon';
 import { BPMNSequentialMarkerIcon } from '../common/markers/bpmn-sequential-marker-icon';
 import { BPMNMarkerType } from '../common/types';
 import { BpmnLoopMarkerIcon } from '../common/markers/bpmn-loop-marker-icon';
@@ -28,6 +29,8 @@ export const BPMNTaskComponent: FunctionComponent<Props> = ({ element, fillColor
         return null;
       case 'user':
         return <BPMNUserIcon {...props} />;
+      case 'service':
+        return <BPMNServiceIcon {...props} />;
       case 'send':
         return <BPMNMessageFilledIcon {...props} />;
       case 'receive':

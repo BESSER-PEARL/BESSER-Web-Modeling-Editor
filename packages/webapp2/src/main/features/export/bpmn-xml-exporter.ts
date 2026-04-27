@@ -45,6 +45,7 @@ interface AnyBPMNElement extends UMLElement {
 
 interface AnyBPMNFlow extends UMLRelationship {
   flowType?: string;
+  isDefault?: boolean;
 }
 
 export interface ExportOptions {
@@ -62,6 +63,23 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
 
   const elements = Object.values(model.elements) as AnyBPMNElement[];
   const relationships = Object.values(model.relationships) as AnyBPMNFlow[];
+
+  // Build a map of source-node-id → default-flow-id. Only sequence flows on
+  // gateway/activity sources can be default; events cannot. The "one default
+  // per source" invariant is enforced upstream (validator/popup); on conflict
+  // we keep the first and skip the rest.
+  const defaultFlowBySource = new Map<string, string>();
+  for (const rel of relationships) {
+    if (
+      rel.type === 'BPMNFlow' &&
+      rel.isDefault &&
+      rel.flowType === 'sequence' &&
+      rel.source?.element &&
+      !defaultFlowBySource.has(rel.source.element)
+    ) {
+      defaultFlowBySource.set(rel.source.element, rel.id);
+    }
+  }
 
   const pools = elements.filter((e) => e.type === 'BPMNPool');
   const swimlanes = elements.filter((e) => e.type === 'BPMNSwimlane');
@@ -231,7 +249,11 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
 
   // One process per pool. Plus an implicit default process if any flow nodes are pool-less.
   const processIds: string[] = pools.map((p) => processIdFor(p.id));
-  if (flowNodesByProcess.has('Process_default') || dataByProcess.has('Process_default') || artifactsByProcess.has('Process_default')) {
+  if (
+    flowNodesByProcess.has('Process_default') ||
+    dataByProcess.has('Process_default') ||
+    artifactsByProcess.has('Process_default')
+  ) {
     processIds.push('Process_default');
   }
 
@@ -260,7 +282,7 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
     // Flow nodes.
     const processFlowNodes = flowNodesByProcess.get(pid) ?? [];
     for (const node of processFlowNodes) {
-      emitFlowNode(lines, node, dataAssociationsByTarget.get(node.id) ?? [], model);
+      emitFlowNode(lines, node, dataAssociationsByTarget.get(node.id) ?? [], model, defaultFlowBySource);
     }
 
     // Data nodes.
@@ -286,9 +308,7 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
         lines.push(`      <bpmn:text>${escapeText(a.name)}</bpmn:text>`);
         lines.push(`    </bpmn:textAnnotation>`);
       } else if (a.type === 'BPMNGroup') {
-        lines.push(
-          `    <bpmn:group id="${xid(a.id)}" categoryValueRef="Category_${xid(a.id)}_val" />`,
-        );
+        lines.push(`    <bpmn:group id="${xid(a.id)}" categoryValueRef="Category_${xid(a.id)}_val" />`);
       }
     }
 
@@ -317,7 +337,7 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
   // ─── BPMN DI ───────────────────────────────────────────────────────────────
 
   lines.push(`  <bpmndi:BPMNDiagram id="BPMNDiagram_1">`);
-  const planeRef = hasCollaboration ? collaborationId : processIds[0] ?? 'Process_default';
+  const planeRef = hasCollaboration ? collaborationId : (processIds[0] ?? 'Process_default');
   lines.push(`    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="${xid(planeRef)}">`);
 
   // Shapes for pools, lanes, flow nodes, data, annotations, groups.
@@ -364,18 +384,21 @@ function emitFlowNode(
   node: AnyBPMNElement,
   dataAssociations: AnyBPMNFlow[],
   model: UMLModel,
+  defaultFlowBySource: Map<string, string>,
 ): void {
   const id = xid(node.id);
   const name = escapeAttr(node.name || '');
+  const defFlow = defaultFlowBySource.get(node.id);
+  const defAttr = defFlow ? ` default="${xid(defFlow)}"` : '';
 
   if (node.type === 'BPMNTask') {
     const tag = taskElementName(node.taskType ?? 'default');
     const loop = taskLoopCharacteristics(node.marker ?? 'none');
     const hasChildren = loop !== null || dataAssociations.length > 0;
     if (!hasChildren) {
-      lines.push(`    <bpmn:${tag} id="${id}" name="${name}" />`);
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
     } else {
-      lines.push(`    <bpmn:${tag} id="${id}" name="${name}">`);
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr}>`);
       if (loop) lines.push(`      ${loop}`);
       emitDataAssociations(lines, dataAssociations, model);
       lines.push(`    </bpmn:${tag}>`);
@@ -387,9 +410,9 @@ function emitFlowNode(
     const tag =
       node.type === 'BPMNSubprocess' ? 'subProcess' : node.type === 'BPMNTransaction' ? 'transaction' : 'callActivity';
     if (dataAssociations.length === 0) {
-      lines.push(`    <bpmn:${tag} id="${id}" name="${name}" />`);
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
     } else {
-      lines.push(`    <bpmn:${tag} id="${id}" name="${name}">`);
+      lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr}>`);
       emitDataAssociations(lines, dataAssociations, model);
       lines.push(`    </bpmn:${tag}>`);
     }
@@ -437,7 +460,7 @@ function emitFlowNode(
 
   if (node.type === 'BPMNGateway') {
     const tag = gatewayElementName(node.gatewayType ?? 'exclusive');
-    lines.push(`    <bpmn:${tag} id="${id}" name="${name}" />`);
+    lines.push(`    <bpmn:${tag} id="${id}" name="${name}"${defAttr} />`);
     return;
   }
 }
@@ -460,14 +483,22 @@ function emitDataAssociations(lines: string[], assocs: AnyBPMNFlow[], model: UML
 
 function taskElementName(taskType: string): string {
   switch (taskType) {
-    case 'user': return 'userTask';
-    case 'service': return 'serviceTask';
-    case 'send': return 'sendTask';
-    case 'receive': return 'receiveTask';
-    case 'manual': return 'manualTask';
-    case 'business-rule': return 'businessRuleTask';
-    case 'script': return 'scriptTask';
-    default: return 'task';
+    case 'user':
+      return 'userTask';
+    case 'service':
+      return 'serviceTask';
+    case 'send':
+      return 'sendTask';
+    case 'receive':
+      return 'receiveTask';
+    case 'manual':
+      return 'manualTask';
+    case 'business-rule':
+      return 'businessRuleTask';
+    case 'script':
+      return 'scriptTask';
+    default:
+      return 'task';
   }
 }
 
@@ -486,50 +517,88 @@ function taskLoopCharacteristics(marker: string): string | null {
 
 function gatewayElementName(gatewayType: string): string {
   switch (gatewayType) {
-    case 'parallel': return 'parallelGateway';
-    case 'inclusive': return 'inclusiveGateway';
-    case 'event-based': return 'eventBasedGateway';
-    case 'complex': return 'complexGateway';
-    default: return 'exclusiveGateway';
+    case 'parallel':
+      return 'parallelGateway';
+    case 'inclusive':
+      return 'inclusiveGateway';
+    case 'event-based':
+      return 'eventBasedGateway';
+    case 'complex':
+      return 'complexGateway';
+    default:
+      return 'exclusiveGateway';
   }
 }
 
 function startEventDefinition(eventType: string): string | null {
   switch (eventType) {
-    case 'message': return '<bpmn:messageEventDefinition />';
-    case 'timer': return '<bpmn:timerEventDefinition />';
-    case 'signal': return '<bpmn:signalEventDefinition />';
-    case 'conditional': return '<bpmn:conditionalEventDefinition />';
-    default: return null;
+    case 'message':
+      return '<bpmn:messageEventDefinition />';
+    case 'timer':
+      return '<bpmn:timerEventDefinition />';
+    case 'signal':
+      return '<bpmn:signalEventDefinition />';
+    case 'conditional':
+      return '<bpmn:conditionalEventDefinition />';
+    case 'escalation':
+      return '<bpmn:escalationEventDefinition />';
+    case 'error':
+      return '<bpmn:errorEventDefinition />';
+    case 'compensation':
+      return '<bpmn:compensateEventDefinition />';
+    case 'link':
+      return '<bpmn:linkEventDefinition />';
+    default:
+      return null;
   }
 }
 
 function intermediateEventDefinition(eventType: string): [string, string | null] {
   // Returns [tag, definition]. tag is intermediateCatchEvent or intermediateThrowEvent.
   switch (eventType) {
-    case 'message-catch': return ['intermediateCatchEvent', '<bpmn:messageEventDefinition />'];
-    case 'message-throw': return ['intermediateThrowEvent', '<bpmn:messageEventDefinition />'];
-    case 'timer-catch': return ['intermediateCatchEvent', '<bpmn:timerEventDefinition />'];
-    case 'escalation-throw': return ['intermediateThrowEvent', '<bpmn:escalationEventDefinition />'];
-    case 'conditional-catch': return ['intermediateCatchEvent', '<bpmn:conditionalEventDefinition />'];
-    case 'link-catch': return ['intermediateCatchEvent', '<bpmn:linkEventDefinition />'];
-    case 'link-throw': return ['intermediateThrowEvent', '<bpmn:linkEventDefinition />'];
-    case 'compensation-throw': return ['intermediateThrowEvent', '<bpmn:compensateEventDefinition />'];
-    case 'signal-catch': return ['intermediateCatchEvent', '<bpmn:signalEventDefinition />'];
-    case 'signal-throw': return ['intermediateThrowEvent', '<bpmn:signalEventDefinition />'];
-    default: return ['intermediateCatchEvent', null];
+    case 'message-catch':
+      return ['intermediateCatchEvent', '<bpmn:messageEventDefinition />'];
+    case 'message-throw':
+      return ['intermediateThrowEvent', '<bpmn:messageEventDefinition />'];
+    case 'timer-catch':
+      return ['intermediateCatchEvent', '<bpmn:timerEventDefinition />'];
+    case 'timer-throw':
+      return ['intermediateThrowEvent', '<bpmn:timerEventDefinition />'];
+    case 'escalation-throw':
+      return ['intermediateThrowEvent', '<bpmn:escalationEventDefinition />'];
+    case 'conditional-catch':
+      return ['intermediateCatchEvent', '<bpmn:conditionalEventDefinition />'];
+    case 'link-catch':
+      return ['intermediateCatchEvent', '<bpmn:linkEventDefinition />'];
+    case 'link-throw':
+      return ['intermediateThrowEvent', '<bpmn:linkEventDefinition />'];
+    case 'compensation-throw':
+      return ['intermediateThrowEvent', '<bpmn:compensateEventDefinition />'];
+    case 'signal-catch':
+      return ['intermediateCatchEvent', '<bpmn:signalEventDefinition />'];
+    case 'signal-throw':
+      return ['intermediateThrowEvent', '<bpmn:signalEventDefinition />'];
+    default:
+      return ['intermediateCatchEvent', null];
   }
 }
 
 function endEventDefinition(eventType: string): string | null {
   switch (eventType) {
-    case 'message': return '<bpmn:messageEventDefinition />';
-    case 'escalation': return '<bpmn:escalationEventDefinition />';
-    case 'error': return '<bpmn:errorEventDefinition />';
-    case 'compensation': return '<bpmn:compensateEventDefinition />';
-    case 'signal': return '<bpmn:signalEventDefinition />';
-    case 'terminate': return '<bpmn:terminateEventDefinition />';
-    default: return null;
+    case 'message':
+      return '<bpmn:messageEventDefinition />';
+    case 'escalation':
+      return '<bpmn:escalationEventDefinition />';
+    case 'error':
+      return '<bpmn:errorEventDefinition />';
+    case 'compensation':
+      return '<bpmn:compensateEventDefinition />';
+    case 'signal':
+      return '<bpmn:signalEventDefinition />';
+    case 'terminate':
+      return '<bpmn:terminateEventDefinition />';
+    default:
+      return null;
   }
 }
 
@@ -551,15 +620,14 @@ function shapeXml(
 function edgeXml(rel: AnyBPMNFlow): string {
   // Waypoints are in element-local coordinates (relative to rel.bounds).
   // Convert to absolute by adding rel.bounds.x/y.
-  const pts = Array.isArray(rel.path) && rel.path.length >= 2
-    ? rel.path.map((p) => ({ x: (p.x ?? 0) + rel.bounds.x, y: (p.y ?? 0) + rel.bounds.y }))
-    : [
-        { x: rel.bounds.x, y: rel.bounds.y },
-        { x: rel.bounds.x + rel.bounds.width, y: rel.bounds.y + rel.bounds.height },
-      ];
-  const waypoints = pts
-    .map((p) => `      <di:waypoint x="${numAttr(p.x)}" y="${numAttr(p.y)}" />`)
-    .join('\n');
+  const pts =
+    Array.isArray(rel.path) && rel.path.length >= 2
+      ? rel.path.map((p) => ({ x: (p.x ?? 0) + rel.bounds.x, y: (p.y ?? 0) + rel.bounds.y }))
+      : [
+          { x: rel.bounds.x, y: rel.bounds.y },
+          { x: rel.bounds.x + rel.bounds.width, y: rel.bounds.y + rel.bounds.height },
+        ];
+  const waypoints = pts.map((p) => `      <di:waypoint x="${numAttr(p.x)}" y="${numAttr(p.y)}" />`).join('\n');
   return (
     `    <bpmndi:BPMNEdge id="${xid(rel.id)}_di" bpmnElement="${xid(rel.id)}">\n` +
     waypoints +

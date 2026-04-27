@@ -9,7 +9,16 @@ import { UMLElementType } from '../../uml-element-type';
 import { UMLContainer } from '../../../services/uml-container/uml-container';
 import * as Apollon from '../../../typings';
 
-export type BPMNStartEventType = 'default' | 'message' | 'timer' | 'conditional' | 'signal';
+export type BPMNStartEventType =
+  | 'default'
+  | 'message'
+  | 'timer'
+  | 'conditional'
+  | 'signal'
+  | 'escalation'
+  | 'error'
+  | 'compensation'
+  | 'link';
 
 export class BPMNStartEvent extends UMLContainer {
   static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
