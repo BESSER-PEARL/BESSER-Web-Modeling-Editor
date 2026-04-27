@@ -582,7 +582,6 @@ function addPagesPanelCSS() {
       background: #ffffff;
       display: flex;
       flex-direction: column;
-      min-height: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
@@ -660,7 +659,6 @@ function addPagesPanelCSS() {
     
     .gjs-pages-list {
       flex: 1;
-      min-height: 0;
       overflow-y: auto;
       padding: 8px;
     }
