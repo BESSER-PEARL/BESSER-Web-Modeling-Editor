@@ -260,6 +260,14 @@
   border-right: 1px solid #ddd !important;
 }
 
+/* Allow the views container (blocks list, pages panel, etc.) to scroll
+   when its content exceeds the available height. Without min-height:0 the
+   default flex/auto sizing keeps inner overflow:auto from triggering. */
+.gjs-pn-views-container {
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* Clean buttons */
 .gjs-pn-btn {
   background-color: transparent !important;
