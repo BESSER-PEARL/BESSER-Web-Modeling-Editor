@@ -8,6 +8,7 @@ import {
   localStorageAgentConfigurations,
   localStorageAgentProfileMappings,
   localStorageActiveAgentConfiguration,
+  localStorageDeployLinkedRepoPrefix,
   localStorageSystemConfig,
   localStorageSystemThemePreference,
   localStorageUserProfiles,
@@ -35,7 +36,7 @@ export const DEFAULT_SYSTEM_CONFIGURATION: SystemConfiguration = {
   agentPlatform: 'streamlit',
   intentRecognitionTechnology: 'llm-based',
   agentLlmProvider: 'openai',
-  agentLlmModel: 'gpt-5',
+  agentLlmModel: 'gpt-5.5',
   agentCustomLlmModel: '',
 };
 
@@ -156,6 +157,75 @@ const getStoredAgentBaseModels = (): AgentBaseModelMap => {
 
 const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
   safeSetItem(localStorageAgentBaseModels, JSON.stringify(entries));
+};
+
+export interface DeployLinkedRepo {
+  owner: string;
+  repo: string;
+}
+
+/**
+ * Deploy-linked-repo storage uses a per-(project, target) key:
+ *   ``besser_deploy_linked_<projectId>_<target>`` -> ``{ owner, repo }`` JSON.
+ *
+ * The two legacy fallback keys (``..._chatbot`` and the bare
+ * ``besser_deploy_linked_<projectId>``) predate the explicit ``target``
+ * suffix and are read transparently for backward compatibility.
+ */
+const deployLinkedRepoKey = (projectId: string, target: string): string =>
+  `${localStorageDeployLinkedRepoPrefix}${projectId}_${target}`;
+
+const legacyDeployLinkedRepoKey = (projectId: string, target: string): string | null => {
+  if (target === 'agent') return `${localStorageDeployLinkedRepoPrefix}${projectId}_chatbot`;
+  if (target === 'webapp') return `${localStorageDeployLinkedRepoPrefix}${projectId}`;
+  return null;
+};
+
+const parseDeployLinkedRepo = (raw: string | null): DeployLinkedRepo | null => {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.owner === 'string' && typeof parsed.repo === 'string') {
+      return { owner: parsed.owner, repo: parsed.repo };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * v2 -> v3: seed ``localStorageSystemConfig`` from the pre-projects-era
+ * ``agentConfig`` flat key (if present), otherwise from defaults. Idempotent —
+ * if ``localStorageSystemConfig`` already exists, the function no-ops.
+ *
+ * The legacy ``agentConfig`` key was already cleaned up by the v2 migration,
+ * but this migration handles the (rare) case where v2 ran on an older browser
+ * that still had the key, OR where a user hand-imported a settings export.
+ */
+const migrateToV3 = (): void => {
+  if (localStorage.getItem(localStorageSystemConfig)) {
+    return;
+  }
+
+  let legacyAgentLlmModel: string | null = null;
+  try {
+    const legacyJson = localStorage.getItem(LEGACY_AGENT_CONFIG_KEY);
+    if (legacyJson) {
+      const parsed = JSON.parse(legacyJson);
+      if (parsed && typeof parsed.agentLlmModel === 'string' && parsed.agentLlmModel) {
+        legacyAgentLlmModel = parsed.agentLlmModel;
+      }
+    }
+  } catch {
+    // ignore — fall through to defaults
+  }
+
+  const seeded: SystemConfiguration = {
+    ...DEFAULT_SYSTEM_CONFIGURATION,
+    agentLlmModel: legacyAgentLlmModel ?? DEFAULT_SYSTEM_CONFIGURATION.agentLlmModel,
+  };
+  safeSetItem(localStorageSystemConfig, JSON.stringify(seeded));
 };
 
 export const LocalStorageRepository = {
@@ -363,4 +433,41 @@ export const LocalStorageRepository = {
     const mappings = getStoredAgentProfileMappings().filter((entry) => entry.id !== id);
     persistAgentProfileMappings(mappings);
   },
+
+  /**
+   * Deploy-linked-repo lookup with two layers of legacy fallbacks:
+   *   1. ``besser_deploy_linked_<projectId>_<target>`` (current shape)
+   *   2. ``besser_deploy_linked_<projectId>_chatbot`` for ``target === 'agent'``
+   *      (the agent target was renamed from "chatbot")
+   *   3. ``besser_deploy_linked_<projectId>`` (no suffix) for
+   *      ``target === 'webapp'`` (the suffix was added later)
+   */
+  getDeployLinkedRepo: (projectId: string, target: string): DeployLinkedRepo | null => {
+    const direct = parseDeployLinkedRepo(localStorage.getItem(deployLinkedRepoKey(projectId, target)));
+    if (direct) return direct;
+    const legacyKey = legacyDeployLinkedRepoKey(projectId, target);
+    if (legacyKey) {
+      return parseDeployLinkedRepo(localStorage.getItem(legacyKey));
+    }
+    return null;
+  },
+
+  setDeployLinkedRepo: (projectId: string, target: string, value: DeployLinkedRepo): void => {
+    safeSetItem(deployLinkedRepoKey(projectId, target), JSON.stringify(value));
+  },
+
+  clearDeployLinkedRepo: (projectId: string, target: string): void => {
+    localStorage.removeItem(deployLinkedRepoKey(projectId, target));
+    const legacyKey = legacyDeployLinkedRepoKey(projectId, target);
+    if (legacyKey) {
+      localStorage.removeItem(legacyKey);
+    }
+  },
+
+  /**
+   * One-shot v2 -> v3 migration hook. Call once at startup from the global
+   * storage-migration runner (see ``shared/utils/storage-migration.ts``).
+   * Idempotent — safe to invoke on every boot.
+   */
+  migrateToV3,
 };

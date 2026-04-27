@@ -52,6 +52,12 @@ export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentA
 export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
 export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
 
+// per-project deploy linkage (suffix: `<projectId>_<target>`)
+export const localStorageDeployLinkedRepoPrefix = localStoragePrefix + 'deploy_linked_';
+
+// external service URLs
+export const RENDER_DEPLOY_URL_BASE = 'https://render.com/deploy';
+
 // feature flags
 export const SHOW_FULL_AGENT_CONFIGURATION = false;
 export const DEFAULT_AGENT_CONFIGURATION_NAME = 'Default Agent Configuration';

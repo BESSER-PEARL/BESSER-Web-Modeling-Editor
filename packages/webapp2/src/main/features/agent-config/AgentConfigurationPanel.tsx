@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { apiClient, ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
 import { LocalStorageRepository, type SystemConfiguration } from '../../shared/services/storage/local-storage-repository';
@@ -433,13 +433,6 @@ const resolveProfileNameFromMapping = (
     : '';
 };
 
-const buildApiUrl = (path: string): string => {
-  const normalizedBaseRaw = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-  const normalizedBase = normalizedBaseRaw || '';
-  const apiBase = normalizedBase.endsWith('/besser_api') ? normalizedBase : `${normalizedBase}/besser_api`;
-  return `${apiBase}/${path}`;
-};
-
 const loadInitialState = () => {
   const savedConfigurations = LocalStorageRepository.getAgentConfigurations();
 
@@ -459,7 +452,7 @@ const loadInitialState = () => {
   try {
     const stored = LocalStorageRepository.getLegacyAgentConfig();
     if (stored) {
-      const legacyConfig = JSON.parse(stored);
+      const legacyConfig = JSON.parse(stored) as Partial<AgentConfigurationPayload>;
       return {
         config: normalizeAgentConfiguration(legacyConfig),
         activeId: null,
@@ -695,8 +688,12 @@ export const AgentConfigurationPanel: React.FC = () => {
 
         LocalStorageRepository.clearLegacyAgentConfig();
       }
-    } catch {
-      // Ignore broken legacy payloads
+    } catch (err) {
+      // Swallow only legacy-payload parse errors; let real failures
+      // (e.g. updateDiagram) propagate.
+      if (!(err instanceof SyntaxError)) {
+        throw err;
+      }
     }
   }, [currentProject?.id, applyConfiguration, tabUserProfiles]);
 
@@ -981,45 +978,45 @@ export const AgentConfigurationPanel: React.FC = () => {
         currentConfig: buildStructuredExport(getConfigObject()),
       };
 
-      const response = await fetch(buildApiUrl('recommend-agent-config-mapping'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-GitHub-Session': githubSession,
-        },
-        body: JSON.stringify(payload),
-      });
+      try {
+        const recommendation = await apiClient.post<{
+          config?: unknown;
+          matchedRules?: unknown;
+          signals?: unknown;
+        }>('/recommend-agent-config-mapping', payload, {
+          headers: { 'X-GitHub-Session': githubSession },
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        toast.error(`Failed to get mapping-based recommendation: ${errorText || response.statusText}`);
-        return;
-      }
+        if (!recommendation || typeof recommendation !== 'object' || !('config' in recommendation) || !recommendation.config) {
+          toast.error('Invalid mapping recommendation response received from backend.');
+          return;
+        }
 
-      const recommendation = await response.json();
-      if (!recommendation || typeof recommendation !== 'object' || !('config' in recommendation) || !recommendation.config) {
-        toast.error('Invalid mapping recommendation response received from backend.');
-        return;
-      }
+        const prepared = flattenStructuredConfig(recommendation.config);
+        const normalized = normalizeAgentConfiguration({
+          ...prepared,
+          adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
+          userProfileName: selectedProfile.name,
+        });
 
-      const prepared = flattenStructuredConfig(recommendation.config);
-      const normalized = normalizeAgentConfiguration({
-        ...prepared,
-        adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
-        userProfileName: selectedProfile.name,
-      });
+        const matchedRules = toMappingMatchedRules((recommendation as Record<string, unknown>).matchedRules);
+        const detectedSignals = toMappingRecommendationSignals((recommendation as Record<string, unknown>).signals);
 
-      const matchedRules = toMappingMatchedRules((recommendation as Record<string, unknown>).matchedRules);
-      const detectedSignals = toMappingRecommendationSignals((recommendation as Record<string, unknown>).signals);
+        applyConfiguration(normalized);
+        setMappingMatchedRules(matchedRules);
+        setMappingSignals(detectedSignals);
 
-      applyConfiguration(normalized);
-      setMappingMatchedRules(matchedRules);
-      setMappingSignals(detectedSignals);
-
-      if (matchedRules.length > 0) {
-        toast.success(`Predefined-rule recommendation applied (${matchedRules.length} rule${matchedRules.length > 1 ? 's' : ''} matched).`);
-      } else {
-        toast.success('Predefined-rule recommendation applied. No specific rule matched, so defaults were preserved.');
+        if (matchedRules.length > 0) {
+          toast.success(`Predefined-rule recommendation applied (${matchedRules.length} rule${matchedRules.length > 1 ? 's' : ''} matched).`);
+        } else {
+          toast.success('Predefined-rule recommendation applied. No specific rule matched, so defaults were preserved.');
+        }
+      } catch (err) {
+        if (err instanceof ApiError) {
+          toast.error(`Failed to get mapping-based recommendation: ${err.message}`);
+          return;
+        }
+        throw err;
       }
     } catch (error) {
       console.error('Failed to fetch mapping-based recommendation:', error);
@@ -1066,38 +1063,36 @@ export const AgentConfigurationPanel: React.FC = () => {
         model: 'gpt-5',
       };
 
-      const response = await fetch(buildApiUrl('recommend-agent-config-llm'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-GitHub-Session': githubSession,
-        },
-        body: JSON.stringify(payload),
-      });
+      try {
+        const recommendation = await apiClient.post<{ config?: unknown }>(
+          '/recommend-agent-config-llm',
+          payload,
+          { headers: { 'X-GitHub-Session': githubSession } },
+        );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        toast.error(`Failed to get LLM recommendation: ${errorText || response.statusText}`);
-        return;
+        if (!recommendation || typeof recommendation !== 'object' || !recommendation.config) {
+          toast.error('Invalid recommendation response received from backend.');
+          return;
+        }
+
+        const prepared = flattenStructuredConfig(recommendation.config);
+        const normalized = normalizeAgentConfiguration({
+          ...prepared,
+          adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
+          userProfileName: selectedProfile.name,
+        });
+
+        applyConfiguration(normalized);
+        setMappingMatchedRules([]);
+        setMappingSignals(null);
+        toast.success('LLM-based recommendation applied to the current configuration.');
+      } catch (err) {
+        if (err instanceof ApiError) {
+          toast.error(`Failed to get LLM recommendation: ${err.message}`);
+          return;
+        }
+        throw err;
       }
-
-      const recommendation = await response.json();
-      if (!recommendation || typeof recommendation !== 'object' || !recommendation.config) {
-        toast.error('Invalid recommendation response received from backend.');
-        return;
-      }
-
-      const prepared = flattenStructuredConfig(recommendation.config);
-      const normalized = normalizeAgentConfiguration({
-        ...prepared,
-        adaptContentToUserProfile: prepared.adaptContentToUserProfile ?? true,
-        userProfileName: selectedProfile.name,
-      });
-
-      applyConfiguration(normalized);
-      setMappingMatchedRules([]);
-      setMappingSignals(null);
-      toast.success('LLM-based recommendation applied to the current configuration.');
     } catch (error) {
       console.error('Failed to fetch LLM recommendation:', error);
       toast.error('An unexpected error occurred while requesting an LLM-based recommendation.');
@@ -1178,19 +1173,17 @@ export const AgentConfigurationPanel: React.FC = () => {
         config: requestConfig,
       };
 
-      const response = await fetch(buildApiUrl('transform-agent-model-json'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const message = await response.text();
-        toast.error(`Failed to transform agent model: ${message || response.statusText}`);
-        return;
+      let transformedModel: unknown;
+      try {
+        transformedModel = await apiClient.post<unknown>('/transform-agent-model-json', payload);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          toast.error(`Failed to transform agent model: ${err.message}`);
+          return;
+        }
+        throw err;
       }
 
-      const transformedModel: unknown = await response.json();
       const snapshotModel: UMLModel | undefined =
         transformedModel && typeof transformedModel === 'object' && 'model' in transformedModel
           ? ((transformedModel as { model: UMLModel }).model)

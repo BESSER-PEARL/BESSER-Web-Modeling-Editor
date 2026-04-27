@@ -224,6 +224,10 @@ export const useGitHubRepo = () => {
             headers: {
               'X-GitHub-Session': options.githubSession,
             },
+            // Deployment performs multiple GitHub API calls + code generation;
+            // observed durations up to ~37s in production. Use 2 min so the
+            // 30s default timeout doesn't abort a successful in-flight request.
+            timeout: 120_000,
           }
         );
 

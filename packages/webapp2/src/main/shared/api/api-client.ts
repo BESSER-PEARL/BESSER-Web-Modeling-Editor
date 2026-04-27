@@ -3,6 +3,17 @@ import { BACKEND_URL } from '../constants/constant';
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 /**
+ * Per-request options. Extends `RequestInit` with an optional `timeout`
+ * (milliseconds) that overrides the client's default for slow endpoints
+ * (e.g. GitHub deployment, code generation).
+ */
+export type ApiRequestOptions = RequestInit & { timeout?: number };
+
+/** Build the DOMException used as the abort reason on timeout. */
+const timeoutReason = (ms: number) =>
+  new DOMException(`Request timed out after ${ms}ms`, 'TimeoutError');
+
+/**
  * Centralized API client for all backend communication.
  *
  * Provides a single place to configure base URL, timeouts, default headers,
@@ -29,16 +40,18 @@ class ApiClient {
    * (e.g. ``multipart/form-data`` — but for FormData prefer ``upload()``,
    * which omits Content-Type so the browser sets the boundary).
    */
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  async request<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
+    const { timeout: timeoutOverride, ...fetchOptions } = options;
+    const timeoutMs = timeoutOverride ?? this.timeout;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        ...options,
+        ...fetchOptions,
         signal: controller.signal,
         headers: {
-          ...options.headers,
+          ...fetchOptions.headers,
           'Content-Type': 'application/json',
         },
       });
@@ -55,7 +68,7 @@ class ApiClient {
   }
 
   /** POST JSON payload and return parsed response. */
-  async post<T>(endpoint: string, data: unknown, options?: RequestInit): Promise<T> {
+  async post<T>(endpoint: string, data: unknown, options?: ApiRequestOptions): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
       method: 'POST',
@@ -64,7 +77,7 @@ class ApiClient {
   }
 
   /** GET request with parsed JSON response. */
-  async get<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  async get<T>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
 
@@ -74,13 +87,15 @@ class ApiClient {
    * Note: Content-Type is intentionally omitted so the browser sets
    * the correct multipart boundary automatically.
    */
-  async upload<T>(endpoint: string, formData: FormData, options?: RequestInit): Promise<T> {
+  async upload<T>(endpoint: string, formData: FormData, options?: ApiRequestOptions): Promise<T> {
+    const { timeout: timeoutOverride, ...fetchOptions } = options ?? {};
+    const timeoutMs = timeoutOverride ?? this.timeout;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        ...options,
+        ...fetchOptions,
         method: 'POST',
         body: formData,
         signal: controller.signal,
@@ -101,18 +116,20 @@ class ApiClient {
   /**
    * POST JSON and receive a raw Blob (e.g. ZIP file downloads).
    */
-  async downloadBlob(endpoint: string, data: unknown, options?: RequestInit): Promise<Blob> {
+  async downloadBlob(endpoint: string, data: unknown, options?: ApiRequestOptions): Promise<Blob> {
+    const { timeout: timeoutOverride, ...fetchOptions } = options ?? {};
+    const timeoutMs = timeoutOverride ?? this.timeout;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
 
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        ...options,
+        ...fetchOptions,
         method: 'POST',
         body: JSON.stringify(data),
         signal: controller.signal,
         headers: {
-          ...options?.headers,
+          ...fetchOptions.headers,
           'Content-Type': 'application/json',
         },
       });
