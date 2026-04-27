@@ -124,6 +124,19 @@ const createModelFingerprint = (model: unknown): string | null => {
   }
 };
 
+const isModelEmpty = (model: unknown): boolean => {
+  if (!model || typeof model !== 'object') {
+    return true;
+  }
+  const { elements, relationships } = model as {
+    elements?: Record<string, unknown>;
+    relationships?: Record<string, unknown>;
+  };
+  const hasElements = !!elements && Object.keys(elements).length > 0;
+  const hasRelationships = !!relationships && Object.keys(relationships).length > 0;
+  return !hasElements && !hasRelationships;
+};
+
 const readAgentVariants = (diagram: ProjectDiagram | null | undefined): AgentModelVariantSnapshot[] => {
   const raw = (diagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
   if (!Array.isArray(raw)) {
@@ -418,6 +431,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const ensureUserModelValidationBeforeNavigation = useCallback(async (): Promise<boolean> => {
     if (currentProject?.currentDiagramType !== 'UserDiagram' || !diagram) {
+      return true;
+    }
+
+    if (isModelEmpty(diagram.model)) {
       return true;
     }
 

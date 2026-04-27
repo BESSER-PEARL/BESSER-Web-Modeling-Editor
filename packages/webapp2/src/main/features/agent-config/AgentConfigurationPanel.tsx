@@ -1382,19 +1382,6 @@ export const AgentConfigurationPanel: React.FC = () => {
           <button
             type="button"
             role="tab"
-            aria-selected={activeTab === 'personalization'}
-            onClick={() => setActiveTab('personalization')}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'personalization'
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Personalization
-          </button>
-          <button
-            type="button"
-            role="tab"
             aria-selected={activeTab === 'runtime'}
             onClick={() => setActiveTab('runtime')}
             className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
@@ -1404,6 +1391,19 @@ export const AgentConfigurationPanel: React.FC = () => {
             }`}
           >
             Agent Runtime
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'personalization'}
+            onClick={() => setActiveTab('personalization')}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'personalization'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Personalization
           </button>
         </div>
 
@@ -1598,6 +1598,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           )}
 
           {activeTab === 'personalization' && (
+          <>
           <Card>
             <CardHeader>
               <CardTitle>Personalization Overview</CardTitle>
@@ -1960,7 +1961,6 @@ export const AgentConfigurationPanel: React.FC = () => {
               )}
             </CardContent>
           </Card>
-          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
@@ -2062,6 +2062,8 @@ export const AgentConfigurationPanel: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+          </>
+          )}
         </form>
       </div>
     </div>
