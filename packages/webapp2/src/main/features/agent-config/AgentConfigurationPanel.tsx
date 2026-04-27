@@ -526,6 +526,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     initialConfig.intentRecognitionTechnology,
   );
   const [activeCustomizationSection, setActiveCustomizationSection] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'runtime' | 'personalization'>('runtime');
 
   const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
 
@@ -1373,10 +1374,44 @@ export const AgentConfigurationPanel: React.FC = () => {
           </p>
         </div>
 
+        <div
+          role="tablist"
+          aria-label="Agent configuration sections"
+          className="inline-flex w-fit gap-1 rounded-lg border border-border bg-muted/30 p-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'personalization'}
+            onClick={() => setActiveTab('personalization')}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'personalization'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Personalization
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'runtime'}
+            onClick={() => setActiveTab('runtime')}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === 'runtime'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Agent Runtime
+          </button>
+        </div>
+
         <form
           onSubmit={handleSubmit}
           className="flex flex-col gap-6"
         >
+          {activeTab === 'personalization' && (
           <Card>
             <CardHeader>
               <CardTitle>User Profile Mapping</CardTitle>
@@ -1459,6 +1494,9 @@ export const AgentConfigurationPanel: React.FC = () => {
             </CardContent>
           </Card>
 
+          )}
+
+          {activeTab === 'runtime' && currentAgentModel && (
           <Card>
             <CardHeader>
               <CardTitle>Agent Runtime</CardTitle>
@@ -1557,6 +1595,9 @@ export const AgentConfigurationPanel: React.FC = () => {
             </CardContent>
           </Card>
 
+          )}
+
+          {activeTab === 'personalization' && (
           <Card>
             <CardHeader>
               <CardTitle>Personalization Overview</CardTitle>
@@ -1919,6 +1960,7 @@ export const AgentConfigurationPanel: React.FC = () => {
               )}
             </CardContent>
           </Card>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
