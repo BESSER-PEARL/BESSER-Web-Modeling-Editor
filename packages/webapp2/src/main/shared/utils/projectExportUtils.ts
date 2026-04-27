@@ -1,6 +1,8 @@
 import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent } from '../types/project';
 import { normalizeProjectName } from './projectName';
 
+export const PROJECT_EXPORT_VERSION = '2.0.0';
+
 export type ExportableProjectPayload = Omit<BesserProject, 'diagrams'> & {
   diagrams: Record<string, ProjectDiagram[]>;
 };
@@ -102,6 +104,6 @@ export function buildProjectExportEnvelope(
   return {
     project: buildExportableProjectPayload(project, diagramTypes),
     exportedAt: new Date().toISOString(),
-    version: '2.0.0',
+    version: PROJECT_EXPORT_VERSION,
   };
 }

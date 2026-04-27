@@ -12,7 +12,7 @@ import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switch
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
 import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
-import { buildProjectExportEnvelope } from '../../shared/utils/projectExportUtils';
+import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
   besserMainRepositoryLink,
@@ -60,10 +60,6 @@ import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../share
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
-
-// Mirrors the version baked into buildProjectExportEnvelope's V2 envelope.
-// Bump both together if the envelope schema changes.
-const PROJECT_EXPORT_VERSION = '2.0.0';
 
 const sanitizeRepoName = (name: string): string => {
   return name

@@ -130,7 +130,7 @@ test.describe('GitHub deploy: projectExport envelope', () => {
     // Open the Deploy dropdown and click "Publish Web App to Render".
     const deployButton = header.getByRole('button', { name: /^deploy$/i });
     await deployButton.click();
-    await page.getByRole('menuitem', { name: /publish web app to render/i }).click();
+    await page.getByRole('menuitem', { name: /^publish to render$/i }).click();
 
     // The deploy dialog should appear in create-new-repo mode.
     const dialog = page.getByRole('dialog');
