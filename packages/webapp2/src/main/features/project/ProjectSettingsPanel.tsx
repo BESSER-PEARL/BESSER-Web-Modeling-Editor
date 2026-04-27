@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { settingsService } from '@besser/wme';
+import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Download, FolderKanban, Layers3, Monitor, Settings } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
@@ -30,6 +31,7 @@ export const ProjectSettingsPanel: React.FC = () => {
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
   const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
+  const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
 
   const { currentProject, loading, error, updateProject, exportProject } = useProject();
 
@@ -37,6 +39,7 @@ export const ProjectSettingsPanel: React.FC = () => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
     setShowAssociationNames(settingsService.shouldShowAssociationNames());
     setUsePropertiesPanel(settingsService.shouldUsePropertiesPanel());
+    setClassNotation(settingsService.getClassNotation());
   }, []);
 
   const diagrams = useMemo(() => {
@@ -241,6 +244,34 @@ export const ProjectSettingsPanel: React.FC = () => {
                     }}
                   />
                 </label>
+                <Separator />
+                <div className="flex items-center justify-between gap-4 rounded-lg px-1 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Class Diagram Notation</p>
+                    <p className="text-xs text-muted-foreground">
+                      UML (default) shows standard UML classes; ER shows a Chen-style entity/relationship rendering
+                    </p>
+                  </div>
+                  <RadioGroup
+                    aria-label="Class diagram notation"
+                    value={classNotation}
+                    onValueChange={(value) => {
+                      const next = value as ClassNotation;
+                      setClassNotation(next);
+                      settingsService.updateSetting('classNotation', next);
+                    }}
+                  >
+                    {(['UML', 'ER'] as const).map((value) => (
+                      <RadioGroupItem
+                        key={value}
+                        value={value}
+                        data-testid={`class-notation-${value.toLowerCase()}`}
+                      >
+                        {value}
+                      </RadioGroupItem>
+                    ))}
+                  </RadioGroup>
+                </div>
               </CardContent>
             </Card>
           </div>

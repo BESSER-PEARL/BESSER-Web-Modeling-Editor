@@ -4,13 +4,23 @@ import { ILayoutable } from '../../../services/layouter/layoutable';
 import { IUMLContainer, UMLContainer } from '../../../services/uml-container/uml-container';
 import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-element';
 import { UMLElementFeatures } from '../../../services/uml-element/uml-element-features';
+import { settingsService } from '../../../services/settings/settings-service';
 import * as Apollon from '../../../typings';
 import { assign } from '../../../utils/fx/assign';
 import { Text } from '../../../utils/svg/text';
+import { ClassElementType } from '../../uml-class-diagram';
 import { UMLElementType } from '../../uml-element-type';
 import { UMLClassifierAttribute } from './uml-classifier-attribute';
 import { UMLClassifierMethod } from './uml-classifier-method';
 import { UMLClassifierMember } from './uml-classifier-member';
+
+// Classifier types that drop their methods compartment when ER notation is
+// active. Must match ER_CAPABLE_CLASSIFIER_TYPES in uml-classifier-component
+// — kept in sync manually (only two entries, not worth a shared module).
+const ER_HIDES_METHODS_FOR_TYPES: ReadonlyArray<string> = [
+  ClassElementType.Class,
+  ClassElementType.AbstractClass,
+];
 
 export const CLASSIFIER_MIN_WIDTH = 80;
 export const CLASSIFIER_MAX_AUTO_WIDTH = 420;
@@ -68,17 +78,29 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
     const attributes = children.filter((x): x is UMLClassifierAttribute => x instanceof UMLClassifierAttribute);
     const methods = children.filter((x): x is UMLClassifierMethod => x instanceof UMLClassifierMethod);
 
+    // In ER (Chen) mode, Class/AbstractClass classifiers drop the methods
+    // compartment entirely — ER entities have no operations. We zero
+    // hasMethods and skip the methods height loop so the box doesn't leave
+    // empty space where the compartment used to be. The method children
+    // are still returned so selection/hit-testing keeps working.
+    const isERHidingMethods =
+      settingsService.getClassNotation() === 'ER' &&
+      ER_HIDES_METHODS_FOR_TYPES.includes(this.type);
+
     this.hasAttributes = attributes.length > 0;
-    this.hasMethods = methods.length > 0;
+    this.hasMethods = !isERHidingMethods && methods.length > 0;
     const radix = 10;
     const userWidth = Math.round(this.bounds.width / radix) * radix;
 
     // Compute the minimum width needed to fit all text without clipping.
     // This is used as a suggestion, but the user can resize smaller — text
-    // will be clipped visually instead of forcing the box wider.
+    // will be clipped visually instead of forcing the box wider. Methods
+    // are excluded from width fitting when ER is hiding them, so a very
+    // long method signature doesn't pad the entity box in ER mode.
+    const widthMembers = isERHidingMethods ? attributes : [...attributes, ...methods];
     let textFitWidth = CLASSIFIER_MIN_WIDTH;
-    for (let i = 0; i < [this, ...attributes, ...methods].length; i++) {
-      const child = [this, ...attributes, ...methods][i];
+    for (let i = 0; i < [this, ...widthMembers].length; i++) {
+      const child = [this, ...widthMembers][i];
       const displayText = child instanceof UMLClassifierMember
         ? (this.stereotype === 'enumeration' ? child.name : child.displayName)
         : child.name;
@@ -114,7 +136,11 @@ export abstract class UMLClassifier extends UMLContainer implements IUMLClassifi
       method.bounds.x = 0.5;
       method.bounds.y = y + 0.5;
       method.bounds.width = this.bounds.width - 1;
-      y += method.bounds.height;
+      // Skip advancing y in ER mode — the method component returns null and
+      // we don't want blank space below the attributes compartment.
+      if (!isERHidingMethods) {
+        y += method.bounds.height;
+      }
     }
     this.bounds.height = y;
     return [this, ...attributes, ...methods];
