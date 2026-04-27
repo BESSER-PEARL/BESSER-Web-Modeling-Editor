@@ -265,7 +265,7 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
 
   return grapesjs.init({
     container,
-    height: 'calc(100vh - var(--app-shell-topbar-height, 60px))',
+    height: '100%',
     width: 'auto',
     fromElement: false,
     components: '', // Empty initially - pages will load default content
