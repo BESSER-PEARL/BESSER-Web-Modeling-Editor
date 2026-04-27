@@ -12,7 +12,7 @@ import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switch
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
 import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
-import { buildExportableProjectPayload } from '../../features/export/utils/projectExportUtils';
+import { buildProjectExportEnvelope } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
   besserMainRepositoryLink,
@@ -60,6 +60,10 @@ import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../share
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
+
+// Mirrors the version baked into buildProjectExportEnvelope's V2 envelope.
+// Bump both together if the envelope schema changes.
+const PROJECT_EXPORT_VERSION = '2.0.0';
 
 const sanitizeRepoName = (name: string): string => {
   return name
@@ -316,11 +320,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           toast.error(`B-UML export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       } else {
-        const exportData = {
-          project: buildExportableProjectPayload(freshProject),
-          exportedAt: new Date().toISOString(),
-          version: '2.0.0',
-        };
+        const exportData = buildProjectExportEnvelope(freshProject);
         const projectName = sanitizeRepoName(project.name || 'project') || 'project';
         downloadJson(exportData, `${projectName}_export.json`);
         toast.success('Project exported as JSON.');
@@ -922,7 +922,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       <JsonViewerModal
         isVisible={isProjectPreviewOpen}
         jsonData={projectPreviewJson}
-        diagramType="Project (V2.0.0)"
+        diagramType={`Project (V${PROJECT_EXPORT_VERSION})`}
         onClose={handleCloseProjectPreview}
         onCopy={handleCopyProjectPreview}
         onDownload={handleDownloadProjectPreview}

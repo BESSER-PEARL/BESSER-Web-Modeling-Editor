@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { useGitHubAuth } from '../../../features/github/hooks/useGitHubAuth';
 import { useDeployToGitHub, type DeploymentTarget } from '../../../features/github/hooks/useGitHubDeploy';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
-import { buildProjectPayloadForBackend } from '../../../features/export/utils/projectExportUtils';
+import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import {

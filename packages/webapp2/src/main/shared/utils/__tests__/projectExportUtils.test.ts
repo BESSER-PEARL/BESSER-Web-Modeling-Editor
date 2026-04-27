@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import {
   buildExportableProjectPayload,
+  buildProjectExportEnvelope,
   ExportableProjectPayload,
-} from '../utils/projectExportUtils';
+} from '../projectExportUtils';
 import {
   createDefaultProject,
   createEmptyDiagram,
@@ -14,7 +15,7 @@ import {
   QuantumCircuitData,
   ALL_DIAGRAM_TYPES,
   SupportedDiagramType,
-} from '../../../shared/types/project';
+} from '../../types/project';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -355,5 +356,57 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       expect(restored.diagrams[type]).toBeDefined();
       expect(restored.diagrams[type]).toHaveLength(1);
     }
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// buildProjectExportEnvelope
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('buildProjectExportEnvelope', () => {
+  it('pins the envelope version to the literal "2.0.0" (backend re-import contract)', () => {
+    const project = createDefaultProject('Envelope Version', 'desc', 'owner');
+    const env = buildProjectExportEnvelope(project);
+    expect(env.version).toBe('2.0.0');
+  });
+
+  it('emits exportedAt as a valid ISO-8601 string issued within the last 5 seconds', () => {
+    const project = createDefaultProject('Envelope Time', 'desc', 'owner');
+    const before = Date.now();
+    const env = buildProjectExportEnvelope(project);
+    const after = Date.now();
+
+    // Round-trip pins the canonical ISO format (guards against timezone bugs)
+    expect(new Date(env.exportedAt).toISOString()).toBe(env.exportedAt);
+
+    // Issued during this test (allow up to 5 s of slack on slow CI)
+    const ts = new Date(env.exportedAt).getTime();
+    expect(Math.abs(Date.now() - ts)).toBeLessThan(5000);
+    expect(ts).toBeGreaterThanOrEqual(before - 1);
+    expect(ts).toBeLessThanOrEqual(after + 1);
+  });
+
+  it('forwards (project, diagramTypes) to buildExportableProjectPayload', () => {
+    const project = createDefaultProject('Envelope Forwarding', 'desc', 'owner');
+    project.diagrams.ClassDiagram = [
+      createNonEmptyUMLDiagram('Class', UMLDiagramType.ClassDiagram),
+    ];
+    project.diagrams.StateMachineDiagram = [
+      createNonEmptyUMLDiagram('SM', UMLDiagramType.StateMachineDiagram),
+    ];
+
+    const diagramTypes: SupportedDiagramType[] = ['ClassDiagram'];
+
+    const env = buildProjectExportEnvelope(project, diagramTypes);
+    const direct = buildExportableProjectPayload(project, diagramTypes);
+
+    // Composition is pinned: any future change that drops the diagramTypes
+    // argument (or otherwise diverges from buildExportableProjectPayload)
+    // will fail this assertion.
+    expect(env.project).toEqual(direct);
+
+    // Sanity: filter actually applied
+    expect(env.project.diagrams['ClassDiagram']).toBeDefined();
+    expect(env.project.diagrams['StateMachineDiagram']).toBeUndefined();
   });
 });

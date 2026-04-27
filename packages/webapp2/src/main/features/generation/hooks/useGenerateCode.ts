@@ -6,7 +6,7 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
-import { buildProjectPayloadForBackend } from '../../export/utils/projectExportUtils';
+import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,

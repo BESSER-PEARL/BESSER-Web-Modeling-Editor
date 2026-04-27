@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { useGitHubRepo, GitHubRepoResult, CreateRepoOptions, GitHubDeploymentUrls } from '../../github/hooks/useGitHubRepo';
+import { useGitHubRepo, CreateRepoOptions, GitHubDeploymentUrls } from '../../github/hooks/useGitHubRepo';
+import type { BesserProject } from '../../../shared/types/project';
 
 // Re-exported under the old name so existing imports keep working.
 export type RenderDeploymentUrls = GitHubDeploymentUrls;
@@ -43,7 +44,7 @@ export const useRenderDeploy = () => {
    */
   const deployToRender = useCallback(
     async (
-      projectData: any,
+      projectData: BesserProject,
       options: CreateRepoOptions
     ): Promise<DeployToRenderResult | null> => {
       console.log('Starting Render deployment via GitHub...');

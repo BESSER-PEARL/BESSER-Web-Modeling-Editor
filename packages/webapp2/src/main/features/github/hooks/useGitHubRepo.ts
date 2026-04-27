@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
-import { BACKEND_URL } from '../../../shared/constants/constant';
+import { apiClient, ApiError } from '../../../shared/api/api-client';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
+import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
+import type { BesserProject } from '../../../shared/types/project';
 
 export type DeploymentTarget = 'webapp' | 'agent';
 type BackendDeploymentTarget = 'webapp' | 'chatbot';
@@ -47,7 +49,39 @@ export interface CreateRepoOptions {
   isPrivate: boolean;
   githubSession: string;
   deploymentTarget?: DeploymentTarget;
+  useExisting?: boolean;
+  commitMessage?: string;
 }
+
+type DeployWebappResponse = {
+  success: boolean;
+  repo_url: string;
+  repo_name: string;
+  owner: string;
+  files_uploaded: number;
+  message: string;
+  deployment_urls?: GitHubDeploymentUrls;
+  is_first_deploy?: boolean;
+  deployment_type?: unknown;
+};
+
+const toGitHubRepoResult = (
+  resp: DeployWebappResponse,
+  fallbackTarget?: DeploymentTarget,
+): GitHubRepoResult => ({
+  success: resp.success,
+  repo_url: resp.repo_url,
+  repo_name: resp.repo_name,
+  owner: resp.owner,
+  files_uploaded: resp.files_uploaded,
+  message: resp.message,
+  deployment_urls: resp.deployment_urls ?? {
+    github: resp.repo_url,
+    render: `https://render.com/deploy?repo=${encodeURIComponent(resp.repo_url)}`,
+  },
+  is_first_deploy: resp.is_first_deploy ?? true,
+  deployment_type: fromBackendDeploymentTarget(resp.deployment_type) ?? fallbackTarget ?? 'webapp',
+});
 
 /**
  * Hook for creating and pushing projects to GitHub repositories.
@@ -65,14 +99,32 @@ export const useGitHubRepo = () => {
    */
   const createRepo = useCallback(
     async (
-      projectData: any,
+      projectData: BesserProject,
       options: CreateRepoOptions
     ): Promise<GitHubRepoResult | null> => {
+      if (!projectData) {
+        toast.error('No project to deploy.');
+        return null;
+      }
+      if (!options.githubSession) {
+        toast.error('Not signed in to GitHub.');
+        return null;
+      }
+
       console.log('Creating GitHub repository...');
       setIsCreating(true);
       setRepoResult(null);
 
       try {
+        // Build the V2 project-export shape the editor uses for "Export Project"
+        // and ship it alongside the deploy payload, so the backend can drop it
+        // into the repo as `diagrams.json` and the file stays re-importable via
+        // the editor's "Import Project" action.
+        const projectExport = buildProjectExportEnvelope(projectData);
+
+        const useExisting = options.useExisting ?? false;
+        const commitMessage = options.commitMessage ?? '';
+
         const requestBody = {
           ...projectData,
           name: normalizeProjectName(projectData?.name || 'project'),
@@ -81,51 +133,47 @@ export const useGitHubRepo = () => {
             description: options.description,
             is_private: options.isPrivate,
             target: toBackendDeploymentTarget(options.deploymentTarget ?? 'webapp'),
+            use_existing: useExisting,
+            ...(commitMessage ? { commit_message: commitMessage } : {}),
           },
+          // Read backend-side by:
+          // besser/utilities/web_modeling_editor/backend/services/deployment/github_deploy_api.py
+          // (look for the `body.get("projectExport")` lookup).
+          projectExport,
         };
 
-        const response = await fetch(`${BACKEND_URL}/github/deploy-webapp`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-GitHub-Session': options.githubSession,
-          },
-          body: JSON.stringify(requestBody),
-        });
+        const result = await apiClient.post<DeployWebappResponse>(
+          '/github/deploy-webapp',
+          requestBody,
+          {
+            headers: {
+              'X-GitHub-Session': options.githubSession,
+            },
+          }
+        );
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Repository creation failed' }));
-          throw new Error(errorData.detail || `HTTP error: ${response.status}`);
-        }
+        const repoResult = toGitHubRepoResult(result, options.deploymentTarget);
 
-        const result = await response.json();
-
-        const repoResult: GitHubRepoResult = {
-          success: result.success,
-          repo_url: result.repo_url,
-          repo_name: result.repo_name,
-          owner: result.owner,
-          files_uploaded: result.files_uploaded,
-          message: result.message,
-          deployment_urls: result.deployment_urls ?? {
-            github: result.repo_url,
-            render: `https://render.com/deploy?repo=${encodeURIComponent(result.repo_url)}`,
-          },
-          is_first_deploy: result.is_first_deploy ?? true,
-          deployment_type: fromBackendDeploymentTarget(result.deployment_type) ?? options.deploymentTarget ?? 'webapp',
-        };
-        
         setRepoResult(repoResult);
 
         if (repoResult.success) {
-          toast.success(`Repository created: ${repoResult.repo_name}`);
+          toast.success(
+            useExisting
+              ? `Repository updated: ${repoResult.repo_name}`
+              : `Repository created: ${repoResult.repo_name}`
+          );
         } else {
-          toast.error('Repository creation failed');
+          toast.error('Deployment failed');
         }
 
         return repoResult;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Repository creation failed';
+        const errorMessage =
+          error instanceof ApiError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Repository creation failed';
         toast.error(errorMessage);
         console.error('GitHub repository creation error:', error);
         return null;
