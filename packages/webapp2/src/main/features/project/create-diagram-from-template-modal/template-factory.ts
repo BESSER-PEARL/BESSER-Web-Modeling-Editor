@@ -18,7 +18,6 @@ import traficlightModel from '../../../templates/pattern/statemachine/traficligh
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
-import nnCifarWithTraining from '../../../templates/pattern/nn/tutorial_example_with_training_test.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
 
@@ -133,13 +132,6 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.NNDiagram,
           nnLstm as any,
-          SoftwarePatternCategory.NN,
-        );
-      case SoftwarePatternType.NN_CIFAR_WITH_TRAINING:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          UMLDiagramType.NNDiagram,
-          nnCifarWithTraining as any,
           SoftwarePatternCategory.NN,
         );
       // Quantum Circuit templates
