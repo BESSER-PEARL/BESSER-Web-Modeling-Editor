@@ -26,11 +26,34 @@ export type ArrowStyleName =
 export type FontWeightName = 'normal' | 'bold';
 export type LabelPositionName = 'top' | 'bottom' | 'inside';
 export type ThemeName = 'light' | 'dark' | 'auto';
+export type PortSideName = 'auto' | 'top' | 'right' | 'bottom' | 'left';
+
+/** Mutually-exclusive runtime representation for a class in the generated editor. */
+export type ClassRepresentation = 'node' | 'container' | 'port' | 'connection';
+
+/** Endpoint role of an association on the source side of a connection-class. */
+export type AssociationEndpointRole = 'normal' | 'source' | 'target';
 
 export interface PlatformClassOverride {
   isContainer?: boolean;
   /** When true, instances expose drag handles to resize the node interactively. */
   isResizable?: boolean;
+  /** When true, instances of this class render as graphical Handles on the
+   *  owning equipment node instead of as independent nodes. Mutually exclusive
+   *  with `isContainer` and `isConnectionClass`. */
+  isPort?: boolean;
+  /** When true, instances of this class render as edges (connections) between
+   *  two ports instead of as nodes. The class must declare exactly one source
+   *  endpoint association and one target endpoint association. Mutually
+   *  exclusive with `isContainer` and `isPort`. */
+  isConnectionClass?: boolean;
+  /** Where a port-class instance anchors on its owning equipment ('auto' falls
+   *  back to the port's `direction` attribute). Only meaningful with `isPort`. */
+  portSide?: PortSideName;
+  /** Sides on which the default xyflow connection handles render. Undefined
+   *  keeps the default (all four sides); an explicit list — possibly empty —
+   *  restricts handles. ``[]`` hides handles completely. */
+  connectionPoints?: Array<'top' | 'right' | 'bottom' | 'left'>;
   defaultWidth?: number;
   defaultHeight?: number;
 
@@ -45,6 +68,18 @@ export interface PlatformClassOverride {
   fontWeight?: FontWeightName;
   fontColor?: string;
   labelPosition?: LabelPositionName;
+
+  // Edge-style overrides — only meaningful when the class is a connection.
+  // Drives the synthetic edge rendered between two ports of this connection
+  // class (or any of its subclasses, since the runtime resolves inheritance).
+  edgeColor?: string;
+  lineWidth?: number;
+  lineStyle?: LineStyleName;
+  sourceArrowStyle?: ArrowStyleName;
+  targetArrowStyle?: ArrowStyleName;
+  labelVisible?: boolean;
+  labelFontSize?: number;
+  labelFontColor?: string;
 }
 
 export interface PlatformAssociationOverride {
@@ -59,6 +94,10 @@ export interface PlatformAssociationOverride {
   /** When true, dropping a target instance inside a container source instance
    * auto-creates this link and visually nests the child node. */
   isContainerAssociation?: boolean;
+  /** Marks this association as the source-port endpoint of a connection-class. */
+  isSourceEndpoint?: boolean;
+  /** Marks this association as the target-port endpoint of a connection-class. */
+  isTargetEndpoint?: boolean;
 }
 
 export interface PlatformDiagramOverride {

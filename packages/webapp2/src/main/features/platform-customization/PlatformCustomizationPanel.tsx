@@ -29,6 +29,8 @@ import {
 } from '../../app/store/workspaceSlice';
 import {
   ArrowStyleName,
+  AssociationEndpointRole,
+  ClassRepresentation,
   createEmptyPlatformCustomizationData,
   FontWeightName,
   getReferencedDiagram,
@@ -41,6 +43,7 @@ import {
   PlatformClassOverride,
   PlatformCustomizationData,
   PlatformDiagramOverride,
+  PortSideName,
   ProjectDiagram,
 } from '../../shared/types/project';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,6 +90,50 @@ interface AssociationInfo {
   name: string;
   /** Union of class names that participate in any same-named relationship. */
   endpointClassNames: string[];
+  /** Class names appearing on the source side (any relationship sharing this name). */
+  sourceClassNames: string[];
+  /** Class names appearing on the target side. */
+  targetClassNames: string[];
+}
+
+/** Walk ClassInheritance relationships to build a parent→[direct subclasses]
+ *  index. Returns class *names* (the rest of the panel keys by name too). */
+function buildSubclassIndex(model: UMLModel): Map<string, string[]> {
+  const elements = model.elements ?? {};
+  const idToName = new Map<string, string>();
+  for (const [eid, el] of Object.entries(elements)) {
+    if ((el as any)?.owner !== null) continue;
+    const name = (el as any)?.name;
+    if (typeof name === 'string' && name.trim() !== '') idToName.set(eid, name);
+  }
+  const childrenByParent = new Map<string, string[]>();
+  for (const rel of Object.values(model.relationships ?? {})) {
+    if ((rel as any)?.type !== 'ClassInheritance') continue;
+    // For inheritance: source = child, target = parent (matches the
+    // generator script's convention; same idiom the backend uses).
+    const childId = (rel as any)?.source?.element;
+    const parentId = (rel as any)?.target?.element;
+    const childName = idToName.get(childId);
+    const parentName = idToName.get(parentId);
+    if (!childName || !parentName) continue;
+    const list = childrenByParent.get(parentName) ?? [];
+    if (!list.includes(childName)) list.push(childName);
+    childrenByParent.set(parentName, list);
+  }
+  return childrenByParent;
+}
+
+/** Compute the transitive set of descendants for a class name. */
+function descendantsOf(parentName: string, index: Map<string, string[]>): string[] {
+  const out = new Set<string>();
+  const queue = [...(index.get(parentName) ?? [])];
+  while (queue.length > 0) {
+    const next = queue.shift()!;
+    if (out.has(next)) continue;
+    out.add(next);
+    queue.push(...(index.get(next) ?? []));
+  }
+  return Array.from(out);
 }
 
 function extractAssociations(model: UMLModel): AssociationInfo[] {
@@ -97,18 +144,34 @@ function extractAssociations(model: UMLModel): AssociationInfo[] {
     if (!el || typeof (el as any).name !== 'string') return undefined;
     return (el as any).name;
   };
-  const byName = new Map<string, Set<string>>();
+  const byName = new Map<
+    string,
+    { all: Set<string>; sources: Set<string>; targets: Set<string> }
+  >();
   for (const rel of Object.values(model.relationships ?? {})) {
     if (typeof rel?.name !== 'string' || rel.name.trim() === '') continue;
-    const set = byName.get(rel.name) ?? new Set<string>();
+    const slot =
+      byName.get(rel.name) ??
+      { all: new Set<string>(), sources: new Set<string>(), targets: new Set<string>() };
     const sourceName = resolveClassName((rel as any)?.source?.element);
     const targetName = resolveClassName((rel as any)?.target?.element);
-    if (sourceName) set.add(sourceName);
-    if (targetName) set.add(targetName);
-    byName.set(rel.name, set);
+    if (sourceName) {
+      slot.all.add(sourceName);
+      slot.sources.add(sourceName);
+    }
+    if (targetName) {
+      slot.all.add(targetName);
+      slot.targets.add(targetName);
+    }
+    byName.set(rel.name, slot);
   }
   return Array.from(byName.entries())
-    .map(([name, set]) => ({ name, endpointClassNames: Array.from(set) }))
+    .map(([name, slot]) => ({
+      name,
+      endpointClassNames: Array.from(slot.all),
+      sourceClassNames: Array.from(slot.sources),
+      targetClassNames: Array.from(slot.targets),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -125,6 +188,75 @@ const EmptyState: React.FC<{ title: string; message: string }> = ({ title, messa
 // ---------------------------------------------------------------------------
 // Reusable controls
 // ---------------------------------------------------------------------------
+
+/** Pill-shaped segmented control. Used for representation / endpoint role. */
+const SegmentedControl = <T extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+}: {
+  value: T;
+  options: Array<{ value: T; label: string; description?: string }>;
+  onChange: (v: T) => void;
+  ariaLabel: string;
+}) => (
+  <div role="radiogroup" aria-label={ariaLabel} className="inline-flex rounded-md border border-input bg-background p-0.5">
+    {options.map((opt) => {
+      const active = opt.value === value;
+      return (
+        <button
+          key={opt.value}
+          type="button"
+          role="radio"
+          aria-checked={active}
+          onClick={() => onChange(opt.value)}
+          title={opt.description}
+          className={`px-3 py-1 text-xs font-medium transition-colors rounded ${
+            active
+              ? 'bg-brand text-brand-foreground shadow-sm'
+              : 'text-muted-foreground hover:bg-muted/50'
+          }`}
+        >
+          {opt.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
+/** Map an override to its mutually-exclusive representation mode. */
+function getRepresentation(o: PlatformClassOverride): ClassRepresentation {
+  if (o.isPort) return 'port';
+  if (o.isConnectionClass) return 'connection';
+  if (o.isContainer) return 'container';
+  return 'node';
+}
+
+/** Build the patch that switches a class to a given representation, clearing
+ *  the other two flags and resetting `portSide` when leaving Port mode. */
+function representationPatch(rep: ClassRepresentation): Partial<PlatformClassOverride> {
+  return {
+    isContainer: rep === 'container' ? true : undefined,
+    isPort: rep === 'port' ? true : undefined,
+    isConnectionClass: rep === 'connection' ? true : undefined,
+    portSide: rep === 'port' ? 'auto' : undefined,
+  };
+}
+
+/** Map an override to its endpoint role. */
+function getEndpointRole(o: PlatformAssociationOverride): AssociationEndpointRole {
+  if (o.isSourceEndpoint) return 'source';
+  if (o.isTargetEndpoint) return 'target';
+  return 'normal';
+}
+
+function endpointRolePatch(role: AssociationEndpointRole): Partial<PlatformAssociationOverride> {
+  return {
+    isSourceEndpoint: role === 'source' ? true : undefined,
+    isTargetEndpoint: role === 'target' ? true : undefined,
+  };
+}
 
 const ColorPicker: React.FC<{
   value?: string;
@@ -244,6 +376,71 @@ const SelectField: React.FC<{
   </div>
 );
 
+/** 4-way side picker for the default xyflow connection handles. Undefined
+ *  means "all four sides (default)"; an explicit list — possibly empty —
+ *  restricts which sides show handles. */
+type ConnectionSide = 'top' | 'right' | 'bottom' | 'left';
+const ALL_SIDES: ConnectionSide[] = ['top', 'right', 'bottom', 'left'];
+
+const ConnectionPointsField: React.FC<{
+  value?: ConnectionSide[];
+  onChange: (v: ConnectionSide[] | undefined) => void;
+}> = ({ value, onChange }) => {
+  const isDefault = value === undefined;
+  const sides = value ?? ALL_SIDES;
+  const togglesEnabled = !isDefault;
+
+  const setSide = (side: ConnectionSide, checked: boolean) => {
+    const current = sides.filter((s) => s !== side);
+    const next = checked ? [...current, side] : current;
+    // Sort to keep persisted JSON deterministic
+    const sorted = ALL_SIDES.filter((s) => next.includes(s));
+    onChange(sorted);
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+          Connection points
+        </Label>
+        <button
+          type="button"
+          onClick={() => onChange(isDefault ? [] : undefined)}
+          className="text-[10px] text-muted-foreground hover:text-foreground"
+        >
+          {isDefault ? 'Customize' : 'Reset to default'}
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-1">
+        {ALL_SIDES.map((side) => {
+          const checked = isDefault || sides.includes(side);
+          return (
+            <button
+              key={side}
+              type="button"
+              disabled={!togglesEnabled}
+              onClick={() => setSide(side, !checked)}
+              className={`rounded border px-2 py-1 text-[11px] capitalize transition-colors ${
+                checked
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-input bg-background text-muted-foreground'
+              } ${!togglesEnabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-primary/60'}`}
+            >
+              {side}
+            </button>
+          );
+        })}
+      </div>
+      {!isDefault && sides.length === 0 && (
+        <p className="text-[10px] italic text-muted-foreground">
+          No connection handles will be rendered on this class.
+        </p>
+      )}
+    </div>
+  );
+};
+
 const ColorField: React.FC<{
   label: string;
   value: string | undefined;
@@ -303,27 +500,146 @@ const ClassRow: React.FC<{
             <span /> {/* spacer */}
           </button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="border-t bg-muted/10 px-6 py-4">
+        <CollapsibleContent className="border-t bg-muted/10 px-6 py-4 space-y-4">
+          {/* Representation: mutually-exclusive runtime rendering mode */}
+          <section className="rounded-md border border-muted bg-muted/20 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label className="text-sm font-semibold text-foreground">Representation</Label>
+                <p className="text-xs text-muted-foreground">
+                  How instances of this class render in the generated editor.
+                </p>
+              </div>
+              <SegmentedControl<ClassRepresentation>
+                ariaLabel={`Representation for ${name}`}
+                value={getRepresentation(override)}
+                options={[
+                  { value: 'node', label: 'Node', description: 'Standalone box on the canvas (default)' },
+                  { value: 'container', label: 'Container', description: 'Hosts other nodes via container associations' },
+                  { value: 'port', label: 'Port', description: 'Renders as a handle on its owning equipment' },
+                  { value: 'connection', label: 'Connection', description: 'Renders as an edge between two ports' },
+                ]}
+                onChange={(rep) => onPatch(representationPatch(rep))}
+              />
+            </div>
+            {override.isContainer && (
+              <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
+                Tip: open each relationship below and turn on{' '}
+                <span className="font-semibold">Container association</span> for the ones whose
+                targets should nest inside this container at runtime.
+              </p>
+            )}
+            {override.isPort && (
+              <div className="space-y-2">
+                <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
+                  Instances of this class render as graphical handles on their owning
+                  equipment node — not as standalone nodes.
+                </p>
+                <SelectField
+                  label="Anchor side"
+                  value={override.portSide}
+                  options={[
+                    { value: 'auto', label: 'Auto (use direction attribute)' },
+                    { value: 'top', label: 'Top' },
+                    { value: 'right', label: 'Right' },
+                    { value: 'bottom', label: 'Bottom' },
+                    { value: 'left', label: 'Left' },
+                  ]}
+                  onChange={(v) => onPatch({ portSide: v as PortSideName | undefined })}
+                />
+              </div>
+            )}
+            {override.isConnectionClass && (
+              <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
+                Instances of this class render as edges between two ports. Mark exactly one
+                outgoing association as <span className="font-semibold">Source endpoint</span> and
+                another as <span className="font-semibold">Target endpoint</span> (target classes
+                must be Ports).
+              </p>
+            )}
+          </section>
+
+          {/* Edge styling — only meaningful for connection classes. Mirrors
+              the same controls available on associations so the user can
+              theme edges drawn from this connection class. */}
+          {override.isConnectionClass && (
+            <div className="grid gap-6 lg:grid-cols-3">
+              <section className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Line</h4>
+                <ColorField
+                  label="Color"
+                  value={override.edgeColor}
+                  onChange={(v) => onPatch({ edgeColor: v })}
+                />
+                <SliderField
+                  label="Width"
+                  value={override.lineWidth}
+                  defaultValue={2}
+                  min={1}
+                  max={6}
+                  unit="px"
+                  onChange={(v) => onPatch({ lineWidth: v })}
+                />
+                <SelectField
+                  label="Style"
+                  value={override.lineStyle}
+                  options={[
+                    { value: 'solid', label: 'Solid' },
+                    { value: 'dashed', label: 'Dashed' },
+                    { value: 'dotted', label: 'Dotted' },
+                  ]}
+                  onChange={(v) => onPatch({ lineStyle: v as LineStyleName | undefined })}
+                />
+              </section>
+              <section className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Arrows</h4>
+                <SelectField
+                  label="Source arrow"
+                  value={override.sourceArrowStyle}
+                  options={ARROW_OPTIONS}
+                  onChange={(v) => onPatch({ sourceArrowStyle: v as ArrowStyleName | undefined })}
+                />
+                <SelectField
+                  label="Target arrow"
+                  value={override.targetArrowStyle}
+                  options={ARROW_OPTIONS}
+                  onChange={(v) => onPatch({ targetArrowStyle: v as ArrowStyleName | undefined })}
+                />
+              </section>
+              <section className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Label</h4>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+                    {override.labelVisible === false ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                    Visible
+                  </Label>
+                  <Switch
+                    checked={override.labelVisible !== false}
+                    onCheckedChange={(v: boolean) => onPatch({ labelVisible: v ? undefined : false })}
+                  />
+                </div>
+                <SliderField
+                  label="Font size"
+                  value={override.labelFontSize}
+                  defaultValue={11}
+                  min={8}
+                  max={18}
+                  unit="px"
+                  onChange={(v) => onPatch({ labelFontSize: v })}
+                />
+                <ColorField
+                  label="Font color"
+                  value={override.labelFontColor}
+                  onChange={(v) => onPatch({ labelFontColor: v })}
+                />
+              </section>
+            </div>
+          )}
+
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Layout */}
             <section className="space-y-3">
               <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Layout</h4>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Container
-                </Label>
-                <Switch
-                  checked={!!override.isContainer}
-                  onCheckedChange={(v: boolean) => onPatch({ isContainer: v || undefined })}
-                />
-              </div>
-              {override.isContainer && (
-                <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                  Tip: open each relationship below and turn on{' '}
-                  <span className="font-semibold">Container association</span> for the ones whose
-                  targets should nest inside this container at runtime.
-                </p>
-              )}
               <div className="flex items-center justify-between">
                 <Label
                   className="text-xs uppercase tracking-wider text-muted-foreground"
@@ -345,6 +661,10 @@ const ClassRow: React.FC<{
                 label="Height (px)"
                 value={override.defaultHeight}
                 onChange={(v) => onPatch({ defaultHeight: v })}
+              />
+              <ConnectionPointsField
+                value={override.connectionPoints}
+                onChange={(v) => onPatch({ connectionPoints: v })}
               />
               <SelectField
                 label="Shape"
@@ -460,8 +780,14 @@ const AssociationRow: React.FC<{
    * to surface the "Container association" toggle without disabling other
    * associations the user might want to keep as ordinary edges. */
   hasContainerEndpoint: boolean;
+  /** True when at least one source class of this association is flagged as
+   *  a connection-class — gates the "Endpoint role" control. */
+  hasConnectionSource: boolean;
+  /** True when at least one target class of this association is flagged as
+   *  a port — used in the helper text. */
+  hasPortTarget: boolean;
   onPatch: (patch: Partial<PlatformAssociationOverride>) => void;
-}> = ({ name, override, hasContainerEndpoint, onPatch }) => {
+}> = ({ name, override, hasContainerEndpoint, hasConnectionSource, hasPortTarget, onPatch }) => {
   const [open, setOpen] = React.useState(false);
   return (
     <li>
@@ -516,6 +842,39 @@ const AssociationRow: React.FC<{
                 onPatch({ isContainerAssociation: v ? true : undefined })
               }
             />
+          </div>
+
+          {/* Endpoint role: only meaningful when the source class is a
+              connection-class. We surface the control regardless so the user
+              can self-correct, but show a warning if it's set on an
+              association whose source isn't a connection-class. */}
+          <div
+            className={`rounded-md border p-3 space-y-2 ${
+              hasConnectionSource ? 'border-brand/30 bg-brand/5' : 'border-muted bg-muted/20'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <Label className="text-sm font-semibold text-foreground">Endpoint role</Label>
+                <p className="text-xs text-muted-foreground">
+                  {hasConnectionSource
+                    ? hasPortTarget
+                      ? 'Designate this association as the source-port or target-port endpoint of its connection-class.'
+                      : 'Source class is a connection — but the target class is not a Port. Mark the target class as a Port for this endpoint to work at runtime.'
+                    : 'No effect: only honoured when the source class is a Connection.'}
+                </p>
+              </div>
+              <SegmentedControl<AssociationEndpointRole>
+                ariaLabel={`Endpoint role for ${name}`}
+                value={getEndpointRole(override)}
+                options={[
+                  { value: 'normal', label: 'Normal' },
+                  { value: 'source', label: 'Source' },
+                  { value: 'target', label: 'Target' },
+                ]}
+                onChange={(role) => onPatch(endpointRolePatch(role))}
+              />
+            </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -666,6 +1025,10 @@ export const PlatformCustomizationPanel: React.FC = () => {
     () => (isUMLModel(classDiagramModel) ? extractClasses(classDiagramModel) : []),
     [classDiagramModel],
   );
+  const subclassIndex = useMemo(
+    () => (isUMLModel(classDiagramModel) ? buildSubclassIndex(classDiagramModel) : new Map<string, string[]>()),
+    [classDiagramModel],
+  );
   const classNames = useMemo(() => classes.map((c) => c.name), [classes]);
   const associations = useMemo(
     () => (isUMLModel(classDiagramModel) ? extractAssociations(classDiagramModel) : []),
@@ -687,6 +1050,79 @@ export const PlatformCustomizationPanel: React.FC = () => {
     return set;
   }, [customization.classOverrides]);
 
+  const connectionClassNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const [className, override] of Object.entries(customization.classOverrides)) {
+      if (override.isConnectionClass) set.add(className);
+    }
+    return set;
+  }, [customization.classOverrides]);
+
+  const portClassNames = useMemo(() => {
+    const set = new Set<string>();
+    for (const [className, override] of Object.entries(customization.classOverrides)) {
+      if (override.isPort) set.add(className);
+    }
+    return set;
+  }, [customization.classOverrides]);
+
+  /** Validation problems for connection-class wiring. Surfaced as a banner so
+   *  the user can fix the configuration before generating the editor. */
+  const validationIssues = useMemo<string[]>(() => {
+    const issues: string[] = [];
+    // For each connection-class, ensure it has at least one source-endpoint
+    // and one target-endpoint association whose source is the class itself
+    // and whose target is a port-class.
+    for (const connClass of connectionClassNames) {
+      const candidateSources: string[] = [];
+      const candidateTargets: string[] = [];
+      for (const assoc of associations) {
+        if (!assoc.sourceClassNames.includes(connClass)) continue;
+        const ov = customization.associationOverrides[assoc.name];
+        if (ov?.isSourceEndpoint) candidateSources.push(assoc.name);
+        if (ov?.isTargetEndpoint) candidateTargets.push(assoc.name);
+      }
+      if (candidateSources.length === 0) {
+        issues.push(`Connection class "${connClass}" has no association marked as Source endpoint.`);
+      } else if (candidateSources.length > 1) {
+        issues.push(
+          `Connection class "${connClass}" has multiple Source endpoint associations: ${candidateSources.join(', ')}.`,
+        );
+      }
+      if (candidateTargets.length === 0) {
+        issues.push(`Connection class "${connClass}" has no association marked as Target endpoint.`);
+      } else if (candidateTargets.length > 1) {
+        issues.push(
+          `Connection class "${connClass}" has multiple Target endpoint associations: ${candidateTargets.join(', ')}.`,
+        );
+      }
+      // Ensure the targets of each endpoint association are port-classes.
+      for (const endpointAssoc of [...candidateSources, ...candidateTargets]) {
+        const a = associations.find((x) => x.name === endpointAssoc);
+        if (!a) continue;
+        const nonPortTargets = a.targetClassNames.filter((t) => !portClassNames.has(t));
+        if (nonPortTargets.length > 0) {
+          issues.push(
+            `Endpoint association "${endpointAssoc}" targets non-Port class(es): ${nonPortTargets.join(', ')}.`,
+          );
+        }
+      }
+    }
+    // Endpoint flags set on associations whose source class isn't a connection-class.
+    for (const [assocName, ov] of Object.entries(customization.associationOverrides)) {
+      if (!ov.isSourceEndpoint && !ov.isTargetEndpoint) continue;
+      const a = associations.find((x) => x.name === assocName);
+      if (!a) continue;
+      const validSources = a.sourceClassNames.filter((s) => connectionClassNames.has(s));
+      if (validSources.length === 0) {
+        issues.push(
+          `Association "${assocName}" is marked as an endpoint but its source class is not a Connection.`,
+        );
+      }
+    }
+    return issues;
+  }, [associations, customization.associationOverrides, connectionClassNames, portClassNames]);
+
   const persist = useCallback(
     (next: PlatformCustomizationData) => {
       dispatch(updateDiagramModelThunk({ model: next }));
@@ -696,17 +1132,36 @@ export const PlatformCustomizationPanel: React.FC = () => {
 
   const patchClass = useCallback(
     (className: string, patch: Partial<PlatformClassOverride>) => {
-      const existing = customization.classOverrides[className] ?? {};
-      const merged = compact({ ...existing, ...patch });
       const nextClassOverrides = { ...customization.classOverrides };
-      if (Object.keys(merged).length === 0) {
-        delete nextClassOverrides[className];
-      } else {
-        nextClassOverrides[className] = merged;
+      const apply = (name: string, p: Partial<PlatformClassOverride>) => {
+        const existing = nextClassOverrides[name] ?? {};
+        const merged = compact({ ...existing, ...p });
+        if (Object.keys(merged).length === 0) {
+          delete nextClassOverrides[name];
+        } else {
+          nextClassOverrides[name] = merged;
+        }
+      };
+      apply(className, patch);
+      // Propagate representation mode (Connection / Port / Container) to
+      // descendants. Without this, switching a base class to Connection
+      // wouldn't visibly update its subclasses in the panel even though
+      // the runtime resolves the inheritance.
+      const switchesRepresentation =
+        'isPort' in patch || 'isConnectionClass' in patch || 'isContainer' in patch;
+      if (switchesRepresentation) {
+        for (const sub of descendantsOf(className, subclassIndex)) {
+          apply(sub, {
+            isPort: patch.isPort,
+            isConnectionClass: patch.isConnectionClass,
+            isContainer: patch.isContainer,
+            portSide: patch.portSide,
+          });
+        }
       }
       persist({ ...customization, classOverrides: nextClassOverrides });
     },
-    [customization, persist],
+    [customization, persist, subclassIndex],
   );
 
   const patchAssociation = useCallback(
@@ -788,6 +1243,22 @@ export const PlatformCustomizationPanel: React.FC = () => {
             />
           )}
 
+          {validationIssues.length > 0 && (
+            <div className="flex items-start gap-3 rounded-md border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-100">
+              <AlertTriangle className="mt-0.5 size-5 flex-shrink-0" />
+              <div className="space-y-1">
+                <div className="font-semibold">
+                  Connection wiring needs attention ({validationIssues.length})
+                </div>
+                <ul className="list-disc space-y-0.5 pl-5 text-xs text-amber-800 dark:text-amber-200">
+                  {validationIssues.map((msg, i) => (
+                    <li key={i}>{msg}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
           {isUMLModel(classDiagramModel) && (
             <DiagramCustomizationCard
               classNames={classNames}
@@ -830,12 +1301,20 @@ export const PlatformCustomizationPanel: React.FC = () => {
                     const hasContainerEndpoint = assoc.endpointClassNames.some((n) =>
                       containerClassNames.has(n),
                     );
+                    const hasConnectionSource = assoc.sourceClassNames.some((n) =>
+                      connectionClassNames.has(n),
+                    );
+                    const hasPortTarget = assoc.targetClassNames.some((n) =>
+                      portClassNames.has(n),
+                    );
                     return (
                       <AssociationRow
                         key={assoc.name}
                         name={assoc.name}
                         override={customization.associationOverrides[assoc.name] ?? {}}
                         hasContainerEndpoint={hasContainerEndpoint}
+                        hasConnectionSource={hasConnectionSource}
+                        hasPortTarget={hasPortTarget}
                         onPatch={(patch) => patchAssociation(assoc.name, patch)}
                       />
                     );
