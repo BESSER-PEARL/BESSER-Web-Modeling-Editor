@@ -32,7 +32,7 @@ export class NNContainer extends UMLContainer {
 
   constructor(values?: Partial<NNContainer>) {
     super();
-    this.name = 'NeuralNetwork';
+    this.name = 'Neural_Network';
     this.bounds = { x: 0, y: 0, width: NNContainer.defaultWidth, height: NNContainer.defaultHeight };
 
     if (values) {

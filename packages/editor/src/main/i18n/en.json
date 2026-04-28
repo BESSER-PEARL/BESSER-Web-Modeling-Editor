@@ -180,7 +180,7 @@
       "BPMNGroup": "Group"
     },
     "NNDiagram": {
-      "NNContainer": "NeuralNetwork",
+      "NNContainer": "Neural_Network",
       "NNReference": "Sub-NN Reference",
       "SelectNN": "Select Neural Network",
       "SelectNNPlaceholder": "-- Select NN --",
