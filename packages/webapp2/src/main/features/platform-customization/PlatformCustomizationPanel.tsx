@@ -136,6 +136,43 @@ function descendantsOf(parentName: string, index: Map<string, string[]>): string
   return Array.from(out);
 }
 
+/** Build child→[direct parents] index, inverse of buildSubclassIndex. */
+function buildParentIndex(model: UMLModel): Map<string, string[]> {
+  const elements = model.elements ?? {};
+  const idToName = new Map<string, string>();
+  for (const [eid, el] of Object.entries(elements)) {
+    if ((el as any)?.owner !== null) continue;
+    const name = (el as any)?.name;
+    if (typeof name === 'string' && name.trim() !== '') idToName.set(eid, name);
+  }
+  const parentsByChild = new Map<string, string[]>();
+  for (const rel of Object.values(model.relationships ?? {})) {
+    if ((rel as any)?.type !== 'ClassInheritance') continue;
+    const childId = (rel as any)?.source?.element;
+    const parentId = (rel as any)?.target?.element;
+    const childName = idToName.get(childId);
+    const parentName = idToName.get(parentId);
+    if (!childName || !parentName) continue;
+    const list = parentsByChild.get(childName) ?? [];
+    if (!list.includes(parentName)) list.push(parentName);
+    parentsByChild.set(childName, list);
+  }
+  return parentsByChild;
+}
+
+/** Compute the transitive set of ancestors for a class name (including itself). */
+function selfAndAncestors(name: string, index: Map<string, string[]>): string[] {
+  const out = new Set<string>([name]);
+  const queue = [...(index.get(name) ?? [])];
+  while (queue.length > 0) {
+    const next = queue.shift()!;
+    if (out.has(next)) continue;
+    out.add(next);
+    queue.push(...(index.get(next) ?? []));
+  }
+  return Array.from(out);
+}
+
 function extractAssociations(model: UMLModel): AssociationInfo[] {
   const elements = model.elements ?? {};
   const resolveClassName = (elementId: string | undefined): string | undefined => {
@@ -1029,6 +1066,10 @@ export const PlatformCustomizationPanel: React.FC = () => {
     () => (isUMLModel(classDiagramModel) ? buildSubclassIndex(classDiagramModel) : new Map<string, string[]>()),
     [classDiagramModel],
   );
+  const parentIndex = useMemo(
+    () => (isUMLModel(classDiagramModel) ? buildParentIndex(classDiagramModel) : new Map<string, string[]>()),
+    [classDiagramModel],
+  );
   const classNames = useMemo(() => classes.map((c) => c.name), [classes]);
   const associations = useMemo(
     () => (isUMLModel(classDiagramModel) ? extractAssociations(classDiagramModel) : []),
@@ -1071,13 +1112,16 @@ export const PlatformCustomizationPanel: React.FC = () => {
   const validationIssues = useMemo<string[]>(() => {
     const issues: string[] = [];
     // For each connection-class, ensure it has at least one source-endpoint
-    // and one target-endpoint association whose source is the class itself
-    // and whose target is a port-class.
+    // and one target-endpoint association. Inheritance counts: a subclass
+    // inherits its ancestors' endpoints, so we walk the parent chain when
+    // looking for matching source-side associations. (Endpoints declared on
+    // a parent are accepted for the child too.)
     for (const connClass of connectionClassNames) {
+      const ownerCandidates = new Set(selfAndAncestors(connClass, parentIndex));
       const candidateSources: string[] = [];
       const candidateTargets: string[] = [];
       for (const assoc of associations) {
-        if (!assoc.sourceClassNames.includes(connClass)) continue;
+        if (!assoc.sourceClassNames.some((s) => ownerCandidates.has(s))) continue;
         const ov = customization.associationOverrides[assoc.name];
         if (ov?.isSourceEndpoint) candidateSources.push(assoc.name);
         if (ov?.isTargetEndpoint) candidateTargets.push(assoc.name);
@@ -1121,7 +1165,7 @@ export const PlatformCustomizationPanel: React.FC = () => {
       }
     }
     return issues;
-  }, [associations, customization.associationOverrides, connectionClassNames, portClassNames]);
+  }, [associations, customization.associationOverrides, connectionClassNames, portClassNames, parentIndex]);
 
   const persist = useCallback(
     (next: PlatformCustomizationData) => {
