@@ -459,6 +459,12 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         style: kgStylesheet as any,
         layout: { name: 'preset' },
         wheelSensitivity: 0.2,
+        // Disable panning so plain drag on the empty canvas initiates a
+        // rubber-band box selection (Cytoscape's fallback when panning is
+        // off). Panning is re-enabled while the user holds Space — see the
+        // keydown/keyup handlers below.
+        userPanningEnabled: false,
+        boxSelectionEnabled: true,
       });
       cyRef.current = cy;
 
@@ -479,17 +485,79 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       cy.on('dragfreeon', 'node', () => emitChangeFromCy(cy));
       cy.on('remove', () => emitChangeFromCy(cy));
 
-      cy.on('select', 'node', (evt) => {
-        onSelectRef.current({ kind: 'node', id: String(evt.target.id()) });
-      });
-      cy.on('select', 'edge', (evt) => {
-        onSelectRef.current({ kind: 'edge', id: String(evt.target.id()) });
-      });
-      cy.on('unselect', () => {
-        if (cy.$(':selected').empty()) onSelectRef.current(null);
-      });
+      // Consolidated selection emitter — batches the per-element select /
+      // unselect events that fire when a box drag picks multiple things up
+      // at once, so the parent gets one update describing the full set.
+      let selectionEmitHandle: number | null = null;
+      const scheduleSelectionEmit = () => {
+        if (selectionEmitHandle !== null) return;
+        selectionEmitHandle = window.setTimeout(() => {
+          selectionEmitHandle = null;
+          const sel = cy.$(':selected');
+          const nodeIds = sel.nodes().map((n) => String(n.id()));
+          const edgeIds = sel.edges().map((e) => String(e.id()));
+          const total = nodeIds.length + edgeIds.length;
+          if (total === 0) {
+            onSelectRef.current(null);
+          } else if (total === 1) {
+            onSelectRef.current(
+              nodeIds.length === 1
+                ? { kind: 'node', id: nodeIds[0] }
+                : { kind: 'edge', id: edgeIds[0] },
+            );
+          } else {
+            onSelectRef.current({ kind: 'multi', nodeIds, edgeIds });
+          }
+        }, 0);
+      };
+      cy.on('select', scheduleSelectionEmit);
+      cy.on('unselect', scheduleSelectionEmit);
       cy.on('tap', (evt) => {
         if (evt.target === cy) onSelectRef.current(null);
+      });
+
+      // Drag-together: when the user grabs a node that is part of a
+      // multi-selection, translate the other selected nodes by the same
+      // delta. Stops when the grab is released.
+      let groupDrag:
+        | {
+            anchorId: string;
+            anchorStart: { x: number; y: number };
+            others: Map<string, { x: number; y: number }>;
+          }
+        | null = null;
+      cy.on('grab', 'node', (evt) => {
+        const grabbed = evt.target;
+        const selectedNodes = cy.$('node:selected');
+        if (selectedNodes.size() < 2 || !grabbed.selected()) {
+          groupDrag = null;
+          return;
+        }
+        const anchorId = String(grabbed.id());
+        const anchorStart = { ...grabbed.position() };
+        const others = new Map<string, { x: number; y: number }>();
+        selectedNodes.forEach((n) => {
+          const id = String(n.id());
+          if (id !== anchorId) others.set(id, { ...n.position() });
+        });
+        groupDrag = { anchorId, anchorStart, others };
+      });
+      cy.on('drag', 'node', (evt) => {
+        const s = groupDrag;
+        if (!s) return;
+        if (String(evt.target.id()) !== s.anchorId) return;
+        const cur = evt.target.position();
+        const dx = cur.x - s.anchorStart.x;
+        const dy = cur.y - s.anchorStart.y;
+        s.others.forEach((start, id) => {
+          const el = cy.getElementById(id);
+          if (el.nonempty()) el.position({ x: start.x + dx, y: start.y + dy });
+        });
+      });
+      cy.on('free', 'node', (evt) => {
+        if (groupDrag && String(evt.target.id()) === groupDrag.anchorId) {
+          groupDrag = null;
+        }
       });
 
       // Double-click to reveal a node's neighbors arranged in a circle
@@ -525,6 +593,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       });
 
       // Esc exits any connect mode and clears the in-progress source.
+      // Space held = temporarily enable panning (plain drag is otherwise
+      // used for box-selecting multiple elements).
       const onKey = (ev: KeyboardEvent) => {
         if (!containerRef.current) return;
         const active = document.activeElement;
@@ -534,6 +604,11 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
             active.tagName === 'TEXTAREA' ||
             (active as HTMLElement).isContentEditable)
         ) {
+          return;
+        }
+        if (ev.key === ' ' && !ev.repeat) {
+          cy.userPanningEnabled(true);
+          ev.preventDefault();
           return;
         }
         if (ev.key === 'Escape') {
@@ -552,10 +627,21 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
           }
         }
       };
+      const onKeyUp = (ev: KeyboardEvent) => {
+        if (ev.key === ' ') {
+          cy.userPanningEnabled(false);
+        }
+      };
       window.addEventListener('keydown', onKey);
+      window.addEventListener('keyup', onKeyUp);
 
       return () => {
         window.removeEventListener('keydown', onKey);
+        window.removeEventListener('keyup', onKeyUp);
+        if (selectionEmitHandle !== null) {
+          clearTimeout(selectionEmitHandle);
+          selectionEmitHandle = null;
+        }
         try { eh.destroy(); } catch { /* ignore */ }
         cy.destroy();
         cyRef.current = null;

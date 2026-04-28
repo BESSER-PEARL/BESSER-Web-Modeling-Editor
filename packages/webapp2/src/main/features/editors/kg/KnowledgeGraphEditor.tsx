@@ -25,8 +25,9 @@ const EMPTY_KG: KnowledgeGraphData = {
 };
 
 /** Pick the initial visibleIds for a freshly-loaded model. Prefers the
- *  persisted list (so selection survives remounts); otherwise seeds from
- *  the first soft-limit node ids and clamps to the hard limit. */
+ *  persisted list (so selection survives remounts, including the empty-set
+ *  case where the user has intentionally hidden every node); otherwise
+ *  seeds from the first soft-limit node ids and clamps to the hard limit. */
 function seedVisibleIds(
   model: KnowledgeGraphData,
   softLimit: number,
@@ -34,8 +35,10 @@ function seedVisibleIds(
 ): string[] {
   const modelIds = new Set(model.nodes.map((n) => n.id));
   const stored = model.settings?.visibleIds;
-  if (Array.isArray(stored) && stored.length > 0) {
+  if (Array.isArray(stored)) {
     // Filter out any stale ids (nodes removed from the model), then clamp.
+    // An empty array here is intentional ("user hid all nodes") and must be
+    // preserved — only a missing/undefined field falls back to the soft seed.
     return stored.filter((id) => modelIds.has(id)).slice(0, hardLimit);
   }
   return model.nodes.slice(0, softLimit).map((n) => n.id).slice(0, hardLimit);
@@ -346,6 +349,9 @@ export const KnowledgeGraphEditor: React.FC = () => {
         model={model}
         selection={selection}
         onChange={handleChange}
+        onHideNode={(id) => toggleNodeVisibility(id, false)}
+        onBulkHideNodes={(ids) => bulkToggleVisibility(ids, false)}
+        onRequestSelection={setSelection}
         onClearSelection={() => {
           setSelection(null);
           canvasRef.current?.clearSelection();
