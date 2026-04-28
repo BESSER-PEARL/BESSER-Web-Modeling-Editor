@@ -1538,27 +1538,29 @@ export const AgentConfigurationPanel: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-llm-provider">LLM Provider</Label>
-                  <select
-                    id="agent-runtime-llm-provider"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.agentLlmProvider}
-                    onChange={(event) =>
-                      updateAgentRuntimeConfig({
-                        agentLlmProvider: event.target.value as AgentLLMProvider,
-                      })
-                    }
-                  >
-                    <option value="">None</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="huggingface">Hugging Face</option>
-                    <option value="huggingfaceapi">Hugging Face API</option>
-                    <option value="replicate">Replicate</option>
-                  </select>
-                </div>
+                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="agent-runtime-llm-provider">LLM Provider</Label>
+                    <select
+                      id="agent-runtime-llm-provider"
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                      value={agentRuntimeConfig.agentLlmProvider}
+                      onChange={(event) =>
+                        updateAgentRuntimeConfig({
+                          agentLlmProvider: event.target.value as AgentLLMProvider,
+                        })
+                      }
+                    >
+                      <option value="">None</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="huggingface">Hugging Face</option>
+                      <option value="huggingfaceapi">Hugging Face API</option>
+                      <option value="replicate">Replicate</option>
+                    </select>
+                  </div>
+                )}
 
-                {agentRuntimeConfig.agentLlmProvider === 'openai' && (
+                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && agentRuntimeConfig.agentLlmProvider === 'openai' && (
                   <div className="space-y-1.5">
                     <Label htmlFor="agent-runtime-llm-model">OpenAI Model</Label>
                     <select
@@ -1578,7 +1580,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   </div>
                 )}
 
-                {agentRuntimeConfig.agentLlmProvider === 'openai' && agentRuntimeConfig.agentLlmModel === 'other' && (
+                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && agentRuntimeConfig.agentLlmProvider === 'openai' && agentRuntimeConfig.agentLlmModel === 'other' && (
                   <div className="space-y-1.5">
                     <Label htmlFor="agent-runtime-custom-model">Custom Model Name</Label>
                     <Input
