@@ -92,6 +92,11 @@ export const useProjectBootstrap = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Track whether a project was previously loaded so we only react to the
+  // null ↔ non-null transition. Otherwise every Redux update of currentProject
+  // (e.g. autosave from the quantum editor) would force the hub open/closed.
+  const hadProjectRef = useRef<boolean>(Boolean(currentProject));
+
   useEffect(() => {
     if (!hasCheckedForProject) {
       return;
@@ -99,10 +104,15 @@ export const useProjectBootstrap = ({
 
     if (hasTokenInUrl) {
       setShowProjectHub(false);
+      hadProjectRef.current = Boolean(currentProject);
       return;
     }
 
-    setShowProjectHub(!currentProject);
+    const hasProject = Boolean(currentProject);
+    if (hasProject !== hadProjectRef.current) {
+      setShowProjectHub(!hasProject);
+      hadProjectRef.current = hasProject;
+    }
   }, [currentProject, hasCheckedForProject, hasTokenInUrl]);
 
   return {
