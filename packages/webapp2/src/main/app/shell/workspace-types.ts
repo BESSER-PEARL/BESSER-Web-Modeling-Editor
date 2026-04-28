@@ -13,6 +13,8 @@ export type GeneratorType =
   | 'qiskit'
   | 'jsonobject'
   | 'kg_to_class'
-  | 'kg_to_object';
+  | 'kg_to_object'
+  | 'kg_export_owl'
+  | 'kg_export_ttl';
 
 export type GeneratorMenuMode = 'class' | 'object' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'kg' | 'none';

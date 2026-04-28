@@ -91,6 +91,14 @@ const KG_GENERATORS: GeneratorMenuEntry[] = [
       { kind: 'action', label: 'Object Diagram', generator: 'kg_to_object' },
     ],
   },
+  {
+    kind: 'group',
+    label: 'Export Knowledge Graph',
+    actions: [
+      { kind: 'action', label: 'OWL (RDF/XML)', generator: 'kg_export_owl' },
+      { kind: 'action', label: 'Turtle (TTL)', generator: 'kg_export_ttl' },
+    ],
+  },
 ];
 
 const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [{ kind: 'notice', label: 'Not yet available for this diagram' }];

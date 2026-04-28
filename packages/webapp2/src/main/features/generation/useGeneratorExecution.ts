@@ -47,6 +47,7 @@ import {
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
 import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
+import { useExportKgRdf } from '../export/useExportKgRdf';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -378,6 +379,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
   const runKgConversion = useKgToUmlConversion();
+  const exportKgRdf = useExportKgRdf();
 
   const { isQuantumContext, isGuiContext, isObjectContext, isKgContext } = getWorkspaceContext(
     location.pathname,
@@ -536,6 +538,22 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             return { ok: false, error: 'Open a Knowledge Graph diagram before converting to UML.' };
           }
           await runKgConversion(generatorType);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          getPostHog()?.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_type: currentProject.currentDiagramType,
+            ...getModelMetrics(currentProject),
+          });
+          return { ok: true };
+        }
+
+        if (generatorType === 'kg_export_owl' || generatorType === 'kg_export_ttl') {
+          if (!isKgContext) {
+            toast.error('Open a Knowledge Graph diagram before exporting.');
+            return { ok: false, error: 'Open a Knowledge Graph diagram before exporting.' };
+          }
+          const fmt = generatorType === 'kg_export_owl' ? 'owl' : 'ttl';
+          await exportKgRdf(fmt);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           getPostHog()?.capture('generator_used', {
             generator_type: generatorType,
