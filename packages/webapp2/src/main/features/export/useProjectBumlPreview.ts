@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { BesserProject } from '../../shared/types/project';
-import { buildProjectPayloadForBackend } from './utils/projectExportUtils';
+import { buildProjectPayloadForBackend } from '../../shared/utils/projectExportUtils';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 
 export const useProjectBumlPreview = () => {

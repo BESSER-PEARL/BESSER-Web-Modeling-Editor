@@ -31,7 +31,7 @@ const defaultProps = (overrides: Partial<React.ComponentProps<typeof WorkspaceSi
 // ── Tests ────────────────────────────────────────────────────────────────
 
 describe('WorkspaceSidebar', () => {
-  // There are 4 UML items (Class, Object, State, Agent) + 2 non-UML (GUI, Quantum) + 1 Settings route = 7 nav buttons
+  // There are 5 UML items (Class, Object, State, Agent, User) + 2 non-UML (GUI, Quantum) + 1 Settings route = 8 nav buttons
   // Plus the collapse/expand toggle button at the bottom.
 
   it('renders navigation buttons for all diagram types and settings', () => {
@@ -42,6 +42,7 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('Object')).toBeInTheDocument();
     expect(screen.getByText('State')).toBeInTheDocument();
     expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(screen.getByText('User')).toBeInTheDocument();
 
     // Non-UML items
     expect(screen.getByText('GUI')).toBeInTheDocument();
@@ -77,16 +78,16 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('Object')).toBeInTheDocument();
     expect(screen.getByText('State')).toBeInTheDocument();
     expect(screen.getByText('Agent')).toBeInTheDocument();
+    expect(screen.getByText('User')).toBeInTheDocument();
     expect(screen.getByText('GUI')).toBeInTheDocument();
     expect(screen.getByText('Quantum')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('renders GenBadge with correct generator count for ClassDiagram', () => {
+  it('renders Class diagram button with accessible label', () => {
     render(<WorkspaceSidebar {...defaultProps()} />);
 
-    // ClassDiagram has 9 generators
-    expect(screen.getByText('9')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Class' })).toBeInTheDocument();
   });
 
   it('highlights the active UML diagram button', () => {

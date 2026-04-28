@@ -628,10 +628,23 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   <div
+                    role="button"
+                    tabIndex={isBusy ? -1 : 0}
+                    aria-disabled={isBusy}
+                    aria-label="Drop a file or click to browse"
                     className={cn(
-                      'grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center transition-colors',
+                      'grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+                      isBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand/40 hover:bg-brand/[0.04]',
                       isDragging ? 'border-brand/50 bg-brand/[0.06]' : 'border-brand/20',
                     )}
+                    onClick={() => { if (!isBusy) importFileInputRef.current?.click(); }}
+                    onKeyDown={(e) => {
+                      if (isBusy) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        importFileInputRef.current?.click();
+                      }
+                    }}
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
                     onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
                     onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
@@ -639,18 +652,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   >
                     <div className="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/5 blur-2xl" />
                     <Upload className={cn('relative z-[2] mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
-                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">Drop a file here or click below to browse</p>
+                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">Drop a file here or click to browse</p>
                     <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">JSON or Python project files</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => importFileInputRef.current?.click()}
-                    className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 transition-all hover:border-brand/30 hover:bg-brand/[0.04] hover:shadow-elevation-2"
-                    disabled={isBusy}
-                  >
-                    <Upload className="size-4" />
-                    Choose File To Import
-                  </Button>
                 </CardContent>
               </Card>
             </div>

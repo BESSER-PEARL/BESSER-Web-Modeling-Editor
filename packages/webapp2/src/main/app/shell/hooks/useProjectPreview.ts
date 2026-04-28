@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
-import { buildExportableProjectPayload } from '../../../features/export/utils/projectExportUtils';
+import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import { useProjectBumlPreview } from '../../../features/export/useProjectBumlPreview';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { downloadJson, downloadFile, copyToClipboard } from '../../../shared/utils/download';
@@ -36,11 +36,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
     }
 
     const freshProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
-    const exportData = {
-      project: buildExportableProjectPayload(freshProject),
-      exportedAt: new Date().toISOString(),
-      version: '2.0.0',
-    };
+    const exportData = buildProjectExportEnvelope(freshProject);
     setProjectPreviewJson(JSON.stringify(exportData, null, 2));
     setProjectBumlPreview('');
     setProjectBumlPreviewError('');
