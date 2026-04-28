@@ -324,13 +324,24 @@ export function useModelInjection({
               let modifiedModel = currentModel
                 ? JSON.parse(JSON.stringify(currentModel))
                 : {};
+              const appliedActions: string[] = [];
               for (const mod of command.modifications) {
-                if (mod && modifier.canHandle(mod.action)) {
-                  modifiedModel = modifier.applyModification(
-                    modifiedModel,
-                    mod as ModelModification,
+                if (!mod || !mod.action) {
+                  throw new Error('modify_model contains a modification with no action');
+                }
+                if (!modifier.canHandle(mod.action)) {
+                  throw new Error(
+                    `Unsupported modification action '${mod.action}' for ${targetDiagramType}`,
                   );
                 }
+                modifiedModel = modifier.applyModification(
+                  modifiedModel,
+                  mod as ModelModification,
+                );
+                appliedActions.push(mod.action);
+              }
+              if (appliedActions.length === 0) {
+                throw new Error('modify_model did not apply any modifications');
               }
               newModel = modifiedModel;
             } else if (
@@ -341,6 +352,11 @@ export function useModelInjection({
             ) {
               const { ModifierFactory } = await import('../services/modifiers/factory');
               const modifier = ModifierFactory.getModifier(targetDiagramType as any);
+              if (!modifier.canHandle(command.modification.action)) {
+                throw new Error(
+                  `Unsupported modification action '${command.modification.action}' for ${targetDiagramType}`,
+                );
+              }
               const modifiedModel = currentModel
                 ? JSON.parse(JSON.stringify(currentModel))
                 : {};
@@ -352,6 +368,10 @@ export function useModelInjection({
               throw new Error(
                 'modify_model payload is missing required action or target fields',
               );
+            } else {
+              throw new Error(
+                'modify_model payload is missing modifications or modification field',
+              );
             }
             break;
 
@@ -360,8 +380,23 @@ export function useModelInjection({
         }
 
         if (newModel && !applied) {
-          await dispatch(updateDiagramModelThunk({ model: newModel }));
-          dispatch(bumpEditorRevision());
+          // Prefer the modeling service so the live editor stays in sync without
+          // being destroyed and re-created. The editor-reinit path
+          // (bumpEditorRevision) is only used as a fallback when the service
+          // isn't available yet.
+          if (command.action === 'modify_model' && modelingServiceRef.current) {
+            await modelingServiceRef.current.injectToEditor({
+              type: 'modification',
+              data: newModel,
+              message:
+                typeof command.message === 'string' && command.message.trim()
+                  ? command.message
+                  : 'Applied model modification',
+            });
+          } else {
+            await dispatch(updateDiagramModelThunk({ model: newModel }));
+            dispatch(bumpEditorRevision());
+          }
           applied = true;
         }
       }
