@@ -1216,10 +1216,24 @@ export const AgentConfigurationPanel: React.FC = () => {
 
       let transformedModel: unknown;
       try {
-        transformedModel = await apiClient.post<unknown>('/transform-agent-model-json', payload);
+        // 3-minute timeout: personalization runs sequential OpenAI calls
+        // (translation + style + complexity + length), so the default 30s cap
+        // aborts the request while the backend is still working. Worst case
+        // observed at ~2 min for combined transformations on real agents.
+        transformedModel = await apiClient.post<unknown>(
+          '/transform-agent-model-json',
+          payload,
+          { timeout: 180_000 },
+        );
       } catch (err) {
         if (err instanceof ApiError) {
           toast.error(`Failed to transform agent model: ${err.message}`);
+          return;
+        }
+        if (err instanceof DOMException && err.name === 'TimeoutError') {
+          toast.error(
+            'Personalization is taking longer than expected. Try again with a shorter agent or fewer transformations.',
+          );
           return;
         }
         throw err;
