@@ -76,13 +76,14 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   return (
     <>
       {showAgentVariantSelector && (
-        <div className="hidden items-center gap-2 xl:flex">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Variant</span>
+        <div className="hidden min-w-0 shrink items-center gap-1.5 xl:flex 2xl:gap-2">
+          <span className="hidden text-[11px] font-medium uppercase tracking-wide text-muted-foreground 2xl:inline">Variant</span>
           <select
-            className="h-9 min-w-[210px] rounded-md border border-input bg-background px-3 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+            className="h-9 w-[140px] min-w-0 shrink rounded-md border border-input bg-background px-2 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20 2xl:w-[210px] 2xl:px-3"
             value={activeAgentVariantId ?? ''}
             onChange={(event) => onAgentVariantChange?.(event.target.value)}
             aria-label="Select agent model variant"
+            title="Select agent model variant"
           >
             <option value="">Base agent model</option>
             {(agentVariantOptions ?? []).map((option) => (

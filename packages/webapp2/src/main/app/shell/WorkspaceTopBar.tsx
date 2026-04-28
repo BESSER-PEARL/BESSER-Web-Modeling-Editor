@@ -93,7 +93,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 xl:gap-2">
+        <div className="flex min-w-0 items-center gap-1 xl:gap-2">
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}
