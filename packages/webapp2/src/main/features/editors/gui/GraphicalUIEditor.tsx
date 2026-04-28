@@ -462,7 +462,7 @@ function setupProjectStorageIntegration(
   // if a tab switch races with a pending save.
   const initProject = ProjectStorageRepository.getCurrentProject();
   const initDiagramId = initProject
-    ? (initProject.diagrams.GUINoCodeDiagram[initProject.currentDiagramIndices.GUINoCodeDiagram ?? 0]?.id ?? null)
+    ? (initProject.diagrams?.GUINoCodeDiagram?.[initProject.currentDiagramIndices?.GUINoCodeDiagram ?? 0]?.id ?? null)
     : null;
 
   sm.add('remote', {
@@ -529,8 +529,8 @@ function setupProjectStorageIntegration(
 
         // Verify this editor is still for the active GUI diagram to prevent
         // saving stale data to the wrong diagram slot during tab switches.
-        const activeIndex = project.currentDiagramIndices.GUINoCodeDiagram ?? 0;
-        const activeDiagram = project.diagrams.GUINoCodeDiagram[activeIndex];
+        const activeIndex = project.currentDiagramIndices?.GUINoCodeDiagram ?? 0;
+        const activeDiagram = project.diagrams?.GUINoCodeDiagram?.[activeIndex];
         if (activeDiagram && initDiagramId && activeDiagram.id !== initDiagramId) {
           console.warn('[Storage] Editor diagram mismatch — skipping save (stale editor)');
           return;

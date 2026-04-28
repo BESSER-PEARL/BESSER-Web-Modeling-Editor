@@ -154,6 +154,14 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     }
   });
 
+  // Ensure currentDiagramIndices is always present so consumers can index safely
+  const existingIndices = (project as any).currentDiagramIndices ?? {};
+  const indices = allDiagramTypes.reduce((acc, diagramType) => {
+    acc[diagramType] = typeof existingIndices[diagramType] === 'number' ? existingIndices[diagramType] : 0;
+    return acc;
+  }, {} as Record<SupportedDiagramType, number>);
+  (project as any).currentDiagramIndices = indices;
+
   return project;
 }
 
