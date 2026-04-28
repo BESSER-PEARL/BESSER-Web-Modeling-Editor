@@ -46,6 +46,7 @@ import {
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
+import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -376,8 +377,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const { currentProject } = useProject();
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
+  const runKgConversion = useKgToUmlConversion();
 
-  const { isQuantumContext, isGuiContext, isObjectContext } = getWorkspaceContext(
+  const { isQuantumContext, isGuiContext, isObjectContext, isKgContext } = getWorkspaceContext(
     location.pathname,
     currentProject?.currentDiagramType,
   );
@@ -528,6 +530,21 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       try {
         setIsGenerating(true);
 
+        if (generatorType === 'kg_to_class' || generatorType === 'kg_to_object') {
+          if (!isKgContext) {
+            toast.error('Open a Knowledge Graph diagram before converting to UML.');
+            return { ok: false, error: 'Open a Knowledge Graph diagram before converting to UML.' };
+          }
+          await runKgConversion(generatorType);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          getPostHog()?.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_type: currentProject.currentDiagramType,
+            ...getModelMetrics(currentProject),
+          });
+          return { ok: true };
+        }
+
         if (generatorType === 'web_app') {
           // Redux state is kept in sync with localStorage via useStorageSync,
           // so currentProject already has the latest GUI model data.
@@ -662,7 +679,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, ensureGuiForAssistantWebAppGeneration,
+      isQuantumContext, isGuiContext, isObjectContext, isKgContext, runKgConversion,
+      ensureGuiForAssistantWebAppGeneration,
     ],
   );
 

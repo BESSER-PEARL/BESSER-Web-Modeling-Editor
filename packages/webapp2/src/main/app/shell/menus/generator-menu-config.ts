@@ -82,6 +82,17 @@ const QUANTUM_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'action', label: 'Qiskit Code', generator: 'qiskit' },
 ];
 
+const KG_GENERATORS: GeneratorMenuEntry[] = [
+  {
+    kind: 'group',
+    label: 'Convert to B-UML',
+    actions: [
+      { kind: 'action', label: 'Class Diagram', generator: 'kg_to_class' },
+      { kind: 'action', label: 'Object Diagram', generator: 'kg_to_object' },
+    ],
+  },
+];
+
 const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [{ kind: 'notice', label: 'Not yet available for this diagram' }];
 
 export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry[]> = {
@@ -91,5 +102,6 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   agent: AGENT_GENERATORS,
   gui: GUI_GENERATORS,
   quantum: QUANTUM_GENERATORS,
+  kg: KG_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };
