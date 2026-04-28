@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link2, Maximize2, RefreshCcw } from 'lucide-react';
+import { Download, Link2, Maximize2, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /** 'off' = move/select only; 'connect' = click-a-source-then-click-a-target. */
@@ -14,6 +14,7 @@ interface Props {
   edgeCount: number;
   hiddenCount: number;
   onOpenSettings?: () => void;
+  onExportHtml?: () => void;
 }
 
 /** Top-of-canvas toolbar for the KG editor. An explicit "Add Relation" toggle
@@ -28,6 +29,7 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
   edgeCount,
   hiddenCount,
   onOpenSettings,
+  onExportHtml,
 }) => {
   const isConnecting = connectMode === 'connect';
   return (
@@ -59,6 +61,18 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
           <RefreshCcw className="size-3.5" />
           <span className="hidden md:inline">Reset layout</span>
         </Button>
+        {onExportHtml && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 px-2"
+            onClick={onExportHtml}
+            title="Download the current graph as a standalone interactive HTML file"
+          >
+            <Download className="size-3.5" />
+            <span className="hidden md:inline">Export HTML</span>
+          </Button>
+        )}
         <div className="ml-auto text-xs text-muted-foreground">
           {hiddenCount > 0 ? (
             <>

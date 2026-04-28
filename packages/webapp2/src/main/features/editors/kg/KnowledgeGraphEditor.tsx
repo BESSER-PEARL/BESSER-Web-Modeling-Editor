@@ -8,6 +8,7 @@ import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector'
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import { downloadFile } from '../../../shared/utils/download';
 import {
   getActiveDiagram,
   getKgHardLimit,
@@ -48,6 +49,10 @@ function arrayEqual(a: readonly string[], b: readonly string[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
+}
+
+function safeFilename(name: string | undefined): string {
+  return (name ?? '').replace(/[^a-zA-Z0-9_-]/g, '_') || 'knowledge-graph';
 }
 
 /** Top-level Knowledge Graph diagram editor.
@@ -318,6 +323,15 @@ export const KnowledgeGraphEditor: React.FC = () => {
           edgeCount={model.edges.length}
           hiddenCount={hiddenCount}
           onOpenSettings={handleOpenSettings}
+          onExportHtml={() => {
+            const title = currentDiagram?.title ?? 'knowledge-graph';
+            const html = canvasRef.current?.exportHtml(title);
+            if (!html) {
+              toast.error('Could not export the knowledge graph: canvas is not ready.');
+              return;
+            }
+            downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
+          }}
         />
         <div className="relative flex-1">
           <CytoscapeCanvas

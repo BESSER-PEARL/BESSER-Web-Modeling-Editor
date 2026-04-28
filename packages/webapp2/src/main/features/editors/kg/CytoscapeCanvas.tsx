@@ -3,6 +3,7 @@ import cytoscape, { Core, ElementDefinition } from 'cytoscape';
 import edgehandles from 'cytoscape-edgehandles';
 import fcose from 'cytoscape-fcose';
 import { kgStylesheet } from './stylesheet';
+import { buildStandaloneHtml } from './standaloneHtmlTemplate';
 import { KG_DRAG_MIME } from './KnowledgeGraphPalette';
 import type { KnowledgeGraphData, KGNodeData, KGEdgeData, KGNodeType } from './types';
 import type { ConnectMode } from './KnowledgeGraphToolbar';
@@ -287,6 +288,9 @@ export interface CytoscapeCanvasHandle {
    *  overwriting persisted positions. Called when the user changes the
    *  layout setting. */
   relayout: () => void;
+  /** Serialize the live Cytoscape instance into a self-contained HTML
+   *  viewer. Returns null if the instance hasn't initialized yet. */
+  exportHtml: (title: string) => string | null;
 }
 
 interface CytoscapeCanvasProps {
@@ -444,6 +448,20 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         } else {
           runCyLayout(cy, chosen, persist);
         }
+      },
+      exportHtml: (title: string) => {
+        const cy = cyRef.current;
+        if (!cy) return null;
+        // 'grid' is editor-only (handled in JS); the standalone viewer falls
+        // back to fcose when positions are missing, which never happens here
+        // since cy.json() always carries positions for rendered nodes.
+        const layoutForFallback = layoutRef.current === 'grid' ? 'fcose' : layoutRef.current;
+        return buildStandaloneHtml({
+          title,
+          cyJson: cy.json() as Record<string, unknown>,
+          stylesheet: kgStylesheet,
+          fallbackLayout: layoutForFallback,
+        });
       },
     }), []);
 
