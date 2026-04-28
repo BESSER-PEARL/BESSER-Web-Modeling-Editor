@@ -873,6 +873,34 @@ export const AgentConfigurationPanel: React.FC = () => {
     });
   }, [activeConfigId]);
 
+  // Warn before silently replacing an existing user-profile -> agent-config
+  // mapping. A user profile may only be mapped to a single agent configuration
+  // at a time, so saving a *different*-named config against an already-mapped
+  // profile will discard the prior mapping. Returns false when the user
+  // cancels — callers must abort the save in that case.
+  const confirmOverwriteIfProfileCollides = useCallback(async (
+    profile: { id: string; name: string },
+    newConfigName: string,
+  ): Promise<boolean> => {
+    const trimmed = newConfigName.trim();
+    if (!profile.id || !trimmed) return true;
+    const existingMapping = LocalStorageRepository.getAgentProfileConfigurationMappings()
+      .find((entry) => entry.userProfileId === profile.id);
+    if (!existingMapping) {
+      return true;
+    }
+    if (existingMapping.agentConfigurationName.toLowerCase() === trimmed.toLowerCase()) {
+      return true;
+    }
+    return globalConfirm({
+      title: 'Replace existing user profile mapping?',
+      description: `User profile "${profile.name}" is already mapped to configuration "${existingMapping.agentConfigurationName}". Saving will replace that mapping with "${trimmed}".`,
+      confirmLabel: 'Replace',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+    });
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const proceed = await confirmOverwriteIfNameCollides(configurationName);
@@ -1193,6 +1221,12 @@ export const AgentConfigurationPanel: React.FC = () => {
       toast.error('The selected user profile is not available. Please select a valid saved user profile.');
       return;
     }
+
+    const proceedProfileMapping = await confirmOverwriteIfProfileCollides(
+      { id: selectedProfile.id, name: selectedProfile.name },
+      trimmedName,
+    );
+    if (!proceedProfileMapping) return;
 
     const config = getConfigObject();
     const requestConfig: AgentTransformationConfig = buildSparseGenerationConfig(config);
