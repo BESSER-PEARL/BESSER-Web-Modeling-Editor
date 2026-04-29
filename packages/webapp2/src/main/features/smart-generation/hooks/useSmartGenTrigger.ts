@@ -46,7 +46,7 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { BesserProject } from '../../../shared/types/project';
 import { smartGenDownloadUrl } from '../../../shared/constants/constant';
 import { downloadFile } from '../../../shared/utils/download';
-import { buildProjectPayloadForBackend } from '../../export/utils/projectExportUtils';
+import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 
 import {
   beginRun,
