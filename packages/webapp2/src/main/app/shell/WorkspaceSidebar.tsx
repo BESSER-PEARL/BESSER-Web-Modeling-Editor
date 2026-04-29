@@ -4,6 +4,8 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
 import { toSupportedDiagramType } from '../../shared/types/project';
+import { useEnabledPerspectives } from '../../shared/hooks/useEnabledPerspectives';
+import { isDiagramVisible } from '../../shared/perspectives';
 import {
   AGENT_ROUTE_ITEMS,
   NON_UML_EDITOR_ITEMS,
@@ -89,13 +91,23 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
     return map;
   }, [project]);
 
+  const enabledPerspectives = useEnabledPerspectives();
+  const visibleUmlItems = useMemo(
+    () => UML_ITEMS.filter((item) => isDiagramVisible(toSupportedDiagramType(item.type), enabledPerspectives)),
+    [enabledPerspectives],
+  );
+  const visibleNonUmlItems = useMemo(
+    () => NON_UML_EDITOR_ITEMS.filter((item) => isDiagramVisible(item.type, enabledPerspectives)),
+    [enabledPerspectives],
+  );
+
   const isCollapsed = !isSidebarExpanded;
 
   return (
     <TooltipProvider delayDuration={300}>
       <aside className={`${sidebarBaseClass} animate-slide-in-left ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
         {isSidebarExpanded && <p className={sidebarTitleClass}>Editors</p>}
-        {UML_ITEMS.map((item) => {
+        {visibleUmlItems.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
           const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
           const count = countMap[item.type] ?? 0;
@@ -161,7 +173,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
           );
         })}
 
-        {NON_UML_EDITOR_ITEMS.map((item) => {
+        {visibleNonUmlItems.map((item) => {
           const active = locationPath === '/' && activeDiagramType === item.type;
           const count = countMap[item.type] ?? 0;
           const displayLabel = labelWithCount(item.label, count);

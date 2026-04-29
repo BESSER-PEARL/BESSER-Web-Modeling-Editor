@@ -4,8 +4,12 @@ import { Point } from '../../../utils/geometry/point';
 import { ClassRelationshipType } from '../../uml-class-diagram';
 import { UMLAssociation } from './uml-association';
 import { GeneralRelationshipType, UMLRelationshipType } from '../../uml-relationship-type';
-import { ThemedPath, ThemedPathContrast, ThemedPolyline } from '../../../components/theme/themedComponents';
+import { ThemedPath, ThemedPathContrast, ThemedPolygon, ThemedPolyline } from '../../../components/theme/themedComponents';
 import { settingsService } from '../../../services/settings/settings-service';
+import { parseMultiplicity, toERCardinality } from './multiplicity';
+// Re-export so downstream consumers can keep importing these from the
+// association component module.
+export { parseMultiplicity, toERCardinality };
 
 const Marker = {
   Arrow: (id: string, color?: string) => (
@@ -138,11 +142,28 @@ export const getMarkerForTypeForUMLAssociation = (relationshipType: UMLRelations
 };
 
 export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) => {
-  const marker = getMarkerForTypeForUMLAssociation(element.type);
   const isInheritance = element.type === ClassRelationshipType.ClassInheritance;
   // Add special check for OCL Link
   const isLinkRel = element.type === ClassRelationshipType.ClassLinkRel;
   const showAssociationNames = settingsService.shouldShowAssociationNames();
+  const notation = settingsService.getClassNotation();
+  const isER = notation === 'ER';
+
+  // In ER (Chen) mode, replace the UML arrow/rhombus end markers with a named
+  // diamond drawn at the midpoint — but only for the four "plain" binary
+  // associations that have an ER counterpart. Inheritance, realization, OCL,
+  // dependency, and link relationships keep their UML rendering. Using an
+  // explicit allow-list here (instead of excluding types) means new
+  // relationship types won't silently inherit the ER diamond.
+  const ER_DIAMOND_RELATIONSHIP_TYPES: ReadonlyArray<string> = [
+    ClassRelationshipType.ClassBidirectional,
+    ClassRelationshipType.ClassUnidirectional,
+    ClassRelationshipType.ClassAggregation,
+    ClassRelationshipType.ClassComposition,
+  ];
+  const showsERDiamond = isER && ER_DIAMOND_RELATIONSHIP_TYPES.includes(element.type);
+
+  const marker = showsERDiamond ? undefined : getMarkerForTypeForUMLAssociation(element.type);
 
   const stroke = ((type) => {
     switch (type) {
@@ -174,7 +195,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
         markerEnd={`url(#${id})`}
         strokeDasharray={stroke}
       />
-      {showAssociationNames && element.name && !isInheritance && !isLinkRel && (
+      {showAssociationNames && element.name && !isInheritance && !isLinkRel && !showsERDiamond && (
         <text
           x={middle.x || 0}
           y={middle.y || 0}
@@ -186,6 +207,31 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
           {element.name}
         </text>
       )}
+      {showsERDiamond && (
+        <g
+          transform={`translate(${middle.x || 0} ${middle.y || 0})`}
+          pointerEvents="none"
+          data-testid="er-relationship-diamond"
+        >
+          <ThemedPolygon
+            points="-30,0 0,-15 30,0 0,15"
+            fillColor={element.fillColor}
+            strokeColor={element.strokeColor}
+            strokeWidth={1}
+          />
+          {element.name && (
+            <text
+              x={0}
+              y={0}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              style={{ ...textFill, fontSize: '11px' }}
+            >
+              {element.name}
+            </text>
+          )}
+        </g>
+      )}
       {!isInheritance && !isLinkRel && (
         <>
           <text
@@ -195,7 +241,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
             pointerEvents="none"
             style={{ ...textFill }}
           >
-            {element.source.multiplicity}
+            {isER ? toERCardinality(element.source.multiplicity) : element.source.multiplicity}
           </text>
           <text
             x={target.x || 0}
@@ -204,7 +250,7 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
             pointerEvents="none"
             style={{ ...textFill }}
           >
-            {element.target.multiplicity}
+            {isER ? toERCardinality(element.target.multiplicity) : element.target.multiplicity}
           </text>
           <text
             x={source.x || 0}

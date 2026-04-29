@@ -34,6 +34,11 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenProjectPreview,
   onGenerate,
   onQualityCheck,
+  qualityCheckState,
+  showAgentVariantSelector,
+  agentVariantOptions,
+  activeAgentVariantId,
+  onAgentVariantChange,
   onToggleTheme,
   onGitHubLogin,
   onGitHubLogout,
@@ -88,7 +93,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 xl:gap-2">
+        <div className="flex min-w-0 items-center gap-1 xl:gap-2">
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}
@@ -135,7 +140,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             githubLoading={githubLoading}
             hasStarred={hasStarred}
             starLoading={starLoading}
+            qualityCheckState={qualityCheckState}
             onQualityCheck={onQualityCheck}
+            showAgentVariantSelector={showAgentVariantSelector}
+            agentVariantOptions={agentVariantOptions}
+            activeAgentVariantId={activeAgentVariantId}
+            onAgentVariantChange={onAgentVariantChange}
             onToggleTheme={onToggleTheme}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}

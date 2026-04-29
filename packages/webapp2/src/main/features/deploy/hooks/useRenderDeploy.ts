@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { useGitHubRepo, GitHubRepoResult, CreateRepoOptions, GitHubDeploymentUrls } from '../../github/hooks/useGitHubRepo';
+import { useGitHubRepo, CreateRepoOptions, DeploymentTarget, GitHubDeploymentUrls } from '../../github/hooks/useGitHubRepo';
+import type { BesserProject } from '../../../shared/types/project';
 
 // Re-exported under the old name so existing imports keep working.
 export type RenderDeploymentUrls = GitHubDeploymentUrls;
@@ -13,6 +14,10 @@ export interface DeployToRenderResult {
   files_uploaded: number;
   message: string;
   is_first_deploy: boolean;
+  // Deployment flavor returned by backend (``webapp`` or ``agent``). Surfaced
+  // here so consumers like ``DeployResultDialog`` can branch their copy/UI on
+  // standalone-agent vs webapp deploys.
+  deployment_type?: DeploymentTarget;
 }
 
 /**
@@ -43,7 +48,7 @@ export const useRenderDeploy = () => {
    */
   const deployToRender = useCallback(
     async (
-      projectData: any,
+      projectData: BesserProject,
       options: CreateRepoOptions
     ): Promise<DeployToRenderResult | null> => {
       console.log('Starting Render deployment via GitHub...');
@@ -71,6 +76,7 @@ export const useRenderDeploy = () => {
           files_uploaded: repoResult.files_uploaded,
           message: repoResult.message,
           is_first_deploy: repoResult.is_first_deploy,
+          deployment_type: repoResult.deployment_type,
         };
 
         setDeploymentResult(result);

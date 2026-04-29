@@ -1,4 +1,39 @@
 /**
+ * Rendering flavor for class diagrams.
+ * - 'UML' (default) — standard UML class notation
+ * - 'ER' — Chen-style entity-relationship flavor (rendering-only; no metamodel change)
+ */
+export type ClassNotation = 'UML' | 'ER';
+
+/**
+ * Use-case modeling perspectives that can be toggled on/off in settings.
+ * Each perspective bundles a set of diagram types and generators; a diagram
+ * or generator is visible whenever at least one enabled perspective lists
+ * it (perspectives may share diagrams — e.g. ClassDiagram appears in data
+ * modeling, database, web applications, and state machines).
+ */
+export type ModelingPerspective =
+  | 'dataModeling'
+  | 'database'
+  | 'webApplication'
+  | 'agent'
+  | 'stateMachine'
+  | 'userModeling'
+  | 'quantum';
+
+export const MODELING_PERSPECTIVES: ModelingPerspective[] = [
+  'dataModeling',
+  'database',
+  'webApplication',
+  'agent',
+  'stateMachine',
+  'userModeling',
+  'quantum',
+];
+
+export type EnabledPerspectives = Record<ModelingPerspective, boolean>;
+
+/**
  * Interface for application settings
  */
 export interface IApplicationSettings {
@@ -10,10 +45,24 @@ export interface IApplicationSettings {
   showAssociationNames: boolean;
   /** Whether to use the right-side properties panel instead of the floating popover */
   usePropertiesPanel: boolean;
+  /** Rendering flavor for class diagrams */
+  classNotation: ClassNotation;
+  /** Which modeling perspectives are enabled (visible in the workspace) */
+  enabledPerspectives: EnabledPerspectives;
   /** Other settings can be added here */
   // theme: 'light' | 'dark';
   // autoSave: boolean;
 }
+
+const DEFAULT_ENABLED_PERSPECTIVES: EnabledPerspectives = {
+  dataModeling: true,
+  database: true,
+  webApplication: true,
+  agent: true,
+  stateMachine: true,
+  userModeling: true,
+  quantum: true,
+};
 
 /**
  * Default settings configuration
@@ -23,6 +72,8 @@ export const DEFAULT_SETTINGS: IApplicationSettings = {
   showIconView: false, // Default to false to hide class icons
   showAssociationNames: false, // Default to false to hide association names
   usePropertiesPanel: true, // Default to true to use the right-side properties panel
+  classNotation: 'UML', // Default to UML notation for class diagrams
+  enabledPerspectives: { ...DEFAULT_ENABLED_PERSPECTIVES },
 };
 
 /**
@@ -73,8 +124,20 @@ export class SettingsService implements ISettingsService {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsedSettings = JSON.parse(stored);
-        // Merge with defaults to ensure all properties exist
-        return { ...DEFAULT_SETTINGS, ...parsedSettings };
+        // Only carry through known perspective keys — drops any legacy keys
+        // from previous shapes of this setting.
+        const storedPerspectives = parsedSettings?.enabledPerspectives ?? {};
+        const enabledPerspectives = { ...DEFAULT_ENABLED_PERSPECTIVES };
+        for (const key of MODELING_PERSPECTIVES) {
+          if (typeof storedPerspectives[key] === 'boolean') {
+            enabledPerspectives[key] = storedPerspectives[key];
+          }
+        }
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsedSettings,
+          enabledPerspectives,
+        };
       }
     } catch (error) {
       console.warn('Failed to load settings from localStorage:', error);
@@ -185,6 +248,38 @@ export class SettingsService implements ISettingsService {
    */
   shouldUsePropertiesPanel(): boolean {
     return this.settings.usePropertiesPanel;
+  }
+
+  /**
+   * Get the current class-diagram rendering notation
+   */
+  getClassNotation(): ClassNotation {
+    return this.settings.classNotation;
+  }
+
+  /**
+   * Get the map of enabled modeling perspectives.
+   * ClassDiagram is always implicitly enabled and is not part of this map.
+   */
+  getEnabledPerspectives(): EnabledPerspectives {
+    return { ...this.settings.enabledPerspectives };
+  }
+
+  /**
+   * Whether a given modeling perspective is enabled.
+   * The data-modeling perspective is always considered enabled and is not
+   * tracked here.
+   */
+  isPerspectiveEnabled(perspective: ModelingPerspective): boolean {
+    return this.settings.enabledPerspectives[perspective] !== false;
+  }
+
+  /**
+   * Toggle a single modeling perspective. Persists and notifies listeners.
+   */
+  setPerspectiveEnabled(perspective: ModelingPerspective, enabled: boolean): void {
+    const next = { ...this.settings.enabledPerspectives, [perspective]: enabled };
+    this.updateSetting('enabledPerspectives', next);
   }
 }
 

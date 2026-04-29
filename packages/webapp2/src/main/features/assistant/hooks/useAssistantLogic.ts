@@ -115,7 +115,7 @@ export interface UseAssistantLogicReturn {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const UML_DIAGRAM_TYPES = new Set(['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram']);
+const UML_DIAGRAM_TYPES = new Set(['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram']);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
 
 const createMessageId = (): string => {

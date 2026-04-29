@@ -50,6 +50,20 @@ export const localStorageAgentConfigurations = localStoragePrefix + 'agentConfig
 export const localStorageAgentProfileMappings = localStoragePrefix + 'agentProfileMappings';
 export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentActiveConfig';
 export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
+/**
+ * @deprecated since v7.3.0 — kept for the cleanup migration only. Agent
+ * runtime config (platform, intent-recognition technology, LLM
+ * provider/model) now lives on the agent diagram itself
+ * (`AgentDiagram.config`). The v3 storage migration deletes this top-level
+ * key when present; do not read or write it.
+ */
+export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
+
+// per-project deploy linkage (suffix: `<projectId>_<target>`)
+export const localStorageDeployLinkedRepoPrefix = localStoragePrefix + 'deploy_linked_';
+
+// external service URLs
+export const RENDER_DEPLOY_URL_BASE = 'https://render.com/deploy';
 
 // feature flags
 export const SHOW_FULL_AGENT_CONFIGURATION = false;

@@ -8,6 +8,7 @@ export type DiagramType =
   | 'ObjectDiagram'
   | 'StateMachineDiagram'
   | 'AgentDiagram'
+  | 'UserDiagram'
   | 'QuantumCircuitDiagram'
   | 'GUINoCodeDiagram';
 

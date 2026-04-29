@@ -4,6 +4,7 @@ import { UMLObjectName } from './uml-object-name';
 import { ThemedPath, ThemedRect } from '../../../components/theme/themedComponents';
 import { diagramBridge } from '../../../services/diagram-bridge/diagram-bridge-service';
 import { settingsService } from '../../../services/settings/settings-service';
+import { UserModelElementType } from '../../user-modeling';
 
 export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   // Helper function to get the class name from the classId
@@ -17,20 +18,24 @@ export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, chil
   };
 
   const className = getClassName();
+  const isUserModelElement = element.type === (UserModelElementType as any).UserModelName;
+  const displayLabel = isUserModelElement
+    ? (className || element.className || element.name)
+    : `${element.name}${className ? ` : ${className}` : ''}`;
   
   // Check if we should show icon view or normal view
   const shouldShowIconView = settingsService.shouldShowIconView();
 
   if (shouldShowIconView) {
-    return renderIconView(element, children, fillColor, className);
+    return renderIconView(element, children, fillColor, displayLabel);
   } else {
-    return renderNormalView(element, children, fillColor, className);
+    return renderNormalView(element, children, fillColor, displayLabel);
   }
 };
 
-const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, className?: string) => {
+const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   const clipId = `clip-${element.id}`;
-  const displayText = `${element.name}${className ? ` : ${className}` : ''}`;
+  const displayText = displayLabel || element.name;
   // Left-align long text so the beginning is always visible
   const textFitsBox = displayText.length * 8 < element.bounds.width;
   return (
@@ -72,9 +77,9 @@ const renderIconView = (element: UMLObjectName, children: React.ReactNode, fillC
   );
 };
 
-const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, className?: string) => {
+const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fillColor?: string, displayLabel?: string) => {
   const clipId = `clip-${element.id}`;
-  const displayText = `${element.name}${className ? ` : ${className}` : ''}`;
+  const displayText = displayLabel || element.name;
   const textFitsBox = displayText.length * 8 < element.bounds.width;
   return (
     <g>

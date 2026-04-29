@@ -21,7 +21,7 @@ import { RootContext, RootProvider } from '../components/root/root-context';
 import { UMLModel } from '../typings';
 import { Patcher } from '../services/patcher';
 import { MouseEventListener } from '../components/canvas/mouse-eventlistener';
-import { settingsService } from '../services/settings/settings-service';
+import { settingsService, ClassNotation } from '../services/settings/settings-service';
 
 type Props = {
   patcher: Patcher<UMLModel>;
@@ -34,12 +34,14 @@ type State = {
   canvas: ILayer | null;
   root: HTMLDivElement | null;
   usePropertiesPanel: boolean;
+  classNotation: ClassNotation;
 };
 
 const initialState: State = Object.freeze({
   canvas: null,
   root: null,
   usePropertiesPanel: settingsService.shouldUsePropertiesPanel(),
+  classNotation: settingsService.getClassNotation(),
 });
 
 export class Application extends React.Component<Props, State> {
@@ -55,7 +57,10 @@ export class Application extends React.Component<Props, State> {
 
   componentDidMount() {
     this.unsubscribeSettings = settingsService.onSettingsChange((settings) => {
-      this.setState({ usePropertiesPanel: settings.usePropertiesPanel });
+      this.setState({
+        usePropertiesPanel: settings.usePropertiesPanel,
+        classNotation: settings.classNotation,
+      });
     });
   }
 

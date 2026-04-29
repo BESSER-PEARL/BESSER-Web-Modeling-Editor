@@ -4,14 +4,15 @@ import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Menu, X } from 'lucide-react';
 import { useProject } from '../hooks/useProject';
-import { toUMLDiagramType, type SupportedDiagramType } from '../../shared/types/project';
+import { getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } from '../store/workspaceSlice';
+import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } from '../store/workspaceSlice';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
 import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
-import { buildExportableProjectPayload } from '../../features/export/utils/projectExportUtils';
+import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
   besserMainRepositoryLink,
@@ -35,6 +36,9 @@ import { useAssistantImport } from './hooks/useAssistantImport';
 import { useProjectPreview } from './hooks/useProjectPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
+import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
+import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+import type { AgentVariantOption } from './topbar-types';
 
 // Lazy-loaded heavy panels and dialogs (only fetched when opened)
 const GitHubSidebar = React.lazy(() =>
@@ -54,6 +58,8 @@ const HelpGuideDialog = React.lazy(() =>
 // mixed static/dynamic import warning (the module is already in this chunk).
 import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../shared/dialogs/KeyboardShortcutsDialog';
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
+import { useEnabledPerspectives } from '../../shared/hooks/useEnabledPerspectives';
+import { isDiagramVisible } from '../../shared/perspectives';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -84,13 +90,75 @@ interface WorkspaceShellProps {
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onGenerate: (type: GeneratorType) => void;
-  onQualityCheck: () => void;
+  onQualityCheck: () => Promise<QualityCheckResult>;
   showQualityCheck?: boolean;
   generatorMode: GeneratorMenuMode;
   isGenerating?: boolean;
   onAssistantGenerate?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   onboarding?: OnboardingHook;
 }
+
+interface UserModelValidationRecord {
+  validatedAt: string;
+  outcome: 'valid' | 'errors';
+  modelFingerprint: string | null;
+}
+
+interface AgentModelVariantSnapshot {
+  id: string;
+  profileId: string;
+  profileName: string;
+  configurationId: string;
+  configurationName: string;
+  createdAt: string;
+  model: unknown;
+}
+
+const createModelFingerprint = (model: unknown): string | null => {
+  if (model === undefined || model === null) {
+    return null;
+  }
+
+  try {
+    return JSON.stringify(model);
+  } catch {
+    return null;
+  }
+};
+
+const isModelEmpty = (model: unknown): boolean => {
+  if (!model || typeof model !== 'object') {
+    return true;
+  }
+  const { elements, relationships } = model as {
+    elements?: Record<string, unknown>;
+    relationships?: Record<string, unknown>;
+  };
+  const hasElements = !!elements && Object.keys(elements).length > 0;
+  const hasRelationships = !!relationships && Object.keys(relationships).length > 0;
+  return !hasElements && !hasRelationships;
+};
+
+const readAgentVariants = (diagram: ProjectDiagram | null | undefined): AgentModelVariantSnapshot[] => {
+  const raw = (diagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw.filter((entry): entry is AgentModelVariantSnapshot => {
+    if (!entry || typeof entry !== 'object') {
+      return false;
+    }
+    const variant = entry as Partial<AgentModelVariantSnapshot>;
+    return (
+      typeof variant.id === 'string' &&
+      typeof variant.profileName === 'string' &&
+      typeof variant.configurationName === 'string' &&
+      typeof variant.createdAt === 'string' &&
+      Boolean(variant.model)
+    );
+  });
+};
 
 export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   children,
@@ -128,6 +196,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
   const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
+  const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
 
   // Derived values
   const activeUmlType = useMemo(
@@ -155,15 +224,21 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     useExistingRepo,
     linkedRepo,
     commitMessage,
+    deploymentTarget,
+    availableDeployTargets,
     isDeployingToRender,
     deploymentResult,
+    includePersonalization,
+    showPersonalizationOption,
     setIsDeployDialogOpen,
     setIsDeployResultOpen,
     setGithubRepoName,
     setGithubRepoDescription,
     setGithubRepoPrivate,
     setCommitMessage,
+    setIncludePersonalization,
     handleOpenDeployDialog,
+    handleDeploymentTargetChange,
     handlePublishToRender,
     handleCreateNewInstead,
   } = useDeployment({ currentProject, isDeploymentAvailable });
@@ -256,11 +331,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           toast.error(`B-UML export failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       } else {
-        const exportData = {
-          project: buildExportableProjectPayload(freshProject),
-          exportedAt: new Date().toISOString(),
-          version: '2.0.0',
-        };
+        const exportData = buildProjectExportEnvelope(freshProject);
         const projectName = sanitizeRepoName(project.name || 'project') || 'project';
         downloadJson(exportData, `${projectName}_export.json`);
         toast.success('Project exported as JSON.');
@@ -315,14 +386,114 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     navigate(path);
   }, [navigate]);
 
-  const handleSwitchDiagramType = useCallback((type: SupportedDiagramType) => {
+  const getUserModelValidationStatus = useCallback((targetDiagram: ProjectDiagram | null | undefined): QualityCheckState => {
+    if (!targetDiagram?.id) {
+      return 'not_validated';
+    }
+
+    const record = userModelValidationByDiagramId[targetDiagram.id];
+    if (!record) {
+      return 'not_validated';
+    }
+
+    const currentFingerprint = createModelFingerprint(targetDiagram.model);
+    if (record.modelFingerprint !== currentFingerprint) {
+      return 'stale';
+    }
+
+    // If we have a stable model fingerprint match, consider the validation current.
+    if (record.modelFingerprint !== null || currentFingerprint !== null) {
+      return record.outcome;
+    }
+
+    const diagramUpdatedAt = Date.parse(targetDiagram.lastUpdate || '');
+    const validatedAt = Date.parse(record.validatedAt);
+    if (!Number.isNaN(diagramUpdatedAt) && !Number.isNaN(validatedAt) && diagramUpdatedAt > validatedAt) {
+      return 'stale';
+    }
+
+    return record.outcome;
+  }, [userModelValidationByDiagramId]);
+
+  const handleTrackedQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
+    const result = await onQualityCheck();
+    if (result.executed && currentProject?.currentDiagramType === 'UserDiagram' && diagram?.id) {
+      const modelFingerprint = createModelFingerprint(diagram.model);
+      setUserModelValidationByDiagramId((previous) => ({
+        ...previous,
+        [diagram.id]: {
+          validatedAt: new Date().toISOString(),
+          outcome: result.passed ? 'valid' : 'errors',
+          modelFingerprint,
+        },
+      }));
+    }
+    return result;
+  }, [onQualityCheck, currentProject?.currentDiagramType, diagram?.id, diagram?.model]);
+
+  const ensureUserModelValidationBeforeNavigation = useCallback(async (): Promise<boolean> => {
+    if (currentProject?.currentDiagramType !== 'UserDiagram' || !diagram) {
+      return true;
+    }
+
+    if (isModelEmpty(diagram.model)) {
+      return true;
+    }
+
+    const status = getUserModelValidationStatus(diagram);
+    if (status === 'valid') {
+      return true;
+    }
+
+    const shouldValidate = await globalConfirm({
+      title: 'Validate your models before going to the next task',
+      description: 'This User Model has not been validated after your latest changes.',
+      confirmLabel: 'Validate models',
+      cancelLabel: 'Ignore',
+    });
+
+    if (!shouldValidate) {
+      return true;
+    }
+
+    const result = await handleTrackedQualityCheck();
+    if (!result.executed) {
+      return false;
+    }
+
+    if (result.passed) {
+      return true;
+    }
+
+    const confirmLeaveWithIssues = await globalConfirm({
+      title: 'There are issues with your diagram, you still want to leave this model?',
+      description: 'Quality check found errors. You can stay to fix them or leave this model anyway.',
+      confirmLabel: 'Leave model',
+      cancelLabel: 'Stay',
+      variant: 'danger',
+    });
+
+    return confirmLeaveWithIssues;
+  }, [currentProject?.currentDiagramType, diagram, getUserModelValidationStatus, handleTrackedQualityCheck]);
+
+  const handleSwitchDiagramType = useCallback(async (type: SupportedDiagramType) => {
+    const canProceed = await ensureUserModelValidationBeforeNavigation();
+    if (!canProceed) {
+      return;
+    }
+
     if (location.pathname !== '/') {
       navigate('/');
     }
     dispatch(switchDiagramTypeThunk({ diagramType: type }));
-  }, [location.pathname, navigate, dispatch]);
+  }, [location.pathname, navigate, dispatch, ensureUserModelValidationBeforeNavigation]);
 
-  const handleSwitchUml = useCallback((type: UMLDiagramType) => {
+  const handleSwitchUml = useCallback(async (type: UMLDiagramType) => {
+    const canProceed = await ensureUserModelValidationBeforeNavigation();
+    if (!canProceed) {
+      return;
+    }
+
     if (location.pathname !== '/') {
       navigate('/');
     }
@@ -331,23 +502,137 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       return;
     }
     switchDiagramType(type);
-  }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType]);
+  }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType, ensureUserModelValidationBeforeNavigation]);
 
   // Wrappers that close mobile drawer after navigating
   const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
-    handleSwitchUml(type);
+    void handleSwitchUml(type);
     setIsMobileDrawerOpen(false);
   }, [handleSwitchUml]);
 
   const handleMobileSwitchDiagramType = useCallback((type: SupportedDiagramType) => {
-    handleSwitchDiagramType(type);
+    void handleSwitchDiagramType(type);
     setIsMobileDrawerOpen(false);
   }, [handleSwitchDiagramType]);
 
-  const handleMobileNavigate = useCallback((path: string) => {
+  const handleSafeNavigate = useCallback(async (path: string) => {
+    const canProceed = await ensureUserModelValidationBeforeNavigation();
+    if (!canProceed) {
+      return;
+    }
     handleNavigate(path);
+  }, [ensureUserModelValidationBeforeNavigation, handleNavigate]);
+
+  const handleMobileNavigate = useCallback((path: string) => {
+    void handleSafeNavigate(path);
     setIsMobileDrawerOpen(false);
-  }, [handleNavigate]);
+  }, [handleSafeNavigate]);
+
+  const userModelValidationStatusById = useMemo(() => {
+    const statuses: Record<string, QualityCheckState> = {};
+    const userDiagrams = currentProject?.diagrams?.UserDiagram ?? [];
+    for (const userDiagram of userDiagrams) {
+      statuses[userDiagram.id] = getUserModelValidationStatus(userDiagram);
+    }
+    return statuses;
+  }, [currentProject?.diagrams?.UserDiagram, getUserModelValidationStatus]);
+
+  const activeQualityCheckState = currentProject?.currentDiagramType === 'UserDiagram' && diagram
+    ? getUserModelValidationStatus(diagram)
+    : undefined;
+
+  const activeAgentVariantId = useMemo(() => {
+    if (currentProject?.currentDiagramType !== 'AgentDiagram') {
+      return '';
+    }
+
+    const rawValue = (diagram?.config as Record<string, unknown> | undefined)?.activePersonalizedVariantId;
+    return typeof rawValue === 'string' ? rawValue : '';
+  }, [currentProject?.currentDiagramType, diagram?.config]);
+
+  const agentVariantOptions = useMemo<AgentVariantOption[]>(() => {
+    if (currentProject?.currentDiagramType !== 'AgentDiagram') {
+      return [];
+    }
+
+    return readAgentVariants(diagram).map((variant) => ({
+      id: variant.id,
+      label: `${variant.profileName} (${variant.configurationName})`,
+      description: `Created ${new Date(variant.createdAt).toLocaleString()}`,
+    }));
+  }, [currentProject?.currentDiagramType, diagram]);
+
+  const handleAgentVariantChange = useCallback(async (variantId: string) => {
+    if (currentProject?.currentDiagramType !== 'AgentDiagram' || !currentProject || !diagram?.id) {
+      return;
+    }
+
+    const latestProjectSnapshot = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+    const agentIndex = latestProjectSnapshot.currentDiagramIndices.AgentDiagram ?? 0;
+    const activeAgentDiagram = latestProjectSnapshot.diagrams.AgentDiagram[agentIndex] || getActiveDiagram(latestProjectSnapshot, 'AgentDiagram') || diagram;
+    const currentConfigRecord = (activeAgentDiagram.config ?? {}) as Record<string, unknown>;
+
+    try {
+      if (!variantId) {
+        const baseModel = LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id);
+        if (!baseModel) {
+          toast.error('No base model available for this agent tab yet.');
+          return;
+        }
+
+        const success = ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+          ...activeAgentDiagram,
+          model: structuredClone(baseModel),
+          config: {
+            ...currentConfigRecord,
+            activePersonalizedVariantId: null,
+          },
+        }, agentIndex);
+
+        if (!success) {
+          throw new Error('Could not persist base variant switch.');
+        }
+
+        await dispatch(refreshProjectStateThunk()).unwrap();
+        dispatch(bumpEditorRevision());
+        toast.success('Switched to base agent model.');
+        return;
+      }
+
+      const selectedVariant = readAgentVariants(activeAgentDiagram).find((variant) => variant.id === variantId);
+      if (!selectedVariant || !isUMLModel(selectedVariant.model) || selectedVariant.model.type !== UMLDiagramType.AgentDiagram) {
+        toast.error('Selected variant is no longer available.');
+        return;
+      }
+
+      const variantModel = structuredClone(selectedVariant.model);
+
+      const success = ProjectStorageRepository.updateDiagram(currentProject.id, 'AgentDiagram', {
+        ...activeAgentDiagram,
+        model: variantModel,
+        config: {
+          ...currentConfigRecord,
+          activePersonalizedVariantId: variantId,
+        },
+      }, agentIndex);
+
+      if (!success) {
+        throw new Error('Could not persist personalized variant switch.');
+      }
+
+      await dispatch(refreshProjectStateThunk()).unwrap();
+      dispatch(bumpEditorRevision());
+      toast.success(`Switched to ${selectedVariant.profileName} variant.`);
+    } catch (error) {
+      console.error('Failed to switch agent variant:', error);
+      const message = error instanceof Error ? error.message : 'Failed to switch agent model variant.';
+      toast.error(message);
+    }
+  }, [currentProject, diagram, dispatch]);
+
+  const handleRequestTabSwitch = useCallback(async (): Promise<boolean> => {
+    return ensureUserModelValidationBeforeNavigation();
+  }, [ensureUserModelValidationBeforeNavigation]);
 
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
     // Navigate to editor view if on a different page
@@ -422,7 +707,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
   };
 
-  // Command palette actions
+  // Command palette actions (filter by enabled modeling perspectives)
+  const enabledPerspectives = useEnabledPerspectives();
   const commandPaletteActions = useMemo(
     () =>
       buildDefaultActions({
@@ -432,12 +718,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onSwitchToGUIEditor: () => handleSwitchDiagramType('GUINoCodeDiagram'),
         onSwitchToAgentDiagram: () => handleSwitchUml(UMLDiagramType.AgentDiagram),
         onSwitchToQuantumCircuit: () => handleSwitchDiagramType('QuantumCircuitDiagram'),
-        onGoToSettings: () => handleNavigate('/project-settings'),
+        onGoToSettings: () => {
+          void handleSafeNavigate('/project-settings');
+        },
         onExportJSON: () => onExportProject(),
         onExportBUML: () => onExportProject(),
-        onQualityCheck,
+        onQualityCheck: () => {
+          void handleTrackedQualityCheck();
+        },
+        isDiagramVisible: (type) => isDiagramVisible(type, enabledPerspectives),
       }),
-    [handleSwitchUml, handleSwitchDiagramType, handleNavigate, onExportProject, onQualityCheck],
+    [handleSwitchUml, handleSwitchDiagramType, handleSafeNavigate, onExportProject, handleTrackedQualityCheck, enabledPerspectives],
   );
 
   return (
@@ -465,7 +756,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
         onOpenProjectPreview={handleOpenProjectPreview}
         onGenerate={onGenerate}
-        onQualityCheck={onQualityCheck}
+        onQualityCheck={handleTrackedQualityCheck}
+        qualityCheckState={activeQualityCheckState}
+        showAgentVariantSelector={currentProject?.currentDiagramType === 'AgentDiagram'}
+        agentVariantOptions={agentVariantOptions}
+        activeAgentVariantId={activeAgentVariantId}
+        onAgentVariantChange={handleAgentVariantChange}
         onToggleTheme={handleToggleTheme}
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
@@ -480,9 +776,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenKeyboardShortcuts={openKeyboardShortcuts}
         onShowWelcomeGuide={onboarding?.startTutorial}
         activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-        onSwitchUml={handleSwitchUml}
-        onSwitchDiagramType={handleSwitchDiagramType}
-        onNavigate={handleNavigate}
+        onSwitchUml={(type) => {
+          void handleSwitchUml(type);
+        }}
+        onSwitchDiagramType={(type) => {
+          void handleSwitchDiagramType(type);
+        }}
+        onNavigate={(path) => {
+          void handleSafeNavigate(path);
+        }}
         projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}
         onProjectRename={handleProjectRename}
@@ -562,14 +864,25 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           activeUmlType={activeUmlType}
           activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
           project={currentProject}
-          onSwitchUml={handleSwitchUml}
-          onSwitchDiagramType={handleSwitchDiagramType}
-          onNavigate={handleNavigate}
+          onSwitchUml={(type) => {
+            void handleSwitchUml(type);
+          }}
+          onSwitchDiagramType={(type) => {
+            void handleSwitchDiagramType(type);
+          }}
+          onNavigate={(path) => {
+            void handleSafeNavigate(path);
+          }}
           onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          {location.pathname === '/' && <DiagramTabs />}
+          {location.pathname === '/' && (
+            <DiagramTabs
+              onRequestTabSwitch={handleRequestTabSwitch}
+              userModelValidationStatusById={userModelValidationStatusById}
+            />
+          )}
           <div className="relative min-h-0 flex-1 overflow-hidden">{children}</div>
 
           {/* Onboarding checklist - fixed bottom-right */}
@@ -639,7 +952,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       <JsonViewerModal
         isVisible={isProjectPreviewOpen}
         jsonData={projectPreviewJson}
-        diagramType="Project (V2.0.0)"
+        diagramType={`Project (V${PROJECT_EXPORT_VERSION})`}
         onClose={handleCloseProjectPreview}
         onCopy={handleCopyProjectPreview}
         onDownload={handleDownloadProjectPreview}
@@ -672,11 +985,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         useExistingRepo={useExistingRepo}
         linkedRepo={linkedRepo}
         commitMessage={commitMessage}
+        deploymentTarget={deploymentTarget}
+        availableTargets={availableDeployTargets}
+        includePersonalization={includePersonalization}
+        showPersonalizationOption={showPersonalizationOption}
         onOpenChange={setIsDeployDialogOpen}
+        onDeploymentTargetChange={handleDeploymentTargetChange}
         onRepoNameChange={setGithubRepoName}
         onRepoDescriptionChange={setGithubRepoDescription}
         onRepoPrivateChange={setGithubRepoPrivate}
         onCommitMessageChange={setCommitMessage}
+        onIncludePersonalizationChange={setIncludePersonalization}
         onCreateNewInstead={handleCreateNewInstead}
         onPublish={() => { handlePublishToRender().catch(console.error); }}
       />

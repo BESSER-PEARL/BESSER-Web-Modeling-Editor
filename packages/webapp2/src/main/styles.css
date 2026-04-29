@@ -125,7 +125,8 @@ select {
 }
 
 #gjs {
-  min-height: calc(100vh - var(--app-shell-topbar-height));
+  min-height: 0;
+  height: 100%;
 }
 
 /* ---- Grain / noise texture overlay utility ---- */
