@@ -69,6 +69,12 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
     description: 'Quantum circuits for Qiskit code generation',
     diagrams: ['QuantumCircuitDiagram'],
   },
+  {
+    key: 'neuralNetwork',
+    label: 'Neural Networks',
+    description: 'Design neural network architectures (PyTorch, TensorFlow code generation)',
+    diagrams: ['NNDiagram'],
+  },
 ];
 
 /**

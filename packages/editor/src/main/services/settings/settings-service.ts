@@ -19,7 +19,8 @@ export type ModelingPerspective =
   | 'agent'
   | 'stateMachine'
   | 'userModeling'
-  | 'quantum';
+  | 'quantum'
+  | 'neuralNetwork';
 
 export const MODELING_PERSPECTIVES: ModelingPerspective[] = [
   'dataModeling',
@@ -29,6 +30,7 @@ export const MODELING_PERSPECTIVES: ModelingPerspective[] = [
   'stateMachine',
   'userModeling',
   'quantum',
+  'neuralNetwork',
 ];
 
 export type EnabledPerspectives = Record<ModelingPerspective, boolean>;
@@ -62,6 +64,7 @@ const DEFAULT_ENABLED_PERSPECTIVES: EnabledPerspectives = {
   stateMachine: true,
   userModeling: true,
   quantum: true,
+  neuralNetwork: true,
 };
 
 /**
