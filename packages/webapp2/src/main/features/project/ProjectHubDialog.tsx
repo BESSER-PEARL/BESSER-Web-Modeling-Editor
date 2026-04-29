@@ -5,6 +5,7 @@ import {
   CalendarDays,
   FileSpreadsheet,
   FolderOpen,
+  Layers3,
   Plus,
   Sparkles,
   Trash2,
@@ -611,6 +612,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   </CardContent>
                 </Card>
               </div>
+
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Layers3 className="size-3" />
+                Tip: tailor your workspace via modeling perspectives in Settings.
+              </p>
             </div>
           )}
 
