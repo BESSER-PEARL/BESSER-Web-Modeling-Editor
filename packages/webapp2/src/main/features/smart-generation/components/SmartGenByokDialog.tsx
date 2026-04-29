@@ -87,8 +87,9 @@ const MODEL_PRESETS: Record<SmartGenProvider, readonly ModelPreset[]> = {
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   openai: [
-    { value: 'gpt-5.4', label: 'GPT-5.4 — flagship, strongest for code' },
-    { value: 'gpt-5', label: 'GPT-5 — prior flagship' },
+    { value: 'gpt-5.5', label: 'GPT-5.5 — flagship, strongest for code' },
+    { value: 'gpt-5.4', label: 'GPT-5.4 — prior flagship' },
+    { value: 'gpt-5', label: 'GPT-5' },
     { value: 'o1', label: 'o1 — reasoning, deep chains-of-thought (Tier 5+)' },
     { value: 'o1-mini', label: 'o1-mini — cheaper reasoning' },
     { value: 'gpt-4o', label: 'GPT-4o — balanced (default)' },
