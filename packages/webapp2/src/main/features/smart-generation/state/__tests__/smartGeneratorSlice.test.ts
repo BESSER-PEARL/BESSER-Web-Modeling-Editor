@@ -38,15 +38,19 @@ describe('smartGeneratorSlice', () => {
     expect(next.pendingTrigger).toEqual(pending);
   });
 
-  it('closeByokDialog clears the pending trigger', () => {
+  it('closeByokDialog only flips the dialog flag and preserves the pending trigger', () => {
+    // The pending trigger must survive closeByokDialog so the resume
+    // effect in useSmartGenTrigger can fire after a successful save.
+    // Cancel paths clear it explicitly via clearPendingTrigger.
+    const pending = { action: 'trigger_smart_generator' as const, instructions: 'x' };
     const dirty: SmartGeneratorState = {
       ...INITIAL,
       byokDialogOpen: true,
-      pendingTrigger: { action: 'trigger_smart_generator', instructions: 'x' },
+      pendingTrigger: pending,
     };
     const next = smartGeneratorReducer(dirty, closeByokDialog());
     expect(next.byokDialogOpen).toBe(false);
-    expect(next.pendingTrigger).toBeNull();
+    expect(next.pendingTrigger).toEqual(pending);
   });
 
   it('setProvider and setApiKeyPresent persist flags only (no raw key)', () => {

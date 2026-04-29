@@ -73,8 +73,10 @@ const smartGeneratorSlice = createSlice({
       state.pendingTrigger = action.payload;
     },
     closeByokDialog(state) {
+      // Only flip the dialog flag — pendingTrigger is preserved so the
+      // resume effect in useSmartGenTrigger can fire after the user saves
+      // their key. Cancel paths must dispatch clearPendingTrigger explicitly.
       state.byokDialogOpen = false;
-      state.pendingTrigger = null;
     },
     setProvider(state, action: PayloadAction<SmartGenProvider | null>) {
       state.provider = action.payload;
