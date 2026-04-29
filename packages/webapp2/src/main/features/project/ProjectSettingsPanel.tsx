@@ -295,6 +295,40 @@ export const ProjectSettingsPanel: React.FC = () => {
               </CardContent>
             </Card>
 
+          </div>
+
+          {/* Right column — Diagrams + Modeling Perspectives */}
+          <div className="flex flex-col gap-6">
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Layers3 className="size-4 text-brand" />
+                  <CardTitle className="text-base">Diagrams</CardTitle>
+                </div>
+                <CardDescription>
+                  {diagrams.length > 0
+                    ? `${diagrams.length} diagram${diagrams.length !== 1 ? 's' : ''} with content`
+                    : 'No diagrams with content yet'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-2">
+                  {diagrams.map(({ type, diagram, index }) => (
+                    <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3 transition-colors hover:bg-muted/30">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{diagram.title}</p>
+                        <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
+                      </div>
+                      <Badge className={DIAGRAM_TYPE_BADGE[type]}>{type.replace('Diagram', '')}</Badge>
+                    </div>
+                  ))}
+                  {diagrams.length === 0 && (
+                    <p className="py-6 text-center text-sm text-muted-foreground">Start editing a diagram to see it here</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Modeling Perspectives */}
             <Card>
               <CardHeader className="pb-4">
@@ -357,37 +391,6 @@ export const ProjectSettingsPanel: React.FC = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Right column — Diagrams */}
-          <Card className="h-fit">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <Layers3 className="size-4 text-brand" />
-                <CardTitle className="text-base">Diagrams</CardTitle>
-              </div>
-              <CardDescription>
-                {diagrams.length > 0
-                  ? `${diagrams.length} diagram${diagrams.length !== 1 ? 's' : ''} with content`
-                  : 'No diagrams with content yet'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-2">
-                {diagrams.map(({ type, diagram, index }) => (
-                  <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3 transition-colors hover:bg-muted/30">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{diagram.title}</p>
-                      <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
-                    </div>
-                    <Badge className={DIAGRAM_TYPE_BADGE[type]}>{type.replace('Diagram', '')}</Badge>
-                  </div>
-                ))}
-                {diagrams.length === 0 && (
-                  <p className="py-6 text-center text-sm text-muted-foreground">Start editing a diagram to see it here</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
         </div>
       </div>
