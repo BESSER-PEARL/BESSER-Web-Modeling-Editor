@@ -145,9 +145,12 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
             title: selectedTemplate.type,
           })).unwrap();
 
+          // Spread ``addResult.diagram`` so we keep any auto-suffixed title
+          // (e.g. "Quantum Demo 2" if "Quantum Demo" already existed). Don't
+          // re-apply ``selectedTemplate.type`` here — that would defeat the
+          // uniqueness resolution done in ``addDiagram``.
           ProjectStorageRepository.updateDiagram(currentProject.id, qType, {
             ...addResult.diagram,
-            title: selectedTemplate.type,
             model: selectedTemplate.diagram as QuantumCircuitData,
             lastUpdate: new Date().toISOString(),
           }, addResult.index);
@@ -165,7 +168,9 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         const supportedType = toSupportedDiagramType(umlType);
 
         if (mode === 'new_tab' && currentProject) {
-          // Create a new tab, then write the template into it
+          // Create a new tab, then write the template into it.
+          // Spread ``addResult.diagram`` so the auto-suffixed title survives
+          // (e.g. adding a "Library Agent" template twice yields "Library Agent 2").
           const addResult = await dispatch(addDiagramThunk({
             diagramType: supportedType,
             title: selectedTemplate.type,
@@ -173,7 +178,6 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
           ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
             ...addResult.diagram,
-            title: selectedTemplate.type,
             model: selectedTemplate.diagram as any,
             lastUpdate: new Date().toISOString(),
           }, addResult.index);

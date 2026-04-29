@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import { DiagramTabs } from '../DiagramTabs';
@@ -162,6 +162,28 @@ describe('DiagramTabs', () => {
     fireEvent.click(tab);
 
     expect(switchDiagramIndexThunk).not.toHaveBeenCalled();
+  });
+
+  it('respects onRequestTabSwitch and blocks tab change when it returns false', async () => {
+    const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+
+    setMockState({
+      diagrams: [
+        makeDiagram('d1', 'First'),
+        makeDiagram('d2', 'Second'),
+      ],
+      activeDiagramIndex: 0,
+    });
+
+    const guard = vi.fn(async () => false);
+    render(<DiagramTabs onRequestTabSwitch={guard} />);
+
+    fireEvent.click(screen.getByLabelText('Diagram tab: Second'));
+
+    await waitFor(() => {
+      expect(guard).toHaveBeenCalledWith(1);
+      expect(switchDiagramIndexThunk).not.toHaveBeenCalled();
+    });
   });
 
   it('shows add button when under MAX_DIAGRAMS_PER_TYPE', () => {

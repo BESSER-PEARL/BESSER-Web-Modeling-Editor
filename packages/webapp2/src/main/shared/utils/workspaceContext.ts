@@ -45,7 +45,7 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
     isStateMachineContext,
     isAgentContext,
     isNNContext,
-    isDeploymentAvailable: isGuiContext || isClassContext,
+    isDeploymentAvailable: isGuiContext || isClassContext || isAgentContext,
     generatorMenuMode,
   };
 };

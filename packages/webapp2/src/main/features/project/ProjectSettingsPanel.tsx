@@ -1,8 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { settingsService } from '@besser/wme';
+import {
+  settingsService,
+  ClassNotation,
+  ModelingPerspective,
+  EnabledPerspectives,
+} from '@besser/wme';
 import { toast } from 'react-toastify';
-import { Download, FolderKanban, Layers3, Monitor, Settings } from 'lucide-react';
+import { Atom, Bot, Database, Download, FolderKanban, Globe, Layers3, Monitor, Network, Repeat2, Settings, User as UserIcon } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
+import { PERSPECTIVES } from '../../shared/perspectives';
 import { SupportedDiagramType, ProjectDiagram } from '../../shared/types/project';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
@@ -20,9 +27,21 @@ const colorByType: Record<SupportedDiagramType, string> = {
   ObjectDiagram: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
   StateMachineDiagram: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
   AgentDiagram: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
+  UserDiagram: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
   GUINoCodeDiagram: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
   QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   NNDiagram: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
+};
+
+/** Icon shown next to each perspective toggle. */
+const PERSPECTIVE_ICONS: Record<ModelingPerspective, React.ReactNode> = {
+  dataModeling: <Network className="size-4" />,
+  database: <Database className="size-4" />,
+  webApplication: <Globe className="size-4" />,
+  agent: <Bot className="size-4" />,
+  stateMachine: <Repeat2 className="size-4" />,
+  userModeling: <UserIcon className="size-4" />,
+  quantum: <Atom className="size-4" />,
 };
 
 export const ProjectSettingsPanel: React.FC = () => {
@@ -30,6 +49,10 @@ export const ProjectSettingsPanel: React.FC = () => {
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
   const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
+  const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
+  const [enabledPerspectives, setEnabledPerspectives] = useState<EnabledPerspectives>(
+    () => settingsService.getEnabledPerspectives(),
+  );
 
   const { currentProject, loading, error, updateProject, exportProject } = useProject();
 
@@ -37,6 +60,13 @@ export const ProjectSettingsPanel: React.FC = () => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
     setShowAssociationNames(settingsService.shouldShowAssociationNames());
     setUsePropertiesPanel(settingsService.shouldUsePropertiesPanel());
+    setClassNotation(settingsService.getClassNotation());
+    setEnabledPerspectives(settingsService.getEnabledPerspectives());
+  }, []);
+
+  const handleTogglePerspective = useCallback((perspective: ModelingPerspective, enabled: boolean) => {
+    settingsService.setPerspectiveEnabled(perspective, enabled);
+    setEnabledPerspectives(settingsService.getEnabledPerspectives());
   }, []);
 
   const diagrams = useMemo(() => {
@@ -241,40 +271,115 @@ export const ProjectSettingsPanel: React.FC = () => {
                     }}
                   />
                 </label>
+                <Separator />
+                <div className="flex items-center justify-between gap-4 rounded-lg px-1 py-3">
+                  <div>
+                    <p className="text-sm font-medium">Class Diagram Notation</p>
+                    <p className="text-xs text-muted-foreground">
+                      UML (default) shows standard UML classes; ER shows a Chen-style entity/relationship rendering
+                    </p>
+                  </div>
+                  <RadioGroup
+                    aria-label="Class diagram notation"
+                    value={classNotation}
+                    onValueChange={(value) => {
+                      const next = value as ClassNotation;
+                      setClassNotation(next);
+                      settingsService.updateSetting('classNotation', next);
+                    }}
+                  >
+                    {(['UML', 'ER'] as const).map((value) => (
+                      <RadioGroupItem
+                        key={value}
+                        value={value}
+                        data-testid={`class-notation-${value.toLowerCase()}`}
+                      >
+                        {value}
+                      </RadioGroupItem>
+                    ))}
+                  </RadioGroup>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right column — Diagrams */}
-          <Card className="h-fit">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <Layers3 className="size-4 text-brand" />
-                <CardTitle className="text-base">Diagrams</CardTitle>
-              </div>
-              <CardDescription>
-                {diagrams.length > 0
-                  ? `${diagrams.length} diagram${diagrams.length !== 1 ? 's' : ''} with content`
-                  : 'No diagrams with content yet'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-2">
-                {diagrams.map(({ type, diagram, index }) => (
-                  <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3 transition-colors hover:bg-muted/30">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{diagram.title}</p>
-                      <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
+          {/* Right column — Diagrams + Modeling Perspectives */}
+          <div className="flex flex-col gap-6">
+            <Card className="h-fit">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Layers3 className="size-4 text-brand" />
+                  <CardTitle className="text-base">Diagrams</CardTitle>
+                </div>
+                <CardDescription>
+                  {diagrams.length > 0
+                    ? `${diagrams.length} diagram${diagrams.length !== 1 ? 's' : ''} with content`
+                    : 'No diagrams with content yet'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-2">
+                  {diagrams.map(({ type, diagram, index }) => (
+                    <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3 transition-colors hover:bg-muted/30">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{diagram.title}</p>
+                        <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
+                      </div>
+                      <Badge className={colorByType[type]}>{type.replace('Diagram', '')}</Badge>
                     </div>
-                    <Badge className={colorByType[type]}>{type.replace('Diagram', '')}</Badge>
-                  </div>
-                ))}
-                {diagrams.length === 0 && (
-                  <p className="py-6 text-center text-sm text-muted-foreground">Start editing a diagram to see it here</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                  {diagrams.length === 0 && (
+                    <p className="py-6 text-center text-sm text-muted-foreground">Start editing a diagram to see it here</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Modeling Perspectives */}
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Layers3 className="size-4 text-brand" />
+                  <CardTitle className="text-base">Modeling Perspectives</CardTitle>
+                </div>
+                <CardDescription>
+                  Pick the kinds of modeling you care about. Each perspective declares the diagrams relevant to that
+                  use case; disabling a perspective hides those diagrams from the sidebar and command palette.
+                  Diagrams shared by several perspectives stay visible as long as at least one of those perspectives is
+                  enabled. Code generators remain unfiltered — every generator that fits your active diagram is always
+                  reachable from the Generate menu.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-1">
+                {PERSPECTIVES.map((perspective, idx) => {
+                  const isEnabled = enabledPerspectives[perspective.key] !== false;
+                  return (
+                    <React.Fragment key={perspective.key}>
+                      {idx > 0 && <Separator />}
+                      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                            {PERSPECTIVE_ICONS[perspective.key]}
+                          </span>
+                          <div>
+                            <p className="text-sm font-medium">{perspective.label}</p>
+                            <p className="text-xs text-muted-foreground">{perspective.description}</p>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-brand"
+                          checked={isEnabled}
+                          onChange={(event) => handleTogglePerspective(perspective.key, event.target.checked)}
+                          aria-label={`${perspective.label} perspective`}
+                        />
+                      </label>
+                    </React.Fragment>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          </div>
 
         </div>
       </div>

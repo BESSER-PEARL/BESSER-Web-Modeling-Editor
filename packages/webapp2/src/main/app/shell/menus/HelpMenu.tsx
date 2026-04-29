@@ -8,6 +8,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+const USER_STUDY_PDF_URL = '/Low_code_CA_personalization_study_instructions.pdf';
+
 interface HelpMenuProps {
   outlineButtonClass: string;
   onOpenHelpDialog: () => void;
@@ -23,6 +25,10 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
   onOpenKeyboardShortcuts,
   onShowWelcomeGuide,
 }) => {
+  const openUserStudyPdf = () => {
+    window.open(USER_STUDY_PDF_URL, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -34,6 +40,7 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end">
         <DropdownMenuItem onClick={onOpenHelpDialog}>How does this editor work?</DropdownMenuItem>
+        <DropdownMenuItem onClick={openUserStudyPdf}>Open User Study Instructions (PDF)</DropdownMenuItem>
         {onShowWelcomeGuide && (
           <DropdownMenuItem onClick={onShowWelcomeGuide}>
             <PlayCircle className="mr-2 size-4" />

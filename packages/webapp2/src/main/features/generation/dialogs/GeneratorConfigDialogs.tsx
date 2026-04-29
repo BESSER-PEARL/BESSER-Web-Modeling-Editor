@@ -17,9 +17,16 @@ import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from
 import type { ConfigDialog } from '../generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../shared/constants/constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../shared/services/storage/local-storage-types';
-import type { WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
+import {
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+  normalizeAgentRuntimeConfig,
+  type AgentRuntimeConfig,
+} from '../../../shared/services/storage/local-storage-repository';
+import type { AgentGenerationMode, AgentGenerationVariantOption, WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
 import { validateProjectName, validateNumberRange } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
+import { useProject } from '../../../app/hooks/useProject';
+import { getActiveDiagram } from '../../../shared/types/project';
 
 /**
  * Props for the <GeneratorConfigDialogs /> component.
@@ -73,6 +80,12 @@ interface GeneratorConfigDialogsProps {
   storedAgentMappings: Array<StoredAgentProfileConfigurationMapping & { userProfileLabel: string; agentConfigurationLabel: string }>;
   /** IDs of the currently selected stored configurations / mappings. */
   selectedStoredAgentConfigIds: string[];
+  /** Personalized variants available in the active Agent tab. */
+  agentVariantOptions: AgentGenerationVariantOption[];
+  /** Selected personalized variant to generate. Empty means base/original model. */
+  selectedAgentVariantId: string;
+  /** Generation strategy for variants: one selected variant or personalization-all. */
+  agentGenerationMode: AgentGenerationMode;
 
   // ── Qiskit ───────────────────────────────────────────────────────────────
   qiskitBackend: QiskitConfig['backend'];
@@ -92,6 +105,8 @@ interface GeneratorConfigDialogsProps {
   onQiskitShotsChange: (value: number) => void;
   onAgentModeChange: (value: 'original' | 'configuration' | 'personalization') => void;
   onStoredAgentConfigToggle: (id: string) => void;
+  onSelectedAgentVariantIdChange: (value: string) => void;
+  onAgentGenerationModeChange: (value: AgentGenerationMode) => void;
 
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
@@ -133,6 +148,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   storedAgentConfigurations,
   storedAgentMappings,
   selectedStoredAgentConfigIds,
+  agentVariantOptions,
+  selectedAgentVariantId,
+  agentGenerationMode,
   onDjangoProjectNameChange,
   onDjangoAppNameChange,
   onUseDockerChange,
@@ -146,6 +164,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onQiskitShotsChange,
   onAgentModeChange,
   onStoredAgentConfigToggle,
+  onSelectedAgentVariantIdChange,
+  onAgentGenerationModeChange,
   webAppChecklist,
   onDjangoGenerate,
   onDjangoDeploy,
@@ -170,6 +190,58 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
     shots: () => validateNumberRange(qiskitShots, 1, 100000, 'Shots'),
   }), [qiskitShots]);
   const qiskitValidation = useFieldValidation(qiskitValidators);
+
+  // ── Agent runtime config preview (read-only snapshot from active agent diagram) ─
+  // Single source of truth: AgentDiagram.config. Falls back to hardcoded
+  // defaults when the project has no agent diagram (edge case — the agent
+  // generator dialog should normally only be reachable when one exists).
+  const { currentProject } = useProject();
+  const agentSystemConfig = useMemo<AgentRuntimeConfig | null>(() => {
+    if (configDialog !== 'agent') return null;
+    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+    const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
+    if (!diagramConfig) {
+      return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
+    }
+    const llmBlock = typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
+      ? (diagramConfig.llm as Record<string, any>)
+      : null;
+    return normalizeAgentRuntimeConfig({
+      agentPlatform: typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+      intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
+      agentLlmProvider: llmBlock?.provider,
+      agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
+      agentCustomLlmModel: undefined,
+    });
+  }, [configDialog, currentProject]);
+  const agentPlatformLabel = useMemo(() => {
+    switch (agentSystemConfig?.agentPlatform) {
+      case 'websocket':
+        return 'WebSocket';
+      case 'streamlit':
+        return 'WebSocket with Streamlit interface';
+      case 'telegram':
+        return 'Telegram';
+      default:
+        return agentSystemConfig?.agentPlatform ?? '—';
+    }
+  }, [agentSystemConfig]);
+  const agentLlmLabel = useMemo(() => {
+    if (!agentSystemConfig?.agentLlmProvider) return 'None';
+    const providerLabels: Record<string, string> = {
+      openai: 'OpenAI',
+      huggingface: 'HuggingFace',
+      huggingfaceapi: 'HuggingFace API',
+      replicate: 'Replicate',
+    };
+    const providerLabel = providerLabels[agentSystemConfig.agentLlmProvider] ?? agentSystemConfig.agentLlmProvider;
+    if (agentSystemConfig.agentLlmProvider !== 'openai') return providerLabel;
+    const model =
+      agentSystemConfig.agentLlmModel === 'other'
+        ? agentSystemConfig.agentCustomLlmModel.trim()
+        : agentSystemConfig.agentLlmModel;
+    return model ? `${providerLabel} · ${model}` : providerLabel;
+  }, [agentSystemConfig]);
 
   return (
     <>
@@ -401,6 +473,81 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                 <span>Adding more languages will increase the generation time.</span>
               </div>
             </div>
+
+            <div className="rounded-md border border-border/70 bg-muted/20 p-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">System configuration</p>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0"
+                  onClick={() => {
+                    closeDialog(setConfigDialog);
+                    navigate('/agent-config');
+                  }}
+                >
+                  Edit in Agent Config
+                </Button>
+              </div>
+              <dl className="grid gap-2 text-sm md:grid-cols-2">
+                <div className="flex justify-between gap-2 md:block">
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Platform</dt>
+                  <dd>{agentPlatformLabel}</dd>
+                </div>
+                <div className="flex justify-between gap-2 md:block">
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">Intent Recognition</dt>
+                  <dd>{agentSystemConfig?.intentRecognitionTechnology === 'classical' ? 'Classical' : 'LLM-based'}</dd>
+                </div>
+                <div className="flex justify-between gap-2 md:col-span-2 md:block">
+                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">LLM</dt>
+                  <dd>{agentLlmLabel}</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-xs text-muted-foreground">
+                These values come from the System Configuration tab in Agent Config and are used for every generation.
+              </p>
+            </div>
+
+            {agentVariantOptions.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Personalization Strategy</Label>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="variant-mode-none"
+                      name="agentVariantMode"
+                      checked={agentGenerationMode === 'none'}
+                      onChange={() => onAgentGenerationModeChange('none')}
+                      className="size-4"
+                    />
+                    <Label htmlFor="variant-mode-none" className="text-sm font-normal">None</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="variant-mode-personalization"
+                      name="agentVariantMode"
+                      checked={agentGenerationMode === 'personalization'}
+                      onChange={() => onAgentGenerationModeChange('personalization')}
+                      className="size-4"
+                    />
+                    <Label htmlFor="variant-mode-personalization" className="text-sm font-normal">Personalization (all)</Label>
+                  </div>
+                </div>
+
+                {agentGenerationMode === 'personalization' ? (
+                  <p className="text-xs text-muted-foreground">
+                    Sends all available profile-to-configuration personalization mappings to the backend.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Generates without attaching saved personalization variants or advanced configuration payloads.
+                  </p>
+                )}
+              </div>
+            )}
 
             {SHOW_FULL_AGENT_CONFIGURATION && (
               <div className="flex flex-col gap-1.5">

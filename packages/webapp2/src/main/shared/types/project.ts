@@ -1,12 +1,20 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 // Supported diagram types in projects
-export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram' | 'NNDiagram';
+export type SupportedDiagramType =
+  | 'ClassDiagram'
+  | 'ObjectDiagram'
+  | 'StateMachineDiagram'
+  | 'AgentDiagram'
+  | 'UserDiagram'
+  | 'GUINoCodeDiagram'
+  | 'QuantumCircuitDiagram'
+  | 'NNDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
 export const PROJECT_SCHEMA_VERSION = 3;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram',
+  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram',
 ];
 
 // GrapesJS project data structure
@@ -58,6 +66,7 @@ export interface BesserProject {
     ObjectDiagram: ProjectDiagram[];
     StateMachineDiagram: ProjectDiagram[];
     AgentDiagram: ProjectDiagram[];
+    UserDiagram: ProjectDiagram[];
     GUINoCodeDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
     NNDiagram: ProjectDiagram[];
@@ -112,6 +121,7 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   ObjectDiagram: 0,
   StateMachineDiagram: 0,
   AgentDiagram: 0,
+  UserDiagram: 0,
   GUINoCodeDiagram: 0,
   QuantumCircuitDiagram: 0,
   NNDiagram: 0,
@@ -156,6 +166,8 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'AgentDiagram';
     case UMLDiagramType.NNDiagram:
       return 'NNDiagram';
+    case UMLDiagramType.UserDiagram:
+      return 'UserDiagram';
     default:
       return 'ClassDiagram'; // fallback
   }
@@ -174,6 +186,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.AgentDiagram;
     case 'NNDiagram':
       return UMLDiagramType.NNDiagram;
+    case 'UserDiagram':
+      return UMLDiagramType.UserDiagram;
     case 'GUINoCodeDiagram':
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
     case 'QuantumCircuitDiagram':
@@ -333,6 +347,7 @@ export const createDefaultProject = (
       ObjectDiagram: [createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram)],
       StateMachineDiagram: [createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram)],
       AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
+      UserDiagram: [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
       NNDiagram: [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)],
@@ -376,6 +391,16 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // Add NNDiagram if missing
   if (!obj.diagrams.NNDiagram) {
     obj.diagrams.NNDiagram = [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)];
+  }
+
+  // Add UserDiagram if missing
+  if (!obj.diagrams.UserDiagram) {
+    obj.diagrams.UserDiagram = [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)];
+  }
+
+  // Ensure index entry exists for UserDiagram
+  if (obj.currentDiagramIndices.UserDiagram === undefined) {
+    obj.currentDiagramIndices.UserDiagram = 0;
   }
 
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)

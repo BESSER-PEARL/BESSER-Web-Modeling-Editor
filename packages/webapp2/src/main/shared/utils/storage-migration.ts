@@ -1,5 +1,7 @@
+import { LocalStorageRepository } from '../services/storage/local-storage-repository';
+
 const STORAGE_VERSION_KEY = 'besser_storage_version';
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 interface Migration {
   version: number;
@@ -64,6 +66,19 @@ const migrations: Migration[] = [
         localStorage.removeItem(key);
       }
       console.info('[storage-migration] v2: Cleared legacy webapp data');
+    },
+  },
+  // v3: Deletes the deprecated `besser_systemConfig` top-level key — agent
+  // runtime config now lives on the agent diagram itself
+  // (`AgentDiagram.config`) with hardcoded defaults at agent-creation time.
+  // The previous global-default-vs-per-agent split caused the v7.3.0
+  // stuck-`gpt-5` migration mess; collapsing to a single source of truth
+  // eliminates that class of bug. Idempotent: no-op when the key is absent.
+  {
+    version: 3,
+    migrate: () => {
+      LocalStorageRepository.migrateToV3();
+      console.info('[storage-migration] v3: Removed deprecated besser_systemConfig key');
     },
   },
 ];

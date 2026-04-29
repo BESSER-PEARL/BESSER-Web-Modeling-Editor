@@ -2,6 +2,7 @@ import { createSlice, PayloadAction, createAsyncThunk, createSelector } from '@r
 import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/wme';
 import {
   BesserProject,
+  MAX_DIAGRAMS_PER_TYPE,
   ProjectDiagram,
   SupportedDiagramType,
   QuantumCircuitData,
@@ -14,6 +15,7 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
+import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -160,6 +162,14 @@ export const switchDiagramTypeThunk = createAsyncThunk(
           /* bridge not available */
         }
       }
+    } else if (diagramType === UMLDiagramType.UserDiagram) {
+      try {
+        const { diagramBridge } = await import('@besser/wme');
+        // User modeling depends on this metamodel being present in the bridge.
+        diagramBridge.setClassDiagramData(userMetaModel as unknown as UMLModel);
+      } catch {
+        /* bridge not available */
+      }
     }
 
     return { diagram, diagramType: supportedType };
@@ -305,11 +315,22 @@ export const addDiagramThunk = createAsyncThunk(
     const { project } = state.workspace;
     if (!project) throw new Error('No active project');
 
+    // The only blocking failure from addDiagram is the hard project limit —
+    // title collisions are resolved in-place by auto-suffixing ("Agent",
+    // "Agent 2", ...). Check the limit up-front so we can give a specific
+    // error instead of the generic null-handling below.
+    const existing = project.diagrams[diagramType] ?? [];
+    if (existing.length >= MAX_DIAGRAMS_PER_TYPE) {
+      throw new Error(
+        `Cannot add more ${diagramType}s: project limit of ${MAX_DIAGRAMS_PER_TYPE} reached.`,
+      );
+    }
+
     let result: { index: number; diagram: ProjectDiagram } | null = null;
     ProjectStorageRepository.withoutNotify(() => {
       result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
     });
-    if (!result) throw new Error('Cannot add more diagrams (limit reached)');
+    if (!result) throw new Error('Failed to add diagram');
 
     const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
     return { diagramType, index: newIndex, diagram };
@@ -352,6 +373,24 @@ export const renameDiagramThunk = createAsyncThunk(
 
     const diagrams = project.diagrams[diagramType];
     if (index < 0 || index >= diagrams.length) throw new Error('Invalid diagram index');
+
+    // Short-circuit no-op renames — avoid writing to storage for an identity change.
+    if (newTitle.trim() === diagrams[index].title.trim()) {
+      return { diagramType, index, diagram: diagrams[index] };
+    }
+
+    // AgentDiagram titles must be unique: downstream code (GUI ``agent-name``
+    // bindings, generator output layout, render.yaml service names) identifies
+    // agents by name, so duplicates silently overwrite each other.
+    if (diagramType === 'AgentDiagram') {
+      const trimmed = newTitle.trim();
+      const collision = diagrams.some(
+        (d, i) => i !== index && d.title.trim().toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (collision) {
+        throw new Error(`An agent named "${trimmed}" already exists in this project.`);
+      }
+    }
 
     const updated = { ...diagrams[index], title: newTitle };
     ProjectStorageRepository.withoutNotify(() => {

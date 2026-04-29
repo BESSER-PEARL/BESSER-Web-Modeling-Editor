@@ -6,7 +6,11 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
-import { buildProjectPayloadForBackend } from '../../export/utils/projectExportUtils';
+import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import {
+  restoreBaseAgentModels,
+  stripAgentConfigToSystem,
+} from '../../deploy/utils/restoreBaseAgentModels';
 import type { GenerationResult } from '../types';
 import type { AgentConfigurationPayload } from '../../../shared/types/agent-config';
 
@@ -81,8 +85,19 @@ export const useGenerateCode = () => {
         return { ok: false, error: 'No project available for code generation' };
       }
 
+      // Web app generation embeds agents using each AgentDiagram's own
+      // `.model` + `.config`. If the user ran Save & Apply in the Agent
+      // Configuration panel, both got replaced with the personalized variant
+      // and its full config — which would make the backend trigger the
+      // personalization codegen path. Swap back to the base model + a
+      // system-only config so this matches "None" in the standalone agent
+      // generator.
+      const projectForBackend = generatorType === 'web_app'
+        ? stripAgentConfigToSystem(restoreBaseAgentModels(currentProject))
+        : currentProject;
+
       // Send full project with diagram arrays — backend uses currentDiagramIndices
-      const flatProject = buildProjectPayloadForBackend(currentProject);
+      const flatProject = buildProjectPayloadForBackend(projectForBackend);
 
       // Add generator and config to project settings
       const projectWithSettings = {

@@ -45,7 +45,7 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenDeployDialog} disabled={!isDeploymentAvailable}>
-          Publish Web App to Render
+          Publish to Render
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

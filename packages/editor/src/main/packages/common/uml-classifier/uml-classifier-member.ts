@@ -70,6 +70,8 @@ export interface IUMLClassifierMember extends IUMLElement {
   quantumCircuitId?: string;
   isOptional?: boolean;
   isDerived?: boolean;
+  isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
 }
 
@@ -94,6 +96,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   quantumCircuitId: string = '';
   isOptional: boolean = false;
   isDerived: boolean = false;
+  isId: boolean = false;
+  isExternalId: boolean = false;
   defaultValue: any = undefined;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
@@ -113,13 +117,38 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       }
       const derivedPrefix = this.isDerived ? '/' : '';
       const optionalMarker = this.isOptional ? '?' : '';
+      const idMarkers = [
+        this.isId ? 'id' : null,
+        this.isExternalId ? 'external id' : null,
+      ].filter(Boolean);
+      const idSuffix = idMarkers.length > 0 ? ` {${idMarkers.join(', ')}}` : '';
       const defaultSuffix = (this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== '')
         ? ` = ${this.defaultValue}`
         : '';
-      return `${visSymbol} ${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
+      return `${visSymbol} ${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}${idSuffix}`;
     }
     // Fallback to name for backward compatibility or simple display
     return this.name;
+  }
+
+  /**
+   * Get the display name for rendering in ER (Chen) mode. Drops the UML
+   * visibility symbol and the `{id, external id}` suffix — ER has no
+   * visibility semantics and marks identifying attributes with an underline
+   * on the attribute name itself (rendered by the classifier-member
+   * component). Keeps `/` for derived, `?` for optional, and ` = default`.
+   */
+  get displayNameER(): string {
+    const derivedPrefix = this.isDerived ? '/' : '';
+    const optionalMarker = this.isOptional ? '?' : '';
+    const defaultSuffix =
+      this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== ''
+        ? ` = ${this.defaultValue}`
+        : '';
+    if (this.name && this.attributeType) {
+      return `${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
+    }
+    return `${derivedPrefix}${this.name}${optionalMarker}${defaultSuffix}`;
   }
 
   /**
@@ -185,6 +214,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       quantumCircuitId: this.quantumCircuitId,
       isOptional: this.isOptional,
       isDerived: this.isDerived,
+      isId: this.isId,
+      isExternalId: this.isExternalId,
       defaultValue: this.defaultValue,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
@@ -202,6 +233,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.attributeType = memberValues.attributeType || 'str';
       this.isOptional = memberValues.isOptional || false;
       this.isDerived = memberValues.isDerived || false;
+      this.isId = memberValues.isId || false;
+      this.isExternalId = memberValues.isExternalId || false;
     } else {
       // Legacy format - parse from name to extract visibility and type
       const parsed = UMLClassifierMember.parseNameFormat(this.name);
@@ -209,6 +242,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.attributeType = parsed.attributeType;
       this.isOptional = false;
       this.isDerived = false;
+      this.isId = false;
+      this.isExternalId = false;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }

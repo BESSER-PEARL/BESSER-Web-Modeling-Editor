@@ -1,6 +1,13 @@
 import { UMLDiagramType } from '@besser/wme';
 import type { SupportedDiagramType } from '../../shared/types/project';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
+import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
+
+export interface AgentVariantOption {
+  id: string;
+  label: string;
+  description?: string;
+}
 
 export interface WorkspaceTopBarProps {
   isDarkTheme: boolean;
@@ -25,7 +32,12 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportKg: () => void;
   onOpenProjectPreview: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
-  onQualityCheck: () => void;
+  onQualityCheck: () => Promise<QualityCheckResult>;
+  qualityCheckState?: QualityCheckState;
+  showAgentVariantSelector?: boolean;
+  agentVariantOptions?: AgentVariantOption[];
+  activeAgentVariantId?: string;
+  onAgentVariantChange?: (variantId: string) => void;
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;

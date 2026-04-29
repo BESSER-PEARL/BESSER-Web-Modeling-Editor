@@ -1,5 +1,5 @@
 import { BesserProject, SupportedDiagramType } from '../../shared/types/project';
-import { buildExportableProjectPayload } from './utils/projectExportUtils';
+import { buildProjectExportEnvelope } from '../../shared/utils/projectExportUtils';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { downloadJson } from '../../shared/utils/download';
 
@@ -15,13 +15,7 @@ export function exportProjectAsJson(
 
   console.log('[Export] Using project data:', projectToExport.id);
 
-  const projectPayload = buildExportableProjectPayload(projectToExport, diagramTypes);
-
-  const exportData = {
-    project: projectPayload,
-    exportedAt: new Date().toISOString(),
-    version: '2.0.0' // Updated version for V2 format
-  };
+  const exportData = buildProjectExportEnvelope(projectToExport, diagramTypes);
 
   const filename = `${projectToExport.name.replace(/[^a-z0-9]/gi, '_') || 'project'}.json`;
   downloadJson(exportData, filename);

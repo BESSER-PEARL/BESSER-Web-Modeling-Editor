@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '../../../../shared/constants/z-index';
 import { Circuit, Gate, InitialState } from '../types';
@@ -20,22 +20,6 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
       initialStates: Array(gate.height || 2).fill('|0⟩'),
     };
   });
-
-  // Sync with gate prop changes (when reopening modal with updated gate)
-  useEffect(() => {
-    setGateName(gate.label || '');
-    setGateColor(gate.backgroundColor || '#FFE8CC');
-
-    if (gate.nestedCircuit) {
-      setCircuit(gate.nestedCircuit);
-    } else {
-      setCircuit({
-        columns: [],
-        qubitCount: gate.height || 2,
-        initialStates: Array(gate.height || 2).fill('|0⟩'),
-      });
-    }
-  }, [gate]);
 
   const handleCircuitChange = useCallback((newCircuit: Circuit) => {
     setCircuit(newCircuit);
