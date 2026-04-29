@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import type { SupportedDiagramType } from '../../../shared/types/project';
+import { toSupportedDiagramType } from '../../../shared/types/project';
+import { useEnabledPerspectives } from '../../../shared/hooks/useEnabledPerspectives';
+import { isDiagramVisible } from '../../../shared/perspectives';
 import { NON_UML_EDITOR_ITEMS, ROUTE_ITEMS, UML_ITEMS, navButtonClass } from '../workspace-navigation';
 
 interface MobileNavigationProps {
@@ -22,9 +25,19 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onSwitchDiagramType,
   onNavigate,
 }) => {
+  const enabledPerspectives = useEnabledPerspectives();
+  const visibleUmlItems = useMemo(
+    () => UML_ITEMS.filter((item) => isDiagramVisible(toSupportedDiagramType(item.type), enabledPerspectives)),
+    [enabledPerspectives],
+  );
+  const visibleNonUmlItems = useMemo(
+    () => NON_UML_EDITOR_ITEMS.filter((item) => isDiagramVisible(item.type, enabledPerspectives)),
+    [enabledPerspectives],
+  );
+
   return (
     <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 md:hidden">
-      {UML_ITEMS.map((item) => {
+      {visibleUmlItems.map((item) => {
         const active = locationPath === '/' && activeUmlType === item.type;
         return (
           <button
@@ -38,7 +51,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           </button>
         );
       })}
-      {NON_UML_EDITOR_ITEMS.map((item) => {
+      {visibleNonUmlItems.map((item) => {
         const active = locationPath === '/' && activeDiagramType === item.type;
         return (
           <button

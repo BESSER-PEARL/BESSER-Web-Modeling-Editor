@@ -24,6 +24,17 @@ vi.mock('@besser/wme', async (importOriginal) => {
       shouldShowInstancedObjects: vi.fn(() => false),
       shouldShowAssociationNames: vi.fn(() => false),
       shouldUsePropertiesPanel: vi.fn(() => false),
+      getClassNotation: vi.fn(() => 'UML'),
+      getEnabledPerspectives: vi.fn(() => ({
+        dataModeling: true,
+        database: true,
+        webApplication: true,
+        agent: true,
+        stateMachine: true,
+        userModeling: true,
+        quantum: true,
+      })),
+      setPerspectiveEnabled: vi.fn(),
       updateSetting: vi.fn(),
     },
   };
@@ -156,12 +167,27 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByText('Show Association Names')).toBeInTheDocument();
     expect(screen.getByText('Properties Panel')).toBeInTheDocument();
 
-    // All three checkboxes should be present and unchecked by default
+    // 3 display toggles (off by default in this mock) + 7 perspective toggles (on by default)
     const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes).toHaveLength(3);
+    expect(checkboxes).toHaveLength(10);
     expect(checkboxes[0]).not.toBeChecked();
     expect(checkboxes[1]).not.toBeChecked();
     expect(checkboxes[2]).not.toBeChecked();
+  });
+
+  it('renders the Modeling Perspectives card with one toggle per use-case perspective', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    render(<ProjectSettingsPanel />);
+
+    expect(screen.getByText('Modeling Perspectives')).toBeInTheDocument();
+    expect(screen.getByText('Data Modeling')).toBeInTheDocument();
+    expect(screen.getByText('Database Modeling')).toBeInTheDocument();
+    expect(screen.getByText('Web Applications')).toBeInTheDocument();
+    expect(screen.getByText('Agent Modeling')).toBeInTheDocument();
+    expect(screen.getByText('State Machines')).toBeInTheDocument();
+    expect(screen.getByText('User Modeling')).toBeInTheDocument();
+    expect(screen.getByText('Quantum Computing')).toBeInTheDocument();
   });
 
   it('renders project name in the input field', () => {

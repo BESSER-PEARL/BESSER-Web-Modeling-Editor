@@ -58,6 +58,8 @@ const HelpGuideDialog = React.lazy(() =>
 // mixed static/dynamic import warning (the module is already in this chunk).
 import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../shared/dialogs/KeyboardShortcutsDialog';
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
+import { useEnabledPerspectives } from '../../shared/hooks/useEnabledPerspectives';
+import { isDiagramVisible } from '../../shared/perspectives';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -705,7 +707,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
   };
 
-  // Command palette actions
+  // Command palette actions (filter by enabled modeling perspectives)
+  const enabledPerspectives = useEnabledPerspectives();
   const commandPaletteActions = useMemo(
     () =>
       buildDefaultActions({
@@ -723,8 +726,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onQualityCheck: () => {
           void handleTrackedQualityCheck();
         },
+        isDiagramVisible: (type) => isDiagramVisible(type, enabledPerspectives),
       }),
-    [handleSwitchUml, handleSwitchDiagramType, handleSafeNavigate, onExportProject, handleTrackedQualityCheck],
+    [handleSwitchUml, handleSwitchDiagramType, handleSafeNavigate, onExportProject, handleTrackedQualityCheck, enabledPerspectives],
   );
 
   return (
