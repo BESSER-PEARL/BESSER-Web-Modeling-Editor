@@ -1,9 +1,17 @@
-import React, { Suspense } from "react"
+import React from "react"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/chatbot-kit/ui/copy-button"
+
+// Token shape returned by shiki's `codeToTokens` — typed loosely because
+// we only consume `content` and `htmlStyle` and don't want to pin a
+// shiki major version.
+type ShikiToken = {
+  content: string
+  htmlStyle?: string | Record<string, string>
+}
 
 interface MarkdownRendererProps {
   children: string
@@ -25,28 +33,53 @@ interface HighlightedPre extends React.HTMLAttributes<HTMLPreElement> {
 }
 
 const HighlightedPre = React.memo(
-  async ({ children, language, ...props }: HighlightedPre) => {
-    const { codeToTokens, bundledLanguages } = await import("shiki/bundle/web")
+  ({ children, language, ...props }: HighlightedPre) => {
+    // Sync component: render the plain <pre> immediately, then swap in
+    // shiki-highlighted tokens once the dynamic import resolves. The
+    // earlier `async` form returned a Promise from the function body,
+    // which React 18 cannot render and crashes with error #31 the moment
+    // a markdown response contains a fenced code block (very common in
+    // streamed LLM output from the smart generator and assistant).
+    const [tokens, setTokens] = React.useState<ShikiToken[][] | null>(null)
+    const [unsupported, setUnsupported] = React.useState(false)
 
-    if (!(language in bundledLanguages)) {
+    React.useEffect(() => {
+      let cancelled = false
+      ;(async () => {
+        try {
+          const { codeToTokens, bundledLanguages } = await import(
+            "shiki/bundle/web"
+          )
+          if (cancelled) return
+          if (!(language in bundledLanguages)) {
+            setUnsupported(true)
+            return
+          }
+          const result = await codeToTokens(children, {
+            lang: language as keyof typeof bundledLanguages,
+            defaultColor: false,
+            themes: { light: "github-light", dark: "github-dark" },
+          })
+          if (!cancelled) setTokens(result.tokens as ShikiToken[][])
+        } catch {
+          if (!cancelled) setUnsupported(true)
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }, [children, language])
+
+    if (unsupported || !tokens) {
       return <pre {...props}>{children}</pre>
     }
-
-    const { tokens } = await codeToTokens(children, {
-      lang: language as keyof typeof bundledLanguages,
-      defaultColor: false,
-      themes: {
-        light: "github-light",
-        dark: "github-dark",
-      },
-    })
 
     return (
       <pre {...props}>
         <code>
           {tokens.map((line, lineIndex) => (
-            <>
-              <span key={lineIndex}>
+            <React.Fragment key={lineIndex}>
+              <span>
                 {line.map((token, tokenIndex) => {
                   const style =
                     typeof token.htmlStyle === "string"
@@ -65,7 +98,7 @@ const HighlightedPre = React.memo(
                 })}
               </span>
               {lineIndex !== tokens.length - 1 && "\n"}
-            </>
+            </React.Fragment>
           ))}
         </code>
       </pre>
@@ -98,17 +131,9 @@ const CodeBlock = ({
 
   return (
     <div className="group/code relative mb-4">
-      <Suspense
-        fallback={
-          <pre className={preClass} {...restProps}>
-            {children}
-          </pre>
-        }
-      >
-        <HighlightedPre language={language} className={preClass}>
-          {code}
-        </HighlightedPre>
-      </Suspense>
+      <HighlightedPre language={language} className={preClass}>
+        {code}
+      </HighlightedPre>
 
       <div className="invisible absolute right-2 top-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 shadow-sm opacity-0 transition-all duration-200 group-hover/code:visible group-hover/code:opacity-100">
         <CopyButton content={code} copyMessage="Copied code to clipboard" />
