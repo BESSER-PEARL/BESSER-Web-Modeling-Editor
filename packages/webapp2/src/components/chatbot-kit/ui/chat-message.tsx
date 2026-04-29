@@ -566,6 +566,71 @@ function SmartGenStatusPill({ status }: { status: SmartGenMessageState["status"]
   )
 }
 
+function SmartGenPhaseRow({
+  phase,
+  isActivePhase,
+}: {
+  phase: SmartGenPhaseView
+  isActivePhase: boolean
+}) {
+  const hasTools = phase.toolCalls.length > 0
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <li className="border-b border-border/40 last:border-b-0">
+      <div className="flex items-baseline gap-2 px-3 py-1.5">
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          {phase.phase}
+        </span>
+        <span className="text-[13px] font-medium text-foreground">
+          {phase.label}
+        </span>
+        {phase.message && phase.message !== phase.label ? (
+          <span className="truncate text-xs text-muted-foreground">
+            — {phase.message}
+          </span>
+        ) : null}
+        {isActivePhase ? (
+          <Loader2 className="ml-1 h-3 w-3 animate-spin text-primary" />
+        ) : null}
+        {hasTools ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? "Hide actions" : "Show actions"}
+            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <span>
+              {phase.toolCalls.length}{" "}
+              {phase.toolCalls.length === 1 ? "action" : "actions"}
+            </span>
+            <ChevronRight
+              className={`h-3 w-3 transition-transform ${expanded ? "rotate-90" : ""}`}
+            />
+          </button>
+        ) : null}
+      </div>
+      {hasTools && expanded ? (
+        <ul className="flex flex-col gap-0.5 px-3 pb-2 pl-6">
+          {phase.toolCalls.map((tc, j) => (
+            <li
+              key={`${tc.turn}-${tc.tool}-${j}`}
+              className="flex items-center gap-2 text-xs text-muted-foreground"
+            >
+              <Wrench className="h-3 w-3 shrink-0 text-primary/60" />
+              <span className="font-mono text-foreground">{tc.tool}</span>
+              <span className="text-[10px] opacity-60">turn {tc.turn}</span>
+              {tc.summary ? (
+                <span className="truncate">— {tc.summary}</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  )
+}
+
 function SmartGenCard({
   smartGen,
   isStreaming,
@@ -603,48 +668,11 @@ function SmartGenCard({
             const isLast = i === phases.length - 1
             const isActivePhase = isLast && status === "running"
             return (
-              <li
+              <SmartGenPhaseRow
                 key={`${phase.phase}-${i}`}
-                className="border-b border-border/40 last:border-b-0"
-              >
-                <div className="flex items-baseline gap-2 px-3 py-1.5">
-                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {phase.phase}
-                  </span>
-                  <span className="text-[13px] font-medium text-foreground">
-                    {phase.label}
-                  </span>
-                  {phase.message && phase.message !== phase.label ? (
-                    <span className="truncate text-xs text-muted-foreground">
-                      — {phase.message}
-                    </span>
-                  ) : null}
-                  {isActivePhase ? (
-                    <Loader2 className="ml-1 h-3 w-3 animate-spin text-primary" />
-                  ) : null}
-                </div>
-                {phase.toolCalls.length > 0 ? (
-                  <ul className="flex flex-col gap-0.5 px-3 pb-2 pl-6">
-                    {phase.toolCalls.map((tc, j) => (
-                      <li
-                        key={`${tc.turn}-${tc.tool}-${j}`}
-                        className="flex items-center gap-2 text-xs text-muted-foreground"
-                      >
-                        <Wrench className="h-3 w-3 shrink-0 text-primary/60" />
-                        <span className="font-mono text-foreground">
-                          {tc.tool}
-                        </span>
-                        <span className="text-[10px] opacity-60">
-                          turn {tc.turn}
-                        </span>
-                        {tc.summary ? (
-                          <span className="truncate">— {tc.summary}</span>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </li>
+                phase={phase}
+                isActivePhase={isActivePhase}
+              />
             )
           })}
         </ol>
