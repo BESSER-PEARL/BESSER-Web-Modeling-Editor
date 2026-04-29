@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { besserWMERepositoryLink } from '../constants/application-constants';
 
-type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'gui' | 'quantum';
+type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'gui' | 'quantum' | 'nn';
 
 interface GuideDetail {
   title: string;
@@ -456,6 +456,30 @@ const sections: GuideSection[] = [
           <div className="space-y-2">
             <p>Place gates on qubit lines, validate structure, then generate with selected backend settings.</p>
             <p>Use shot count and backend selection in Generate for reproducible results.</p>
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    id: 'nn',
+    label: 'Neural Network',
+    summary: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    details: [
+      {
+        title: 'Core Workflow',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+              incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
+              exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+            </p>
+            <p>
+              Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat
+              nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+              officia deserunt mollit anim id est laborum.
+            </p>
           </div>
         ),
       },
