@@ -38,6 +38,25 @@ vi.mock('react-toastify', () => ({
   },
 }));
 
+// Mock the Redux dispatch + the perspective thunk so we can assert on dispatch.
+const mockDispatch = vi.fn(() => ({
+  unwrap: () => Promise.resolve(),
+}));
+
+vi.mock('../../../app/store/hooks', () => ({
+  useAppDispatch: () => mockDispatch,
+  useAppSelector: vi.fn(),
+}));
+
+const setPerspectiveEnabledThunkSpy = vi.fn((payload: any) => ({
+  type: 'setPerspectiveEnabled',
+  payload,
+}));
+
+vi.mock('../../../app/store/workspaceSlice', () => ({
+  setPerspectiveEnabledThunk: (payload: any) => setPerspectiveEnabledThunkSpy(payload),
+}));
+
 import { useProject } from '../../../app/hooks/useProject';
 
 const mockUseProject = vi.mocked(useProject);
@@ -156,12 +175,9 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByText('Show Association Names')).toBeInTheDocument();
     expect(screen.getByText('Properties Panel')).toBeInTheDocument();
 
-    // All three checkboxes should be present and unchecked by default
+    // Display section has 3 checkboxes; the new Modeling Perspectives section adds 7 more.
     const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes).toHaveLength(3);
-    expect(checkboxes[0]).not.toBeChecked();
-    expect(checkboxes[1]).not.toBeChecked();
-    expect(checkboxes[2]).not.toBeChecked();
+    expect(checkboxes).toHaveLength(10);
   });
 
   it('renders project name in the input field', () => {
@@ -209,6 +225,67 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByText('Active Editor')).toBeInTheDocument();
     // currentDiagramType is 'ClassDiagram', which gets 'Diagram' stripped -> 'Class'
     expect(screen.getByText('Class')).toBeInTheDocument();
+  });
+
+  it('renders the Modeling Perspectives card with a checkbox per supported diagram type', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    render(<ProjectSettingsPanel />);
+
+    expect(screen.getByText('Modeling Perspectives')).toBeInTheDocument();
+    // 7 perspective toggles, all checked by default on a fresh project.
+    expect(screen.getByTestId('perspective-toggle-ClassDiagram')).toBeChecked();
+    expect(screen.getByTestId('perspective-toggle-ObjectDiagram')).toBeChecked();
+    expect(screen.getByTestId('perspective-toggle-StateMachineDiagram')).toBeChecked();
+    expect(screen.getByTestId('perspective-toggle-AgentDiagram')).toBeChecked();
+    expect(screen.getByTestId('perspective-toggle-UserDiagram')).toBeChecked();
+    expect(screen.getByTestId('perspective-toggle-GUINoCodeDiagram')).toBeChecked();
+    expect(screen.getByTestId('perspective-toggle-QuantumCircuitDiagram')).toBeChecked();
+  });
+
+  it('reflects already-disabled perspectives as unchecked', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.settings.perspectives.ObjectDiagram = false;
+    setupUseProject({ currentProject: project });
+    render(<ProjectSettingsPanel />);
+
+    expect(screen.getByTestId('perspective-toggle-ObjectDiagram')).not.toBeChecked();
+    expect(screen.getByTestId('perspective-toggle-ClassDiagram')).toBeChecked();
+  });
+
+  it('dispatches setPerspectiveEnabledThunk when a perspective is toggled', () => {
+    setPerspectiveEnabledThunkSpy.mockClear();
+    mockDispatch.mockClear();
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    render(<ProjectSettingsPanel />);
+
+    fireEvent.click(screen.getByTestId('perspective-toggle-AgentDiagram'));
+
+    expect(setPerspectiveEnabledThunkSpy).toHaveBeenCalledWith({
+      type: 'AgentDiagram',
+      enabled: false,
+    });
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables the last-enabled perspective checkbox to prevent disabling all', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    // Disable everything except ClassDiagram
+    for (const type of [
+      'ObjectDiagram',
+      'StateMachineDiagram',
+      'AgentDiagram',
+      'UserDiagram',
+      'GUINoCodeDiagram',
+      'QuantumCircuitDiagram',
+    ] as const) {
+      project.settings.perspectives[type] = false;
+    }
+    setupUseProject({ currentProject: project });
+    render(<ProjectSettingsPanel />);
+
+    expect(screen.getByTestId('perspective-toggle-ClassDiagram')).toBeDisabled();
   });
 
   it('renders correct diagram count when multiple diagrams have content', () => {

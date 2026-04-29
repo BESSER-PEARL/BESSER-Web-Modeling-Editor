@@ -1,4 +1,12 @@
-import { BesserProject, ProjectDiagram, createEmptyDiagram, SupportedDiagramType, getActiveDiagram } from '../../shared/types/project';
+import {
+  BesserProject,
+  ProjectDiagram,
+  PROJECT_SCHEMA_VERSION,
+  SupportedDiagramType,
+  createDefaultPerspectives,
+  createEmptyDiagram,
+  getActiveDiagram,
+} from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { UMLDiagramType } from '@besser/wme';
@@ -379,7 +387,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           const importedProject: BesserProject = {
             id: newProjectId,
             type: 'Project',
-            schemaVersion: 3,
+            schemaVersion: PROJECT_SCHEMA_VERSION,
             name: jsonData.title || 'Imported Diagram',
             description: '',
             owner: '',
@@ -394,6 +402,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
               defaultDiagramType: 'ClassDiagram',
               autoSave: true,
               collaborationEnabled: false,
+              perspectives: createDefaultPerspectives(),
             },
           };
 

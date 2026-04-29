@@ -200,4 +200,35 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('Class')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
+
+  it('hides UML perspectives that are disabled in project settings', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.settings.perspectives.ClassDiagram = false;
+    project.settings.perspectives.AgentDiagram = false;
+
+    render(<WorkspaceSidebar {...defaultProps({ project })} />);
+
+    expect(screen.queryByText('Class')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent')).not.toBeInTheDocument();
+    // Other perspectives still render
+    expect(screen.getByText('Object')).toBeInTheDocument();
+    expect(screen.getByText('State')).toBeInTheDocument();
+    expect(screen.getByText('User')).toBeInTheDocument();
+    expect(screen.getByText('GUI')).toBeInTheDocument();
+    expect(screen.getByText('Quantum')).toBeInTheDocument();
+    // Settings route always visible
+    expect(screen.getByText('Settings')).toBeInTheDocument();
+  });
+
+  it('hides non-UML perspectives that are disabled in project settings', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.settings.perspectives.GUINoCodeDiagram = false;
+    project.settings.perspectives.QuantumCircuitDiagram = false;
+
+    render(<WorkspaceSidebar {...defaultProps({ project })} />);
+
+    expect(screen.queryByText('GUI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Quantum')).not.toBeInTheDocument();
+    expect(screen.getByText('Class')).toBeInTheDocument();
+  });
 });

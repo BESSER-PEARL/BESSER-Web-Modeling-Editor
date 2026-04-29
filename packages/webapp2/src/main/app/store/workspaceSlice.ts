@@ -1,11 +1,15 @@
 import { createSlice, PayloadAction, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/wme';
 import {
+  ALL_DIAGRAM_TYPES,
   BesserProject,
   MAX_DIAGRAMS_PER_TYPE,
+  PerspectiveSettings,
   ProjectDiagram,
   SupportedDiagramType,
   QuantumCircuitData,
+  defaultPerspectivesAllEnabled,
+  isPerspectiveVisible,
   isUMLModel,
   toSupportedDiagramType,
   toUMLDiagramType,
@@ -302,6 +306,71 @@ export const updateDiagramReferencesThunk = createAsyncThunk(
     if (!success) throw new Error('Failed to update diagram references');
 
     return { diagramType, diagramIndex, references };
+  },
+);
+
+/**
+ * Toggle a single modeling perspective (e.g. ClassDiagram, GUINoCodeDiagram)
+ * on or off for the active project.
+ *
+ * Behavior:
+ *  - Last-enabled guard: refuses to disable the only remaining enabled
+ *    perspective (the workspace would have nothing to show).
+ *  - Active-hidden auto-switch: if the toggled-off perspective is the
+ *    `currentDiagramType`, dispatches `switchDiagramTypeThunk` to the first
+ *    perspective still enabled (in `ALL_DIAGRAM_TYPES` order) so the editor
+ *    lands on a working canvas.
+ *  - Persists the updated project via `ProjectStorageRepository` inside
+ *    `withoutNotify` to avoid the storage-listener loop.
+ */
+export const setPerspectiveEnabledThunk = createAsyncThunk(
+  'workspace/setPerspectiveEnabled',
+  async (
+    { type, enabled }: { type: SupportedDiagramType; enabled: boolean },
+    { getState, dispatch },
+  ) => {
+    const state = getState() as { workspace: WorkspaceState };
+    const { project } = state.workspace;
+    if (!project) throw new Error('No active project');
+
+    const current = defaultPerspectivesAllEnabled(project.settings?.perspectives);
+    if (current[type] === enabled) {
+      // No-op: already in the desired state.
+      return { type, enabled, perspectives: current, autoSwitchTo: null as SupportedDiagramType | null };
+    }
+
+    if (!enabled) {
+      const enabledCount = ALL_DIAGRAM_TYPES.filter((t) => current[t] !== false).length;
+      if (enabledCount <= 1) {
+        throw new Error('At least one perspective must be enabled');
+      }
+    }
+
+    const next: PerspectiveSettings = { ...current, [type]: enabled };
+
+    const updatedProject: BesserProject = {
+      ...project,
+      settings: {
+        ...project.settings,
+        perspectives: next,
+      },
+    };
+
+    ProjectStorageRepository.withoutNotify(() => {
+      ProjectStorageRepository.saveProject(updatedProject);
+    });
+
+    let autoSwitchTo: SupportedDiagramType | null = null;
+    if (!enabled && project.currentDiagramType === type) {
+      autoSwitchTo = ALL_DIAGRAM_TYPES.find((t) => next[t] !== false) ?? null;
+    }
+
+    if (autoSwitchTo) {
+      // Fire-and-forget: the switch thunk handles its own state updates.
+      void dispatch(switchDiagramTypeThunk({ diagramType: autoSwitchTo }));
+    }
+
+    return { type, enabled, perspectives: next, autoSwitchTo };
   },
 );
 
@@ -628,6 +697,20 @@ const workspaceSlice = createSlice({
         state.error = action.error.message || 'Failed to update diagram references';
       })
 
+      // ── Toggle perspective visibility (view-only, no revision bump) ──
+      .addCase(setPerspectiveEnabledThunk.fulfilled, (state, action) => {
+        const { perspectives } = action.payload;
+        if (state.project) {
+          state.project.settings = {
+            ...state.project.settings,
+            perspectives,
+          };
+        }
+      })
+      .addCase(setPerspectiveEnabledThunk.rejected, (state, action) => {
+        state.error = action.error.message || 'Failed to update perspective';
+      })
+
       // ── Refresh project from storage (no revision bump) ─────
       .addCase(refreshProjectStateThunk.fulfilled, (state, action) => {
         if (!action.payload) return;
@@ -744,4 +827,14 @@ export const selectIsGUIEditor = createSelector(
 export const selectIsQuantumEditor = createSelector(
   selectActiveDiagramType,
   (activeDiagramType) => activeDiagramType === 'QuantumCircuitDiagram',
+);
+
+export const selectPerspectives = createSelector(
+  selectProject,
+  (project) => project?.settings?.perspectives,
+);
+
+export const selectVisiblePerspectives = createSelector(
+  selectPerspectives,
+  (perspectives) => ALL_DIAGRAM_TYPES.filter((t) => isPerspectiveVisible(perspectives, t)),
 );

@@ -25,6 +25,7 @@ import type { GenerationResult } from '../../features/generation/types';
 import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
 import { WorkspaceTopBar } from './WorkspaceTopBar';
 import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
+import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { AboutDialog } from '../../shared/dialogs/AboutDialog';
 import { AssistantImportDialog } from '../../features/assistant/components/AssistantImportDialog';
@@ -873,6 +874,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          {location.pathname === '/' && <HiddenPerspectivesBanner />}
           {location.pathname === '/' && (
             <DiagramTabs
               onRequestTabSwitch={handleRequestTabSwitch}

@@ -3,7 +3,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
-import { toSupportedDiagramType } from '../../shared/types/project';
+import { isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
 import {
   AGENT_ROUTE_ITEMS,
   NON_UML_EDITOR_ITEMS,
@@ -89,13 +89,25 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
     return map;
   }, [project]);
 
+  // Filter the static perspective lists by the per-project `perspectives` setting.
+  // Hidden perspectives are removed from the sidebar entirely; their data is preserved.
+  const perspectives = project?.settings?.perspectives;
+  const visibleUmlItems = useMemo(
+    () => UML_ITEMS.filter((it) => isPerspectiveVisible(perspectives, toSupportedDiagramType(it.type))),
+    [perspectives],
+  );
+  const visibleNonUmlItems = useMemo(
+    () => NON_UML_EDITOR_ITEMS.filter((it) => isPerspectiveVisible(perspectives, it.type)),
+    [perspectives],
+  );
+
   const isCollapsed = !isSidebarExpanded;
 
   return (
     <TooltipProvider delayDuration={300}>
       <aside className={`${sidebarBaseClass} animate-slide-in-left ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
         {isSidebarExpanded && <p className={sidebarTitleClass}>Editors</p>}
-        {UML_ITEMS.map((item) => {
+        {visibleUmlItems.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
           const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
           const count = countMap[item.type] ?? 0;
@@ -161,7 +173,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
           );
         })}
 
-        {NON_UML_EDITOR_ITEMS.map((item) => {
+        {visibleNonUmlItems.map((item) => {
           const active = locationPath === '/' && activeDiagramType === item.type;
           const count = countMap[item.type] ?? 0;
           const displayLabel = labelWithCount(item.label, count);
