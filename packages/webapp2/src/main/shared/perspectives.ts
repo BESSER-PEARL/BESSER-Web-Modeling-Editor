@@ -53,14 +53,14 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
   {
     key: 'agent',
     label: 'Agent Developer',
-    description: 'Class, agent, and user diagrams for conversational agents.',
-    diagrams: ['ClassDiagram', 'AgentDiagram', 'UserDiagram'],
+    description: 'Agent and user diagrams for conversational agents.',
+    diagrams: ['AgentDiagram', 'UserDiagram'],
   },
   {
     key: 'fullApp',
     label: 'Full Application',
-    description: 'Class, GUI, agent, user, object, and state-machine diagrams.',
-    diagrams: ['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram'],
+    description: 'Class, agent, and no-code GUI diagrams.',
+    diagrams: ['ClassDiagram', 'AgentDiagram', 'GUINoCodeDiagram'],
   },
   {
     key: 'quantum',
