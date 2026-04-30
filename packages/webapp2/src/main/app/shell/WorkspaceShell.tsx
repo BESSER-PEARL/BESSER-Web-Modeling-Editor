@@ -189,7 +189,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
 
   // Local UI state
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
