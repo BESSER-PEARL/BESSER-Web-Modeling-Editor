@@ -46,7 +46,10 @@ import {
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
-import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
+import { useKgToUmlConversion, type KgConversionTarget } from '../import/useKgToUmlConversion';
+import { useKgPreflight, type KgPreflightReport, type KgIssue } from '../import/useKgPreflight';
+import type { RowDecision } from '../import/KgPreflightIssueRow';
+import * as kgFocus from '../editors/kg/kgFocus';
 import { useExportKgRdf } from '../export/useExportKgRdf';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
@@ -379,6 +382,52 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
   const runKgConversion = useKgToUmlConversion();
+  const { runPreflight: runKgPreflight } = useKgPreflight();
+  // Pending KG preflight modal state. The modal is rendered by the parent;
+  // when the user clicks Convert / Cancel / Fix-in-KG it calls the
+  // ``resolve`` callback which unblocks the awaited promise inside
+  // ``runKgWithPreflight``.
+  const [kgPreflightState, setKgPreflightState] = useState<{
+    report: KgPreflightReport;
+    target: KgConversionTarget;
+    resolve: (
+      decision:
+        | { resolutions: Array<{ issueId: string; decision: RowDecision }>; kgSignature: string }
+        | { fixInKg: true }
+        | null,
+    ) => void;
+  } | null>(null);
+
+  const runKgWithPreflight = useCallback(
+    async (target: KgConversionTarget): Promise<void> => {
+      const report = await runKgPreflight(target);
+      if (!report) return;
+      // No issues → run conversion directly with no resolutions.
+      if (report.issueCount === 0) {
+        await runKgConversion(target, { kgSignature: report.kgSignature });
+        return;
+      }
+      // Issues present → open the modal and wait for the user.
+      const decision = await new Promise<
+        | { resolutions: Array<{ issueId: string; decision: RowDecision }>; kgSignature: string }
+        | { fixInKg: true }
+        | null
+      >((resolve) => {
+        setKgPreflightState({ report, target, resolve });
+      });
+      setKgPreflightState(null);
+      if (decision === null || (decision as any).fixInKg) {
+        // Cancelled or "Fix in KG" — do not proceed with conversion.
+        return;
+      }
+      const { resolutions, kgSignature } = decision as {
+        resolutions: Array<{ issueId: string; decision: RowDecision }>;
+        kgSignature: string;
+      };
+      await runKgConversion(target, { resolutions, kgSignature });
+    },
+    [runKgPreflight, runKgConversion],
+  );
   const exportKgRdf = useExportKgRdf();
 
   const { isQuantumContext, isGuiContext, isObjectContext, isKgContext } = getWorkspaceContext(
@@ -537,7 +586,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             toast.error('Open a Knowledge Graph diagram before converting to UML.');
             return { ok: false, error: 'Open a Knowledge Graph diagram before converting to UML.' };
           }
-          await runKgConversion(generatorType);
+          await runKgWithPreflight(generatorType);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           getPostHog()?.capture('generator_used', {
             generator_type: generatorType,
@@ -697,7 +746,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, isKgContext, runKgConversion,
+      isQuantumContext, isGuiContext, isObjectContext, isKgContext,
+      runKgConversion, runKgWithPreflight,
       ensureGuiForAssistantWebAppGeneration,
     ],
   );
@@ -983,6 +1033,36 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError('Web App generation')); },
   };
 
+  // Props for the KG preflight modal. The parent application renders the
+  // modal and forwards these props; the modal's button handlers feed
+  // ``kgPreflightState.resolve`` to unblock the awaited promise.
+  const kgPreflightModalProps = {
+    open: kgPreflightState !== null,
+    report: kgPreflightState?.report ?? null,
+    diagramTypeLabel:
+      kgPreflightState?.target === 'kg_to_object' ? 'Object Diagram' : 'Class Diagram',
+    onConvert: (
+      resolutions: Array<{ issueId: string; decision: RowDecision }>,
+      kgSignature: string,
+    ) => {
+      kgPreflightState?.resolve({ resolutions, kgSignature });
+    },
+    onCancel: () => {
+      kgPreflightState?.resolve(null);
+    },
+    onFixInKg: (issue: KgIssue) => {
+      // Ask the active KG editor to narrow the canvas to the
+      // problematic node + its first-degree neighbours (max 15,
+      // classes/properties prioritised). Silently no-ops if the editor
+      // isn't mounted (e.g., the user has navigated away).
+      const ids = issue?.affectedNodeIds ?? [];
+      if (ids.length > 0) {
+        kgFocus.focus(ids, { maxNeighbors: 15 });
+      }
+      kgPreflightState?.resolve({ fixInKg: true });
+    },
+  };
+
   return {
     isGenerating,
     handleGenerateRequest,
@@ -990,5 +1070,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     handleQualityCheck,
     configState,
     isLocalEnvironment,
+    kgPreflightModalProps,
   };
 }

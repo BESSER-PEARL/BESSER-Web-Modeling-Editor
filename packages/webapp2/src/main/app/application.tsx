@@ -57,6 +57,9 @@ const TemplateLibraryDialog = React.lazy(() =>
 const ExportDialog = React.lazy(() =>
   import('../features/export/ExportDialog').then((m) => ({ default: m.ExportDialog })),
 );
+const KgPreflightModal = React.lazy(() =>
+  import('../features/import/KgPreflightModal').then((m) => ({ default: m.KgPreflightModal })),
+);
 const GeneratorConfigDialogs = React.lazy(() =>
   import('../features/generation/dialogs/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
 );
@@ -112,6 +115,7 @@ function AppContentInner() {
     handleQualityCheck,
     configState,
     isLocalEnvironment,
+    kgPreflightModalProps,
   } = useGeneratorExecution(editor);
 
   const handleExport = () => {
@@ -222,6 +226,13 @@ function AppContentInner() {
         onQiskitGenerate={configState.onQiskitGenerate}
         onWebAppGenerate={configState.onWebAppGenerate}
       />
+      </Suspense>
+
+      {/* KG → BUML preflight modal: opened by useGeneratorExecution when the
+          user picks Convert KG → Class/Object Diagram and the backend
+          preflight reports at least one issue. */}
+      <Suspense fallback={null}>
+        <KgPreflightModal {...kgPreflightModalProps} />
       </Suspense>
 
       {/* Onboarding tutorial — disabled for now

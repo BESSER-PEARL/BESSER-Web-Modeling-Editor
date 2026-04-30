@@ -2,6 +2,12 @@
 // backend's deterministic /kg-to-class-diagram and /kg-to-object-diagram
 // endpoints, then open the result in a new tab in the current project.
 //
+// Two-phase API:
+//   - getActiveKgDiagram(): returns the active KG diagram or null + a toast.
+//   - convertKgToUml(target, options?): runs the conversion. ``options`` may
+//     include ``resolutions`` (decision array from the preflight modal) and
+//     ``kgSignature`` (echoed from the analyze response).
+//
 // Triggered from the Generate menu when in a KnowledgeGraphDiagram context.
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
@@ -18,7 +24,12 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { getActiveDiagram } from '../../shared/types/project';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
 
-type KgConversionTarget = 'kg_to_class' | 'kg_to_object';
+export type KgConversionTarget = 'kg_to_class' | 'kg_to_object';
+
+export interface KgConvertOptions {
+  resolutions?: Array<{ issueId: string; decision: 'accept' | 'skip' }>;
+  kgSignature?: string;
+}
 
 const ENDPOINT_BY_TARGET: Record<KgConversionTarget, string> = {
   kg_to_class: '/kg-to-class-diagram',
@@ -52,32 +63,50 @@ function reportWarnings(warnings: unknown): void {
   }
 }
 
+/**
+ * Look up the currently-active KnowledgeGraphDiagram. Returns ``null`` and
+ * shows a toast if no project / no KG diagram is active.
+ */
+export function getActiveKgDiagram(): { project: BesserProject; diagram: any } | null {
+  const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
+  if (!project) {
+    toast.error('Open a project before converting.');
+    return null;
+  }
+  const diagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
+  if (!diagram || !diagram.model) {
+    toast.error('No active Knowledge Graph diagram to convert.');
+    return null;
+  }
+  return { project, diagram };
+}
+
 export const useKgToUmlConversion = () => {
   const dispatch = useAppDispatch();
 
   return useCallback(
-    async (target: KgConversionTarget): Promise<void> => {
-      const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
-      if (!project) {
-        toast.error('Open a project before converting.');
-        return;
-      }
-
-      const kgDiagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
-      if (!kgDiagram || !kgDiagram.model) {
-        toast.error('No active Knowledge Graph diagram to convert.');
-        return;
-      }
+    async (target: KgConversionTarget, options: KgConvertOptions = {}): Promise<void> => {
+      const active = getActiveKgDiagram();
+      if (!active) return;
+      const { project, diagram: kgDiagram } = active;
 
       try {
+        const body: Record<string, unknown> = {
+          id: kgDiagram.id,
+          title: kgDiagram.title,
+          model: kgDiagram.model,
+        };
+        if (options.resolutions && options.resolutions.length) {
+          body.resolutions = options.resolutions;
+        }
+        if (options.kgSignature) {
+          body.kgSignature = options.kgSignature;
+        }
+
         const response = await fetch(`${BACKEND_URL}${ENDPOINT_BY_TARGET[target]}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: kgDiagram.id,
-            title: kgDiagram.title,
-            model: kgDiagram.model,
-          }),
+          body: JSON.stringify(body),
         });
 
         if (!response.ok) {

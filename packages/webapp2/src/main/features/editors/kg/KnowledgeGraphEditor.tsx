@@ -6,6 +6,7 @@ import { CytoscapeCanvas, CytoscapeCanvasHandle } from './CytoscapeCanvas';
 import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
 import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector';
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
+import * as kgFocus from './kgFocus';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../../shared/utils/download';
@@ -17,6 +18,24 @@ import {
   isKnowledgeGraphData,
 } from '../../../shared/types/project';
 import type { KnowledgeGraphData } from './types';
+
+/** Priority order for picking which neighbours to include in the focus
+ *  subgraph. Matches the user's request: prefer classes and properties
+ *  (which represent attributes / associations) over individuals,
+ *  literals, and blank nodes. */
+const _FOCUS_NEIGHBOR_PRIORITY: Record<string, number> = {
+  class: 0,
+  property: 1,
+  individual: 2,
+  literal: 3,
+  blank: 4,
+};
+
+function _focusPriority(nodeType: string | undefined): number {
+  if (!nodeType) return 99;
+  const p = _FOCUS_NEIGHBOR_PRIORITY[nodeType];
+  return p ?? 99;
+}
 
 const EMPTY_KG: KnowledgeGraphData = {
   type: 'KnowledgeGraphDiagram',
@@ -302,6 +321,78 @@ export const KnowledgeGraphEditor: React.FC = () => {
   const emptyState = useMemo(() => model.nodes.length === 0 && model.edges.length === 0, [model]);
   const handleOpenSettings = () => navigate('/kg-settings');
 
+  // ── KG focus mode ─────────────────────────────────────────────────────
+  // When the preflight modal's "Fix in KG" button fires, we narrow the
+  // canvas to a problematic node + a bounded set of its first-degree
+  // neighbours (classes/properties prioritised). We stash the previously-
+  // visible set so the "Show all" banner can restore it.
+  const [focusedTargetIds, setFocusedTargetIds] = useState<string[] | null>(null);
+  const priorVisibleRef = useRef<string[] | null>(null);
+
+  const handleFocusOnNodes = useCallback(
+    (targetIds: string[], opts: { maxNeighbors: number }) => {
+      const fullModel = modelRef.current;
+      const idSet = new Set(fullModel.nodes.map((n) => n.id));
+      const targets = targetIds.filter((id) => idSet.has(id));
+      if (targets.length === 0) {
+        toast.warn('Could not focus: the affected node is not part of this graph.');
+        return;
+      }
+
+      // Collect first-degree neighbours of the target set.
+      const targetSet = new Set(targets);
+      const neighborIds = new Set<string>();
+      for (const edge of fullModel.edges) {
+        if (targetSet.has(edge.source) && !targetSet.has(edge.target)) {
+          neighborIds.add(edge.target);
+        }
+        if (targetSet.has(edge.target) && !targetSet.has(edge.source)) {
+          neighborIds.add(edge.source);
+        }
+      }
+
+      // Rank neighbours by node-type priority, then by id for stability.
+      const nodesById = new Map(fullModel.nodes.map((n) => [n.id, n]));
+      const rankedNeighbors = [...neighborIds]
+        .map((id) => {
+          const n = nodesById.get(id);
+          return { id, prio: _focusPriority(n?.type), label: n?.label ?? id };
+        })
+        .sort((a, b) => (a.prio - b.prio) || a.id.localeCompare(b.id))
+        .slice(0, opts.maxNeighbors)
+        .map((entry) => entry.id);
+
+      // Stash the previous visibleIds the FIRST time we enter focus mode
+      // (so a re-focus from the modal still restores the original set).
+      if (priorVisibleRef.current === null) {
+        priorVisibleRef.current = visibleIdsRef.current.slice();
+      }
+      const nextVisible = [...new Set([...targets, ...rankedNeighbors])];
+      setFocusedTargetIds(targets);
+      setVisibleIds(nextVisible);
+      // Fit on the next tick once the canvas has rendered the new set.
+      setTimeout(() => canvasRef.current?.fit(), 50);
+    },
+    [],
+  );
+
+  const handleShowAll = useCallback(() => {
+    const restored = priorVisibleRef.current;
+    priorVisibleRef.current = null;
+    setFocusedTargetIds(null);
+    if (restored) {
+      setVisibleIds(restored);
+    }
+    setTimeout(() => canvasRef.current?.fit(), 50);
+  }, []);
+
+  // Register the focus handler so external code (the preflight modal in
+  // ``features/import/``) can call into us via ``kgFocus.focus(ids)``.
+  useEffect(() => {
+    const unregister = kgFocus.register(handleFocusOnNodes);
+    return unregister;
+  }, [handleFocusOnNodes]);
+
   return (
     <div className="flex h-full w-full overflow-hidden">
       <div className="flex h-full w-64 shrink-0 flex-col overflow-hidden border-r border-border/60 bg-muted/20">
@@ -334,6 +425,25 @@ export const KnowledgeGraphEditor: React.FC = () => {
           }}
         />
         <div className="relative flex-1">
+          {focusedTargetIds && (
+            <div
+              data-testid="kg-focus-banner"
+              className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-900 shadow-sm dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+            >
+              <span className="mr-2">
+                Focused on issue ({focusedTargetIds.length} target
+                {focusedTargetIds.length === 1 ? '' : 's'} + neighbours)
+              </span>
+              <button
+                type="button"
+                className="font-medium underline underline-offset-2 hover:opacity-80"
+                onClick={handleShowAll}
+                data-testid="kg-focus-show-all"
+              >
+                Show all
+              </button>
+            </div>
+          )}
           <CytoscapeCanvas
             ref={canvasRef}
             model={model}
