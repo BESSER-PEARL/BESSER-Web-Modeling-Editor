@@ -468,13 +468,21 @@ const loadInitialState = () => {
 
   if (savedConfigurations.length > 0) {
     const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
-    const active = activeId ? savedConfigurations.find((entry) => entry.id === activeId) : savedConfigurations[0];
-    const selected = active || savedConfigurations[0];
+    const active = activeId ? savedConfigurations.find((entry) => entry.id === activeId) : null;
+
+    if (active) {
+      return {
+        config: normalizeAgentConfiguration(active.config),
+        activeId: active.id,
+        activeName: active.name,
+        savedConfigs: savedConfigurations,
+      };
+    }
 
     return {
-      config: normalizeAgentConfiguration(selected.config),
-      activeId: selected.id,
-      activeName: selected.name,
+      config: createDefaultConfig(),
+      activeId: null,
+      activeName: '',
       savedConfigs: savedConfigurations,
     };
   }
@@ -520,7 +528,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   );
 
   const [savedConfigs, setSavedConfigs] = useState<StoredAgentConfiguration[]>(initialSavedConfigs);
-  const [selectedConfigId, setSelectedConfigId] = useState<string>(initialSavedConfigs[0]?.id || '');
+  const [selectedConfigId, setSelectedConfigId] = useState<string>(initialLoad.activeId || '');
   const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
   const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
   const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || DEFAULT_CONFIG_NAME);
@@ -674,17 +682,25 @@ export const AgentConfigurationPanel: React.FC = () => {
     const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
     const hasActive = Boolean(activeId && configs.some((entry) => entry.id === activeId));
 
-    const nextId = hasPreferred
-      ? (preferredId as string)
-      : hasActive
-        ? (activeId as string)
-        : configs[0].id;
+    if (hasPreferred) {
+      const next = configs.find((entry) => entry.id === preferredId) || configs[0];
+      setSelectedConfigId(next.id);
+      setActiveConfigId(next.id);
+      setActiveConfigName(next.name);
+      return configs;
+    }
 
-    const next = configs.find((entry) => entry.id === nextId) || configs[0];
-    setSelectedConfigId(next.id);
-    setActiveConfigId(hasActive ? (activeId as string) : next.id);
-    setActiveConfigName(hasActive ? (configs.find((entry) => entry.id === activeId)?.name || '') : next.name);
+    if (hasActive) {
+      const next = configs.find((entry) => entry.id === activeId) || configs[0];
+      setSelectedConfigId(next.id);
+      setActiveConfigId(next.id);
+      setActiveConfigName(next.name);
+      return configs;
+    }
 
+    setSelectedConfigId('');
+    setActiveConfigId(null);
+    setActiveConfigName('');
     return configs;
   }, []);
 
@@ -751,8 +767,19 @@ export const AgentConfigurationPanel: React.FC = () => {
     const diagramConfig = agentDiagram?.config as Partial<AgentConfigurationPayload> | undefined;
 
     if (diagramConfig && Object.keys(diagramConfig).length > 0) {
+      // Only auto-populate the form from the diagram's stored config when
+      // a saved configuration is currently active. After Save and Apply or
+      // Reset the active id is cleared, and the form intentionally starts
+      // at defaults — the diagram still holds its applied config (and the
+      // personalization variant), but the form is for editing/loading and
+      // should stay blank until the user explicitly loads something.
+      const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
+      if (!activeId) {
+        return;
+      }
+
       const preferredProfileName = resolveProfileNameFromVariant(agentDiagram, tabUserProfiles)
-        || resolveProfileNameFromMapping(LocalStorageRepository.getActiveAgentConfigurationId() || '', tabUserProfiles);
+        || resolveProfileNameFromMapping(activeId, tabUserProfiles);
 
       applyConfiguration(normalizeAgentConfiguration(diagramConfig), undefined, {
         preferredUserProfileName: preferredProfileName,
@@ -1227,6 +1254,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     setActiveConfigId(null);
     setActiveConfigName('');
     setSelectedConfigId('');
+    LocalStorageRepository.clearActiveAgentConfigurationId();
   }, [applyConfiguration]);
 
   const handleResetToDefaults = () => {
