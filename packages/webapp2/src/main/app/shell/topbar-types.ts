@@ -1,5 +1,5 @@
 import { UMLDiagramType } from '@besser/wme';
-import type { SupportedDiagramType } from '../../shared/types/project';
+import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
 
@@ -52,6 +52,7 @@ export interface WorkspaceTopBarProps {
   onOpenKeyboardShortcuts: () => void;
   onShowWelcomeGuide?: () => void;
   activeDiagramType: SupportedDiagramType;
+  perspectives: PerspectiveSettings | undefined;
   onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;

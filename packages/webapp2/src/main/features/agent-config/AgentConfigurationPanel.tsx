@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,22 +31,20 @@ import type {
   VoiceStyleSetting,
 } from '../../shared/types/agent-config';
 import { isUMLModel, getActiveDiagram } from '../../shared/types/project';
+import type { ProjectDiagram } from '../../shared/types/project';
 import { useProject } from '../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
+import {
+  type AgentModelVariantSnapshot,
+  getActiveAgentVariantId,
+  readAgentVariants,
+  removeConfigurationVariantsFromProject,
+  upsertVariantForProfile,
+} from '../../shared/services/agent-variants/agent-variants-service';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
-
-type AgentModelVariantSnapshot = {
-  id: string;
-  profileId: string;
-  profileName: string;
-  configurationId: string;
-  configurationName: string;
-  createdAt: string;
-  model: UMLModel;
-};
 
 type MappingMatchedRule = {
   id?: string;
@@ -88,6 +87,63 @@ const defaultVoiceStyle: VoiceStyleSetting = {
 };
 
 const knownLLMModels = ['gpt-5', 'gpt-5-mini', 'gpt-5-nano', 'mistral-7b', 'falcon-40b', 'llama-3-8b', 'bloom-176b'];
+
+const INTERFACE_SIZE_MIN = 10;
+const INTERFACE_SIZE_MAX = 32;
+const INTERFACE_LINE_SPACING_MIN = 1;
+const INTERFACE_LINE_SPACING_MAX = 3;
+
+type InterfaceColorOption = {
+  value: string;
+  label: string;
+  swatch: string;
+  description: string;
+};
+
+const interfaceColorOptions: InterfaceColorOption[] = [
+  {
+    value: 'var(--apollon-primary-contrast)',
+    label: 'Default (theme)',
+    swatch: 'var(--apollon-primary-contrast)',
+    description: 'Follows the active theme — adapts to light or dark mode.',
+  },
+  {
+    value: '#000000',
+    label: 'Black — high contrast',
+    swatch: '#000000',
+    description: 'Maximum readability on light backgrounds (WCAG AAA).',
+  },
+  {
+    value: '#1f2937',
+    label: 'Dark slate — soft high contrast',
+    swatch: '#1f2937',
+    description: 'High contrast with reduced visual fatigue for long reading.',
+  },
+  {
+    value: '#475569',
+    label: 'Slate — medium contrast',
+    swatch: '#475569',
+    description: 'Lower contrast, gentler for low-vision users on bright screens.',
+  },
+  {
+    value: '#1d4ed8',
+    label: 'Blue — color-blind safe',
+    swatch: '#1d4ed8',
+    description: 'Distinguishable across protan and deutan color vision.',
+  },
+  {
+    value: '#0f766e',
+    label: 'Teal — color-blind safe',
+    swatch: '#0f766e',
+    description: 'Reads as a clear hue across all common color-vision types.',
+  },
+  {
+    value: '#ffffff',
+    label: 'White — for dark backgrounds',
+    swatch: '#ffffff',
+    description: 'Maximum contrast when the agent renders on a dark surface.',
+  },
+];
 
 const createDefaultConfig = (): AgentConfigurationPayload => ({
   agentLanguage: 'original',
@@ -294,29 +350,6 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-const toVariantList = (raw: unknown): AgentModelVariantSnapshot[] => {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-
-  return raw.filter((entry): entry is AgentModelVariantSnapshot => {
-    if (!entry || typeof entry !== 'object') {
-      return false;
-    }
-
-    const candidate = entry as Partial<AgentModelVariantSnapshot>;
-    return (
-      typeof candidate.id === 'string' &&
-      typeof candidate.profileId === 'string' &&
-      typeof candidate.profileName === 'string' &&
-      typeof candidate.configurationId === 'string' &&
-      typeof candidate.configurationName === 'string' &&
-      typeof candidate.createdAt === 'string' &&
-      Boolean(candidate.model)
-    );
-  });
-};
-
 const toMappingMatchedRules = (raw: unknown): MappingMatchedRule[] => {
   if (!Array.isArray(raw)) {
     return [];
@@ -392,22 +425,15 @@ const updateActiveAgentDiagramConfig = (
 };
 
 const resolveProfileNameFromVariant = (
-  configRecord: Record<string, unknown> | undefined,
+  agentDiagram: ProjectDiagram | null | undefined,
   availableProfiles: StoredUserProfile[],
 ): string => {
-  if (!configRecord) {
-    return '';
-  }
-
-  const activeVariantId = typeof configRecord.activePersonalizedVariantId === 'string'
-    ? configRecord.activePersonalizedVariantId
-    : '';
+  const activeVariantId = getActiveAgentVariantId(agentDiagram);
   if (!activeVariantId) {
     return '';
   }
 
-  const activeVariant = toVariantList(configRecord.personalizedVariants)
-    .find((entry) => entry.id === activeVariantId);
+  const activeVariant = readAgentVariants(agentDiagram).find((entry) => entry.id === activeVariantId);
   if (!activeVariant) {
     return '';
   }
@@ -442,13 +468,21 @@ const loadInitialState = () => {
 
   if (savedConfigurations.length > 0) {
     const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
-    const active = activeId ? savedConfigurations.find((entry) => entry.id === activeId) : savedConfigurations[0];
-    const selected = active || savedConfigurations[0];
+    const active = activeId ? savedConfigurations.find((entry) => entry.id === activeId) : null;
+
+    if (active) {
+      return {
+        config: normalizeAgentConfiguration(active.config),
+        activeId: active.id,
+        activeName: active.name,
+        savedConfigs: savedConfigurations,
+      };
+    }
 
     return {
-      config: normalizeAgentConfiguration(selected.config),
-      activeId: selected.id,
-      activeName: selected.name,
+      config: createDefaultConfig(),
+      activeId: null,
+      activeName: '',
       savedConfigs: savedConfigurations,
     };
   }
@@ -478,6 +512,7 @@ const loadInitialState = () => {
 
 export const AgentConfigurationPanel: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { currentProject } = useProject();
   const { githubSession } = useGitHubAuth();
 
@@ -493,7 +528,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   );
 
   const [savedConfigs, setSavedConfigs] = useState<StoredAgentConfiguration[]>(initialSavedConfigs);
-  const [selectedConfigId, setSelectedConfigId] = useState<string>(initialSavedConfigs[0]?.id || '');
+  const [selectedConfigId, setSelectedConfigId] = useState<string>(initialLoad.activeId || '');
   const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
   const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
   const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || DEFAULT_CONFIG_NAME);
@@ -518,6 +553,8 @@ export const AgentConfigurationPanel: React.FC = () => {
   const [languageComplexity, setLanguageComplexity] = useState<AgentLanguageComplexity>(initialConfig.languageComplexity);
   const [sentenceLength, setSentenceLength] = useState<AgentSentenceLength>(initialConfig.sentenceLength);
   const [interfaceStyle, setInterfaceStyle] = useState<InterfaceStyleSetting>({ ...initialConfig.interfaceStyle });
+  const [sizeText, setSizeText] = useState<string>(() => String(initialConfig.interfaceStyle.size));
+  const [lineSpacingText, setLineSpacingText] = useState<string>(() => String(initialConfig.interfaceStyle.lineSpacing));
   const [voiceStyle, setVoiceStyle] = useState<VoiceStyleSetting>({ ...initialConfig.voiceStyle });
   const [avatarData, setAvatarData] = useState<string | null>(initialConfig.avatar || null);
   const [useAbbreviations, setUseAbbreviations] = useState<boolean>(initialConfig.useAbbreviations);
@@ -527,6 +564,24 @@ export const AgentConfigurationPanel: React.FC = () => {
   );
   const [activeCustomizationSection, setActiveCustomizationSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'runtime' | 'personalization'>('runtime');
+
+  // Keep the size text mirror in sync when interfaceStyle.size is changed by something
+  // other than user typing (config load, reset, propose). Only overwrite the user's in-progress
+  // text when the canonical numeric value diverges from what they typed — otherwise typing
+  // "0" or clearing the field would snap back and prevent further editing.
+  useEffect(() => {
+    const parsed = Number(sizeText);
+    if (sizeText !== '' && !Number.isNaN(parsed) && parsed === interfaceStyle.size) return;
+    setSizeText(String(interfaceStyle.size));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interfaceStyle.size]);
+
+  useEffect(() => {
+    const parsed = Number(lineSpacingText);
+    if (lineSpacingText !== '' && !Number.isNaN(parsed) && parsed === interfaceStyle.lineSpacing) return;
+    setLineSpacingText(String(interfaceStyle.lineSpacing));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interfaceStyle.lineSpacing]);
 
   const selectedConfig = savedConfigs.find((entry) => entry.id === selectedConfigId) || null;
 
@@ -627,17 +682,25 @@ export const AgentConfigurationPanel: React.FC = () => {
     const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
     const hasActive = Boolean(activeId && configs.some((entry) => entry.id === activeId));
 
-    const nextId = hasPreferred
-      ? (preferredId as string)
-      : hasActive
-        ? (activeId as string)
-        : configs[0].id;
+    if (hasPreferred) {
+      const next = configs.find((entry) => entry.id === preferredId) || configs[0];
+      setSelectedConfigId(next.id);
+      setActiveConfigId(next.id);
+      setActiveConfigName(next.name);
+      return configs;
+    }
 
-    const next = configs.find((entry) => entry.id === nextId) || configs[0];
-    setSelectedConfigId(next.id);
-    setActiveConfigId(hasActive ? (activeId as string) : next.id);
-    setActiveConfigName(hasActive ? (configs.find((entry) => entry.id === activeId)?.name || '') : next.name);
+    if (hasActive) {
+      const next = configs.find((entry) => entry.id === activeId) || configs[0];
+      setSelectedConfigId(next.id);
+      setActiveConfigId(next.id);
+      setActiveConfigName(next.name);
+      return configs;
+    }
 
+    setSelectedConfigId('');
+    setActiveConfigId(null);
+    setActiveConfigName('');
     return configs;
   }, []);
 
@@ -702,11 +765,21 @@ export const AgentConfigurationPanel: React.FC = () => {
 
     const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
     const diagramConfig = agentDiagram?.config as Partial<AgentConfigurationPayload> | undefined;
-    const diagramConfigRecord = (agentDiagram?.config ?? {}) as Record<string, unknown>;
 
     if (diagramConfig && Object.keys(diagramConfig).length > 0) {
-      const preferredProfileName = resolveProfileNameFromVariant(diagramConfigRecord, tabUserProfiles)
-        || resolveProfileNameFromMapping(LocalStorageRepository.getActiveAgentConfigurationId() || '', tabUserProfiles);
+      // Only auto-populate the form from the diagram's stored config when
+      // a saved configuration is currently active. After Save and Apply or
+      // Reset the active id is cleared, and the form intentionally starts
+      // at defaults — the diagram still holds its applied config (and the
+      // personalization variant), but the form is for editing/loading and
+      // should stay blank until the user explicitly loads something.
+      const activeId = LocalStorageRepository.getActiveAgentConfigurationId();
+      if (!activeId) {
+        return;
+      }
+
+      const preferredProfileName = resolveProfileNameFromVariant(agentDiagram, tabUserProfiles)
+        || resolveProfileNameFromMapping(activeId, tabUserProfiles);
 
       applyConfiguration(normalizeAgentConfiguration(diagramConfig), undefined, {
         preferredUserProfileName: preferredProfileName,
@@ -901,16 +974,6 @@ export const AgentConfigurationPanel: React.FC = () => {
     });
   }, []);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const proceed = await confirmOverwriteIfNameCollides(configurationName);
-    if (!proceed) return;
-    const result = saveConfiguration();
-    if (!result.ok || !result.savedEntry) {
-      return;
-    }
-    toast.success(`Configuration "${result.savedEntry.name}" saved.`);
-  };
 
   const handleLoadSavedConfiguration = useCallback((configId?: string) => {
     const targetId = configId ?? selectedConfigId;
@@ -946,7 +1009,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     tabUserProfiles,
   ]);
 
-  const handleDeleteSavedConfiguration = useCallback((configId?: string) => {
+  const handleDeleteSavedConfiguration = useCallback(async (configId?: string) => {
     const targetId = configId ?? selectedConfigId;
     if (!targetId) {
       toast.error('Please select a configuration to delete.');
@@ -972,9 +1035,23 @@ export const AgentConfigurationPanel: React.FC = () => {
       setActiveConfigName('');
     }
 
+    const variantsChanged = currentProject
+      ? removeConfigurationVariantsFromProject(currentProject.id, targetId)
+      : false;
+
     refreshSavedConfigurations();
+
+    if (variantsChanged) {
+      try {
+        await dispatch(refreshProjectStateThunk()).unwrap();
+        dispatch(bumpEditorRevision());
+      } catch (error) {
+        console.error('Failed to refresh project after variant cleanup:', error);
+      }
+    }
+
     toast.success('Configuration deleted.');
-  }, [activeConfigId, refreshSavedConfigurations, selectedConfigId]);
+  }, [activeConfigId, currentProject, dispatch, refreshSavedConfigurations, selectedConfigId]);
 
   const handleInputSpeechToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputModalities(event.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
@@ -1170,13 +1247,18 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
   };
 
-  const handleResetToDefaults = () => {
+  const resetFormToDefaults = useCallback(() => {
     applyConfiguration(createDefaultConfig());
     setActiveCustomizationSection(null);
     setConfigurationName(DEFAULT_CONFIG_NAME);
     setActiveConfigId(null);
     setActiveConfigName('');
     setSelectedConfigId('');
+    LocalStorageRepository.clearActiveAgentConfigurationId();
+  }, [applyConfiguration]);
+
+  const handleResetToDefaults = () => {
+    resetFormToDefaults();
     toast.info('Configuration reset to default values.');
   };
 
@@ -1299,7 +1381,6 @@ export const AgentConfigurationPanel: React.FC = () => {
           isUMLModel(snapshotModel) &&
           snapshotModel.type === UMLDiagramType.AgentDiagram
         ) {
-          const currentConfigRecord = (currentAgentDiagram.config ?? {}) as Record<string, unknown>;
           const variantId = `${selectedProfile.id}:${result.savedEntry.id}`;
           const nextVariant: AgentModelVariantSnapshot = {
             id: variantId,
@@ -1311,19 +1392,14 @@ export const AgentConfigurationPanel: React.FC = () => {
             model: cloneModel(snapshotModel),
           };
 
-          const existingVariants = toVariantList(currentConfigRecord.personalizedVariants)
-            .filter((entry) => entry.id !== variantId);
-
           const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
           const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram') || currentAgentDiagram;
           const latestConfigRecord = (latestAgentDiagram.config ?? {}) as Record<string, unknown>;
-          const latestVariants = toVariantList(latestConfigRecord.personalizedVariants)
-            .filter((entry) => entry.id !== variantId);
 
           updateActiveAgentDiagramConfig(currentProject, {
             ...latestConfigRecord,
             ...(config as unknown as Record<string, unknown>),
-            personalizedVariants: [...latestVariants, nextVariant],
+            personalizedVariants: upsertVariantForProfile(readAgentVariants(latestAgentDiagram), nextVariant),
             activePersonalizedVariantId: variantId,
           });
 
@@ -1332,7 +1408,8 @@ export const AgentConfigurationPanel: React.FC = () => {
 
         LocalStorageRepository.saveAgentProfileConfigurationMapping(selectedProfile, result.savedEntry);
         toast.success('Configuration transformed, saved, and applied successfully.');
-        setSelectedConfigId(result.savedEntry.id);
+        resetFormToDefaults();
+        navigate('/');
       } else {
         toast.error('Failed to save configuration locally.');
       }
@@ -1420,7 +1497,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Agent Configuration</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Configure your agent behavior and personalization settings using the same workflow as the previous panel.
+            Tailor your agent to a specific user profile from the User Diagram. Adjust how it talks, looks, and behaves to match that audience, then save the result as a named configuration you can switch between later.
           </p>
         </div>
 
@@ -1457,8 +1534,48 @@ export const AgentConfigurationPanel: React.FC = () => {
           </button>
         </div>
 
+        {activeTab === 'personalization' && (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2">
+            <span className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Load a saved configuration
+            </span>
+            {activeConfigId && (
+              <Badge variant="secondary" title={activeConfigName || 'Unnamed configuration'}>
+                <span className="block max-w-[180px] truncate">
+                  Active: {activeConfigName || 'Unnamed'}
+                </span>
+              </Badge>
+            )}
+            <select
+              aria-label="Load a saved configuration"
+              className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+              value={selectedConfigId}
+              onChange={(event) => setSelectedConfigId(event.target.value)}
+              disabled={savedConfigs.length === 0}
+            >
+              <option value="">
+                {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a saved configuration'}
+              </option>
+              {savedConfigs.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => handleLoadSavedConfiguration()}
+              disabled={!selectedConfigId}
+            >
+              Load
+            </Button>
+          </div>
+        )}
+
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(event) => event.preventDefault()}
           className="flex flex-col gap-6"
         >
           {activeTab === 'personalization' && (
@@ -1471,7 +1588,7 @@ export const AgentConfigurationPanel: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="user-profile-mapping">User Profile Mapping (for Save &amp; Apply)</Label>
+                <Label htmlFor="user-profile-mapping">User Profile Mapping</Label>
                 <select
                   id="user-profile-mapping"
                   className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -1763,10 +1880,33 @@ export const AgentConfigurationPanel: React.FC = () => {
                         <Input
                           id="interface-size"
                           type="number"
-                          min={10}
-                          max={32}
-                          value={interfaceStyle.size}
-                          onChange={(event) => updateInterfaceStyle('size', Number(event.target.value))}
+                          min={INTERFACE_SIZE_MIN}
+                          max={INTERFACE_SIZE_MAX}
+                          value={sizeText}
+                          onChange={(event) => {
+                            const next = event.target.value;
+                            setSizeText(next);
+                            if (next === '') return;
+                            const parsed = Number(next);
+                            if (!Number.isNaN(parsed)) {
+                              updateInterfaceStyle('size', parsed);
+                            }
+                          }}
+                          onBlur={() => {
+                            const parsed = Number(sizeText);
+                            const fallback = Number.isFinite(interfaceStyle.size)
+                              ? interfaceStyle.size
+                              : defaultInterfaceStyle.size;
+                            const base = sizeText === '' || Number.isNaN(parsed) ? fallback : parsed;
+                            const clamped = Math.max(
+                              INTERFACE_SIZE_MIN,
+                              Math.min(INTERFACE_SIZE_MAX, Math.round(base)),
+                            );
+                            setSizeText(String(clamped));
+                            if (clamped !== interfaceStyle.size) {
+                              updateInterfaceStyle('size', clamped);
+                            }
+                          }}
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -1790,16 +1930,39 @@ export const AgentConfigurationPanel: React.FC = () => {
                         <Input
                           id="interface-line-spacing"
                           type="number"
-                          min={1}
-                          max={3}
+                          min={INTERFACE_LINE_SPACING_MIN}
+                          max={INTERFACE_LINE_SPACING_MAX}
                           step={0.1}
-                          value={interfaceStyle.lineSpacing}
-                          onChange={(event) => updateInterfaceStyle('lineSpacing', Number(event.target.value))}
+                          value={lineSpacingText}
+                          onChange={(event) => {
+                            const next = event.target.value;
+                            setLineSpacingText(next);
+                            if (next === '') return;
+                            const parsed = Number(next);
+                            if (!Number.isNaN(parsed)) {
+                              updateInterfaceStyle('lineSpacing', parsed);
+                            }
+                          }}
+                          onBlur={() => {
+                            const parsed = Number(lineSpacingText);
+                            const fallback = Number.isFinite(interfaceStyle.lineSpacing)
+                              ? interfaceStyle.lineSpacing
+                              : defaultInterfaceStyle.lineSpacing;
+                            const base = lineSpacingText === '' || Number.isNaN(parsed) ? fallback : parsed;
+                            const clamped = Math.max(
+                              INTERFACE_LINE_SPACING_MIN,
+                              Math.min(INTERFACE_LINE_SPACING_MAX, Math.round(base * 10) / 10),
+                            );
+                            setLineSpacingText(String(clamped));
+                            if (clamped !== interfaceStyle.lineSpacing) {
+                              updateInterfaceStyle('lineSpacing', clamped);
+                            }
+                          }}
                         />
                       </div>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-alignment">Alignment</Label>
                         <select
@@ -1815,16 +1978,6 @@ export const AgentConfigurationPanel: React.FC = () => {
                       </div>
 
                       <div className="space-y-1.5">
-                        <Label htmlFor="interface-color">Color</Label>
-                        <Input
-                          id="interface-color"
-                          type="text"
-                          value={interfaceStyle.color}
-                          onChange={(event) => updateInterfaceStyle('color', event.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
                         <Label htmlFor="interface-contrast">Contrast</Label>
                         <select
                           id="interface-contrast"
@@ -1837,6 +1990,51 @@ export const AgentConfigurationPanel: React.FC = () => {
                           <option value="high">High</option>
                         </select>
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Color</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Pick a preset suited to different accessibility needs. The swatch shows the actual rendered color.
+                      </p>
+                      <div role="radiogroup" aria-label="Text color preset" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {interfaceColorOptions.map((option) => {
+                          const isSelected = interfaceStyle.color === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSelected}
+                              onClick={() => updateInterfaceStyle('color', option.value)}
+                              title={option.description}
+                              className={`flex items-start gap-3 rounded-md border p-2.5 text-left transition-colors ${
+                                isSelected
+                                  ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
+                                  : 'border-input hover:border-brand/30'
+                              }`}
+                            >
+                              <span
+                                aria-hidden
+                                className="mt-0.5 size-6 shrink-0 rounded-full border border-border shadow-inner"
+                                style={{ background: option.swatch }}
+                              />
+                              <span className="flex-1 leading-tight">
+                                <span className="block text-sm font-medium text-foreground">{option.label}</span>
+                                <span className="block text-xs text-muted-foreground">{option.description}</span>
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {interfaceStyle.color &&
+                        !interfaceColorOptions.some((option) => option.value === interfaceStyle.color) && (
+                          <p className="text-xs text-muted-foreground">
+                            Current value:{' '}
+                            <code className="rounded bg-muted px-1 py-0.5 font-mono">{interfaceStyle.color}</code>{' '}
+                            (custom — pick a preset above to replace it).
+                          </p>
+                        )}
                     </div>
 
                     {SHOW_WIP_AGENT_CONFIG_FIELDS && showVoiceControls && (
@@ -1968,7 +2166,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                       Adapt content to user profile
                     </label>
                     <p className="text-xs text-muted-foreground">
-                      The profile used for adaptation is selected in User Profile Mapping (for Save &amp; Apply).
+                      The profile used for adaptation is selected in User Profile Mapping.
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Enable this option to tailor generated responses to the selected profile and its attributes.
@@ -2017,9 +2215,9 @@ export const AgentConfigurationPanel: React.FC = () => {
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Configuration Actions</CardTitle>
+                <CardTitle>Save this configuration</CardTitle>
                 <CardDescription>
-                  Save, load, delete, and apply configuration variants.
+                  When you're done filling in the form above, name your configuration and save it here. Saved configurations show up in the "Load a saved configuration" picker at the top of the page so you can switch between them later.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2083,9 +2281,6 @@ export const AgentConfigurationPanel: React.FC = () => {
                   </Button>
                   <Button type="button" variant="outline" onClick={handleResetToDefaults} disabled={isLoading}>
                     Reset to Defaults
-                  </Button>
-                  <Button type="submit" variant="secondary" disabled={isLoading}>
-                    Save Configuration
                   </Button>
                 </div>
               </CardContent>

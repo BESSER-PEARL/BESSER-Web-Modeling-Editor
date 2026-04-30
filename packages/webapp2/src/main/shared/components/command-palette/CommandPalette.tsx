@@ -299,6 +299,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
 
 const ICON_SIZE = 'size-4';
 
+/**
+ * Diagram-type tokens used to gate the "Switch to …" entries. The strings
+ * intentionally mirror `SupportedDiagramType` from the webapp project so
+ * callers can pass a single predicate driven by the perspective settings.
+ */
+type SwitchableDiagramType =
+  | 'ClassDiagram'
+  | 'ObjectDiagram'
+  | 'StateMachineDiagram'
+  | 'AgentDiagram'
+  | 'GUINoCodeDiagram'
+  | 'QuantumCircuitDiagram';
+
 interface BuildActionsOptions {
   onSwitchToClassDiagram: () => void;
   onSwitchToStateMachine: () => void;
@@ -310,6 +323,12 @@ interface BuildActionsOptions {
   onExportJSON: () => void;
   onExportBUML: () => void;
   onQualityCheck: () => void;
+  /**
+   * Predicate driven by the modeling-perspective settings. When omitted, all
+   * editor switch actions are shown. When provided, an action is included
+   * only if the predicate returns `true` for its diagram type.
+   */
+  isDiagramVisible?: (type: SwitchableDiagramType) => boolean;
 }
 
 /**
@@ -317,50 +336,77 @@ interface BuildActionsOptions {
  * Kept as a factory so the host component can supply its own callbacks.
  */
 export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] {
+  const allowDiagram = opts.isDiagramVisible ?? (() => true);
+
+  const candidateEditorActions: Array<{ type: SwitchableDiagramType; action: CommandAction }> = [
+    {
+      type: 'ClassDiagram',
+      action: {
+        id: 'switch-class',
+        label: 'Switch to Class Diagram',
+        icon: <Network className={ICON_SIZE} />,
+        category: 'Editors',
+        onSelect: opts.onSwitchToClassDiagram,
+      },
+    },
+    {
+      type: 'StateMachineDiagram',
+      action: {
+        id: 'switch-state',
+        label: 'Switch to State Machine',
+        icon: <Repeat2 className={ICON_SIZE} />,
+        category: 'Editors',
+        onSelect: opts.onSwitchToStateMachine,
+      },
+    },
+    {
+      type: 'ObjectDiagram',
+      action: {
+        id: 'switch-object',
+        label: 'Switch to Object Diagram',
+        icon: <Layers3 className={ICON_SIZE} />,
+        category: 'Editors',
+        onSelect: opts.onSwitchToObjectDiagram,
+      },
+    },
+    {
+      type: 'GUINoCodeDiagram',
+      action: {
+        id: 'switch-gui',
+        label: 'Switch to GUI Editor',
+        icon: <PackageOpen className={ICON_SIZE} />,
+        category: 'Editors',
+        onSelect: opts.onSwitchToGUIEditor,
+      },
+    },
+    {
+      type: 'AgentDiagram',
+      action: {
+        id: 'switch-agent',
+        label: 'Switch to Agent Diagram',
+        icon: <Bot className={ICON_SIZE} />,
+        category: 'Editors',
+        onSelect: opts.onSwitchToAgentDiagram,
+      },
+    },
+    {
+      type: 'QuantumCircuitDiagram',
+      action: {
+        id: 'switch-quantum',
+        label: 'Switch to Quantum Circuit',
+        icon: <Atom className={ICON_SIZE} />,
+        category: 'Editors',
+        onSelect: opts.onSwitchToQuantumCircuit,
+      },
+    },
+  ];
+
+  const editorActions = candidateEditorActions
+    .filter(({ type }) => allowDiagram(type))
+    .map(({ action }) => action);
+
   return [
-    // ── Editors ─────────────────────────────────────────────────────
-    {
-      id: 'switch-class',
-      label: 'Switch to Class Diagram',
-      icon: <Network className={ICON_SIZE} />,
-      category: 'Editors',
-      onSelect: opts.onSwitchToClassDiagram,
-    },
-    {
-      id: 'switch-state',
-      label: 'Switch to State Machine',
-      icon: <Repeat2 className={ICON_SIZE} />,
-      category: 'Editors',
-      onSelect: opts.onSwitchToStateMachine,
-    },
-    {
-      id: 'switch-object',
-      label: 'Switch to Object Diagram',
-      icon: <Layers3 className={ICON_SIZE} />,
-      category: 'Editors',
-      onSelect: opts.onSwitchToObjectDiagram,
-    },
-    {
-      id: 'switch-gui',
-      label: 'Switch to GUI Editor',
-      icon: <PackageOpen className={ICON_SIZE} />,
-      category: 'Editors',
-      onSelect: opts.onSwitchToGUIEditor,
-    },
-    {
-      id: 'switch-agent',
-      label: 'Switch to Agent Diagram',
-      icon: <Bot className={ICON_SIZE} />,
-      category: 'Editors',
-      onSelect: opts.onSwitchToAgentDiagram,
-    },
-    {
-      id: 'switch-quantum',
-      label: 'Switch to Quantum Circuit',
-      icon: <Atom className={ICON_SIZE} />,
-      category: 'Editors',
-      onSelect: opts.onSwitchToQuantumCircuit,
-    },
+    ...editorActions,
     // ── Navigation ──────────────────────────────────────────────────
     {
       id: 'go-settings',

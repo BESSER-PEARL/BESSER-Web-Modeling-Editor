@@ -76,15 +76,20 @@ export class SettingsService implements ISettingsService {
   }
 
   /**
-   * Load settings from localStorage with fallback to defaults
+   * Load settings from localStorage with fallback to defaults.
+   * Drops the legacy `enabledPerspectives` key (replaced by per-project
+   * `BesserProject.settings.perspectives` in v7.4).
    */
   private loadSettings(): IApplicationSettings {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsedSettings = JSON.parse(stored);
-        // Merge with defaults to ensure all properties exist
-        return { ...DEFAULT_SETTINGS, ...parsedSettings };
+        const { enabledPerspectives: _drop, ...rest } = parsedSettings ?? {};
+        return {
+          ...DEFAULT_SETTINGS,
+          ...rest,
+        };
       }
     } catch (error) {
       console.warn('Failed to load settings from localStorage:', error);

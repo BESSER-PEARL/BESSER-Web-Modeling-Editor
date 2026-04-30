@@ -74,6 +74,16 @@ const OBJECT_GENERATORS: GeneratorMenuEntry[] = [
   },
 ];
 
+const USER_GENERATORS: GeneratorMenuEntry[] = [
+  {
+    kind: 'group',
+    label: 'Data',
+    actions: [
+      { kind: 'action', label: 'User Profile JSON', generator: 'jsonobject' },
+    ],
+  },
+];
+
 const STATEMACHINE_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'notice', label: 'State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.' },
 ];
@@ -87,6 +97,7 @@ const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [{ kind: 'notice', label: '
 export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry[]> = {
   class: CLASS_GENERATORS,
   object: OBJECT_GENERATORS,
+  user: USER_GENERATORS,
   statemachine: STATEMACHINE_GENERATORS,
   agent: AGENT_GENERATORS,
   gui: GUI_GENERATORS,

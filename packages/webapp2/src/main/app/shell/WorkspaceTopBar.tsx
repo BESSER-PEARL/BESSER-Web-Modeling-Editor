@@ -53,6 +53,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenKeyboardShortcuts,
   onShowWelcomeGuide,
   activeDiagramType,
+  perspectives,
   onSwitchUml,
   onSwitchDiagramType,
   onNavigate,
@@ -159,6 +160,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
         activeUmlType={activeUmlType}
         activeDiagramType={activeDiagramType}
         isDarkTheme={isDarkTheme}
+        perspectives={perspectives}
         onSwitchUml={onSwitchUml}
         onSwitchDiagramType={onSwitchDiagramType}
         onNavigate={onNavigate}

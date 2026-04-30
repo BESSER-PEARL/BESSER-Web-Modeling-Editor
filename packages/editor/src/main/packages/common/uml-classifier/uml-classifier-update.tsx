@@ -482,13 +482,21 @@ class ClassifierUpdate extends Component<Props, State> {
     const instance = new UMLElements[newType]({
       id: element.id,
       name: element.name,
-      type: element.type,
       owner: element.owner,
       bounds: element.bounds,
       ownedElements: element.ownedElements,
-    });
+    }) as UMLClassifier;
     const { id: _ignoredId, ...values } = instance.serialize();
-    update(element.id, values as Partial<UMLElement>);
+    // serialize() omits stereotype/italic/underline, but those are exactly the
+    // fields that distinguish the classifier kinds — without explicitly
+    // forwarding them the reducer's partial merge keeps the old values, so
+    // toggling Abstract/Enumeration off would leave the stereotype banner.
+    update<UMLClassifier>(element.id, {
+      ...values,
+      stereotype: instance.stereotype,
+      italic: instance.italic,
+      underline: instance.underline,
+    } as Partial<UMLClassifier>);
   };
 
   private delete = (id: string) => () => {

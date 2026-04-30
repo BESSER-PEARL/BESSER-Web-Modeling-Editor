@@ -13,4 +13,4 @@ export type GeneratorType =
   | 'qiskit'
   | 'jsonobject';
 
-export type GeneratorMenuMode = 'class' | 'object' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'none';
+export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'none';

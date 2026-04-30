@@ -36,8 +36,8 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     label: '1 generator',
   },
   UserDiagram: {
-    generators: [],
-    label: 'No generators',
+    generators: ['jsonobject'],
+    label: '1 generator',
   },
   GUINoCodeDiagram: {
     generators: ['web_app'],
@@ -87,7 +87,7 @@ const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
   : [];
 
 export const AGENT_ROUTE_ITEMS = [
-  { path: '/agent-config', label: 'Agent Config', icon: <SlidersHorizontal className="size-4" /> },
+  { path: '/agent-config', label: 'Agent Customization', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
 ] as const;
 

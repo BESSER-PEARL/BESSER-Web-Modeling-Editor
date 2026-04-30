@@ -1,9 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
-import { Download, FolderKanban, Layers3, Monitor, Settings } from 'lucide-react';
+import { Download, FolderKanban, Layers3, Monitor, Settings, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
-import { SupportedDiagramType, ProjectDiagram } from '../../shared/types/project';
+import {
+  ALL_DIAGRAM_TYPES,
+  ProjectDiagram,
+  SupportedDiagramType,
+  diagramHasContent,
+  isPerspectiveVisible,
+} from '../../shared/types/project';
+import { PERSPECTIVES, PerspectiveDefinition, isPresetActive } from '../../shared/perspectives';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,17 +21,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
-import { diagramHasContent } from '../../shared/types/project';
-
-const colorByType: Record<SupportedDiagramType, string> = {
-  ClassDiagram: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
-  ObjectDiagram: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
-  StateMachineDiagram: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
-  AgentDiagram: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
-  UserDiagram: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
-  GUINoCodeDiagram: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
-  QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
-};
+import {
+  DIAGRAM_TYPE_BADGE,
+  PERSPECTIVE_DESCRIPTIONS,
+  PERSPECTIVE_LABELS,
+} from '../../shared/constants/diagramTypeStyles';
+import { useAppDispatch } from '../../app/store/hooks';
+import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../app/store/workspaceSlice';
 
 export const ProjectSettingsPanel: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -34,6 +37,35 @@ export const ProjectSettingsPanel: React.FC = () => {
   const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
 
   const { currentProject, loading, error, updateProject, exportProject } = useProject();
+  const dispatch = useAppDispatch();
+
+  const perspectives = currentProject?.settings?.perspectives;
+  const enabledPerspectiveCount = useMemo(
+    () => ALL_DIAGRAM_TYPES.filter((t) => isPerspectiveVisible(perspectives, t)).length,
+    [perspectives],
+  );
+
+  const handlePerspectiveToggle = useCallback(
+    (type: SupportedDiagramType, enabled: boolean) => {
+      dispatch(setPerspectiveEnabledThunk({ type, enabled }))
+        .unwrap()
+        .catch((err: unknown) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to update perspective');
+        });
+    },
+    [dispatch],
+  );
+
+  const handleApplyPreset = useCallback(
+    (preset: PerspectiveDefinition) => {
+      dispatch(applyPerspectivePresetThunk({ diagrams: preset.diagrams }))
+        .unwrap()
+        .catch((err: unknown) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to apply preset');
+        });
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
@@ -276,36 +308,128 @@ export const ProjectSettingsPanel: React.FC = () => {
             </Card>
           </div>
 
-          {/* Right column — Diagrams */}
-          <Card className="h-fit">
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2">
-                <Layers3 className="size-4 text-brand" />
-                <CardTitle className="text-base">Diagrams</CardTitle>
-              </div>
-              <CardDescription>
-                {diagrams.length > 0
-                  ? `${diagrams.length} diagram${diagrams.length !== 1 ? 's' : ''} with content`
-                  : 'No diagrams with content yet'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-2">
-                {diagrams.map(({ type, diagram, index }) => (
-                  <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3 transition-colors hover:bg-muted/30">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{diagram.title}</p>
-                      <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
+          {/* Right column — Diagrams + Modeling Perspectives */}
+          <div className="flex flex-col gap-6">
+            <Card className="h-fit">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Layers3 className="size-4 text-brand" />
+                  <CardTitle className="text-base">Diagrams</CardTitle>
+                </div>
+                <CardDescription>
+                  {diagrams.length > 0
+                    ? `${diagrams.length} diagram${diagrams.length !== 1 ? 's' : ''} with content`
+                    : 'No diagrams with content yet'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col gap-2">
+                  {diagrams.map(({ type, diagram, index }) => (
+                    <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3 transition-colors hover:bg-muted/30">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{diagram.title}</p>
+                        <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
+                      </div>
+                      <Badge className={DIAGRAM_TYPE_BADGE[type]}>{type.replace('Diagram', '')}</Badge>
                     </div>
-                    <Badge className={colorByType[type]}>{type.replace('Diagram', '')}</Badge>
+                  ))}
+                  {diagrams.length === 0 && (
+                    <p className="py-6 text-center text-sm text-muted-foreground">Start editing a diagram to see it here</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Modeling Perspectives — preset row + per-diagram toggles */}
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="size-4 text-brand" />
+                  <CardTitle className="text-base">Modeling Perspectives</CardTitle>
+                </div>
+                <CardDescription>
+                  Hide perspectives you don't need. Use a preset to flip several at once, or toggle each individually
+                  below. Disabled perspectives are removed from the sidebar; existing models are preserved and restored
+                  on re-enable. Generators remain available regardless.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                {/* Preset row */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <Sparkles className="size-3.5" />
+                    <span>Quick presets</span>
                   </div>
-                ))}
-                {diagrams.length === 0 && (
-                  <p className="py-6 text-center text-sm text-muted-foreground">Start editing a diagram to see it here</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex flex-wrap gap-2">
+                    {PERSPECTIVES.map((preset) => {
+                      const active = isPresetActive(preset, perspectives);
+                      return (
+                        <Button
+                          key={preset.key}
+                          type="button"
+                          variant={active ? 'default' : 'outline'}
+                          size="sm"
+                          title={preset.description}
+                          onClick={() => handleApplyPreset(preset)}
+                          data-testid={`perspective-preset-${preset.key}`}
+                          aria-pressed={active}
+                        >
+                          {preset.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Per-diagram toggles */}
+                <div className="flex flex-col gap-1">
+                  {ALL_DIAGRAM_TYPES.map((type, index) => {
+                    const checked = isPerspectiveVisible(perspectives, type);
+                    const isLastEnabled = checked && enabledPerspectiveCount === 1;
+                    const labelId = `perspective-toggle-${type}`;
+                    return (
+                      <React.Fragment key={type}>
+                        {index > 0 && <Separator />}
+                        <label
+                          htmlFor={labelId}
+                          className={`flex items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors ${
+                            isLastEnabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:bg-muted/30'
+                          }`}
+                          title={isLastEnabled ? 'At least one perspective must be enabled.' : undefined}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium">{PERSPECTIVE_LABELS[type]}</p>
+                              <Badge className={DIAGRAM_TYPE_BADGE[type]}>
+                                {type.replace('Diagram', '')}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {PERSPECTIVE_DESCRIPTIONS[type]}
+                            </p>
+                          </div>
+                          <input
+                            id={labelId}
+                            type="checkbox"
+                            className="size-4 accent-brand"
+                            checked={checked}
+                            disabled={isLastEnabled}
+                            aria-label={`Toggle ${PERSPECTIVE_LABELS[type]} visibility`}
+                            data-testid={`perspective-toggle-${type}`}
+                            onChange={(event) =>
+                              handlePerspectiveToggle(type, event.target.checked)
+                            }
+                          />
+                        </label>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
         </div>
       </div>
