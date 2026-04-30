@@ -31,7 +31,7 @@ click **Create Project**.
    :align: center
 
 Each project can contain multiple diagram types: class diagram, object model, state
-machine diagram, agent model, GUI No-Code diagram, and quantum circuit diagram.
+machine diagram, agent model, neural network diagram, GUI No-Code diagram, and quantum circuit diagram.
 A project can have multiple diagrams of each type.
 
 Importing an Existing Project
