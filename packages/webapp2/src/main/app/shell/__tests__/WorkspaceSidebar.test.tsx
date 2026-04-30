@@ -200,4 +200,16 @@ describe('WorkspaceSidebar', () => {
     expect(screen.getByText('Class')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
+
+  it('hides perspective entries when settings.perspectives flips them off', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.settings.perspectives.AgentDiagram = false;
+    project.settings.perspectives.QuantumCircuitDiagram = false;
+
+    render(<WorkspaceSidebar {...defaultProps({ project })} />);
+
+    expect(screen.queryByText('Agent')).not.toBeInTheDocument();
+    expect(screen.queryByText('Quantum')).not.toBeInTheDocument();
+    expect(screen.getByText('Class')).toBeInTheDocument();
+  });
 });

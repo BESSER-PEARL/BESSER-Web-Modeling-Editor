@@ -3,9 +3,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
-import { toSupportedDiagramType } from '../../shared/types/project';
-import { useEnabledPerspectives } from '../../shared/hooks/useEnabledPerspectives';
-import { isDiagramVisible } from '../../shared/perspectives';
+import { isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
 import {
   AGENT_ROUTE_ITEMS,
   NON_UML_EDITOR_ITEMS,
@@ -91,14 +89,16 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
     return map;
   }, [project]);
 
-  const enabledPerspectives = useEnabledPerspectives();
+  // Filter the static perspective lists by the per-project `perspectives` setting.
+  // Hidden perspectives are removed from the sidebar entirely; their data is preserved.
+  const perspectives = project?.settings?.perspectives;
   const visibleUmlItems = useMemo(
-    () => UML_ITEMS.filter((item) => isDiagramVisible(toSupportedDiagramType(item.type), enabledPerspectives)),
-    [enabledPerspectives],
+    () => UML_ITEMS.filter((it) => isPerspectiveVisible(perspectives, toSupportedDiagramType(it.type))),
+    [perspectives],
   );
   const visibleNonUmlItems = useMemo(
-    () => NON_UML_EDITOR_ITEMS.filter((item) => isDiagramVisible(item.type, enabledPerspectives)),
-    [enabledPerspectives],
+    () => NON_UML_EDITOR_ITEMS.filter((it) => isPerspectiveVisible(perspectives, it.type)),
+    [perspectives],
   );
 
   const isCollapsed = !isSidebarExpanded;

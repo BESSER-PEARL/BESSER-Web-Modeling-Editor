@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import type { SupportedDiagramType } from '../../../shared/types/project';
-import { toSupportedDiagramType } from '../../../shared/types/project';
-import { useEnabledPerspectives } from '../../../shared/hooks/useEnabledPerspectives';
-import { isDiagramVisible } from '../../../shared/perspectives';
+import { isPerspectiveVisible, toSupportedDiagramType } from '../../../shared/types/project';
 import { NON_UML_EDITOR_ITEMS, ROUTE_ITEMS, UML_ITEMS, navButtonClass } from '../workspace-navigation';
+import { useAppSelector } from '../../store/hooks';
+import { selectPerspectives } from '../../store/workspaceSlice';
 
 interface MobileNavigationProps {
   locationPath: string;
@@ -25,14 +25,14 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onSwitchDiagramType,
   onNavigate,
 }) => {
-  const enabledPerspectives = useEnabledPerspectives();
+  const perspectives = useAppSelector(selectPerspectives);
   const visibleUmlItems = useMemo(
-    () => UML_ITEMS.filter((item) => isDiagramVisible(toSupportedDiagramType(item.type), enabledPerspectives)),
-    [enabledPerspectives],
+    () => UML_ITEMS.filter((it) => isPerspectiveVisible(perspectives, toSupportedDiagramType(it.type))),
+    [perspectives],
   );
   const visibleNonUmlItems = useMemo(
-    () => NON_UML_EDITOR_ITEMS.filter((item) => isDiagramVisible(item.type, enabledPerspectives)),
-    [enabledPerspectives],
+    () => NON_UML_EDITOR_ITEMS.filter((it) => isPerspectiveVisible(perspectives, it.type)),
+    [perspectives],
   );
 
   return (
