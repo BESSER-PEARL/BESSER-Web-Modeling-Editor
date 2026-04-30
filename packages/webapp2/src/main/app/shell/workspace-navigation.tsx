@@ -36,8 +36,8 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     label: '1 generator',
   },
   UserDiagram: {
-    generators: [],
-    label: 'No generators',
+    generators: ['jsonobject'],
+    label: '1 generator',
   },
   GUINoCodeDiagram: {
     generators: ['web_app'],
