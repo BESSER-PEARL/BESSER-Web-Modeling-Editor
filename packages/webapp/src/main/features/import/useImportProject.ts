@@ -89,7 +89,7 @@ function migrateOldWebappProject(data: any): BesserProject {
 
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
     ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-    AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+    AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0, NNDiagram: 0,
   };
 
   return {
@@ -406,7 +406,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             currentDiagramType: supportedType,
             currentDiagramIndices: {
               ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-              AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+              AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0, NNDiagram: 0,
             },
             diagrams,
             settings: {
