@@ -746,6 +746,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenKeyboardShortcuts={openKeyboardShortcuts}
         onShowWelcomeGuide={onboarding?.startTutorial}
         activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
+        perspectives={perspectives}
         onSwitchUml={(type) => {
           void handleSwitchUml(type);
         }}
@@ -847,7 +848,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
-          {location.pathname === '/' && <HiddenPerspectivesBanner />}
+          <HiddenPerspectivesBanner />
           {location.pathname === '/' && (
             <DiagramTabs
               onRequestTabSwitch={handleRequestTabSwitch}

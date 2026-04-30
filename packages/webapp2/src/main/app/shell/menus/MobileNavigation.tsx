@@ -1,16 +1,15 @@
 import React, { useMemo } from 'react';
 import { UMLDiagramType } from '@besser/wme';
-import type { SupportedDiagramType } from '../../../shared/types/project';
+import type { PerspectiveSettings, SupportedDiagramType } from '../../../shared/types/project';
 import { isPerspectiveVisible, toSupportedDiagramType } from '../../../shared/types/project';
 import { NON_UML_EDITOR_ITEMS, ROUTE_ITEMS, UML_ITEMS, navButtonClass } from '../workspace-navigation';
-import { useAppSelector } from '../../store/hooks';
-import { selectPerspectives } from '../../store/workspaceSlice';
 
 interface MobileNavigationProps {
   locationPath: string;
   activeUmlType: UMLDiagramType;
   activeDiagramType: SupportedDiagramType;
   isDarkTheme: boolean;
+  perspectives: PerspectiveSettings | undefined;
   onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;
@@ -21,11 +20,11 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   activeUmlType,
   activeDiagramType,
   isDarkTheme,
+  perspectives,
   onSwitchUml,
   onSwitchDiagramType,
   onNavigate,
 }) => {
-  const perspectives = useAppSelector(selectPerspectives);
   const visibleUmlItems = useMemo(
     () => UML_ITEMS.filter((it) => isPerspectiveVisible(perspectives, toSupportedDiagramType(it.type))),
     [perspectives],
