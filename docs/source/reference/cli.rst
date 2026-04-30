@@ -14,27 +14,27 @@ packages via npm workspaces.
    * - Script
      - Description
    * - ``npm run dev``
-     - Runs the webapp2 Vite dev server (alias for ``npm run start --workspace=webapp2``).
+     - Runs the webapp Vite dev server (alias for ``npm run start --workspace=webapp``).
    * - ``npm run start``
-     - Runs the webapp2 Vite dev server and Express server concurrently.
-   * - ``npm run start:webapp2``
-     - Alias for ``npm run start --workspace=webapp2``.
+     - Runs the webapp Vite dev server and Express server concurrently.
+   * - ``npm run start:webapp``
+     - Alias for ``npm run start --workspace=webapp``.
    * - ``npm run start:server``
      - Launches the Express server with ``tsx watch``.
    * - ``npm run build``
      - Produces production bundles for the webapp and server.
    * - ``npm run build:local``
      - Similar to ``build`` but bundles the webapp with a local ``DEPLOYMENT_URL``.
-   * - ``npm run build:webapp2``
-     - Runs the webapp2 production Vite build.
-   * - ``npm run build:webapp2:local``
-     - Builds the webapp2 with ``DEPLOYMENT_URL=http://localhost:8080``.
+   * - ``npm run build:webapp``
+     - Runs the webapp production Vite build.
+   * - ``npm run build:webapp:local``
+     - Builds the webapp with ``DEPLOYMENT_URL=http://localhost:8080``.
    * - ``npm run build:server``
      - Bundles the Express server via webpack.
    * - ``npm run lint``
      - Runs ESLint for the webapp and server packages.
-   * - ``npm run lint:webapp2``
-     - Runs ESLint in the webapp2 workspace.
+   * - ``npm run lint:webapp``
+     - Runs ESLint in the webapp workspace.
    * - ``npm run lint:server``
      - Runs ESLint in the server workspace.
    * - ``npm run prettier:check``
@@ -52,9 +52,9 @@ Editor (``packages/editor``)
    * ``npm run lint:ts`` / ``lint:css`` – TypeScript and styled-components linting.
    * ``npm run prettier:*`` – Formatting helpers scoped to the editor source.
 
-Webapp (``packages/webapp2``)
+Webapp (``packages/webapp``)
    * ``npm run start`` – Vite dev server.
-   * ``npm run build`` – Production bundle under ``build/webapp2``.
+   * ``npm run build`` – Production bundle under ``build/webapp``.
    * ``npm run build:local`` – Production bundle with local deployment URL.
    * ``npm run lint`` – ESLint across TypeScript sources.
 

@@ -89,8 +89,8 @@ include:
   `packages/editor/src/main/i18n/`.
 
 If you are looking for a starting point, browse issues labeled
-[`good first issue`](https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/labels/good%20first%20issue)
-or [`help wanted`](https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/labels/help%20wanted).
+[`good first issue`](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/labels/good%20first%20issue)
+or [`help wanted`](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/labels/help%20wanted).
 
 ---
 
@@ -99,7 +99,7 @@ or [`help wanted`](https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/la
 Have a question?
 
 - For usage or design questions,
-  [open an issue](https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/issues)
+  [open an issue](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/issues)
   or comment on an existing ticket.
 - For private inquiries, email **info@besser-pearl.org**.
 
@@ -114,7 +114,7 @@ to help.
 Found a bug or have a feature idea? We want to hear it.
 
 1. **Search first.** Check the
-   [issue list](https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/issues)
+   [issue list](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/issues)
    to avoid duplicates.
 2. **One topic per issue.** Mixing concerns slows triage.
 3. **Include reproduction details:**
@@ -147,14 +147,14 @@ that opens room for the best design.
 2. **Clone** your fork:
 
    ```bash
-   git clone https://github.com/<your-username>/BESSER-WEB-MODELING-EDITOR.git
-   cd BESSER-WEB-MODELING-EDITOR
+   git clone https://github.com/<your-username>/BESSER-Web-Modeling-Editor.git
+   cd BESSER-Web-Modeling-Editor
    ```
 
 3. **Add the upstream remote** so you can keep your fork in sync:
 
    ```bash
-   git remote add upstream https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR.git
+   git remote add upstream https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor.git
    ```
 
 4. **Install dependencies** from the monorepo root:
@@ -163,8 +163,7 @@ that opens room for the best design.
    npm install
    ```
 
-   This installs all workspaces (`webapp2`, `editor`, `server`, legacy
-   `webapp`) in one go.
+   This installs all workspaces (`webapp`, `editor`, `server`) in one go.
 
 ### Run the dev server
 
@@ -174,7 +173,7 @@ npm run dev
 
 The Vite dev server runs on http://localhost:8080 and expects the BESSER
 backend at http://localhost:9000/besser_api in development mode (see
-`packages/webapp2/src/main/constants/constant.ts`).
+`packages/webapp/src/main/constants/constant.ts`).
 
 To run the BESSER backend locally, follow its
 [setup instructions](https://github.com/BESSER-PEARL/BESSER#readme) and
@@ -188,14 +187,14 @@ python besser/utilities/web_modeling_editor/backend/backend.py
 
 | Command                                         | Purpose                                            |
 | ----------------------------------------------- | -------------------------------------------------- |
-| `npm run dev`                                   | Start webapp2 with Vite + HMR                      |
-| `npm run build`                                 | Build webapp2 + standalone server                  |
-| `npm run build:webapp2`                         | Build webapp2 only                                 |
+| `npm run dev`                                   | Start webapp with Vite + HMR                      |
+| `npm run build`                                 | Build webapp + standalone server                  |
+| `npm run build:webapp`                         | Build webapp only                                 |
 | `npm run build:local`                           | Build with localhost backend URLs                  |
 | `npm run start:server`                          | Serve the built webapp via the Express server      |
 | `npm run lint`                                  | ESLint across workspaces                           |
 | `npm run prettier:check` / `prettier:write`     | Check / auto-format with Prettier                  |
-| `npm run test`                                  | Vitest unit tests (webapp2)                        |
+| `npm run test`                                  | Vitest unit tests (webapp)                        |
 | `npm run test:e2e`                              | Playwright end-to-end tests                        |
 | `npm run test:e2e:ui`                           | Playwright with interactive UI                     |
 
@@ -206,22 +205,21 @@ Per-workspace variants are available via `--workspace=<name>` (e.g.,
 
 ## 🗂️ Repository Tour
 
-This is an **npm workspaces monorepo** with four packages:
+This is an **npm workspaces monorepo** with three packages:
 
 | Package            | Status     | Purpose                                                        |
 | ------------------ | ---------- | -------------------------------------------------------------- |
-| `packages/webapp2` | **Active** | Main React SPA (Vite + React 18 + Tailwind + Radix UI)         |
+| `packages/webapp`  | **Active** | Main React SPA (Vite + React 18 + Tailwind + Radix UI)         |
 | `packages/editor`  | **Active** | Core diagramming engine, published as `@besser/wme` on npm     |
-| `packages/server`  | **Active** | Express server for standalone hosting (serves built `webapp2`) |
-| `packages/webapp`  | **Legacy** | Old Webpack + Bootstrap app — reference only, do not modify    |
+| `packages/server`  | **Active** | Express server for standalone hosting (serves built `webapp`)  |
 
-Almost all feature work happens in **`webapp2`** and **`editor`**.
+Almost all feature work happens in **`webapp`** and **`editor`**.
 
 | Path                                                | Purpose                                                                |
 | --------------------------------------------------- | ---------------------------------------------------------------------- |
-| `packages/webapp2/src/main/app/`                    | Shell, routing, Redux store                                            |
-| `packages/webapp2/src/main/features/`               | Feature modules (editors, generation, deploy, github, import, …)       |
-| `packages/webapp2/src/main/shared/`                 | Cross-feature code (API client, components, hooks, services)           |
+| `packages/webapp/src/main/app/`                    | Shell, routing, Redux store                                            |
+| `packages/webapp/src/main/features/`               | Feature modules (editors, generation, deploy, github, import, …)       |
+| `packages/webapp/src/main/shared/`                 | Cross-feature code (API client, components, hooks, services)           |
 | `packages/editor/src/main/apollon-editor.ts`        | Public API of the diagramming engine (`ApollonEditor` class)           |
 | `packages/editor/src/main/packages/`                | Diagram-specific implementations (UML, BPMN, flowchart, …)             |
 | `packages/editor/src/main/services/`                | Domain logic (CRUD, undo, layout, collaboration)                       |
@@ -240,8 +238,8 @@ and the [WME architecture page](https://besser.readthedocs.io/projects/besser-we
 
 - **TypeScript strict mode** — keep types honest. `any` and `@ts-ignore`
   are warnings, not errors, but minimize their use.
-- **Tailwind CSS** for styling in `webapp2`. No inline styles or CSS
-  modules in webapp2. The editor package still uses styled-components
+- **Tailwind CSS** for styling in `webapp`. No inline styles or CSS
+  modules in webapp. The editor package still uses styled-components
   (legacy).
 - **Radix UI** for accessible primitives (Dialog, DropdownMenu, Tooltip,
   …). Prefer these over hand-rolled equivalents.
@@ -252,7 +250,7 @@ and the [WME architecture page](https://besser.readthedocs.io/projects/besser-we
 
 ### Feature isolation
 
-Features in `packages/webapp2/src/main/features/` **must not import from
+Features in `packages/webapp/src/main/features/` **must not import from
 each other**. If two features need the same logic, lift it into
 `shared/`. Each feature owns its own hooks, components, and dialogs.
 
@@ -316,7 +314,7 @@ directory (e.g., `packages/uml-class-diagram/your-element/`) with:
 2. Create a package directory under
    `packages/editor/src/main/packages/`.
 3. Register all elements in the four registry files.
-4. Add editor support in `packages/webapp2/src/main/features/editors/`.
+4. Add editor support in `packages/webapp/src/main/features/editors/`.
 5. Add the diagram type to the BESSER backend's supported types if it
    needs generation/validation.
 
@@ -337,7 +335,7 @@ npm run prettier:check
 ### Unit tests (Vitest, jsdom)
 
 ```bash
-npm run test --workspace=webapp2
+npm run test --workspace=webapp
 ```
 
 While iterating, target a single test file with `npm run test -- <pattern>`.
@@ -345,11 +343,11 @@ While iterating, target a single test file with `npm run test -- <pattern>`.
 ### End-to-end tests (Playwright)
 
 ```bash
-npm run test:e2e --workspace=webapp2
-npm run test:e2e:ui --workspace=webapp2   # interactive
+npm run test:e2e --workspace=webapp
+npm run test:e2e:ui --workspace=webapp   # interactive
 ```
 
-Run E2E from the `webapp2` workspace, **not** the monorepo root.
+Run E2E from the `webapp` workspace, **not** the monorepo root.
 
 ### Build
 
@@ -462,8 +460,8 @@ When opening the PR on GitHub, the **base branch** dropdown defaults to
 request*:
 
 ```
-base repository: BESSER-PEARL/BESSER-WEB-MODELING-EDITOR     base: develop   ←  change this!
-head repository: <your-fork>/BESSER-WEB-MODELING-EDITOR      compare: feature/your-change
+base repository: BESSER-PEARL/BESSER-Web-Modeling-Editor     base: develop   ←  change this!
+head repository: <your-fork>/BESSER-Web-Modeling-Editor      compare: feature/your-change
 ```
 
 If you forget, no harm done — just edit the base branch on the existing
@@ -489,7 +487,7 @@ flag it.
    ```bash
    npm run lint
    npm run prettier:check
-   npm run test --workspace=webapp2
+   npm run test --workspace=webapp
    npm run build
    ```
 
@@ -541,8 +539,8 @@ Skip this section for trivial fixes.
 
 ## Testing
 
-- Unit tests added/updated: `packages/webapp2/src/.../foo.test.ts`
-- E2E tests added/updated: `packages/webapp2/tests/e2e/...`
+- Unit tests added/updated: `packages/webapp/src/.../foo.test.ts`
+- E2E tests added/updated: `packages/webapp/tests/e2e/...`
 - Manual checks: e.g., "loaded the editor, created a class diagram with
   inheritance, exported, re-imported — round-trip preserved"
 - Edge cases considered: …
@@ -561,7 +559,7 @@ later. Linking a follow-up issue is even better.
 - [ ] Targeted `develop` (not `main`)
 - [ ] `npm run lint` passes
 - [ ] `npm run prettier:check` passes
-- [ ] `npm run test --workspace=webapp2` passes
+- [ ] `npm run test --workspace=webapp` passes
 - [ ] `npm run build` succeeds
 - [ ] Docs updated (`docs/source/...`) if user-facing behavior changed
 - [ ] Backend submodule pointer updated in BESSER (if cross-repo change)
@@ -586,7 +584,7 @@ later. Linking a follow-up issue is even better.
 
 ### Review & merging
 
-- All PRs must pass automated checks: ESLint (webapp2 + server), Prettier,
+- All PRs must pass automated checks: ESLint (webapp + server), Prettier,
   the production build, and Vitest unit tests.
 - At least one maintainer review is required, per the
   [governance rules](GOVERNANCE.md).
