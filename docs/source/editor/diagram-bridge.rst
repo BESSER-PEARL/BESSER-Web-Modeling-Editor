@@ -20,7 +20,7 @@ Data flow
 ---------
 
 1. When a class diagram becomes the active diagram, the webapp (see
-   ``packages/webapp2/src/main/store/project/projectSlice.ts``) pushes the
+   ``packages/webapp/src/main/store/project/projectSlice.ts``) pushes the
    current model into ``diagramBridge.setClassDiagramData``.
 2. Consumers (object diagrams, agent diagrams, validation routines) query the
    bridge for classes, attributes, associations, or related classes whenever
