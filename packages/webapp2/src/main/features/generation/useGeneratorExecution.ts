@@ -449,7 +449,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
 
-  const { isQuantumContext, isGuiContext, isObjectContext, isNNContext } = getWorkspaceContext(
+  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext } = getWorkspaceContext(
     location.pathname,
     currentProject?.currentDiagramType,
   );
@@ -727,15 +727,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await generateCode(editor, 'agent', activeDiagramTitle, config as AgentConfig);
             break;
           case 'jsonobject': {
-            // Object diagram generation requires the referenced ClassDiagram data
-            if (!isObjectContext) {
-              toast.error('Switch to an Object Diagram to use the JSON Object generator.');
-              return { ok: false, error: 'Switch to an Object Diagram to use the JSON Object generator.' };
+            if (!isObjectContext && !isUserContext) {
+              toast.error('Switch to an Object Diagram or User Diagram to use the JSON Object generator.');
+              return { ok: false, error: 'Switch to an Object Diagram or User Diagram to use the JSON Object generator.' };
             }
-            // Resolve the referenced ClassDiagram from the project so the backend
-            // can build the domain model that object instances are based on.
+            // Object diagrams need their referenced ClassDiagram so the backend can build
+            // the domain model. User diagrams use a preset reference domain server-side
+            // (`user_reference_domain_model`) and don't need one passed from the client.
             let referenceDiagramData: Record<string, any> | undefined;
-            if (currentProject && activeDiagram) {
+            if (isObjectContext && currentProject && activeDiagram) {
               const classDiagram = getReferencedDiagram(currentProject, activeDiagram, 'ClassDiagram');
               if (classDiagram?.model && isUMLModel(classDiagram.model)) {
                 referenceDiagramData = classDiagram.model;
@@ -769,7 +769,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, isNNContext, ensureGuiForAssistantWebAppGeneration,
+      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, ensureGuiForAssistantWebAppGeneration,
     ],
   );
 

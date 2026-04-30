@@ -5,6 +5,7 @@ interface WorkspaceContext {
   isGuiContext: boolean;
   isClassContext: boolean;
   isObjectContext: boolean;
+  isUserContext: boolean;
   isStateMachineContext: boolean;
   isAgentContext: boolean;
   isNNContext: boolean;
@@ -17,6 +18,7 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
   const isGuiContext = currentDiagramType === 'GUINoCodeDiagram';
   const isClassContext = currentDiagramType === 'ClassDiagram';
   const isObjectContext = currentDiagramType === 'ObjectDiagram';
+  const isUserContext = currentDiagramType === 'UserDiagram';
   const isStateMachineContext = currentDiagramType === 'StateMachineDiagram';
   const isAgentContext = currentDiagramType === 'AgentDiagram';
   const isNNContext = currentDiagramType === 'NNDiagram';
@@ -31,17 +33,20 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
           ? 'class'
           : isObjectContext
             ? 'object'
-            : isStateMachineContext
-              ? 'statemachine'
-              : isNNContext
-                ? 'nn'
-                : 'none';
+            : isUserContext
+              ? 'user'
+              : isStateMachineContext
+                ? 'statemachine'
+                : isNNContext
+                  ? 'nn'
+                  : 'none';
 
   return {
     isQuantumContext,
     isGuiContext,
     isClassContext,
     isObjectContext,
+    isUserContext,
     isStateMachineContext,
     isAgentContext,
     isNNContext,
