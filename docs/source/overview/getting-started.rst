@@ -52,11 +52,6 @@ Clone and install
 The project uses npm workspaces. `npm install` resolves dependencies for the
 root package and cascades into the ``packages/*`` folders.
 
-.. warning::
-   The legacy ``packages/webapp/`` package is **deprecated** and will be removed in
-   a future release. All development and deployment targets ``packages/webapp2/``.
-   Do not build new features against the old webapp package.
-
 Run the web application locally
 -------------------------------
 
@@ -81,10 +76,10 @@ For production-like testing you can also build and serve static assets:
 
 .. code-block:: bash
 
-   npm run build:webapp2:local
+   npm run build:webapp:local
    npm run start:server
 
-The build step outputs static assets under ``build/webapp2`` with
+The build step outputs static assets under ``build/webapp`` with
 ``DEPLOYMENT_URL`` defaulting to ``http://localhost:8080``. The Express
 server serves those assets and exposes the diagram REST endpoints on the
 same port.

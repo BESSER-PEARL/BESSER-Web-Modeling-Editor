@@ -1624,7 +1624,7 @@
         "target": {
         "direction": "Left",
         "element": "b910ce24-f2bd-40de-b141-ce2956087223",
-        "multiplicity": "1",
+        "multiplicity": "1..*",
         "role": "dataset"
         },
         "isManuallyLayouted": false

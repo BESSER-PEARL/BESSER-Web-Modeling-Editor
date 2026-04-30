@@ -9,7 +9,7 @@ diagnose issues.
 Data model
 ----------
 
-``packages/webapp2/src/main/shared/types/project.ts`` defines the core types:
+``packages/webapp/src/main/shared/types/project.ts`` defines the core types:
 
 ``BesserProject``
    Project metadata (name, description, owner, timestamps), current diagram type
