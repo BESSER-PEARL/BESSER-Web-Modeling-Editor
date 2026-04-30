@@ -1,85 +1,104 @@
-import { ModelingPerspective } from '@besser/wme';
-import type { SupportedDiagramType } from './types/project';
+import {
+  ALL_DIAGRAM_TYPES,
+  PerspectiveSettings,
+  SupportedDiagramType,
+  isPerspectiveVisible,
+} from './types/project';
 
 /**
- * Frontend-side definition of a modeling perspective.
+ * A named *preset* (aggregation) of perspectives. Selecting a preset replaces
+ * the per-diagram visibility map with exactly the diagrams listed here —
+ * presets are pure UI sugar over the per-diagram toggles in
+ * `BesserProject.settings.perspectives`.
  *
- * Each perspective declares the diagram types relevant to that kind of
- * project. A diagram is visible in the sidebar / mobile nav / command
- * palette whenever at least one **enabled** perspective lists it — so
- * perspectives may freely share entries (e.g. ClassDiagram appears in
- * `dataModeling`, `database`, `webApplication`, and `stateMachine`;
- * AgentDiagram appears in `agent`, `webApplication`, and `userModeling`).
+ * The "Modeling Perspectives" card in Project Settings renders these as
+ * quick-select buttons above the per-diagram switches; users can fall back
+ * to flipping individual toggles for fine-grained control.
  *
- * Generators are intentionally **not** filtered by perspective. The
- * Generate menu only narrows entries by the currently active diagram
- * type — once a user is on a given diagram, all of its supported
- * generators stay reachable regardless of perspective settings.
+ * Generators are intentionally **not** filtered by perspective — every
+ * generator that fits the active diagram remains reachable from the
+ * Generate menu regardless of which preset is chosen.
  */
 export interface PerspectiveDefinition {
-  key: ModelingPerspective;
+  /** Stable key used for `data-testid` and matching against active state. */
+  key: string;
+  /** Short, user-facing label rendered on the preset button. */
   label: string;
+  /** One-sentence tooltip explaining the preset. */
   description: string;
+  /** The diagrams to enable when this preset is selected. */
   diagrams: SupportedDiagramType[];
 }
 
 /**
- * The perspectives users can toggle. Order is the order shown in settings.
+ * Curated presets, ordered as they appear in the settings panel. The set is
+ * intentionally small (per the design discussion: "all dimensions individual
+ * + a couple of aggregations, not too many") — for fine-grained control
+ * users flip per-diagram toggles directly.
+ *
+ * Naming notes:
+ *  - "Data Modeler" subsumes the old #117 "Database Modeling" preset
+ *    (database work always uses the class diagram, so they collapse cleanly).
+ *  - "Full Application" includes the agent — full-stack flows almost always
+ *    pair a UI with an assistant.
+ *  - "Show All" is the escape hatch back to the unfiltered workspace.
  */
 export const PERSPECTIVES: PerspectiveDefinition[] = [
   {
-    key: 'dataModeling',
-    label: 'Data Modeling',
-    description: 'Model your domain with class and object diagrams (Python, Java, Pydantic, JSON Schema, Smart Data Models)',
+    key: 'data',
+    label: 'Data Modeler',
+    description: 'Class + object diagrams (covers OOP, schemas, SQL, SQLAlchemy).',
     diagrams: ['ClassDiagram', 'ObjectDiagram'],
   },
   {
-    key: 'database',
-    label: 'Database Modeling',
-    description: 'Class diagrams for SQL DDL and SQLAlchemy schema generation',
-    diagrams: ['ClassDiagram'],
-  },
-  {
-    key: 'webApplication',
-    label: 'Web Applications',
-    description: 'Class diagrams plus a no-code GUI and an optional agent for full-stack web apps (Django, FastAPI, React)',
-    diagrams: ['ClassDiagram', 'GUINoCodeDiagram', 'AgentDiagram'],
-  },
-  {
     key: 'agent',
-    label: 'Agent Modeling',
-    description: 'Design conversational agents (BESSER Agent Framework)',
-    diagrams: ['AgentDiagram'],
+    label: 'Agent Developer',
+    description: 'Class, agent, and user diagrams for conversational agents.',
+    diagrams: ['ClassDiagram', 'AgentDiagram', 'UserDiagram'],
   },
   {
-    key: 'stateMachine',
-    label: 'State Machines',
-    description: 'Model behaviour as state machines used inside class methods',
-    diagrams: ['ClassDiagram', 'StateMachineDiagram'],
-  },
-  {
-    key: 'userModeling',
-    label: 'User Modeling',
-    description: 'User diagrams plus agents for educational/learner scenarios',
-    diagrams: ['UserDiagram', 'AgentDiagram'],
+    key: 'fullApp',
+    label: 'Full Application',
+    description: 'Class, GUI, agent, user, object, and state-machine diagrams.',
+    diagrams: ['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram'],
   },
   {
     key: 'quantum',
-    label: 'Quantum Computing',
-    description: 'Quantum circuits for Qiskit code generation',
+    label: 'Quantum',
+    description: 'Quantum circuit diagrams only.',
     diagrams: ['QuantumCircuitDiagram'],
+  },
+  {
+    key: 'all',
+    label: 'Show All',
+    description: 'Every supported perspective.',
+    diagrams: [...ALL_DIAGRAM_TYPES],
   },
 ];
 
 /**
- * Whether a diagram type is currently visible: any **enabled** perspective
- * lists it.
+ * True when `preset.diagrams` is exactly the set of currently-enabled
+ * perspectives (used to mark the matching preset button as pressed).
  */
-export function isDiagramVisible(
-  type: SupportedDiagramType,
-  enabled: Partial<Record<ModelingPerspective, boolean>>,
+export function isPresetActive(
+  preset: PerspectiveDefinition,
+  perspectives: PerspectiveSettings | undefined,
 ): boolean {
-  return PERSPECTIVES.some(
-    (p) => enabled[p.key] !== false && p.diagrams.includes(type),
+  const enabled = new Set(
+    ALL_DIAGRAM_TYPES.filter((t) => isPerspectiveVisible(perspectives, t)),
   );
+  if (enabled.size !== preset.diagrams.length) return false;
+  return preset.diagrams.every((t) => enabled.has(t));
+}
+
+/** Build a `PerspectiveSettings` map enabling exactly the diagrams in `types`. */
+export function perspectivesFromDiagramList(
+  types: SupportedDiagramType[],
+): PerspectiveSettings {
+  const map = {} as PerspectiveSettings;
+  const allowed = new Set(types);
+  for (const t of ALL_DIAGRAM_TYPES) {
+    map[t] = allowed.has(t);
+  }
+  return map;
 }

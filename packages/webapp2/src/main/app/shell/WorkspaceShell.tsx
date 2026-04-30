@@ -6,7 +6,8 @@ import { Menu, X } from 'lucide-react';
 import { useProject } from '../hooks/useProject';
 import { getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } from '../store/workspaceSlice';
+import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
+import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
@@ -59,8 +60,7 @@ const HelpGuideDialog = React.lazy(() =>
 // mixed static/dynamic import warning (the module is already in this chunk).
 import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../shared/dialogs/KeyboardShortcutsDialog';
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
-import { useEnabledPerspectives } from '../../shared/hooks/useEnabledPerspectives';
-import { isDiagramVisible } from '../../shared/perspectives';
+import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -677,8 +677,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
   };
 
-  // Command palette actions (filter by enabled modeling perspectives)
-  const enabledPerspectives = useEnabledPerspectives();
+  // Command palette actions (filter by enabled per-project perspectives)
+  const perspectives = useAppSelector(selectPerspectives);
   const commandPaletteActions = useMemo(
     () =>
       buildDefaultActions({
@@ -696,9 +696,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onQualityCheck: () => {
           void handleTrackedQualityCheck();
         },
-        isDiagramVisible: (type) => isDiagramVisible(type, enabledPerspectives),
+        isDiagramVisible: (type) => isPerspectiveVisible(perspectives, type),
       }),
-    [handleSwitchUml, handleSwitchDiagramType, handleSafeNavigate, onExportProject, handleTrackedQualityCheck, enabledPerspectives],
+    [handleSwitchUml, handleSwitchDiagramType, handleSafeNavigate, onExportProject, handleTrackedQualityCheck, perspectives],
   );
 
   return (
@@ -847,6 +847,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          {location.pathname === '/' && <HiddenPerspectivesBanner />}
           {location.pathname === '/' && (
             <DiagramTabs
               onRequestTabSwitch={handleRequestTabSwitch}

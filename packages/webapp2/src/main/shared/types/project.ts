@@ -10,11 +10,40 @@ export type SupportedDiagramType =
   | 'QuantumCircuitDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 3;
+export const PROJECT_SCHEMA_VERSION = 4;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram',
 ];
+
+export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
+
+export const createDefaultPerspectives = (): PerspectiveSettings => {
+  const map = {} as PerspectiveSettings;
+  for (const type of ALL_DIAGRAM_TYPES) {
+    map[type] = true;
+  }
+  return map;
+};
+
+export const defaultPerspectivesAllEnabled = (
+  partial?: Partial<PerspectiveSettings>,
+): PerspectiveSettings => {
+  const map = createDefaultPerspectives();
+  if (partial) {
+    for (const type of ALL_DIAGRAM_TYPES) {
+      if (typeof partial[type] === 'boolean') {
+        map[type] = partial[type] as boolean;
+      }
+    }
+  }
+  return map;
+};
+
+export const isPerspectiveVisible = (
+  perspectives: PerspectiveSettings | undefined,
+  type: SupportedDiagramType,
+): boolean => perspectives?.[type] !== false;
 
 // GrapesJS project data structure
 export interface GrapesJSProjectData {
@@ -73,6 +102,7 @@ export interface BesserProject {
     defaultDiagramType: SupportedDiagramType;
     autoSave: boolean;
     collaborationEnabled: boolean;
+    perspectives: PerspectiveSettings;
   };
 }
 
@@ -348,6 +378,7 @@ export const createDefaultProject = (
       defaultDiagramType: 'ClassDiagram',
       autoSave: true,
       collaborationEnabled: false,
+      perspectives: createDefaultPerspectives(),
     },
   };
 };
@@ -400,7 +431,29 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migrateReferencesToIds(obj);
   }
 
+  // Migrate v3 → v4: ensure settings.perspectives exists (all enabled by default)
+  if (!obj.schemaVersion || obj.schemaVersion < 4) {
+    obj = migratePerspectiveSettings(obj);
+  }
+
   return obj;
+};
+
+/**
+ * Migrate v3 → v4: ensure `settings.perspectives` is populated with a boolean
+ * for every supported diagram type. Existing user choices are preserved; missing
+ * keys default to `true` (perspective visible).
+ */
+const migratePerspectiveSettings = (project: BesserProject): BesserProject => {
+  const existingSettings = (project.settings ?? {}) as Partial<BesserProject['settings']>;
+  project.settings = {
+    defaultDiagramType: existingSettings.defaultDiagramType ?? 'ClassDiagram',
+    autoSave: existingSettings.autoSave ?? true,
+    collaborationEnabled: existingSettings.collaborationEnabled ?? false,
+    perspectives: defaultPerspectivesAllEnabled(existingSettings.perspectives),
+  };
+  project.schemaVersion = 4;
+  return project;
 };
 
 /**
@@ -501,6 +554,45 @@ export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitDat
   return Array.isArray(candidate.cols);
 };
 
+
+/**
+ * Find perspectives that are hidden but the project still references them
+ * (either by holding non-empty diagrams of that type, or via cross-diagram
+ * `references` pointing at a non-empty target). Used to surface a re-enable
+ * banner so users don't lose visibility on data they have.
+ */
+export function findHiddenReferencedPerspectives(project: BesserProject): SupportedDiagramType[] {
+  const perspectives = project.settings?.perspectives;
+  const hidden = new Set<SupportedDiagramType>();
+
+  for (const type of ALL_DIAGRAM_TYPES) {
+    if (isPerspectiveVisible(perspectives, type)) continue;
+    const diagrams = project.diagrams[type] ?? [];
+    if (diagrams.some(diagramHasContent)) {
+      hidden.add(type);
+    }
+  }
+
+  for (const type of ALL_DIAGRAM_TYPES) {
+    const diagrams = project.diagrams[type] ?? [];
+    for (const diagram of diagrams) {
+      const refs = diagram.references;
+      if (!refs) continue;
+      for (const refType of Object.keys(refs) as SupportedDiagramType[]) {
+        if (isPerspectiveVisible(perspectives, refType)) continue;
+        const refId = refs[refType];
+        if (!refId) continue;
+        const targetDiagrams = project.diagrams[refType] ?? [];
+        const target = targetDiagrams.find((d) => d.id === refId);
+        if (target && diagramHasContent(target)) {
+          hidden.add(refType);
+        }
+      }
+    }
+  }
+
+  return ALL_DIAGRAM_TYPES.filter((type) => hidden.has(type));
+}
 
 /** Check whether a single diagram has meaningful content (non-empty model). */
 export function diagramHasContent(diagram: ProjectDiagram): boolean {

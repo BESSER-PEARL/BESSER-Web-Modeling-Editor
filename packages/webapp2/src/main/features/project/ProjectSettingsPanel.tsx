@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  settingsService,
-  ClassNotation,
-  ModelingPerspective,
-  EnabledPerspectives,
-} from '@besser/wme';
+import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
-import { Atom, Bot, Database, Download, FolderKanban, Globe, Layers3, Monitor, Network, Repeat2, Settings, User as UserIcon } from 'lucide-react';
+import { Download, FolderKanban, Layers3, Monitor, Settings, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
-import { PERSPECTIVES } from '../../shared/perspectives';
-import { SupportedDiagramType, ProjectDiagram } from '../../shared/types/project';
+import {
+  ALL_DIAGRAM_TYPES,
+  ProjectDiagram,
+  SupportedDiagramType,
+  diagramHasContent,
+  isPerspectiveVisible,
+} from '../../shared/types/project';
+import { PERSPECTIVES, PerspectiveDefinition, isPresetActive } from '../../shared/perspectives';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,28 +21,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
-import { diagramHasContent } from '../../shared/types/project';
-
-const colorByType: Record<SupportedDiagramType, string> = {
-  ClassDiagram: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
-  ObjectDiagram: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
-  StateMachineDiagram: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
-  AgentDiagram: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
-  UserDiagram: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
-  GUINoCodeDiagram: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
-  QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
-};
-
-/** Icon shown next to each perspective toggle. */
-const PERSPECTIVE_ICONS: Record<ModelingPerspective, React.ReactNode> = {
-  dataModeling: <Network className="size-4" />,
-  database: <Database className="size-4" />,
-  webApplication: <Globe className="size-4" />,
-  agent: <Bot className="size-4" />,
-  stateMachine: <Repeat2 className="size-4" />,
-  userModeling: <UserIcon className="size-4" />,
-  quantum: <Atom className="size-4" />,
-};
+import {
+  DIAGRAM_TYPE_BADGE,
+  PERSPECTIVE_DESCRIPTIONS,
+  PERSPECTIVE_LABELS,
+} from '../../shared/constants/diagramTypeStyles';
+import { useAppDispatch } from '../../app/store/hooks';
+import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../app/store/workspaceSlice';
 
 export const ProjectSettingsPanel: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -49,23 +35,43 @@ export const ProjectSettingsPanel: React.FC = () => {
   const [showAssociationNames, setShowAssociationNames] = useState(false);
   const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
   const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
-  const [enabledPerspectives, setEnabledPerspectives] = useState<EnabledPerspectives>(
-    () => settingsService.getEnabledPerspectives(),
-  );
 
   const { currentProject, loading, error, updateProject, exportProject } = useProject();
+  const dispatch = useAppDispatch();
+
+  const perspectives = currentProject?.settings?.perspectives;
+  const enabledPerspectiveCount = useMemo(
+    () => ALL_DIAGRAM_TYPES.filter((t) => isPerspectiveVisible(perspectives, t)).length,
+    [perspectives],
+  );
+
+  const handlePerspectiveToggle = useCallback(
+    (type: SupportedDiagramType, enabled: boolean) => {
+      dispatch(setPerspectiveEnabledThunk({ type, enabled }))
+        .unwrap()
+        .catch((err: unknown) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to update perspective');
+        });
+    },
+    [dispatch],
+  );
+
+  const handleApplyPreset = useCallback(
+    (preset: PerspectiveDefinition) => {
+      dispatch(applyPerspectivePresetThunk({ diagrams: preset.diagrams }))
+        .unwrap()
+        .catch((err: unknown) => {
+          toast.error(err instanceof Error ? err.message : 'Failed to apply preset');
+        });
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
     setShowAssociationNames(settingsService.shouldShowAssociationNames());
     setUsePropertiesPanel(settingsService.shouldUsePropertiesPanel());
     setClassNotation(settingsService.getClassNotation());
-    setEnabledPerspectives(settingsService.getEnabledPerspectives());
-  }, []);
-
-  const handleTogglePerspective = useCallback((perspective: ModelingPerspective, enabled: boolean) => {
-    settingsService.setPerspectiveEnabled(perspective, enabled);
-    setEnabledPerspectives(settingsService.getEnabledPerspectives());
   }, []);
 
   const diagrams = useMemo(() => {
@@ -324,7 +330,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                         <p className="truncate text-sm font-medium">{diagram.title}</p>
                         <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
                       </div>
-                      <Badge className={colorByType[type]}>{type.replace('Diagram', '')}</Badge>
+                      <Badge className={DIAGRAM_TYPE_BADGE[type]}>{type.replace('Diagram', '')}</Badge>
                     </div>
                   ))}
                   {diagrams.length === 0 && (
@@ -334,48 +340,93 @@ export const ProjectSettingsPanel: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Modeling Perspectives */}
+            {/* Modeling Perspectives — preset row + per-diagram toggles */}
             <Card>
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
-                  <Layers3 className="size-4 text-brand" />
+                  <SlidersHorizontal className="size-4 text-brand" />
                   <CardTitle className="text-base">Modeling Perspectives</CardTitle>
                 </div>
                 <CardDescription>
-                  Pick the kinds of modeling you care about. Each perspective declares the diagrams relevant to that
-                  use case; disabling a perspective hides those diagrams from the sidebar and command palette.
-                  Diagrams shared by several perspectives stay visible as long as at least one of those perspectives is
-                  enabled. Code generators remain unfiltered — every generator that fits your active diagram is always
-                  reachable from the Generate menu.
+                  Hide perspectives you don't need. Use a preset to flip several at once, or toggle each individually
+                  below. Disabled perspectives are removed from the sidebar; existing models are preserved and restored
+                  on re-enable. Generators remain available regardless.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-1">
-                {PERSPECTIVES.map((perspective, idx) => {
-                  const isEnabled = enabledPerspectives[perspective.key] !== false;
-                  return (
-                    <React.Fragment key={perspective.key}>
-                      {idx > 0 && <Separator />}
-                      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <span className="flex size-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                            {PERSPECTIVE_ICONS[perspective.key]}
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium">{perspective.label}</p>
-                            <p className="text-xs text-muted-foreground">{perspective.description}</p>
+              <CardContent className="flex flex-col gap-4">
+                {/* Preset row */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <Sparkles className="size-3.5" />
+                    <span>Quick presets</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {PERSPECTIVES.map((preset) => {
+                      const active = isPresetActive(preset, perspectives);
+                      return (
+                        <Button
+                          key={preset.key}
+                          type="button"
+                          variant={active ? 'default' : 'outline'}
+                          size="sm"
+                          title={preset.description}
+                          onClick={() => handleApplyPreset(preset)}
+                          data-testid={`perspective-preset-${preset.key}`}
+                          aria-pressed={active}
+                        >
+                          {preset.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Per-diagram toggles */}
+                <div className="flex flex-col gap-1">
+                  {ALL_DIAGRAM_TYPES.map((type, index) => {
+                    const checked = isPerspectiveVisible(perspectives, type);
+                    const isLastEnabled = checked && enabledPerspectiveCount === 1;
+                    const labelId = `perspective-toggle-${type}`;
+                    return (
+                      <React.Fragment key={type}>
+                        {index > 0 && <Separator />}
+                        <label
+                          htmlFor={labelId}
+                          className={`flex items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors ${
+                            isLastEnabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:bg-muted/30'
+                          }`}
+                          title={isLastEnabled ? 'At least one perspective must be enabled.' : undefined}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium">{PERSPECTIVE_LABELS[type]}</p>
+                              <Badge className={DIAGRAM_TYPE_BADGE[type]}>
+                                {type.replace('Diagram', '')}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {PERSPECTIVE_DESCRIPTIONS[type]}
+                            </p>
                           </div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          className="size-4 accent-brand"
-                          checked={isEnabled}
-                          onChange={(event) => handleTogglePerspective(perspective.key, event.target.checked)}
-                          aria-label={`${perspective.label} perspective`}
-                        />
-                      </label>
-                    </React.Fragment>
-                  );
-                })}
+                          <input
+                            id={labelId}
+                            type="checkbox"
+                            className="size-4 accent-brand"
+                            checked={checked}
+                            disabled={isLastEnabled}
+                            aria-label={`Toggle ${PERSPECTIVE_LABELS[type]} visibility`}
+                            data-testid={`perspective-toggle-${type}`}
+                            onChange={(event) =>
+                              handlePerspectiveToggle(type, event.target.checked)
+                            }
+                          />
+                        </label>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           </div>
