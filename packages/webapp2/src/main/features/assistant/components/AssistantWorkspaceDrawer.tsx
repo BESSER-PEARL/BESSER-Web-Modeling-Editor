@@ -667,7 +667,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         size="sm"
                         className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
                         onClick={() => dispatch(openByokDialog(null))}
-                        title="Smart Generator settings — change API key, provider, or model"
+                        title="Vibe-Driven Generator settings — change API key, provider, or model"
                       >
                         <Settings className="size-3.5" />
                         Settings

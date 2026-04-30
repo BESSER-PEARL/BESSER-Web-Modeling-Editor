@@ -219,8 +219,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 size="icon"
                 className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => dispatch(openByokDialog(null))}
-                title="Smart Generator settings — change API key, provider, or model"
-                aria-label="Smart Generator settings"
+                title="Vibe-Driven Generator settings — change API key, provider, or model"
+                aria-label="Vibe-Driven Generator settings"
               >
                 <Settings className="size-3.5" />
               </Button>

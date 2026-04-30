@@ -458,9 +458,9 @@ export function useSmartGenTrigger(
             toast.success(`Downloaded ${event.fileName}`);
           } else {
             appendErrorToChat(
-              `Smart Generator finished but the download failed. You may need to regenerate.`,
+              `Vibe-Driven Generator finished but the download failed. You may need to regenerate.`,
             );
-            toast.error('Smart Generator download failed');
+            toast.error('Vibe-Driven Generator download failed');
           }
           return;
         }
@@ -482,11 +482,11 @@ export function useSmartGenTrigger(
                 if (!isRunningRef.current || abortRequestedRef.current) return;
                 finalizeStreamingMessage(streamingId);
                 appendErrorToChat(
-                  `Smart Generator exceeded the cost/runtime cap and the ` +
+                  `Vibe-Driven Generator exceeded the cost/runtime cap and the ` +
                     `backend did not finalise the run. You may need to retry ` +
                     `with a larger budget.`,
                 );
-                toast.error('Smart Generator cap reached — no response');
+                toast.error('Vibe-Driven Generator cap reached — no response');
                 abortActiveInternal();
               }, COST_TIMEOUT_FAILSAFE_MS);
             }
@@ -513,9 +513,9 @@ export function useSmartGenTrigger(
             { stopStreaming: true },
           );
           appendErrorToChat(
-            `❌ Smart Generator error (${event.code}): ${event.message}`,
+            `❌ Vibe-Driven Generator error (${event.code}): ${event.message}`,
           );
-          toast.error(`Smart Generator: ${event.code}`);
+          toast.error(`Vibe-Driven Generator: ${event.code}`);
           return;
         }
         default: {
@@ -562,7 +562,7 @@ export function useSmartGenTrigger(
     async (payload: TriggerSmartGeneratorPayload) => {
       if (isRunningRef.current) {
         appendErrorToChat(
-          'Smart Generator is already running — please wait for it to finish or click Stop.',
+          'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
         );
         return;
       }
@@ -575,8 +575,8 @@ export function useSmartGenTrigger(
 
       const project = currentProjectRef.current;
       if (!project) {
-        appendErrorToChat('Smart Generator needs an open project.');
-        toast.error('Smart Generator needs an open project');
+        appendErrorToChat('Vibe-Driven Generator needs an open project.');
+        toast.error('Vibe-Driven Generator needs an open project');
         return;
       }
 
@@ -599,9 +599,9 @@ export function useSmartGenTrigger(
       const rawProvider: unknown = key.provider ?? payload.provider;
       if (!isValidProvider(rawProvider)) {
         appendErrorToChat(
-          `Smart Generator: unknown provider ${String(rawProvider)}. Please save a valid key.`,
+          `Vibe-Driven Generator: unknown provider ${String(rawProvider)}. Please save a valid key.`,
         );
-        toast.error('Smart Generator: invalid provider');
+        toast.error('Vibe-Driven Generator: invalid provider');
         return;
       }
       const provider: SmartGenProvider = rawProvider;
@@ -658,9 +658,9 @@ export function useSmartGenTrigger(
       } catch (err) {
         finalizeStreamingMessage(streamingId);
         appendErrorToChat(
-          `Smart Generator failed to start: ${err instanceof Error ? err.message : String(err)}`,
+          `Vibe-Driven Generator failed to start: ${err instanceof Error ? err.message : String(err)}`,
         );
-        toast.error('Smart Generator failed to start');
+        toast.error('Vibe-Driven Generator failed to start');
         isRunningRef.current = false;
         setIsGenerating(false);
         return;
@@ -684,10 +684,10 @@ export function useSmartGenTrigger(
           err instanceof DOMException && err.name === 'AbortError';
         finalizeStreamingMessage(streamingId);
         if (isAbort) {
-          appendAssistantMessage('⏹ Smart Generator run stopped by user.');
+          appendAssistantMessage('⏹ Vibe-Driven Generator run stopped by user.');
         } else {
-          appendErrorToChat(`Smart Generator stream error: ${msg}`);
-          toast.error('Smart Generator stream error');
+          appendErrorToChat(`Vibe-Driven Generator stream error: ${msg}`);
+          toast.error('Vibe-Driven Generator stream error');
           dispatch(setRunError({ code: 'INTERNAL', message: msg }));
         }
       } finally {
@@ -717,7 +717,7 @@ export function useSmartGenTrigger(
     async (payload: TriggerSmartGeneratorPayload) => {
       if (isRunningRef.current) {
         appendErrorToChat(
-          'Smart Generator is already running — please wait for it to finish or click Stop.',
+          'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
         );
         return;
       }

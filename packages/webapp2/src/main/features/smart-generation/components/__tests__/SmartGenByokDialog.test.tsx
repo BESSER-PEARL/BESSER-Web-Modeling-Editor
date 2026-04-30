@@ -72,12 +72,12 @@ afterEach(() => {
 describe('SmartGenByokDialog — visibility', () => {
   it('is not rendered when byokDialogOpen is false', () => {
     renderDialog(false);
-    expect(screen.queryByText(/smart generator.*api key/i)).toBeNull();
+    expect(screen.queryByText(/vibe-driven generator.*api key/i)).toBeNull();
   });
 
   it('renders when byokDialogOpen is true', () => {
     renderDialog(true);
-    expect(screen.getByText(/smart generator.*api key/i)).toBeTruthy();
+    expect(screen.getByText(/vibe-driven generator.*api key/i)).toBeTruthy();
   });
 });
 

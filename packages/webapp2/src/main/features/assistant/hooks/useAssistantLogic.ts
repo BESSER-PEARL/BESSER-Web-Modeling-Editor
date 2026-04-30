@@ -501,7 +501,7 @@ export function useAssistantLogic({
           ...prev,
           toKitMessage(
             'assistant',
-            'Smart Generator: missing instructions from the modeling agent.',
+            'Vibe-Driven Generator: missing instructions from the modeling agent.',
             { isError: true },
           ),
         ]);

@@ -1,5 +1,5 @@
 /**
- * BYOK (bring-your-own-key) modal for the Smart Generator.
+ * BYOK (bring-your-own-key) modal for the Vibe-Driven Generator.
  *
  * Opened by `useSmartGenTrigger` when a `trigger_smart_generator` action
  * arrives from the modeling agent and sessionStorage does not contain a
@@ -341,9 +341,9 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleCancel(); }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Smart Generator — API Key</DialogTitle>
+          <DialogTitle>Vibe-Driven Generator — API Key</DialogTitle>
           <DialogDescription>
-            The Smart Generator runs an LLM on your behalf to build a
+            The Vibe-Driven Generator runs an LLM on your behalf to build a
             customised codebase from your model. Paste your own Anthropic
             or OpenAI key to start. <strong>{PRIVACY_COPY}</strong>
           </DialogDescription>
