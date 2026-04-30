@@ -79,7 +79,7 @@
     "@types/websocket": "^1.0.10",
     "@typescript-eslint/eslint-plugin": "8.15.0",
     "@typescript-eslint/parser": "8.15.0",
-    "@vitejs/plugin-react": "^5.0.1",
+    "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.34.0",
     "jsdom": "^28.1.0",
