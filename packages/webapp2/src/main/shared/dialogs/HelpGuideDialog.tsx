@@ -622,11 +622,15 @@ const sections: GuideSection[] = [
         },
       },
       {
-        title: 'Generate Code',
+        title: 'Validate And Generate',
         body: (
           <div className="space-y-2">
             <p>
-              Open the Generate menu in the top bar and choose a framework and style:
+              Run Quality Check from the top bar to catch structural issues such as disconnected
+              layers or missing mandatory attributes before generating code.
+            </p>
+            <p>
+              Open the Generate menu and choose a framework and style:
             </p>
             <ul className="list-disc space-y-1 pl-5">
               <li>
