@@ -105,7 +105,7 @@ class NNReferenceUpdateComponent extends Component<Props, State> {
           >
             {[
               { id: '__placeholder__', name: '' },
-              ...nnContainers.map(nn => ({ id: nn.id, name: nn.name }))
+              ...nnContainers.filter(nn => nn.id !== element.owner).map(nn => ({ id: nn.id, name: nn.name }))
             ].map((item) => (
               <Dropdown.Item key={item.id} value={item.name}>
                 {item.name || this.props.translate('packages.NNDiagram.SelectNNPlaceholder')}
