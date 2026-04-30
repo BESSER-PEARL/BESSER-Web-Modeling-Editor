@@ -11,6 +11,7 @@ import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+import { readAgentVariants } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
 import {
@@ -104,16 +105,6 @@ interface UserModelValidationRecord {
   modelFingerprint: string | null;
 }
 
-interface AgentModelVariantSnapshot {
-  id: string;
-  profileId: string;
-  profileName: string;
-  configurationId: string;
-  configurationName: string;
-  createdAt: string;
-  model: unknown;
-}
-
 const createModelFingerprint = (model: unknown): string | null => {
   if (model === undefined || model === null) {
     return null;
@@ -137,27 +128,6 @@ const isModelEmpty = (model: unknown): boolean => {
   const hasElements = !!elements && Object.keys(elements).length > 0;
   const hasRelationships = !!relationships && Object.keys(relationships).length > 0;
   return !hasElements && !hasRelationships;
-};
-
-const readAgentVariants = (diagram: ProjectDiagram | null | undefined): AgentModelVariantSnapshot[] => {
-  const raw = (diagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-
-  return raw.filter((entry): entry is AgentModelVariantSnapshot => {
-    if (!entry || typeof entry !== 'object') {
-      return false;
-    }
-    const variant = entry as Partial<AgentModelVariantSnapshot>;
-    return (
-      typeof variant.id === 'string' &&
-      typeof variant.profileName === 'string' &&
-      typeof variant.configurationName === 'string' &&
-      typeof variant.createdAt === 'string' &&
-      Boolean(variant.model)
-    );
-  });
 };
 
 export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({

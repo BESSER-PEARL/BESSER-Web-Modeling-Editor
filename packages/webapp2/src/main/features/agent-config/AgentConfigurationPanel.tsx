@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,22 +31,20 @@ import type {
   VoiceStyleSetting,
 } from '../../shared/types/agent-config';
 import { isUMLModel, getActiveDiagram } from '../../shared/types/project';
+import type { ProjectDiagram } from '../../shared/types/project';
 import { useProject } from '../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
+import {
+  type AgentModelVariantSnapshot,
+  getActiveAgentVariantId,
+  readAgentVariants,
+  removeConfigurationVariantsFromProject,
+  upsertVariantForProfile,
+} from '../../shared/services/agent-variants/agent-variants-service';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
-
-type AgentModelVariantSnapshot = {
-  id: string;
-  profileId: string;
-  profileName: string;
-  configurationId: string;
-  configurationName: string;
-  createdAt: string;
-  model: UMLModel;
-};
 
 type MappingMatchedRule = {
   id?: string;
@@ -351,29 +350,6 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-const toVariantList = (raw: unknown): AgentModelVariantSnapshot[] => {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-
-  return raw.filter((entry): entry is AgentModelVariantSnapshot => {
-    if (!entry || typeof entry !== 'object') {
-      return false;
-    }
-
-    const candidate = entry as Partial<AgentModelVariantSnapshot>;
-    return (
-      typeof candidate.id === 'string' &&
-      typeof candidate.profileId === 'string' &&
-      typeof candidate.profileName === 'string' &&
-      typeof candidate.configurationId === 'string' &&
-      typeof candidate.configurationName === 'string' &&
-      typeof candidate.createdAt === 'string' &&
-      Boolean(candidate.model)
-    );
-  });
-};
-
 const toMappingMatchedRules = (raw: unknown): MappingMatchedRule[] => {
   if (!Array.isArray(raw)) {
     return [];
@@ -449,22 +425,15 @@ const updateActiveAgentDiagramConfig = (
 };
 
 const resolveProfileNameFromVariant = (
-  configRecord: Record<string, unknown> | undefined,
+  agentDiagram: ProjectDiagram | null | undefined,
   availableProfiles: StoredUserProfile[],
 ): string => {
-  if (!configRecord) {
-    return '';
-  }
-
-  const activeVariantId = typeof configRecord.activePersonalizedVariantId === 'string'
-    ? configRecord.activePersonalizedVariantId
-    : '';
+  const activeVariantId = getActiveAgentVariantId(agentDiagram);
   if (!activeVariantId) {
     return '';
   }
 
-  const activeVariant = toVariantList(configRecord.personalizedVariants)
-    .find((entry) => entry.id === activeVariantId);
+  const activeVariant = readAgentVariants(agentDiagram).find((entry) => entry.id === activeVariantId);
   if (!activeVariant) {
     return '';
   }
@@ -535,6 +504,7 @@ const loadInitialState = () => {
 
 export const AgentConfigurationPanel: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { currentProject } = useProject();
   const { githubSession } = useGitHubAuth();
 
@@ -779,10 +749,9 @@ export const AgentConfigurationPanel: React.FC = () => {
 
     const agentDiagram = getActiveDiagram(currentProject, 'AgentDiagram');
     const diagramConfig = agentDiagram?.config as Partial<AgentConfigurationPayload> | undefined;
-    const diagramConfigRecord = (agentDiagram?.config ?? {}) as Record<string, unknown>;
 
     if (diagramConfig && Object.keys(diagramConfig).length > 0) {
-      const preferredProfileName = resolveProfileNameFromVariant(diagramConfigRecord, tabUserProfiles)
+      const preferredProfileName = resolveProfileNameFromVariant(agentDiagram, tabUserProfiles)
         || resolveProfileNameFromMapping(LocalStorageRepository.getActiveAgentConfigurationId() || '', tabUserProfiles);
 
       applyConfiguration(normalizeAgentConfiguration(diagramConfig), undefined, {
@@ -1013,7 +982,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     tabUserProfiles,
   ]);
 
-  const handleDeleteSavedConfiguration = useCallback((configId?: string) => {
+  const handleDeleteSavedConfiguration = useCallback(async (configId?: string) => {
     const targetId = configId ?? selectedConfigId;
     if (!targetId) {
       toast.error('Please select a configuration to delete.');
@@ -1039,9 +1008,23 @@ export const AgentConfigurationPanel: React.FC = () => {
       setActiveConfigName('');
     }
 
+    const variantsChanged = currentProject
+      ? removeConfigurationVariantsFromProject(currentProject.id, targetId)
+      : false;
+
     refreshSavedConfigurations();
+
+    if (variantsChanged) {
+      try {
+        await dispatch(refreshProjectStateThunk()).unwrap();
+        dispatch(bumpEditorRevision());
+      } catch (error) {
+        console.error('Failed to refresh project after variant cleanup:', error);
+      }
+    }
+
     toast.success('Configuration deleted.');
-  }, [activeConfigId, refreshSavedConfigurations, selectedConfigId]);
+  }, [activeConfigId, currentProject, dispatch, refreshSavedConfigurations, selectedConfigId]);
 
   const handleInputSpeechToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputModalities(event.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
@@ -1237,13 +1220,17 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
   };
 
-  const handleResetToDefaults = () => {
+  const resetFormToDefaults = useCallback(() => {
     applyConfiguration(createDefaultConfig());
     setActiveCustomizationSection(null);
     setConfigurationName(DEFAULT_CONFIG_NAME);
     setActiveConfigId(null);
     setActiveConfigName('');
     setSelectedConfigId('');
+  }, [applyConfiguration]);
+
+  const handleResetToDefaults = () => {
+    resetFormToDefaults();
     toast.info('Configuration reset to default values.');
   };
 
@@ -1366,7 +1353,6 @@ export const AgentConfigurationPanel: React.FC = () => {
           isUMLModel(snapshotModel) &&
           snapshotModel.type === UMLDiagramType.AgentDiagram
         ) {
-          const currentConfigRecord = (currentAgentDiagram.config ?? {}) as Record<string, unknown>;
           const variantId = `${selectedProfile.id}:${result.savedEntry.id}`;
           const nextVariant: AgentModelVariantSnapshot = {
             id: variantId,
@@ -1378,19 +1364,14 @@ export const AgentConfigurationPanel: React.FC = () => {
             model: cloneModel(snapshotModel),
           };
 
-          const existingVariants = toVariantList(currentConfigRecord.personalizedVariants)
-            .filter((entry) => entry.id !== variantId);
-
           const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
           const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram') || currentAgentDiagram;
           const latestConfigRecord = (latestAgentDiagram.config ?? {}) as Record<string, unknown>;
-          const latestVariants = toVariantList(latestConfigRecord.personalizedVariants)
-            .filter((entry) => entry.id !== variantId);
 
           updateActiveAgentDiagramConfig(currentProject, {
             ...latestConfigRecord,
             ...(config as unknown as Record<string, unknown>),
-            personalizedVariants: [...latestVariants, nextVariant],
+            personalizedVariants: upsertVariantForProfile(readAgentVariants(latestAgentDiagram), nextVariant),
             activePersonalizedVariantId: variantId,
           });
 
@@ -1399,7 +1380,8 @@ export const AgentConfigurationPanel: React.FC = () => {
 
         LocalStorageRepository.saveAgentProfileConfigurationMapping(selectedProfile, result.savedEntry);
         toast.success('Configuration transformed, saved, and applied successfully.');
-        setSelectedConfigId(result.savedEntry.id);
+        resetFormToDefaults();
+        navigate('/');
       } else {
         toast.error('Failed to save configuration locally.');
       }
