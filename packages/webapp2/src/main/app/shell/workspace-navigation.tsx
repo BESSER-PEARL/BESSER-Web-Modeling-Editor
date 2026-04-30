@@ -87,7 +87,7 @@ const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
   : [];
 
 export const AGENT_ROUTE_ITEMS = [
-  { path: '/agent-config', label: 'Agent Config', icon: <SlidersHorizontal className="size-4" /> },
+  { path: '/agent-config', label: 'Agent Customization', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
 ] as const;
 
