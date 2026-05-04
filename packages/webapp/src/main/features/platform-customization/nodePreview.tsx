@@ -104,7 +104,39 @@ export const ClassNodePreview: React.FC<{
   );
 };
 
-/** Mini SVG preview of an association edge with arrows + line style. */
+/** Build the SVG ``d`` attribute for the edge preview given a routing name.
+ *  Endpoints are intentionally vertically offset so ``straight`` reads
+ *  distinctly from ``bezier`` / ``step`` / ``smoothstep``. */
+function edgePreviewPath(routing: string | undefined): string {
+  // Source (16, 8) → target (80, 24). Mid-x = 48.
+  switch (routing) {
+    case 'straight':
+      return 'M 16 8 L 80 24';
+    case 'step':
+      // Sharp orthogonal: right, down, right.
+      return 'M 16 8 H 48 V 24 H 80';
+    case 'smoothstep': {
+      // Rounded orthogonal: same legs as ``step`` but with quarter-arcs at
+      // the corners. Radius = 4 user units.
+      const r = 4;
+      return [
+        'M 16 8',
+        `H ${48 - r}`,
+        `Q 48 8, 48 ${8 + r}`,
+        `V ${24 - r}`,
+        `Q 48 24, ${48 + r} 24`,
+        'H 80',
+      ].join(' ');
+    }
+    case 'bezier':
+    default:
+      // Cubic Bezier with horizontal control points — mirrors xyflow's
+      // default bezier edge behavior.
+      return 'M 16 8 C 48 8, 48 24, 80 24';
+  }
+}
+
+/** Mini SVG preview of an association edge with arrows + line style + routing. */
 export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride }> = ({
   override,
 }) => {
@@ -113,8 +145,11 @@ export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride
   const dash = dashFromLineStyle(override?.lineStyle);
 
   // Render small inline arrow markers; using IDs keeps the SVG self-contained.
-  const targetId = `prev-arrow-end-${override?.targetArrowStyle ?? 'none'}`;
-  const sourceId = `prev-arrow-start-${override?.sourceArrowStyle ?? 'none'}`;
+  // The routing name is folded into the marker IDs so React reuses the right
+  // <defs> block when only the routing changes.
+  const routing = override?.lineRouting ?? 'bezier';
+  const targetId = `prev-arrow-end-${override?.targetArrowStyle ?? 'none'}-${routing}`;
+  const sourceId = `prev-arrow-start-${override?.sourceArrowStyle ?? 'none'}-${routing}`;
   return (
     <svg
       viewBox="0 0 96 32"
@@ -127,13 +162,11 @@ export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride
         {makeMarker(targetId, override?.targetArrowStyle, 'end')}
         {makeMarker(sourceId, override?.sourceArrowStyle, 'start')}
       </defs>
-      {/* Inset the line by ~14 user units on each side so the markers have
+      {/* Path inset by ~16 user units on each side so the markers have
           space to render without being clipped by the viewBox edges. */}
-      <line
-        x1="16"
-        y1="16"
-        x2="80"
-        y2="16"
+      <path
+        d={edgePreviewPath(routing)}
+        fill="none"
         stroke={stroke}
         strokeWidth={sw}
         strokeDasharray={dash}

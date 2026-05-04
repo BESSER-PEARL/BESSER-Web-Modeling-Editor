@@ -15,6 +15,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type {
+  LineRoutingName,
   PlatformAssociationOverride,
   PlatformClassOverride,
   PlatformCustomizationData,
@@ -74,6 +75,10 @@ export const DiagramCustomizationCard: React.FC<DiagramCustomizationCardProps> =
           value={diagram.backgroundColor}
           onChange={(v) => onPatch({ backgroundColor: v })}
         />
+        <LineRoutingRow
+          value={diagram.lineRouting}
+          onChange={(v) => onPatch({ lineRouting: v })}
+        />
         <SwitchRow
           label="Grid visible"
           checked={diagram.gridVisible !== false}
@@ -97,6 +102,29 @@ export const DiagramCustomizationCard: React.FC<DiagramCustomizationCardProps> =
     </Card>
   );
 };
+
+const LineRoutingRow: React.FC<{
+  value?: LineRoutingName;
+  onChange: (v: LineRoutingName | undefined) => void;
+}> = ({ value, onChange }) => (
+  <div className="flex flex-col gap-1.5">
+    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Edge routing</Label>
+    <Select
+      value={value ?? 'bezier'}
+      onValueChange={(v) => onChange(v === 'bezier' ? undefined : (v as LineRoutingName))}
+    >
+      <SelectTrigger className="h-8 text-sm">
+        <SelectValue placeholder="Curved (bezier)" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="bezier">Curved (bezier)</SelectItem>
+        <SelectItem value="smoothstep">Squared (smooth)</SelectItem>
+        <SelectItem value="step">Squared (sharp)</SelectItem>
+        <SelectItem value="straight">Straight</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+);
 
 const ThemeRow: React.FC<{
   value?: ThemeName;

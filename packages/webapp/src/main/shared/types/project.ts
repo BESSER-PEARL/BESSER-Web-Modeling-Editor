@@ -65,6 +65,10 @@ export type FontWeightName = 'normal' | 'bold';
 export type LabelPositionName = 'top' | 'bottom' | 'inside';
 export type ThemeName = 'light' | 'dark' | 'auto';
 export type PortSideName = 'auto' | 'top' | 'right' | 'bottom' | 'left';
+/** xyflow edge routing style. ``bezier`` = curved (default), ``smoothstep`` =
+ *  rounded right-angles, ``step`` = sharp right-angles, ``straight`` =
+ *  point-to-point line. */
+export type LineRoutingName = 'bezier' | 'smoothstep' | 'step' | 'straight';
 
 /** Mutually-exclusive runtime representation for a class in the generated editor. */
 export type ClassRepresentation = 'node' | 'container' | 'port' | 'connection';
@@ -113,6 +117,9 @@ export interface PlatformClassOverride {
   edgeColor?: string;
   lineWidth?: number;
   lineStyle?: LineStyleName;
+  /** Routing of the synthetic edge for this connection-class. Falls back to
+   *  the diagram-level `lineRouting` when undefined. */
+  lineRouting?: LineRoutingName;
   sourceArrowStyle?: ArrowStyleName;
   targetArrowStyle?: ArrowStyleName;
   labelVisible?: boolean;
@@ -124,6 +131,9 @@ export interface PlatformAssociationOverride {
   edgeColor?: string;
   lineWidth?: number;
   lineStyle?: LineStyleName;
+  /** Per-association edge routing. Falls back to the diagram-level
+   *  `lineRouting` when undefined. */
+  lineRouting?: LineRoutingName;
   sourceArrowStyle?: ArrowStyleName;
   targetArrowStyle?: ArrowStyleName;
   labelVisible?: boolean;
@@ -144,6 +154,9 @@ export interface PlatformDiagramOverride {
   gridSize?: number;
   snapToGrid?: boolean;
   theme?: ThemeName;
+  /** Default edge routing applied to every edge in the generated canvas
+   *  unless overridden per-association or per-connection-class. */
+  lineRouting?: LineRoutingName;
 }
 
 export interface PlatformCustomizationData {

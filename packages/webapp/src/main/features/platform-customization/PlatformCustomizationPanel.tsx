@@ -37,6 +37,7 @@ import {
   isPlatformCustomizationData,
   isUMLModel,
   LabelPositionName,
+  LineRoutingName,
   LineStyleName,
   NodeShape,
   PlatformAssociationOverride,
@@ -627,6 +628,12 @@ const ClassRow: React.FC<{
                   ]}
                   onChange={(v) => onPatch({ lineStyle: v as LineStyleName | undefined })}
                 />
+                <SelectField
+                  label="Routing"
+                  value={override.lineRouting}
+                  options={ROUTING_OPTIONS}
+                  onChange={(v) => onPatch({ lineRouting: v as LineRoutingName | undefined })}
+                />
               </section>
               <section className="space-y-3">
                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Arrows</h4>
@@ -942,6 +949,12 @@ const AssociationRow: React.FC<{
                 ]}
                 onChange={(v) => onPatch({ lineStyle: v as LineStyleName | undefined })}
               />
+              <SelectField
+                label="Routing"
+                value={override.lineRouting}
+                options={ROUTING_OPTIONS}
+                onChange={(v) => onPatch({ lineRouting: v as LineRoutingName | undefined })}
+              />
             </section>
 
             {/* Arrows */}
@@ -1003,6 +1016,13 @@ const ARROW_OPTIONS = [
   { value: 'diamond', label: 'Diamond ◆' },
   { value: 'open_diamond', label: 'Open diamond ◇' },
   { value: 'circle', label: 'Circle ●' },
+];
+
+const ROUTING_OPTIONS = [
+  { value: 'bezier', label: 'Curved (bezier)' },
+  { value: 'smoothstep', label: 'Squared (smooth)' },
+  { value: 'step', label: 'Squared (sharp)' },
+  { value: 'straight', label: 'Straight' },
 ];
 
 const NumberField: React.FC<{
