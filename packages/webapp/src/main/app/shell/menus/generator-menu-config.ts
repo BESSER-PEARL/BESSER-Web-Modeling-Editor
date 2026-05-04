@@ -100,6 +100,10 @@ const QUANTUM_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'action', label: 'Qiskit Code', generator: 'qiskit' },
 ];
 
+const PLATFORM_GENERATORS: GeneratorMenuEntry[] = [
+  { kind: 'action', label: 'Instance Editor Platform', generator: 'platform' },
+];
+
 const NN_GENERATORS: GeneratorMenuEntry[] = [
   {
     kind: 'group',
@@ -130,5 +134,6 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   gui: GUI_GENERATORS,
   quantum: QUANTUM_GENERATORS,
   nn: NN_GENERATORS,
+  platform: PLATFORM_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };

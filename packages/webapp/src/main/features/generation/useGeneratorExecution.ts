@@ -696,6 +696,24 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           return nnResult;
         }
 
+        // Platform generator goes through the project endpoint (it consumes
+        // the ClassDiagram + the optional PlatformCustomizationDiagram from
+        // project state), so it doesn't need a UML editor instance — and the
+        // user can trigger it while sitting on the Platform Customization
+        // form view, which has no editor at all.
+        if (generatorType === 'platform') {
+          const platformResult = await generateCode(null, 'platform', activeDiagramTitle, config as any);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          if (platformResult.ok) {
+            getPostHog()?.capture('generator_used', {
+              generator_type: 'platform',
+              diagram_type: currentProject.currentDiagramType,
+              ...getModelMetrics(currentProject),
+            });
+          }
+          return platformResult;
+        }
+
         if (isQuantumContext || isGuiContext) {
           toast.error('Switch to a UML diagram to use this generator.');
           return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
