@@ -19,8 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { useAppDispatch } from '../../../app/store/hooks';
-import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
@@ -81,8 +81,13 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
+  const activeDiagramType = useAppSelector(selectActiveDiagramType);
 
   const isOnEditorPage = location.pathname === '/';
+  // The modeling assistant is UML-oriented and has no reasoning over NN
+  // architectures; hide it entirely on the NN diagram so users aren't tempted
+  // to ask it about layers / hyperparameters / training.
+  const isAssistantApplicable = activeDiagramType !== 'NNDiagram';
 
   /* ---- Widget-specific diagram switching ---- */
 
@@ -145,24 +150,24 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     : undefined;
   const lastMeta = lastAssistantMsg ? messageMeta[lastAssistantMsg.id] : undefined;
 
-  /* ---- Hide when not on an editor page ---- */
+  /* ---- Hide when not on an editor page or on a non-applicable diagram ---- */
 
   useEffect(() => {
-    if (!isOnEditorPage) {
+    if (!isOnEditorPage || !isAssistantApplicable) {
       setIsVisible(false);
     }
-  }, [isOnEditorPage]);
+  }, [isOnEditorPage, isAssistantApplicable]);
 
   /* ---- External toggle event ---- */
 
   useEffect(() => {
     const toggle = () => {
-      if (!isOnEditorPage) return;
+      if (!isOnEditorPage || !isAssistantApplicable) return;
       setIsVisible((p) => !p);
     };
     window.addEventListener('besser:toggle-agent-widget', toggle);
     return () => window.removeEventListener('besser:toggle-agent-widget', toggle);
-  }, [isOnEditorPage]);
+  }, [isOnEditorPage, isAssistantApplicable]);
 
   /* ---- Hide widget when the workspace drawer is open ---- */
 
@@ -180,7 +185,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   /* ---- Render ---- */
 
-  if (!isOnEditorPage || drawerOpen) return null;
+  if (!isOnEditorPage || !isAssistantApplicable || drawerOpen) return null;
 
   const rateLimitColor =
     rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
