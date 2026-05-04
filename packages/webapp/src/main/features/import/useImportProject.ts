@@ -89,7 +89,7 @@ function migrateOldWebappProject(data: any): BesserProject {
 
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
     ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-    AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+    AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0, NNDiagram: 0,
   };
 
   return {
@@ -126,6 +126,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'ObjectDiagram',
     'StateMachineDiagram',
     'AgentDiagram',
+    'NNDiagram',
     'UserDiagram',
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram'
@@ -136,6 +137,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: UMLDiagramType.ObjectDiagram,
     StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
     AgentDiagram: UMLDiagramType.AgentDiagram,
+    NNDiagram: UMLDiagramType.NNDiagram,
     UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
     QuantumCircuitDiagram: null,
@@ -146,6 +148,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     ObjectDiagram: 'Object Diagram',
     StateMachineDiagram: 'State Machine Diagram',
     AgentDiagram: 'Agent Diagram',
+    NNDiagram: 'NN Diagram',
     UserDiagram: 'User Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
     QuantumCircuitDiagram: 'Quantum Circuit'
@@ -403,7 +406,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             currentDiagramType: supportedType,
             currentDiagramIndices: {
               ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-              AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0,
+              AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0, NNDiagram: 0,
             },
             diagrams,
             settings: {

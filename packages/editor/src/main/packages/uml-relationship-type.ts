@@ -14,7 +14,7 @@ import { FlowchartRelationshipType } from './flowchart';
 import { BPMNRelationshipType } from './bpmn';
 import { StateRelationshipType } from './uml-state-diagram';
 import { GeneralRelationshipType } from './common/uml-link/general-relationship-type';
-
+import { NNRelationshipType } from './nn-diagram';
 import { AgentRelationshipType } from './agent-state-diagram';
 
 export { GeneralRelationshipType };
@@ -35,6 +35,7 @@ export type UMLRelationshipType =
   | keyof typeof BPMNRelationshipType
   | keyof typeof StateRelationshipType
   | keyof typeof AgentRelationshipType
+  | keyof typeof NNRelationshipType
   | keyof typeof UserModelRelationshipType
   | keyof typeof GeneralRelationshipType;
 
@@ -53,6 +54,7 @@ export const UMLRelationshipType = {
   ...BPMNRelationshipType,
   ...StateRelationshipType,
   ...AgentRelationshipType,
+  ...NNRelationshipType,
   ...UserModelRelationshipType,
   ...GeneralRelationshipType,
 };
@@ -72,5 +74,6 @@ export const DefaultUMLRelationshipType: { [key in UMLDiagramType]: UMLRelations
   [UMLDiagramType.BPMN]: BPMNRelationshipType.BPMNFlow,
   [UMLDiagramType.StateMachineDiagram]: StateRelationshipType.StateTransition,
   [UMLDiagramType.AgentDiagram]: AgentRelationshipType.AgentStateTransition,
+  [UMLDiagramType.NNDiagram]: NNRelationshipType.NNNext,
   [UMLDiagramType.UserDiagram]: UserModelRelationshipType.UserModelLink,
 };

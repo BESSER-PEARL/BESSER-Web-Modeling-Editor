@@ -162,9 +162,17 @@ export const updatable = (
     }
 
     /**
-     * Show the update dialog of the wrapped element
+     * Show the update dialog of the wrapped element.
+     *
+     * Stops propagation so that when a child element nested inside a container
+     * (e.g. an NN layer inside an NNContainer) is double-clicked, only the
+     * deepest element opens its update panel — without this, the dblclick
+     * bubbles to the container and overrides the child's updateStart.
      */
-    private onStartUpdate = () => {
+    private onStartUpdate = (event?: Event | React.SyntheticEvent) => {
+      if (event && typeof (event as { stopPropagation?: () => void }).stopPropagation === 'function') {
+        (event as { stopPropagation: () => void }).stopPropagation();
+      }
       this.props.updateStart(this.props.id);
     };
 

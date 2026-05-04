@@ -15,6 +15,7 @@ import { ReachabilityGraphElementType } from './uml-reachability-graph';
 import { BPMNElementType } from './bpmn';
 import { StateElementType } from './uml-state-diagram';
 import { AgentElementType } from './agent-state-diagram';
+import { NNElementType } from './nn-diagram';
 import { UserModelElementType } from './user-modeling';
 
 export type UMLElementType =
@@ -34,6 +35,7 @@ export type UMLElementType =
   | keyof typeof BPMNElementType
   | keyof typeof StateElementType
   | keyof typeof AgentElementType
+  | keyof typeof NNElementType
   | keyof typeof UserModelElementType;
 
 export const UMLElementType = {
@@ -53,6 +55,7 @@ export const UMLElementType = {
   ...BPMNElementType,
   ...StateElementType,
   ...AgentElementType,
+  ...NNElementType,
   ...UserModelElementType,
 };
 
@@ -72,6 +75,7 @@ export const UMLElementsForDiagram: { [key in UMLDiagramType]: any } = {
     [UMLDiagramType.BPMN]: BPMNElementType,
     [UMLDiagramType.StateMachineDiagram]: StateElementType,
     [UMLDiagramType.AgentDiagram]: AgentElementType,
+    [UMLDiagramType.NNDiagram]: NNElementType,
     [UMLDiagramType.UserDiagram]: UserModelElementType,
   },
   // ...ColorLegendElementType,

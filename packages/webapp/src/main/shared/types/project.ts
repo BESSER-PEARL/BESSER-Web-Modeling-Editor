@@ -7,13 +7,14 @@ export type SupportedDiagramType =
   | 'AgentDiagram'
   | 'UserDiagram'
   | 'GUINoCodeDiagram'
-  | 'QuantumCircuitDiagram';
+  | 'QuantumCircuitDiagram'
+  | 'NNDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
 export const PROJECT_SCHEMA_VERSION = 4;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram',
+  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram',
 ];
 
 export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
@@ -54,7 +55,7 @@ export interface GrapesJSProjectData {
   version: string;
 }
 
-// Quantum Circuit data structure 
+// Quantum Circuit data structure
 export interface QuantumCircuitData {
   cols: any[][]; // Each column is an array where 1 = empty, strings = gate symbols
   gates: any[]; // Custom gates (optional)
@@ -97,6 +98,7 @@ export interface BesserProject {
     UserDiagram: ProjectDiagram[];
     GUINoCodeDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
+    NNDiagram: ProjectDiagram[];
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -152,6 +154,7 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   UserDiagram: 0,
   GUINoCodeDiagram: 0,
   QuantumCircuitDiagram: 0,
+  NNDiagram: 0,
 });
 
 // Migrate v1 project (single diagram per type) to v2 (array per type)
@@ -191,6 +194,8 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'StateMachineDiagram';
     case UMLDiagramType.AgentDiagram:
       return 'AgentDiagram';
+    case UMLDiagramType.NNDiagram:
+      return 'NNDiagram';
     case UMLDiagramType.UserDiagram:
       return 'UserDiagram';
     default:
@@ -209,6 +214,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.StateMachineDiagram;
     case 'AgentDiagram':
       return UMLDiagramType.AgentDiagram;
+    case 'NNDiagram':
+      return UMLDiagramType.NNDiagram;
     case 'UserDiagram':
       return UMLDiagramType.UserDiagram;
     case 'GUINoCodeDiagram':
@@ -373,6 +380,7 @@ export const createDefaultProject = (
       UserDiagram: [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
+      NNDiagram: [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)],
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -409,6 +417,11 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
+  }
+
+  // Add NNDiagram if missing
+  if (!obj.diagrams.NNDiagram) {
+    obj.diagrams.NNDiagram = [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)];
   }
 
   // Add UserDiagram if missing

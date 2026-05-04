@@ -120,7 +120,7 @@ function AppContentInner() {
         onOpenProjectHub={() => setShowProjectHub(true)}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
-        onGenerate={(type) => handleGenerateRequest(type)}
+        onGenerate={(type, config) => handleGenerateRequest(type, config)}
         onQualityCheck={() => handleQualityCheck()}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}

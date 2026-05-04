@@ -8,6 +8,7 @@ export const PERSPECTIVE_LABELS: Record<SupportedDiagramType, string> = {
   UserDiagram: 'User Diagram',
   GUINoCodeDiagram: 'GUI Diagram',
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',
+  NNDiagram: 'Neural Network Diagram',
 };
 
 export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
@@ -18,6 +19,7 @@ export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
   UserDiagram: 'Actors and their interactions.',
   GUINoCodeDiagram: 'Graphical user interface design (IFML-inspired).',
   QuantumCircuitDiagram: 'Quantum program specification.',
+  NNDiagram: 'Neural network architecture (PyTorch / TensorFlow).',
 };
 
 export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
@@ -28,4 +30,5 @@ export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
   UserDiagram: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
   GUINoCodeDiagram: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
   QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
+  NNDiagram: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
 };

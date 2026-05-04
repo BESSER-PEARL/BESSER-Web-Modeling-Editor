@@ -622,11 +622,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'import' && (
             <div className="flex flex-col gap-5">
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
-                <ArrowLeft className="size-3.5" />
-                Back
-              </Button>
-
               <Card className="border-border/50 shadow-elevation-1">
                 <CardHeader>
                   <CardTitle className="text-lg tracking-tight">Import Project File</CardTitle>
@@ -663,6 +658,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+                  <ArrowLeft className="size-3.5" />
+                  Back
+                </Button>
+              </div>
             </div>
           )}
 

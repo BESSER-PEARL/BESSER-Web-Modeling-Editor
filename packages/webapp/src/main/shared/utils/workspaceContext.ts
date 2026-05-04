@@ -8,6 +8,7 @@ interface WorkspaceContext {
   isUserContext: boolean;
   isStateMachineContext: boolean;
   isAgentContext: boolean;
+  isNNContext: boolean;
   isDeploymentAvailable: boolean;
   generatorMenuMode: GeneratorMenuMode;
 }
@@ -20,6 +21,7 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
   const isUserContext = currentDiagramType === 'UserDiagram';
   const isStateMachineContext = currentDiagramType === 'StateMachineDiagram';
   const isAgentContext = currentDiagramType === 'AgentDiagram';
+  const isNNContext = currentDiagramType === 'NNDiagram';
 
   const generatorMenuMode: GeneratorMenuMode = isQuantumContext
     ? 'quantum'
@@ -35,7 +37,9 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
               ? 'user'
               : isStateMachineContext
                 ? 'statemachine'
-                : 'none';
+                : isNNContext
+                  ? 'nn'
+                  : 'none';
 
   return {
     isQuantumContext,
@@ -45,6 +49,7 @@ export const getWorkspaceContext = (pathname: string, currentDiagramType?: strin
     isUserContext,
     isStateMachineContext,
     isAgentContext,
+    isNNContext,
     isDeploymentAvailable: isGuiContext || isClassContext || isAgentContext,
     generatorMenuMode,
   };

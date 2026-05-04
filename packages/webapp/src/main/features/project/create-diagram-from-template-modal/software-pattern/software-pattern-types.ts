@@ -8,6 +8,7 @@ export enum SoftwarePatternCategory {
   AGENT = 'Agent Diagram',
   STATE_MACHINE = 'State Machine Diagram',
   QUANTUM_CIRCUIT = 'Quantum Circuit',
+  NN = 'Neural Network',
 }
 
 export enum SoftwarePatternType {
@@ -25,6 +26,10 @@ export enum SoftwarePatternType {
   LIBRARY_AGENT = 'Library Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
+  // Neural Network patterns
+  NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN (with Training + Test)',
+  NN_ALEXNET = 'AlexNet',
+  NN_LSTM = 'LSTM',
   // Quantum Circuit patterns
   QUANTUM_EMPTY = 'Empty Circuit',
   QUANTUM_SINGLE_GATES = 'Single Qubit Gates',
