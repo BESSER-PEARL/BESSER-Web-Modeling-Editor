@@ -179,6 +179,30 @@
       "BPMNSwimlanes": "Lanes",
       "BPMNGroup": "Group"
     },
+    "NNDiagram": {
+      "NNContainer": "Neural_Network",
+      "NNReference": "Sub-NN Reference",
+      "SelectNN": "Select Neural Network",
+      "SelectNNPlaceholder": "-- Select NN --",
+      "Conv1DLayer": "Conv1D Layer",
+      "Conv2DLayer": "Conv2D Layer",
+      "Conv3DLayer": "Conv3D Layer",
+      "PoolingLayer": "Pooling Layer",
+      "RNNLayer": "RNN Layer",
+      "LSTMLayer": "LSTM Layer",
+      "GRULayer": "GRU Layer",
+      "LinearLayer": "Linear Layer",
+      "FlattenLayer": "Flatten Layer",
+      "EmbeddingLayer": "Embedding Layer",
+      "DropoutLayer": "Dropout Layer",
+      "LayerNormalizationLayer": "Layer Normalization Layer",
+      "BatchNormalizationLayer": "Batch Normalization Layer",
+      "TensorOp": "Tensor Operation",
+      "Configuration": "Configuration",
+      "TrainingDataset": "Training Dataset",
+      "TestDataset": "Test Dataset",
+      "Datasets": "NN Datasets"
+    },
     "OCLConstraint": {
       "Constraint": "OCL Constraint"
     }

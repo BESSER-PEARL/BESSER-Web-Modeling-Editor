@@ -3,6 +3,7 @@ import { UMLDiagramType } from '@besser/wme';
 import {
   Atom,
   Bot,
+  Brain,
   Layers3,
   Network,
   PanelsTopLeft,
@@ -47,6 +48,10 @@ export const DIAGRAM_GENERATOR_MAP: Record<SupportedDiagramType, { generators: s
     generators: ['qiskit'],
     label: '1 generator',
   },
+  NNDiagram: {
+    generators: ['pytorch', 'tensorflow'],
+    label: '2 generators',
+  },
 };
 
 // Re-export for backwards compatibility
@@ -72,6 +77,7 @@ export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React
   { type: UMLDiagramType.StateMachineDiagram, label: 'State', icon: <Repeat2 className="size-4" /> },
   { type: UMLDiagramType.AgentDiagram, label: 'Agent', icon: <Bot className="size-4" /> },
   { type: UMLDiagramType.UserDiagram, label: 'User', icon: <User className="size-4" /> },
+  { type: UMLDiagramType.NNDiagram, label: 'Neural Net', icon: <Brain className="size-4" /> },
 ];
 
 export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; icon: React.ReactNode }> = [

@@ -44,6 +44,7 @@ const categoryOrder: SoftwarePatternCategory[] = [
   SoftwarePatternCategory.STATE_MACHINE,
   SoftwarePatternCategory.AGENT,
   SoftwarePatternCategory.QUANTUM_CIRCUIT,
+  SoftwarePatternCategory.NN,
 ];
 
 const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatternCategory>> = {
@@ -51,6 +52,7 @@ const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatter
   StateMachineDiagram: SoftwarePatternCategory.STATE_MACHINE,
   AgentDiagram: SoftwarePatternCategory.AGENT,
   QuantumCircuitDiagram: SoftwarePatternCategory.QUANTUM_CIRCUIT,
+  NNDiagram: SoftwarePatternCategory.NN,
 };
 
 const categoryColor: Record<SoftwarePatternCategory, string> = {
@@ -60,6 +62,7 @@ const categoryColor: Record<SoftwarePatternCategory, string> = {
   [SoftwarePatternCategory.STATE_MACHINE]: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
   [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
   [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
+  [SoftwarePatternCategory.NN]: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
 };
 
 export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ open, onOpenChange }) => {
@@ -112,9 +115,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   const hasExistingModel = useMemo(() => {
     if (!currentProject || !selectedTemplate) return false;
-    const supportedType = selectedTemplate.diagramType as
-      | 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram'
-      | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram';
+    const supportedType = selectedTemplate.diagramType as SupportedDiagramType;
     const existing = getActiveDiagram(currentProject, supportedType);
     return existing ? diagramHasContent(existing) : false;
   }, [currentProject, selectedTemplate]);

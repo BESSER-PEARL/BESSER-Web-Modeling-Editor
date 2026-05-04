@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { besserWMERepositoryLink } from '../constants/application-constants';
 
-type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'gui' | 'quantum';
+type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'gui' | 'quantum' | 'nn';
 
 interface GuideDetail {
   title: string;
@@ -458,6 +458,207 @@ const sections: GuideSection[] = [
             <p>Use shot count and backend selection in Generate for reproducible results.</p>
           </div>
         ),
+      },
+    ],
+  },
+  {
+    id: 'nn',
+    label: 'Neural Network',
+    summary: 'Design layered neural networks, attach datasets and training configuration, and generate PyTorch or TensorFlow code.',
+    details: [
+      {
+        title: 'Core Workflow',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Build a neural network by dropping an NNContainer onto the canvas. Drag layers and
+              TensorOps inside it, then connect them with NNNext relationships to define the forward
+              pass.
+            </p>
+            <p>
+              Configuration and Training/Test Datasets are optional elements that hold training
+              hyperparameters and dataset metadata. When the diagram is ready, generate PyTorch or
+              TensorFlow code from the Generate menu.
+            </p>
+          </div>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-overview.png',
+          alt: 'NN diagram overview',
+        },
+      },
+      {
+        title: 'Add NN Container, Layers, And TensorOps',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Start by dragging an NNContainer from the palette onto the canvas; all neural network
+              modules must live inside it.
+            </p>
+            <p>
+              Available layers: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>,{' '}
+              <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>,{' '}
+              <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>,{' '}
+              <code>LayerNormalization</code>, <code>BatchNormalization</code>. Available TensorOps:{' '}
+              <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>,{' '}
+              <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.
+            </p>
+          </div>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-palette.png',
+          alt: 'NN palette with a dropped layer',
+        },
+      },
+      {
+        title: 'Connect Modules (NNNext)',
+        body: (
+          <p>
+            Drag from a blue connection point on a source module to any target module to create an
+            NNNext relationship. The resulting "next" arrow defines the order of the forward pass
+            regardless of whether the connected modules are layers, TensorOps, or a mix of both.
+          </p>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-connect.png',
+          alt: 'Two modules connected with an NNNext arrow',
+        },
+      },
+      {
+        title: 'Edit Module Attributes',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Double-click any layer or TensorOp to open its attribute popup. Mandatory attributes are
+              always shown; optional ones are enabled via checkboxes.
+            </p>
+            <p>
+              Many fields use dropdowns: <code>pooling_type</code> (<code>max</code>,{' '}
+              <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>,{' '}
+              <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (
+              <code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>,{' '}
+              <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>,{' '}
+              <code>transpose</code>, <code>permute</code>, <code>multiply</code>,{' '}
+              <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>,{' '}
+              <code>same</code>).
+            </p>
+            <p>
+              List-typed attributes adapt to the module's dimension. A Pooling layer with{' '}
+              <code>dimension = 2D</code> expects <code>kernel_dim = [3, 3]</code>, while{' '}
+              <code>dimension = 3D</code> expects <code>[3, 3, 3]</code>. The same rule applies to{' '}
+              <code>stride_dim</code> and <code>output_dim</code>. For TensorOps, the selected{' '}
+              <code>tns_type</code> controls which dimension attribute is shown (for example{' '}
+              <code>reshape_dim</code> for reshape, <code>concatenate_dim</code> for concatenate).
+            </p>
+          </div>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-edit-popup.png',
+          alt: 'Edit module attributes',
+        },
+      },
+      {
+        title: 'Datasets (Training And Test)',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Datasets are optional. Drop a Training Dataset and a Test Dataset to declare data sources
+              for the network.
+            </p>
+            <p>
+              Mandatory attributes are <code>name</code> and <code>path_data</code> (file or folder path
+              to the dataset). Optional attributes are <code>task_type</code> (<code>binary</code>,{' '}
+              <code>multi_class</code>, <code>regression</code>) and <code>input_format</code> (
+              <code>csv</code>, <code>images</code>). When <code>input_format = images</code>, two
+              additional attributes appear: <code>shape</code> (for example <code>[32, 32, 3]</code>)
+              and <code>normalize</code> (<code>true</code> or <code>false</code>).
+            </p>
+            <p>
+              Connect each dataset to the NNContainer with an association line.
+            </p>
+          </div>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-datasets.png',
+          alt: 'Training and test datasets',
+        },
+      },
+      {
+        title: 'Configuration',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Configuration is optional. Drag a Configuration element and connect it to the NNContainer
+              with a composition relationship to set training hyperparameters.
+            </p>
+            <p>
+              Mandatory attributes: <code>batch_size</code>, <code>epochs</code>,{' '}
+              <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>,{' '}
+              <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (
+              <code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>), and{' '}
+              <code>metrics</code> (multi-select from <code>accuracy</code>, <code>precision</code>,{' '}
+              <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Optional attributes:{' '}
+              <code>weight_decay</code> and <code>momentum</code>.
+            </p>
+          </div>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-configuration.png',
+          alt: 'Configuration element with optimizer dropdown',
+        },
+      },
+      {
+        title: 'Reference Another Network (NNReference)',
+        body: (
+          <p>
+            Use an NNReference element to reuse an NN already defined on the same canvas. Select the
+            target NNContainer from the popup; the referenced network is included as a sub-network
+            during code generation.
+          </p>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-reference.png',
+          alt: 'NNReference with target selection popup',
+        },
+      },
+      {
+        title: 'Validate And Generate',
+        body: (
+          <div className="space-y-2">
+            <p>
+              Run Quality Check from the top bar to catch structural issues such as disconnected
+              layers or missing mandatory attributes before generating code.
+            </p>
+            <p>
+              Open the Generate menu and choose a framework and style:
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code> subclass with an
+                explicit forward pass.
+              </li>
+              <li>
+                <strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code> composition for
+                strictly sequential architectures.
+              </li>
+              <li>
+                <strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code> subclass with a
+                custom <code>call()</code>.
+              </li>
+              <li>
+                <strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code> composition.
+              </li>
+            </ul>
+            <p>
+              NN architecture definition is generated in the selected framework, along with training
+              and evaluation code when datasets and Configuration are defined.
+            </p>
+          </div>
+        ),
+        image: {
+          src: '/images/help/nn/help-nn-generate.png',
+          alt: 'Generate code menu',
+        },
       },
     ],
   },

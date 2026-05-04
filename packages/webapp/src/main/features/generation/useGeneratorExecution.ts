@@ -449,7 +449,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
 
-  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext } = getWorkspaceContext(
+  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext } = getWorkspaceContext(
     location.pathname,
     currentProject?.currentDiagramType,
   );
@@ -679,6 +679,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           return qiskitResult;
         }
 
+        if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
+          if (!isNNContext) {
+            toast.error('Open the NN Diagram editor before generating neural network code.');
+            return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
+          }
+          const nnResult = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          if (nnResult.ok) {
+            getPostHog()?.capture('generator_used', {
+              generator_type: generatorType,
+              diagram_type: currentProject.currentDiagramType,
+              ...getModelMetrics(currentProject),
+            });
+          }
+          return nnResult;
+        }
+
         if (isQuantumContext || isGuiContext) {
           toast.error('Switch to a UML diagram to use this generator.');
           return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
@@ -752,14 +769,14 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, isUserContext, ensureGuiForAssistantWebAppGeneration,
+      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, ensureGuiForAssistantWebAppGeneration,
     ],
   );
 
   // ── Public handlers ────────────────────────────────────────────────────────
 
   const handleGenerateRequest = useCallback(
-    async (generatorType: GeneratorType) => {
+    async (generatorType: GeneratorType, menuConfig?: Record<string, any>) => {
       if (!currentProject) {
         toast.error('Create or load a project before generating code.');
         return;
@@ -769,7 +786,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         setConfigDialog(requiredDialog);
         return;
       }
-      await executeGenerator(generatorType);
+      await executeGenerator(generatorType, menuConfig);
     },
     [currentProject, executeGenerator],
   );

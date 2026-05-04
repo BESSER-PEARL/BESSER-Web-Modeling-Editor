@@ -15,6 +15,9 @@ import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
+import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
+import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
+import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
 
@@ -109,6 +112,27 @@ export class TemplateFactory {
           UMLDiagramType.StateMachineDiagram,
           traficlightModel as any,
           SoftwarePatternCategory.STATE_MACHINE,
+        );
+      case SoftwarePatternType.NN_TUTORIAL_EXAMPLE:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.NNDiagram,
+          nnTutorialExample as any,
+          SoftwarePatternCategory.NN,
+        );
+      case SoftwarePatternType.NN_ALEXNET:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.NNDiagram,
+          nnAlexnet as any,
+          SoftwarePatternCategory.NN,
+        );
+      case SoftwarePatternType.NN_LSTM:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.NNDiagram,
+          nnLstm as any,
+          SoftwarePatternCategory.NN,
         );
       // Quantum Circuit templates
       case SoftwarePatternType.QUANTUM_EMPTY:

@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { compose } from 'redux';
 import { Components } from '../../packages/components';
 import { UMLElementType } from '../../packages/uml-element-type';
+import { NNElementType } from '../../packages/nn-diagram';
 import { ApollonView } from '../../services/editor/editor-types';
 import { UMLContainer } from '../../services/uml-container/uml-container';
 import { IUMLElement } from '../../services/uml-element/uml-element';
@@ -82,8 +83,18 @@ class CanvasElementComponent extends Component<Props> {
 
     let elements = null;
     if (UMLContainer.isUMLContainer(element) && ChildComponent) {
+      // For NN layers only, hide optional attributes from the canvas (they persist in state).
+      const isNNParent = (element.type as string) in NNElementType;
       elements = element.ownedElements
         .filter(id => !!allElements[id])
+        .filter(id => {
+          if (!isNNParent) return true;
+          const child = allElements[id];
+          if (child && 'isMandatory' in child) {
+            return (child as { isMandatory?: boolean }).isMandatory === true;
+          }
+          return true;
+        })
         .map((id) => <ChildComponent key={id} id={id} />);
     }
     const ElementComponent = Components[element.type as UMLElementType];
