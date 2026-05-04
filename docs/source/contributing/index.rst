@@ -13,7 +13,7 @@ submitting a pull request.
 Quick Links
 -----------
 
-- :doc:`codebase-guide` — Understand the code: editor, webapp2, server internals
+- :doc:`codebase-guide` — Understand the code: editor, webapp, server internals
 - :doc:`development-workflow` — Install, run, test, and submit
 - :doc:`new-diagram-guide/index` — Add a new diagram type (editor + webapp + backend)
 - `CONTRIBUTING.md <https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/blob/main/CONTRIBUTING.md>`_ — Repository-level policy
@@ -26,7 +26,7 @@ Where to Contribute
    The reusable modeling engine. Add diagram types, element renderers, palette
    previews, property popups, or improve the ``ApollonEditor`` API.
 
-**Web application** (``packages/webapp2``)
+**Web application** (``packages/webapp``)
    The React SPA. Improve project management, code generation integration,
    deployment flows, collaboration, or the UI.
 
@@ -69,7 +69,7 @@ Branching and PR Workflow
    .. code-block:: bash
 
       npm run lint
-      npm run test --workspace=webapp2
+      npm run test --workspace=webapp
       npm run build
 
 5. Push and open a pull request against ``main``.

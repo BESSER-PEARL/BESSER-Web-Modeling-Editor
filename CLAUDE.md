@@ -12,16 +12,15 @@ BESSER Web Modeling Editor (WME) is the frontend for the BESSER low-code platfor
 
 ## Monorepo Structure
 
-This is an npm workspaces monorepo with 4 packages:
+This is an npm workspaces monorepo with 3 packages:
 
 | Package | Status | Purpose |
 |---------|--------|---------|
-| `packages/webapp2` | **Active** | Main React SPA (Vite + React 18 + Tailwind + Radix UI) |
+| `packages/webapp` | **Active** | Main React SPA (Vite + React 18 + Tailwind + Radix UI) |
 | `packages/editor` | **Active** | Core diagramming engine, published as `@besser/wme` on npm |
-| `packages/server` | **Active** | Express server for standalone hosting (serves built webapp2) |
-| `packages/webapp` | **Legacy** | Old Webpack + Bootstrap app. Reference only, do not modify |
+| `packages/server` | **Active** | Express server for standalone hosting (serves built webapp) |
 
-Almost all feature work happens in `webapp2` and `editor`.
+Almost all feature work happens in `webapp` and `editor`.
 
 ## Essential Commands
 
@@ -34,17 +33,17 @@ npm install
 npm run dev
 
 # Build for production
-npm run build              # Builds webapp2 + server
-npm run build:webapp2      # webapp2 only
+npm run build              # Builds webapp + server
+npm run build:webapp      # webapp only
 npm run build:local        # Build with localhost backend URLs
 
 # Testing
-npm run test               # Vitest unit tests (webapp2)
+npm run test               # Vitest unit tests (webapp)
 npm run test:e2e           # Playwright E2E tests
 npm run test:e2e:ui        # E2E with interactive UI
 
 # Linting & formatting
-npm run lint               # ESLint (webapp2 + server)
+npm run lint               # ESLint (webapp + server)
 npm run prettier:check     # Check formatting
 npm run prettier:write     # Auto-format
 
@@ -57,7 +56,7 @@ npm run start:server       # Express on http://localhost:8080
 ## Architecture Overview
 
 ### Tech Stack
-- **Build**: Vite 7 (webapp2), Webpack (server, editor)
+- **Build**: Vite 7 (webapp), Webpack (server, editor)
 - **Framework**: React 18.2 + React Router 6
 - **State**: Redux Toolkit (single `workspaceSlice` + `errorManagementSlice`)
 - **UI**: Radix UI primitives + Tailwind CSS (class-based dark mode)
@@ -65,10 +64,10 @@ npm run start:server       # Express on http://localhost:8080
 - **Testing**: Vitest + jsdom (unit), Playwright (E2E)
 - **TypeScript**: 5.6, strict mode, ES2021 target
 
-### Source Layout (webapp2)
+### Source Layout (webapp)
 
 ```
-packages/webapp2/src/main/
+packages/webapp/src/main/
 ├── app/                        # Shell, routing, Redux store
 │   ├── application.tsx         # Root: routes, providers, lazy dialogs
 │   ├── shell/                  # TopBar, Sidebar, menus
@@ -132,7 +131,7 @@ All project/diagram state lives in a single `workspaceSlice`. Key patterns:
 - `editorRevision` counter triggers editor reinitialization when bumped
 - Typed hooks: `useAppDispatch()` and `useAppSelector()` from `store/hooks.ts`
 
-### Path Aliases (webapp2)
+### Path Aliases (webapp)
 Configured in `tsconfig.json` and `vite.config.ts`:
 - `@/` → `src/`
 - `@besser/wme` → `../editor/src/main/index.ts` (local dev, npm in production)
@@ -152,7 +151,24 @@ All prefixed with `besser_`:
 - `besser_diagrams` / `besser_latest` - legacy diagram storage
 - `besser_userThemePreference` - dark/light mode
 - `besser_agentConfigs` / `besser_agentProfileMappings` - agent state
-- `besser_userProfiles` - user profiles
+- `besser_userProfiles` - saved per-user UML profile snapshots used for agent personalization variants
+- `besser_activeAgentConfiguration` - id of the currently active stored agent configuration
+- `besser_agentBaseModels` - per-AgentDiagram base (pre-personalization) UML model snapshots, keyed by diagram id
+- `besser_deploy_linked_<projectId>_<target>` - per-project, per-target ({owner, repo}) of the last successful Render deploy
+- `besser-standalone-settings` - application display settings (managed by `settingsService`), including `classNotation: 'UML' | 'ER'` which selects the class-diagram rendering flavor (pure rendering — no metamodel change)
+
+> **Deprecated (v7.3.0):** `besser_systemConfig` was removed as a top-level localStorage key. Agent runtime config (platform, intent-recognition technology, LLM provider/model) now lives on the agent diagram itself (`AgentDiagram.config`) — single source of truth. The v3 storage migration deletes the legacy key on next launch.
+
+### Global Display Settings (settingsService)
+`packages/editor/src/main/services/settings/settings-service.ts` holds display preferences in localStorage under `besser-standalone-settings`. Rendering components read these **synchronously at render time** (e.g. `settingsService.shouldShowAssociationNames()`), they don't subscribe. For a toggle to actually repaint the canvas live, extend the existing `settingsService.onSettingsChange` listener in `packages/editor/src/main/scenes/application.tsx` and mirror the new field into component state — the `setState` call is what forces the subtree to re-render. Rendering components keep reading from `settingsService` directly (no props drilling needed). Don't bump `editorRevision` for view-only toggles — that clears undo history.
+
+### Custom SVG Rendering
+The editor uses custom SVG elements, **not** React-Flow or Apollon Canvas. Theme-aware wrappers live in `packages/editor/src/main/components/theme/themedComponents` (`ThemedRect`, `ThemedPath`, `ThemedPolyline`) — they pull fill/stroke from styled-components theme. Raw SVG primitives (`<polygon>`, `<rect>`, `<ellipse>`) **bypass the theme**, so always provide a fallback when using them with an optional `element.strokeColor`/`element.fillColor`:
+```tsx
+stroke={element.strokeColor || 'currentColor'}
+fill={element.fillColor || 'white'}
+```
+The `Text` component at `packages/editor/src/main/components/controls/text/text.tsx` forwards unknown props to the underlying `<text>`, so SVG presentation attributes like `textDecoration="underline"` work directly.
 
 ## Adding a New Diagram Element
 
@@ -173,7 +189,7 @@ Then create the element implementation in the appropriate diagram package direct
 1. Add entry to `diagram-type.ts` (`UMLDiagramType` object)
 2. Create package directory under `packages/editor/src/main/packages/`
 3. Register all elements in the 4 registry files
-4. Add editor support in `packages/webapp2/src/main/features/editors/`
+4. Add editor support in `packages/webapp/src/main/features/editors/`
 5. Add diagram type to backend's supported types if it needs generation/validation
 
 ## Supported Diagram Types
@@ -212,7 +228,7 @@ When you see `M besser/utilities/web_modeling_editor/frontend` in the parent rep
 ## Testing Approach
 
 - **Unit tests**: Vitest with jsdom. Config in `vitest.config.ts`, setup in `src/test/setup.ts`
-- **E2E tests**: Playwright. Run with `npm run test:e2e`
+- **E2E tests**: Playwright. Run from `packages/webapp` (not the monorepo root) with `npm run test:e2e`
 - **Linting**: ESLint (permissive — `any` and `ts-ignore` are warnings, not errors)
 - **Formatting**: Prettier (check with `npm run prettier:check`)
 
@@ -220,14 +236,14 @@ When you see `M besser/utilities/web_modeling_editor/frontend` in the parent rep
 
 ### Code Style
 - TypeScript strict mode
-- Tailwind for styling (no inline styles or CSS modules in webapp2)
+- Tailwind for styling (no inline styles or CSS modules in webapp)
 - Radix UI for accessible primitives (Dialog, DropdownMenu, Tooltip, etc.)
 - ESLint warnings are acceptable but errors must be fixed
 - `_` prefix for intentionally unused variables
 
 ### Editor Engine
-- The editor (`@besser/wme`) is designed as a standalone library — webapp2 is one consumer
-- Editor uses Redux internally (separate from webapp2's Redux store)
+- The editor (`@besser/wme`) is designed as a standalone library — webapp is one consumer
+- Editor uses Redux internally (separate from webapp's Redux store)
 - styled-components used inside editor package (legacy, not Tailwind)
 - Custom Jinja-style delimiters (`[[` / `]]`) not applicable here — that's the backend React generator
 
@@ -244,9 +260,8 @@ When you see `M besser/utilities/web_modeling_editor/frontend` in the parent rep
 
 ## Common Pitfalls
 
-1. **webapp vs webapp2**: Always work in `webapp2`. The `webapp` package is legacy and should not be modified
-2. **Feature cross-imports**: Never import from one feature into another. Move shared code to `shared/`
-3. **Editor reinit**: Changing `editorRevision` in Redux causes a full editor remount. Only bump it for structural changes (switching diagram types, not for model updates)
-4. **Storage sync loops**: When writing to `ProjectStorageRepository` from a thunk, use `withoutNotify()` to prevent the storage listener from re-dispatching
-5. **Path aliases**: If adding new aliases, update both `tsconfig.json` and `vite.config.ts`
-6. **Backend contract changes**: If you change backend API endpoints or request/response shapes, update the corresponding API calls in `shared/api/` and any Pydantic models in the backend
+1. **Feature cross-imports**: Never import from one feature into another. Move shared code to `shared/`
+2. **Editor reinit**: Changing `editorRevision` in Redux causes a full editor remount. Only bump it for structural changes (switching diagram types, not for model updates)
+3. **Storage sync loops**: When writing to `ProjectStorageRepository` from a thunk, use `withoutNotify()` to prevent the storage listener from re-dispatching
+4. **Path aliases**: If adding new aliases, update both `tsconfig.json` and `vite.config.ts`
+5. **Backend contract changes**: If you change backend API endpoints or request/response shapes, update the corresponding API calls in `shared/api/` and any Pydantic models in the backend

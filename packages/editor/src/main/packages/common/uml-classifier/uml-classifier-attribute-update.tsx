@@ -7,6 +7,7 @@ import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { IUMLContainer } from '../../../services/uml-container/uml-container';
 import { Visibility } from './uml-classifier-member';
 
 const Flex = styled.div`
@@ -124,6 +125,8 @@ type AttributeValues = {
   attributeType?: string;
   isOptional?: boolean;
   isDerived?: boolean;
+  isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
   fillColor?: string;
   textColor?: string;
@@ -138,6 +141,8 @@ type Props = {
   attributeType?: string;
   isOptional?: boolean;
   isDerived?: boolean;
+  isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
@@ -145,6 +150,7 @@ type Props = {
   element: IUMLElement;
   isEnumeration?: boolean;
   availableEnumerations?: Array<{ value: string; label: string }>;
+  elements?: Record<string, IUMLElement>;
 };
 
 // Helper function to parse legacy name format for backward compatibility
@@ -188,13 +194,16 @@ const UmlAttributeUpdate = ({
   attributeType: propAttributeType,
   isOptional: propIsOptional,
   isDerived: propIsDerived,
+  isId: propIsId,
+  isExternalId: propIsExternalId,
   defaultValue: propDefaultValue,
   onChange,
   onSubmitKeyUp,
   onDelete,
   element,
   isEnumeration = false,
-  availableEnumerations = []
+  availableEnumerations = [],
+  elements = {}
 }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
 
@@ -253,6 +262,8 @@ const UmlAttributeUpdate = ({
 
   const isOptional = propIsOptional || false;
   const isDerived = propIsDerived || false;
+  const isId = propIsId || false;
+  const isExternalId = propIsExternalId || false;
   const defaultValue = propDefaultValue;
 
   // Get available enumerations from the model
@@ -267,6 +278,8 @@ const UmlAttributeUpdate = ({
       attributeType,
       isOptional,
       isDerived,
+      isId,
+      isExternalId,
       defaultValue,
     });
   };
@@ -279,6 +292,8 @@ const UmlAttributeUpdate = ({
       attributeType,
       isOptional,
       isDerived,
+      isId,
+      isExternalId,
       defaultValue,
     });
   };
@@ -291,6 +306,8 @@ const UmlAttributeUpdate = ({
       attributeType: typeStr,
       isOptional,
       isDerived,
+      isId,
+      isExternalId,
       defaultValue,
     });
   };
@@ -302,6 +319,8 @@ const UmlAttributeUpdate = ({
       attributeType,
       isOptional: checked,
       isDerived,
+      isId,
+      isExternalId,
       defaultValue,
     });
   };
@@ -313,6 +332,36 @@ const UmlAttributeUpdate = ({
       attributeType,
       isOptional,
       isDerived: checked,
+      isId,
+      isExternalId,
+      defaultValue,
+    });
+  };
+
+  const handleIdChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      // Metamodel constraint: an attribute cannot be both an id and optional.
+      isOptional: checked ? false : isOptional,
+      isDerived,
+      isId: checked,
+      isExternalId,
+      defaultValue,
+    });
+  };
+
+  const handleExternalIdChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      // Metamodel constraint: an attribute cannot be both an external identifier and optional.
+      isOptional: checked ? false : isOptional,
+      isDerived,
+      isId,
+      isExternalId: checked,
       defaultValue,
     });
   };
@@ -324,6 +373,8 @@ const UmlAttributeUpdate = ({
       attributeType,
       isOptional,
       isDerived,
+      isId,
+      isExternalId,
       defaultValue: newDefaultValue || undefined,
     });
   };
@@ -331,6 +382,24 @@ const UmlAttributeUpdate = ({
   const handleDelete = () => {
     onDelete(id)();
   };
+
+  // Check if the attribute type is an enumeration and get its literals
+  let enumerationLiterals: string[] | undefined;
+  if (attributeType && availableEnumerations.some(e => e.value === attributeType)) {
+    // Find the enumeration element with matching name
+    const enumerationElement = Object.values(elements).find(
+      el => el.name === attributeType && el.type === 'Enumeration'
+    );
+    
+    if (enumerationElement && 'ownedElements' in enumerationElement) {
+      // Get the literal names from the enumeration's owned elements
+      const containerElement = enumerationElement as IUMLContainer;
+      enumerationLiterals = containerElement.ownedElements
+        .map((literalId: string) => elements[literalId])
+        .filter((literal: IUMLElement) => literal && literal.name)
+        .map((literal: IUMLElement) => literal.name);
+    }
+  }
 
   return (
     <AttributeRow>
@@ -371,8 +440,14 @@ const UmlAttributeUpdate = ({
         onOptionalChange={handleOptionalChange}
         isDerived={isDerived}
         onDerivedChange={handleDerivedChange}
+        isId={isId}
+        onIdChange={handleIdChange}
+        isExternalId={isExternalId}
+        onExternalIdChange={handleExternalIdChange}
         defaultValue={defaultValue}
         onDefaultValueChange={handleDefaultValueChange}
+        attributeType={attributeType}
+        enumerationLiterals={enumerationLiterals}
       />
     </AttributeRow>
   );

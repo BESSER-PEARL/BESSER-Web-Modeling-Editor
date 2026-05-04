@@ -50,6 +50,11 @@ import { AgentStateUpdate } from './agent-state-diagram/agent-state/agent-state-
 import { AgentStateTransitionUpdate } from './agent-state-diagram/agent-state-transition/agent-state-transition-update';
 import UMLUserModelAttributeUpdate from './user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
 
+import { NNElementType } from './nn-diagram';
+import { NNAttributeUpdate } from './nn-diagram/attribute-update/nn-attribute-update';
+import { NNComponentUpdate } from './nn-diagram/nn-component/nn-component-update';
+import { NNReferenceUpdate } from './nn-diagram/nn-reference/nn-reference-update';
+
 export type Popups = { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null };
 export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null } = {
   // Elements
@@ -166,4 +171,200 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLRelationshipType.StateTransition]: UMLStateTransitionUpdate,
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionUpdate,
   [UMLRelationshipType.AgentStateTransitionInit]: DefaultRelationshipPopup,
+
+  [NNElementType.Conv1DLayer]: NNComponentUpdate,
+  // Conv1D Attributes
+  [NNElementType.NameAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.KernelDimAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.OutChannelsAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.StrideDimAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.InChannelsAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.PaddingAmountAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.PaddingTypeAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.PermuteInAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.PermuteOutAttributeConv1D]: NNAttributeUpdate,
+
+  [NNElementType.Conv2DLayer]: NNComponentUpdate,
+  // Conv2D Attributes
+  [NNElementType.NameAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.KernelDimAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.OutChannelsAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.StrideDimAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.InChannelsAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.PaddingAmountAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.PaddingTypeAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.PermuteInAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.PermuteOutAttributeConv2D]: NNAttributeUpdate,
+
+  [NNElementType.Conv3DLayer]: NNComponentUpdate,
+  // Conv3D Attributes
+  [NNElementType.NameAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.KernelDimAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.OutChannelsAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.StrideDimAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.InChannelsAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.PaddingAmountAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.PaddingTypeAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.PermuteInAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.PermuteOutAttributeConv3D]: NNAttributeUpdate,
+
+  [NNElementType.PoolingLayer]: NNComponentUpdate,
+  // Pooling Attributes
+  [NNElementType.NameAttributePooling]: NNAttributeUpdate,
+  [NNElementType.PoolingTypeAttributePooling]: NNAttributeUpdate,
+  [NNElementType.DimensionAttributePooling]: NNAttributeUpdate,
+  [NNElementType.KernelDimAttributePooling]: NNAttributeUpdate,
+  [NNElementType.StrideDimAttributePooling]: NNAttributeUpdate,
+  [NNElementType.PaddingAmountAttributePooling]: NNAttributeUpdate,
+  [NNElementType.PaddingTypeAttributePooling]: NNAttributeUpdate,
+  [NNElementType.OutputDimAttributePooling]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributePooling]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributePooling]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributePooling]: NNAttributeUpdate,
+  [NNElementType.PermuteInAttributePooling]: NNAttributeUpdate,
+  [NNElementType.PermuteOutAttributePooling]: NNAttributeUpdate,
+
+  [NNElementType.RNNLayer]: NNComponentUpdate,
+  // RNN Attributes
+  [NNElementType.NameAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.HiddenSizeAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.ReturnTypeAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.InputSizeAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.BidirectionalAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.DropoutAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.BatchFirstAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeRNN]: NNAttributeUpdate,
+
+  [NNElementType.LSTMLayer]: NNComponentUpdate,
+  // LSTM Attributes
+  [NNElementType.NameAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.HiddenSizeAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.ReturnTypeAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.InputSizeAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.BidirectionalAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.DropoutAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.BatchFirstAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeLSTM]: NNAttributeUpdate,
+
+  [NNElementType.GRULayer]: NNComponentUpdate,
+  // GRU Attributes
+  [NNElementType.NameAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.HiddenSizeAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.ReturnTypeAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.InputSizeAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.BidirectionalAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.DropoutAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.BatchFirstAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeGRU]: NNAttributeUpdate,
+
+  [NNElementType.LinearLayer]: NNComponentUpdate,
+  // Linear Attributes
+  [NNElementType.NameAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.OutFeaturesAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.InFeaturesAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeLinear]: NNAttributeUpdate,
+
+  [NNElementType.FlattenLayer]: NNComponentUpdate,
+  // Flatten Attributes
+  [NNElementType.NameAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.StartDimAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.EndDimAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeFlatten]: NNAttributeUpdate,
+
+  [NNElementType.EmbeddingLayer]: NNComponentUpdate,
+  // Embedding Attributes
+  [NNElementType.NameAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.NumEmbeddingsAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.EmbeddingDimAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeEmbedding]: NNAttributeUpdate,
+
+  [NNElementType.DropoutLayer]: NNComponentUpdate,
+  // Dropout Attributes
+  [NNElementType.NameAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.RateAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeDropout]: NNAttributeUpdate,
+
+  [NNElementType.LayerNormalizationLayer]: NNComponentUpdate,
+  // LayerNormalization Attributes
+  [NNElementType.NameAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.NormalizedShapeAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeLayerNormalization]: NNAttributeUpdate,
+
+  [NNElementType.BatchNormalizationLayer]: NNComponentUpdate,
+  // BatchNormalization Attributes
+  [NNElementType.NameAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.NumFeaturesAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.DimensionAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.ActvFuncAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.NameModuleInputAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeBatchNormalization]: NNAttributeUpdate,
+
+  [NNElementType.TensorOp]: NNComponentUpdate,
+  // TensorOp Attributes
+  [NNElementType.NameAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.TnsTypeAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.ConcatenateDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.LayersOfTensorsAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.ReshapeDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.TransposeDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.PermuteDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.InputReusedAttributeTensorOp]: NNAttributeUpdate,
+
+  [NNElementType.Configuration]: NNComponentUpdate,
+  // Configuration Attributes
+  [NNElementType.BatchSizeAttributeConfiguration]: NNAttributeUpdate,
+  [NNElementType.EpochsAttributeConfiguration]: NNAttributeUpdate,
+  [NNElementType.LearningRateAttributeConfiguration]: NNAttributeUpdate,
+  [NNElementType.OptimizerAttributeConfiguration]: NNAttributeUpdate,
+  [NNElementType.LossFunctionAttributeConfiguration]: NNAttributeUpdate,
+  [NNElementType.MetricsAttributeConfiguration]: NNAttributeUpdate,
+  [NNElementType.WeightDecayAttributeConfiguration]: NNAttributeUpdate,
+  [NNElementType.MomentumAttributeConfiguration]: NNAttributeUpdate,
+
+  // Datasets
+  [NNElementType.TrainingDataset]: NNComponentUpdate,
+  [NNElementType.TestDataset]: NNComponentUpdate,
+  // Dataset Attributes
+  [NNElementType.NameAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.PathDataAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.TaskTypeAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.InputFormatAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.ShapeAttributeDataset]: NNAttributeUpdate,
+  [NNElementType.NormalizeAttributeDataset]: NNAttributeUpdate,
+
+  // Section elements for sidebar organization (no popups needed)
+  [NNElementType.NNSectionTitle]: null,
+  [NNElementType.NNSectionSeparator]: null,
+
+  // Container and Reference elements
+  [NNElementType.NNContainer]: DefaultPopup,
+  [NNElementType.NNReference]: NNReferenceUpdate,
+
+  [UMLRelationshipType.NNNext]: null,
+  [UMLRelationshipType.NNComposition]: null,
+  [UMLRelationshipType.NNAssociation]: null,
 };
