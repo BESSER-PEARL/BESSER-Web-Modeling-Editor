@@ -1,39 +1,12 @@
 import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { ModelState } from '../../../components/store/model-state';
 import { Multiline } from '../../../utils/svg/multiline';
-import { ClassOCLConstraint, OCLConstraintKind } from './uml-class-ocl-constraint';
-import { UMLElementType } from '../../uml-element-type';
+import { ClassOCLConstraint } from './uml-class-ocl-constraint';
 import { ThemedPath } from '../../../components/theme/themedComponents';
-
-const KIND_BADGE: Record<OCLConstraintKind, string> = {
-  invariant: '«inv»',
-  precondition: '«pre»',
-  postcondition: '«post»',
-};
 
 export const ClassOCLConstraintComponent: FunctionComponent<Props> = ({ element, fillColor }) => {
   const padding = 20;
   const contentWidth = element.bounds.width - (padding * 2);
   const contentHeight = element.bounds.height - (padding * 2);
-
-  // Resolve target method name (and orphan state) when this is a pre/post
-  // contract. Reading directly from redux state keeps the canvas in sync
-  // when the targeted method is renamed or deleted.
-  const elements = useSelector((state: ModelState) => state.elements);
-  const kind: OCLConstraintKind = element.kind || 'invariant';
-  const targetMethodId = element.targetMethodId;
-  let targetMethodName: string | undefined;
-  let isOrphan = false;
-  if (kind !== 'invariant' && targetMethodId) {
-    const target = elements[targetMethodId];
-    if (target && target.type === UMLElementType.ClassMethod) {
-      targetMethodName = (target as any).name;
-    } else {
-      isOrphan = true;
-    }
-  }
-  const orphanStrokeColor = isOrphan ? '#d6336c' : element.strokeColor;
 
   const formatText = (text: string) => {
     const maxCharsPerLine = Math.floor((contentWidth - 9) / 8); // Reduced width for safety
@@ -81,33 +54,17 @@ export const ClassOCLConstraintComponent: FunctionComponent<Props> = ({ element,
           element.bounds.height
         } L 0 ${element.bounds.height} L 0 0 Z`}
         fillColor={fillColor || element.fillColor}
-        strokeColor={orphanStrokeColor}
-        strokeWidth={isOrphan ? '2' : '1.2'}
+        strokeColor={element.strokeColor}
+        strokeWidth="1.2"
         strokeMiterlimit="10"
       />
       <ThemedPath
         d={`M ${element.bounds.width - 15} 0 L ${element.bounds.width - 15} 15 L ${element.bounds.width} 15`}
         fillColor="none"
-        strokeColor={orphanStrokeColor}
-        strokeWidth={isOrphan ? '2' : '1.2'}
+        strokeColor={element.strokeColor}
+        strokeWidth="1.2"
         strokeMiterlimit="10"
       />
-      {/* Stereotype badge — UML convention for distinguishing invariants
-          from method contracts. Shown above the body when kind != default
-          OR when a target method is set, alongside the method name for
-          pre/post (and an orphan glyph when the target is missing). */}
-      {(kind !== 'invariant' || targetMethodName || isOrphan) && (
-        <text
-          x={padding}
-          y={padding - 6}
-          fill={isOrphan ? '#d6336c' : element.textColor}
-          style={{ fontSize: '11px', fontWeight: 600 }}
-        >
-          {KIND_BADGE[kind]}
-          {targetMethodName ? ` ${targetMethodName}` : ''}
-          {isOrphan ? ' ⚠ method missing' : ''}
-        </text>
-      )}
       <clipPath id={`clip-${element.id}`}>
         <rect
           x={padding}
