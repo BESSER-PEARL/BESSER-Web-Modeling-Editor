@@ -147,6 +147,12 @@ export interface SmartGenPhaseView {
   label: string
   message: string
   toolCalls: SmartGenToolCallView[]
+  /**
+   * Long-form details attached to a phase after the fact (e.g. the gap
+   * analyser's task list). Rendered behind a chevron in
+   * SmartGenPhaseRow when present.
+   */
+  details?: string
 }
 
 export interface SmartGenWarningView {
@@ -574,7 +580,17 @@ function SmartGenPhaseRow({
   isActivePhase: boolean
 }) {
   const hasTools = phase.toolCalls.length > 0
+  const hasDetails = typeof phase.details === "string" && phase.details.length > 0
+  const isExpandable = hasTools || hasDetails
   const [expanded, setExpanded] = useState(false)
+
+  // Toggle label: prefer the action count (familiar metric); otherwise
+  // a generic "details" link for phases that only carry prose (e.g.
+  // gap analyser surfacing its task list).
+  const toggleLabel = hasTools
+    ? `${phase.toolCalls.length} ${phase.toolCalls.length === 1 ? "action" : "actions"}`
+    : "details"
+
   return (
     <li className="border-b border-border/40 last:border-b-0">
       <div className="flex items-baseline gap-2 px-3 py-1.5">
@@ -592,25 +608,27 @@ function SmartGenPhaseRow({
         {isActivePhase ? (
           <Loader2 className="ml-1 h-3 w-3 animate-spin text-primary" />
         ) : null}
-        {hasTools ? (
+        {isExpandable ? (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            aria-label={expanded ? "Hide actions" : "Show actions"}
+            aria-label={expanded ? "Hide details" : "Show details"}
             className="ml-auto inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <span>
-              {phase.toolCalls.length}{" "}
-              {phase.toolCalls.length === 1 ? "action" : "actions"}
-            </span>
+            <span>{toggleLabel}</span>
             <ChevronRight
               className={`h-3 w-3 transition-transform ${expanded ? "rotate-90" : ""}`}
             />
           </button>
         ) : null}
       </div>
-      {hasTools && expanded ? (
+      {expanded && hasDetails ? (
+        <div className="border-t border-border/40 bg-background/40 px-3 py-2 pl-6 text-xs text-muted-foreground">
+          <MarkdownRenderer>{phase.details!}</MarkdownRenderer>
+        </div>
+      ) : null}
+      {expanded && hasTools ? (
         <ul className="flex flex-col gap-0.5 px-3 pb-2 pl-6">
           {phase.toolCalls.map((tc, j) => (
             <li

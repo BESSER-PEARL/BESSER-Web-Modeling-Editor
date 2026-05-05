@@ -387,6 +387,32 @@ export function useSmartGenTrigger(
           }));
           return;
         }
+        case 'phase_update': {
+          // Attach details (and optionally an updated message) to the
+          // most recent phase entry that matches this event's phase
+          // name. The backend uses this to surface the gap analyser's
+          // task list after the planning LLM call returns. If no
+          // matching phase exists yet (events arrived out of order),
+          // skip — the chevron only opens when there's something to show.
+          updateSmartGen(streamingId, (s) => {
+            const phases = [...s.phases];
+            for (let i = phases.length - 1; i >= 0; i--) {
+              if (phases[i].phase === event.phase) {
+                phases[i] = {
+                  ...phases[i],
+                  details: event.details,
+                  message:
+                    typeof event.message === 'string' && event.message.length > 0
+                      ? event.message
+                      : phases[i].message,
+                };
+                break;
+              }
+            }
+            return { ...s, phases };
+          });
+          return;
+        }
         case 'tool_call': {
           updateSmartGen(streamingId, (s) => {
             const phases = [...s.phases];

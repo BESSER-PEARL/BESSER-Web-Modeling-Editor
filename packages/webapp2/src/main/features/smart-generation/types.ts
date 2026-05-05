@@ -47,6 +47,20 @@ export interface PhaseEvent {
   message: string;
 }
 
+/**
+ * Adds details to an existing phase row (e.g. the gap analyser surfaces
+ * its task list this way after the planning LLM call returns). The
+ * frontend looks up the matching phase entry by name and merges the
+ * details into it so the chevron-expand in the smart-gen card has
+ * something to show.
+ */
+export interface PhaseUpdateEvent {
+  event: 'phase_update';
+  phase: SmartGenPhase;
+  details: string;
+  message?: string | null;
+}
+
 export interface TextDeltaEvent {
   event: 'text';
   delta: string;
@@ -84,6 +98,7 @@ export interface SmartGenErrorEvent {
 export type SmartGenEvent =
   | StartEvent
   | PhaseEvent
+  | PhaseUpdateEvent
   | TextDeltaEvent
   | ToolCallEvent
   | CostEvent
