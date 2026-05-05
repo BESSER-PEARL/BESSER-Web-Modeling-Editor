@@ -3,10 +3,32 @@ import { Multiline } from '../../../utils/svg/multiline';
 import { ClassOCLConstraint } from './uml-class-ocl-constraint';
 import { ThemedPath } from '../../../components/theme/themedComponents';
 
+// Read-only stereotype badge derived from the OCL text. Mirrors the
+// backend's routing regex: ``context X (inv|pre|post) ...`` for invariants,
+// ``context X::method(params) (pre|post) ...`` for method contracts.
+// Used purely as a visual cue on the canvas — the source of truth is the
+// constraint text itself.
+const _OCL_HEADER_RE = /\bcontext\s+\w+(?:::(\w+)\s*\([^)]*\))?\s+(inv|pre|post)\b/i;
+const _BADGE_LABEL: Record<string, string> = {
+  inv: '«inv»',
+  pre: '«pre»',
+  post: '«post»',
+};
+
+function deriveBadge(constraint: string): { label: string; method?: string } | null {
+  if (!constraint) return null;
+  const match = _OCL_HEADER_RE.exec(constraint);
+  if (!match) return null;
+  const method = match[1] || undefined;
+  const kw = match[2].toLowerCase();
+  return { label: _BADGE_LABEL[kw], method };
+}
+
 export const ClassOCLConstraintComponent: FunctionComponent<Props> = ({ element, fillColor }) => {
   const padding = 20;
   const contentWidth = element.bounds.width - (padding * 2);
   const contentHeight = element.bounds.height - (padding * 2);
+  const badge = deriveBadge(element.constraint || '');
 
   const formatText = (text: string) => {
     const maxCharsPerLine = Math.floor((contentWidth - 9) / 8); // Reduced width for safety
@@ -65,6 +87,17 @@ export const ClassOCLConstraintComponent: FunctionComponent<Props> = ({ element,
         strokeWidth="1.2"
         strokeMiterlimit="10"
       />
+      {badge && (
+        <text
+          x={padding}
+          y={padding - 4}
+          fill={element.textColor}
+          style={{ fontSize: '11px', fontWeight: 600, fontStyle: 'italic' }}
+        >
+          {badge.label}
+          {badge.method ? ` ${badge.method}` : ''}
+        </text>
+      )}
       <clipPath id={`clip-${element.id}`}>
         <rect
           x={padding}
