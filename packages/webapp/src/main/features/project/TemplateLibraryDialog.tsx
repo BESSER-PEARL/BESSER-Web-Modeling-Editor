@@ -26,7 +26,7 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { toSupportedDiagramType, getActiveDiagram, diagramHasContent, SupportedDiagramType } from '../../shared/types/project';
 import { QuantumCircuitData } from '../../shared/types/project';
-import { importProjectFromJson } from '../import/useImportProject';
+import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
 import {
   FULL_PROJECT_DIAGRAM_TYPE,
