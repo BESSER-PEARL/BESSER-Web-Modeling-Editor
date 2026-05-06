@@ -45,10 +45,18 @@ const defaultForm = {
   owner: 'BESSER User',
 };
 
-// Default to "Show All" so the create-project flow doesn't introduce a
-// behavior regression for users who don't pick a perspective explicitly.
+// Default to "Show All" so the create-project flow preserves the prior default
+// of all-diagrams-visible when the user doesn't pick a perspective explicitly.
 const DEFAULT_PERSPECTIVE_KEY = 'all';
 
+// Apply a perspective preset at project-creation time. We can't reuse
+// `applyPerspectivePresetThunk` here because the project doesn't exist yet —
+// that thunk mutates `currentProject`, but in this flow there is no current
+// project to mutate. Instead we compute the preset and pass it through
+// `createProjectThunk` so the very first persisted state already has the
+// chosen perspective. Keep this in lockstep with `applyPerspectivePresetThunk`
+// (workspaceSlice.ts) so the two paths don't drift in how they map a preset
+// key to a `PerspectiveSettings` map.
 const resolvePerspectives = (key: string): PerspectiveSettings | undefined => {
   const preset = PERSPECTIVES.find((p) => p.key === key);
   return preset ? perspectivesFromDiagramList(preset.diagrams) : undefined;
