@@ -88,7 +88,7 @@ class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
               autoFocus
             />
             <FieldLabel htmlFor={`ocl-description-${element.id}`}>
-              Description (shown to end-users when validation fails
+              Description (shown to end-users when validation fails) Optional
             </FieldLabel>
             <DescriptionTextarea
               id={`ocl-description-${element.id}`}
