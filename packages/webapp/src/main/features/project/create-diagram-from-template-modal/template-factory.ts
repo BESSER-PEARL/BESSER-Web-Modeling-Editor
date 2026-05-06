@@ -20,6 +20,7 @@ import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.js
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
 import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
+import personalizedGymAgentProject from '../../../templates/pattern/project/personalized_gym_agent.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
 
@@ -209,6 +210,14 @@ export class TemplateFactory {
           softwarePatternType,
           FULL_PROJECT_DIAGRAM_TYPE,
           libraryFullStackProject as object,
+          SoftwarePatternCategory.FULL_PROJECT,
+          false,
+        );
+      case SoftwarePatternType.PERSONALIZED_GYM_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          personalizedGymAgentProject as object,
           SoftwarePatternCategory.FULL_PROJECT,
           false,
         );

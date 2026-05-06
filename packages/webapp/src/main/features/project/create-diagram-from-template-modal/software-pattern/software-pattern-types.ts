@@ -42,6 +42,7 @@ export enum SoftwarePatternType {
   QUANTUM_QFT = 'Quantum Fourier Transform',
   // Full Project patterns (multi-diagram bundles imported as new projects)
   LIBRARY_FULL_STACK = 'Library (Full Stack)',
+  PERSONALIZED_GYM_AGENT = 'Personalized Gym Agent',
 }
 
 /**
