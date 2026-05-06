@@ -1,4 +1,5 @@
 import {
+  FULL_PROJECT_DIAGRAM_TYPE,
   SoftwarePatternCategory,
   SoftwarePatternTemplate,
   SoftwarePatternType,
@@ -18,6 +19,7 @@ import traficlightModel from '../../../templates/pattern/statemachine/traficligh
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
+import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
 
@@ -197,6 +199,17 @@ export class TemplateFactory {
           'QuantumCircuitDiagram',
           getQuantumCircuitData('Quantum Fourier Transform (3 qubit)'),
           SoftwarePatternCategory.QUANTUM_CIRCUIT,
+          false,
+        );
+      // Full-project templates: ``diagram`` carries the entire V2 export envelope
+      // (``{ project, exportedAt, version }``); the dialog routes these through
+      // the JSON import flow to materialize a brand-new project.
+      case SoftwarePatternType.LIBRARY_FULL_STACK:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          libraryFullStackProject as object,
+          SoftwarePatternCategory.FULL_PROJECT,
           false,
         );
       default:

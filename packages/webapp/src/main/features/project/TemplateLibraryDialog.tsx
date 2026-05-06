@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Check, Layers, Sparkles, AlertTriangle } from 'lucide-react';
+import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,14 +19,17 @@ import {
   updateQuantumDiagramThunk,
   addDiagramThunk,
   switchDiagramIndexThunk,
+  loadProjectThunk,
   selectProject,
   selectActiveDiagramType,
 } from '../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { toSupportedDiagramType, getActiveDiagram, diagramHasContent, SupportedDiagramType } from '../../shared/types/project';
 import { QuantumCircuitData } from '../../shared/types/project';
+import { importProjectFromJson } from '../import/useImportProject';
 import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
 import {
+  FULL_PROJECT_DIAGRAM_TYPE,
   SoftwarePatternCategory,
   SoftwarePatternTemplate,
   SoftwarePatternType,
@@ -38,6 +41,7 @@ interface TemplateLibraryDialogProps {
 }
 
 const categoryOrder: SoftwarePatternCategory[] = [
+  SoftwarePatternCategory.FULL_PROJECT,
   SoftwarePatternCategory.STRUCTURAL,
   SoftwarePatternCategory.BEHAVIORAL,
   SoftwarePatternCategory.CREATIONAL,
@@ -63,6 +67,33 @@ const categoryColor: Record<SoftwarePatternCategory, string> = {
   [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
   [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   [SoftwarePatternCategory.NN]: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
+  [SoftwarePatternCategory.FULL_PROJECT]: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
+};
+
+/**
+ * For full-project templates, summarize which diagrams are populated so users
+ * can tell apart e.g. "class only" from "class + agent + GUI" at a glance.
+ */
+const summarizeFullProjectDiagrams = (template: SoftwarePatternTemplate): string => {
+  const project = (template.diagram as { project?: { diagrams?: Record<string, unknown[]> } })?.project;
+  const diagrams = project?.diagrams;
+  if (!diagrams) return 'Multi-diagram project';
+  const labels: string[] = [];
+  const order: Array<[string, string]> = [
+    ['ClassDiagram', 'Class'],
+    ['ObjectDiagram', 'Object'],
+    ['StateMachineDiagram', 'State'],
+    ['AgentDiagram', 'Agent'],
+    ['UserDiagram', 'User'],
+    ['GUINoCodeDiagram', 'GUI'],
+    ['QuantumCircuitDiagram', 'Quantum'],
+    ['NNDiagram', 'NN'],
+  ];
+  for (const [key, label] of order) {
+    const arr = diagrams[key];
+    if (Array.isArray(arr) && arr.length > 0) labels.push(label);
+  }
+  return labels.length ? labels.join(' · ') : 'Multi-diagram project';
 };
 
 export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ open, onOpenChange }) => {
@@ -113,8 +144,14 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   const currentProject = useAppSelector(selectProject);
 
+  const isFullProjectTemplate = selectedTemplate?.diagramType === FULL_PROJECT_DIAGRAM_TYPE;
+
   const hasExistingModel = useMemo(() => {
     if (!currentProject || !selectedTemplate) return false;
+    // Full-project templates always materialize a brand-new project alongside
+    // existing ones, so the per-diagram "replace vs new tab" prompt doesn't
+    // apply — never trigger it for them.
+    if (selectedTemplate.diagramType === FULL_PROJECT_DIAGRAM_TYPE) return false;
     const supportedType = selectedTemplate.diagramType as SupportedDiagramType;
     const existing = getActiveDiagram(currentProject, supportedType);
     return existing ? diagramHasContent(existing) : false;
@@ -135,6 +172,21 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
     try {
       setIsLoading(true);
+
+      // Full-project templates: materialize a brand-new project from the
+      // bundled V2 export envelope, then switch to it. Reuses the same JSON
+      // import path the user-facing ``Import Project`` flow uses, so any
+      // future schema migrations carry over for free.
+      if (selectedTemplate.diagramType === FULL_PROJECT_DIAGRAM_TYPE) {
+        const jsonStr = JSON.stringify(selectedTemplate.diagram);
+        const file = new File([jsonStr], `${selectedTemplate.type}.json`, { type: 'application/json' });
+        const importedProject = await importProjectFromJson(file);
+        await dispatch(loadProjectThunk(importedProject.id)).unwrap();
+        navigate('/');
+        toast.success(`Loaded project template "${selectedTemplate.type}"`);
+        onOpenChange(false);
+        return;
+      }
 
       if (!selectedTemplate.isUMLDiagram && selectedTemplate.diagramType === 'QuantumCircuitDiagram') {
         const qType = 'QuantumCircuitDiagram' as const;
@@ -217,7 +269,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
             Load Template
           </DialogTitle>
           <DialogDescription>
-            Start from ready-made UML, agent, state machine, and quantum templates.
+            Start from ready-made UML, agent, state machine, quantum templates, or full-project bundles.
           </DialogDescription>
         </DialogHeader>
 
@@ -266,8 +318,17 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                       </CardHeader>
                       <CardContent className="pt-0">
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Layers className="size-3.5" />
-                          <span>{String(template.diagramType).replace('Diagram', ' Diagram')}</span>
+                          {template.diagramType === FULL_PROJECT_DIAGRAM_TYPE ? (
+                            <>
+                              <FolderTree className="size-3.5" />
+                              <span>{summarizeFullProjectDiagrams(template)}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Layers className="size-3.5" />
+                              <span>{String(template.diagramType).replace('Diagram', ' Diagram')}</span>
+                            </>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

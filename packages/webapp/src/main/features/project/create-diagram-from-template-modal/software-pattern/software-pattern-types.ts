@@ -9,6 +9,7 @@ export enum SoftwarePatternCategory {
   STATE_MACHINE = 'State Machine Diagram',
   QUANTUM_CIRCUIT = 'Quantum Circuit',
   NN = 'Neural Network',
+  FULL_PROJECT = 'Full Project',
 }
 
 export enum SoftwarePatternType {
@@ -39,7 +40,17 @@ export enum SoftwarePatternType {
   QUANTUM_TELEPORTATION = 'Quantum Teleportation',
   QUANTUM_GROVER = 'Grover Search',
   QUANTUM_QFT = 'Quantum Fourier Transform',
+  // Full Project patterns (multi-diagram bundles imported as new projects)
+  LIBRARY_FULL_STACK = 'Library (Full Stack)',
 }
+
+/**
+ * Sentinel ``TemplateDiagramType`` used for multi-diagram project templates.
+ * The dialog branches on this to load the bundle as a brand-new project
+ * (via the existing JSON import flow) instead of swapping out a single
+ * diagram inside the active project.
+ */
+export const FULL_PROJECT_DIAGRAM_TYPE = 'FullProject' as const;
 
 export class SoftwarePatternTemplate extends Template {
   softwarePatternCategory: SoftwarePatternCategory;
