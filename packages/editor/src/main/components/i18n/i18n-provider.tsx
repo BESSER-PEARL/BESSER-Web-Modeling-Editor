@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import de from '../../i18n/de.json';
 import en from '../../i18n/en.json';
 import { Locale } from '../../services/editor/editor-types';
 import { I18nContext, I18nProvider as Provider } from './i18n-context';
@@ -12,7 +11,6 @@ type Props = {
 };
 
 const dictionary: { [key in Locale]: object } = {
-  [Locale.de]: de,
   [Locale.en]: en,
 };
 
