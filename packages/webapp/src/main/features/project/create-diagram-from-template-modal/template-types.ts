@@ -8,8 +8,10 @@ export enum TemplateCategory {
 
 export type TemplateType = SoftwarePatternType;
 
-// DiagramType can be either a UML diagram type or a non-UML type like QuantumCircuitDiagram
-export type TemplateDiagramType = UMLDiagramType | SupportedDiagramType;
+// DiagramType can be either a UML diagram type, a non-UML type like
+// QuantumCircuitDiagram, or the ``'FullProject'`` sentinel used for
+// multi-diagram project templates.
+export type TemplateDiagramType = UMLDiagramType | SupportedDiagramType | 'FullProject';
 
 export class Template {
   type: TemplateType;

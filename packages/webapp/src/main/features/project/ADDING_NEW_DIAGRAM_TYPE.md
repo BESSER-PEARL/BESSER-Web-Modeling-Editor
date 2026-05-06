@@ -25,7 +25,7 @@ Adding a new diagram type requires modifications to **5 files** in the frontend,
 | `WorkspaceSidebar.tsx` | Sidebar button and click handling |
 | `export-project-modal.tsx` | Export modal labels |
 | `ProjectSettingsPanel.tsx` | Settings page color badges |
-| `useImportProject.ts` | Import handling for projects |
+| `projectImport.ts` | Import handling for projects |
 | **Backend** | **Parser integration (Required)** |
 
 ---
@@ -191,9 +191,9 @@ const getDiagramTypeColor = (type: SupportedDiagramType): string => {
 
 ---
 
-### Step 5: Add Import Support in `useImportProject.ts`
+### Step 5: Add Import Support in `projectImport.ts`
 
-**File:** `src/main/services/import/useImportProject.ts`
+**File:** `src/main/shared/services/project-import/projectImport.ts`
 
 #### 5.1 Add to `allDiagramTypes` array (line ~43)
 
@@ -309,7 +309,7 @@ The following `UMLDiagramType` values are available in `@besser/wme` (see
 - [ ] `WorkspaceSidebar.tsx` - Add to `sidebarItems`
 - [ ] `export-project-modal.tsx` - Add to `diagramLabels`
 - [ ] `ProjectSettingsPanel.tsx` - Add to `colors` Record
-- [ ] `useImportProject.ts` - Add to `allDiagramTypes`
-- [ ] `useImportProject.ts` - Add to `diagramTypeToUMLType`
-- [ ] `useImportProject.ts` - Add to `diagramTitles`
+- [ ] `projectImport.ts` - Add to `allDiagramTypes`
+- [ ] `projectImport.ts` - Add to `diagramTypeToUMLType`
+- [ ] `projectImport.ts` - Add to `diagramTitles`
 - [ ] **Backend** - Implement parser for the new diagram type

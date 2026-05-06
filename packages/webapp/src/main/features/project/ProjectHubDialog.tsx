@@ -26,7 +26,7 @@ import { useProject } from '../../app/hooks/useProject';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { importProject } from '../import/useImportProject';
+import { importProject } from '../../shared/services/project-import/projectImport';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
 import { BACKEND_URL } from '../../shared/constants/constant';

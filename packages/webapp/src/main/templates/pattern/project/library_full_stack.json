@@ -1,0 +1,3053 @@
+{
+  "project": {
+    "id": "project_1778067071085_63id4cn1x",
+    "type": "Project",
+    "schemaVersion": 4,
+    "name": "Library (Full Stack)",
+    "description": "A library management system: class diagram, agent and GUI no-code page (with the agent component) wired together.",
+    "owner": "BESSER User",
+    "createdAt": "2026-05-06T11:31:11.085Z",
+    "currentDiagramType": "GUINoCodeDiagram",
+    "currentDiagramIndices": {
+      "ClassDiagram": 0,
+      "ObjectDiagram": 0,
+      "StateMachineDiagram": 0,
+      "AgentDiagram": 0,
+      "NNDiagram": 0,
+      "UserDiagram": 0,
+      "GUINoCodeDiagram": 0,
+      "QuantumCircuitDiagram": 0
+    },
+    "diagrams": {
+      "ClassDiagram": [
+        {
+          "id": "f913a44b-5a6c-4eb9-9fc9-ed23fca5d051",
+          "title": "Library",
+          "model": {
+            "version": "3.0.0",
+            "type": "ClassDiagram",
+            "size": {
+              "width": 1460,
+              "height": 800
+            },
+            "interactive": {
+              "elements": {},
+              "relationships": {}
+            },
+            "elements": {
+              "class_oho5ergc3_mjikkmod": {
+                "id": "class_oho5ergc3_mjikkmod",
+                "name": "Book",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": -434,
+                  "y": -345,
+                  "width": 240,
+                  "height": 215
+                },
+                "attributes": [
+                  "attr_a87fqdtdi_mjikkmod",
+                  "attr_v6ve12d44_mjikkmod",
+                  "attr_edi3c3l8k_mjikkmod",
+                  "attr_mczftcqfb_mjikkmod",
+                  "attr_785suq5yn_mjikkmod",
+                  "attr_urp7jb0c0_mjikkmod"
+                ],
+                "methods": [
+                  "method_rb01uirsh_mjikkmod"
+                ]
+              },
+              "attr_a87fqdtdi_mjikkmod": {
+                "id": "attr_a87fqdtdi_mjikkmod",
+                "name": "title",
+                "type": "ClassAttribute",
+                "owner": "class_oho5ergc3_mjikkmod",
+                "bounds": {
+                  "x": -433.5,
+                  "y": -304.5,
+                  "width": 239,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "attr_v6ve12d44_mjikkmod": {
+                "id": "attr_v6ve12d44_mjikkmod",
+                "name": "pages",
+                "type": "ClassAttribute",
+                "owner": "class_oho5ergc3_mjikkmod",
+                "bounds": {
+                  "x": -433.5,
+                  "y": -279.5,
+                  "width": 239,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "int",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "attr_edi3c3l8k_mjikkmod": {
+                "id": "attr_edi3c3l8k_mjikkmod",
+                "name": "stock",
+                "type": "ClassAttribute",
+                "owner": "class_oho5ergc3_mjikkmod",
+                "bounds": {
+                  "x": -433.5,
+                  "y": -254.5,
+                  "width": 239,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "int",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "attr_mczftcqfb_mjikkmod": {
+                "id": "attr_mczftcqfb_mjikkmod",
+                "name": "price",
+                "type": "ClassAttribute",
+                "owner": "class_oho5ergc3_mjikkmod",
+                "bounds": {
+                  "x": -433.5,
+                  "y": -229.5,
+                  "width": 239,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "float",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "attr_785suq5yn_mjikkmod": {
+                "id": "attr_785suq5yn_mjikkmod",
+                "name": "release",
+                "type": "ClassAttribute",
+                "owner": "class_oho5ergc3_mjikkmod",
+                "bounds": {
+                  "x": -433.5,
+                  "y": -204.5,
+                  "width": 239,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "date",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "attr_urp7jb0c0_mjikkmod": {
+                "id": "attr_urp7jb0c0_mjikkmod",
+                "name": "genre",
+                "type": "ClassAttribute",
+                "owner": "class_oho5ergc3_mjikkmod",
+                "bounds": {
+                  "x": -433.5,
+                  "y": -179.5,
+                  "width": 239,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "Genre",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "method_rb01uirsh_mjikkmod": {
+                "id": "method_rb01uirsh_mjikkmod",
+                "name": "+ decrease_stock(qty: int)",
+                "type": "ClassMethod",
+                "owner": "class_oho5ergc3_mjikkmod",
+                "bounds": {
+                  "x": -433.5,
+                  "y": -154.5,
+                  "width": 239,
+                  "height": 25
+                },
+                "code": "def decrease_stock(self, qty: int):\n    \"\"\"\n    Decrease the available stock by the given quantity.\n\n    :param qty: Number of items to remove from stock\n    :raises ValueError: If qty is negative or exceeds available stock\n    \"\"\"\n    if qty <= 0:\n        raise ValueError(\"Quantity must be a positive integer\")\n\n    if qty > self.stock:\n        raise ValueError(\n            f\"Cannot decrease stock by {qty}. Only {self.stock} items available.\"\n        )\n\n    self.stock -= qty\n\n",
+                "visibility": "public",
+                "attributeType": "int): any",
+                "implementationType": "code",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "class_06blhjj3h_mjikkmod": {
+                "id": "class_06blhjj3h_mjikkmod",
+                "name": "Library",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": -60,
+                  "y": -150,
+                  "width": 350,
+                  "height": 185
+                },
+                "attributes": [
+                  "attr_eryfh37kl_mjikkmod",
+                  "f9608e0e-745d-4113-85ad-cd06b1900c09",
+                  "4391886d-13b5-4fa0-9894-09f1894af27f",
+                  "a487fd85-dec0-47b9-bd37-71ff92026963"
+                ],
+                "methods": [
+                  "35ef5329-889b-40f0-89ce-9836936fd8a9"
+                ]
+              },
+              "attr_eryfh37kl_mjikkmod": {
+                "id": "attr_eryfh37kl_mjikkmod",
+                "name": "name",
+                "type": "ClassAttribute",
+                "owner": "class_06blhjj3h_mjikkmod",
+                "bounds": {
+                  "x": -59.5,
+                  "y": -109.5,
+                  "width": 349,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "f9608e0e-745d-4113-85ad-cd06b1900c09": {
+                "id": "f9608e0e-745d-4113-85ad-cd06b1900c09",
+                "name": "web_page",
+                "type": "ClassAttribute",
+                "owner": "class_06blhjj3h_mjikkmod",
+                "bounds": {
+                  "x": -59.5,
+                  "y": -84.5,
+                  "width": 349,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "4391886d-13b5-4fa0-9894-09f1894af27f": {
+                "id": "4391886d-13b5-4fa0-9894-09f1894af27f",
+                "name": "address",
+                "type": "ClassAttribute",
+                "owner": "class_06blhjj3h_mjikkmod",
+                "bounds": {
+                  "x": -59.5,
+                  "y": -54.5,
+                  "width": 349,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "a487fd85-dec0-47b9-bd37-71ff92026963": {
+                "id": "a487fd85-dec0-47b9-bd37-71ff92026963",
+                "name": "telephone",
+                "type": "ClassAttribute",
+                "owner": "class_06blhjj3h_mjikkmod",
+                "bounds": {
+                  "x": -59.5,
+                  "y": -24.5,
+                  "width": 349,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "35ef5329-889b-40f0-89ce-9836936fd8a9": {
+                "id": "35ef5329-889b-40f0-89ce-9836936fd8a9",
+                "name": "+ cheapest_book_by(author:Author): str",
+                "type": "ClassMethod",
+                "owner": "class_06blhjj3h_mjikkmod",
+                "bounds": {
+                  "x": -59.5,
+                  "y": 5.5,
+                  "width": 349,
+                  "height": 30
+                },
+                "code": "def cheapest_book_by(author:Author) -> str {\n    cheapest:Book = null;\n\tprice = 1000000000.0;\n\tfor(book in this.books){\n        if(book.authors.contains(author)\n\t\t\t&& book.price <= price){\n            cheapest = book;\n\t\t\tprice = book.price;\n\t\t}\n    }\n\treturn cheapest.title;\n}",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "bal",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "class_d3f0di6lb_mjikkmoe": {
+                "id": "class_d3f0di6lb_mjikkmoe",
+                "name": "Author",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": 10,
+                  "y": -380,
+                  "width": 220,
+                  "height": 95
+                },
+                "attributes": [
+                  "attr_p3zqpt65k_mjikkmoe",
+                  "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db"
+                ],
+                "methods": []
+              },
+              "attr_p3zqpt65k_mjikkmoe": {
+                "id": "attr_p3zqpt65k_mjikkmoe",
+                "name": "name",
+                "type": "ClassAttribute",
+                "owner": "class_d3f0di6lb_mjikkmoe",
+                "bounds": {
+                  "x": 10.5,
+                  "y": -339.5,
+                  "width": 219,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db": {
+                "id": "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db",
+                "name": "birth",
+                "type": "ClassAttribute",
+                "owner": "class_d3f0di6lb_mjikkmoe",
+                "bounds": {
+                  "x": 10.5,
+                  "y": -314.5,
+                  "width": 219,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "date",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "50ffa27f-f8a9-438b-b81b-174266f39952": {
+                "id": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "name": "Genre",
+                "type": "Enumeration",
+                "owner": null,
+                "bounds": {
+                  "x": -710,
+                  "y": -220,
+                  "width": 160,
+                  "height": 350
+                },
+                "attributes": [
+                  "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
+                  "15d10eca-11e8-4894-8b27-d815dbc62596",
+                  "55346119-1f08-48c5-9629-b5223ea766e0",
+                  "67e73142-470c-4795-8864-96f08365ce49",
+                  "4ba07b68-1fd2-40fc-ad63-05766965aaad",
+                  "52114e47-c8c1-404a-847c-0b877de007e0",
+                  "65937dfa-011b-425e-a292-7d66dff5cd36",
+                  "994869fb-9b98-450f-add4-a2ee88a15c7f",
+                  "45fa6842-da64-4878-b875-c536f06f1d50",
+                  "6d81aaec-327a-42b9-89db-a17e54bb7b5a"
+                ],
+                "methods": []
+              },
+              "bfadf7ef-e6a4-43e3-b267-672be745c9c7": {
+                "id": "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
+                "name": "Poetry",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": -169.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "15d10eca-11e8-4894-8b27-d815dbc62596": {
+                "id": "15d10eca-11e8-4894-8b27-d815dbc62596",
+                "name": "Thriller",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": -139.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "55346119-1f08-48c5-9629-b5223ea766e0": {
+                "id": "55346119-1f08-48c5-9629-b5223ea766e0",
+                "name": "History",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": -109.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "67e73142-470c-4795-8864-96f08365ce49": {
+                "id": "67e73142-470c-4795-8864-96f08365ce49",
+                "name": "Technology",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": -79.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "4ba07b68-1fd2-40fc-ad63-05766965aaad": {
+                "id": "4ba07b68-1fd2-40fc-ad63-05766965aaad",
+                "name": "Romance",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": -49.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "52114e47-c8c1-404a-847c-0b877de007e0": {
+                "id": "52114e47-c8c1-404a-847c-0b877de007e0",
+                "name": "Horror",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": -19.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "65937dfa-011b-425e-a292-7d66dff5cd36": {
+                "id": "65937dfa-011b-425e-a292-7d66dff5cd36",
+                "name": "Adventure",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": 10.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "994869fb-9b98-450f-add4-a2ee88a15c7f": {
+                "id": "994869fb-9b98-450f-add4-a2ee88a15c7f",
+                "name": "Philosophy",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": 40.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "45fa6842-da64-4878-b875-c536f06f1d50": {
+                "id": "45fa6842-da64-4878-b875-c536f06f1d50",
+                "name": "Cookbooks",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": 70.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "6d81aaec-327a-42b9-89db-a17e54bb7b5a": {
+                "id": "6d81aaec-327a-42b9-89db-a17e54bb7b5a",
+                "name": "Fantasy",
+                "type": "ClassAttribute",
+                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
+                "bounds": {
+                  "x": -709.5,
+                  "y": 100.5,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false
+              },
+              "de57bf9a-a91f-4c69-9ad0-4879e2222edd": {
+                "id": "de57bf9a-a91f-4c69-9ad0-4879e2222edd",
+                "name": "",
+                "type": "ClassOCLConstraint",
+                "owner": null,
+                "bounds": {
+                  "x": -710,
+                  "y": -380,
+                  "width": 210,
+                  "height": 90
+                },
+                "constraint": "context Book inv inv1: self.pages> 10"
+              }
+            },
+            "relationships": {
+              "rel_z26fdxrdq_mjikkmoe": {
+                "id": "rel_z26fdxrdq_mjikkmoe",
+                "name": "books",
+                "type": "ClassBidirectional",
+                "owner": null,
+                "bounds": {
+                  "x": -194,
+                  "y": -247.5,
+                  "width": 134,
+                  "height": 228
+                },
+                "path": [
+                  {
+                    "x": 134,
+                    "y": 190
+                  },
+                  {
+                    "x": 67,
+                    "y": 190
+                  },
+                  {
+                    "x": 67,
+                    "y": 10
+                  },
+                  {
+                    "x": 0,
+                    "y": 10
+                  }
+                ],
+                "source": {
+                  "direction": "Left",
+                  "element": "class_06blhjj3h_mjikkmod",
+                  "multiplicity": "1..*",
+                  "role": "library",
+                  "bounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 0,
+                    "height": 0
+                  }
+                },
+                "target": {
+                  "direction": "Right",
+                  "element": "class_oho5ergc3_mjikkmod",
+                  "multiplicity": "*",
+                  "role": "books",
+                  "bounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 0,
+                    "height": 0
+                  }
+                },
+                "isManuallyLayouted": false
+              },
+              "rel_0ys2qxzq1_mjikkmoe": {
+                "id": "rel_0ys2qxzq1_mjikkmoe",
+                "name": "books",
+                "type": "ClassBidirectional",
+                "owner": null,
+                "bounds": {
+                  "x": -194,
+                  "y": -325,
+                  "width": 204,
+                  "height": 48
+                },
+                "path": [
+                  {
+                    "x": 204,
+                    "y": 10
+                  },
+                  {
+                    "x": 0,
+                    "y": 10
+                  }
+                ],
+                "source": {
+                  "direction": "Left",
+                  "element": "class_d3f0di6lb_mjikkmoe",
+                  "multiplicity": "1..*",
+                  "role": "authors",
+                  "bounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 0,
+                    "height": 0
+                  }
+                },
+                "target": {
+                  "direction": "Right",
+                  "element": "class_oho5ergc3_mjikkmod",
+                  "multiplicity": "*",
+                  "role": "books",
+                  "bounds": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 0,
+                    "height": 0
+                  }
+                },
+                "isManuallyLayouted": false
+              }
+            },
+            "assessments": {}
+          },
+          "lastUpdate": "2026-05-06T11:31:20.817Z"
+        }
+      ],
+      "AgentDiagram": [
+        {
+          "id": "c4adbd57-a9f2-4cb2-904f-adf653cd268c",
+          "title": "Library Agent",
+          "model": {
+            "version": "3.0.0",
+            "type": "AgentDiagram",
+            "size": {
+              "width": 2326,
+              "height": 1540
+            },
+            "interactive": {
+              "elements": {},
+              "relationships": {}
+            },
+            "elements": {
+              "initial_72th6ksf3_mm9b38u1": {
+                "id": "initial_72th6ksf3_mm9b38u1",
+                "name": "",
+                "type": "StateInitialNode",
+                "owner": null,
+                "bounds": {
+                  "x": -1143,
+                  "y": -503,
+                  "width": 45,
+                  "height": 45
+                }
+              },
+              "intent_jtmr4apyg_mm9b38u1": {
+                "id": "intent_jtmr4apyg_mm9b38u1",
+                "name": "OpeningHours",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -680,
+                  "y": -100,
+                  "width": 410,
+                  "height": 190
+                },
+                "bodies": [
+                  "intentBody_jn9sy9wl2_mm9b38u1",
+                  "intentBody_61dj9fnk0_mm9b38u1",
+                  "intentBody_b8jkj9t1s_mm9b38u1",
+                  "intentBody_jl9eozt0r_mm9b38u1"
+                ],
+                "intent_description": "Asking for the opening hours of the library."
+              },
+              "intentBody_jn9sy9wl2_mm9b38u1": {
+                "id": "intentBody_jn9sy9wl2_mm9b38u1",
+                "name": "what are the opening hours?",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -679.5,
+                  "y": -29.5,
+                  "width": 409,
+                  "height": 30
+                }
+              },
+              "intentBody_61dj9fnk0_mm9b38u1": {
+                "id": "intentBody_61dj9fnk0_mm9b38u1",
+                "name": "library hours",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -679.5,
+                  "y": 0.5,
+                  "width": 409,
+                  "height": 30
+                }
+              },
+              "intentBody_b8jkj9t1s_mm9b38u1": {
+                "id": "intentBody_b8jkj9t1s_mm9b38u1",
+                "name": "when do you open?",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -679.5,
+                  "y": 30.5,
+                  "width": 409,
+                  "height": 30
+                }
+              },
+              "intentBody_jl9eozt0r_mm9b38u1": {
+                "id": "intentBody_jl9eozt0r_mm9b38u1",
+                "name": "hours of operation",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -679.5,
+                  "y": 60.5,
+                  "width": 409,
+                  "height": 30
+                }
+              },
+              "intent_ggq3p9gv8_mm9b38u1": {
+                "id": "intent_ggq3p9gv8_mm9b38u1",
+                "name": "CheapestBook",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -250,
+                  "y": -100,
+                  "width": 490,
+                  "height": 130
+                },
+                "bodies": [
+                  "intentBody_06wxt0vga_mm9b38u1",
+                  "intentBody_14tgxxf1f_mm9b38u1",
+                  "intentBody_j2ugmtuh8_mm9b38u1"
+                ],
+                "intent_description": ""
+              },
+              "intentBody_06wxt0vga_mm9b38u1": {
+                "id": "intentBody_06wxt0vga_mm9b38u1",
+                "name": "how to get the title of the cheapest book of an author?",
+                "type": "AgentIntentBody",
+                "owner": "intent_ggq3p9gv8_mm9b38u1",
+                "bounds": {
+                  "x": -249.5,
+                  "y": -59.5,
+                  "width": 489,
+                  "height": 30
+                }
+              },
+              "intentBody_14tgxxf1f_mm9b38u1": {
+                "id": "intentBody_14tgxxf1f_mm9b38u1",
+                "name": "I want to know the cheapest book",
+                "type": "AgentIntentBody",
+                "owner": "intent_ggq3p9gv8_mm9b38u1",
+                "bounds": {
+                  "x": -249.5,
+                  "y": -29.5,
+                  "width": 489,
+                  "height": 30
+                }
+              },
+              "intentBody_j2ugmtuh8_mm9b38u1": {
+                "id": "intentBody_j2ugmtuh8_mm9b38u1",
+                "name": "which is the cheapest book?",
+                "type": "AgentIntentBody",
+                "owner": "intent_ggq3p9gv8_mm9b38u1",
+                "bounds": {
+                  "x": -249.5,
+                  "y": 0.5,
+                  "width": 489,
+                  "height": 30
+                }
+              },
+              "intent_zuidaui0x_mm9b38u1": {
+                "id": "intent_zuidaui0x_mm9b38u1",
+                "name": "Contact",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -1130,
+                  "y": -100,
+                  "width": 430,
+                  "height": 160
+                },
+                "bodies": [
+                  "intentBody_9kmxc6vnq_mm9b38u1",
+                  "intentBody_mxczpzj8h_mm9b38u1",
+                  "intentBody_8yqem5n2k_mm9b38u1"
+                ],
+                "intent_description": "Requesting to speak with a human assistant."
+              },
+              "intentBody_9kmxc6vnq_mm9b38u1": {
+                "id": "intentBody_9kmxc6vnq_mm9b38u1",
+                "name": "I need to speak to someone",
+                "type": "AgentIntentBody",
+                "owner": "intent_zuidaui0x_mm9b38u1",
+                "bounds": {
+                  "x": -1129.5,
+                  "y": -29.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intentBody_mxczpzj8h_mm9b38u1": {
+                "id": "intentBody_mxczpzj8h_mm9b38u1",
+                "name": "contact support",
+                "type": "AgentIntentBody",
+                "owner": "intent_zuidaui0x_mm9b38u1",
+                "bounds": {
+                  "x": -1129.5,
+                  "y": 0.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intentBody_8yqem5n2k_mm9b38u1": {
+                "id": "intentBody_8yqem5n2k_mm9b38u1",
+                "name": "human assistance",
+                "type": "AgentIntentBody",
+                "owner": "intent_zuidaui0x_mm9b38u1",
+                "bounds": {
+                  "x": -1129.5,
+                  "y": 30.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "state_zl3bfe65n_mm9b38u1": {
+                "id": "state_zl3bfe65n_mm9b38u1",
+                "name": "Idle",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -480,
+                  "y": -520,
+                  "width": 260,
+                  "height": 70
+                },
+                "bodies": [
+                  "body_wybm5pc31_mm9b38u1"
+                ],
+                "fallbackBodies": []
+              },
+              "body_wybm5pc31_mm9b38u1": {
+                "id": "body_wybm5pc31_mm9b38u1",
+                "name": "How can I assist you today?",
+                "type": "AgentStateBody",
+                "owner": "state_zl3bfe65n_mm9b38u1",
+                "bounds": {
+                  "x": -479.5,
+                  "y": -479.5,
+                  "width": 259,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "state_j5tnma02n_mm9b38u1": {
+                "id": "state_j5tnma02n_mm9b38u1",
+                "name": "OpeningHoursState",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 80,
+                  "y": -530,
+                  "width": 420,
+                  "height": 100
+                },
+                "bodies": [
+                  "body_a8ph8sxrt_mm9b38u1",
+                  "fb1432f7-1778-4c8b-90f3-e471e86cec31"
+                ],
+                "fallbackBodies": []
+              },
+              "body_a8ph8sxrt_mm9b38u1": {
+                "id": "body_a8ph8sxrt_mm9b38u1",
+                "name": "Our opening hours are Monday–Friday 9 AM–6 PM.",
+                "type": "AgentStateBody",
+                "owner": "state_j5tnma02n_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -489.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "fb1432f7-1778-4c8b-90f3-e471e86cec31": {
+                "id": "fb1432f7-1778-4c8b-90f3-e471e86cec31",
+                "name": "Saturday 10 AM–4 PM. Closed Sunday.",
+                "type": "AgentStateBody",
+                "owner": "state_j5tnma02n_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -459.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "state_krso67h8q_mm9b38u1": {
+                "id": "state_krso67h8q_mm9b38u1",
+                "name": "CheapestBookState",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 80,
+                  "y": -750,
+                  "width": 420,
+                  "height": 190
+                },
+                "bodies": [
+                  "body_38x5jthwr_mm9b38u1",
+                  "body_0yl3shkws_mm9b38u1",
+                  "b533e6a5-cc51-4f0d-a269-98bf81a02c31",
+                  "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a",
+                  "b779be48-1bc4-4984-9274-00c91203552a"
+                ],
+                "fallbackBodies": []
+              },
+              "body_38x5jthwr_mm9b38u1": {
+                "id": "body_38x5jthwr_mm9b38u1",
+                "name": "To get the cheapest book of an author, follow these steps:",
+                "type": "AgentStateBody",
+                "owner": "state_krso67h8q_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -709.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "body_0yl3shkws_mm9b38u1": {
+                "id": "body_0yl3shkws_mm9b38u1",
+                "name": "1. Go to the Library tab.",
+                "type": "AgentStateBody",
+                "owner": "state_krso67h8q_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -679.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "b533e6a5-cc51-4f0d-a269-98bf81a02c31": {
+                "id": "b533e6a5-cc51-4f0d-a269-98bf81a02c31",
+                "name": "2. In the table, select the library where you want to search.",
+                "type": "AgentStateBody",
+                "owner": "state_krso67h8q_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -649.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a": {
+                "id": "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a",
+                "name": "3. Click on “Cheapest Book”.",
+                "type": "AgentStateBody",
+                "owner": "state_krso67h8q_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -619.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "b779be48-1bc4-4984-9274-00c91203552a": {
+                "id": "b779be48-1bc4-4984-9274-00c91203552a",
+                "name": "4. Select an author and click “Execute”.",
+                "type": "AgentStateBody",
+                "owner": "state_krso67h8q_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -589.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "state_5emfhqwzt_mm9b38u1": {
+                "id": "state_5emfhqwzt_mm9b38u1",
+                "name": "ContactState",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 80,
+                  "y": -330,
+                  "width": 420,
+                  "height": 100
+                },
+                "bodies": [
+                  "body_b6vkku4r1_mm9b38u1",
+                  "body_8i8n5kbs0_mm9b38u1"
+                ],
+                "fallbackBodies": []
+              },
+              "body_b6vkku4r1_mm9b38u1": {
+                "id": "body_b6vkku4r1_mm9b38u1",
+                "name": "You can contact a librarian at library@example.com or call +1 555-123-4567.",
+                "type": "AgentStateBody",
+                "owner": "state_5emfhqwzt_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -289.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "body_8i8n5kbs0_mm9b38u1": {
+                "id": "body_8i8n5kbs0_mm9b38u1",
+                "name": "They will get back to you shortly.",
+                "type": "AgentStateBody",
+                "owner": "state_5emfhqwzt_mm9b38u1",
+                "bounds": {
+                  "x": 80.5,
+                  "y": -259.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "46badadf-e50d-481e-8246-3ba2393fce47": {
+                "id": "46badadf-e50d-481e-8246-3ba2393fce47",
+                "name": "Greeting",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -999,
+                  "y": -539,
+                  "width": 420,
+                  "height": 70
+                },
+                "bodies": [
+                  "e3aad61a-89b4-46a6-8c16-6f80b861d717"
+                ],
+                "fallbackBodies": []
+              },
+              "e3aad61a-89b4-46a6-8c16-6f80b861d717": {
+                "id": "e3aad61a-89b4-46a6-8c16-6f80b861d717",
+                "name": "Welcome to the library support system!",
+                "type": "AgentStateBody",
+                "owner": "46badadf-e50d-481e-8246-3ba2393fce47",
+                "bounds": {
+                  "x": -998.5,
+                  "y": -498.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "replyType": "text"
+              },
+              "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13": {
+                "id": "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13",
+                "name": "Other",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": 260,
+                  "y": -100,
+                  "width": 250,
+                  "height": 70
+                },
+                "bodies": [],
+                "intent_description": "Any other question."
+              }
+            },
+            "relationships": {
+              "transition_ixdyt9fr7_mm9b38u1": {
+                "id": "transition_ixdyt9fr7_mm9b38u1",
+                "name": "",
+                "type": "AgentStateTransitionInit",
+                "owner": null,
+                "bounds": {
+                  "x": -1098,
+                  "y": -504,
+                  "width": 99,
+                  "height": 23.5
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 23.5
+                  },
+                  {
+                    "x": 49.5,
+                    "y": 23.5
+                  },
+                  {
+                    "x": 49.5,
+                    "y": 0
+                  },
+                  {
+                    "x": 99,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Right",
+                  "element": "initial_72th6ksf3_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "46badadf-e50d-481e-8246-3ba2393fce47"
+                },
+                "isManuallyLayouted": false
+              },
+              "transition_x8h483xz2_mm9b38u1": {
+                "id": "transition_x8h483xz2_mm9b38u1",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -220,
+                  "y": -485,
+                  "width": 300,
+                  "height": 1
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 300,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Upright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Upleft",
+                  "element": "state_j5tnma02n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "OpeningHours"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "transition_53oz6z5cc_mm9b38u1": {
+                "id": "transition_53oz6z5cc_mm9b38u1",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -285,
+                  "y": -655,
+                  "width": 365,
+                  "height": 135
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 135
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 365,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Topright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "state_krso67h8q_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "CheapestBook"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "transition_jc0mk7kpn_mm9b38u1": {
+                "id": "transition_jc0mk7kpn_mm9b38u1",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -285,
+                  "y": -450,
+                  "width": 365,
+                  "height": 170
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 170
+                  },
+                  {
+                    "x": 365,
+                    "y": 170
+                  }
+                ],
+                "source": {
+                  "direction": "Bottomright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "state_5emfhqwzt_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Contact"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "transition_zuuhzl5f9_mm9b38u1": {
+                "id": "transition_zuuhzl5f9_mm9b38u1",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -350,
+                  "y": -702.5,
+                  "width": 430,
+                  "height": 182.5
+                },
+                "path": [
+                  {
+                    "x": 430,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 182.5
+                  }
+                ],
+                "source": {
+                  "direction": "Upleft",
+                  "element": "state_krso67h8q_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Up",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "transition_rjozmqoco_mm9b38u1": {
+                "id": "transition_rjozmqoco_mm9b38u1",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -350,
+                  "y": -450,
+                  "width": 640,
+                  "height": 260
+                },
+                "path": [
+                  {
+                    "x": 640,
+                    "y": 220
+                  },
+                  {
+                    "x": 640,
+                    "y": 260
+                  },
+                  {
+                    "x": 0,
+                    "y": 260
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Down",
+                  "element": "state_5emfhqwzt_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Down",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "5f574d18-6641-4c80-bd19-92b862b47b7c": {
+                "id": "5f574d18-6641-4c80-bd19-92b862b47b7c",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -220,
+                  "y": -467.5,
+                  "width": 405,
+                  "height": 77.5
+                },
+                "path": [
+                  {
+                    "x": 405,
+                    "y": 37.5
+                  },
+                  {
+                    "x": 405,
+                    "y": 77.5
+                  },
+                  {
+                    "x": 150,
+                    "y": 77.5
+                  },
+                  {
+                    "x": 150,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Bottomleft",
+                  "element": "state_j5tnma02n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Downright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "5cf30015-c8cf-47be-8ad0-80bbba94d35e": {
+                "id": "5cf30015-c8cf-47be-8ad0-80bbba94d35e",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -579,
+                  "y": -494.5,
+                  "width": 99,
+                  "height": 1
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 99,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Downright",
+                  "element": "46badadf-e50d-481e-8246-3ba2393fce47"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              }
+            },
+            "assessments": {}
+          },
+          "lastUpdate": "2026-05-06T11:31:19.611Z"
+        }
+      ],
+      "GUINoCodeDiagram": [
+        {
+          "id": "6cf9ac83-e5bf-4ab1-bee0-edb0cbba2682",
+          "title": "GUI Diagram",
+          "model": {
+            "pages": [
+              {
+                "name": "Book",
+                "frames": [
+                  {
+                    "component": {
+                      "type": "wrapper",
+                      "stylable": [
+                        "background",
+                        "background-color",
+                        "background-image",
+                        "background-repeat",
+                        "background-attachment",
+                        "background-position",
+                        "background-size"
+                      ],
+                      "components": [
+                        {
+                          "attributes": {
+                            "id": "iir99"
+                          },
+                          "components": [
+                            {
+                              "tagName": "nav",
+                              "attributes": {
+                                "id": "ihyzm"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "h2",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "i7thg"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "BESSER"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "attributes": {
+                                    "id": "iwntp"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/book",
+                                        "id": "ih8h6"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Book"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/library",
+                                        "id": "i9l4g"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Library"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/author",
+                                        "id": "io6eh"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Author"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "ixx2i"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "© 2026 BESSER. All rights reserved."
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "tagName": "main",
+                              "attributes": {
+                                "id": "i0mrm"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "h1",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "iyjpg"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Book"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "tagName": "p",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "itizf"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Manage Book data"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "table",
+                                  "style": "",
+                                  "attributes": {
+                                    "chart-color": "#2c3e50",
+                                    "chart-title": "Book List",
+                                    "data-source": "class_oho5ergc3_mjikkmod",
+                                    "show-header": "true",
+                                    "striped-rows": "false",
+                                    "show-pagination": "true",
+                                    "rows-per-page": "5",
+                                    "action-buttons": "true",
+                                    "columns": [
+                                      {
+                                        "field": "title",
+                                        "label": "Title",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "pages",
+                                        "label": "Pages",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "stock",
+                                        "label": "Stock",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "price",
+                                        "label": "Price",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "release",
+                                        "label": "Release",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "genre",
+                                        "label": "Genre",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "library",
+                                        "label": "Library",
+                                        "columnType": "lookup",
+                                        "lookupEntity": "class_06blhjj3h_mjikkmod",
+                                        "lookupField": "name",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "authors",
+                                        "label": "Authors",
+                                        "columnType": "lookup",
+                                        "lookupEntity": "class_d3f0di6lb_mjikkmoe",
+                                        "lookupField": "name",
+                                        "_expanded": false
+                                      }
+                                    ],
+                                    "id": "table-book-0",
+                                    "filter": ""
+                                  },
+                                  "chart-title": "Book List",
+                                  "data-source": "class_oho5ergc3_mjikkmod",
+                                  "show-header": "true",
+                                  "striped-rows": "false",
+                                  "show-pagination": "true",
+                                  "action-buttons": "true",
+                                  "rows-per-page": "5",
+                                  "filter": "",
+                                  "columns": [
+                                    {
+                                      "field": "title",
+                                      "label": "Title",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "pages",
+                                      "label": "Pages",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "stock",
+                                      "label": "Stock",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "price",
+                                      "label": "Price",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "release",
+                                      "label": "Release",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "genre",
+                                      "label": "Genre",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "library",
+                                      "label": "Library",
+                                      "columnType": "lookup",
+                                      "lookupEntity": "class_06blhjj3h_mjikkmod",
+                                      "lookupField": "name",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "authors",
+                                      "label": "Authors",
+                                      "columnType": "lookup",
+                                      "lookupEntity": "class_d3f0di6lb_mjikkmoe",
+                                      "lookupField": "name",
+                                      "_expanded": false
+                                    }
+                                  ],
+                                  "components": [
+                                    {
+                                      "type": "tbody",
+                                      "draggable": [
+                                        "table"
+                                      ],
+                                      "droppable": [
+                                        "tr"
+                                      ],
+                                      "components": [
+                                        {
+                                          "type": "row",
+                                          "draggable": [
+                                            "thead",
+                                            "tbody",
+                                            "tfoot"
+                                          ],
+                                          "droppable": [
+                                            "th",
+                                            "td"
+                                          ],
+                                          "classes": [
+                                            "row"
+                                          ],
+                                          "components": [
+                                            {
+                                              "type": "cell",
+                                              "draggable": [
+                                                "tr"
+                                              ],
+                                              "classes": [
+                                                "cell"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "chart-color": "#2c3e50"
+                                },
+                                {
+                                  "attributes": {
+                                    "id": "ioq13"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "action-button",
+                                      "content": "+ decrease_stock",
+                                      "style": "",
+                                      "classes": [
+                                        "action-button-component"
+                                      ],
+                                      "attributes": {
+                                        "type": "button",
+                                        "data-button-label": "+ decrease_stock",
+                                        "data-action-type": "run-method",
+                                        "data-method-class": "class_oho5ergc3_mjikkmod",
+                                        "data-method": "method_rb01uirsh_mjikkmod",
+                                        "data-instance-source": "table-book-0",
+                                        "id": "idgyv",
+                                        "data-confirmation": "false",
+                                        "data-confirmation-message": "Are you sure?",
+                                        "button-label": "+ decrease_stock",
+                                        "data-method-name": "method_rb01uirsh_mjikkmod"
+                                      },
+                                      "button-label": "+ decrease_stock",
+                                      "action-type": "run-method",
+                                      "method-class": "class_oho5ergc3_mjikkmod",
+                                      "method": "method_rb01uirsh_mjikkmod",
+                                      "instance-source": "table-book-0",
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "+ decrease_stock"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "agent-component",
+                                      "style": "",
+                                      "classes": [
+                                        "agent-component"
+                                      ],
+                                      "attributes": {
+                                        "agent-name": "Library Agent",
+                                        "agent-title": "BESSER Agent",
+                                        "id": "im47u"
+                                      },
+                                      "agent-name": "Library Agent",
+                                      "agent-title": "BESSER Agent"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "head": {
+                        "type": "head"
+                      },
+                      "docEl": {
+                        "tagName": "html"
+                      }
+                    },
+                    "id": "7zIM2Z3WJTpK8vKO"
+                  }
+                ],
+                "id": "page-book-0",
+                "route_path": "/book"
+              },
+              {
+                "name": "Library",
+                "frames": [
+                  {
+                    "component": {
+                      "type": "wrapper",
+                      "stylable": [
+                        "background",
+                        "background-color",
+                        "background-image",
+                        "background-repeat",
+                        "background-attachment",
+                        "background-position",
+                        "background-size"
+                      ],
+                      "components": [
+                        {
+                          "attributes": {
+                            "id": "ipfo8"
+                          },
+                          "components": [
+                            {
+                              "tagName": "nav",
+                              "attributes": {
+                                "id": "i5v1l"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "h2",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "iopqh"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "BESSER"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "attributes": {
+                                    "id": "iui4i"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/book",
+                                        "id": "ix6dg"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Book"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/library",
+                                        "id": "ixrwm"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Library"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/author",
+                                        "id": "iauyc"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Author"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "iijek"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "© 2026 BESSER. All rights reserved."
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "tagName": "main",
+                              "attributes": {
+                                "id": "i845n"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "h1",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "ihqgf"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Library"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "tagName": "p",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "ij47n"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Manage Library data"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "table",
+                                  "style": "",
+                                  "attributes": {
+                                    "chart-color": "#2c3e50",
+                                    "chart-title": "Library List",
+                                    "data-source": "class_06blhjj3h_mjikkmod",
+                                    "show-header": "true",
+                                    "striped-rows": "false",
+                                    "show-pagination": "true",
+                                    "rows-per-page": "5",
+                                    "action-buttons": "true",
+                                    "columns": [
+                                      {
+                                        "field": "name",
+                                        "label": "Name",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "web_page",
+                                        "label": "Web Page",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "address",
+                                        "label": "Address",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "telephone",
+                                        "label": "Telephone",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "books",
+                                        "label": "Books",
+                                        "columnType": "lookup",
+                                        "lookupEntity": "class_oho5ergc3_mjikkmod",
+                                        "lookupField": "title",
+                                        "_expanded": false
+                                      }
+                                    ],
+                                    "id": "table-library-1",
+                                    "filter": ""
+                                  },
+                                  "chart-title": "Library List",
+                                  "data-source": "class_06blhjj3h_mjikkmod",
+                                  "show-header": "true",
+                                  "striped-rows": "false",
+                                  "show-pagination": "true",
+                                  "action-buttons": "true",
+                                  "rows-per-page": "5",
+                                  "filter": "",
+                                  "columns": [
+                                    {
+                                      "field": "name",
+                                      "label": "Name",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "web_page",
+                                      "label": "Web Page",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "address",
+                                      "label": "Address",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "telephone",
+                                      "label": "Telephone",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "books",
+                                      "label": "Books",
+                                      "columnType": "lookup",
+                                      "lookupEntity": "class_oho5ergc3_mjikkmod",
+                                      "lookupField": "title",
+                                      "_expanded": false
+                                    }
+                                  ],
+                                  "components": [
+                                    {
+                                      "type": "tbody",
+                                      "draggable": [
+                                        "table"
+                                      ],
+                                      "droppable": [
+                                        "tr"
+                                      ],
+                                      "components": [
+                                        {
+                                          "type": "row",
+                                          "draggable": [
+                                            "thead",
+                                            "tbody",
+                                            "tfoot"
+                                          ],
+                                          "droppable": [
+                                            "th",
+                                            "td"
+                                          ],
+                                          "classes": [
+                                            "row"
+                                          ],
+                                          "components": [
+                                            {
+                                              "type": "cell",
+                                              "draggable": [
+                                                "tr"
+                                              ],
+                                              "classes": [
+                                                "cell"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "chart-color": "#2c3e50"
+                                },
+                                {
+                                  "attributes": {
+                                    "id": "i0iia"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "action-button",
+                                      "style": "",
+                                      "classes": [
+                                        "action-button-component"
+                                      ],
+                                      "attributes": {
+                                        "type": "button",
+                                        "data-button-label": "+ cheapest_book_by",
+                                        "data-action-type": "run-method",
+                                        "data-method-class": "class_06blhjj3h_mjikkmod",
+                                        "data-method": "35ef5329-889b-40f0-89ce-9836936fd8a9",
+                                        "data-instance-source": "table-library-1",
+                                        "id": "ir5xw"
+                                      },
+                                      "button-label": "+ cheapest_book_by",
+                                      "action-type": "run-method",
+                                      "method-class": "class_06blhjj3h_mjikkmod",
+                                      "method": "35ef5329-889b-40f0-89ce-9836936fd8a9",
+                                      "instance-source": "table-library-1",
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "+ cheapest_book_by"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "head": {
+                        "type": "head"
+                      },
+                      "docEl": {
+                        "tagName": "html"
+                      }
+                    },
+                    "id": "63D2k7g9B5xhx1hQ"
+                  }
+                ],
+                "id": "page-library-1",
+                "route_path": "/library"
+              },
+              {
+                "name": "Author",
+                "frames": [
+                  {
+                    "component": {
+                      "type": "wrapper",
+                      "stylable": [
+                        "background",
+                        "background-color",
+                        "background-image",
+                        "background-repeat",
+                        "background-attachment",
+                        "background-position",
+                        "background-size"
+                      ],
+                      "components": [
+                        {
+                          "attributes": {
+                            "id": "in05f"
+                          },
+                          "components": [
+                            {
+                              "tagName": "nav",
+                              "attributes": {
+                                "id": "is7w8"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "h2",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "i3xv3"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "BESSER"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "attributes": {
+                                    "id": "itt6j"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/book",
+                                        "id": "ibxxn"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Book"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/library",
+                                        "id": "ik9yu"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Library"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "link",
+                                      "attributes": {
+                                        "href": "/author",
+                                        "id": "ibnlk"
+                                      },
+                                      "components": [
+                                        {
+                                          "type": "textnode",
+                                          "content": "Author"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "il285"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "© 2026 BESSER. All rights reserved."
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "tagName": "main",
+                              "attributes": {
+                                "id": "ih5us"
+                              },
+                              "components": [
+                                {
+                                  "tagName": "h1",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "iqnfa"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Author"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "tagName": "p",
+                                  "type": "text",
+                                  "attributes": {
+                                    "id": "i8odx"
+                                  },
+                                  "components": [
+                                    {
+                                      "type": "textnode",
+                                      "content": "Manage Author data"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "table",
+                                  "style": "",
+                                  "classes": [
+                                    "has-data-binding"
+                                  ],
+                                  "attributes": {
+                                    "chart-color": "#2c3e50",
+                                    "chart-title": "Author List",
+                                    "data-source": "class_d3f0di6lb_mjikkmoe",
+                                    "show-header": "true",
+                                    "striped-rows": "false",
+                                    "show-pagination": "true",
+                                    "rows-per-page": "5",
+                                    "action-buttons": "true",
+                                    "columns": [
+                                      {
+                                        "field": "name",
+                                        "label": "Name",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "birth",
+                                        "label": "Birth",
+                                        "columnType": "field",
+                                        "_expanded": false
+                                      },
+                                      {
+                                        "field": "books",
+                                        "label": "Books",
+                                        "columnType": "lookup",
+                                        "lookupEntity": "class_oho5ergc3_mjikkmod",
+                                        "lookupField": "title",
+                                        "_expanded": false
+                                      }
+                                    ],
+                                    "id": "table-author-2",
+                                    "filter": ""
+                                  },
+                                  "chart-title": "Author List",
+                                  "data-source": "class_d3f0di6lb_mjikkmoe",
+                                  "show-header": "true",
+                                  "striped-rows": "false",
+                                  "show-pagination": "true",
+                                  "action-buttons": "true",
+                                  "rows-per-page": "5",
+                                  "filter": "",
+                                  "columns": [
+                                    {
+                                      "field": "name",
+                                      "label": "Name",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "birth",
+                                      "label": "Birth",
+                                      "columnType": "field",
+                                      "_expanded": false
+                                    },
+                                    {
+                                      "field": "books",
+                                      "label": "Books",
+                                      "columnType": "lookup",
+                                      "lookupEntity": "class_oho5ergc3_mjikkmod",
+                                      "lookupField": "title",
+                                      "_expanded": false
+                                    }
+                                  ],
+                                  "components": [
+                                    {
+                                      "type": "tbody",
+                                      "draggable": [
+                                        "table"
+                                      ],
+                                      "droppable": [
+                                        "tr"
+                                      ],
+                                      "components": [
+                                        {
+                                          "type": "row",
+                                          "draggable": [
+                                            "thead",
+                                            "tbody",
+                                            "tfoot"
+                                          ],
+                                          "droppable": [
+                                            "th",
+                                            "td"
+                                          ],
+                                          "classes": [
+                                            "row"
+                                          ],
+                                          "components": [
+                                            {
+                                              "type": "cell",
+                                              "draggable": [
+                                                "tr"
+                                              ],
+                                              "classes": [
+                                                "cell"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "chart-color": "#2c3e50"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "head": {
+                        "type": "head"
+                      },
+                      "docEl": {
+                        "tagName": "html"
+                      }
+                    },
+                    "id": "XruvDjQhozYlWgE8"
+                  }
+                ],
+                "id": "page-author-2",
+                "route_path": "/author"
+              }
+            ],
+            "styles": [
+              {
+                "selectors": [
+                  "#i7thg"
+                ],
+                "style": {
+                  "margin-top": "0",
+                  "font-size": "24px",
+                  "margin-bottom": "30px",
+                  "font-weight": "bold"
+                }
+              },
+              {
+                "selectors": [
+                  "#ih8h6"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "rgba(255,255,255,0.2)",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i9l4g"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "transparent",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#io6eh"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "transparent",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#iwntp"
+                ],
+                "style": {
+                  "display": "flex",
+                  "flex-direction": "column",
+                  "flex": "1"
+                }
+              },
+              {
+                "selectors": [
+                  "#ixx2i"
+                ],
+                "style": {
+                  "margin-top": "auto",
+                  "padding-top": "20px",
+                  "border-top": "1px solid rgba(255,255,255,0.2)",
+                  "font-size": "11px",
+                  "opacity": "0.8",
+                  "text-align": "center"
+                }
+              },
+              {
+                "selectors": [
+                  "#ihyzm"
+                ],
+                "style": {
+                  "width": "250px",
+                  "background": "linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%)",
+                  "color": "white",
+                  "padding": "20px",
+                  "overflow-y": "auto",
+                  "display": "flex",
+                  "flex-direction": "column"
+                }
+              },
+              {
+                "selectors": [
+                  "#iyjpg"
+                ],
+                "style": {
+                  "margin-top": "0",
+                  "color": "#333",
+                  "font-size": "32px",
+                  "margin-bottom": "10px"
+                }
+              },
+              {
+                "selectors": [
+                  "#itizf"
+                ],
+                "style": {
+                  "color": "#666",
+                  "margin-bottom": "30px"
+                }
+              },
+              {
+                "selectors": [
+                  "#table-book-0"
+                ],
+                "style": {
+                  "width": "100%",
+                  "min-height": "400px"
+                }
+              },
+              {
+                "selectors": [
+                  "#idgyv"
+                ],
+                "style": {
+                  "display": "inline-flex",
+                  "align-items": "center",
+                  "padding": "6px 14px",
+                  "background": "linear-gradient(90deg, #2563eb 0%, #1e40af 100%)",
+                  "color": "#fff",
+                  "text-decoration": "none",
+                  "border-radius": "4px",
+                  "font-size": "13px",
+                  "font-weight": "600",
+                  "letter-spacing": "0.01em",
+                  "cursor": "pointer",
+                  "border": "none",
+                  "box-shadow": "0 1px 4px rgba(37,99,235,0.10)",
+                  "transition": "background 0.2s"
+                }
+              },
+              {
+                "selectors": [
+                  "#ioq13"
+                ],
+                "style": {
+                  "margin-top": "20px",
+                  "display": "flex",
+                  "gap": "10px",
+                  "flex-wrap": "wrap"
+                }
+              },
+              {
+                "selectors": [
+                  "#i0mrm"
+                ],
+                "style": {
+                  "flex": "1",
+                  "padding": "40px",
+                  "overflow-y": "auto",
+                  "background": "#f5f5f5"
+                }
+              },
+              {
+                "selectors": [
+                  "#iir99"
+                ],
+                "style": {
+                  "display": "flex",
+                  "height": "100vh",
+                  "font-family": "Arial, sans-serif"
+                }
+              },
+              {
+                "selectors": [
+                  "#iopqh"
+                ],
+                "style": {
+                  "margin-top": "0",
+                  "font-size": "24px",
+                  "margin-bottom": "30px",
+                  "font-weight": "bold"
+                }
+              },
+              {
+                "selectors": [
+                  "#ix6dg"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "transparent",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ixrwm"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "rgba(255,255,255,0.2)",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#iauyc"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "transparent",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#iui4i"
+                ],
+                "style": {
+                  "display": "flex",
+                  "flex-direction": "column",
+                  "flex": "1"
+                }
+              },
+              {
+                "selectors": [
+                  "#iijek"
+                ],
+                "style": {
+                  "margin-top": "auto",
+                  "padding-top": "20px",
+                  "border-top": "1px solid rgba(255,255,255,0.2)",
+                  "font-size": "11px",
+                  "opacity": "0.8",
+                  "text-align": "center"
+                }
+              },
+              {
+                "selectors": [
+                  "#i5v1l"
+                ],
+                "style": {
+                  "width": "250px",
+                  "background": "linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%)",
+                  "color": "white",
+                  "padding": "20px",
+                  "overflow-y": "auto",
+                  "display": "flex",
+                  "flex-direction": "column"
+                }
+              },
+              {
+                "selectors": [
+                  "#ihqgf"
+                ],
+                "style": {
+                  "margin-top": "0",
+                  "color": "#333",
+                  "font-size": "32px",
+                  "margin-bottom": "10px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ij47n"
+                ],
+                "style": {
+                  "color": "#666",
+                  "margin-bottom": "30px"
+                }
+              },
+              {
+                "selectors": [
+                  "#table-library-1"
+                ],
+                "style": {
+                  "width": "100%",
+                  "min-height": "400px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ir5xw"
+                ],
+                "style": {
+                  "display": "inline-flex",
+                  "align-items": "center",
+                  "padding": "6px 14px",
+                  "background": "linear-gradient(90deg, #2563eb 0%, #1e40af 100%)",
+                  "color": "#fff",
+                  "text-decoration": "none",
+                  "border-radius": "4px",
+                  "font-size": "13px",
+                  "font-weight": "600",
+                  "letter-spacing": "0.01em",
+                  "cursor": "pointer",
+                  "border": "none",
+                  "box-shadow": "0 1px 4px rgba(37,99,235,0.10)",
+                  "transition": "background 0.2s"
+                }
+              },
+              {
+                "selectors": [
+                  "#i0iia"
+                ],
+                "style": {
+                  "margin-top": "20px",
+                  "display": "flex",
+                  "gap": "10px",
+                  "flex-wrap": "wrap"
+                }
+              },
+              {
+                "selectors": [
+                  "#i845n"
+                ],
+                "style": {
+                  "flex": "1",
+                  "padding": "40px",
+                  "overflow-y": "auto",
+                  "background": "#f5f5f5"
+                }
+              },
+              {
+                "selectors": [
+                  "#ipfo8"
+                ],
+                "style": {
+                  "display": "flex",
+                  "height": "100vh",
+                  "font-family": "Arial, sans-serif"
+                }
+              },
+              {
+                "selectors": [
+                  "#i3xv3"
+                ],
+                "style": {
+                  "margin-top": "0",
+                  "font-size": "24px",
+                  "margin-bottom": "30px",
+                  "font-weight": "bold"
+                }
+              },
+              {
+                "selectors": [
+                  "#ibxxn"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "transparent",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ik9yu"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "transparent",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ibnlk"
+                ],
+                "style": {
+                  "color": "white",
+                  "text-decoration": "none",
+                  "padding": "10px 15px",
+                  "display": "block",
+                  "background": "rgba(255,255,255,0.2)",
+                  "border-radius": "4px",
+                  "margin-bottom": "5px"
+                }
+              },
+              {
+                "selectors": [
+                  "#itt6j"
+                ],
+                "style": {
+                  "display": "flex",
+                  "flex-direction": "column",
+                  "flex": "1"
+                }
+              },
+              {
+                "selectors": [
+                  "#il285"
+                ],
+                "style": {
+                  "margin-top": "auto",
+                  "padding-top": "20px",
+                  "border-top": "1px solid rgba(255,255,255,0.2)",
+                  "font-size": "11px",
+                  "opacity": "0.8",
+                  "text-align": "center"
+                }
+              },
+              {
+                "selectors": [
+                  "#is7w8"
+                ],
+                "style": {
+                  "width": "250px",
+                  "background": "linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%)",
+                  "color": "white",
+                  "padding": "20px",
+                  "overflow-y": "auto",
+                  "display": "flex",
+                  "flex-direction": "column"
+                }
+              },
+              {
+                "selectors": [
+                  "#iqnfa"
+                ],
+                "style": {
+                  "margin-top": "0",
+                  "color": "#333",
+                  "font-size": "32px",
+                  "margin-bottom": "10px"
+                }
+              },
+              {
+                "selectors": [
+                  "#i8odx"
+                ],
+                "style": {
+                  "color": "#666",
+                  "margin-bottom": "30px"
+                }
+              },
+              {
+                "selectors": [
+                  "#table-author-2"
+                ],
+                "style": {
+                  "width": "100%",
+                  "min-height": "400px"
+                }
+              },
+              {
+                "selectors": [
+                  "#ih5us"
+                ],
+                "style": {
+                  "flex": "1",
+                  "padding": "40px",
+                  "overflow-y": "auto",
+                  "background": "#f5f5f5"
+                }
+              },
+              {
+                "selectors": [
+                  "#in05f"
+                ],
+                "style": {
+                  "display": "flex",
+                  "height": "100vh",
+                  "font-family": "Arial, sans-serif"
+                }
+              },
+              {
+                "selectors": [
+                  "#im47u"
+                ],
+                "style": {
+                  "width": "100%",
+                  "min-height": "400px"
+                }
+              }
+            ],
+            "assets": [],
+            "symbols": [],
+            "version": "0.21.13"
+          },
+          "lastUpdate": "2026-05-06T11:31:32.638Z"
+        }
+      ]
+    },
+    "settings": {
+      "defaultDiagramType": "ClassDiagram",
+      "autoSave": true,
+      "collaborationEnabled": false,
+      "perspectives": {
+        "ClassDiagram": true,
+        "ObjectDiagram": false,
+        "StateMachineDiagram": false,
+        "AgentDiagram": true,
+        "UserDiagram": false,
+        "GUINoCodeDiagram": true,
+        "QuantumCircuitDiagram": false,
+        "NNDiagram": false
+      }
+    }
+  },
+  "exportedAt": "2026-05-06T00:00:00.000Z",
+  "version": "2.0.0"
+}
