@@ -124,10 +124,20 @@ export const loadProjectThunk = createAsyncThunk(
 
 export const createProjectThunk = createAsyncThunk(
   'workspace/createProject',
-  async ({ name, description, owner }: { name: string; description: string; owner: string }) => {
+  async ({
+    name,
+    description,
+    owner,
+    perspectives,
+  }: {
+    name: string;
+    description: string;
+    owner: string;
+    perspectives?: PerspectiveSettings;
+  }) => {
     let project!: BesserProject;
     ProjectStorageRepository.withoutNotify(() => {
-      project = ProjectStorageRepository.createNewProject(name, description, owner);
+      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives);
     });
     return project;
   },
