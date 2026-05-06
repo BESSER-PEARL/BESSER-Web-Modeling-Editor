@@ -7,6 +7,8 @@ import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-eleme
 
 export interface IUMLClassOCLConstraint extends IUMLElement {
   constraint: string;
+  /** Optional plain-language explanation surfaced when validation fails. */
+  description?: string;
 }
 
 export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstraint {
@@ -19,6 +21,7 @@ export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstr
 
   type: UMLElementType = UMLElementType.ClassOCLConstraint;
   constraint: string = '';
+  description: string = '';
 
   private static readonly MIN_WIDTH = 160;
   private static readonly MIN_HEIGHT = 70;
@@ -29,19 +32,24 @@ export class ClassOCLConstraint extends UMLElement implements IUMLClassOCLConstr
     if (values?.constraint !== undefined) {
       this.constraint = values.constraint;
     }
+    if (values?.description !== undefined) {
+      this.description = values.description;
+    }
     this.adjustSizeToContent();
   }
 
   serialize() {
     return {
       ...super.serialize(),
-      constraint: this.constraint
+      constraint: this.constraint,
+      description: this.description,
     };
   }
 
   deserialize(values: any) {
     super.deserialize(values);
     this.constraint = values.constraint || '';
+    this.description = values.description || '';
   }
 
   private wrapText(text: string, maxWidth: number): string[] {
