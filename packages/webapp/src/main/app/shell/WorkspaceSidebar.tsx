@@ -17,6 +17,13 @@ import {
 interface WorkspaceSidebarProps {
   isDarkTheme: boolean;
   isSidebarExpanded: boolean;
+  /**
+   * Whether the sidebar is pinned open. When the desktop shell uses hover-to-expand,
+   * `isSidebarExpanded` reflects the visual state (pinned OR hovered) while this
+   * prop reflects only the persistent pinned state — used for the toggle's label
+   * so clicking from a hover-expanded view reads "Expand sidebar".
+   */
+  isSidebarPinned?: boolean;
   sidebarBaseClass: string;
   sidebarTitleClass: string;
   sidebarDividerClass: string;
@@ -51,6 +58,7 @@ function labelWithCount(label: string, count: number): string {
 const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   isDarkTheme,
   isSidebarExpanded,
+  isSidebarPinned,
   sidebarBaseClass,
   sidebarTitleClass,
   sidebarDividerClass,
@@ -65,6 +73,9 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   onNavigate,
   onToggleExpanded,
 }) => {
+  // The toggle reflects the pinned state when provided (so hovering doesn't flip
+  // the label to "Collapse"), and falls back to the visual expanded state otherwise.
+  const toggleReflectsExpanded = isSidebarPinned ?? isSidebarExpanded;
   // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
   const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
   const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
@@ -214,15 +225,15 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
           );
         })}
 
-        <SidebarTooltip label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'} collapsed={isCollapsed}>
+        <SidebarTooltip label={toggleReflectsExpanded ? 'Collapse sidebar' : 'Expand sidebar'} collapsed={isCollapsed}>
           <button
             type="button"
             onClick={onToggleExpanded}
             className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-between gap-2' : 'justify-center'}`}
-            aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-label={toggleReflectsExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             <span className="inline-flex">
-              <SidebarToggleIcon expanded={isSidebarExpanded} size={18} />
+              <SidebarToggleIcon expanded={toggleReflectsExpanded} size={18} />
             </span>
             {isSidebarExpanded && <span className={sidebarToggleTextClass}></span>}
           </button>
