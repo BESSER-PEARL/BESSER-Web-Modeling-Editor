@@ -6,6 +6,7 @@ import {
 } from './software-pattern/software-pattern-types';
 import { UMLDiagramType } from '@besser/wme';
 import libraryCompleteModel from '../../../templates/pattern/structural/Library_Complete.json';
+import libraryOclModel from '../../../templates/pattern/structural/Library_OCL.json';
 import teamOclModel from '../../../templates/pattern/structural/team_player_ocl.json';
 import dppModel from '../../../templates/pattern/structural/dpp.json';
 import aiSandboxModel from '../../../templates/pattern/structural/ai_sandbox.json';
@@ -44,6 +45,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.ClassDiagram,
           libraryCompleteModel as any,
+          SoftwarePatternCategory.STRUCTURAL,
+        );
+      case SoftwarePatternType.LIBRARY_OCL:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.ClassDiagram,
+          libraryOclModel as any,
           SoftwarePatternCategory.STRUCTURAL,
         );
       case SoftwarePatternType.TEAMOCL:
