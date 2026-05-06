@@ -91,7 +91,7 @@ export const ClassOCLConstraintComponent: FunctionComponent<Props> = ({ element,
         <text
           x={padding}
           y={padding - 4}
-          fill={element.textColor}
+          fill={element.textColor || 'currentColor'}
           style={{ fontSize: '11px', fontWeight: 600, fontStyle: 'italic' }}
         >
           {badge.label}
