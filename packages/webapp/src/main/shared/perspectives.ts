@@ -58,7 +58,7 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
   },
   {
     key: 'fullApp',
-    label: 'Full Application',
+    label: 'Full Web Application',
     description: 'Class, agent, and no-code GUI diagrams.',
     diagrams: ['ClassDiagram', 'AgentDiagram', 'GUINoCodeDiagram'],
   },
