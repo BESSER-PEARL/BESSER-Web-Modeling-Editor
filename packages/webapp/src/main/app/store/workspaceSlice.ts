@@ -108,6 +108,45 @@ function buildInitialState(): WorkspaceState {
 
 // ── Thunks ─────────────────────────────────────────────────────────────
 
+/**
+ * Push the model that some diagram editors expect to find in the shared
+ * `diagramBridge` before they render. Without this:
+ *   - ObjectDiagram → its palette can't resolve the typed objects against
+ *     the referenced ClassDiagram, so the canvas can't be edited correctly.
+ *   - UserDiagram   → its palette is empty (it's an Object Diagram under
+ *     the hood, but it needs the dedicated user metamodel loaded).
+ *
+ * This used to live inline inside `switchDiagramTypeThunk`, which meant
+ * loading a project (via `loadProjectThunk`) whose active diagram was a
+ * UserDiagram or ObjectDiagram would skip the setup entirely. Extracted
+ * so both code paths share it.
+ */
+async function setupBridgeForActiveDiagram(
+  project: BesserProject,
+  activeDiagram: ProjectDiagram | null,
+  diagramType: SupportedDiagramType,
+): Promise<void> {
+  if (diagramType === 'ObjectDiagram') {
+    if (!activeDiagram) return;
+    const classDiagram = getReferencedDiagram(project, activeDiagram, 'ClassDiagram');
+    if (isUMLModel(classDiagram?.model)) {
+      try {
+        const { diagramBridge } = await import('@besser/wme');
+        diagramBridge.setClassDiagramData(classDiagram.model);
+      } catch {
+        /* bridge not available */
+      }
+    }
+  } else if (diagramType === 'UserDiagram') {
+    try {
+      const { diagramBridge } = await import('@besser/wme');
+      diagramBridge.setClassDiagramData(userMetaModel as unknown as UMLModel);
+    } catch {
+      /* bridge not available */
+    }
+  }
+}
+
 export const loadProjectThunk = createAsyncThunk(
   'workspace/loadProject',
   async (projectId: string | undefined) => {
@@ -118,6 +157,13 @@ export const loadProjectThunk = createAsyncThunk(
     if (!project) throw new Error('Project not found');
 
     localStorage.setItem(localStorageLatestProject, project.id);
+
+    // Mirror the bridge setup that `switchDiagramTypeThunk` would do, so
+    // imported / template-loaded projects whose active diagram is a User
+    // or Object diagram show the correct palette on first render.
+    const activeDiagram = getActiveDiagram(project, project.currentDiagramType);
+    await setupBridgeForActiveDiagram(project, activeDiagram, project.currentDiagramType);
+
     return project;
   },
 );
@@ -154,27 +200,7 @@ export const switchDiagramTypeThunk = createAsyncThunk(
     });
     if (!diagram) throw new Error('Failed to switch diagram type');
 
-    // Set class diagram reference in bridge for Object Diagrams
-    // Uses the ObjectDiagram's per-diagram references to find the correct ClassDiagram
-    if (diagramType === UMLDiagramType.ObjectDiagram) {
-      const classDiagram = getReferencedDiagram(project, diagram, 'ClassDiagram');
-      if (isUMLModel(classDiagram?.model)) {
-        try {
-          const { diagramBridge } = await import('@besser/wme');
-          diagramBridge.setClassDiagramData(classDiagram.model);
-        } catch {
-          /* bridge not available */
-        }
-      }
-    } else if (diagramType === UMLDiagramType.UserDiagram) {
-      try {
-        const { diagramBridge } = await import('@besser/wme');
-        // User modeling depends on this metamodel being present in the bridge.
-        diagramBridge.setClassDiagramData(userMetaModel as unknown as UMLModel);
-      } catch {
-        /* bridge not available */
-      }
-    }
+    await setupBridgeForActiveDiagram(project, diagram, supportedType);
 
     return { diagram, diagramType: supportedType };
   },
