@@ -358,7 +358,8 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 export const createDefaultProject = (
   name: string,
   description: string,
-  owner: string
+  owner: string,
+  perspectives?: PerspectiveSettings,
 ): BesserProject => {
   const projectId = generateUUID();
 
@@ -386,7 +387,7 @@ export const createDefaultProject = (
       defaultDiagramType: 'ClassDiagram',
       autoSave: true,
       collaborationEnabled: false,
-      perspectives: createDefaultPerspectives(),
+      perspectives: perspectives ?? createDefaultPerspectives(),
     },
   };
 };

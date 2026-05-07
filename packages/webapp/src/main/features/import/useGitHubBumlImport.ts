@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { convertToRawUrl, extractFileName, validateGitHubUrl } from '../../shared/utils/githubUrlUtils';
-import { importProjectFromBUML } from './useImportProject';
+import { importProjectFromBUML } from '../../shared/services/project-import/projectImport';
 import { useProject } from '../../app/hooks/useProject';
 
 export const useGitHubBumlImport = () => {

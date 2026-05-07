@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { diagramBridge } from '@besser/wme';
-import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
@@ -13,6 +13,7 @@ import {
   removeDiagramThunk,
   renameDiagramThunk,
   switchDiagramIndexThunk,
+  updateDiagramModelThunk,
   updateDiagramReferencesThunk,
   bumpEditorRevision,
   selectActiveDiagramIndex,
@@ -20,6 +21,8 @@ import {
   selectActiveDiagramType,
   selectProject,
 } from '../../../app/store/workspaceSlice';
+import { ApollonEditorContext } from '../uml/apollon-editor-context';
+import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 
 interface DiagramTabsProps {
   onRequestTabSwitch?: (index: number) => Promise<boolean> | boolean;
@@ -167,6 +170,51 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       references: { ClassDiagram: newId },
     }));
   }, [dispatch, currentDiagramType, safeIndex]);
+
+  const { editor: apollonEditor } = useContext(ApollonEditorContext);
+
+  const handleGenerateObjectsFromClasses = useCallback(async () => {
+    if (currentDiagramType !== 'ObjectDiagram') return;
+    if (!apollonEditor || !apollonEditor.model) {
+      toast.error('Editor is not ready yet.');
+      return;
+    }
+    const refDiagram = classDiagrams.find((d) => d.id === classRefId);
+    const refModel = refDiagram?.model;
+    if (!isUMLModel(refModel)) {
+      toast.error('Pick a Class Diagram reference first.');
+      return;
+    }
+    const classCount = Object.values(refModel.elements ?? {}).filter(
+      (el: any) => el?.type === 'Class',
+    ).length;
+    if (classCount === 0) {
+      toast.warning('The referenced Class Diagram has no classes to instantiate.');
+      return;
+    }
+
+    const { model: nextModel, created, skipped, links } = scaffoldObjectsFromClasses({
+      classModel: refModel,
+      objectModel: apollonEditor.model,
+    });
+
+    // Push to redux first so a refresh / undo stack snapshot reflects the
+    // generated objects, then propagate to the Apollon editor canvas.
+    await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
+    await apollonEditor.nextRender;
+    apollonEditor.model = { ...nextModel } as any;
+    await apollonEditor.nextRender;
+
+    const linksFragment = links > 0 ? `, ${links} link${links === 1 ? '' : 's'}` : '';
+    if (created === 0 && links === 0 && skipped > 0) {
+      toast.info(`All ${skipped} class${skipped === 1 ? '' : 'es'} already have an instance — nothing to add.`);
+    } else if (skipped > 0) {
+      toast.success(`Generated ${created} object${created === 1 ? '' : 's'}${linksFragment}, skipped ${skipped} already on canvas.`);
+    } else {
+      toast.success(`Generated ${created} object${created === 1 ? '' : 's'}${linksFragment} from the class diagram.`);
+    }
+    getPostHog()?.capture('object_diagram_generated_from_class', { created, skipped, links });
+  }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
 
   const showTabs = diagrams.length > 0;
   const [refsCollapsed, setRefsCollapsed] = useState(false);
@@ -419,6 +467,17 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                       <span title="The referenced Class Diagram is empty (no classes or relationships).">
                         <AlertTriangle className="size-3 text-muted-foreground" />
                       </span>
+                    )}
+                    {currentDiagramType === 'ObjectDiagram' && !classRefBroken && !classRefEmpty && (
+                      <button
+                        type="button"
+                        className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
+                        onClick={() => void handleGenerateObjectsFromClasses()}
+                        title="Create one Object instance per Class in the referenced diagram, with default values for each attribute."
+                      >
+                        <Wand2 className="size-3" />
+                        Generate
+                      </button>
                     )}
                   </>
                 ) : (

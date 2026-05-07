@@ -68,6 +68,8 @@ export interface ModificationChanges {
   implementationType?: string;
   code?: string;
   language?: string;
+  // add_ocl_constraint fields
+  constraint?: string;
 }
 
 export interface ModelModification {
@@ -99,7 +101,8 @@ export interface ModelModification {
     | 'promote_attribute'
     | 'add_enum'
     | 'add_code_block'
-    | 'add_rag_element';
+    | 'add_rag_element'
+    | 'add_ocl_constraint';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;

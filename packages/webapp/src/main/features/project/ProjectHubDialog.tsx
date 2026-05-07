@@ -20,12 +20,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/form-field';
-import { BesserProject } from '../../shared/types/project';
+import { BesserProject, PerspectiveSettings } from '../../shared/types/project';
+import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { importProject } from '../import/useImportProject';
+import { importProject } from '../../shared/services/project-import/projectImport';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
 import { BACKEND_URL } from '../../shared/constants/constant';
@@ -44,6 +45,23 @@ const defaultForm = {
   owner: 'BESSER User',
 };
 
+// Default to "Show All" so the create-project flow preserves the prior default
+// of all-diagrams-visible when the user doesn't pick a perspective explicitly.
+const DEFAULT_PERSPECTIVE_KEY = 'all';
+
+// Apply a perspective preset at project-creation time. We can't reuse
+// `applyPerspectivePresetThunk` here because the project doesn't exist yet —
+// that thunk mutates `currentProject`, but in this flow there is no current
+// project to mutate. Instead we compute the preset and pass it through
+// `createProjectThunk` so the very first persisted state already has the
+// chosen perspective. Keep this in lockstep with `applyPerspectivePresetThunk`
+// (workspaceSlice.ts) so the two paths don't drift in how they map a preset
+// key to a `PerspectiveSettings` map.
+const resolvePerspectives = (key: string): PerspectiveSettings | undefined => {
+  const preset = PERSPECTIVES.find((p) => p.key === key);
+  return preset ? perspectivesFromDiagramList(preset.diagrams) : undefined;
+};
+
 const readableFileSize = (bytes: number): string => {
   if (bytes < 1024) {
     return `${bytes} B`;
@@ -58,7 +76,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
   const [form, setForm] = useState(defaultForm);
+  const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
+  const [spreadsheetPerspectiveKey, setSpreadsheetPerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetFiles, setSpreadsheetFiles] = useState<File[]>([]);
   const [isBusy, setIsBusy] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -99,7 +119,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     refreshProjects();
     setStep('start');
     setForm(defaultForm);
+    setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetForm(defaultForm);
+    setSpreadsheetPerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetFiles([]);
     createValidation.resetTouched();
     spreadsheetValidation.resetTouched();
@@ -161,7 +183,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
     try {
       setIsBusy(true);
-      await createProject(name, description || defaultForm.description, owner || defaultForm.owner);
+      await createProject(
+        name,
+        description || defaultForm.description,
+        owner || defaultForm.owner,
+        resolvePerspectives(createPerspectiveKey),
+      );
       refreshProjects();
       handleDialogOpenChange(false);
       toast.success(`Project "${name}" created.`);
@@ -278,7 +305,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
     try {
       setIsBusy(true);
-      await createProject(name, description || defaultForm.description, owner || defaultForm.owner);
+      await createProject(
+        name,
+        description || defaultForm.description,
+        owner || defaultForm.owner,
+        resolvePerspectives(spreadsheetPerspectiveKey),
+      );
 
       const requestData = new FormData();
       spreadsheetFiles.forEach((file) => requestData.append('files', file));
@@ -318,6 +350,44 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setIsBusy(false);
     }
   };
+
+  const renderPerspectivePicker = (
+    selected: string,
+    onSelect: (key: string) => void,
+    idPrefix: string,
+  ) => (
+    <FormField
+      label="Modeling perspective"
+      htmlFor={`${idPrefix}-perspective`}
+      helperText="Tailors which diagrams appear in the sidebar. You can change this later in Settings."
+    >
+      <div
+        id={`${idPrefix}-perspective`}
+        role="radiogroup"
+        aria-label="Modeling perspective"
+        className="flex flex-wrap gap-2"
+      >
+        {PERSPECTIVES.map((preset) => {
+          const active = preset.key === selected;
+          return (
+            <Button
+              key={preset.key}
+              type="button"
+              variant={active ? 'default' : 'outline'}
+              size="sm"
+              role="radio"
+              aria-checked={active}
+              title={preset.description}
+              onClick={() => onSelect(preset.key)}
+              data-testid={`${idPrefix}-perspective-${preset.key}`}
+            >
+              {preset.label}
+            </Button>
+          );
+        })}
+      </div>
+    </FormField>
+  );
 
   const renderProjectList = () => (
     <div className="flex flex-col gap-3">
@@ -379,7 +449,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', !canClose && '[&>button]:hidden')}>
-        <DialogHeader className="border-b border-border/60 px-6 pt-6 pb-4">
+        <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-3">
           <div className="flex items-start justify-between gap-3">
             <div className={cn(step === 'start' && 'flex items-start gap-3.5')}>
               {step === 'start' && (
@@ -417,7 +487,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           onChange={handleSpreadsheetFileSelect}
         />
 
-        <div className="max-h-[75vh] overflow-y-auto p-6">
+        <div className="max-h-[75vh] overflow-y-auto px-6 py-4">
           {step === 'start' && (
             <div className="flex flex-col gap-5">
               {/* Hero banner */}
@@ -531,92 +601,57 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           )}
 
           {step === 'create' && (
-            <div className="flex flex-col gap-5">
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
-                <ArrowLeft className="size-3.5" />
-                Back
-              </Button>
+            <div className="flex flex-col gap-2.5">
+              <Card className="border-border/50 shadow-elevation-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base tracking-tight">Project Details</CardTitle>
+                  <CardDescription className="text-xs">Give your workspace a name and description.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2.5">
+                  <FormField label="Name" htmlFor="project-name" required error={createValidation.getError('name')}>
+                    <Input
+                      id="project-name"
+                      value={form.name}
+                      onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
+                      onBlur={() => createValidation.markTouched('name')}
+                      placeholder="My_Modeling_Project"
+                      className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+                    />
+                  </FormField>
+                  <FormField label="Owner" htmlFor="project-owner">
+                    <Input
+                      id="project-owner"
+                      value={form.owner}
+                      onChange={(event) => setForm((previous) => ({ ...previous, owner: event.target.value }))}
+                      placeholder="BESSER User"
+                    />
+                  </FormField>
+                  <FormField label="Description" htmlFor="project-description">
+                    <Textarea
+                      id="project-description"
+                      value={form.description}
+                      onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
+                      className="min-h-16"
+                    />
+                  </FormField>
+                  {renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
+                  <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
+                    <Sparkles className="size-4" />
+                    Create Project
+                  </Button>
+                </CardContent>
+              </Card>
 
-              <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-                <Card className="border-border/50 shadow-elevation-1">
-                  <CardHeader>
-                    <CardTitle className="text-lg tracking-tight">Project Details</CardTitle>
-                    <CardDescription>Give your workspace a name and description.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    <FormField label="Name" htmlFor="project-name" required error={createValidation.getError('name')}>
-                      <Input
-                        id="project-name"
-                        value={form.name}
-                        onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-                        onBlur={() => createValidation.markTouched('name')}
-                        placeholder="My_Modeling_Project"
-                        className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
-                      />
-                    </FormField>
-                    <FormField label="Owner" htmlFor="project-owner">
-                      <Input
-                        id="project-owner"
-                        value={form.owner}
-                        onChange={(event) => setForm((previous) => ({ ...previous, owner: event.target.value }))}
-                        placeholder="BESSER User"
-                      />
-                    </FormField>
-                    <FormField label="Description" htmlFor="project-description">
-                      <Textarea
-                        id="project-description"
-                        value={form.description}
-                        onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
-                        className="min-h-24"
-                      />
-                    </FormField>
-                    <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
-                      <Sparkles className="size-4" />
-                      Create Project
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-border/50 shadow-elevation-1">
-                  <CardHeader>
-                    <CardTitle className="text-base tracking-tight">Recent Projects</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-1.5">
-                    {sortedProjects.slice(0, 5).map((project) => (
-                      <div
-                        key={project.id}
-                        className="group flex items-center gap-2 rounded-lg border border-border/40 bg-muted/15 px-3 py-2 text-sm transition-all duration-200 hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
-                      >
-                        <button
-                          type="button"
-                          className="flex min-w-0 flex-1 items-center justify-between text-left"
-                          onClick={() => void handleOpenProject(project.id)}
-                          disabled={isBusy}
-                        >
-                          <span className="truncate font-medium">{project.name}</span>
-                          <FolderOpen className="size-3.5 text-muted-foreground transition-colors group-hover:text-brand" />
-                        </button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                          onClick={() => void handleDeleteProject(project.id, project.name)}
-                          disabled={isBusy}
-                          aria-label={`Delete project ${project.name}`}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                    {sortedProjects.length === 0 && <p className="text-xs text-muted-foreground">No projects yet.</p>}
-                  </CardContent>
-                </Card>
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Layers3 className="size-3" />
+                  Tip: pick a modeling perspective to focus the workspace on the diagrams you need.
+                </p>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+                  <ArrowLeft className="size-3.5" />
+                  Back
+                </Button>
               </div>
-
-              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Layers3 className="size-3" />
-                Tip: tailor your workspace via modeling perspectives in Settings.
-              </p>
             </div>
           )}
 
@@ -714,6 +749,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         className="min-h-24"
                       />
                     </FormField>
+                    {renderPerspectivePicker(spreadsheetPerspectiveKey, setSpreadsheetPerspectiveKey, 'spreadsheet')}
 
                     <div className="rounded-xl border-2 border-dashed border-border/50 bg-muted/10 p-4">
                       <div className="mb-3 flex items-center justify-between">

@@ -27,7 +27,8 @@ export class ClassDiagramModifier implements DiagramModifier {
       'split_class',
       'merge_classes',
       'promote_attribute',
-      'add_enum'
+      'add_enum',
+      'add_ocl_constraint'
     ].includes(action);
   }
 
@@ -87,9 +88,80 @@ export class ClassDiagramModifier implements DiagramModifier {
         return this.promoteAttribute(updatedModel, modification);
       case 'add_enum':
         return this.addEnum(updatedModel, modification);
+      case 'add_ocl_constraint':
+        return this.addOclConstraint(updatedModel, modification);
       default:
         throw new Error(`Unsupported action for ClassDiagram: ${modification.action}`);
     }
+  }
+
+  private addOclConstraint(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const constraintText = (modification.changes?.constraint || '').trim();
+    if (!constraintText) {
+      throw new Error('add_ocl_constraint requires a "constraint" string in changes (full BOCL block: "context X (inv|pre|post) [name]: body").');
+    }
+
+    const className = modification.target?.className;
+    if (!className) {
+      throw new Error('add_ocl_constraint requires target.className (the class the constraint anchors on).');
+    }
+
+    const classId = this.findClassIdByName(model, className);
+    if (!classId || !model.elements[classId]) {
+      throw new Error(`add_ocl_constraint: class '${className}' not found in the model.`);
+    }
+
+    const classElement = model.elements[classId];
+    const classBounds = classElement.bounds || { x: 0, y: 0, width: 220, height: 90 };
+
+    const constraintWidth = 240;
+    const constraintHeight = 80;
+    const x = (classBounds.x ?? 0) + (classBounds.width ?? 220) + 80;
+    const y = (classBounds.y ?? 0);
+
+    const constraintId = ModifierHelpers.generateUniqueId('ocl');
+    model.elements[constraintId] = {
+      id: constraintId,
+      name: 'OCL',
+      type: 'ClassOCLConstraint',
+      owner: null,
+      bounds: { x, y, width: constraintWidth, height: constraintHeight },
+      constraint: constraintText,
+      description: (modification.changes?.text || '').trim() || '',
+    };
+
+    if (!model.relationships) {
+      model.relationships = {};
+    }
+
+    const linkId = ModifierHelpers.generateUniqueId('rel');
+    model.relationships[linkId] = {
+      id: linkId,
+      type: 'ClassOCLLink',
+      source: {
+        element: constraintId,
+        direction: 'Left',
+        multiplicity: '',
+        role: '',
+        bounds: { x: 0, y: 0, width: 0, height: 0 },
+      },
+      target: {
+        element: classId,
+        direction: 'Right',
+        multiplicity: '',
+        role: '',
+        bounds: { x: 0, y: 0, width: 0, height: 0 },
+      },
+      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      name: '',
+      path: [
+        { x: 0, y: 10 },
+        { x: 100, y: 10 },
+      ],
+      isManuallyLayouted: false,
+    };
+
+    return model;
   }
 
   private addClass(model: BESSERModel, modification: ModelModification): BESSERModel {

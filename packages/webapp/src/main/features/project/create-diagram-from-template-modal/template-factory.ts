@@ -1,10 +1,12 @@
 import {
+  FULL_PROJECT_DIAGRAM_TYPE,
   SoftwarePatternCategory,
   SoftwarePatternTemplate,
   SoftwarePatternType,
 } from './software-pattern/software-pattern-types';
 import { UMLDiagramType } from '@besser/wme';
 import libraryCompleteModel from '../../../templates/pattern/structural/Library_Complete.json';
+import libraryOclModel from '../../../templates/pattern/structural/Library_OCL.json';
 import teamOclModel from '../../../templates/pattern/structural/team_player_ocl.json';
 import dppModel from '../../../templates/pattern/structural/dpp.json';
 import aiSandboxModel from '../../../templates/pattern/structural/ai_sandbox.json';
@@ -18,6 +20,8 @@ import traficlightModel from '../../../templates/pattern/statemachine/traficligh
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
+import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
+import personalizedGymAgentProject from '../../../templates/pattern/project/personalized_gym_agent.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
 
@@ -41,6 +45,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.ClassDiagram,
           libraryCompleteModel as any,
+          SoftwarePatternCategory.STRUCTURAL,
+        );
+      case SoftwarePatternType.LIBRARY_OCL:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.ClassDiagram,
+          libraryOclModel as any,
           SoftwarePatternCategory.STRUCTURAL,
         );
       case SoftwarePatternType.TEAMOCL:
@@ -197,6 +208,25 @@ export class TemplateFactory {
           'QuantumCircuitDiagram',
           getQuantumCircuitData('Quantum Fourier Transform (3 qubit)'),
           SoftwarePatternCategory.QUANTUM_CIRCUIT,
+          false,
+        );
+      // Full-project templates: ``diagram`` carries the entire V2 export envelope
+      // (``{ project, exportedAt, version }``); the dialog routes these through
+      // the JSON import flow to materialize a brand-new project.
+      case SoftwarePatternType.LIBRARY_FULL_STACK:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          libraryFullStackProject as object,
+          SoftwarePatternCategory.FULL_PROJECT,
+          false,
+        );
+      case SoftwarePatternType.PERSONALIZED_GYM_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          personalizedGymAgentProject as object,
+          SoftwarePatternCategory.FULL_PROJECT,
           false,
         );
       default:

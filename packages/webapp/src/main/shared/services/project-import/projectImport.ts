@@ -6,9 +6,9 @@ import {
   createDefaultPerspectives,
   createEmptyDiagram,
   getActiveDiagram,
-} from '../../shared/types/project';
-import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { BACKEND_URL } from '../../shared/constants/constant';
+} from '../../types/project';
+import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
+import { BACKEND_URL } from '../../constants/constant';
 import { UMLDiagramType } from '@besser/wme';
 
 // Interface for V2 JSON export format
@@ -24,12 +24,6 @@ interface LegacyImportData {
   diagrams: ProjectDiagram[];
   exportedAt?: string;
   version?: string;
-}
-
-// Dynamic import for JSZip
-async function loadJSZip() {
-  const JSZip = (await import('jszip')).default;
-  return JSZip;
 }
 
 // Validate V2 export format (now allows partial diagrams)
