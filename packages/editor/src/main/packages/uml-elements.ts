@@ -78,6 +78,10 @@ import { AgentRagElement } from './agent-state-diagram/agent-rag-element/agent-r
 import { AgentState } from './agent-state-diagram/agent-state/agent-state';
 import { AgentStateBody } from './agent-state-diagram/agent-state-body/agent-state-body';
 import { AgentStateFallbackBody } from './agent-state-diagram/agent-state-fallback-body/agent-state-fallback-body';
+import { AgentTool } from './agent-state-diagram/agent-tool/agent-tool';
+import { AgentSkill } from './agent-state-diagram/agent-skill/agent-skill';
+import { AgentWorkspace } from './agent-state-diagram/agent-workspace/agent-workspace';
+import { AgentReasoningState } from './agent-state-diagram/agent-reasoning-state/agent-reasoning-state';
 
 
 
@@ -159,4 +163,8 @@ export const UMLElements = {
   [UMLElementType.AgentState]: AgentState,
   [UMLElementType.AgentStateBody]: AgentStateBody,
   [UMLElementType.AgentStateFallbackBody]: AgentStateFallbackBody,
+  [UMLElementType.AgentTool]: AgentTool,
+  [UMLElementType.AgentSkill]: AgentSkill,
+  [UMLElementType.AgentWorkspace]: AgentWorkspace,
+  [UMLElementType.AgentReasoningState]: AgentReasoningState,
 };

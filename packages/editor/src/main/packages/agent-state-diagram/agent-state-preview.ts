@@ -16,6 +16,10 @@ import { UMLStateCodeBlock } from '../uml-state-diagram/uml-state-code-block/uml
 import { AgentState } from './agent-state/agent-state';
 import { AgentStateBody } from './agent-state-body/agent-state-body';
 import { AgentStateFallbackBody } from './agent-state-fallback-body/agent-state-fallback-body';
+import { AgentTool } from './agent-tool/agent-tool';
+import { AgentSkill } from './agent-skill/agent-skill';
+import { AgentWorkspace } from './agent-workspace/agent-workspace';
+import { AgentReasoningState } from './agent-reasoning-state/agent-reasoning-state';
 
 const computeDimension = (scale: number, value: number): number => {
   return Math.round((scale * value) / 10) * 10;
@@ -111,6 +115,42 @@ export const composeBotPreview: ComposePreview = (
     bounds: { x: 0, y: 0, width: 45, height: 45 },
   });
   elements.push(stateInitialNode);
+
+  const reasoningState = new AgentReasoningState({ name: 'ReasoningState' });
+  reasoningState.bounds = {
+    ...reasoningState.bounds,
+    width: computeDimension(1.0, 200),
+    height: computeDimension(1.0, 80),
+  };
+  reasoningState.render(layer);
+  elements.push(reasoningState);
+
+  const toolElement = new AgentTool({ name: 'tool_name', description: 'What this tool does' });
+  toolElement.bounds = {
+    ...toolElement.bounds,
+    width: computeDimension(1.0, toolElement.bounds.width),
+    height: computeDimension(1.0, toolElement.bounds.height),
+  };
+  toolElement.render(layer);
+  elements.push(toolElement);
+
+  const skillElement = new AgentSkill({ name: 'skill_name', description: 'What this skill teaches' });
+  skillElement.bounds = {
+    ...skillElement.bounds,
+    width: computeDimension(1.0, skillElement.bounds.width),
+    height: computeDimension(1.0, skillElement.bounds.height),
+  };
+  skillElement.render(layer);
+  elements.push(skillElement);
+
+  const workspaceElement = new AgentWorkspace({ name: 'workspace_name', path: '/path/to/dir' });
+  workspaceElement.bounds = {
+    ...workspaceElement.bounds,
+    width: computeDimension(1.0, workspaceElement.bounds.width),
+    height: computeDimension(1.0, workspaceElement.bounds.height),
+  };
+  workspaceElement.render(layer);
+  elements.push(workspaceElement);
 
   // // State Final Node
   // const stateFinalNode = new UMLStateFinalNode({

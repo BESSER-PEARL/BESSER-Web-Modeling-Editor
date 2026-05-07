@@ -87,6 +87,10 @@ import { AgentStateComponent } from './agent-state-diagram/agent-state/agent-sta
 import { AgentStateMemberComponent } from './agent-state-diagram/agent-state/agent-state-member-component';
 import { AgentStateTransitionComponent } from './agent-state-diagram/agent-state-transition/agent-state-transition-component';
 import { AgentStateTransitionInitComponent } from './agent-state-diagram/agent-state-transition-init/agent-state-transition-init-component';
+import { AgentToolComponent } from './agent-state-diagram/agent-tool/agent-tool-component';
+import { AgentSkillComponent } from './agent-state-diagram/agent-skill/agent-skill-component';
+import { AgentWorkspaceComponent } from './agent-state-diagram/agent-workspace/agent-workspace-component';
+import { AgentReasoningStateComponent } from './agent-state-diagram/agent-reasoning-state/agent-reasoning-state-component';
 
 export const Components: {
   [key in UMLElementType | UMLRelationshipType]:
@@ -203,6 +207,10 @@ export const Components: {
   [UMLElementType.AgentState]: AgentStateComponent,
   [UMLElementType.AgentStateBody]: AgentStateMemberComponent,
   [UMLElementType.AgentStateFallbackBody]: AgentStateMemberComponent,
+  [UMLElementType.AgentTool]: AgentToolComponent,
+  [UMLElementType.AgentSkill]: AgentSkillComponent,
+  [UMLElementType.AgentWorkspace]: AgentWorkspaceComponent,
+  [UMLElementType.AgentReasoningState]: AgentReasoningStateComponent,
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionComponent,
   [UMLRelationshipType.AgentStateTransitionInit]: AgentStateTransitionInitComponent,
 };
