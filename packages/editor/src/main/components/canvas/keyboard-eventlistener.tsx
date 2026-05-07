@@ -137,10 +137,18 @@ class KeyboardEventListenerComponent extends Component<Props> {
           event.preventDefault();
           this.props.select();
           break;
-        case 'c':
+        case 'c': {
+          // If the user has a real DOM text selection (toast, label, error
+          // message, etc.), let the browser perform the native copy instead
+          // of stealing it for the canvas.
+          const selection = window.getSelection();
+          if (selection && selection.toString().length > 0) {
+            return;
+          }
           event.preventDefault();
           this.props.copy();
           break;
+        }
         case 'v':
           event.preventDefault();
           this.props.paste();
