@@ -1,0 +1,945 @@
+import {
+  Box,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  MenuItem,
+  Select,
+  Stack,
+  TextField as MuiTextField,
+  Tooltip,
+} from "@mui/material"
+import React, { useMemo, useState, ChangeEvent, KeyboardEvent } from "react"
+import { useShallow } from "zustand/shallow"
+import { useDiagramStore } from "@/store/context"
+import {
+  ClassNodeElement,
+  ClassNodeProps,
+  ClassifierMethodImplementationType,
+  ClassifierMethodParameter,
+  ClassifierVisibility,
+  ClassOCLConstraint,
+} from "@/types"
+import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
+import { StereotypeButtonGroup } from "@/components/ui/StereotypeButtonGroup"
+import { DeleteIcon } from "@/components/Icon"
+import { PopoverProps } from "@/components/popovers/types"
+import {
+  VISIBILITY_SYMBOLS,
+  normalizeType,
+} from "@/utils/typeNormalization"
+import { generateUUID } from "@/utils"
+import { diagramBridge } from "@/services/diagramBridge"
+
+/**
+ * Primitive type catalogue, mirrored verbatim from the v3 fork
+ * (`packages/editor/.../uml-classifier-attribute-update.tsx`). Anything
+ * outside this list is committed as a "custom" type after running
+ * through `normalizeType()` so aliases (`String` → `str`) collapse
+ * before reaching the round-trip layer.
+ */
+const PRIMITIVE_TYPES: { value: string; label: string }[] = [
+  { value: "str", label: "str (string)" },
+  { value: "int", label: "int (integer)" },
+  { value: "float", label: "float (double)" },
+  { value: "bool", label: "bool (boolean)" },
+  { value: "date", label: "date" },
+  { value: "datetime", label: "datetime" },
+  { value: "time", label: "time" },
+  { value: "timedelta", label: "timedelta" },
+  { value: "any", label: "any" },
+]
+
+const VISIBILITIES: { value: ClassifierVisibility; label: string }[] = [
+  { value: "public", label: `${VISIBILITY_SYMBOLS.public} public` },
+  { value: "private", label: `${VISIBILITY_SYMBOLS.private} private` },
+  { value: "protected", label: `${VISIBILITY_SYMBOLS.protected} protected` },
+  { value: "package", label: `${VISIBILITY_SYMBOLS.package} package` },
+]
+
+const IMPLEMENTATION_TYPES: {
+  value: ClassifierMethodImplementationType
+  label: string
+}[] = [
+  { value: "none", label: "None (UML)" },
+  { value: "code", label: "Python Code" },
+  { value: "bal", label: "BESSER Action Language" },
+  { value: "state_machine", label: "State Machine" },
+  { value: "quantum_circuit", label: "Quantum Circuit" },
+]
+
+const CUSTOM_TYPE_SENTINEL = "__custom__"
+
+/**
+ * Hook helper: write a partial node update through Zustand. Used by every
+ * row-level commit below.
+ */
+const useUpdateNode = (elementId: string) => {
+  const { setNodes } = useDiagramStore(
+    useShallow((state) => ({ setNodes: state.setNodes }))
+  )
+  return (updater: (data: ClassNodeProps) => ClassNodeProps) => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id !== elementId) return node
+        const next = updater(node.data as ClassNodeProps)
+        return { ...node, data: { ...node.data, ...next } }
+      })
+    )
+  }
+}
+
+const isPrimitiveType = (t: string | undefined): boolean =>
+  !!t && PRIMITIVE_TYPES.some((p) => p.value === t)
+
+/* -------------------------------------------------------------------------- */
+/* Attribute row                                                               */
+/* -------------------------------------------------------------------------- */
+
+interface AttributeRowProps {
+  row: ClassNodeElement
+  classNames: string[]
+  onPatch: (patch: Partial<ClassNodeElement>) => void
+  onDelete: () => void
+}
+
+const AttributeRow: React.FC<AttributeRowProps> = ({
+  row,
+  classNames,
+  onPatch,
+  onDelete,
+}) => {
+  const visibility = row.visibility ?? "public"
+  const attributeType = row.attributeType ?? "str"
+  const isCustom = !isPrimitiveType(attributeType)
+  const [customTypeDraft, setCustomTypeDraft] = useState(
+    isCustom ? attributeType : ""
+  )
+
+  const handleTypeSelect = (value: string) => {
+    if (value === CUSTOM_TYPE_SENTINEL) {
+      onPatch({ attributeType: customTypeDraft || attributeType })
+      return
+    }
+    onPatch({ attributeType: normalizeType(value) })
+  }
+
+  const handleCustomTypeBlur = () => {
+    if (customTypeDraft.trim()) {
+      onPatch({ attributeType: normalizeType(customTypeDraft.trim()) })
+    }
+  }
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.5,
+        padding: "6px 0",
+        borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+      }}
+    >
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <Select
+          size="small"
+          value={visibility}
+          onChange={(e) =>
+            onPatch({ visibility: e.target.value as ClassifierVisibility })
+          }
+          sx={{ minWidth: 70 }}
+        >
+          {VISIBILITIES.map((v) => (
+            <MenuItem key={v.value} value={v.value}>
+              {v.label}
+            </MenuItem>
+          ))}
+        </Select>
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          placeholder="attribute name"
+          value={row.name}
+          onChange={(e) =>
+            onPatch({
+              name: e.target.value.replace(/[^a-zA-Z0-9_]/g, ""),
+            })
+          }
+        />
+        <Select
+          size="small"
+          value={isCustom ? CUSTOM_TYPE_SENTINEL : attributeType}
+          onChange={(e) => handleTypeSelect(String(e.target.value))}
+          sx={{ minWidth: 110 }}
+        >
+          {PRIMITIVE_TYPES.map((p) => (
+            <MenuItem key={p.value} value={p.value}>
+              {p.label}
+            </MenuItem>
+          ))}
+          {classNames.length > 0 && [
+            <MenuItem key="__divider__" disabled>
+              ── classes ──
+            </MenuItem>,
+            ...classNames.map((cn) => (
+              <MenuItem key={`class-${cn}`} value={cn}>
+                {cn}
+              </MenuItem>
+            )),
+          ]}
+          <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
+        </Select>
+        <Tooltip title="Delete attribute">
+          <IconButton size="small" onClick={onDelete}>
+            <DeleteIcon width={14} height={14} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {isCustom && (
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          placeholder="custom type (free-text)"
+          value={customTypeDraft || attributeType}
+          onChange={(e) => setCustomTypeDraft(e.target.value)}
+          onBlur={handleCustomTypeBlur}
+        />
+      )}
+
+      <Stack direction="row" spacing={1.5} flexWrap="wrap">
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={!!row.isId}
+              onChange={(e) =>
+                onPatch({
+                  isId: e.target.checked,
+                  // Mutual-exclusion mirroring v3 metamodel constraint.
+                  isOptional: e.target.checked ? false : row.isOptional,
+                })
+              }
+            />
+          }
+          label={<Typography variant="caption">id</Typography>}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={!!row.isExternalId}
+              onChange={(e) =>
+                onPatch({
+                  isExternalId: e.target.checked,
+                  isOptional: e.target.checked ? false : row.isOptional,
+                })
+              }
+            />
+          }
+          label={<Typography variant="caption">external id</Typography>}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={!!row.isOptional}
+              onChange={(e) => onPatch({ isOptional: e.target.checked })}
+            />
+          }
+          label={<Typography variant="caption">optional</Typography>}
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              size="small"
+              checked={!!row.isDerived}
+              onChange={(e) => onPatch({ isDerived: e.target.checked })}
+            />
+          }
+          label={<Typography variant="caption">derived</Typography>}
+        />
+      </Stack>
+
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        placeholder="default value (optional)"
+        value={row.defaultValue !== undefined ? String(row.defaultValue) : ""}
+        onChange={(e) =>
+          onPatch({
+            defaultValue: e.target.value === "" ? undefined : e.target.value,
+          })
+        }
+      />
+    </Box>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* Method row                                                                  */
+/* -------------------------------------------------------------------------- */
+
+interface MethodRowProps {
+  row: ClassNodeElement
+  classNames: string[]
+  stateMachines: { id: string; name: string }[]
+  quantumCircuits: { id: string; name: string }[]
+  onPatch: (patch: Partial<ClassNodeElement>) => void
+  onDelete: () => void
+}
+
+const MethodRow: React.FC<MethodRowProps> = ({
+  row,
+  classNames,
+  stateMachines,
+  quantumCircuits,
+  onPatch,
+  onDelete,
+}) => {
+  const visibility = row.visibility ?? "public"
+  const returnType = row.returnType ?? row.attributeType ?? "any"
+  const isCustomReturn = !isPrimitiveType(returnType)
+  const [customReturnDraft, setCustomReturnDraft] = useState(
+    isCustomReturn ? returnType : ""
+  )
+  const implementationType: ClassifierMethodImplementationType =
+    row.implementationType ?? "none"
+  const parameters = row.parameters ?? []
+
+  const handleReturnSelect = (value: string) => {
+    if (value === CUSTOM_TYPE_SENTINEL) {
+      const t = customReturnDraft || returnType
+      onPatch({ returnType: t, attributeType: t })
+      return
+    }
+    const t = normalizeType(value)
+    onPatch({ returnType: t, attributeType: t })
+  }
+
+  const patchParameters = (next: ClassifierMethodParameter[]) => {
+    onPatch({ parameters: next })
+  }
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.5,
+        padding: "6px 0",
+        borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+      }}
+    >
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <Select
+          size="small"
+          value={visibility}
+          onChange={(e) =>
+            onPatch({ visibility: e.target.value as ClassifierVisibility })
+          }
+          sx={{ minWidth: 70 }}
+        >
+          {VISIBILITIES.map((v) => (
+            <MenuItem key={v.value} value={v.value}>
+              {v.label}
+            </MenuItem>
+          ))}
+        </Select>
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          placeholder="method name"
+          value={row.name}
+          onChange={(e) => onPatch({ name: e.target.value })}
+        />
+        <Tooltip title="Delete method">
+          <IconButton size="small" onClick={onDelete}>
+            <DeleteIcon width={14} height={14} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+
+      {/* Return-type dropdown — same options as attribute type. */}
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <Typography variant="caption" sx={{ minWidth: 70 }}>
+          returns
+        </Typography>
+        <Select
+          size="small"
+          value={isCustomReturn ? CUSTOM_TYPE_SENTINEL : returnType}
+          onChange={(e) => handleReturnSelect(String(e.target.value))}
+          sx={{ minWidth: 110 }}
+        >
+          {PRIMITIVE_TYPES.map((p) => (
+            <MenuItem key={p.value} value={p.value}>
+              {p.label}
+            </MenuItem>
+          ))}
+          {classNames.length > 0 && [
+            <MenuItem key="__rdivider__" disabled>
+              ── classes ──
+            </MenuItem>,
+            ...classNames.map((cn) => (
+              <MenuItem key={`rclass-${cn}`} value={cn}>
+                {cn}
+              </MenuItem>
+            )),
+          ]}
+          <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
+        </Select>
+        {isCustomReturn && (
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            placeholder="custom return type"
+            value={customReturnDraft || returnType}
+            onChange={(e) => setCustomReturnDraft(e.target.value)}
+            onBlur={() => {
+              if (customReturnDraft.trim()) {
+                const t = normalizeType(customReturnDraft.trim())
+                onPatch({ returnType: t, attributeType: t })
+              }
+            }}
+            sx={{ flex: 1 }}
+          />
+        )}
+      </Stack>
+
+      {/* Parameter rows */}
+      <Box>
+        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+          Parameters
+        </Typography>
+        {parameters.map((p, idx) => (
+          <Stack
+            key={p.id}
+            direction="row"
+            spacing={0.5}
+            alignItems="center"
+            sx={{ marginTop: 0.5 }}
+          >
+            <MuiTextField
+              size="small"
+              variant="outlined"
+              placeholder="name"
+              value={p.name}
+              onChange={(e) => {
+                const next = [...parameters]
+                next[idx] = { ...p, name: e.target.value }
+                patchParameters(next)
+              }}
+              sx={{ flex: 1 }}
+            />
+            <MuiTextField
+              size="small"
+              variant="outlined"
+              placeholder="type"
+              value={p.parameterType ?? ""}
+              onChange={(e) => {
+                const next = [...parameters]
+                next[idx] = { ...p, parameterType: e.target.value }
+                patchParameters(next)
+              }}
+              sx={{ width: 90 }}
+              onBlur={() => {
+                const t = p.parameterType
+                if (t) {
+                  const next = [...parameters]
+                  next[idx] = { ...p, parameterType: normalizeType(t) }
+                  patchParameters(next)
+                }
+              }}
+            />
+            <IconButton
+              size="small"
+              onClick={() =>
+                patchParameters(parameters.filter((_, i) => i !== idx))
+              }
+            >
+              <DeleteIcon width={14} height={14} />
+            </IconButton>
+          </Stack>
+        ))}
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          placeholder="+ add parameter (Enter)"
+          fullWidth
+          sx={{ marginTop: 0.5 }}
+          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === "Enter") {
+              const target = e.target as HTMLInputElement
+              const v = target.value.trim()
+              if (!v) return
+              patchParameters([
+                ...parameters,
+                { id: generateUUID(), name: v },
+              ])
+              target.value = ""
+            }
+          }}
+        />
+      </Box>
+
+      {/* Implementation type and cross-diagram dropdowns */}
+      <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
+        <Typography variant="caption" sx={{ minWidth: 70 }}>
+          impl
+        </Typography>
+        <Select
+          size="small"
+          value={implementationType}
+          onChange={(e) => {
+            const next = e.target.value as ClassifierMethodImplementationType
+            const patch: Partial<ClassNodeElement> = { implementationType: next }
+            if (next === "state_machine") {
+              patch.code = ""
+              patch.quantumCircuitId = ""
+            } else if (next === "quantum_circuit") {
+              patch.code = ""
+              patch.stateMachineId = ""
+            } else if (next === "none") {
+              patch.code = ""
+              patch.stateMachineId = ""
+              patch.quantumCircuitId = ""
+            } else {
+              patch.stateMachineId = ""
+              patch.quantumCircuitId = ""
+            }
+            onPatch(patch)
+          }}
+          sx={{ minWidth: 140 }}
+        >
+          {IMPLEMENTATION_TYPES.map((it) => (
+            <MenuItem key={it.value} value={it.value}>
+              {it.label}
+            </MenuItem>
+          ))}
+        </Select>
+        {implementationType === "state_machine" && (
+          <Select
+            size="small"
+            value={row.stateMachineId ?? ""}
+            displayEmpty
+            onChange={(e) =>
+              onPatch({ stateMachineId: String(e.target.value) })
+            }
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="">— Select State Machine —</MenuItem>
+            {stateMachines.map((sm) => (
+              <MenuItem key={sm.id} value={sm.id}>
+                {sm.name}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
+        {implementationType === "quantum_circuit" && (
+          <Select
+            size="small"
+            value={row.quantumCircuitId ?? ""}
+            displayEmpty
+            onChange={(e) =>
+              onPatch({ quantumCircuitId: String(e.target.value) })
+            }
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value="">— Select Quantum Circuit —</MenuItem>
+            {quantumCircuits.map((qc) => (
+              <MenuItem key={qc.id} value={qc.id}>
+                {qc.name}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
+      </Stack>
+
+      {(implementationType === "code" || implementationType === "bal") && (
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          multiline
+          minRows={3}
+          maxRows={12}
+          placeholder={
+            implementationType === "bal"
+              ? "BAL method body…"
+              : "Python method body…"
+          }
+          value={row.code ?? ""}
+          onChange={(e) => onPatch({ code: e.target.value })}
+        />
+      )}
+    </Box>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* OCL constraint row                                                          */
+/* -------------------------------------------------------------------------- */
+
+interface OCLConstraintRowProps {
+  row: ClassOCLConstraint
+  onPatch: (patch: Partial<ClassOCLConstraint>) => void
+  onDelete: () => void
+}
+
+const OCLConstraintRow: React.FC<OCLConstraintRowProps> = ({
+  row,
+  onPatch,
+  onDelete,
+}) => (
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      gap: 0.5,
+      padding: "6px 0",
+      borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+    }}
+  >
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        placeholder="constraint name"
+        value={row.name}
+        onChange={(e) => onPatch({ name: e.target.value })}
+        sx={{ flex: 1 }}
+      />
+      <IconButton size="small" onClick={onDelete}>
+        <DeleteIcon width={14} height={14} />
+      </IconButton>
+    </Stack>
+    <MuiTextField
+      size="small"
+      variant="outlined"
+      multiline
+      minRows={2}
+      maxRows={8}
+      placeholder="OCL expression…"
+      value={row.expression}
+      onChange={(e) => onPatch({ expression: e.target.value })}
+    />
+  </Box>
+)
+
+/* -------------------------------------------------------------------------- */
+/* Main panel                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * BESSER ClassDiagram inspector body. Renders identically in popover and
+ * properties-panel contexts — `PropertiesPanel` and `PopoverManager` both
+ * pull this component from the inspector registry.
+ *
+ * Source-of-truth port: combines the v3 fork's
+ * `uml-classifier-attribute-update.tsx`,
+ * `uml-classifier-method-update.tsx`, and the old `ClassEditPopover`
+ * popup body.
+ */
+export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
+  const { nodes, setNodes } = useDiagramStore(
+    useShallow((state) => ({
+      nodes: state.nodes,
+      setNodes: state.setNodes,
+    }))
+  )
+  const node = nodes.find((n) => n.id === elementId)
+  const updateNode = useUpdateNode(elementId)
+
+  // Cross-diagram pickers. The bridge service is populated by the embedding
+  // webapp via `setStateMachineDiagrams` / `setQuantumCircuitDiagrams`
+  // before opening the editor (see frontend/CLAUDE.md
+  // `ApollonEditorComponent.tsx`).
+  const availableClassNames = useMemo(() => {
+    try {
+      return diagramBridge
+        .getAvailableClasses()
+        .map((c) => c.name)
+        .filter((n) => !!n)
+    } catch {
+      return []
+    }
+  }, [nodes])
+
+  const stateMachineDiagrams = diagramBridge.getStateMachineDiagrams()
+  const quantumCircuitDiagrams = diagramBridge.getQuantumCircuitDiagrams()
+
+  if (!node) return null
+  const nodeData = node.data as ClassNodeProps
+
+  /* ----- Top-level node update helpers ----------------------------------- */
+
+  const handleDataFieldUpdate = (key: string, value: string) => {
+    updateNode((d) => ({ ...d, [key]: value }))
+  }
+
+  /* ----- Attribute helpers ----------------------------------------------- */
+
+  const patchAttribute = (
+    attrId: string,
+    patch: Partial<ClassNodeElement>
+  ) => {
+    updateNode((d) => ({
+      ...d,
+      attributes: d.attributes.map((a) =>
+        a.id === attrId ? { ...a, ...patch } : a
+      ),
+    }))
+  }
+
+  const deleteAttribute = (attrId: string) => {
+    setNodes((nodes) =>
+      nodes.map((n) => {
+        if (n.id !== elementId) return n
+        const data = n.data as ClassNodeProps
+        const nextAttrs = data.attributes.filter((a) => a.id !== attrId)
+        return {
+          ...n,
+          data: { ...data, attributes: nextAttrs },
+          height: n.height ? n.height - 30 : n.height,
+          measured: n.measured
+            ? { ...n.measured, height: (n.measured.height ?? 0) - 30 }
+            : n.measured,
+        }
+      })
+    )
+  }
+
+  const addAttribute = (rawName: string) => {
+    const trimmed = rawName.trim()
+    if (!trimmed) return
+    const newAttr: ClassNodeElement = {
+      id: generateUUID(),
+      name: trimmed.replace(/[^a-zA-Z0-9_]/g, ""),
+      attributeType: "str",
+      visibility: "public",
+    }
+    setNodes((nodes) =>
+      nodes.map((n) => {
+        if (n.id !== elementId) return n
+        const data = n.data as ClassNodeProps
+        return {
+          ...n,
+          data: { ...data, attributes: [...data.attributes, newAttr] },
+          height: n.height ? n.height + 30 : n.height,
+          measured: n.measured
+            ? { ...n.measured, height: (n.measured.height ?? 0) + 30 }
+            : n.measured,
+        }
+      })
+    )
+  }
+
+  /* ----- Method helpers -------------------------------------------------- */
+
+  const patchMethod = (methodId: string, patch: Partial<ClassNodeElement>) => {
+    updateNode((d) => ({
+      ...d,
+      methods: d.methods.map((m) =>
+        m.id === methodId ? { ...m, ...patch } : m
+      ),
+    }))
+  }
+
+  const deleteMethod = (methodId: string) => {
+    setNodes((nodes) =>
+      nodes.map((n) => {
+        if (n.id !== elementId) return n
+        const data = n.data as ClassNodeProps
+        const nextMethods = data.methods.filter((m) => m.id !== methodId)
+        return {
+          ...n,
+          data: { ...data, methods: nextMethods },
+          height: n.height ? n.height - 30 : n.height,
+          measured: n.measured
+            ? { ...n.measured, height: (n.measured.height ?? 0) - 30 }
+            : n.measured,
+        }
+      })
+    )
+  }
+
+  const addMethod = (rawName: string) => {
+    const trimmed = rawName.trim()
+    if (!trimmed) return
+    const newMethod: ClassNodeElement = {
+      id: generateUUID(),
+      name: trimmed,
+      visibility: "public",
+      attributeType: "any",
+      returnType: "any",
+      parameters: [],
+      implementationType: "none",
+    }
+    setNodes((nodes) =>
+      nodes.map((n) => {
+        if (n.id !== elementId) return n
+        const data = n.data as ClassNodeProps
+        return {
+          ...n,
+          data: { ...data, methods: [...data.methods, newMethod] },
+          height: n.height ? n.height + 30 : n.height,
+          measured: n.measured
+            ? { ...n.measured, height: (n.measured.height ?? 0) + 30 }
+            : n.measured,
+        }
+      })
+    )
+  }
+
+  /* ----- OCL constraint helpers ----------------------------------------- */
+
+  const patchOcl = (oclId: string, patch: Partial<ClassOCLConstraint>) => {
+    updateNode((d) => ({
+      ...d,
+      oclConstraints: (d.oclConstraints ?? []).map((c) =>
+        c.id === oclId ? { ...c, ...patch } : c
+      ),
+    }))
+  }
+
+  const deleteOcl = (oclId: string) => {
+    updateNode((d) => ({
+      ...d,
+      oclConstraints: (d.oclConstraints ?? []).filter((c) => c.id !== oclId),
+    }))
+  }
+
+  const addOcl = () => {
+    updateNode((d) => ({
+      ...d,
+      oclConstraints: [
+        ...(d.oclConstraints ?? []),
+        { id: generateUUID(), name: "constraint", expression: "" },
+      ],
+    }))
+  }
+
+  /* ----- Local "add new row" inputs ------------------------------------- */
+
+  const [newAttrName, setNewAttrName] = useState("")
+  const [newMethodName, setNewMethodName] = useState("")
+
+  const onAttrKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      addAttribute(newAttrName)
+      setNewAttrName("")
+    }
+  }
+  const onAttrChange = (e: ChangeEvent<HTMLInputElement>) =>
+    setNewAttrName(e.target.value)
+  const onMethodKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      addMethod(newMethodName)
+      setNewMethodName("")
+    }
+  }
+  const onMethodChange = (e: ChangeEvent<HTMLInputElement>) =>
+    setNewMethodName(e.target.value)
+
+  /* ----- Render --------------------------------------------------------- */
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 1,
+      }}
+    >
+      <NodeStyleEditor
+        nodeData={nodeData}
+        handleDataFieldUpdate={handleDataFieldUpdate}
+      />
+      <DividerLine width="100%" />
+      <StereotypeButtonGroup
+        nodeId={elementId}
+        selectedStereotype={nodeData.stereotype}
+      />
+      <DividerLine width="100%" />
+
+      <Typography variant="h6">Attributes</Typography>
+      {nodeData.attributes.map((row) => (
+        <AttributeRow
+          key={row.id}
+          row={row}
+          classNames={availableClassNames}
+          onPatch={(patch) => patchAttribute(row.id, patch)}
+          onDelete={() => deleteAttribute(row.id)}
+        />
+      ))}
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        placeholder="+ Add attribute (Enter)"
+        value={newAttrName}
+        onChange={onAttrChange}
+        onKeyDown={onAttrKey}
+        onBlur={() => {
+          if (newAttrName.trim()) {
+            addAttribute(newAttrName)
+            setNewAttrName("")
+          }
+        }}
+      />
+
+      <DividerLine width="100%" />
+
+      <Typography variant="h6">Methods</Typography>
+      {nodeData.methods.map((row) => (
+        <MethodRow
+          key={row.id}
+          row={row}
+          classNames={availableClassNames}
+          stateMachines={stateMachineDiagrams}
+          quantumCircuits={quantumCircuitDiagrams}
+          onPatch={(patch) => patchMethod(row.id, patch)}
+          onDelete={() => deleteMethod(row.id)}
+        />
+      ))}
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        placeholder="+ Add method (Enter)"
+        value={newMethodName}
+        onChange={onMethodChange}
+        onKeyDown={onMethodKey}
+        onBlur={() => {
+          if (newMethodName.trim()) {
+            addMethod(newMethodName)
+            setNewMethodName("")
+          }
+        }}
+      />
+
+      <DividerLine width="100%" />
+
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6">OCL Constraints</Typography>
+        <Tooltip title="Add OCL constraint">
+          <IconButton size="small" onClick={addOcl}>
+            <Typography variant="caption">+</Typography>
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      {(nodeData.oclConstraints ?? []).map((row) => (
+        <OCLConstraintRow
+          key={row.id}
+          row={row}
+          onPatch={(patch) => patchOcl(row.id, patch)}
+          onDelete={() => deleteOcl(row.id)}
+        />
+      ))}
+    </Box>
+  )
+}

@@ -2,7 +2,7 @@ import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { ObjectNameSVG } from "@/components"
 import { useEffect, useMemo, useRef } from "react"
-import { ObjectNodeProps } from "@/types"
+import { ClassNodeElement, ObjectNodeAttribute, ObjectNodeProps } from "@/types"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import {
@@ -15,6 +15,21 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 
+/**
+ * Object-diagram rows render as `attribute = value` (no visibility, no
+ * type). When the row carries the BESSER `value` field we recompute the
+ * label so editing the value live in the inspector reflects on the canvas
+ * without round-tripping through the row name.
+ */
+const formatObjectAttribute = (row: ObjectNodeAttribute): ClassNodeElement => {
+  if (row.value === undefined || row.value === null || row.value === "") {
+    return row
+  }
+  // Preserve any explicit "name = value" the popup writer already shaped.
+  if (row.name && row.name.includes(" = ")) return row
+  return { ...row, name: `${row.name} = ${row.value}` }
+}
+
 export function ObjectName({
   id,
   width,
@@ -22,6 +37,10 @@ export function ObjectName({
   data,
 }: NodeProps<Node<ObjectNodeProps>>) {
   const { attributes, methods, name } = data
+  const displayAttributes = useMemo(
+    () => attributes.map(formatObjectAttribute),
+    [attributes]
+  )
   const { setNodes } = useDiagramStore(
     useShallow((state) => ({
       setNodes: state.setNodes,
@@ -42,8 +61,8 @@ export function ObjectName({
   // Calculate the widest text accurately
   const maxTextWidth = useMemo(() => {
     const headerTextWidth = measureTextWidth(name, font)
-    const attributesTextWidths = attributes.map((attr: { name: string }) =>
-      measureTextWidth(attr.name, font)
+    const attributesTextWidths = displayAttributes.map(
+      (attr: { name: string }) => measureTextWidth(attr.name, font)
     )
     const methodsTextWidths = methods.map((method: { name: string }) =>
       measureTextWidth(method.name, font)
@@ -56,7 +75,7 @@ export function ObjectName({
 
     const result = Math.max(...allTextWidths, 0)
     return result
-  }, [name, attributes, methods, font])
+  }, [name, displayAttributes, methods, font])
 
   const minWidth = useMemo(() => {
     const result = calculateMinWidth(maxTextWidth, padding)
@@ -144,7 +163,7 @@ export function ObjectName({
         <ObjectNameSVG
           width={finalWidth}
           height={minHeight}
-          data={data}
+          data={{ ...data, attributes: displayAttributes }}
           id={id}
           showAssessmentResults={!isDiagramModifiable}
         />

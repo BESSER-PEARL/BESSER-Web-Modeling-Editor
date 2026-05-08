@@ -459,12 +459,18 @@ describe("convertV3ToV4", () => {
     // Only parent should appear as a node
     expect(result.nodes).toHaveLength(1)
     expect(result.nodes[0].id).toBe("c1")
-    // Attribute should be embedded
+    // Attribute should be embedded. SA-2 extension: legacy v3 attribute
+    // names without explicit `visibility`/`attributeType` flow through
+    // `parseLegacyNameFormat`, which fills in canonical `'public'` /
+    // `'str'` defaults. The id, parsed name, and the structured fields
+    // are all asserted to lock the BESSER `IUMLClassifierMember` shape.
     const nodeData = result.nodes[0].data
     expect(nodeData.attributes).toHaveLength(1)
     expect((nodeData.attributes as unknown[])[0]).toEqual({
       id: "a1",
       name: "attr1",
+      visibility: "public",
+      attributeType: "str",
     })
   })
 
@@ -482,9 +488,14 @@ describe("convertV3ToV4", () => {
     expect(result.nodes).toHaveLength(1)
     const nodeData = result.nodes[0].data
     expect(nodeData.methods).toHaveLength(1)
+    // SA-2 extension: methods picked up the same BESSER member shape.
+    // Legacy method strings without `: returnType` get `attributeType: ''`
+    // out of `parseLegacyNameFormat` (no return type was declared).
     expect((nodeData.methods as unknown[])[0]).toEqual({
       id: "m1",
       name: "doStuff()",
+      visibility: "public",
+      attributeType: "",
     })
   })
 

@@ -36,6 +36,11 @@ import { ApollonMode } from "./typings"
 import { getConnectionLineType } from "./utils/edgeUtils"
 import { PropertiesPanel } from "./components/propertiesPanel/PropertiesPanel"
 import { useUsePropertiesPanel } from "./store/settingsStore"
+// Side-effect import: seed BESSER inspector overrides into the shared
+// `inspectors/registry.ts`. Both `PropertiesPanel` and `PopoverManager`
+// resolve their bodies from that registry, so this single import wires
+// the new ClassEditPanel / ObjectEditPanel into both surfaces.
+import "./components/inspectors"
 
 interface AppProps {
   onReactFlowInit: (instance: ReactFlowInstance) => void

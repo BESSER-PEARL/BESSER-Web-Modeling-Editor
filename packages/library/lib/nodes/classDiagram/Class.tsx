@@ -2,7 +2,7 @@ import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { ClassSVG } from "@/components"
 import { useEffect, useMemo, useRef } from "react"
-import { ClassNodeProps } from "@/types"
+import { ClassNodeElement, ClassNodeProps } from "@/types"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import {
@@ -14,6 +14,44 @@ import { LAYOUT } from "@/constants"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { formatDisplayName } from "@/utils/classifierMemberDisplay"
+import { useClassNotation } from "@/store/settingsStore"
+
+/**
+ * Format a row for display. When the row carries structured BESSER fields
+ * (`attributeType`, `visibility`, …) we re-render the canonical UML / ER
+ * string so the editor responds to notation toggles without round-tripping
+ * to the inspector. Stock diagrams that only set `{id, name}` get the raw
+ * `name` back unchanged.
+ */
+const formatRow = (
+  row: ClassNodeElement,
+  mode: "UML" | "ER"
+): ClassNodeElement => {
+  const hasStructuredFields =
+    row.attributeType !== undefined ||
+    row.visibility !== undefined ||
+    row.isOptional !== undefined ||
+    row.isDerived !== undefined ||
+    row.isId !== undefined ||
+    row.isExternalId !== undefined ||
+    row.defaultValue !== undefined
+  if (!hasStructuredFields) return row
+  const formatted = formatDisplayName(
+    {
+      name: row.name,
+      attributeType: row.attributeType,
+      visibility: row.visibility,
+      isOptional: row.isOptional,
+      isDerived: row.isDerived,
+      isId: row.isId,
+      isExternalId: row.isExternalId,
+      defaultValue: row.defaultValue,
+    },
+    mode
+  )
+  return { ...row, name: formatted }
+}
 
 export function Class({
   id,
@@ -26,7 +64,19 @@ export function Class({
       setNodes: state.setNodes,
     }))
   )
+  const classNotation = useClassNotation()
   const { name, stereotype, attributes, methods } = data
+  // Replaces the v3 `editorRevision++` hack: the Zustand subscription on
+  // `classNotation` re-renders this node whenever ER↔UML flips, with no
+  // editor remount and no undo-history loss.
+  const displayAttributes = useMemo(
+    () => attributes.map((a) => formatRow(a, classNotation)),
+    [attributes, classNotation]
+  )
+  const displayMethods = useMemo(
+    () => methods.map((m) => formatRow(m, classNotation)),
+    [methods, classNotation]
+  )
 
   const isDiagramModifiable = useDiagramModifiable()
 
@@ -42,16 +92,17 @@ export function Class({
   const padding = LAYOUT.DEFAULT_PADDING
   const font = LAYOUT.DEFAULT_FONT
 
-  // Calculate the widest text accurately
+  // Calculate the widest text accurately. Width must consider the
+  // *display* name (post-format) so ER/UML toggles re-fit the node.
   const maxTextWidth = useMemo(() => {
     const headerTextWidths = [
       stereotype ? measureTextWidth(`«${stereotype}»`, font) : 0,
       measureTextWidth(name, font),
     ]
-    const attributesTextWidths = attributes.map((attr) =>
+    const attributesTextWidths = displayAttributes.map((attr) =>
       measureTextWidth(attr.name, font)
     )
-    const methodsTextWidths = methods.map((method) =>
+    const methodsTextWidths = displayMethods.map((method) =>
       measureTextWidth(method.name, font)
     )
     const allTextWidths = [
@@ -62,7 +113,7 @@ export function Class({
 
     const result = Math.max(...allTextWidths, 0)
     return result
-  }, [stereotype, name, attributes, methods, font])
+  }, [stereotype, name, displayAttributes, displayMethods, font])
 
   const minWidth = useMemo(() => {
     const result = calculateMinWidth(maxTextWidth, padding)
@@ -150,7 +201,11 @@ export function Class({
         <ClassSVG
           width={finalWidth}
           height={minHeight}
-          data={data}
+          data={{
+            ...data,
+            attributes: displayAttributes,
+            methods: displayMethods,
+          }}
           id={id}
           showAssessmentResults={!isDiagramModifiable}
         />

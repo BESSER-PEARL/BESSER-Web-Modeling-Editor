@@ -1,0 +1,28 @@
+/**
+ * Inspector registry — public entry point.
+ *
+ * On import the BESSER inspector seeds run and overwrite the upstream
+ * stock `edit` slots for the diagram types BESSER fully owns:
+ *
+ *   - `class`      → `ClassEditPanel`  (replaces `ClassEditPopover`)
+ *   - `objectName` → `ObjectEditPanel` (replaces `ObjectEditPopover`)
+ *
+ * Both `PropertiesPanel` and `PopoverManager` resolve inspectors from
+ * the shared registry (`registry.ts`), so re-registering here is the
+ * single switch that makes the new panel-aware bodies render in both
+ * surfaces.
+ *
+ * Registration uses `registerInspector(type, kind, component)` from
+ * `registry.ts`. It is idempotent under multiple imports — the registry
+ * stores by `${type}__${kind}` slot.
+ */
+import { registerInspector } from "./registry"
+import { ClassEditPanel } from "./classDiagram"
+import { ObjectEditPanel } from "./objectDiagram"
+
+registerInspector("class", "edit", ClassEditPanel)
+registerInspector("objectName", "edit", ObjectEditPanel)
+
+export * from "./registry"
+export * from "./classDiagram"
+export * from "./objectDiagram"

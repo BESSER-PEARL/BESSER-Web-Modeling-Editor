@@ -1,0 +1,153 @@
+{
+  "version": "3.0.0",
+  "type": "ClassDiagram",
+  "size": { "width": 800, "height": 600 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "node-Animal": {
+      "id": "node-Animal",
+      "name": "Animal",
+      "type": "AbstractClass",
+      "owner": null,
+      "bounds": { "x": 100, "y": 100, "width": 200, "height": 100 },
+      "attributes": ["attr-Animal-id", "attr-Animal-name"],
+      "methods": ["method-Animal-speak"]
+    },
+    "attr-Animal-id": {
+      "id": "attr-Animal-id",
+      "name": "id",
+      "type": "ClassAttribute",
+      "owner": "node-Animal",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "public",
+      "attributeType": "int",
+      "isId": true,
+      "isOptional": false,
+      "isDerived": false,
+      "isExternalId": false
+    },
+    "attr-Animal-name": {
+      "id": "attr-Animal-name",
+      "name": "name",
+      "type": "ClassAttribute",
+      "owner": "node-Animal",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "public",
+      "attributeType": "str",
+      "isId": false,
+      "isOptional": false,
+      "isDerived": false,
+      "isExternalId": false,
+      "defaultValue": "anon"
+    },
+    "method-Animal-speak": {
+      "id": "method-Animal-speak",
+      "name": "speak()",
+      "type": "ClassMethod",
+      "owner": "node-Animal",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "public",
+      "attributeType": "str",
+      "implementationType": "code",
+      "code": "def speak(self):\n    pass\n",
+      "isOptional": false,
+      "isDerived": false,
+      "isId": false,
+      "isExternalId": false
+    },
+    "node-Dog": {
+      "id": "node-Dog",
+      "name": "Dog",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 400, "y": 100, "width": 200, "height": 80 },
+      "attributes": ["attr-Dog-breed"],
+      "methods": []
+    },
+    "attr-Dog-breed": {
+      "id": "attr-Dog-breed",
+      "name": "breed",
+      "type": "ClassAttribute",
+      "owner": "node-Dog",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "private",
+      "attributeType": "str",
+      "isId": false,
+      "isOptional": true,
+      "isDerived": false,
+      "isExternalId": false
+    },
+    "node-Owner": {
+      "id": "node-Owner",
+      "name": "Owner",
+      "type": "Class",
+      "owner": null,
+      "bounds": { "x": 400, "y": 250, "width": 200, "height": 80 },
+      "attributes": ["attr-Owner-name"],
+      "methods": []
+    },
+    "attr-Owner-name": {
+      "id": "attr-Owner-name",
+      "name": "name",
+      "type": "ClassAttribute",
+      "owner": "node-Owner",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "visibility": "public",
+      "attributeType": "str",
+      "isId": false,
+      "isOptional": false,
+      "isDerived": false,
+      "isExternalId": false
+    },
+    "node-Pet": {
+      "id": "node-Pet",
+      "name": "Pet",
+      "type": "Interface",
+      "owner": null,
+      "bounds": { "x": 100, "y": 250, "width": 200, "height": 60 },
+      "attributes": [],
+      "methods": []
+    },
+    "ocl-Animal-1": {
+      "id": "ocl-Animal-1",
+      "name": "nameNotEmpty",
+      "type": "ClassOCLConstraint",
+      "owner": "node-Animal",
+      "bounds": { "x": 0, "y": 0, "width": 0, "height": 0 },
+      "expression": "context Animal inv: name->size() > 0"
+    }
+  },
+  "relationships": {
+    "rel-inh-1": {
+      "id": "rel-inh-1",
+      "name": "",
+      "type": "ClassInheritance",
+      "owner": null,
+      "bounds": { "x": 200, "y": 200, "width": 0, "height": 0 },
+      "path": [{ "x": 0, "y": 0 }, { "x": 100, "y": 0 }],
+      "source": { "element": "node-Dog", "direction": "Up" },
+      "target": { "element": "node-Animal", "direction": "Down" }
+    },
+    "rel-assoc-1": {
+      "id": "rel-assoc-1",
+      "name": "owns",
+      "type": "ClassBidirectional",
+      "owner": null,
+      "bounds": { "x": 350, "y": 150, "width": 0, "height": 0 },
+      "path": [{ "x": 0, "y": 0 }, { "x": 50, "y": 0 }],
+      "source": {
+        "element": "node-Owner",
+        "direction": "Left",
+        "role": "owner",
+        "multiplicity": "1"
+      },
+      "target": {
+        "element": "node-Dog",
+        "direction": "Right",
+        "role": "pet",
+        "multiplicity": "0..*"
+      }
+    }
+  },
+  "assessments": {}
+}

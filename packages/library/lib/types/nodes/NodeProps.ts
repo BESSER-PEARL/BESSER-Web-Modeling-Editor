@@ -7,19 +7,136 @@ export type DefaultNodeProps = {
   textColor?: string
 }
 
+/**
+ * UML visibility values for classifier members. Stored canonically; the
+ * row renderer derives the symbol via `VISIBILITY_SYMBOLS`.
+ */
+export type ClassifierVisibility = "public" | "private" | "protected" | "package"
+
+/**
+ * BESSER method implementation type — drives the inspector to render either a
+ * code editor (`code` / `bal`) or a cross-diagram dropdown (`state_machine`,
+ * `quantum_circuit`). `none` is the pure-UML default.
+ */
+export type ClassifierMethodImplementationType =
+  | "none"
+  | "code"
+  | "bal"
+  | "state_machine"
+  | "quantum_circuit"
+
+/**
+ * Method parameter row (used by ClassMethod members).
+ *
+ * `name` and `parameterType` are the canonical fields. Legacy diagrams
+ * stored the entire signature in the row name; the inspector parses that
+ * fallback via `parseLegacyNameFormat` when these structured fields are
+ * missing.
+ */
+export type ClassifierMethodParameter = {
+  id: string
+  name: string
+  parameterType?: string
+  defaultValue?: unknown
+}
+
+/**
+ * Row data for class / object attributes and methods.
+ *
+ * `name` stays the source-of-truth for rendering on stock-diagram code
+ * paths that read `item.name` directly (e.g. `RowBlockSection`). The
+ * structured fields below are BESSER additions: when present, the
+ * class-row renderer formats the row via `formatDisplayName(member,
+ * mode)` so ER↔UML notation toggling is purely render-time.
+ *
+ * All BESSER fields are optional so upstream stock diagrams continue to
+ * work unchanged with the minimal `{id, name}` shape.
+ */
 export type ClassNodeElement = {
   id: string
+  /** Raw type string (`'str'`, `'int'`, `'MyClass'`, …) before normalization. */
+  attributeType?: string
+  /** Visibility, canonical form. The row renderer maps to `+/-/#/~`. */
+  visibility?: ClassifierVisibility
+  /** Method body / attribute default expression (Python or BAL). */
+  code?: string
+  /** Selects the method implementation strategy. Defaults to `'none'`. */
+  implementationType?: ClassifierMethodImplementationType
+  /** Cross-diagram link when `implementationType === 'state_machine'`. */
+  stateMachineId?: string
+  /** Cross-diagram link when `implementationType === 'quantum_circuit'`. */
+  quantumCircuitId?: string
+  /** UML "?" marker — attribute may be null. */
+  isOptional?: boolean
+  /** UML "/" marker — derived attribute. */
+  isDerived?: boolean
+  /** BESSER `{id}` marker — primary identifier. */
+  isId?: boolean
+  /** BESSER `{external id}` marker — externally-managed identifier. */
+  isExternalId?: boolean
+  /** Default value for attributes; ignored on methods. */
+  defaultValue?: unknown
+  /** Method parameters. Ignored on attribute rows. */
+  parameters?: ClassifierMethodParameter[]
+  /** Method return type. Ignored on attribute rows; mirrors `attributeType`. */
+  returnType?: string
 } & DefaultNodeProps
 
 export type ClassNodeProps = {
   methods: ClassNodeElement[]
   attributes: ClassNodeElement[]
   stereotype?: ClassType
+  /**
+   * BESSER OCL constraints attached to this classifier. `expression` is the
+   * raw OCL text; `name` is the constraint identifier shown in the panel.
+   * Empty / undefined ⇒ no constraints rail rendered.
+   */
+  oclConstraints?: ClassOCLConstraint[]
 } & DefaultNodeProps
+
+/**
+ * BESSER ClassDiagram OCL constraint, attached as a row on the parent
+ * class. Spec recommendation (`docs/source/migrations/uml-v4-shape.md`
+ * "Mapping rules (ClassDiagram)" §): collapse free-standing
+ * v3 `ClassOCLConstraint` elements onto their owner class. SA-2 picks
+ * the collapse-onto-owner option per the open-question note in the spec.
+ */
+export type ClassOCLConstraint = {
+  id: string
+  name: string
+  expression: string
+  /** Optional human-readable description used by the assistant. */
+  description?: string
+  /** Optional kind discriminator (`'invariant'`, `'pre'`, `'post'`). */
+  kind?: string
+}
+
+/**
+ * Object-diagram per-instance attribute row.
+ *
+ * Differs from `ClassNodeElement` in two ways:
+ *  - `value` carries the runtime value (or its string form) — class
+ *    attributes default it via `defaultValue`, instances commit it via
+ *    `value`.
+ *  - `attributeId` links back to the source `ClassNodeElement.id` on the
+ *    owning class, so the inspector can pin the attribute name/type.
+ */
+export type ObjectNodeAttribute = ClassNodeElement & {
+  /** Link to a class attribute id in a sibling ClassDiagram, when known. */
+  attributeId?: string
+  /** Runtime value of the attribute on this instance. */
+  value?: unknown
+}
 
 export type ObjectNodeProps = {
   methods: ClassNodeElement[]
-  attributes: ClassNodeElement[]
+  attributes: ObjectNodeAttribute[]
+  /** Link to a class node id in a sibling ClassDiagram, when known. */
+  classId?: string
+  /** Cached class name from the linked class — display-only. */
+  className?: string
+  /** Inline icon SVG body for icon-view rendering. */
+  icon?: string
 } & DefaultNodeProps
 
 export type CommunicationObjectNodeProps = {
