@@ -13,6 +13,7 @@ The BESSER Web Modeling Editor supports a variety of diagram types to cover diff
    agent-diagram
    gui-diagram
    quantum-circuit-diagram
+   nn-diagram
 
 Overview
 --------
@@ -23,3 +24,4 @@ Overview
 *   **Agent Diagrams**: Design the flow and behavior of conversational agents.
 *   **GUI Diagrams**: Create mockups and designs for graphical user interfaces.
 *   **Quantum Circuit Diagrams**: Design quantum circuits with gates and qubits for Qiskit code generation.
+*   **Neural Network Diagrams**: Design layered neural networks and generate PyTorch or TensorFlow code.

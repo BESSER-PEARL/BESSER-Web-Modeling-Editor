@@ -43,6 +43,26 @@ const StyledTextarea = styled.textarea`
   padding: 8px;
 `;
 
+const DescriptionTextarea = styled.textarea`
+  font-family: inherit;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  min-width: 200px;
+  min-height: 48px;
+  line-height: 1.4;
+  max-width: 100%;
+  padding: 6px 8px;
+`;
+
+const FieldLabel = styled.label`
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+`;
+
 type State = { colorOpen: boolean };
 
 class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
@@ -64,8 +84,18 @@ class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
             <StyledTextarea
               value={element.constraint || ''}
               placeholder={this.props.translate('packages.OCLConstraint.Constraint')}
-              onChange={(e) => this.onUpdate(e.target.value)}
+              onChange={(e) => this.onUpdate({ constraint: e.target.value })}
               autoFocus
+            />
+            <FieldLabel htmlFor={`ocl-description-${element.id}`}>
+              Description (shown to end-users when validation fails) Optional
+            </FieldLabel>
+            <DescriptionTextarea
+              id={`ocl-description-${element.id}`}
+              value={element.description || ''}
+              placeholder="e.g. Be sure to choose a realistic age"
+              onChange={(e) => this.onUpdate({ description: e.target.value })}
+              rows={2}
             />
             <ButtonRow>
               <ColorButton onClick={this.toggleColor} />
@@ -86,12 +116,12 @@ class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
       </div>
     );
   }
-  private onUpdate = (constraint: string) => {
+  private onUpdate = (changes: Partial<Pick<IUMLClassOCLConstraint, 'constraint' | 'description'>>) => {
     const { element, update } = this.props;
     const currentBounds = element.bounds;
-    
-    update(element.id, { 
-      constraint,
+
+    update(element.id, {
+      ...changes,
       bounds: {
         ...currentBounds,
         // Keep existing width/height if manually resized

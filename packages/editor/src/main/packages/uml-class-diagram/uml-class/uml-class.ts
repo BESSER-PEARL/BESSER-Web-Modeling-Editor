@@ -5,11 +5,11 @@ import { UMLClassifierAttribute } from '../../common/uml-classifier/uml-classifi
 import { UMLClassifierMethod } from '../../common/uml-classifier/uml-classifier-method';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { ClassRelationshipType } from '..';
-import { GeneralRelationshipType } from '../../uml-relationship-type';
+import { GeneralRelationshipType, UMLRelationshipType } from '../../uml-relationship-type';
 export class UMLClass extends UMLClassifier {
   type: UMLElementType = ClassElementType.Class;
 
-  static supportedRelationships = [
+  static supportedRelationships: UMLRelationshipType[] = [
     ClassRelationshipType.ClassBidirectional,
     ClassRelationshipType.ClassOCLLink,
     GeneralRelationshipType.Link,

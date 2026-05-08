@@ -27,7 +27,7 @@
     "--apollon-alert-warning-yellow": "#ffffff",
     "--apollon-alert-warning-background": "#f39c12",
     "--apollon-alert-warning-border": "#000000",
-    "--apollon-background": "#181a18",
+    "--apollon-background": "#0f172a",
     "--apollon-background-inverse": "#ffffff",
     "--apollon-background-variant": "#303530",
     "--apollon-gray": "#242724",

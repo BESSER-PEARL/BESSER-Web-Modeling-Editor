@@ -7,8 +7,8 @@ different modeling domain. All editors share a common architecture based on the
 
 **UML Editor**
    The core editor for structural modeling. Supports class diagrams, object diagrams,
-   state machine diagrams, and agent diagrams. This is the most feature-rich editor
-   and the foundation for most code generators.
+   state machine diagrams, agent diagrams, and neural network diagrams. This is the most
+   feature-rich editor and the foundation for most code generators.
 
 **Quantum Circuit Editor**
    A visual editor for designing quantum circuits. Supports standard, controlled, and

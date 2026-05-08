@@ -32,7 +32,7 @@ import { Comments } from '../../packages/common/comments/comments';
 import { Separator } from './create-pane-styles';
 import { composeBPMNPreview } from '../../packages/bpmn/bpmn-diagram-preview';
 import { composeStatePreview } from '../../packages/uml-state-diagram/state-preview';
-
+import { composeNNPreview } from '../../packages/nn-diagram/nn-preview';
 import { composeBotPreview } from '../../packages/agent-state-diagram/agent-state-preview';
 
 import { setPalette } from '../../services/palette/palette-types';
@@ -61,6 +61,9 @@ const getInitialState = ({ type, canvas, translate, colorEnabled }: Props) => {
   switch (type) {
     case UMLDiagramType.ClassDiagram:
       previews.push(...composeClassPreview(canvas, translate));
+      break;
+    case UMLDiagramType.NNDiagram:
+      previews.push(...composeNNPreview(canvas, translate));
       break;
     case UMLDiagramType.ObjectDiagram:
       // Use the same object preview for both normal and icon mode

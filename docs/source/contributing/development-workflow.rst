@@ -25,7 +25,7 @@ Use the workspace root. npm installs all packages declared in
 2. Start the appropriate dev server
 -----------------------------------
 
-* ``npm run dev`` – Vite development server for ``webapp2`` with HMR.
+* ``npm run dev`` – Vite development server for ``webapp`` with HMR.
 * ``npm run start:server`` – Express server serving compiled assets.
 
 The Vite dev server runs on http://localhost:8080 and expects the BESSER
@@ -47,24 +47,24 @@ backend at http://localhost:9000/besser_api in development mode.
    * - ``npm run lint --workspace=editor``
      - Lints the editor package
      - editor
-   * - ``npm run lint --workspace=webapp2``
+   * - ``npm run lint --workspace=webapp``
      - Lints the React app
-     - webapp2
+     - webapp
    * - ``npm run lint --workspace=server``
      - Lints the Express server
      - server
-   * - ``npm run test --workspace=webapp2``
+   * - ``npm run test --workspace=webapp``
      - Runs unit tests with Vitest
-     - webapp2
-   * - ``npm run test:e2e --workspace=webapp2``
+     - webapp
+   * - ``npm run test:e2e --workspace=webapp``
      - Runs end-to-end tests with Playwright
-     - webapp2
+     - webapp
    * - ``npm run prettier:check``
      - Verifies formatting
      - root workspace
-   * - ``npm run build:webapp2``
+   * - ``npm run build:webapp``
      - Production bundle for UI
-     - webapp2
+     - webapp
    * - ``npm run build:server``
      - Bundles Express server
      - server
@@ -169,7 +169,7 @@ Before opening a PR, run through this checklist:
 
    [ ] npm run lint passes (no ESLint errors)
    [ ] npm run prettier:check passes (formatting clean)
-   [ ] npm run test --workspace=webapp2 passes (unit tests green)
+   [ ] npm run test --workspace=webapp passes (unit tests green)
    [ ] npm run build succeeds (production bundles compile)
    [ ] Documentation updated (if you changed user-facing behavior)
    [ ] No stray debug logs or console.log statements
@@ -237,8 +237,8 @@ template:
 
    ## Testing
 
-   - Unit tests added/updated: `packages/webapp2/src/.../foo.test.ts`
-   - E2E tests added/updated: `packages/webapp2/tests/e2e/...`
+   - Unit tests added/updated: `packages/webapp/src/.../foo.test.ts`
+   - E2E tests added/updated: `packages/webapp/tests/e2e/...`
    - Manual checks: e.g., "loaded the editor, created a class diagram
      with inheritance, exported, re-imported — round-trip preserved"
    - Edge cases considered: …
@@ -258,7 +258,7 @@ template:
    - [ ] Targeted `develop` (not `main`)
    - [ ] `npm run lint` passes
    - [ ] `npm run prettier:check` passes
-   - [ ] `npm run test --workspace=webapp2` passes
+   - [ ] `npm run test --workspace=webapp` passes
    - [ ] `npm run build` succeeds
    - [ ] Docs updated (`docs/source/...`) if user-facing behavior changed
    - [ ] Backend submodule pointer updated in BESSER (if cross-repo
@@ -287,10 +287,10 @@ Tips
 
 CI will automatically run:
 
-* ESLint linting for webapp2 and server
+* ESLint linting for webapp and server
 * Prettier formatting check
 * Production build (``npm run build``)
-* Unit tests (Vitest) on webapp2
+* Unit tests (Vitest) on webapp
 
 If CI fails, check the logs, fix the issue, and push again. Maintainers
 will review once CI is green and the PR is marked ready.

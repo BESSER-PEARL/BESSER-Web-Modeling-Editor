@@ -2,7 +2,7 @@ Environment Variables
 =====================
 
 Set environment variables before running the build or start scripts. The webapp
-loads variables from ``packages/webapp2/.env`` via Vite's ``import.meta.env`` and
+loads variables from ``packages/webapp/.env`` via Vite's ``import.meta.env`` and
 respects system environment variables. The server reads directly from
 ``process.env``.
 
@@ -74,7 +74,7 @@ Set variables inline when running scripts, e.g.:
    BACKEND_URL=https://api.example.com/besser_api \
    npm run build
 
-Or create ``packages/webapp2/.env`` for development:
+Or create ``packages/webapp/.env`` for development:
 
 .. code-block:: text
 
