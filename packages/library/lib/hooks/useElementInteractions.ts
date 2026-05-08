@@ -1,4 +1,4 @@
-import { usePopoverStore } from "@/store/context"
+import { useDiagramStore, usePopoverStore } from "@/store/context"
 import { useMetadataStore } from "@/store"
 import { BesserMode } from "@/typings"
 import {
@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramModifiable } from "./useDiagramModifiable"
+import { getAllDescendants } from "@/utils/copyPasteUtils"
 
 export const useElementInteractions = () => {
   const isDiagramModifiable = useDiagramModifiable()
@@ -24,11 +25,31 @@ export const useElementInteractions = () => {
       setPopOverElementId: state.setPopOverElementId,
     }))
   )
+  const allNodes = useDiagramStore(useShallow((state) => state.nodes))
   const canOpenAssessmentPopover = mode === BesserMode.Assessment && !readonly
   const canOpenPopover = isDiagramModifiable || canOpenAssessmentPopover
 
-  const onBeforeDelete: OnBeforeDelete = () => {
-    return new Promise((resolve) => resolve(isDiagramModifiable))
+  // Expand the deletion set to include all descendants of any parent
+  // that is being deleted (NNContainer, State, AgentIntent). React Flow's
+  // default deletion only removes the selected node and reparents
+  // children to the canvas root, which orphans them — undesirable for
+  // the BESSER container types.
+  const onBeforeDelete: OnBeforeDelete = ({ nodes, edges }) => {
+    if (!isDiagramModifiable) {
+      return Promise.resolve(false)
+    }
+    const seedIds = nodes.map((n) => n.id)
+    const descendants = getAllDescendants(seedIds, allNodes)
+    if (descendants.length === 0) {
+      return Promise.resolve({ nodes, edges })
+    }
+    const expanded = [
+      ...nodes,
+      ...descendants.filter(
+        (d) => !nodes.some((n) => n.id === d.id)
+      ),
+    ]
+    return Promise.resolve({ nodes: expanded, edges })
   }
 
   const onNodeDoubleClick: NodeMouseHandler<Node> = (_event, node) => {

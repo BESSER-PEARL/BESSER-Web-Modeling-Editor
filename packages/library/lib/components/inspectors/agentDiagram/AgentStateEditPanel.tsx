@@ -4,6 +4,8 @@ import {
   FormControlLabel,
   IconButton,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
   Stack,
   TextField as MuiTextField,
@@ -495,27 +497,20 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
         Agent Action
       </Typography>
-      <Box
-        component="div"
+      <RadioGroup
+        value={getActiveMode("main")}
+        onChange={(_, value) => setMode("main", value as ReplyMode)}
         sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
       >
-        {REPLY_MODES.map((m) => {
-          const active = getActiveMode("main") === m.value
-          return (
-            <FormControlLabel
-              key={`body-${m.value}`}
-              control={
-                <Checkbox
-                  size="small"
-                  checked={active}
-                  onChange={() => setMode("main", m.value)}
-                />
-              }
-              label={m.label}
-            />
-          )
-        })}
-      </Box>
+        {REPLY_MODES.map((m) => (
+          <FormControlLabel
+            key={`body-${m.value}`}
+            value={m.value}
+            control={<Radio size="small" />}
+            label={m.label}
+          />
+        ))}
+      </RadioGroup>
       {renderBodyEditor("main")}
 
       <DividerLine width="100%" />
@@ -523,27 +518,20 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
         Agent Fallback Action
       </Typography>
-      <Box
-        component="div"
+      <RadioGroup
+        value={getActiveMode("fallback")}
+        onChange={(_, value) => setMode("fallback", value as ReplyMode)}
         sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
       >
-        {REPLY_MODES.map((m) => {
-          const active = getActiveMode("fallback") === m.value
-          return (
-            <FormControlLabel
-              key={`fallback-${m.value}`}
-              control={
-                <Checkbox
-                  size="small"
-                  checked={active}
-                  onChange={() => setMode("fallback", m.value)}
-                />
-              }
-              label={m.label}
-            />
-          )
-        })}
-      </Box>
+        {REPLY_MODES.map((m) => (
+          <FormControlLabel
+            key={`fallback-${m.value}`}
+            value={m.value}
+            control={<Radio size="small" />}
+            label={m.label}
+          />
+        ))}
+      </RadioGroup>
       {renderBodyEditor("fallback")}
     </Box>
   )
