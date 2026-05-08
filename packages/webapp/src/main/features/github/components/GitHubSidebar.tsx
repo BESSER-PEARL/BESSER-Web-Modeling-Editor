@@ -45,7 +45,7 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { toast } from 'react-toastify';
 import { FileBrowserModal } from './FileBrowserModal';
 import { CommitDialog, CreateGistDialog, CreateRepositoryDialog, RestoreVersionDialog } from '../dialogs';
-import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
+import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
 import { notifyError } from '../../../shared/utils/notifyError';
 import { BesserProject } from '../../../shared/types/project';
 
@@ -78,8 +78,8 @@ const sanitizeRepoName = (value: string): string => {
 export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose }) => {
   const { isAuthenticated, githubSession, login } = useGitHubAuth();
   const { currentProject, updateCurrentDiagram, loadProject } = useProject();
-  const apollonEditor = useContext(ApollonEditorContext);
-  const editor = apollonEditor?.editor;
+  const besserEditor = useContext(BesserEditorContext);
+  const editor = besserEditor?.editor;
 
   const {
     isLoading,

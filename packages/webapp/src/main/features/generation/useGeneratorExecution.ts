@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType } from '@besser/wme';
+import { BesserEditor, UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../app/store/hooks';
@@ -452,7 +452,7 @@ export interface UseGeneratorExecutionReturn {
   isLocalEnvironment: boolean;
 }
 
-export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGeneratorExecutionReturn {
+export function useGeneratorExecution(editor: BesserEditor | undefined): UseGeneratorExecutionReturn {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();

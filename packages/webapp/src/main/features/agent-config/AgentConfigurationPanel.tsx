@@ -77,7 +77,7 @@ const defaultInterfaceStyle: InterfaceStyleSetting = {
   font: 'sans',
   lineSpacing: 1.5,
   alignment: 'left',
-  color: 'var(--apollon-primary-contrast)',
+  color: 'var(--besser-primary-contrast)',
   contrast: 'medium',
 };
 
@@ -102,9 +102,9 @@ type InterfaceColorOption = {
 
 const interfaceColorOptions: InterfaceColorOption[] = [
   {
-    value: 'var(--apollon-primary-contrast)',
+    value: 'var(--besser-primary-contrast)',
     label: 'Default (theme)',
-    swatch: 'var(--apollon-primary-contrast)',
+    swatch: 'var(--besser-primary-contrast)',
     description: 'Follows the active theme — adapts to light or dark mode.',
   },
   {

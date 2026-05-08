@@ -163,12 +163,12 @@ export const CommunicationDiagramEdgeEditPopover: React.FC<PopoverProps> = ({
               {message.direction === "target" ? (
                 <ArrowForwardIcon
                   fontSize="small"
-                  fill="var(--apollon-primary-contrast, #000000)"
+                  fill="var(--besser-primary-contrast, #000000)"
                 />
               ) : (
                 <ArrowBackIcon
                   fontSize="small"
-                  fill="var(--apollon-primary-contrast, #000000)"
+                  fill="var(--besser-primary-contrast, #000000)"
                 />
               )}
             </IconButton>

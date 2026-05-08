@@ -1,6 +1,6 @@
 /**
  * Quantum Circuit Diagram Converter
- * Converts simplified quantum circuit specifications to Apollon-compatible format.
+ * Converts simplified quantum circuit specifications to BESSER WME format.
  *
  * Quantum circuits are structurally different from UML diagrams — they consist of
  * qubit wires and gate operations placed on a grid.  The converter maps a gate-list

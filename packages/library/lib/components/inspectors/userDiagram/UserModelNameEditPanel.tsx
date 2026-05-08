@@ -163,7 +163,7 @@ const AttrRow: React.FC<AttrRowProps> = ({ row, onPatch, onDelete }) => {
         flexDirection: "column",
         gap: 0.5,
         padding: "6px 0",
-        borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
@@ -379,7 +379,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         <Typography variant="caption">attributes</Typography>
         <Typography
           variant="caption"
-          sx={{ cursor: "pointer", color: "var(--apollon-primary)" }}
+          sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
           onClick={addAttribute}
         >
           + add

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { BesserEditor } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
@@ -185,7 +185,7 @@ export const useGenerateCode = () => {
 
   const generateCode = useCallback(
     async (
-      editor: ApollonEditor | null,
+      editor: BesserEditor | null,
       generatorType: string,
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],

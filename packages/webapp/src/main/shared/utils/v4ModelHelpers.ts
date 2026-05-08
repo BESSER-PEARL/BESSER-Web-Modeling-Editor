@@ -2,19 +2,19 @@
  * SA-7b: helpers for walking v4 UMLModel `nodes` / `edges` arrays.
  *
  * v3 stored elements as a `Record<id, UMLElement>` and relationships as a
- * `Record<id, UMLRelationship>`; v4 uses `nodes: ApollonNode[]` and
- * `edges: ApollonEdge[]`. These helpers cover the common access patterns so
+ * `Record<id, UMLRelationship>`; v4 uses `nodes: BesserNode[]` and
+ * `edges: BesserEdge[]`. These helpers cover the common access patterns so
  * call sites don't open-code the same `.find()` / `.filter()` traversals.
  */
-import type { ApollonEdge, ApollonNode, UMLModel } from '@besser/wme';
+import type { BesserEdge, BesserNode, UMLModel } from '@besser/wme';
 
 /** Find a node by id. Returns `undefined` if not present. */
-export function findNode(model: Pick<UMLModel, 'nodes'> | undefined, id: string): ApollonNode | undefined {
+export function findNode(model: Pick<UMLModel, 'nodes'> | undefined, id: string): BesserNode | undefined {
   return model?.nodes?.find((n) => n.id === id);
 }
 
 /** Find an edge by id. Returns `undefined` if not present. */
-export function findEdge(model: Pick<UMLModel, 'edges'> | undefined, id: string): ApollonEdge | undefined {
+export function findEdge(model: Pick<UMLModel, 'edges'> | undefined, id: string): BesserEdge | undefined {
   return model?.edges?.find((e) => e.id === id);
 }
 
@@ -22,7 +22,7 @@ export function findEdge(model: Pick<UMLModel, 'edges'> | undefined, id: string)
 export function nodesOfType<T extends string>(
   model: Pick<UMLModel, 'nodes'> | undefined,
   type: T,
-): ApollonNode[] {
+): BesserNode[] {
   return (model?.nodes ?? []).filter((n) => n.type === type);
 }
 
@@ -30,7 +30,7 @@ export function nodesOfType<T extends string>(
 export function edgesOfType<T extends string>(
   model: Pick<UMLModel, 'edges'> | undefined,
   type: T,
-): ApollonEdge[] {
+): BesserEdge[] {
   return (model?.edges ?? []).filter((e) => e.type === type);
 }
 
@@ -38,7 +38,7 @@ export function edgesOfType<T extends string>(
 export function edgesFor(
   model: Pick<UMLModel, 'edges'> | undefined,
   nodeId: string,
-): ApollonEdge[] {
+): BesserEdge[] {
   return (model?.edges ?? []).filter((e) => e.source === nodeId || e.target === nodeId);
 }
 
@@ -46,7 +46,7 @@ export function edgesFor(
 export function childrenOf(
   model: Pick<UMLModel, 'nodes'> | undefined,
   parentId: string,
-): ApollonNode[] {
+): BesserNode[] {
   return (model?.nodes ?? []).filter((n) => n.parentId === parentId);
 }
 

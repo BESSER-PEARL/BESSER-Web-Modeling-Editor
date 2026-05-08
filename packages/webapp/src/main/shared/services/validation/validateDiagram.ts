@@ -1,7 +1,7 @@
 import { toast } from 'react-toastify';
 import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constants/constant';
-import { ApollonEditor } from '@besser/wme';
+import { BesserEditor } from '@besser/wme';
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -11,13 +11,13 @@ import { ApollonEditor } from '@besser/wme';
  * 3. For ClassDiagram/ObjectDiagram: also runs OCL constraint checks
  * 4. Returns unified validation results with errors, warnings, and OCL results
  * 
- * @param editor - Apollon editor instance (can be null/undefined for quantum circuits)
+ * @param editor - BESSER WME editor instance (can be null/undefined for quantum circuits)
  * @param diagramTitle - Title of the diagram being validated
- * @param modelData - Optional: Direct model data (used for quantum circuits that don't use Apollon)
+ * @param modelData - Optional: Direct model data (used for quantum circuits that don't use the BESSER WME editor)
  */
 const VALIDATION_TOAST_ID = 'diagram-validation-loading';
 
-export async function validateDiagram(editor: ApollonEditor | null | undefined, diagramTitle: string, modelData?: any) {
+export async function validateDiagram(editor: BesserEditor | null | undefined, diagramTitle: string, modelData?: any) {
   // Optionally suppress toasts for programmatic validation (e.g. GUI pre-validation)
   const suppressToasts = modelData && modelData._suppressToasts;
 

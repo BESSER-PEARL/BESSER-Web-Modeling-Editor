@@ -35,7 +35,7 @@ const AssessmentIcon: React.FC<AssessmentIconProps> = ({ score, x, y }) => {
   const { Icon, fill } = getIconConfig()
 
   return (
-    <g className="apollon-assessment-icon">
+    <g className="besser-assessment-icon">
       <circle
         cx={centerX}
         cy={centerY}

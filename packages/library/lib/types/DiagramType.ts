@@ -24,9 +24,9 @@ export const UMLDiagramType = {
 } as const
 
 /**
- * The four BESSER-only diagram types added on top of upstream Apollon's
- * stock set. Wave-2 sub-agents register their nodes / edges / palette
- * entries / inspectors against these.
+ * The four BESSER-only diagram types added on top of the stock set.
+ * Wave-2 sub-agents register their nodes / edges / palette entries /
+ * inspectors against these.
  */
 export const BESSER_DIAGRAM_TYPES: ReadonlyArray<UMLDiagramType> = [
   UMLDiagramType.StateMachineDiagram,

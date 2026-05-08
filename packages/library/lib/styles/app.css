@@ -1,16 +1,16 @@
 .react-flow {
-  --panel-background: var(--apollon-background, #ffffff);
-  --panel-shadow: 0 0 4px 0 var(--apollon-background-variant, #f8f9fa);
-  --text: var(--apollon-primary-contrast, #000000);
-  --xy-edge-stroke: var(--apollon-primary-contrast, #000000);
+  --panel-background: var(--besser-background, #ffffff);
+  --panel-shadow: 0 0 4px 0 var(--besser-background-variant, #f8f9fa);
+  --text: var(--besser-primary-contrast, #000000);
+  --xy-edge-stroke: var(--besser-primary-contrast, #000000);
   --xy-edge-stroke-width: 2px;
   --xy-minimap-mask-background-color-props: #00000020;
-  --xy-controls-button-background-color: var(--apollon-background, #ffffff);
+  --xy-controls-button-background-color: var(--besser-background, #ffffff);
 }
 
-.apollon-editor {
-  background-color: var(--apollon-background, #ffffff);
-  color: var(--apollon-primary-contrast, #000000);
+.besser-editor {
+  background-color: var(--besser-background, #ffffff);
+  color: var(--besser-primary-contrast, #000000);
 }
 .react-flow__controls-button {
   background: none;
@@ -49,17 +49,17 @@
   background-color: transparent;
 }
 
-.react-flow__handle.apollon-arc-handle::before {
+.react-flow__handle.besser-arc-handle::before {
   content: "";
   position: absolute;
-  background-color: var(--apollon-primary, #3e8acc);
+  background-color: var(--besser-primary, #3e8acc);
   opacity: 0.4;
   box-sizing: border-box;
   pointer-events: all;
   cursor: crosshair;
 }
 
-.react-flow__handle.apollon-arc-handle--top::before {
+.react-flow__handle.besser-arc-handle--top::before {
   width: 28px;
   height: 14px;
   left: 50%;
@@ -68,7 +68,7 @@
   border-radius: 14px 14px 0 0;
 }
 
-.react-flow__handle.apollon-arc-handle--right::before {
+.react-flow__handle.besser-arc-handle--right::before {
   width: 14px;
   height: 28px;
   left: 50%;
@@ -77,7 +77,7 @@
   border-radius: 0 14px 14px 0;
 }
 
-.react-flow__handle.apollon-arc-handle--bottom::before {
+.react-flow__handle.besser-arc-handle--bottom::before {
   width: 28px;
   height: 14px;
   left: 50%;
@@ -86,7 +86,7 @@
   border-radius: 0 0 14px 14px;
 }
 
-.react-flow__handle.apollon-arc-handle--left::before {
+.react-flow__handle.besser-arc-handle--left::before {
   width: 14px;
   height: 28px;
   left: 50%;
@@ -131,77 +131,77 @@
 
 .edge-circle {
   opacity: 0;
-  background-color: var(--apollon-primary, #3e8acc);
+  background-color: var(--besser-primary, #3e8acc);
 }
 
 .react-flow__edge:hover .edge-circle {
   opacity: 0.4;
   padding: 4px;
-  fill: var(--apollon-primary, #3e8acc);
+  fill: var(--besser-primary, #3e8acc);
 }
 .react-flow__edge.selected .edge-circle {
   opacity: 0.4;
   padding: 4px;
-  fill: var(--apollon-primary, #3e8acc);
+  fill: var(--besser-primary, #3e8acc);
 }
 
 .react-flow__edge:hover .edge-overlay {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--apollon-primary, #3e8acc);
+  stroke: var(--besser-primary, #3e8acc);
   stroke-width: 15px;
 }
 .react-flow__edge:hover .edge-marker-highlight {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--apollon-primary, #3e8acc);
+  stroke: var(--besser-primary, #3e8acc);
   stroke-width: 15px;
 }
 
 .react-flow__edge.selected .edge-overlay {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--apollon-primary, #3e8acc);
+  stroke: var(--besser-primary, #3e8acc);
   stroke-width: 15px;
 }
 .react-flow__edge.selected .edge-marker-highlight {
   opacity: 0.4;
   padding: 4px;
-  stroke: var(--apollon-primary, #3e8acc);
+  stroke: var(--besser-primary, #3e8acc);
   stroke-width: 15px;
 }
 
 .react-flow__node:hover {
   opacity: 0.9;
-  box-shadow: 0 0 0 2px var(--apollon-primary, #3e8acc);
+  box-shadow: 0 0 0 2px var(--besser-primary, #3e8acc);
   border-radius: 4px;
 }
 
 .react-flow__node.selected {
   opacity: 0.9;
-  box-shadow: 0 0 0 2px var(--apollon-primary, #3e8acc);
+  box-shadow: 0 0 0 2px var(--besser-primary, #3e8acc);
   border-radius: 4px;
 }
 
-.apollon-interactive-selection {
-  --apollon-interactive-selection-color: var(
-    --apollon-interactive-selection,
+.besser-interactive-selection {
+  --besser-interactive-selection-color: var(
+    --besser-interactive-selection,
     #f39c12
   );
 }
 
-.apollon-interactive-selection--selected [stroke]:not([stroke="none"]) {
-  stroke: var(--apollon-interactive-selection-color);
+.besser-interactive-selection--selected [stroke]:not([stroke="none"]) {
+  stroke: var(--besser-interactive-selection-color);
 }
 
-.apollon-interactive-selection--selected .react-flow__edge-path {
+.besser-interactive-selection--selected .react-flow__edge-path {
   stroke-width: 3px;
 }
 
-.apollon-interactive-selection--selected .edge-overlay,
-.apollon-interactive-selection--selected .edge-marker-highlight {
+.besser-interactive-selection--selected .edge-overlay,
+.besser-interactive-selection--selected .edge-marker-highlight {
   opacity: 0.45;
-  stroke: var(--apollon-interactive-selection-color);
+  stroke: var(--besser-interactive-selection-color);
   stroke-width: 15px;
 }
 
@@ -238,8 +238,8 @@ svg.react-flow__connectionline {
 }
 
 .control-button {
-  background-color: var(--apollon-background, #ffffff);
-  border: 1px solid var(--apollon-gray-variant, #495057);
+  background-color: var(--besser-background, #ffffff);
+  border: 1px solid var(--besser-gray-variant, #495057);
   border-radius: 8px;
   padding: 6px 8px;
   cursor: pointer;
@@ -255,7 +255,7 @@ svg.react-flow__connectionline {
 }
 
 .control-button:hover:not(.disabled) {
-  background-color: var(--apollon-background-variant, #f8f9fa);
+  background-color: var(--besser-background-variant, #f8f9fa);
 }
 
 .control-button.disabled {
@@ -264,7 +264,7 @@ svg.react-flow__connectionline {
 }
 
 .control-button.disabled:hover {
-  background-color: var(--apollon-background, #ffffff);
+  background-color: var(--besser-background, #ffffff);
 }
 
 .horizontally-not-resizable .react-flow__resize-control.top.line:hover {
@@ -280,17 +280,17 @@ svg.react-flow__connectionline {
   cursor: grab;
 }
 
-.apollon-editor .MuiSelect-select {
-  color: var(--apollon-primary-contrast, #000000) !important;
+.besser-editor .MuiSelect-select {
+  color: var(--besser-primary-contrast, #000000) !important;
 }
-.apollon-editor .MuiFormLabel-root {
-  color: var(--apollon-primary-contrast, #000000) !important;
+.besser-editor .MuiFormLabel-root {
+  color: var(--besser-primary-contrast, #000000) !important;
 }
-.apollon-editor .MuiOutlinedInput-notchedOutline {
-  border-color: var(--apollon-primary-contrast, #000000) !important;
+.besser-editor .MuiOutlinedInput-notchedOutline {
+  border-color: var(--besser-primary-contrast, #000000) !important;
 }
-.apollon-editor .MuiSvgIcon-root {
-  color: var(--apollon-primary-contrast, #000000) !important;
+.besser-editor .MuiSvgIcon-root {
+  color: var(--besser-primary-contrast, #000000) !important;
 }
 .scroll-overlay {
   position: absolute;
@@ -298,7 +298,7 @@ svg.react-flow__connectionline {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--apollon-grid, rgba(36, 39, 36, 0.1));
+  background-color: var(--besser-grid, rgba(36, 39, 36, 0.1));
   backdrop-filter: blur(0.5px);
   z-index: 10;
   cursor: not-allowed;
@@ -318,11 +318,11 @@ svg.react-flow__connectionline {
 }
 
 .scroll-overlay-hint-content {
-  background-color: var(--apollon-background, #ffffff);
-  border: 2px solid var(--apollon-primary, #3e8acc);
+  background-color: var(--besser-background, #ffffff);
+  border: 2px solid var(--besser-primary, #3e8acc);
   border-radius: 8px;
   padding: 16px 24px;
-  box-shadow: 0 4px 12px var(--apollon-grid, rgba(36, 39, 36, 0.1));
+  box-shadow: 0 4px 12px var(--besser-grid, rgba(36, 39, 36, 0.1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -330,7 +330,7 @@ svg.react-flow__connectionline {
 
 .scroll-overlay-hint-text {
   margin: 0;
-  color: var(--apollon-primary, #3e8acc);
+  color: var(--besser-primary, #3e8acc);
   font-weight: 600;
   font-size: 14px;
   text-align: center;

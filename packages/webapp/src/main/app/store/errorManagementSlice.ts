@@ -1,20 +1,20 @@
 import { createSlice, createSelector, PayloadAction } from '@reduxjs/toolkit';
 import { v4 as uuidv4 } from 'uuid';
 
-export type ApollonError = {
+export type BesserError = {
   id: string;
   headerText: string;
   bodyText: string;
 };
 
-const initialState: ApollonError[] = [];
+const initialState: BesserError[] = [];
 
 const errorSlice = createSlice({
   name: 'error',
   initialState,
   reducers: {
     displayError: {
-      reducer: (state, action: PayloadAction<ApollonError>) => {
+      reducer: (state, action: PayloadAction<BesserError>) => {
         state.push(action.payload);
       },
       prepare: (headerText: string, bodyText: string) => ({
@@ -38,7 +38,7 @@ export const errorReducer = errorSlice.reducer;
 
 // ── Selectors ──────────────────────────────────────────────────────────
 
-export const selectErrors = (state: { errors: ApollonError[] }) => state.errors;
+export const selectErrors = (state: { errors: BesserError[] }) => state.errors;
 
 export const selectHasErrors = createSelector(
   selectErrors,

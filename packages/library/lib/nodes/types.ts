@@ -61,7 +61,7 @@ import {
 } from "./sfcDiagram"
 
 /**
- * Default React-Flow node-type registry shipped with upstream Apollon.
+ * Default React-Flow node-type registry shipped with BESSER WME.
  * The exported `diagramNodeTypes` is a **live, mutable view** of this
  * registry plus any types BESSER (or other consumers) register at runtime
  * via `registerNodeTypes`. Read sites (`App.tsx`, ReactFlow's `nodeTypes`

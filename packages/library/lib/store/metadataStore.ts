@@ -4,21 +4,21 @@ import { parseDiagramType } from "@/utils"
 import * as Y from "yjs"
 import { getDiagramMetadata } from "@/sync/ydoc"
 import { UMLDiagramType } from "@/types"
-import { ApollonMode, ApollonView } from "@/typings"
+import { BesserMode, BesserView } from "@/typings"
 
 export type MetadataStore = {
   diagramTitle: string
   diagramType: UMLDiagramType
-  mode: ApollonMode
-  view: ApollonView
-  availableViews: ApollonView[]
+  mode: BesserMode
+  view: BesserView
+  availableViews: BesserView[]
   readonly: boolean
   debug: boolean
   scrollLock: boolean
   scrollEnabled: boolean
-  setMode: (mode: ApollonMode) => void
-  setView: (view: ApollonView) => void
-  setAvailableViews: (availableViews: ApollonView[]) => void
+  setMode: (mode: BesserMode) => void
+  setView: (view: BesserView) => void
+  setAvailableViews: (availableViews: BesserView[]) => void
   setReadonly: (readonly: boolean) => void
   setScrollLock: (scrollLock: boolean) => void
   setScrollEnabled: (scrollEnabled: boolean) => void
@@ -33,9 +33,9 @@ export type MetadataStore = {
 type InitialMetadataState = {
   diagramTitle: string
   diagramType: UMLDiagramType
-  mode: ApollonMode
-  view: ApollonView
-  availableViews: ApollonView[]
+  mode: BesserMode
+  view: BesserView
+  availableViews: BesserView[]
   readonly: boolean
   debug: boolean
   scrollLock: boolean
@@ -44,9 +44,9 @@ type InitialMetadataState = {
 const initialMetadataState: InitialMetadataState = {
   diagramTitle: "Untitled Diagram",
   diagramType: UMLDiagramType.ClassDiagram,
-  mode: ApollonMode.Modelling,
-  view: ApollonView.Modelling,
-  availableViews: [ApollonView.Modelling],
+  mode: BesserMode.Modelling,
+  view: BesserView.Modelling,
+  availableViews: [BesserView.Modelling],
   readonly: false,
   debug: false,
   scrollLock: false,

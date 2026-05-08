@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { UMLModel, ApollonNode, ApollonEdge, Assessment } from "../typings"
+import { UMLModel, BesserNode, BesserEdge, Assessment } from "../typings"
 import { UMLDiagramType } from "../types/DiagramType"
 import { ClassType } from "../types/nodes/enums"
 import { IPoint } from "../edges/Connection"
@@ -1370,7 +1370,7 @@ export function convertV3MessagesToV4(
 function convertV3ElementToV4Node(
   element: V3UMLElement,
   allElements: Record<string, V3UMLElement>
-): ApollonNode {
+): BesserNode {
   const nodeType = convertV3NodeTypeToV4(element.type)
   let position = { x: element.bounds.x, y: element.bounds.y }
   if (element.owner) {
@@ -1388,7 +1388,7 @@ function convertV3ElementToV4Node(
     element.bounds.height
   )
 
-  const baseNode: ApollonNode = {
+  const baseNode: BesserNode = {
     id: element.id,
     type: nodeType as any,
     position: normalizedGeometry.position,
@@ -1687,7 +1687,7 @@ function liftAgentTransitionDataToV4(
  */
 function convertV3RelationshipToV4Edge(
   relationship: V3UMLRelationship
-): ApollonEdge {
+): BesserEdge {
   const edgeType = convertV3EdgeTypeToV4(
     relationship.type,
     relationship.flowType
@@ -1730,7 +1730,7 @@ function convertV3RelationshipToV4Edge(
     }
   }
 
-  const edge: ApollonEdge = {
+  const edge: BesserEdge = {
     id: relationship.id,
     source: relationship.source.element,
     target: relationship.target.element,
@@ -1813,7 +1813,7 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
   const id = (v3Data as V3DiagramFormat).id || "converted-diagram-" + Date.now()
   const title = (v3Data as V3DiagramFormat).title || ""
 
-  const nodes: ApollonNode[] = Object.values(model.elements)
+  const nodes: BesserNode[] = Object.values(model.elements)
     .filter((element) => {
       // Skip child rows that are collapsed into their owner's data.
       if (
@@ -1871,7 +1871,7 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
     })
     .map((element) => convertV3ElementToV4Node(element, model.elements))
 
-  const edges: ApollonEdge[] = Object.values(model.relationships).map(
+  const edges: BesserEdge[] = Object.values(model.relationships).map(
     (relationship) => convertV3RelationshipToV4Edge(relationship)
   )
 

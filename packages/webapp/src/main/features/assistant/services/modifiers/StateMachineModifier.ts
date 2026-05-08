@@ -8,7 +8,7 @@
  * separate nodes). Initial / Final / Code-Block nodes remain top-level.
  */
 
-import type { ApollonEdge, ApollonNode } from '@besser/wme';
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 
@@ -61,7 +61,7 @@ export class StateMachineModifier implements DiagramModifier {
     const stateId = ModifierHelpers.generateUniqueId('state');
 
     if (stateType === 'initial') {
-      const node: ApollonNode = {
+      const node: BesserNode = {
         id: stateId,
         type: 'StateInitialNode' as any,
         position: pos,
@@ -75,7 +75,7 @@ export class StateMachineModifier implements DiagramModifier {
     }
 
     if (stateType === 'final') {
-      const node: ApollonNode = {
+      const node: BesserNode = {
         id: stateId,
         type: 'StateFinalNode' as any,
         position: pos,
@@ -96,7 +96,7 @@ export class StateMachineModifier implements DiagramModifier {
 
     const totalHeight = Math.max(100, 41 + bodies.length * 30);
     const stateName = modification.target.stateName || changes.name || '';
-    const node: ApollonNode = {
+    const node: BesserNode = {
       id: stateId,
       type: 'State' as any,
       position: pos,
@@ -115,7 +115,7 @@ export class StateMachineModifier implements DiagramModifier {
 
   private modifyState(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
-    let target: ApollonNode | undefined;
+    let target: BesserNode | undefined;
     if (stateId) target = ModifierHelpers.findNodeById(model, stateId);
     if (!target && stateName) {
       target = ModifierHelpers.findNodeByName(model, stateName, 'State')
@@ -148,7 +148,7 @@ export class StateMachineModifier implements DiagramModifier {
     }
 
     const transitionId = ModifierHelpers.generateUniqueId('transition');
-    const edge: ApollonEdge = {
+    const edge: BesserEdge = {
       id: transitionId,
       source: sourceNode.id,
       target: targetNode.id,
@@ -170,7 +170,7 @@ export class StateMachineModifier implements DiagramModifier {
     const { transitionId } = modification.target;
     if (!transitionId) return model;
     const m = model as any;
-    m.edges = (m.edges ?? []).filter((e: ApollonEdge) => e.id !== transitionId);
+    m.edges = (m.edges ?? []).filter((e: BesserEdge) => e.id !== transitionId);
     return model;
   }
 
@@ -178,7 +178,7 @@ export class StateMachineModifier implements DiagramModifier {
     const changes = modification.changes;
     const pos = this.nextPosition(model);
     const codeBlockId = ModifierHelpers.generateUniqueId('codeblock');
-    const node: ApollonNode = {
+    const node: BesserNode = {
       id: codeBlockId,
       type: 'StateCodeBlock' as any,
       position: pos,
@@ -197,7 +197,7 @@ export class StateMachineModifier implements DiagramModifier {
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
-    let target: ApollonNode | undefined;
+    let target: BesserNode | undefined;
     if (stateId) target = ModifierHelpers.findNodeById(model, stateId);
     if (!target && stateName) {
       target = ModifierHelpers.findNodeByName(model, stateName, 'State')

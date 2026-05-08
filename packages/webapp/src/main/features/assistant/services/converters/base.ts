@@ -1,6 +1,6 @@
 /**
  * Diagram Type Converters
- * Handles conversion from simplified specs to Apollon format for all diagram types
+ * Handles conversion from simplified specs to BESSER WME format for all diagram types
  */
 
 import { DiagramType } from '../shared-types';

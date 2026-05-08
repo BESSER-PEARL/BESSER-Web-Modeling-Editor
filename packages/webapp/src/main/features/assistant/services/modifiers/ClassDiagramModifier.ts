@@ -17,7 +17,7 @@
  *     etc.
  */
 
-import type { ApollonEdge, ApollonNode } from '@besser/wme';
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { normalizeType } from '../shared/typeNormalization';
@@ -125,7 +125,7 @@ export class ClassDiagramModifier implements DiagramModifier {
    * Interface / Enumeration) by name. v4 stores them all under
    * `node.type === 'class'` with stereotype distinguishing.
    */
-  private findClassNode(model: BESSERModel, className: string): ApollonNode | undefined {
+  private findClassNode(model: BESSERModel, className: string): BesserNode | undefined {
     if (!className) return undefined;
     const normalized = className.trim().toLowerCase();
     const classNodes = ModifierHelpers.nodes(model).filter((n) => n.type === CLASS_NODE_TYPE);
@@ -141,7 +141,7 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   /** Find an attribute row on a class node by name (case-insensitive, name-only match). */
-  private findAttributeRow(classNode: ApollonNode, attributeName: string): ClassifierMember | undefined {
+  private findAttributeRow(classNode: BesserNode, attributeName: string): ClassifierMember | undefined {
     const data: any = classNode.data || {};
     const rows: ClassifierMember[] = Array.isArray(data.attributes) ? data.attributes : [];
     const normalizedTarget = this.normalizeAttributeName(attributeName);
@@ -154,7 +154,7 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   /** Find a method row on a class node by name (case-insensitive). */
-  private findMethodRow(classNode: ApollonNode, methodName: string): ClassifierMember | undefined {
+  private findMethodRow(classNode: BesserNode, methodName: string): ClassifierMember | undefined {
     const data: any = classNode.data || {};
     const rows: ClassifierMember[] = Array.isArray(data.methods) ? data.methods : [];
     const normalizedTarget = this.normalizeMethodName(methodName);
@@ -167,7 +167,7 @@ export class ClassDiagramModifier implements DiagramModifier {
   }
 
   /** Compute a node's height from its row counts. Mirrors the v3 visual budget. */
-  private recalculateClassHeight(node: ApollonNode): void {
+  private recalculateClassHeight(node: BesserNode): void {
     const data: any = node.data || {};
     const attrCount = Array.isArray(data.attributes) ? data.attributes.length : 0;
     const methodCount = Array.isArray(data.methods) ? data.methods.length : 0;
@@ -190,7 +190,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     width?: number;
     height?: number;
     extraData?: Record<string, unknown>;
-  }): ApollonNode {
+  }): BesserNode {
     const w = opts.width ?? 220;
     const h = opts.height ?? 90;
     const data: Record<string, unknown> = {
@@ -588,7 +588,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     const targetMultiplicity = changes.targetMultiplicity || '*';
     const relationshipName = changes.name || changes.roleName || target.relationshipName || '';
 
-    const edge: ApollonEdge = {
+    const edge: BesserEdge = {
       id: relationshipId,
       source: sourceNode!.id,
       target: targetNode!.id,
@@ -622,7 +622,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     const changes = modification.changes;
     const target = modification.target;
 
-    let matchedEdge: ApollonEdge | undefined;
+    let matchedEdge: BesserEdge | undefined;
 
     if (target.relationshipId) {
       matchedEdge = edges.find((e) => e.id === target.relationshipId);
@@ -691,7 +691,7 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     // Remove relationship
     if (relationshipId || relationshipName) {
-      m.edges = (m.edges ?? []).filter((e: ApollonEdge) => {
+      m.edges = (m.edges ?? []).filter((e: BesserEdge) => {
         if (relationshipId && e.id === relationshipId) return false;
         if (relationshipName && (e.data as any)?.name === relationshipName) return false;
         return true;
@@ -834,7 +834,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     const sourceWidth = sourceNode.width || 220;
 
     // Collect existing edges involving the source class (for reconnection)
-    const existingEdges: Array<{ edge: ApollonEdge; direction: 'source' | 'target' }> = [];
+    const existingEdges: Array<{ edge: BesserEdge; direction: 'source' | 'target' }> = [];
     for (const edge of ModifierHelpers.edges(model)) {
       if (edge.source === sourceNode.id) existingEdges.push({ edge, direction: 'source' });
       else if (edge.target === sourceNode.id) existingEdges.push({ edge, direction: 'target' });
@@ -885,7 +885,7 @@ export class ClassDiagramModifier implements DiagramModifier {
         else edge.target = newClassIds[0];
       }
       const m = model as any;
-      m.nodes = (m.nodes ?? []).filter((n: ApollonNode) => n.id !== sourceNode.id);
+      m.nodes = (m.nodes ?? []).filter((n: BesserNode) => n.id !== sourceNode.id);
       // edges that referenced the source were already redirected; no need to filter
     }
 
@@ -899,7 +899,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     if (classNames.length < 2) throw new Error('merge_classes requires at least two class names in "classes".');
     if (!targetName) throw new Error('merge_classes requires a "targetName" field.');
 
-    const nodes: ApollonNode[] = [];
+    const nodes: BesserNode[] = [];
     for (const name of classNames) {
       const n = this.findClassNode(model, name);
       if (!n) throw new Error(`Class '${name}' not found in the model.`);
@@ -939,7 +939,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
 
     const mergedClassIds = new Set(nodes.map((n) => n.id));
-    const affectedEdges: ApollonEdge[] = [];
+    const affectedEdges: BesserEdge[] = [];
     for (const edge of ModifierHelpers.edges(model)) {
       if (mergedClassIds.has(edge.source) && mergedClassIds.has(edge.target)) continue;
       if (mergedClassIds.has(edge.source) || mergedClassIds.has(edge.target)) affectedEdges.push(edge);
@@ -947,8 +947,8 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     // Drop merged class nodes and their incident edges (between merged peers)
     const m = model as any;
-    m.nodes = (m.nodes ?? []).filter((n: ApollonNode) => !mergedClassIds.has(n.id));
-    m.edges = (m.edges ?? []).filter((e: ApollonEdge) => {
+    m.nodes = (m.nodes ?? []).filter((n: BesserNode) => !mergedClassIds.has(n.id));
+    m.edges = (m.edges ?? []).filter((e: BesserEdge) => {
       if (mergedClassIds.has(e.source) && mergedClassIds.has(e.target)) return false;
       return true;
     });
@@ -1071,8 +1071,8 @@ export class ClassDiagramModifier implements DiagramModifier {
   private createMinimalClassNode(
     model: BESSERModel,
     className: string,
-    neighbour?: ApollonNode,
-  ): ApollonNode {
+    neighbour?: BesserNode,
+  ): BesserNode {
     let x = 0, y = 0;
     if (neighbour) {
       x = neighbour.position.x + (neighbour.width || 250) + 80;
@@ -1094,7 +1094,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     name: string = '',
   ): string {
     const edgeId = ModifierHelpers.generateUniqueId('rel');
-    const edge: ApollonEdge = {
+    const edge: BesserEdge = {
       id: edgeId,
       source: sourceId,
       target: targetId,

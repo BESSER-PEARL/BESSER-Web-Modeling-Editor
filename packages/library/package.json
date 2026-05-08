@@ -1,9 +1,10 @@
 {
   "name": "@besser/wme",
   "version": "3.0.0",
-  "description": "An embeddable UML modeling editor for React. 13 diagram types, SVG/PNG/PDF/JSON export, optional real-time collaboration via Yjs.",
+  "description": "BESSER Web Modeling Editor (WME) - an embeddable UML modeling editor for React. 13 diagram types, SVG/PNG/PDF/JSON export, optional real-time collaboration via Yjs.",
   "keywords": [
-    "apollon",
+    "besser",
+    "wme",
     "uml",
     "uml-editor",
     "diagram",
@@ -19,21 +20,21 @@
     "class-diagram",
     "flowchart"
   ],
-  "homepage": "https://github.com/ls1intum/Apollon#readme",
+  "homepage": "https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR#readme",
   "bugs": {
-    "url": "https://github.com/ls1intum/Apollon/issues"
+    "url": "https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ls1intum/Apollon.git",
-    "directory": "library"
+    "url": "git+https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR.git",
+    "directory": "packages/library"
   },
   "license": "MIT",
   "author": {
-    "name": "TUM Applied Education Technologies",
-    "url": "https://aet.cit.tum.de/"
+    "name": "BESSER PEARL",
+    "url": "https://github.com/BESSER-PEARL"
   },
-  "funding": "https://github.com/ls1intum/Apollon",
+  "funding": "https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

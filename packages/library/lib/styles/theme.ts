@@ -1,4 +1,4 @@
-export type Styles = typeof apollonTheme
+export type Styles = typeof besserTheme
 
 export type withThemeProps = { theme: Styles }
 
@@ -6,20 +6,20 @@ export type Color = "primary" | "secondary"
 export type Size = "sm" | "md" | "lg"
 
 // TODO: These values are not used yet, but they are defined in the theme as reference
-const apollonTheme = {
+const besserTheme = {
   color: {
-    primary: "var(--apollon-primary, #2a8fbd)",
-    secondary: "var(--apollon-secondary, #6c757d)",
-    warningYellow: "var(--apollon-warning-yellow, #ffc800)",
-    background: "var(--apollon-background, #ffffff)",
-    backgroundVariant: "var(--apollon-background-variant, #e5e5e5)",
-    grid: "var(--apollon-grid, rgba(36, 39, 36, 0.1))",
-    primaryContrast: "var(--apollon-primary-contrast, #000000)",
-    gray: "var(--apollon-gray, #e9ecef)",
-    grayAccent: "var(--apollon-gray-variant, #343a40)",
+    primary: "var(--besser-primary, #2a8fbd)",
+    secondary: "var(--besser-secondary, #6c757d)",
+    warningYellow: "var(--besser-warning-yellow, #ffc800)",
+    background: "var(--besser-background, #ffffff)",
+    backgroundVariant: "var(--besser-background-variant, #e5e5e5)",
+    grid: "var(--besser-grid, rgba(36, 39, 36, 0.1))",
+    primaryContrast: "var(--besser-primary-contrast, #000000)",
+    gray: "var(--besser-gray, #e9ecef)",
+    grayAccent: "var(--besser-gray-variant, #343a40)",
   },
   font: {
-    color: "var(--apollon-primary-contrast, #000000)",
+    color: "var(--besser-primary-contrast, #000000)",
     family: "Helvetica Neue, Helvetica, Arial, sans-serif",
     size: 16,
   },
@@ -30,5 +30,5 @@ const apollonTheme = {
 }
 
 export const defaults = () => {
-  return apollonTheme
+  return besserTheme
 }

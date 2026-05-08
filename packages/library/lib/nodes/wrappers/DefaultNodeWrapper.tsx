@@ -84,7 +84,7 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.TopLeft,
       position: Position.Top,
-      className: "apollon-arc-handle apollon-arc-handle--top",
+      className: "besser-arc-handle besser-arc-handle--top",
       style: { ...baseHandleStyle, left: "20%" },
     },
     {
@@ -95,7 +95,7 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.Top,
       position: Position.Top,
-      className: "apollon-arc-handle apollon-arc-handle--top",
+      className: "besser-arc-handle besser-arc-handle--top",
       style: { ...baseHandleStyle },
     },
     {
@@ -106,13 +106,13 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.TopRight,
       position: Position.Top,
-      className: "apollon-arc-handle apollon-arc-handle--top",
+      className: "besser-arc-handle besser-arc-handle--top",
       style: { ...baseHandleStyle, left: "80%" },
     },
     {
       id: HandleId.RightTop,
       position: Position.Right,
-      className: "apollon-arc-handle apollon-arc-handle--right",
+      className: "besser-arc-handle besser-arc-handle--right",
       style: { ...baseHandleStyle, top: "20%" },
     },
     {
@@ -123,7 +123,7 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.Right,
       position: Position.Right,
-      className: "apollon-arc-handle apollon-arc-handle--right",
+      className: "besser-arc-handle besser-arc-handle--right",
       style: { ...baseHandleStyle },
     },
     {
@@ -134,13 +134,13 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.RightBottom,
       position: Position.Right,
-      className: "apollon-arc-handle apollon-arc-handle--right",
+      className: "besser-arc-handle besser-arc-handle--right",
       style: { ...baseHandleStyle, top: "80%" },
     },
     {
       id: HandleId.BottomRight,
       position: Position.Bottom,
-      className: "apollon-arc-handle apollon-arc-handle--bottom",
+      className: "besser-arc-handle besser-arc-handle--bottom",
       style: { ...baseHandleStyle, left: "80%" },
     },
     {
@@ -151,7 +151,7 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.Bottom,
       position: Position.Bottom,
-      className: "apollon-arc-handle apollon-arc-handle--bottom",
+      className: "besser-arc-handle besser-arc-handle--bottom",
       style: { ...baseHandleStyle },
     },
     {
@@ -162,13 +162,13 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.BottomLeft,
       position: Position.Bottom,
-      className: "apollon-arc-handle apollon-arc-handle--bottom",
+      className: "besser-arc-handle besser-arc-handle--bottom",
       style: { ...baseHandleStyle, left: "20%" },
     },
     {
       id: HandleId.LeftBottom,
       position: Position.Left,
-      className: "apollon-arc-handle apollon-arc-handle--left",
+      className: "besser-arc-handle besser-arc-handle--left",
       style: { ...baseHandleStyle, top: "80%" },
     },
     {
@@ -179,7 +179,7 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.Left,
       position: Position.Left,
-      className: "apollon-arc-handle apollon-arc-handle--left",
+      className: "besser-arc-handle besser-arc-handle--left",
       style: { ...baseHandleStyle },
     },
     {
@@ -190,7 +190,7 @@ export function DefaultNodeWrapper({
     {
       id: HandleId.LeftTop,
       position: Position.Left,
-      className: "apollon-arc-handle apollon-arc-handle--left",
+      className: "besser-arc-handle besser-arc-handle--left",
       style: { ...baseHandleStyle, top: "20%" },
     },
   ]

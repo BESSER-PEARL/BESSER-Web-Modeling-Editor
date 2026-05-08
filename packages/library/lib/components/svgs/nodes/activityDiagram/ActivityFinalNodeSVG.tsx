@@ -29,14 +29,14 @@ export const ActivityFinalNodeSVG: React.FC<SVGComponentProps> = ({
         cx={width / 2}
         cy={height / 2}
         r={width / 2}
-        fill="var(--apollon-primary-contrast, #000000)"
+        fill="var(--besser-primary-contrast, #000000)"
       />
       <circle
         cx={width / 2}
         cy={height / 2}
         r={(width / 2) * 0.8}
-        fill="var(--apollon-primary-contrast, #000000)"
-        stroke="var(--apollon-background, white)"
+        fill="var(--besser-primary-contrast, #000000)"
+        stroke="var(--besser-background, white)"
         strokeWidth={LAYOUT.LINE_WIDTH}
       />
 

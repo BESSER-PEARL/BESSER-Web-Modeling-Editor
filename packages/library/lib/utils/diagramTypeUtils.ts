@@ -1,7 +1,7 @@
 import { UMLDiagramType } from "@/types"
 import {
-  ApollonEdge,
-  ApollonNode,
+  BesserEdge,
+  BesserNode,
   DiagramEdgeType,
   DiagramNodeType,
 } from "@/typings"
@@ -19,7 +19,7 @@ export const parseDiagramType = (
   return isDiagramType(value) ? value : fallback
 }
 
-export const mapFromReactFlowNodeToApollonNode = (node: Node): ApollonNode => {
+export const mapFromReactFlowNodeToBesserNode = (node: Node): BesserNode => {
   return {
     id: node.id,
     width: node.width ?? 0,
@@ -38,7 +38,7 @@ export const mapFromReactFlowNodeToApollonNode = (node: Node): ApollonNode => {
   }
 }
 
-export const mapFromReactFlowEdgeToApollonEdge = (edge: Edge): ApollonEdge => {
+export const mapFromReactFlowEdgeToBesserEdge = (edge: Edge): BesserEdge => {
   return {
     id: edge.id,
     source: edge.source,
@@ -52,3 +52,8 @@ export const mapFromReactFlowEdgeToApollonEdge = (edge: Edge): ApollonEdge => {
     },
   }
 }
+
+/** @deprecated Use mapFromReactFlowNodeToBesserNode instead. */
+export const mapFromReactFlowNodeToApollonNode = mapFromReactFlowNodeToBesserNode
+/** @deprecated Use mapFromReactFlowEdgeToBesserEdge instead. */
+export const mapFromReactFlowEdgeToApollonEdge = mapFromReactFlowEdgeToBesserEdge

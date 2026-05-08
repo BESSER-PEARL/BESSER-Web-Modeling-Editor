@@ -1,5 +1,5 @@
 import { useDiagramStore, useMetadataStore } from "@/store"
-import { ApollonMode } from "@/typings"
+import { BesserMode } from "@/typings"
 import { useShallow } from "zustand/shallow"
 
 export const useHandleDelete = (elementId: string) => {
@@ -23,8 +23,8 @@ export const useHandleDelete = (elementId: string) => {
   const handleDelete = () => {
     if (
       readonlyDiagram ||
-      diagramMode === ApollonMode.Assessment ||
-      diagramMode === ApollonMode.Exporting
+      diagramMode === BesserMode.Assessment ||
+      diagramMode === BesserMode.Exporting
     )
       return
     const newNodes = nodes.filter((node) => node.id !== elementId)

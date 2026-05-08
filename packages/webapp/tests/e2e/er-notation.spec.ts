@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  *
  * Rendering-level assertions (diamond at midpoint, underline on isId, hidden
  * methods compartment) are covered by manual browser verification — they
- * require interacting with the Apollon editor's internal model, which is not
+ * require interacting with the BESSER WME editor's internal model, which is not
  * exposed on `window` for the UML editor.
  */
 test.describe('ER Notation setting', () => {

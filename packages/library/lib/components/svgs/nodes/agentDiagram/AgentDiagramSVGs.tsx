@@ -29,8 +29,8 @@ export const AgentStateSVG: React.FC<SVGComponentProps> = ({
         height={height}
         rx={8}
         ry={8}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={2}
       />
       <text
@@ -39,7 +39,7 @@ export const AgentStateSVG: React.FC<SVGComponentProps> = ({
         textAnchor="middle"
         fontSize={14}
         fontWeight="600"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         AgentState
       </text>
@@ -66,7 +66,7 @@ export const AgentIntentSVG: React.FC<SVGComponentProps> = ({
       <path
         d={`M 0 0 H ${width} V ${height} H 30 L 0 ${height + 30} L 10 ${height} H 10 0 Z`}
         fill="#E3F9E5"
-        stroke="var(--apollon-primary-contrast, #000)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={1.2}
       />
       <text
@@ -75,7 +75,7 @@ export const AgentIntentSVG: React.FC<SVGComponentProps> = ({
         textAnchor="middle"
         fontSize={14}
         fontWeight="600"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         Intent
       </text>
@@ -132,7 +132,7 @@ export const AgentRagElementSVG: React.FC<SVGComponentProps> = ({
         textAnchor="middle"
         fontSize={12}
         fontWeight="600"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         RAG DB
       </text>
@@ -162,8 +162,8 @@ export const AgentIntentObjectComponentSVG: React.FC<SVGComponentProps> = ({
         width={width}
         height={height}
         rx={4}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={1.5}
       />
       <text
@@ -171,7 +171,7 @@ export const AgentIntentObjectComponentSVG: React.FC<SVGComponentProps> = ({
         y={height / 2 + 5}
         textAnchor="middle"
         fontSize={12}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         slot:entity
       </text>

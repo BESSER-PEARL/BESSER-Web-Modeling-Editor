@@ -20,13 +20,13 @@ export enum Locale {
   de = "de",
 }
 
-export enum ApollonMode {
+export enum BesserMode {
   Modelling = "Modelling",
   Exporting = "Exporting",
   Assessment = "Assessment",
 }
 
-export type ApollonNode = {
+export type BesserNode = {
   id: string
   width: number
   height: number
@@ -42,7 +42,7 @@ export type ApollonNode = {
   measured: { width: number; height: number }
 }
 
-export type ApollonEdge = {
+export type BesserEdge = {
   id: string
   source: string
   target: string
@@ -65,13 +65,13 @@ export type UMLModel = {
   id: string
   title: string
   type: UMLDiagramType
-  nodes: ApollonNode[]
-  edges: ApollonEdge[]
+  nodes: BesserNode[]
+  edges: BesserEdge[]
   assessments: { [id: string]: Assessment }
   interactive?: InteractiveElements
 }
 
-export enum ApollonView {
+export enum BesserView {
   Modelling = "Modelling",
   Exporting = "Exporting",
   Highlight = "Highlight",
@@ -79,11 +79,11 @@ export enum ApollonView {
 
 export type SvgExportMode = "web" | "compat"
 
-export type ApollonOptions = {
+export type BesserOptions = {
   type?: UMLDiagramType
-  mode?: ApollonMode
-  view?: ApollonView
-  availableViews?: ApollonView[]
+  mode?: BesserMode
+  view?: BesserView
+  availableViews?: BesserView[]
   readonly?: boolean
   enablePopups?: boolean
   model?: UMLModel

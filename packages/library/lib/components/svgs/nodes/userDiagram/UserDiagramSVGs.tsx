@@ -28,8 +28,8 @@ export const UserModelNameSVG: React.FC<SVGComponentProps> = ({
         y={0}
         width={width}
         height={height}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={1.5}
       />
       <text
@@ -39,7 +39,7 @@ export const UserModelNameSVG: React.FC<SVGComponentProps> = ({
         fontSize={14}
         fontWeight="600"
         textDecoration="underline"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         Alice: User
       </text>
@@ -67,15 +67,15 @@ export const UserModelIconSVG: React.FC<SVGComponentProps> = ({
         cx={width / 2}
         cy={height / 2}
         r={Math.min(width, height) / 2 - 2}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
       />
       <text
         x={width / 2}
         y={height / 2 + 4}
         textAnchor="middle"
         fontSize={12}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         ico
       </text>

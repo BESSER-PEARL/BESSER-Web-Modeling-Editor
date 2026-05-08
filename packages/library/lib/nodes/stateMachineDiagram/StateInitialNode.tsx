@@ -56,7 +56,7 @@ export function StateInitialNode({
             cx={width / 2}
             cy={height / 2}
             r={radius}
-            fill={fillColor || "var(--apollon-primary-contrast, #000000)"}
+            fill={fillColor || "var(--besser-primary-contrast, #000000)"}
             stroke="none"
           />
         </svg>

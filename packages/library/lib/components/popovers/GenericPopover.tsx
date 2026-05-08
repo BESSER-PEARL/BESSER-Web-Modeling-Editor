@@ -28,15 +28,15 @@ export const GenericPopover: React.FC<GenericPopoverProps> = ({
   minWidth = 200,
   style,
 }) => {
-  // Resolve the closest .apollon-editor container so the popover portal
+  // Resolve the closest .besser-editor container so the popover portal
   // inherits the scoped CSS custom properties (theme variables).
   const container = useMemo(() => {
     if (!anchorEl) return undefined
     const el =
       anchorEl instanceof SVGElement
-        ? (anchorEl.closest(".apollon-editor") ??
-          anchorEl.ownerSVGElement?.closest(".apollon-editor"))
-        : anchorEl.closest(".apollon-editor")
+        ? (anchorEl.closest(".besser-editor") ??
+          anchorEl.ownerSVGElement?.closest(".besser-editor"))
+        : anchorEl.closest(".besser-editor")
     return (el as HTMLElement) ?? undefined
   }, [anchorEl])
 
@@ -65,7 +65,7 @@ export const GenericPopover: React.FC<GenericPopoverProps> = ({
           display: "flex",
           flex: 1,
           flexDirection: "column",
-          backgroundColor: "var(--apollon-background-variant, #f8f9fa)",
+          backgroundColor: "var(--besser-background-variant, #f8f9fa)",
         }}
       >
         {children}

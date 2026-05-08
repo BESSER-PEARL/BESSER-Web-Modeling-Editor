@@ -1,6 +1,6 @@
 /**
  * Agent Diagram Converter  
- * Converts simplified agent system specifications to Apollon format
+ * Converts simplified agent system specifications to BESSER WME format
  * Architecture: AgentState with bodies/fallbackBodies, AgentIntent with bodies, AgentStateTransition
  */
 

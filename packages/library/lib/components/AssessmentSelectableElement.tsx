@@ -1,7 +1,7 @@
 import { INTERACTIVE_SELECTION_COLOR } from "@/constants"
 import { useAssessmentSelection } from "@/hooks"
 import { useDiagramStore, useMetadataStore } from "@/store"
-import { ApollonMode, ApollonView } from "@/typings"
+import { BesserMode, BesserView } from "@/typings"
 import { FC } from "react"
 import { useShallow } from "zustand/shallow"
 
@@ -43,8 +43,8 @@ export const AssessmentSelectableElement: FC<
   } = useAssessmentSelection(elementId)
 
   const showInteractiveInteraction =
-    mode === ApollonMode.Modelling &&
-    view === ApollonView.Highlight &&
+    mode === BesserMode.Modelling &&
+    view === BesserView.Highlight &&
     !readonly
 
   if (showInteractiveInteraction) {
@@ -59,7 +59,7 @@ export const AssessmentSelectableElement: FC<
     return (
       <g
         className="nodrag nopan"
-        data-apollon-element-id={elementId}
+        data-besser-element-id={elementId}
         style={{ cursor: "pointer" }}
         onPointerDown={handleInteractivePointerDown}
       >
@@ -83,7 +83,7 @@ export const AssessmentSelectableElement: FC<
   }
 
   if (!showAssessmentInteraction) {
-    return <g data-apollon-element-id={elementId}>{children}</g>
+    return <g data-besser-element-id={elementId}>{children}</g>
   }
 
   const handleSVGClick = (e: React.PointerEvent<SVGGElement>) => {
@@ -93,7 +93,7 @@ export const AssessmentSelectableElement: FC<
   return (
     <g
       className="nodrag nopan"
-      data-apollon-element-id={elementId}
+      data-besser-element-id={elementId}
       style={{
         cursor: showAssessmentInteraction ? "pointer" : "default",
       }}

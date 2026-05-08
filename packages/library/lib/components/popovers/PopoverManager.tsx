@@ -3,7 +3,7 @@ import {
   usePopoverStore,
   useMetadataStore,
 } from "@/store/context"
-import { ApollonMode } from "@/typings"
+import { BesserMode } from "@/typings"
 import { useShallow } from "zustand/shallow"
 import {
   ClassEditPopover,
@@ -676,9 +676,9 @@ export const PopoverManager = ({
 
   let Component: React.ComponentType<PopoverProps> | null = null
 
-  const isEditing = diagramMode === ApollonMode.Modelling && !readonly
-  const isGivingFeedback = diagramMode === ApollonMode.Assessment && !readonly
-  const isSeeingFeedback = diagramMode === ApollonMode.Assessment && readonly
+  const isEditing = diagramMode === BesserMode.Modelling && !readonly
+  const isGivingFeedback = diagramMode === BesserMode.Assessment && !readonly
+  const isSeeingFeedback = diagramMode === BesserMode.Assessment && readonly
 
   // Read from the shared inspector registry (seeded above with upstream
   // defaults; BESSER and other consumers extend it via `registerInspector`).

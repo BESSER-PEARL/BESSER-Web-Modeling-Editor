@@ -329,7 +329,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             variant="caption"
             sx={{
               cursor: "pointer",
-              color: "var(--apollon-primary)",
+              color: "var(--besser-primary)",
               alignSelf: "flex-start",
             }}
             onClick={() =>
@@ -384,7 +384,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       return (
         <Box
           sx={{
-            border: "1px solid var(--apollon-gray, #ccc)",
+            border: "1px solid var(--besser-gray, #ccc)",
             borderRadius: "4px",
             "& .cm-editor": { fontSize: "13px", minHeight: 150 },
           }}

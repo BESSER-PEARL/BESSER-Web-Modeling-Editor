@@ -172,7 +172,7 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         </Select>
       </Stack>
       {associations.length === 0 && (
-        <Typography variant="caption" sx={{ color: "var(--apollon-gray-700)" }}>
+        <Typography variant="caption" sx={{ color: "var(--besser-gray-700)" }}>
           No associations available — link source / target objects to
           classes first.
         </Typography>

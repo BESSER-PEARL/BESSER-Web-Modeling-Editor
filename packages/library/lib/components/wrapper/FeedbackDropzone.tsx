@@ -1,6 +1,6 @@
 import { useDropFeedback } from "@/hooks/useDropFeedback"
 import { useMetadataStore } from "@/store"
-import { ApollonMode } from "@/typings"
+import { BesserMode } from "@/typings"
 import React, { useState } from "react"
 import { useShallow } from "zustand/shallow"
 
@@ -28,7 +28,7 @@ export const FeedbackDropzone: React.FC<Props> = ({
   const [isDragOver, setIsDragOver] = useState(false)
   const onDropHandle = useDropFeedback({ elementId, elementType })
 
-  const canDropFeedback = mode === ApollonMode.Assessment && !readonly
+  const canDropFeedback = mode === BesserMode.Assessment && !readonly
 
   if (!canDropFeedback) return <>{children}</>
 

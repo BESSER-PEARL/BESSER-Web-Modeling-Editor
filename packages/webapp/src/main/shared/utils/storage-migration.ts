@@ -32,7 +32,7 @@ interface Migration {
  * - Changing global localStorage keys or cleaning up legacy data? -> here
  */
 const migrations: Migration[] = [
-  // v2: Clear incompatible data left by the legacy Apollon-based webapp (pre-v7).
+  // v2: Clear incompatible data left by the legacy webapp (pre-v7).
   // The old webapp stored diagrams under besser_diagram_*, besser_diagrams, besser_latest,
   // and other keys whose data structures are incompatible with the current project-based
   // storage. Users upgrading see "Something went wrong" until they clear localStorage.

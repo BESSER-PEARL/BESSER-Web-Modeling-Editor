@@ -1,6 +1,6 @@
 /**
  * State Machine Diagram Converter
- * Converts simplified state machine specifications to Apollon format
+ * Converts simplified state machine specifications to BESSER WME format
  */
 
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';

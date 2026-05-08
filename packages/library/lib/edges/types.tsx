@@ -14,7 +14,7 @@ import { BPMNDiagramEdge } from "./edgeTypes/BPMNDiagramEdge"
 import { PetriNetEdge } from "./edgeTypes/PetriNetEdge"
 
 /**
- * Default React-Flow edge-type registry shipped with upstream Apollon.
+ * Default React-Flow edge-type registry shipped with BESSER WME.
  * `diagramEdgeTypes` (exported below) is a live, mutable view of this
  * registry plus any types registered at runtime via `registerEdgeTypes`.
  */

@@ -447,7 +447,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
             <Typography variant="caption">conditions</Typography>
             <Typography
               variant="caption"
-              sx={{ cursor: "pointer", color: "var(--apollon-primary)" }}
+              sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
               onClick={addCondition}
             >
               + add
@@ -466,7 +466,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
                   mode at `agent-state-transition-update.tsx:329-348`. */}
               <Box
                 sx={{
-                  border: "1px solid var(--apollon-gray, #ccc)",
+                  border: "1px solid var(--besser-gray, #ccc)",
                   borderRadius: "4px",
                   "& .cm-editor": { fontSize: "13px", minHeight: 120 },
                 }}
@@ -505,7 +505,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         <Typography variant="caption">parameters</Typography>
         <Typography
           variant="caption"
-          sx={{ cursor: "pointer", color: "var(--apollon-primary)" }}
+          sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
           onClick={addParam}
         >
           + add

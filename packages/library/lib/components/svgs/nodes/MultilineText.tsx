@@ -66,7 +66,7 @@ export const MultilineText: FC<Props> = ({
   lineHeight,
   verticalAnchor = "middle",
   textAnchor = "middle",
-  fill = "var(--apollon-primary-contrast, #000000)",
+  fill = "var(--besser-primary-contrast, #000000)",
   maxLines,
   pointerEvents = "none",
   ...rest

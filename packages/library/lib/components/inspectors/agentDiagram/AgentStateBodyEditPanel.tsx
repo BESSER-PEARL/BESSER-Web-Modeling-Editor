@@ -148,7 +148,7 @@ export const AgentStateBodyEditPanel: React.FC<PopoverProps> = ({
       {data.replyType === "code" && (
         <Box
           sx={{
-            border: "1px solid var(--apollon-gray, #ccc)",
+            border: "1px solid var(--besser-gray, #ccc)",
             borderRadius: "4px",
             "& .cm-editor": { fontSize: "13px", minHeight: 120 },
           }}

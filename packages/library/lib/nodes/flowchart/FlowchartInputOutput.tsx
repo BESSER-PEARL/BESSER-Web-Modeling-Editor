@@ -47,13 +47,13 @@ export function FlowchartInputOutput({
     {
       id: HandleId.Top,
       position: Position.Top,
-      className: "apollon-arc-handle apollon-arc-handle--top",
+      className: "besser-arc-handle besser-arc-handle--top",
       style: { left: width / 2, ...baseHandleStyle },
     },
     {
       id: HandleId.Right,
       position: Position.Right,
-      className: "apollon-arc-handle apollon-arc-handle--right",
+      className: "besser-arc-handle besser-arc-handle--right",
       style: {
         top: height / 2,
         right: offset / 2,
@@ -63,13 +63,13 @@ export function FlowchartInputOutput({
     {
       id: HandleId.Bottom,
       position: Position.Bottom,
-      className: "apollon-arc-handle apollon-arc-handle--bottom",
+      className: "besser-arc-handle besser-arc-handle--bottom",
       style: { left: width / 2, ...baseHandleStyle },
     },
     {
       id: HandleId.Left,
       position: Position.Left,
-      className: "apollon-arc-handle apollon-arc-handle--left",
+      className: "besser-arc-handle besser-arc-handle--left",
       style: {
         top: height / 2,
         left: offset / 2,

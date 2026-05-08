@@ -1,7 +1,7 @@
-import { ApollonEdge, ApollonNode, InteractiveElements } from "@/typings"
+import { BesserEdge, BesserNode, InteractiveElements } from "@/typings"
 
-type InteractivePruneNode = Pick<ApollonNode, "id"> &
-  Partial<Pick<ApollonNode, "data">>
+type InteractivePruneNode = Pick<BesserNode, "id"> &
+  Partial<Pick<BesserNode, "data">>
 
 const NESTED_NODE_ELEMENT_KEYS = [
   "attributes",
@@ -51,7 +51,7 @@ function filterInteractiveRecord(
 export function pruneInteractiveElements(
   interactive: InteractiveElements | undefined,
   nodes: InteractivePruneNode[],
-  edges: Array<Pick<ApollonEdge, "id">>
+  edges: Array<Pick<BesserEdge, "id">>
 ): InteractiveElements | undefined {
   if (!interactive) {
     return undefined

@@ -4,7 +4,7 @@ import {
   useMetadataStore,
 } from "@/store"
 import { useShallow } from "zustand/shallow"
-import { ApollonMode } from "@/typings"
+import { BesserMode } from "@/typings"
 import { Node } from "@xyflow/react"
 import { useMemo } from "react"
 
@@ -48,7 +48,7 @@ export const useAssessmentSelection = (elementId: string) => {
 
   // Check if we're in readonly assessment mode
   const isReadonlyAssessmentMode = useMemo(
-    () => mode === ApollonMode.Assessment && readonly,
+    () => mode === BesserMode.Assessment && readonly,
     [mode, readonly]
   )
 

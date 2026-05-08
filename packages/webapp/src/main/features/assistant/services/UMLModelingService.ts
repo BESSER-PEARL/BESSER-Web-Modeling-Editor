@@ -5,7 +5,7 @@ import type { DiagramType } from './shared-types';
 import { ModifierFactory, ModelModification } from './modifiers';
 import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from './shared/layoutUtils';
 import { pushUndoSnapshot } from './undoStack';
-import type { ApollonEdge, ApollonNode, UMLModel } from '@besser/wme';
+import type { BesserEdge, BesserNode, UMLModel } from '@besser/wme';
 
 // Re-export ModelModification for backward compatibility
 export type { ModelModification };
@@ -443,7 +443,7 @@ export class UMLModelingService {
       return [];
     }
 
-    return (m.nodes as ApollonNode[])
+    return (m.nodes as BesserNode[])
       .filter((n) => {
         if (!n || typeof n !== 'object') return false;
         if (n.parentId) return false;
@@ -574,7 +574,7 @@ export class UMLModelingService {
     const nodes = Array.isArray(systemData.nodes) ? systemData.nodes : [];
     const edges = Array.isArray(systemData.edges) ? systemData.edges : [];
 
-    const shiftedNodes = (nodes as ApollonNode[]).map((node) => {
+    const shiftedNodes = (nodes as BesserNode[]).map((node) => {
       if (!node?.position) return node;
       // Only shift root-level nodes; child nodes are positioned relative to their parent.
       if (node.parentId) return node;
@@ -587,7 +587,7 @@ export class UMLModelingService {
       };
     });
 
-    const shiftedEdges = (edges as ApollonEdge[]).map((edge) => {
+    const shiftedEdges = (edges as BesserEdge[]).map((edge) => {
       if (!edge?.data?.points) return edge;
       const shiftedPoints = Array.isArray(edge.data.points)
         ? edge.data.points.map((p: any) =>
@@ -615,16 +615,16 @@ export class UMLModelingService {
   /**
    * Merge single-element converter output into existing v4 model.
    * Single-element output may be either:
-   *   - {nodes: ApollonNode[], edges?: ApollonEdge[]} (canonical v4 partial)
-   *   - a single ApollonNode (no wrapper)
+   *   - {nodes: BesserNode[], edges?: BesserEdge[]} (canonical v4 partial)
+   *   - a single BesserNode (no wrapper)
    */
   private mergeElementIntoModel(currentModel: BESSERModel, elementData: any): BESSERModel {
     const cur = currentModel as any;
     const baseNodes = Array.isArray(cur.nodes) ? cur.nodes : [];
     const baseEdges = Array.isArray(cur.edges) ? cur.edges : [];
 
-    let newNodes: ApollonNode[] = [];
-    let newEdges: ApollonEdge[] = [];
+    let newNodes: BesserNode[] = [];
+    let newEdges: BesserEdge[] = [];
 
     if (Array.isArray(elementData)) {
       newNodes = elementData.filter((n: any) => n && typeof n === 'object' && n.id);
@@ -657,8 +657,8 @@ export class UMLModelingService {
     const cur = currentModel as any;
     return {
       ...cur,
-      nodes: [...(cur.nodes ?? []), ...((systemData?.nodes as ApollonNode[]) ?? [])],
-      edges: [...(cur.edges ?? []), ...((systemData?.edges as ApollonEdge[]) ?? [])],
+      nodes: [...(cur.nodes ?? []), ...((systemData?.nodes as BesserNode[]) ?? [])],
+      edges: [...(cur.edges ?? []), ...((systemData?.edges as BesserEdge[]) ?? [])],
     } as BESSERModel;
   }
 }

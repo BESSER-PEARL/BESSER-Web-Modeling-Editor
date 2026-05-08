@@ -3,8 +3,8 @@ import { AppWithProvider } from "./App"
 import { ReactFlowInstance, type Node, type Edge } from "@xyflow/react"
 import {
   parseDiagramType,
-  mapFromReactFlowNodeToApollonNode,
-  mapFromReactFlowEdgeToApollonEdge,
+  mapFromReactFlowNodeToBesserNode,
+  mapFromReactFlowEdgeToBesserEdge,
   DeepPartial,
   filterRenderedElements,
   getSVG,
@@ -36,9 +36,9 @@ import {
 } from "@/sync/yjsSyncClass"
 import * as Y from "yjs"
 import { StoreApi } from "zustand"
-import * as Apollon from "./typings"
+import * as Besser from "./typings"
 
-export class ApollonEditor {
+export class BesserEditor {
   private root: ReactDOM.Root
   private reactFlowInstance: ReactFlowInstance | null = null
   private readonly syncManager: YjsSyncClass
@@ -48,7 +48,7 @@ export class ApollonEditor {
   private readonly popoverStore: StoreApi<PopoverStore>
   private readonly assessmentSelectionStore: StoreApi<AssessmentSelectionStore>
   private readonly alignmentGuidesStore: StoreApi<AlignmentGuidesStore>
-  private subscribers: Apollon.Subscribers = {}
+  private subscribers: Besser.Subscribers = {}
   // SA-7a: `ready` resolves once React Flow has initialised (i.e. once
   // `setReactFlowInstance` has been invoked by `<AppWithProvider
   // onReactFlowInit={...} />`). It replaces the v3 `nextRender` getter
@@ -56,9 +56,9 @@ export class ApollonEditor {
   // before reading `editor.model` or interacting with the canvas.
   private readyPromise!: Promise<void>
   private resolveReady!: () => void
-  constructor(element: HTMLElement, options?: Apollon.ApollonOptions) {
+  constructor(element: HTMLElement, options?: Besser.BesserOptions) {
     if (!(element instanceof HTMLElement)) {
-      throw new Error("Element is required to initialize Apollon")
+      throw new Error("Element is required to initialize BesserEditor")
     }
 
     // SA-7a: prepare the `ready` promise before render. `setReactFlowInstance`
@@ -85,7 +85,7 @@ export class ApollonEditor {
 
     // Initialize React root
     this.root = ReactDOM.createRoot(element, {
-      identifierPrefix: `apollon-${diagramId}`,
+      identifierPrefix: `besser-${diagramId}`,
     })
 
     this.diagramStore.getState().setDiagramId(diagramId)
@@ -116,13 +116,13 @@ export class ApollonEditor {
     const availableViews = options?.availableViews
       ? Array.from(
           new Set([
-            Apollon.ApollonView.Modelling,
+            Besser.BesserView.Modelling,
             ...options.availableViews,
             ...(options.view ? [options.view] : []),
           ])
         )
-      : options?.view === Apollon.ApollonView.Highlight
-        ? [Apollon.ApollonView.Modelling, Apollon.ApollonView.Highlight]
+      : options?.view === Besser.BesserView.Highlight
+        ? [Besser.BesserView.Modelling, Besser.BesserView.Highlight]
         : undefined
     if (availableViews) {
       this.metadataStore.getState().setAvailableViews(availableViews)
@@ -141,7 +141,7 @@ export class ApollonEditor {
     }
 
     if (
-      this.metadataStore.getState().mode === Apollon.ApollonMode.Modelling &&
+      this.metadataStore.getState().mode === Besser.BesserMode.Modelling &&
       !options?.collaborationEnabled
     ) {
       this.diagramStore.getState().initializeUndoManager()
@@ -186,14 +186,14 @@ export class ApollonEditor {
   }
 
   /**
-   * @deprecated Use `ready` instead. Alias retained for v2 webapp call sites.
+   * @deprecated Use `ready` instead. Alias retained for legacy webapp call sites.
    */
   get nextRender(): Promise<void> {
     return this.ready
   }
 
   /**
-   * @deprecated Use `unsubscribe(id)` instead. Alias retained for v2 webapp call sites.
+   * @deprecated Use `unsubscribe(id)` instead. Alias retained for legacy webapp call sites.
    */
   unsubscribeFromModelChange(id: number): void {
     return this.unsubscribe(id)
@@ -237,15 +237,15 @@ export class ApollonEditor {
 
   /**
    * renders a model as a svg and returns it. Therefore the svg is temporarily added to the dom and removed after it has been rendered.
-   * @param model the apollon model to export as a svg
+   * @param model the BESSER WME model to export as a svg
    * @param options options to change the export behavior (add margin, exclude element ...)
    * @param theme the theme which should be applied on the svg
    */
   static async exportModelAsSvg(
-    model: Apollon.UMLModel,
-    options?: Apollon.ExportOptions,
-    theme?: DeepPartial<Apollon.Styles>
-  ): Promise<Apollon.SVG> {
+    model: Besser.UMLModel,
+    options?: Besser.ExportOptions,
+    theme?: DeepPartial<Besser.Styles>
+  ): Promise<Besser.SVG> {
     void theme
     const container = document.createElement("div")
     container.style.display = "flex"
@@ -275,7 +275,7 @@ export class ApollonEditor {
     )
 
     const svgRoot = ReactDOM.createRoot(container, {
-      identifierPrefix: `apollon-exportAsSVG-${diagramId}`,
+      identifierPrefix: `besser-exportAsSVG-${diagramId}`,
     })
 
     diagramStore.getState().setNodesAndEdges(model.nodes, model.edges)
@@ -364,8 +364,8 @@ export class ApollonEditor {
    * exports current model as svg
    * @param options options to change the export behavior (add margin, exclude element ...)
    */
-  exportAsSVG(options?: Apollon.ExportOptions): Promise<Apollon.SVG> {
-    return ApollonEditor.exportModelAsSvg(this.model, options)
+  exportAsSVG(options?: Besser.ExportOptions): Promise<Besser.SVG> {
+    return BesserEditor.exportModelAsSvg(this.model, options)
   }
 
   private getNewSubscriptionId(): number {
@@ -376,7 +376,7 @@ export class ApollonEditor {
   }
 
   public subscribeToModelChange(
-    callback: (state: Apollon.UMLModel) => void
+    callback: (state: Besser.UMLModel) => void
   ): number {
     const subscriberId = this.getNewSubscriptionId()
     const unsubscribeCallback = this.diagramStore.subscribe(() =>
@@ -431,19 +431,19 @@ export class ApollonEditor {
   public toggleInteractiveElementsMode(forceEnabled?: boolean): void {
     const currentView = this.metadataStore.getState().view
     const shouldEnable =
-      forceEnabled ?? currentView !== Apollon.ApollonView.Highlight
+      forceEnabled ?? currentView !== Besser.BesserView.Highlight
 
     this.metadataStore
       .getState()
       .setView(
         shouldEnable
-          ? Apollon.ApollonView.Highlight
-          : Apollon.ApollonView.Modelling
+          ? Besser.BesserView.Highlight
+          : Besser.BesserView.Modelling
       )
   }
 
   public getInteractiveForSerialization():
-    | Apollon.InteractiveElements
+    | Besser.InteractiveElements
     | undefined {
     return this.diagramStore.getState().getInteractiveForSerialization()
   }
@@ -453,7 +453,7 @@ export class ApollonEditor {
     return { diagramTitle, diagramType }
   }
 
-  get model(): Apollon.UMLModel {
+  get model(): Besser.UMLModel {
     const { nodes, edges, diagramId } = this.diagramStore.getState()
     const { diagramTitle, diagramType } = this.metadataStore.getState()
     const interactive = this.getInteractiveForSerialization()
@@ -462,14 +462,14 @@ export class ApollonEditor {
       version: "4.0.0",
       title: diagramTitle,
       type: diagramType,
-      nodes: nodes.map((node) => mapFromReactFlowNodeToApollonNode(node)),
-      edges: edges.map((edge) => mapFromReactFlowEdgeToApollonEdge(edge)),
+      nodes: nodes.map((node) => mapFromReactFlowNodeToBesserNode(node)),
+      edges: edges.map((edge) => mapFromReactFlowEdgeToBesserEdge(edge)),
       assessments: this.diagramStore.getState().assessments,
       ...(interactive && { interactive }),
     }
   }
 
-  set model(model: Apollon.UMLModel) {
+  set model(model: Besser.UMLModel) {
     const { nodes, edges, assessments, interactive } = model
 
     this.diagramStore.getState().setNodesAndEdges(nodes, edges)
@@ -482,21 +482,21 @@ export class ApollonEditor {
 
   public getSelectedElements(): string[] {
     const { mode, readonly } = this.metadataStore.getState()
-    if (mode === Apollon.ApollonMode.Assessment && readonly) {
+    if (mode === Besser.BesserMode.Assessment && readonly) {
       return this.assessmentSelectionStore.getState().selectedElementIds
     }
     return this.diagramStore.getState().selectedElementIds
   }
 
-  get view(): Apollon.ApollonView {
+  get view(): Besser.BesserView {
     return this.metadataStore.getState().view
   }
 
-  set view(view: Apollon.ApollonView) {
+  set view(view: Besser.BesserView) {
     this.metadataStore.getState().setView(view)
   }
 
-  public addOrUpdateAssessment(assessment: Apollon.Assessment): void {
+  public addOrUpdateAssessment(assessment: Besser.Assessment): void {
     this.diagramStore.getState().addOrUpdateAssessment(assessment)
   }
 

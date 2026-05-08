@@ -1,5 +1,5 @@
 /**
- * Central, immutable constants for Apollon.
+ * Central, immutable constants for BESSER WME.
  * Grouped by domain, deep-frozen. Import from "@/constants".
  */
 import React from "react"
@@ -119,32 +119,32 @@ export const CANVAS = Object.freeze({
 /* -------------------------------------------------------------------------- */
 export const CSS_VARIABLE_FALLBACKS: Readonly<Record<string, string>> =
   Object.freeze({
-    "--apollon-primary": "#3e8acc",
-    "--apollon-primary-contrast": "#000000",
-    "--apollon-secondary": "#6c757d",
-    "--apollon-alert-warning-yellow": "#ffc107",
-    "--apollon-alert-warning-background": "#fff3cd",
-    "--apollon-alert-warning-border": "#ffeeba",
-    "--apollon-interactive-selection": "#f39c12",
-    "--apollon-background": "#ffffff",
-    "--apollon-background-inverse": "#000000",
-    "--apollon-background-variant": "#f8f9fa",
-    "--apollon-gray": "#e9ecef",
-    "--apollon-grid": "rgba(36, 39, 36, 0.1)",
-    "--apollon-gray-variant": "#495057",
-    "--apollon-alert-danger-color": "#721c24",
-    "--apollon-alert-danger-background": "#f8d7da",
-    "--apollon-alert-danger-border": "#f5c6cb",
-    "--apollon-switch-box-border-color": "#dee2e6",
-    "--apollon-list-group-color": "#ffffff",
-    "--apollon-btn-outline-secondary-color": "#6c757d",
-    "--apollon-modal-bottom-border": "#e9ecef",
+    "--besser-primary": "#3e8acc",
+    "--besser-primary-contrast": "#000000",
+    "--besser-secondary": "#6c757d",
+    "--besser-alert-warning-yellow": "#ffc107",
+    "--besser-alert-warning-background": "#fff3cd",
+    "--besser-alert-warning-border": "#ffeeba",
+    "--besser-interactive-selection": "#f39c12",
+    "--besser-background": "#ffffff",
+    "--besser-background-inverse": "#000000",
+    "--besser-background-variant": "#f8f9fa",
+    "--besser-gray": "#e9ecef",
+    "--besser-grid": "rgba(36, 39, 36, 0.1)",
+    "--besser-gray-variant": "#495057",
+    "--besser-alert-danger-color": "#721c24",
+    "--besser-alert-danger-background": "#f8d7da",
+    "--besser-alert-danger-border": "#f5c6cb",
+    "--besser-switch-box-border-color": "#dee2e6",
+    "--besser-list-group-color": "#ffffff",
+    "--besser-btn-outline-secondary-color": "#6c757d",
+    "--besser-modal-bottom-border": "#e9ecef",
   })
 
-export const STROKE_COLOR = CSS_VARIABLE_FALLBACKS["--apollon-primary-contrast"]
-export const FILL_COLOR = CSS_VARIABLE_FALLBACKS["--apollon-background"]
-export const INTERACTIVE_SELECTION_COLOR = `var(--apollon-interactive-selection, ${CSS_VARIABLE_FALLBACKS["--apollon-interactive-selection"]})`
-export const INTERACTIVE_SELECTION_FILL = `color-mix(in srgb, var(--apollon-interactive-selection, ${CSS_VARIABLE_FALLBACKS["--apollon-interactive-selection"]}) 18%, transparent)`
+export const STROKE_COLOR = CSS_VARIABLE_FALLBACKS["--besser-primary-contrast"]
+export const FILL_COLOR = CSS_VARIABLE_FALLBACKS["--besser-background"]
+export const INTERACTIVE_SELECTION_COLOR = `var(--besser-interactive-selection, ${CSS_VARIABLE_FALLBACKS["--besser-interactive-selection"]})`
+export const INTERACTIVE_SELECTION_FILL = `color-mix(in srgb, var(--besser-interactive-selection, ${CSS_VARIABLE_FALLBACKS["--besser-interactive-selection"]}) 18%, transparent)`
 
 /* -------------------------------------------------------------------------- */
 /* Layout                                                                     */
@@ -369,7 +369,7 @@ export type DropElementConfig = {
 }
 
 /**
- * Default palette entries shipped with upstream Apollon. The mutable
+ * Default palette entries shipped with BESSER WME. The mutable
  * registry below seeds from this map; consumers add BESSER-specific
  * diagram types via `registerPaletteEntry`.
  */

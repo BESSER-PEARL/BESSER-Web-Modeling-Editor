@@ -26,7 +26,7 @@ export function StateFinalNode({
   const { fillColor, strokeColor } = getCustomColorsFromData(data)
   const outerRadius = (Math.min(width, height) / 2) * 0.9
   const innerRadius = (Math.min(width, height) / 2) * 0.7
-  const stroke = strokeColor || "var(--apollon-primary-contrast, #000000)"
+  const stroke = strokeColor || "var(--besser-primary-contrast, #000000)"
 
   return (
     <DefaultNodeWrapper

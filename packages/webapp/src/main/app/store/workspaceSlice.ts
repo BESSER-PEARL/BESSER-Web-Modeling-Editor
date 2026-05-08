@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
-import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/wme';
+import { BesserMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/wme';
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
@@ -25,7 +25,7 @@ import { userMetaModel } from '@besser/wme';
 
 export type EditorOptions = {
   type: UMLDiagramType;
-  mode?: ApollonMode;
+  mode?: BesserMode;
   readonly?: boolean;
   enablePopups?: boolean;
   enableCopyPaste?: boolean;
@@ -36,7 +36,7 @@ export type EditorOptions = {
 
 export const defaultEditorOptions: EditorOptions = {
   type: UMLDiagramType.ClassDiagram,
-  mode: ApollonMode.Modelling,
+  mode: BesserMode.Modelling,
   readonly: false,
   enablePopups: true,
   enableCopyPaste: true,
@@ -577,7 +577,7 @@ const workspaceSlice = createSlice({
         });
       }
     },
-    changeEditorMode(state, action: PayloadAction<ApollonMode>) {
+    changeEditorMode(state, action: PayloadAction<BesserMode>) {
       state.editorOptions.mode = action.payload;
     },
     changeReadonlyMode(state, action: PayloadAction<boolean>) {

@@ -60,7 +60,7 @@ npm run start:server       # Express on http://localhost:8080
 - **Framework**: React 18.2 + React Router 6
 - **State**: Redux Toolkit (single `workspaceSlice` + `errorManagementSlice`)
 - **UI**: Radix UI primitives + Tailwind CSS (class-based dark mode)
-- **Editors**: ApollonEditor (UML), GrapesJS (GUI no-code), custom (quantum circuits)
+- **Editors**: BesserEditor (UML, from `@besser/wme`), GrapesJS (GUI no-code), custom (quantum circuits)
 - **Testing**: Vitest + jsdom (unit), Playwright (E2E)
 - **TypeScript**: 5.6, strict mode, ES2021 target
 

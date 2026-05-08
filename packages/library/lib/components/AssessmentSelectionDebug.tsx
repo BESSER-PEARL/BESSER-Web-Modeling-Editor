@@ -70,7 +70,7 @@ export function AssessmentSelectionDebug() {
                 key={id}
                 style={{
                   border:
-                    "2px solid var(--apollon-grid, rgba(36, 39, 36, 0.1))",
+                    "2px solid var(--besser-grid, rgba(36, 39, 36, 0.1))",
                   padding: "4px",
                 }}
               >

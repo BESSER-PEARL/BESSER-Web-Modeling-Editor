@@ -169,7 +169,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         flexDirection: "column",
         gap: 0.5,
         padding: "6px 0",
-        borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
@@ -373,7 +373,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
         flexDirection: "column",
         gap: 0.5,
         padding: "6px 0",
-        borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
@@ -604,7 +604,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
       {(implementationType === "code" || implementationType === "bal") && (
         <Box
           sx={{
-            border: "1px solid var(--apollon-gray, #e9ecef)",
+            border: "1px solid var(--besser-gray, #e9ecef)",
             borderRadius: 1,
             overflow: "hidden",
             "& .cm-editor": {
@@ -664,7 +664,7 @@ const OCLConstraintRow: React.FC<OCLConstraintRowProps> = ({
       flexDirection: "column",
       gap: 0.5,
       padding: "6px 0",
-      borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+      borderBottom: "1px solid var(--besser-gray, #e9ecef)",
     }}
   >
     <Stack direction="row" spacing={0.5} alignItems="center">
@@ -720,7 +720,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   // Cross-diagram pickers. The bridge service is populated by the embedding
   // webapp via `setStateMachineDiagrams` / `setQuantumCircuitDiagrams`
   // before opening the editor (see frontend/CLAUDE.md
-  // `ApollonEditorComponent.tsx`).
+  // `BesserEditorComponent.tsx`).
   const availableClassNames = useMemo(() => {
     try {
       return diagramBridge

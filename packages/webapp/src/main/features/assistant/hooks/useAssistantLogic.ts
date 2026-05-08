@@ -25,7 +25,7 @@ import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
 import { updateDiagramModelThunk, selectActiveDiagram, addDiagramThunk, switchDiagramIndexThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
-import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
+import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
 import {
   UMLModelingService,
   RateLimiterService,
@@ -208,7 +208,7 @@ export function useAssistantLogic({
 
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
-  const { editor } = useContext(ApollonEditorContext);
+  const { editor } = useContext(BesserEditorContext);
   const activeDiagram = useAppSelector(selectActiveDiagram);
   const { currentProject, currentDiagramType } = useProject();
 

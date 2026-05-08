@@ -2,8 +2,8 @@ import { LAYOUT } from "@/constants"
 import React from "react"
 
 export const StyledRect: React.FC<React.SVGProps<SVGRectElement>> = ({
-  stroke = "var(--apollon-primary-contrast, #000000)",
-  fill = "var(--apollon-background, white)",
+  stroke = "var(--besser-primary-contrast, #000000)",
+  fill = "var(--besser-background, white)",
   ...props
 }) => {
   return (

@@ -1,6 +1,6 @@
 /**
  * Object Diagram Converter
- * Converts simplified object specifications to Apollon format
+ * Converts simplified object specifications to BESSER WME format
  */
 
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';

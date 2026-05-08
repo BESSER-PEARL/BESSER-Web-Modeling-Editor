@@ -203,7 +203,7 @@ export const RagDbFields: React.FC<RagDbFieldsProps> = ({
           {dbQueryMode === "sql" && (
             <Box
               sx={{
-                border: "1px solid var(--apollon-gray, #ccc)",
+                border: "1px solid var(--besser-gray, #ccc)",
                 borderRadius: "4px",
                 "& .cm-editor": { fontSize: "13px", minHeight: 80 },
               }}

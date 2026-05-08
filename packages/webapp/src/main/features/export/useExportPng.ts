@@ -1,14 +1,14 @@
 import { useCallback } from 'react';
-import { ApollonEditor, SVG } from '@besser/wme';
+import { BesserEditor, SVG } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 
 export const useExportPNG = () => {
   const downloadFile = useFileDownload();
 
   const exportPNG = useCallback(
-    async (editor: ApollonEditor, diagramTitle: string, setWhiteBackground: boolean) => {
-      const apollonSVG: SVG = await editor.exportAsSVG();
-      const pngBlob: Blob = await convertRenderedSVGToPNG(apollonSVG, setWhiteBackground);
+    async (editor: BesserEditor, diagramTitle: string, setWhiteBackground: boolean) => {
+      const besserSVG: SVG = await editor.exportAsSVG();
+      const pngBlob: Blob = await convertRenderedSVGToPNG(besserSVG, setWhiteBackground);
       const fileName = `${diagramTitle}.png`;
 
       const fileToDownload = new File([pngBlob], fileName, { type: 'image/png' });

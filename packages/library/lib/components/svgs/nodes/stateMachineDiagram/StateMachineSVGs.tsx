@@ -30,8 +30,8 @@ export const StateSVG: React.FC<SVGComponentProps> = ({
         height={height}
         rx={8}
         ry={8}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={2}
       />
       <text
@@ -40,7 +40,7 @@ export const StateSVG: React.FC<SVGComponentProps> = ({
         textAnchor="middle"
         fontSize={16}
         fontWeight="600"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         State
       </text>
@@ -49,7 +49,7 @@ export const StateSVG: React.FC<SVGComponentProps> = ({
         x2={width}
         y1={40}
         y2={40}
-        stroke="var(--apollon-primary-contrast, #000)"
+        stroke="var(--besser-primary-contrast, #000)"
       />
     </svg>
   )
@@ -75,7 +75,7 @@ export const StateInitialNodeSVG: React.FC<SVGComponentProps> = ({
         cx={width / 2}
         cy={height / 2}
         r={Math.min(width, height) / 2}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       />
     </svg>
   )
@@ -102,14 +102,14 @@ export const StateFinalNodeSVG: React.FC<SVGComponentProps> = ({
         cy={height / 2}
         r={(Math.min(width, height) / 2) * 0.9}
         fill="white"
-        stroke="var(--apollon-primary-contrast, #000)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={2}
       />
       <circle
         cx={width / 2}
         cy={height / 2}
         r={(Math.min(width, height) / 2) * 0.7}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       />
     </svg>
   )
@@ -138,8 +138,8 @@ export const StateActionNodeSVG: React.FC<SVGComponentProps> = ({
         height={height}
         rx={5}
         ry={5}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={2}
       />
       <text
@@ -147,7 +147,7 @@ export const StateActionNodeSVG: React.FC<SVGComponentProps> = ({
         y={height / 2 + 5}
         textAnchor="middle"
         fontSize={14}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         Action
       </text>
@@ -176,8 +176,8 @@ export const StateObjectNodeSVG: React.FC<SVGComponentProps> = ({
         y={0}
         width={width}
         height={height}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={2}
       />
       <text
@@ -186,7 +186,7 @@ export const StateObjectNodeSVG: React.FC<SVGComponentProps> = ({
         textAnchor="middle"
         fontSize={14}
         fontWeight="bold"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         Object
       </text>
@@ -212,8 +212,8 @@ export const StateMergeNodeSVG: React.FC<SVGComponentProps> = ({
     >
       <polygon
         points={`${width / 2},0 ${width},${height / 2} ${width / 2},${height} 0,${height / 2}`}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={2}
       />
     </svg>
@@ -241,7 +241,7 @@ export const StateForkNodeSVG: React.FC<SVGComponentProps> = ({
         y={0}
         width={width}
         height={height}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       />
     </svg>
   )
@@ -268,7 +268,7 @@ export const StateForkNodeHorizontalSVG: React.FC<SVGComponentProps> = ({
         y={0}
         width={width}
         height={height}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       />
     </svg>
   )
@@ -297,8 +297,8 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
         height={height}
         rx={8}
         ry={8}
-        fill="var(--apollon-background, white)"
-        stroke="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-background, white)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={1}
       />
       <rect
@@ -308,7 +308,7 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
         height={20}
         rx={8}
         ry={8}
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       />
       <text x={10} y={14} fontSize={10} fill="#fff">
         python
@@ -318,7 +318,7 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
         y={36}
         fontSize={11}
         fontFamily="monospace"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         # code
       </text>

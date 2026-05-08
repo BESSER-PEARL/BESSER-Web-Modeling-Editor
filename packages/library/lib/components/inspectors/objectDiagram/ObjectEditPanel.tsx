@@ -231,7 +231,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         flexDirection: "column",
         gap: 0.5,
         padding: "6px 0",
-        borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">

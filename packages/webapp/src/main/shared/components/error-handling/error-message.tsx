@@ -2,11 +2,11 @@ import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ApollonError } from '../../../app/store/errorManagementSlice';
+import { BesserError } from '../../../app/store/errorManagementSlice';
 
 type Props = {
-  error: ApollonError;
-  onClose: (error: ApollonError) => void;
+  error: BesserError;
+  onClose: (error: BesserError) => void;
 };
 
 export function ErrorMessage(props: Props) {

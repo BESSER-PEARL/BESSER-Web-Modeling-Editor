@@ -21,7 +21,7 @@ import {
   selectActiveDiagramType,
   selectProject,
 } from '../../../app/store/workspaceSlice';
-import { ApollonEditorContext } from '../uml/apollon-editor-context';
+import { BesserEditorContext } from '../uml/besser-editor-context';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 
 interface DiagramTabsProps {
@@ -171,11 +171,11 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     }));
   }, [dispatch, currentDiagramType, safeIndex]);
 
-  const { editor: apollonEditor } = useContext(ApollonEditorContext);
+  const { editor: besserEditor } = useContext(BesserEditorContext);
 
   const handleGenerateObjectsFromClasses = useCallback(async () => {
     if (currentDiagramType !== 'ObjectDiagram') return;
-    if (!apollonEditor || !apollonEditor.model) {
+    if (!besserEditor || !besserEditor.model) {
       toast.error('Editor is not ready yet.');
       return;
     }
@@ -195,15 +195,15 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
     const { model: nextModel, created, skipped, links } = scaffoldObjectsFromClasses({
       classModel: refModel,
-      objectModel: apollonEditor.model,
+      objectModel: besserEditor.model,
     });
 
     // Push to redux first so a refresh / undo stack snapshot reflects the
-    // generated objects, then propagate to the Apollon editor canvas.
+    // generated objects, then propagate to the BESSER WME editor canvas.
     await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
-    await apollonEditor.nextRender;
-    apollonEditor.model = { ...nextModel } as any;
-    await apollonEditor.nextRender;
+    await besserEditor.nextRender;
+    besserEditor.model = { ...nextModel } as any;
+    await besserEditor.nextRender;
 
     const linksFragment = links > 0 ? `, ${links} link${links === 1 ? '' : 's'}` : '';
     if (created === 0 && links === 0 && skipped > 0) {
@@ -214,7 +214,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       toast.success(`Generated ${created} object${created === 1 ? '' : 's'}${linksFragment} from the class diagram.`);
     }
     getPostHog()?.capture('object_diagram_generated_from_class', { created, skipped, links });
-  }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
+  }, [besserEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
 
   const showTabs = diagrams.length > 0;
   const [refsCollapsed, setRefsCollapsed] = useState(false);

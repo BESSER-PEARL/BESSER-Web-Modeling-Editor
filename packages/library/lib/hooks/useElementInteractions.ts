@@ -1,6 +1,6 @@
 import { usePopoverStore } from "@/store/context"
 import { useMetadataStore } from "@/store"
-import { ApollonMode } from "@/typings"
+import { BesserMode } from "@/typings"
 import {
   NodeMouseHandler,
   OnBeforeDelete,
@@ -24,7 +24,7 @@ export const useElementInteractions = () => {
       setPopOverElementId: state.setPopOverElementId,
     }))
   )
-  const canOpenAssessmentPopover = mode === ApollonMode.Assessment && !readonly
+  const canOpenAssessmentPopover = mode === BesserMode.Assessment && !readonly
   const canOpenPopover = isDiagramModifiable || canOpenAssessmentPopover
 
   const onBeforeDelete: OnBeforeDelete = () => {

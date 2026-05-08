@@ -17,7 +17,7 @@ export const EdgeIncludeExtendLabel = ({
   targetPoint,
   showRelationshipLabels = false,
   relationshipType = "include",
-  textColor = "var(--apollon-primary-contrast, #000000)",
+  textColor = "var(--besser-primary-contrast, #000000)",
 }: EdgeIncludeExtendLabelsProps) => {
   return (
     <>

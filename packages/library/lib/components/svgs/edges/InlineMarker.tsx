@@ -33,7 +33,7 @@ export interface MarkerProps {
 const isMarkerId = (id: string): id is keyof typeof MARKER_CONFIGS =>
   id in MARKER_CONFIGS
 
-const THEME_BACKGROUND_COLOR = "var(--apollon-background, #ffffff)"
+const THEME_BACKGROUND_COLOR = "var(--besser-background, #ffffff)"
 
 /**
  * Extract marker ID from a url() reference.

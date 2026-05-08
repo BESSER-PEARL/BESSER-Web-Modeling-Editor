@@ -54,7 +54,7 @@ export function UseCase({
     {
       id: HandleId.Top,
       position: Position.Top,
-      className: "apollon-arc-handle apollon-arc-handle--top",
+      className: "besser-arc-handle besser-arc-handle--top",
     },
     {
       id: HandleId.TopMidRight,
@@ -75,7 +75,7 @@ export function UseCase({
     {
       id: HandleId.Right,
       position: Position.Right,
-      className: "apollon-arc-handle apollon-arc-handle--right",
+      className: "besser-arc-handle besser-arc-handle--right",
     },
     {
       id: HandleId.RightMidBottom,
@@ -96,7 +96,7 @@ export function UseCase({
     {
       id: HandleId.Bottom,
       position: Position.Bottom,
-      className: "apollon-arc-handle apollon-arc-handle--bottom",
+      className: "besser-arc-handle besser-arc-handle--bottom",
     },
     {
       id: HandleId.BottomMidLeft,
@@ -117,7 +117,7 @@ export function UseCase({
     {
       id: HandleId.Left,
       position: Position.Left,
-      className: "apollon-arc-handle apollon-arc-handle--left",
+      className: "besser-arc-handle besser-arc-handle--left",
     },
     {
       id: HandleId.LeftMidTop,

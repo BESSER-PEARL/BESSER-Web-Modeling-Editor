@@ -10,7 +10,7 @@ import { DividerLine } from "./ui/DividerLine"
 import { useMetadataStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { DraggableGhost } from "./DraggableGhost"
-import { ApollonView } from "@/typings"
+import { BesserView } from "@/typings"
 
 /* ========================================================================
    Sidebar Component
@@ -27,8 +27,8 @@ export const Sidebar = () => {
     }))
   )
   const showInteractiveSelectionView =
-    availableViews.includes(ApollonView.Highlight) ||
-    view === ApollonView.Highlight
+    availableViews.includes(BesserView.Highlight) ||
+    view === BesserView.Highlight
   const labelPreviewTypes = new Set([
     "sfcTransitionBranch",
     "petriNetPlace",
@@ -45,7 +45,7 @@ export const Sidebar = () => {
         width: "180px",
         minWidth: "180px",
         height: "100%",
-        backgroundColor: "var(--apollon-background, white)",
+        backgroundColor: "var(--besser-background, white)",
         display: "flex",
         flexDirection: "column",
         padding: "10px",
@@ -66,18 +66,18 @@ export const Sidebar = () => {
         >
           <button
             type="button"
-            onClick={() => setView(ApollonView.Modelling)}
+            onClick={() => setView(BesserView.Modelling)}
             style={{
               borderRadius: "8px",
-              border: "1px solid var(--apollon-primary-contrast, #000000)",
+              border: "1px solid var(--besser-primary-contrast, #000000)",
               background:
-                view === ApollonView.Modelling
-                  ? "var(--apollon-primary, #3e8acc)"
+                view === BesserView.Modelling
+                  ? "var(--besser-primary, #3e8acc)"
                   : "transparent",
               color:
-                view === ApollonView.Modelling
-                  ? "var(--apollon-background, #ffffff)"
-                  : "var(--apollon-primary-contrast, #000000)",
+                view === BesserView.Modelling
+                  ? "var(--besser-background, #ffffff)"
+                  : "var(--besser-primary-contrast, #000000)",
               padding: "8px 10px",
               cursor: "pointer",
               fontWeight: 600,
@@ -87,18 +87,18 @@ export const Sidebar = () => {
           </button>
           <button
             type="button"
-            onClick={() => setView(ApollonView.Highlight)}
+            onClick={() => setView(BesserView.Highlight)}
             style={{
               borderRadius: "8px",
-              border: "1px solid var(--apollon-primary-contrast, #000000)",
+              border: "1px solid var(--besser-primary-contrast, #000000)",
               background:
-                view === ApollonView.Highlight
-                  ? "var(--apollon-primary, #3e8acc)"
+                view === BesserView.Highlight
+                  ? "var(--besser-primary, #3e8acc)"
                   : "transparent",
               color:
-                view === ApollonView.Highlight
-                  ? "var(--apollon-background, #ffffff)"
-                  : "var(--apollon-primary-contrast, #000000)",
+                view === BesserView.Highlight
+                  ? "var(--besser-background, #ffffff)"
+                  : "var(--besser-primary-contrast, #000000)",
               padding: "8px 10px",
               cursor: "pointer",
               fontWeight: 600,
@@ -109,20 +109,20 @@ export const Sidebar = () => {
         </div>
       )}
 
-      {view === ApollonView.Highlight && (
+      {view === BesserView.Highlight && (
         <div
           style={{
             width: "100%",
             fontSize: "12px",
             lineHeight: 1.4,
-            color: "var(--apollon-primary-contrast, #000000)",
+            color: "var(--besser-primary-contrast, #000000)",
           }}
         >
           Click nodes or relationships to toggle whether they are interactive.
         </div>
       )}
 
-      {view === ApollonView.Modelling &&
+      {view === BesserView.Modelling &&
         dropElementConfigs[diagramType].map((config, index) => {
           const extraPreviewHeight = labelPreviewTypes.has(config.type)
             ? LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
@@ -158,7 +158,7 @@ export const Sidebar = () => {
           )
         })}
 
-      {view === ApollonView.Modelling && (
+      {view === BesserView.Modelling && (
         <>
           <DividerLine style={{ margin: "3px 0" }} />
           <DraggableGhost dropElementConfig={ColorDescriptionConfig}>

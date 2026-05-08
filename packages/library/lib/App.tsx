@@ -32,7 +32,7 @@ import { diagramNodeTypes } from "./nodes"
 import { useDiagramModifiable } from "./hooks/useDiagramModifiable"
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts"
 import { usePaneClicked } from "./hooks/usePaneClicked"
-import { ApollonMode } from "./typings"
+import { BesserMode } from "./typings"
 import { getConnectionLineType } from "./utils/edgeUtils"
 import { PropertiesPanel } from "./components/propertiesPanel/PropertiesPanel"
 import { useUsePropertiesPanel } from "./store/settingsStore"
@@ -98,20 +98,20 @@ function App({ onReactFlowInit }: AppProps) {
 
   return (
     <div
-      className={`apollon-editor ${readonly ? "apollon-editor--readonly" : ""}`}
+      className={`besser-editor ${readonly ? "besser-editor--readonly" : ""}`}
       style={{
         display: "flex",
         height: "100%",
         width: "100%",
         overflow: "hidden",
-        backgroundColor: "var(--apollon-background, #ffffff)",
+        backgroundColor: "var(--besser-background, #ffffff)",
         position: "relative",
       }}
     >
-      {mode === ApollonMode.Modelling && !readonly && <Sidebar />}
+      {mode === BesserMode.Modelling && !readonly && <Sidebar />}
       <ReactFlow
         id={`react-flow-library-${diagramId}`}
-        className="apollon-container"
+        className="besser-container"
         nodeTypes={diagramNodeTypes}
         edgeTypes={diagramEdgeTypes}
         nodes={nodes}
@@ -154,7 +154,7 @@ function App({ onReactFlowInit }: AppProps) {
         <AlignmentGuides />
         <AssessmentSelectionDebug />
       </ReactFlow>
-      {mode === ApollonMode.Modelling && showPropertiesPanel && <PropertiesPanel />}
+      {mode === BesserMode.Modelling && showPropertiesPanel && <PropertiesPanel />}
       <ScrollOverlay />
     </div>
   )

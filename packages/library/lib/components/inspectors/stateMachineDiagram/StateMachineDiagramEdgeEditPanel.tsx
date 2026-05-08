@@ -114,7 +114,7 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         <Typography variant="caption">parameters</Typography>
         <Typography
           variant="caption"
-          sx={{ cursor: "pointer", color: "var(--apollon-primary)" }}
+          sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
           onClick={addParam}
         >
           + add

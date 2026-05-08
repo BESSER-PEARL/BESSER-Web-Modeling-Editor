@@ -4,7 +4,7 @@ import {
   useMetadataStore,
 } from "@/store"
 import { useShallow } from "zustand/shallow"
-import { ApollonMode } from "@/typings"
+import { BesserMode } from "@/typings"
 import { useCallback, useEffect } from "react"
 
 export const usePaneClicked = () => {
@@ -41,7 +41,7 @@ export const usePaneClicked = () => {
   // Auto-enable assessment selection mode when in readonly assessment mode
   useEffect(() => {
     const shouldEnableAssessmentMode =
-      mode === ApollonMode.Assessment && readonly
+      mode === BesserMode.Assessment && readonly
     if (shouldEnableAssessmentMode !== isAssessmentSelectionMode) {
       setAssessmentSelectionMode(shouldEnableAssessmentMode)
     }

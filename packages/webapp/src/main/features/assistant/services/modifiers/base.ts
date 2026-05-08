@@ -6,7 +6,7 @@
  * `model.edges[]` directly — no v3 elements/relationships records anywhere.
  */
 
-import type { ApollonEdge, ApollonNode } from '@besser/wme';
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { BESSERModel } from '../UMLModelingService';
 import { DiagramType, generateUniqueId } from '../shared-types';
 
@@ -166,29 +166,29 @@ export class ModifierHelpers {
   }
 
   /** Read-only convenience accessor for `model.nodes`. */
-  static nodes(model: BESSERModel): ApollonNode[] {
-    return ((model as any).nodes ?? []) as ApollonNode[];
+  static nodes(model: BESSERModel): BesserNode[] {
+    return ((model as any).nodes ?? []) as BesserNode[];
   }
 
   /** Read-only convenience accessor for `model.edges`. */
-  static edges(model: BESSERModel): ApollonEdge[] {
-    return ((model as any).edges ?? []) as ApollonEdge[];
+  static edges(model: BESSERModel): BesserEdge[] {
+    return ((model as any).edges ?? []) as BesserEdge[];
   }
 
   /** Find a node by id. */
-  static findNodeById(model: BESSERModel, id: string): ApollonNode | undefined {
+  static findNodeById(model: BESSERModel, id: string): BesserNode | undefined {
     return ModifierHelpers.nodes(model).find((n) => n.id === id);
   }
 
   /** Find an edge by id. */
-  static findEdgeById(model: BESSERModel, id: string): ApollonEdge | undefined {
+  static findEdgeById(model: BESSERModel, id: string): BesserEdge | undefined {
     return ModifierHelpers.edges(model).find((e) => e.id === id);
   }
 
   /**
    * Push a new node onto the model.
    */
-  static addNode(model: BESSERModel, node: ApollonNode): void {
+  static addNode(model: BESSERModel, node: BesserNode): void {
     const m = model as any;
     if (!Array.isArray(m.nodes)) m.nodes = [];
     m.nodes.push(node);
@@ -197,7 +197,7 @@ export class ModifierHelpers {
   /**
    * Push a new edge onto the model.
    */
-  static addEdge(model: BESSERModel, edge: ApollonEdge): void {
+  static addEdge(model: BESSERModel, edge: BesserEdge): void {
     const m = model as any;
     if (!Array.isArray(m.edges)) m.edges = [];
     m.edges.push(edge);
@@ -222,8 +222,8 @@ export class ModifierHelpers {
       }
     }
 
-    m.nodes = (m.nodes ?? []).filter((n: ApollonNode) => !toRemove.has(n.id));
-    m.edges = (m.edges ?? []).filter((e: ApollonEdge) => !toRemove.has(e.source) && !toRemove.has(e.target));
+    m.nodes = (m.nodes ?? []).filter((n: BesserNode) => !toRemove.has(n.id));
+    m.edges = (m.edges ?? []).filter((e: BesserEdge) => !toRemove.has(e.source) && !toRemove.has(e.target));
     return model;
   }
 
@@ -236,7 +236,7 @@ export class ModifierHelpers {
     model: BESSERModel,
     name: string,
     type?: string,
-  ): ApollonNode | undefined {
+  ): BesserNode | undefined {
     const normalizedName = (name || '').trim().toLowerCase();
     const candidates = ModifierHelpers.nodes(model).filter((n) =>
       type ? n.type === type : true,
@@ -255,7 +255,7 @@ export class ModifierHelpers {
   }
 
   /** Find all nodes whose `type` matches. */
-  static findNodesByType(model: BESSERModel, type: string): ApollonNode[] {
+  static findNodesByType(model: BESSERModel, type: string): BesserNode[] {
     return ModifierHelpers.nodes(model).filter((n) => n.type === type);
   }
 }

@@ -23,8 +23,8 @@ test.describe('Class Diagram', () => {
   });
 
   test('editor canvas is rendered for class diagrams', async ({ page }) => {
-    // The ApollonEditorComponent renders a canvas area.
-    // Look for the editor root container — typically a div with the Apollon editor.
+    // The BesserEditorComponent renders a canvas area.
+    // Look for the editor root container — typically a div with the BESSER WME editor.
     const editorArea = page.locator('main');
     await expect(editorArea).toBeVisible();
 
@@ -36,7 +36,7 @@ test.describe('Class Diagram', () => {
     // Wait for the editor to fully initialize.
     await expect(page.getByText('Switching diagram...')).toBeHidden({ timeout: 5_000 });
 
-    // The Apollon editor canvas typically responds to double-click to create
+    // The BESSER WME editor canvas typically responds to double-click to create
     // new elements. Double-click in the center of the main editor area.
     const mainArea = page.locator('main');
     const box = await mainArea.boundingBox();
@@ -49,7 +49,7 @@ test.describe('Class Diagram', () => {
     // After a double-click, a new class element or an input field for naming
     // should appear. We look for any text input or editable element that
     // appeared within the editor area.
-    // Note: The exact interaction depends on the Apollon editor's behavior.
+    // Note: The exact interaction depends on the BESSER WME editor's behavior.
     // This test verifies the interaction path works — a more specific assertion
     // can be added once the exact DOM structure is confirmed.
     await page.waitForTimeout(1_000);

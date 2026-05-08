@@ -1,6 +1,6 @@
 /**
  * Class Diagram Converter
- * Converts simplified class specifications to Apollon format
+ * Converts simplified class specifications to BESSER WME format
  */
 
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
@@ -178,7 +178,7 @@ export class ClassDiagramConverter implements DiagramConverter {
       // Strip any signature artifacts from the method name (LLM sometimes embeds params/return in name)
       const cleanMethodName = (method.name || 'method').replace(/\(.*\).*$/, '').trim();
 
-      // Use explicit new-format fields so Apollon's deserializer doesn't
+      // Use explicit new-format fields so the WME deserializer doesn't
       // need to parse the signature string (which splits at the wrong colon).
       const methodElement: any = {
         id: methodId,

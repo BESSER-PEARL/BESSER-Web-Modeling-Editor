@@ -1,5 +1,5 @@
 import { useMetadataStore } from "@/store"
-import { ApollonMode, ApollonView } from "@/typings"
+import { BesserMode, BesserView } from "@/typings"
 import { useMemo } from "react"
 import { useShallow } from "zustand/shallow"
 
@@ -14,8 +14,8 @@ export const useDiagramModifiable = () => {
 
   const isDiagramUpdatable = useMemo(
     () =>
-      diagramMode === ApollonMode.Modelling &&
-      diagramView === ApollonView.Modelling &&
+      diagramMode === BesserMode.Modelling &&
+      diagramView === BesserView.Modelling &&
       !readonlyDiagram,
     [diagramMode, diagramView, readonlyDiagram]
   )

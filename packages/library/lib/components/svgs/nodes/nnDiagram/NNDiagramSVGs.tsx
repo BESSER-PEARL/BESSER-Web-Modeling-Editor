@@ -35,7 +35,7 @@ const buildLayerPreview = (label: string, fill: string) =>
           rx={6}
           ry={6}
           fill={fill}
-          stroke="var(--apollon-primary-contrast, #000)"
+          stroke="var(--besser-primary-contrast, #000)"
           strokeWidth={1.5}
         />
         <text
@@ -44,7 +44,7 @@ const buildLayerPreview = (label: string, fill: string) =>
           textAnchor="middle"
           fontSize={12}
           fontWeight="600"
-          fill="var(--apollon-primary-contrast, #000)"
+          fill="var(--besser-primary-contrast, #000)"
         >
           {label}
         </text>
@@ -99,7 +99,7 @@ export const NNContainerSVG: React.FC<SVGComponentProps> = ({
         height={height}
         rx={8}
         fill="#F5F5F5"
-        stroke="var(--apollon-primary-contrast, #000)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={1.5}
       />
       <text
@@ -108,7 +108,7 @@ export const NNContainerSVG: React.FC<SVGComponentProps> = ({
         textAnchor="middle"
         fontSize={13}
         fontWeight="600"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         NNContainer
       </text>
@@ -117,7 +117,7 @@ export const NNContainerSVG: React.FC<SVGComponentProps> = ({
         x2={width}
         y1={28}
         y2={28}
-        stroke="var(--apollon-primary-contrast, #000)"
+        stroke="var(--besser-primary-contrast, #000)"
       />
       {/* hint of two stacked layers */}
       <rect
@@ -165,7 +165,7 @@ export const NNReferenceSVG: React.FC<SVGComponentProps> = ({
         height={height}
         rx={4}
         fill="#FFFDE7"
-        stroke="var(--apollon-primary-contrast, #000)"
+        stroke="var(--besser-primary-contrast, #000)"
         strokeDasharray="4 2"
         strokeWidth={1.2}
       />
@@ -175,7 +175,7 @@ export const NNReferenceSVG: React.FC<SVGComponentProps> = ({
         textAnchor="middle"
         fontSize={11}
         fontStyle="italic"
-        fill="var(--apollon-primary-contrast, #000)"
+        fill="var(--besser-primary-contrast, #000)"
       >
         → Reference
       </text>

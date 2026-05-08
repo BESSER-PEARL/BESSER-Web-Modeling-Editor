@@ -5,7 +5,7 @@ import {
 } from "@/constants"
 import { useAssessmentSelection } from "@/hooks/useAssessmentSelection"
 import { useDiagramStore, useMetadataStore } from "@/store"
-import { ApollonMode, ApollonView } from "@/typings"
+import { BesserMode, BesserView } from "@/typings"
 import { useShallow } from "zustand/shallow"
 
 interface AssessmentSelectableWrapperProps {
@@ -46,8 +46,8 @@ export const AssessmentSelectableWrapper: React.FC<
   } = useAssessmentSelection(elementId)
 
   const showInteractiveInteraction =
-    mode === ApollonMode.Modelling &&
-    view === ApollonView.Highlight &&
+    mode === BesserMode.Modelling &&
+    view === BesserView.Highlight &&
     !readonly
 
   if (showInteractiveInteraction) {
@@ -60,12 +60,12 @@ export const AssessmentSelectableWrapper: React.FC<
     if (asElement == "g") {
       return (
         <g
-          className={`nodrag nopan apollon-interactive-selection${
+          className={`nodrag nopan besser-interactive-selection${
             isInteractiveSelected
-              ? " apollon-interactive-selection--selected"
+              ? " besser-interactive-selection--selected"
               : ""
           }`}
-          data-apollon-element-id={elementId}
+          data-besser-element-id={elementId}
           style={{
             cursor: "pointer",
             ...(isInteractiveSelected && {
@@ -81,12 +81,12 @@ export const AssessmentSelectableWrapper: React.FC<
 
     return (
       <div
-        className={`nodrag nopan apollon-interactive-selection${
+        className={`nodrag nopan besser-interactive-selection${
           isInteractiveSelected
-            ? " apollon-interactive-selection--selected"
+            ? " besser-interactive-selection--selected"
             : ""
         }`}
-        data-apollon-element-id={elementId}
+        data-besser-element-id={elementId}
         style={{
           cursor: "pointer",
           ...(isInteractiveSelected && {
@@ -134,7 +134,7 @@ export const AssessmentSelectableWrapper: React.FC<
     return (
       <g
         className="nodrag nopan"
-        data-apollon-element-id={elementId}
+        data-besser-element-id={elementId}
         style={gStyle}
         onPointerDown={handleElementClick}
         onMouseEnter={handleElementMouseEnter}
@@ -147,7 +147,7 @@ export const AssessmentSelectableWrapper: React.FC<
   return (
     <div
       className="nodrag nopan"
-      data-apollon-element-id={elementId}
+      data-besser-element-id={elementId}
       style={combinedStyle}
       onPointerDown={handleElementClick}
       onMouseEnter={handleElementMouseEnter}

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor, UMLModel } from '@besser/wme';
+import { BesserEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
@@ -9,7 +9,7 @@ export const useExportBUML = () => {
   const downloadFile = useFileDownload();
 
   const exportBUML = useCallback(
-    async (editor: ApollonEditor, diagramTitle: string, referenceDiagramData?: UMLModel) => {
+    async (editor: BesserEditor, diagramTitle: string, referenceDiagramData?: UMLModel) => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
         toast.error(validationResult.message || 'Validation failed');

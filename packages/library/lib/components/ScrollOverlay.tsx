@@ -23,8 +23,8 @@ export const ScrollOverlay: React.FC = () => {
   useEffect(() => {
     if (!scrollLock) return
 
-    const apollonContainer = document.querySelector(
-      ".apollon-container"
+    const besserContainer = document.querySelector(
+      ".besser-container"
     ) as HTMLElement
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -61,14 +61,14 @@ export const ScrollOverlay: React.FC = () => {
       }, 500)
     }
 
-    apollonContainer.addEventListener("keydown", handleKeyDown)
-    apollonContainer.addEventListener("keyup", handleKeyUp)
-    apollonContainer.addEventListener("wheel", handleWheel, { passive: true })
+    besserContainer.addEventListener("keydown", handleKeyDown)
+    besserContainer.addEventListener("keyup", handleKeyUp)
+    besserContainer.addEventListener("wheel", handleWheel, { passive: true })
 
     return () => {
-      apollonContainer.removeEventListener("keydown", handleKeyDown)
-      apollonContainer.removeEventListener("keyup", handleKeyUp)
-      apollonContainer.removeEventListener("wheel", handleWheel)
+      besserContainer.removeEventListener("keydown", handleKeyDown)
+      besserContainer.removeEventListener("keyup", handleKeyUp)
+      besserContainer.removeEventListener("wheel", handleWheel)
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current)
       }

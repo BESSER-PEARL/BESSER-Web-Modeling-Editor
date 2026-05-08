@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
-import { ApollonMode } from "@/typings"
+import { BesserMode } from "@/typings"
 import { useResizable } from "./useResizable"
 import { getInspector, InspectorKind } from "../inspectors/registry"
 
@@ -12,7 +12,7 @@ import { getInspector, InspectorKind } from "../inspectors/registry"
  * Set to `0px` whenever the panel is hidden (no selection, popover mode,
  * readonly assessment, etc.) so consumers can treat it uniformly.
  */
-const PANEL_WIDTH_VAR = "--apollon-properties-panel-width"
+const PANEL_WIDTH_VAR = "--besser-properties-panel-width"
 
 /**
  * Right-side inspector for the React-Flow editor. Ports the v3
@@ -23,7 +23,7 @@ const PANEL_WIDTH_VAR = "--apollon-properties-panel-width"
  * - Content: looked up from the new inspector registry
  *   (`components/inspectors/registry.ts`), shared with `PopoverManager`.
  * - Resizable 250–600 px (default 320), width published as
- *   `--apollon-properties-panel-width`.
+ *   `--besser-properties-panel-width`.
  *
  * Hidden when:
  * - assessment readonly mode is on,
@@ -63,9 +63,9 @@ export const PropertiesPanel: React.FC = () => {
 
   // Determine inspector kind from mode + readonly.
   const inspectorKind = useMemo<InspectorKind | null>(() => {
-    if (mode === ApollonMode.Modelling && !readonly) return "edit"
-    if (mode === ApollonMode.Assessment && !readonly) return "feedbackGive"
-    if (mode === ApollonMode.Assessment && readonly) return "feedbackSee"
+    if (mode === BesserMode.Modelling && !readonly) return "edit"
+    if (mode === BesserMode.Assessment && !readonly) return "feedbackGive"
+    if (mode === BesserMode.Assessment && readonly) return "feedbackSee"
     return null
   }, [mode, readonly])
 
@@ -74,7 +74,7 @@ export const PropertiesPanel: React.FC = () => {
     return getInspector(selectedType, inspectorKind)
   }, [selectedType, inspectorKind])
 
-  const isVisible = !!selectedId && !!InspectorComponent && !(mode === ApollonMode.Exporting)
+  const isVisible = !!selectedId && !!InspectorComponent && !(mode === BesserMode.Exporting)
 
   // Sync the CSS variable so external fixed-position siblings can dodge.
   useEffect(() => {
@@ -94,7 +94,7 @@ export const PropertiesPanel: React.FC = () => {
   return (
     <div
       ref={wrapperRef}
-      className="apollon-properties-panel"
+      className="besser-properties-panel"
       style={{
         display: "flex",
         flexDirection: "row",
@@ -105,7 +105,7 @@ export const PropertiesPanel: React.FC = () => {
       <div
         role="separator"
         aria-orientation="vertical"
-        className="apollon-properties-panel__resize-handle"
+        className="besser-properties-panel__resize-handle"
         onMouseDown={onResizeStart}
         style={{
           width: 6,
@@ -117,26 +117,26 @@ export const PropertiesPanel: React.FC = () => {
         }}
       />
       <aside
-        className="apollon-properties-panel__container"
+        className="besser-properties-panel__container"
         style={{
           width,
           display: "flex",
           flexDirection: "column",
           height: "100%",
           overflow: "hidden",
-          borderLeft: "1px solid var(--apollon-gray, #e9ecef)",
-          background: "var(--apollon-background, #ffffff)",
+          borderLeft: "1px solid var(--besser-gray, #e9ecef)",
+          background: "var(--besser-background, #ffffff)",
           boxShadow: "-2px 0 8px rgba(0, 0, 0, 0.08)",
         }}
       >
         <div
-          className="apollon-properties-panel__header"
+          className="besser-properties-panel__header"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: "8px 12px",
-            borderBottom: "1px solid var(--apollon-gray, #e9ecef)",
+            borderBottom: "1px solid var(--besser-gray, #e9ecef)",
             flexShrink: 0,
             userSelect: "none",
           }}
@@ -146,7 +146,7 @@ export const PropertiesPanel: React.FC = () => {
             style={{
               fontSize: "0.85em",
               fontWeight: 600,
-              color: "var(--apollon-primary-contrast, #000000)",
+              color: "var(--besser-primary-contrast, #000000)",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -156,7 +156,7 @@ export const PropertiesPanel: React.FC = () => {
           </span>
         </div>
         <div
-          className="apollon-properties-panel__body"
+          className="besser-properties-panel__body"
           style={{
             flex: "1 1 auto",
             overflowY: "auto",

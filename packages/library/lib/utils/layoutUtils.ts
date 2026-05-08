@@ -45,9 +45,9 @@ export const calculateMinHeight = (
 }
 
 export const getCustomColorsFromData = (data: DefaultNodeProps) => {
-  const strokeColor = data.strokeColor || "var(--apollon-primary-contrast)"
-  const fillColor = data.fillColor || "var(--apollon-background)"
-  const textColor = data.textColor || "var(--apollon-primary-contrast)"
+  const strokeColor = data.strokeColor || "var(--besser-primary-contrast)"
+  const fillColor = data.fillColor || "var(--besser-background)"
+  const textColor = data.textColor || "var(--besser-primary-contrast)"
   return { strokeColor, fillColor, textColor }
 }
 
@@ -55,7 +55,7 @@ export const getCustomColorsFromDataForEdge = (data?: {
   strokeColor?: string
   textColor?: string
 }) => {
-  const strokeColor = data?.strokeColor || "var(--apollon-primary-contrast)"
-  const textColor = data?.textColor || "var(--apollon-primary-contrast)"
+  const strokeColor = data?.strokeColor || "var(--besser-primary-contrast)"
+  const textColor = data?.textColor || "var(--besser-primary-contrast)"
   return { strokeColor, textColor }
 }
