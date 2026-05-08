@@ -84,7 +84,7 @@ export function StateCodeBlock({
             fontSize="10"
             fontFamily="sans-serif"
             fontWeight="bold"
-            fill="#fff"
+            fill="var(--besser-background, #ffffff)"
           >
             {language}
           </text>

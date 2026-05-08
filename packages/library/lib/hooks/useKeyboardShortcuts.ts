@@ -4,18 +4,23 @@ import { useShallow } from "zustand/shallow"
 import { useSelectionForCopyPaste } from "./useSelectionForCopyPaste"
 import { useDiagramModifiable } from "./useDiagramModifiable"
 
+const ARROW_NUDGE_PX = 10
+
 export const useKeyboardShortcuts = () => {
   const pasteCountRef = useRef(0)
 
-  const { undo, redo, canUndo, canRedo, undoManager } = useDiagramStore(
-    useShallow((state) => ({
-      undo: state.undo,
-      redo: state.redo,
-      canUndo: state.canUndo,
-      canRedo: state.canRedo,
-      undoManager: state.undoManager,
-    }))
-  )
+  const { undo, redo, canUndo, canRedo, undoManager, nodes, setNodes } =
+    useDiagramStore(
+      useShallow((state) => ({
+        undo: state.undo,
+        redo: state.redo,
+        canUndo: state.canUndo,
+        canRedo: state.canRedo,
+        undoManager: state.undoManager,
+        nodes: state.nodes,
+        setNodes: state.setNodes,
+      }))
+    )
   const isDiagramModifiable = useDiagramModifiable()
   const {
     selectedElementIds,
@@ -46,12 +51,51 @@ export const useKeyboardShortcuts = () => {
         return
       }
 
-      if (event.key === "Delete") {
+      if (event.key === "Delete" || event.key === "Backspace") {
         if (!isDiagramModifiable) return
         event.preventDefault()
         if (hasSelectedElements()) {
           deleteSelectedElements()
         }
+        return
+      }
+
+      if (
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey &&
+        (event.key === "ArrowUp" ||
+          event.key === "ArrowDown" ||
+          event.key === "ArrowLeft" ||
+          event.key === "ArrowRight")
+      ) {
+        if (!isDiagramModifiable) return
+        if (!hasSelectedElements()) return
+        event.preventDefault()
+        const dx =
+          event.key === "ArrowLeft"
+            ? -ARROW_NUDGE_PX
+            : event.key === "ArrowRight"
+              ? ARROW_NUDGE_PX
+              : 0
+        const dy =
+          event.key === "ArrowUp"
+            ? -ARROW_NUDGE_PX
+            : event.key === "ArrowDown"
+              ? ARROW_NUDGE_PX
+              : 0
+        const selected = new Set(selectedElementIds)
+        setNodes(
+          nodes.map((n) =>
+            selected.has(n.id)
+              ? {
+                  ...n,
+                  position: { x: n.position.x + dx, y: n.position.y + dy },
+                }
+              : n
+          )
+        )
         return
       }
 
@@ -114,9 +158,16 @@ export const useKeyboardShortcuts = () => {
           break
 
         case "d":
+          // Cmd/Ctrl+D duplicates the selection (copy + immediate paste)
+          // matching the v3 fork. Browsers default this to "bookmark
+          // page" so preventDefault is mandatory.
           if (!event.shiftKey && !event.altKey) {
             event.preventDefault()
-            clearSelection()
+            if (hasSelectedElements()) {
+              pasteCountRef.current = 1
+              copySelectedElements()
+              pasteElements(pasteCountRef.current)
+            }
           }
           break
 
@@ -140,7 +191,11 @@ export const useKeyboardShortcuts = () => {
     selectAll,
     clearSelection,
     copySelectedElements,
-    cutSelectedElements, // Add this to dependencies
+    cutSelectedElements,
     pasteElements,
+    deleteSelectedElements,
+    isDiagramModifiable,
+    nodes,
+    setNodes,
   ])
 }

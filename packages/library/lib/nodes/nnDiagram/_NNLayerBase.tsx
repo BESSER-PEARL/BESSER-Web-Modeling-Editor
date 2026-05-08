@@ -157,7 +157,7 @@ export function NNLayerBase({
   if (!width || !height) return null
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const fill = fillColor === "white" && defaultFill ? defaultFill : fillColor
+  const fill = !data.fillColor && defaultFill ? defaultFill : fillColor
   const cornerRadius = 6
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
   const iconFile = NN_LAYER_ICON_FILES[nodeType]

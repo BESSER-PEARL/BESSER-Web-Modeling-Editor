@@ -44,8 +44,11 @@ export function AgentIntent({
   const headerHeight = showStereotype
     ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
     : LAYOUT.DEFAULT_HEADER_HEIGHT
-  // Light-green tint per the v3 fillColor default (#E3F9E5).
-  const intentFill = fillColor === "white" ? "#E3F9E5" : fillColor
+  // Light-green tint per the v3 fillColor default (#E3F9E5). Apply
+  // whenever the user has not customised the fill — `getCustomColorsFromData`
+  // falls back to `var(--besser-background)`, so the legacy "white"
+  // sentinel alone never matches new nodes.
+  const intentFill = !data.fillColor ? "#E3F9E5" : fillColor
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>

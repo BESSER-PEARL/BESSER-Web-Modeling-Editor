@@ -28,7 +28,7 @@ export function NNReference({
   if (!width || !height) return null
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const refFill = fillColor === "white" ? "#FFFDE7" : fillColor
+  const refFill = !data.fillColor ? "#FFFDE7" : fillColor
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>

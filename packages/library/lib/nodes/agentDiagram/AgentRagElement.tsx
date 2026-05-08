@@ -49,9 +49,11 @@ export function AgentRagElement({
   const topCenterY = radiusY
   const bottomCenterY = height - radiusY
 
-  // v3 default fillColor was `#E8F0FF`; honour it when the data carries
-  // the upstream `'white'` placeholder.
-  const cylinderFill = fillColor === "white" ? "#E8F0FF" : fillColor
+  // v3 default fillColor was `#E8F0FF`. Apply whenever the user has not
+  // explicitly chosen a fill colour (the helper falls back to
+  // `var(--besser-background)`, so a literal "white" check never
+  // matched newly-dropped nodes).
+  const cylinderFill = !data.fillColor ? "#E8F0FF" : fillColor
   const cylinderStroke = strokeColor || "#668"
 
   return (

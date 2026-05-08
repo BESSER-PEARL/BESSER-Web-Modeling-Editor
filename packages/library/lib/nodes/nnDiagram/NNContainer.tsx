@@ -36,7 +36,7 @@ export function NNContainer({
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
   const { name } = data
-  const containerFill = fillColor === "white" ? "#F5F5F5" : fillColor
+  const containerFill = !data.fillColor ? "#F5F5F5" : fillColor
   const cornerRadius = 8
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
 
