@@ -47,8 +47,8 @@ import {
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
 import { useKgToUmlConversion, type KgConversionTarget } from '../import/useKgToUmlConversion';
-import { useKgPreflight, type KgPreflightReport, type KgIssue } from '../import/useKgPreflight';
-import type { RowDecision } from '../import/KgPreflightIssueRow';
+import { useKgPreflight } from '../import/useKgPreflight';
+import type { KgIssue } from '../import/useKgPreflight';
 import * as kgFocus from '../editors/kg/kgFocus';
 import { useExportKgRdf } from '../export/useExportKgRdf';
 
@@ -371,6 +371,14 @@ export interface UseGeneratorExecutionReturn {
   configState: GeneratorConfigState;
   /** Whether the app is running against localhost */
   isLocalEnvironment: boolean;
+  /** Props bag to spread onto <KgRefineModal /> */
+  kgRefineModalProps: {
+    open: boolean;
+    onClose: () => void;
+    onFixInKg: (issue: KgIssue) => void;
+    convertTarget?: KgConversionTarget;
+    onConvert?: (kgSignature: string) => void;
+  };
 }
 
 export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGeneratorExecutionReturn {
@@ -383,48 +391,32 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const deployLocally = useDeployLocally();
   const runKgConversion = useKgToUmlConversion();
   const { runPreflight: runKgPreflight } = useKgPreflight();
-  // Pending KG preflight modal state. The modal is rendered by the parent;
-  // when the user clicks Convert / Cancel / Fix-in-KG it calls the
-  // ``resolve`` callback which unblocks the awaited promise inside
-  // ``runKgWithPreflight``.
-  const [kgPreflightState, setKgPreflightState] = useState<{
-    report: KgPreflightReport;
-    target: KgConversionTarget;
-    resolve: (
-      decision:
-        | { resolutions: Array<{ issueId: string; decision: RowDecision }>; kgSignature: string }
-        | { fixInKg: true }
-        | null,
-    ) => void;
-  } | null>(null);
+  // Open/close state for the unified Refine KG modal. The modal owns its
+  // own per-tab state (description / api-key / decisions) and reports
+  // completion via ``onClose``; the parent only needs to know when to
+  // render it.
+  const [kgRefineOpen, setKgRefineOpen] = useState(false);
+  // When set, the refine modal is opened in "convert mode" so the user
+  // can clean the KG before producing a Class/Object Diagram. The modal
+  // calls ``onConvert`` with the kgSignature once the analyzer reports
+  // zero remaining issues.
+  const [kgConvertTarget, setKgConvertTarget] = useState<KgConversionTarget | null>(null);
 
   const runKgWithPreflight = useCallback(
     async (target: KgConversionTarget): Promise<void> => {
       const report = await runKgPreflight(target);
       if (!report) return;
-      // No issues → run conversion directly with no resolutions.
+      // Zero-friction path: no inconsistencies → convert immediately
+      // without opening the modal.
       if (report.issueCount === 0) {
         await runKgConversion(target, { kgSignature: report.kgSignature });
         return;
       }
-      // Issues present → open the modal and wait for the user.
-      const decision = await new Promise<
-        | { resolutions: Array<{ issueId: string; decision: RowDecision }>; kgSignature: string }
-        | { fixInKg: true }
-        | null
-      >((resolve) => {
-        setKgPreflightState({ report, target, resolve });
-      });
-      setKgPreflightState(null);
-      if (decision === null || (decision as any).fixInKg) {
-        // Cancelled or "Fix in KG" — do not proceed with conversion.
-        return;
-      }
-      const { resolutions, kgSignature } = decision as {
-        resolutions: Array<{ issueId: string; decision: RowDecision }>;
-        kgSignature: string;
-      };
-      await runKgConversion(target, { resolutions, kgSignature });
+      // Issues present → open the Refine KG modal in convert mode so the
+      // user can clean the KG and then click Convert. The modal handles
+      // its own analyzer calls and decisions; we only need to track the
+      // target so we can dispatch the conversion when the user confirms.
+      setKgConvertTarget(target);
     },
     [runKgPreflight, runKgConversion],
   );
@@ -587,6 +579,21 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             return { ok: false, error: 'Open a Knowledge Graph diagram before converting to UML.' };
           }
           await runKgWithPreflight(generatorType);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          getPostHog()?.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_type: currentProject.currentDiagramType,
+            ...getModelMetrics(currentProject),
+          });
+          return { ok: true };
+        }
+
+        if (generatorType === 'kg_refine') {
+          if (!isKgContext) {
+            toast.error('Open a Knowledge Graph diagram before refining.');
+            return { ok: false, error: 'Open a Knowledge Graph diagram before refining.' };
+          }
+          setKgRefineOpen(true);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           getPostHog()?.capture('generator_used', {
             generator_type: generatorType,
@@ -1033,33 +1040,29 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError('Web App generation')); },
   };
 
-  // Props for the KG preflight modal. The parent application renders the
-  // modal and forwards these props; the modal's button handlers feed
-  // ``kgPreflightState.resolve`` to unblock the awaited promise.
-  const kgPreflightModalProps = {
-    open: kgPreflightState !== null,
-    report: kgPreflightState?.report ?? null,
-    diagramTypeLabel:
-      kgPreflightState?.target === 'kg_to_object' ? 'Object Diagram' : 'Class Diagram',
-    onConvert: (
-      resolutions: Array<{ issueId: string; decision: RowDecision }>,
-      kgSignature: string,
-    ) => {
-      kgPreflightState?.resolve({ resolutions, kgSignature });
-    },
-    onCancel: () => {
-      kgPreflightState?.resolve(null);
+  // Props for the unified Refine KG modal. The modal handles the full
+  // tabbed (Automatic / AI) flow internally; it only needs to know when
+  // it's open, how to close itself, a "Fix in KG" handler that focuses
+  // affected nodes in the canvas, and — when opened from the Convert
+  // flow — a ``convertTarget``/``onConvert`` callback so it can trigger
+  // the conversion once the KG is clean.
+  const kgRefineModalProps = {
+    open: kgRefineOpen || kgConvertTarget !== null,
+    onClose: () => {
+      setKgRefineOpen(false);
+      setKgConvertTarget(null);
     },
     onFixInKg: (issue: KgIssue) => {
-      // Ask the active KG editor to narrow the canvas to the
-      // problematic node + its first-degree neighbours (max 15,
-      // classes/properties prioritised). Silently no-ops if the editor
-      // isn't mounted (e.g., the user has navigated away).
       const ids = issue?.affectedNodeIds ?? [];
       if (ids.length > 0) {
         kgFocus.focus(ids, { maxNeighbors: 15 });
       }
-      kgPreflightState?.resolve({ fixInKg: true });
+    },
+    convertTarget: kgConvertTarget ?? undefined,
+    onConvert: (kgSignature: string) => {
+      const target = kgConvertTarget;
+      if (!target) return;
+      void runKgConversion(target, { kgSignature });
     },
   };
 
@@ -1070,6 +1073,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     handleQualityCheck,
     configState,
     isLocalEnvironment,
-    kgPreflightModalProps,
+    kgRefineModalProps,
   };
 }

@@ -57,8 +57,8 @@ const TemplateLibraryDialog = React.lazy(() =>
 const ExportDialog = React.lazy(() =>
   import('../features/export/ExportDialog').then((m) => ({ default: m.ExportDialog })),
 );
-const KgPreflightModal = React.lazy(() =>
-  import('../features/import/KgPreflightModal').then((m) => ({ default: m.KgPreflightModal })),
+const KgRefineModal = React.lazy(() =>
+  import('../features/import/KgRefineModal').then((m) => ({ default: m.KgRefineModal })),
 );
 const GeneratorConfigDialogs = React.lazy(() =>
   import('../features/generation/dialogs/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
@@ -115,7 +115,7 @@ function AppContentInner() {
     handleQualityCheck,
     configState,
     isLocalEnvironment,
-    kgPreflightModalProps,
+    kgRefineModalProps,
   } = useGeneratorExecution(editor);
 
   const handleExport = () => {
@@ -228,11 +228,13 @@ function AppContentInner() {
       />
       </Suspense>
 
-      {/* KG → BUML preflight modal: opened by useGeneratorExecution when the
-          user picks Convert KG → Class/Object Diagram and the backend
-          preflight reports at least one issue. */}
+      {/* Refine KG modal: opened from Generate → Refine KG (refine-only) or
+          from Generate → Convert to B-UML → Class/Object Diagram (convert
+          mode, when the preflight finds inconsistencies). Hosts the unified
+          two-tab (Automatic / AI) refinement flow and surfaces a Convert
+          button when the KG is clean. */}
       <Suspense fallback={null}>
-        <KgPreflightModal {...kgPreflightModalProps} />
+        <KgRefineModal {...kgRefineModalProps} />
       </Suspense>
 
       {/* Onboarding tutorial — disabled for now

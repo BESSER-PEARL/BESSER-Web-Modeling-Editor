@@ -1,11 +1,9 @@
-// Single row in the KG preflight modal.
+// Single row in the KG preflight / refine modal.
 //
-// Renders one ``KGIssue``: description, an "Apply recommended"
-// checkbox, and — when the user unchecks it — a visual indication
-// that the element will be skipped plus a single "Fix in KG instead"
-// button.
+// Every issue — including orphan-node groups — renders a leading
+// checkbox so the user can opt out of fixing it entirely.
 //
-// Layout:
+// Layout (rule-based modal, ``enableRoutingChoice`` off):
 //   Checked:
 //     [✓] Apply recommended: <label>
 //
@@ -13,24 +11,58 @@
 //     [ ] Apply recommended: <label>          [SKIPPED]
 //         <skip consequence text>  OR  [Fix in KG instead]
 //
-// The checkbox label is stable ("Apply recommended: …"); a coloured
-// "SKIPPED" badge in the top-right shows the user has opted out, and
-// the consequence text spells out what dropping the element will do.
-// "Fix in KG instead" closes the modal so the user can edit.
+// Layout (refine modal, ``enableRoutingChoice`` on):
+//   Checked:
+//     [✓] Fix automatically
+//         ( ) <recommended fix label>
+//         ( ) Send to LLM
 //
-// The parent owns the ``decision`` state per row; this component is
-// purely presentational and emits state changes via callbacks.
+//   Unchecked:
+//     [ ] Fix automatically                    [SKIPPED]
+//
+// In the refine layout there is NO bottom "Fix in KG instead" button —
+// "Fix in KG" lives exclusively in the row header (alwaysShowFixInKg).
+//
+// When ``alwaysShowFixInKg`` is true an extra "Fix in KG" button is
+// rendered in the header so users can defer any row to a manual fix
+// without first having to uncheck it.
+//
+// The parent owns the ``decision`` and ``routing`` state; this
+// component is purely presentational and emits changes via callbacks.
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import type { KgIssue } from './useKgPreflight';
 
 export type RowDecision = 'accept' | 'skip';
 
+export type RowRouting = 'recommended' | 'llm';
+
 export interface KgPreflightIssueRowProps {
   issue: KgIssue;
   decision: RowDecision;
   onDecisionChange: (issueId: string, decision: RowDecision) => void;
   onFixInKg: (issue: KgIssue) => void;
+  /**
+   * When true, render a "Fix in KG" button in the row header that's
+   * visible regardless of accept/skip state. Used by the LLM cleanup
+   * modal where the manual-fix path is a peer to accept/skip rather
+   * than a fallback inside the skip branch. Defaults to ``false`` to
+   * preserve the rule-based preflight UX.
+   */
+  alwaysShowFixInKg?: boolean;
+  /**
+   * Optional segmented control rendered when the row is *selected*
+   * (decision='accept'), letting the user pick how the issue should be
+   * resolved: by applying the row's pre-computed recommendation, or by
+   * deferring it to the LLM tab for AI-driven refinement.
+   *
+   * When ``enableRoutingChoice`` is true, the parent must also supply
+   * ``routing`` and ``onRoutingChange``. Defaults to ``false`` so the
+   * AI tab and the rule-based preflight modal keep their existing UX.
+   */
+  enableRoutingChoice?: boolean;
+  routing?: RowRouting;
+  onRoutingChange?: (issueId: string, routing: RowRouting) => void;
 }
 
 export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
@@ -38,6 +70,10 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
   decision,
   onDecisionChange,
   onFixInKg,
+  alwaysShowFixInKg = false,
+  enableRoutingChoice = false,
+  routing = 'recommended',
+  onRoutingChange,
 }) => {
   const checkboxId = `kg-issue-${issue.id}`;
   const recommendedLabel = issue.recommendedAction?.label ?? 'No recommended action';
@@ -64,6 +100,17 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
             </div>
           )}
         </div>
+        {alwaysShowFixInKg && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onFixInKg(issue)}
+            data-testid="kg-issue-fix-in-kg-header"
+            className="shrink-0"
+          >
+            Fix in KG
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3">
@@ -78,11 +125,21 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
             onChange={(e) =>
               onDecisionChange(issue.id, e.target.checked ? 'accept' : 'skip')
             }
-            aria-label={`Apply recommended fix for ${issue.code}`}
+            aria-label={
+              enableRoutingChoice
+                ? `Fix automatically for ${issue.code}`
+                : `Apply recommended fix for ${issue.code}`
+            }
             className="h-4 w-4 cursor-pointer"
           />
           <span>
-            <span className="font-medium">Apply recommended:</span> {recommendedLabel}
+            {enableRoutingChoice ? (
+              <span className="font-medium">Fix automatically</span>
+            ) : (
+              <>
+                <span className="font-medium">Apply recommended:</span> {recommendedLabel}
+              </>
+            )}
           </span>
         </label>
         {!isAccepted && (
@@ -95,7 +152,47 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
         )}
       </div>
 
-      {!isAccepted && (
+      {enableRoutingChoice && isAccepted && onRoutingChange && (
+        <div
+          data-testid="kg-issue-routing"
+          role="radiogroup"
+          aria-label="Choose how to fix this issue"
+          className="flex flex-col gap-1.5 pl-6 text-sm text-gray-700 dark:text-gray-300"
+        >
+          <label className="flex cursor-pointer items-start gap-2">
+            <input
+              type="radio"
+              name={`kg-issue-routing-${issue.id}`}
+              data-testid={`kg-issue-routing-recommended-${issue.id}`}
+              checked={routing === 'recommended'}
+              onChange={() => onRoutingChange(issue.id, 'recommended')}
+              aria-checked={routing === 'recommended'}
+              className="mt-0.5 h-3.5 w-3.5 cursor-pointer"
+            />
+            <span>{recommendedLabel}</span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2">
+            <input
+              type="radio"
+              name={`kg-issue-routing-${issue.id}`}
+              data-testid={`kg-issue-routing-llm-${issue.id}`}
+              checked={routing === 'llm'}
+              onChange={() => onRoutingChange(issue.id, 'llm')}
+              aria-checked={routing === 'llm'}
+              className="mt-0.5 h-3.5 w-3.5 cursor-pointer"
+            />
+            <span>Send to LLM</span>
+          </label>
+        </div>
+      )}
+
+      {/* The "Fix in KG instead" button + skip-consequence text below the
+          checkbox is part of the rule-based modal's UX where the only
+          alternative to accepting was a manual fix. The refine modal
+          surfaces "Fix in KG" exclusively in the header (alwaysShowFixInKg)
+          and treats unchecked as a clean "don't fix" — no extra badge,
+          no extra button below. */}
+      {!enableRoutingChoice && !isAccepted && (
         <div
           data-testid="kg-issue-alternatives"
           className="flex flex-wrap items-center gap-2 pl-6 text-sm text-gray-700 dark:text-gray-300"

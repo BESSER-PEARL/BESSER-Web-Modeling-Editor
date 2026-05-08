@@ -14,6 +14,7 @@ export type GeneratorType =
   | 'jsonobject'
   | 'kg_to_class'
   | 'kg_to_object'
+  | 'kg_refine'
   | 'kg_export_owl'
   | 'kg_export_ttl';
 

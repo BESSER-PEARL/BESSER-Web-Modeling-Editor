@@ -83,6 +83,7 @@ const QUANTUM_GENERATORS: GeneratorMenuEntry[] = [
 ];
 
 const KG_GENERATORS: GeneratorMenuEntry[] = [
+  { kind: 'action', label: 'Refine KG', generator: 'kg_refine' },
   {
     kind: 'group',
     label: 'Convert to B-UML',
