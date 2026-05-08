@@ -292,6 +292,46 @@ svg.react-flow__connectionline {
 .besser-editor .MuiSvgIcon-root {
   color: var(--besser-primary-contrast, #000000) !important;
 }
+
+/* SA-PANEL-STYLE: scope-down the global `!important` overrides above for
+   the inspector panel so MUI's theme-driven colors (defined in
+   `inspector-theme.ts`) actually take effect inside it. Without these
+   resets the global rules above force every input border/label color to
+   `--besser-primary-contrast` and the harmonized hover/focus states are
+   silently dropped. */
+.besser-properties-panel .MuiOutlinedInput-notchedOutline {
+  border-color: var(--besser-gray, #e9ecef) !important;
+}
+.besser-properties-panel
+  .MuiOutlinedInput-root:hover
+  .MuiOutlinedInput-notchedOutline {
+  border-color: var(--besser-gray-variant, #adb5bd) !important;
+}
+.besser-properties-panel
+  .MuiOutlinedInput-root.Mui-focused
+  .MuiOutlinedInput-notchedOutline {
+  border-color: var(--besser-primary, #2a8fbd) !important;
+  box-shadow: 0 0 0 2px rgba(42, 143, 189, 0.2);
+}
+.besser-properties-panel .MuiFormLabel-root {
+  color: var(--besser-gray-variant, #495057) !important;
+}
+.besser-properties-panel .MuiFormLabel-root.Mui-focused {
+  color: var(--besser-primary, #2a8fbd) !important;
+}
+
+/* SA-PANEL-STYLE: section spacing for inspector subsections. Most edit
+   panels stack <DividerLine> + <Stack> blocks directly inside the body;
+   give them a consistent gap so the panel doesn't feel cramped. */
+.besser-properties-panel__body > * + * {
+  margin-top: 10px;
+}
+.besser-properties-panel__body hr,
+.besser-properties-panel__body .MuiDivider-root {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  border-color: var(--besser-gray, #e9ecef);
+}
 .scroll-overlay {
   position: absolute;
   top: 0;

@@ -1,9 +1,15 @@
 import React, { useEffect, useMemo, useRef } from "react"
 import { useShallow } from "zustand/shallow"
+import { ThemeProvider } from "@mui/material/styles"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { BesserMode } from "@/typings"
 import { useResizable } from "./useResizable"
 import { getInspector, InspectorKind } from "../inspectors/registry"
+// SA-PANEL-STYLE: Approach B — keep MUI primitives but theme them to
+// match the webapp's Tailwind/Radix design tokens. The override file
+// maps borderRadius, font, padding, and focus rings to the same look as
+// `packages/webapp/src/components/ui/`.
+import { inspectorTheme } from "@/styles/inspector-theme"
 
 /**
  * CSS custom property published on `:root` so fixed-position siblings (e.g.
@@ -92,83 +98,98 @@ export const PropertiesPanel: React.FC = () => {
   const typeLabel = formatTypeName(selectedType ?? "")
 
   return (
-    <div
-      ref={wrapperRef}
-      className="besser-properties-panel"
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        height: "100%",
-        flexShrink: 0,
-      }}
-    >
+    <ThemeProvider theme={inspectorTheme}>
       <div
-        role="separator"
-        aria-orientation="vertical"
-        className="besser-properties-panel__resize-handle"
-        onMouseDown={onResizeStart}
+        ref={wrapperRef}
+        className="besser-properties-panel"
         style={{
-          width: 6,
-          cursor: "ew-resize",
-          background: "transparent",
-          userSelect: "none",
-          flexShrink: 0,
-          pointerEvents: "auto",
-        }}
-      />
-      <aside
-        className="besser-properties-panel__container"
-        style={{
-          width,
           display: "flex",
-          flexDirection: "column",
+          flexDirection: "row",
           height: "100%",
-          overflow: "hidden",
-          borderLeft: "1px solid var(--besser-gray, #e9ecef)",
-          background: "var(--besser-background, #ffffff)",
-          boxShadow: "-2px 0 8px rgba(0, 0, 0, 0.08)",
+          flexShrink: 0,
         }}
       >
         <div
-          className="besser-properties-panel__header"
+          role="separator"
+          aria-orientation="vertical"
+          className="besser-properties-panel__resize-handle"
+          onMouseDown={onResizeStart}
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "8px 12px",
-            borderBottom: "1px solid var(--besser-gray, #e9ecef)",
-            flexShrink: 0,
+            width: 6,
+            cursor: "ew-resize",
+            background: "transparent",
             userSelect: "none",
+            flexShrink: 0,
+            pointerEvents: "auto",
+          }}
+        />
+        <aside
+          className="besser-properties-panel__container"
+          style={{
+            width,
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            overflow: "hidden",
+            // SA-PANEL-STYLE: align border + shadow with the webapp's
+            // `border-input` (1px) + subtle elevation-2 shadow.
+            borderLeft: "1px solid var(--besser-gray, #e9ecef)",
+            background: "var(--besser-background, #ffffff)",
+            boxShadow:
+              "-4px 0 12px -2px rgba(0, 0, 0, 0.06), -2px 0 6px -2px rgba(0, 0, 0, 0.04)",
           }}
         >
-          <span
-            title={typeLabel}
+          <div
+            className="besser-properties-panel__header"
             style={{
-              fontSize: "0.85em",
-              fontWeight: 600,
-              color: "var(--besser-primary-contrast, #000000)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 14px",
+              borderBottom: "1px solid var(--besser-gray, #e9ecef)",
+              flexShrink: 0,
+              userSelect: "none",
             }}
           >
-            {typeLabel}
-          </span>
-        </div>
-        <div
-          className="besser-properties-panel__body"
-          style={{
-            flex: "1 1 auto",
-            overflowY: "auto",
-            overflowX: "hidden",
-            padding: "8px 10px",
-            position: "relative",
-          }}
-        >
-          <InspectorComponent elementId={selectedId} />
-        </div>
-      </aside>
-    </div>
+            <span
+              title={typeLabel}
+              style={{
+                // Tailwind `text-sm font-semibold` analogue (~13px / 600).
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                color: "var(--besser-primary-contrast, #0f172a)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                fontFamily:
+                  'var(--font-geist-sans, "Sora"), ui-sans-serif, system-ui, sans-serif',
+              }}
+            >
+              {typeLabel}
+            </span>
+          </div>
+          <div
+            className="besser-properties-panel__body"
+            style={{
+              flex: "1 1 auto",
+              overflowY: "auto",
+              overflowX: "hidden",
+              // Tighter horizontal gutter; vertical breathing room between
+              // sections is supplied by `.besser-properties-panel__body`
+              // CSS rules in `app.css`.
+              padding: "10px 12px",
+              position: "relative",
+              fontSize: "0.8125rem",
+              fontFamily:
+                'var(--font-geist-sans, "Sora"), ui-sans-serif, system-ui, sans-serif',
+              color: "var(--besser-primary-contrast, #0f172a)",
+            }}
+          >
+            <InspectorComponent elementId={selectedId} />
+          </div>
+        </aside>
+      </div>
+    </ThemeProvider>
   )
 }
 
