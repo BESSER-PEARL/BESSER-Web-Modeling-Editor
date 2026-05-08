@@ -67,8 +67,9 @@ const NON_DIRECTIONAL_TYPES = new Set([
 ])
 
 export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
-  const { edges, setEdges } = useDiagramStore(
+  const { nodes, edges, setEdges } = useDiagramStore(
     useShallow((state) => ({
+      nodes: state.nodes,
       edges: state.edges,
       setEdges: state.setEdges,
     }))
@@ -87,6 +88,15 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   const isInheritance = NON_DIRECTIONAL_TYPES.has(edge.type as string)
+
+  // Resolve the source/target node names so the inspector section
+  // headers carry the same orientation cue v3 provided.
+  const sourceNode = nodes.find((n) => n.id === edge.source)
+  const targetNode = nodes.find((n) => n.id === edge.target)
+  const sourceName =
+    (sourceNode?.data as { name?: string } | undefined)?.name || "Source"
+  const targetName =
+    (targetNode?.data as { name?: string } | undefined)?.name || "Target"
 
   // Mirror the v3 ER hint: storage is always UML, but ER users get a
   // hint that `(1,N)` syntax is also accepted on input.
@@ -182,7 +192,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         <>
           <DividerLine width="100%" />
           <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-            Source
+            Source — {sourceName}
           </Typography>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 80 }}>
@@ -220,7 +230,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
           <DividerLine width="100%" />
           <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-            Target
+            Target — {targetName}
           </Typography>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 80 }}>

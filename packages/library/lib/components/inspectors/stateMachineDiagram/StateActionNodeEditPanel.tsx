@@ -1,5 +1,7 @@
-import { Box, TextField as MuiTextField } from "@mui/material"
+import { Box, Typography, TextField as MuiTextField } from "@mui/material"
 import React from "react"
+import CodeMirror from "@uiw/react-codemirror"
+import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { StateActionNodeProps } from "@/types"
@@ -52,17 +54,30 @@ export const StateActionNodeEditPanel: React.FC<PopoverProps> = ({
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        multiline
-        minRows={4}
-        label="code"
-        value={data.code ?? ""}
-        onChange={(e) => update({ code: e.target.value })}
-        placeholder="Python / BAL action code…"
-      />
+      <Box>
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          code
+        </Typography>
+        <Box
+          sx={{
+            border: "1px solid var(--besser-gray, #e9ecef)",
+            borderRadius: 1,
+            overflow: "hidden",
+          }}
+        >
+          <CodeMirror
+            value={data.code ?? ""}
+            height="120px"
+            extensions={[python()]}
+            onChange={(value) => update({ code: value })}
+            basicSetup={{
+              lineNumbers: false,
+              foldGutter: false,
+              highlightActiveLineGutter: false,
+            }}
+          />
+        </Box>
+      </Box>
     </Box>
   )
 }

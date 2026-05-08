@@ -29,7 +29,18 @@ const resolveClassEdgeType = (
   defaultType: string
 ): string => {
   const isOcl = (t?: string) => t === "ClassOCLConstraint"
-  if (isOcl(sourceType) || isOcl(targetType)) return "ClassOCLLink"
+  const isClassEnd = (t?: string) =>
+    t === "class" || t === "Enumeration" || t === "AbstractClass"
+  const sourceIsOcl = isOcl(sourceType)
+  const targetIsOcl = isOcl(targetType)
+  // Only flip to ClassOCLLink when exactly one endpoint is OCL and the
+  // other endpoint is a class. OCL→OCL and OCL→non-class connections
+  // would otherwise silently flip and produce semantically meaningless
+  // links (SA-DEEP-COMMENTS-CONSTRAINTS finding #3).
+  if (sourceIsOcl !== targetIsOcl) {
+    const otherType = sourceIsOcl ? targetType : sourceType
+    if (isClassEnd(otherType)) return "ClassOCLLink"
+  }
   return defaultType
 }
 
