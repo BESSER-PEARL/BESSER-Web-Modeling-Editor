@@ -347,8 +347,11 @@ const deepEqual = (left: unknown, right: unknown): boolean => {
     return false;
 };
 
-const hasLLMConfiguration = (value: AgentConfigurationPayload['llm']): value is AgentLLMConfiguration =>
-    'provider' in value && Boolean(value.provider);
+const hasLLMConfiguration = (
+    value: AgentConfigurationPayload['llm'],
+): value is AgentLLMConfiguration | { name: string } =>
+    ('name' in value && Boolean((value as { name?: string }).name)) ||
+    ('provider' in value && Boolean((value as AgentLLMConfiguration).provider));
 
 const buildSparseGenerationConfig = (config: AgentConfigurationPayload): Partial<AgentConfigurationPayload> => {
     const defaults = createDefaultConfig();

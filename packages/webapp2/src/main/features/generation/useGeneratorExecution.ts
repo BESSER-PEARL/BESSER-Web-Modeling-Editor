@@ -889,21 +889,32 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         agentLlmProvider: llmBlock?.provider,
         agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
         agentCustomLlmModel: undefined,
+        agentLlmName:
+          typeof diagramConfig.agentLlmName === 'string'
+            ? diagramConfig.agentLlmName
+            : (typeof llmBlock?.name === 'string' ? llmBlock.name : undefined),
       })
       : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
     const resolvedOpenAiModel =
       agentConfig.agentLlmModel === 'other' ? agentConfig.agentCustomLlmModel.trim() : agentConfig.agentLlmModel;
+    const defaultLlmNameFromDiagram =
+      diagramConfig && typeof diagramConfig.default_llm_name === 'string' && diagramConfig.default_llm_name
+        ? diagramConfig.default_llm_name
+        : undefined;
     const systemConfig: AgentConfig = {
       agentPlatform: agentConfig.agentPlatform,
       intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
-      ...(agentConfig.agentLlmProvider
-        ? {
-          llm: {
-            provider: agentConfig.agentLlmProvider,
-            ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
-          },
-        }
-        : {}),
+      ...(defaultLlmNameFromDiagram ? { default_llm_name: defaultLlmNameFromDiagram } : {}),
+      ...(agentConfig.agentLlmName
+        ? { llm: { name: agentConfig.agentLlmName } }
+        : agentConfig.agentLlmProvider
+          ? {
+              llm: {
+                provider: agentConfig.agentLlmProvider,
+                ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
+              },
+            }
+          : {}),
     };
 
     let baseConfig: AgentConfig = {

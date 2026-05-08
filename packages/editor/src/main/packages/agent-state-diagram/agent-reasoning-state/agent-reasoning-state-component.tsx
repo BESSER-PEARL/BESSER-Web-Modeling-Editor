@@ -14,7 +14,7 @@ const REASONING_ACCENT = '#7C3AED';
 export const AgentReasoningStateComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const cornerRadius = 8;
   const headerHeight = 50;
-  const llmLabel = element.llm_name ? `LLM: ${element.llm_name}` : 'LLM: (set llm_name)';
+  const llmLabel = element.llm_name ? `LLM: ${element.llm_name}` : 'LLM: (use default)';
   const accent = element.strokeColor || REASONING_ACCENT;
   const textColor = element.textColor || 'currentColor';
 

@@ -73,6 +73,7 @@ export interface AgentModelElement extends UMLModelElement {
   dbQueryMode?: string;
   dbOperation?: string;
   dbSqlQuery?: string;
+  llm_name?: string;
 }
 
 export type UMLElement = UMLModelElement & {

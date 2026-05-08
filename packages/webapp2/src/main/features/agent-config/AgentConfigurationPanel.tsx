@@ -22,6 +22,7 @@ import type {
 import type {
   AgentConfigurationPayload,
   AgentLLMConfiguration,
+  AgentLLMNameConfiguration,
   AgentLLMProvider,
   AgentLanguageComplexity,
   AgentSentenceLength,
@@ -190,12 +191,18 @@ const normalizeAgentConfiguration = (raw?: Partial<AgentConfigurationPayload> & 
     return createDefaultConfig();
   }
 
-  let llm: AgentLLMConfiguration | Record<string, never> = {};
+  let llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never> = {};
   if (raw.llm && typeof raw.llm === 'object') {
-    const provider = ((raw.llm as Partial<AgentLLMConfiguration>).provider ?? '') as AgentLLMProvider;
-    const model = ((raw.llm as Partial<AgentLLMConfiguration>).model ?? '') as string;
-    if (provider) {
-      llm = { provider, model };
+    const llmRaw = raw.llm as Partial<AgentLLMNameConfiguration & AgentLLMConfiguration>;
+    const name = typeof llmRaw.name === 'string' ? llmRaw.name : '';
+    if (name) {
+      llm = { name };
+    } else {
+      const provider = (llmRaw.provider ?? '') as AgentLLMProvider;
+      const model = (llmRaw.model ?? '') as string;
+      if (provider) {
+        llm = { provider, model };
+      }
     }
   }
 
@@ -258,8 +265,11 @@ const deepEqual = (left: unknown, right: unknown): boolean => {
   return false;
 };
 
-const hasLLMConfiguration = (value: AgentConfigurationPayload['llm']): value is AgentLLMConfiguration =>
-  'provider' in value && Boolean(value.provider);
+const hasLLMConfiguration = (
+  value: AgentConfigurationPayload['llm'],
+): value is AgentLLMNameConfiguration | AgentLLMConfiguration =>
+  ('name' in value && Boolean((value as AgentLLMNameConfiguration).name)) ||
+  ('provider' in value && Boolean((value as AgentLLMConfiguration).provider));
 
 const buildSparseGenerationConfig = (config: AgentConfigurationPayload): Partial<AgentConfigurationPayload> => {
   const defaults = createDefaultConfig();
@@ -350,6 +360,81 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 };
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
+
+type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate';
+
+type AgentLLMElement = {
+  id: string;
+  type: 'AgentLLM';
+  name: string;
+  owner: string | null;
+  bounds: { x: number; y: number; width: number; height: number };
+  provider: AgentLLMElementProvider;
+  parameters: Record<string, unknown>;
+  num_previous_messages: number;
+  global_context: string | null;
+};
+
+const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'huggingface', label: 'Hugging Face' },
+  { value: 'huggingface_api', label: 'Hugging Face API' },
+  { value: 'replicate', label: 'Replicate' },
+];
+
+const generateAgentLLMId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { type?: unknown };
+  return candidate.type === 'AgentLLM';
+};
+
+const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
+  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate'].includes(raw?.provider)
+    ? raw.provider
+    : 'openai') as AgentLLMElementProvider;
+  const parameters =
+    raw?.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
+      ? (raw.parameters as Record<string, unknown>)
+      : {};
+  const numPrev = typeof raw?.num_previous_messages === 'number' ? raw.num_previous_messages : 1;
+  const globalContext =
+    raw?.global_context == null ? '' : typeof raw.global_context === 'string' ? raw.global_context : String(raw.global_context);
+  const bounds =
+    raw?.bounds && typeof raw.bounds === 'object'
+      ? {
+          x: typeof raw.bounds.x === 'number' ? raw.bounds.x : 0,
+          y: typeof raw.bounds.y === 'number' ? raw.bounds.y : 0,
+          width: typeof raw.bounds.width === 'number' ? raw.bounds.width : 200,
+          height: typeof raw.bounds.height === 'number' ? raw.bounds.height : 90,
+        }
+      : { x: 0, y: 0, width: 200, height: 90 };
+  return {
+    id: typeof raw?.id === 'string' && raw.id ? raw.id : fallbackId,
+    type: 'AgentLLM',
+    name: typeof raw?.name === 'string' ? raw.name : '',
+    owner: raw?.owner ?? null,
+    bounds,
+    provider,
+    parameters,
+    num_previous_messages: numPrev,
+    global_context: globalContext,
+  };
+};
+
+const formatAgentLLMParameters = (parameters: Record<string, unknown>): string => {
+  try {
+    return JSON.stringify(parameters ?? {}, null, 2);
+  } catch {
+    return '{}';
+  }
+};
 
 const toVariantList = (raw: unknown): AgentModelVariantSnapshot[] => {
   if (!Array.isArray(raw)) {
@@ -533,6 +618,168 @@ const loadInitialState = () => {
   };
 };
 
+type AgentLLMRowProps = {
+  element: AgentLLMElement;
+  expanded: boolean;
+  isDefault: boolean;
+  onToggleExpanded: (id: string) => void;
+  onChange: (id: string, patch: Partial<AgentLLMElement>) => void;
+  onRemove: (id: string) => void;
+  onSetDefault: (id: string) => void;
+};
+
+const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
+  element,
+  expanded,
+  isDefault,
+  onToggleExpanded,
+  onChange,
+  onRemove,
+  onSetDefault,
+}) => {
+  const [parametersText, setParametersText] = useState<string>(formatAgentLLMParameters(element.parameters));
+  const [parametersError, setParametersError] = useState<string>('');
+
+  useEffect(() => {
+    setParametersText(formatAgentLLMParameters(element.parameters));
+    setParametersError('');
+  }, [element.id]);
+
+  const commitParameters = (raw: string) => {
+    if (!raw.trim()) {
+      setParametersError('');
+      onChange(element.id, { parameters: {} });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        setParametersError('Parameters must be a JSON object');
+        return;
+      }
+      setParametersError('');
+      onChange(element.id, { parameters: parsed as Record<string, unknown> });
+    } catch {
+      setParametersError('Invalid JSON');
+    }
+  };
+
+  const displayName = element.name?.trim() || '(unnamed LLM)';
+
+  return (
+    <div className="rounded-lg border border-border bg-background">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+        onClick={() => onToggleExpanded(element.id)}
+        aria-expanded={expanded}
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-medium">{displayName}</span>
+          {isDefault && (
+            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+              Default
+            </Badge>
+          )}
+        </div>
+        <span className="shrink-0 text-xs text-muted-foreground">{expanded ? 'Hide' : 'Show'}</span>
+      </button>
+      {expanded && (
+        <div className="space-y-3 border-t border-border px-4 py-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor={`agent-llm-name-${element.id}`}>Name</Label>
+              <Input
+                id={`agent-llm-name-${element.id}`}
+                value={element.name}
+                placeholder="e.g. gpt-4o-mini"
+                onChange={(event) => onChange(element.id, { name: event.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`agent-llm-provider-${element.id}`}>Provider</Label>
+              <select
+                id={`agent-llm-provider-${element.id}`}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                value={element.provider}
+                onChange={(event) =>
+                  onChange(element.id, { provider: event.target.value as AgentLLMElementProvider })
+                }
+              >
+                {AGENT_LLM_PROVIDER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`agent-llm-num-prev-${element.id}`}>Number of previous messages</Label>
+              <Input
+                id={`agent-llm-num-prev-${element.id}`}
+                type="number"
+                min={0}
+                step={1}
+                value={element.num_previous_messages}
+                onChange={(event) => {
+                  const parsed = Number(event.target.value);
+                  onChange(element.id, {
+                    num_previous_messages: Number.isFinite(parsed) ? parsed : 0,
+                  });
+                }}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`agent-llm-parameters-${element.id}`}>Parameters (JSON)</Label>
+            <textarea
+              id={`agent-llm-parameters-${element.id}`}
+              className="min-h-[96px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+              spellCheck={false}
+              placeholder={'{\n  "temperature": 0.7\n}'}
+              value={parametersText}
+              onChange={(event) => setParametersText(event.target.value)}
+              onBlur={(event) => commitParameters(event.target.value)}
+            />
+            {parametersError ? <p className="text-xs text-destructive">{parametersError}</p> : null}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`agent-llm-global-context-${element.id}`}>Global context (optional)</Label>
+            <textarea
+              id={`agent-llm-global-context-${element.id}`}
+              className="min-h-[64px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+              placeholder="System-level context appended to every prompt"
+              value={element.global_context ?? ''}
+              onChange={(event) => onChange(element.id, { global_context: event.target.value })}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <label className="flex items-center gap-2 text-sm" htmlFor={`agent-llm-default-${element.id}`}>
+              <input
+                id={`agent-llm-default-${element.id}`}
+                type="radio"
+                name="agent-llm-default-radio"
+                className="h-4 w-4"
+                checked={isDefault}
+                onChange={() => onSetDefault(element.id)}
+              />
+              Set as default
+            </label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onRemove(element.id)}
+              className="text-destructive hover:text-destructive"
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const AgentConfigurationPanel: React.FC = () => {
   const dispatch = useAppDispatch();
   const { currentProject } = useProject();
@@ -615,7 +862,10 @@ export const AgentConfigurationPanel: React.FC = () => {
   // truth: the diagram. We re-derive from the project whenever it changes.
   const runtimeConfigInitial = useMemo<AgentRuntimeConfig>(() => {
     const activeAgent = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : null;
-    const cfg = (activeAgent?.config ?? {}) as Partial<AgentRuntimeConfig>;
+    const cfg = (activeAgent?.config ?? {}) as Partial<AgentRuntimeConfig> & { llm?: { name?: string } };
+    const llmName = typeof cfg.agentLlmName === 'string'
+      ? cfg.agentLlmName
+      : (cfg.llm && typeof cfg.llm === 'object' && typeof cfg.llm.name === 'string' ? cfg.llm.name : '');
     return {
       agentPlatform: cfg.agentPlatform || DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatform,
       intentRecognitionTechnology:
@@ -623,6 +873,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       agentLlmProvider: cfg.agentLlmProvider ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmProvider,
       agentLlmModel: cfg.agentLlmModel ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmModel,
       agentCustomLlmModel: cfg.agentCustomLlmModel ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentCustomLlmModel,
+      agentLlmName: llmName,
     };
   }, [currentProject]);
 
@@ -632,6 +883,91 @@ export const AgentConfigurationPanel: React.FC = () => {
   useEffect(() => {
     setAgentRuntimeConfig(runtimeConfigInitial);
   }, [runtimeConfigInitial]);
+
+  // Default LLM name — persisted on the active agent diagram's `config` block
+  // under the snake_case key `default_llm_name` so the BAF backend can read it
+  // directly. Mirrors `agentLlmName` in lifecycle but is a separate field with
+  // its own snake_case wire shape.
+  const defaultLlmNameInitial = useMemo<string | undefined>(() => {
+    const activeAgent = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : null;
+    const cfg = (activeAgent?.config ?? {}) as Record<string, unknown>;
+    const raw = cfg.default_llm_name;
+    return typeof raw === 'string' && raw ? raw : undefined;
+  }, [currentProject]);
+
+  const [defaultLlmName, setDefaultLlmName] = useState<string | undefined>(defaultLlmNameInitial);
+
+  useEffect(() => {
+    setDefaultLlmName(defaultLlmNameInitial);
+  }, [defaultLlmNameInitial]);
+
+  const persistDefaultLlmName = useCallback(
+    (next: string | undefined) => {
+      if (!currentProject) return;
+      const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+      const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram');
+      const latestConfig = (latestAgentDiagram?.config ?? {}) as Record<string, unknown>;
+      const merged: Record<string, unknown> = { ...latestConfig };
+      if (next) {
+        merged.default_llm_name = next;
+      } else {
+        delete merged.default_llm_name;
+      }
+      updateActiveAgentDiagramConfig(currentProject, merged);
+    },
+    [currentProject],
+  );
+
+  // Must write BEFORE the model so updateDiagramModelThunk's snapshot picks up the new agentLlmName.
+  const persistAgentLlmName = useCallback(
+    (next: string) => {
+      if (!currentProject) return;
+      const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+      const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram');
+      const latestConfig = (latestAgentDiagram?.config ?? {}) as Record<string, unknown>;
+      const llmBlock = next ? { name: next } : {};
+      updateActiveAgentDiagramConfig(currentProject, {
+        ...latestConfig,
+        agentLlmName: next,
+        llm: llmBlock,
+      });
+      setAgentRuntimeConfig((prev) => ({ ...prev, agentLlmName: next }));
+    },
+    [currentProject],
+  );
+
+  const updateDefaultLlmName = useCallback(
+    (next: string | undefined) => {
+      setDefaultLlmName(next);
+      persistDefaultLlmName(next);
+    },
+    [persistDefaultLlmName],
+  );
+
+  // Resolve the default LLM that satisfies the invariant
+  // "if the list has any LLMs, the default points to one of them; if there
+  // is exactly one LLM it must be that one." Pass the model that already
+  // reflects the latest CRUD operation.
+  const resolveDefaultLlm = useCallback(
+    (model: any, currentDefault: string | undefined): string | undefined => {
+      const llms = Object.values((model && model.elements) || {})
+        .filter((entry) => isAgentLLMElement(entry))
+        .map((entry) => normalizeAgentLLMElement(entry as any, ''));
+      if (llms.length === 0) return undefined;
+      if (llms.length === 1) return llms[0].name || undefined;
+      if (currentDefault && llms.some((l) => l.name === currentDefault)) {
+        return currentDefault;
+      }
+      return llms[0].name || undefined;
+    },
+    [],
+  );
+
+  const [expandedLlmId, setExpandedLlmId] = useState<string | null>(null);
+
+  const handleToggleExpandedLlm = useCallback((id: string) => {
+    setExpandedLlmId((prev) => (prev === id ? null : id));
+  }, []);
 
   const updateAgentRuntimeConfig = useCallback(
     (patch: Partial<AgentRuntimeConfig>) => {
@@ -647,9 +983,13 @@ export const AgentConfigurationPanel: React.FC = () => {
           const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
           const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram');
           const latestConfig = (latestAgentDiagram?.config ?? {}) as Record<string, unknown>;
+          // Mirror the runtime LLM choice into the `llm` block consumed by the
+          // BAF generator template (`config['llm']['name']`).
+          const llmBlock = next.agentLlmName ? { name: next.agentLlmName } : {};
           updateActiveAgentDiagramConfig(currentProject, {
             ...latestConfig,
             ...next,
+            llm: llmBlock,
           });
         }
         return next;
@@ -673,6 +1013,171 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
     return null;
   }, [currentUserDiagram?.model]);
+
+  const agentLLMElements = useMemo<AgentLLMElement[]>(() => {
+    if (!currentAgentModel) return [];
+    const elements = currentAgentModel.elements || {};
+    return Object.entries(elements)
+      .filter(([, element]) => isAgentLLMElement(element))
+      .map(([id, element]) => normalizeAgentLLMElement(element, id));
+  }, [currentAgentModel]);
+
+  const persistAgentModel = useCallback(
+    async (nextModel: UMLModel) => {
+      try {
+        await dispatch(updateDiagramModelThunk({ model: nextModel })).unwrap();
+        dispatch(bumpEditorRevision());
+      } catch (err) {
+        console.error('Failed to persist agent diagram update', err);
+        toast.error('Failed to update agent diagram.');
+      }
+    },
+    [dispatch],
+  );
+
+  const handleAddAgentLLM = useCallback(() => {
+    if (!currentAgentModel) {
+      toast.error('No active agent diagram.');
+      return;
+    }
+    const nextModel = cloneModel(currentAgentModel);
+    const id = generateAgentLLMId();
+    const existingEntries = Object.values(nextModel.elements || {}).filter((entry) => isAgentLLMElement(entry));
+    const existingCount = existingEntries.length;
+    const offsetY = 40 + existingCount * 110;
+    const newName = 'gpt-4o-mini';
+    const newLLM: AgentLLMElement = {
+      id,
+      type: 'AgentLLM',
+      name: newName,
+      owner: null,
+      bounds: { x: 40, y: offsetY, width: 200, height: 90 },
+      provider: 'openai',
+      parameters: {},
+      num_previous_messages: 1,
+      global_context: '',
+    };
+    nextModel.elements = { ...(nextModel.elements || {}), [id]: newLLM as any };
+    setExpandedLlmId(id);
+    // Write `default_llm_name` to the diagram config BEFORE persisting the
+    // model. updateDiagramModelThunk's body snapshots state.project at call
+    // time and its fulfilled action replaces the diagram with that snapshot,
+    // which would otherwise wipe a default written afterwards. Doing the
+    // config write first lets the thunk's snapshot include the new default.
+    const resolved = resolveDefaultLlm(nextModel, defaultLlmName);
+    if (resolved !== defaultLlmName) {
+      updateDefaultLlmName(resolved);
+    }
+    persistAgentModel(nextModel);
+  }, [currentAgentModel, persistAgentModel, defaultLlmName, resolveDefaultLlm, updateDefaultLlmName]);
+
+  const handleUpdateAgentLLM = useCallback(
+    (id: string, patch: Partial<AgentLLMElement>) => {
+      if (!currentAgentModel) return;
+      const existing = currentAgentModel.elements?.[id];
+      if (!existing || !isAgentLLMElement(existing)) return;
+      const previousName = (existing as AgentLLMElement).name;
+      const nextModel = cloneModel(currentAgentModel);
+      const merged = { ...(nextModel.elements[id] as any), ...patch, id, type: 'AgentLLM' };
+      nextModel.elements = { ...nextModel.elements, [id]: merged };
+      const isRename = typeof patch.name === 'string' && patch.name !== previousName;
+      const newName = isRename ? (patch.name as string) : previousName;
+      if (isRename && previousName) {
+        // State members live as top-level elements (AgentStateBody / AgentStateFallbackBody), not nested.
+        for (const entry of Object.values(nextModel.elements || {}) as any[]) {
+          if (!entry || typeof entry !== 'object') continue;
+          if (
+            (entry.type === 'AgentRagElement' ||
+              entry.type === 'AgentReasoningState' ||
+              entry.type === 'AgentStateBody' ||
+              entry.type === 'AgentStateFallbackBody') &&
+            entry.llm_name === previousName
+          ) {
+            entry.llm_name = newName;
+          }
+        }
+      }
+      const renamedDefault =
+        isRename && defaultLlmName === previousName ? newName || undefined : defaultLlmName;
+      const resolved = resolveDefaultLlm(nextModel, renamedDefault);
+      if (resolved !== defaultLlmName) {
+        updateDefaultLlmName(resolved);
+      }
+      if (isRename && previousName && agentRuntimeConfig.agentLlmName === previousName) {
+        persistAgentLlmName(newName);
+      }
+      persistAgentModel(nextModel);
+    },
+    [
+      currentAgentModel,
+      persistAgentModel,
+      defaultLlmName,
+      resolveDefaultLlm,
+      updateDefaultLlmName,
+      agentRuntimeConfig.agentLlmName,
+      persistAgentLlmName,
+    ],
+  );
+
+  const handleRemoveAgentLLM = useCallback(
+    (id: string) => {
+      if (!currentAgentModel) return;
+      const removedEntry = currentAgentModel.elements?.[id] as AgentLLMElement | undefined;
+      const removedName = removedEntry && isAgentLLMElement(removedEntry) ? removedEntry.name : '';
+      const nextModel = cloneModel(currentAgentModel);
+      const nextElements = { ...(nextModel.elements || {}) };
+      delete nextElements[id];
+      nextModel.elements = nextElements;
+      if (removedName) {
+        // Empty llm_name means "use default"; members are top-level (AgentStateBody / AgentStateFallbackBody).
+        for (const entry of Object.values(nextModel.elements || {}) as any[]) {
+          if (!entry || typeof entry !== 'object') continue;
+          if (
+            (entry.type === 'AgentRagElement' ||
+              entry.type === 'AgentReasoningState' ||
+              entry.type === 'AgentStateBody' ||
+              entry.type === 'AgentStateFallbackBody') &&
+            entry.llm_name === removedName
+          ) {
+            entry.llm_name = '';
+          }
+        }
+      }
+      setExpandedLlmId((prev) => (prev === id ? null : prev));
+      const resolved = resolveDefaultLlm(nextModel, defaultLlmName);
+      if (resolved !== defaultLlmName) {
+        updateDefaultLlmName(resolved);
+      }
+      if (removedName && agentRuntimeConfig.agentLlmName === removedName) {
+        persistAgentLlmName('');
+      }
+      persistAgentModel(nextModel);
+    },
+    [
+      currentAgentModel,
+      persistAgentModel,
+      defaultLlmName,
+      resolveDefaultLlm,
+      updateDefaultLlmName,
+      agentRuntimeConfig.agentLlmName,
+      persistAgentLlmName,
+    ],
+  );
+
+  const handleSetDefaultLlm = useCallback(
+    (id: string) => {
+      if (!currentAgentModel) return;
+      const target = currentAgentModel.elements?.[id];
+      if (!target || !isAgentLLMElement(target)) return;
+      const name = (target as AgentLLMElement).name;
+      if (!name) {
+        toast.error('Give the LLM a name before marking it as default.');
+        return;
+      }
+      updateDefaultLlmName(name);
+    },
+    [currentAgentModel, updateDefaultLlmName],
+  );
 
   const tabUserProfiles = useMemo(
     () => buildUserProfilesFromProjectTabs(currentProject),
@@ -731,7 +1236,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     setResponseTiming(normalized.responseTiming);
     setAgentStyle(normalized.agentStyle);
 
-    const llmConfig = normalized.llm as Partial<AgentLLMConfiguration>;
+    const llmConfig = normalized.llm as Partial<AgentLLMConfiguration & AgentLLMNameConfiguration>;
     const providerValue = (llmConfig.provider ?? '') as AgentLLMProvider;
     const modelValue = llmConfig.model ?? '';
 
@@ -816,11 +1321,18 @@ export const AgentConfigurationPanel: React.FC = () => {
   }, [currentProject?.id, applyConfiguration, tabUserProfiles]);
 
   const getConfigObject = useCallback((): AgentConfigurationPayload => {
+    // The runtime tab now drives the LLM choice via `agentLlmName` (a
+    // reference to a defined AgentLLM element). The legacy provider/model
+    // state from the personalization tab is no longer surfaced in the UI but
+    // we keep it around so old loaded configs round-trip until their next
+    // save. Prefer the new `{name}` shape.
     const resolvedModel = llmModel === 'other' ? customModel.trim() : llmModel;
-    const llm: AgentLLMConfiguration | Record<string, never> =
-      llmProvider && resolvedModel
-        ? { provider: llmProvider, model: resolvedModel }
-        : {};
+    let llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never> = {};
+    if (agentRuntimeConfig.agentLlmName) {
+      llm = { name: agentRuntimeConfig.agentLlmName };
+    } else if (llmProvider && resolvedModel) {
+      llm = { provider: llmProvider, model: resolvedModel };
+    }
 
     return {
       agentLanguage: normalizeAgentLanguage(agentLanguage),
@@ -844,6 +1356,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     adaptContentToUserProfile,
     agentLanguage,
     agentPlatform,
+    agentRuntimeConfig.agentLlmName,
     agentStyle,
     avatarData,
     customModel,
@@ -901,7 +1414,13 @@ export const AgentConfigurationPanel: React.FC = () => {
       });
 
       if (currentProject) {
-        updateActiveAgentDiagramConfig(currentProject, config as unknown as Record<string, unknown>);
+        const diagramConfig: Record<string, unknown> = {
+          ...(config as unknown as Record<string, unknown>),
+        };
+        if (defaultLlmName) {
+          diagramConfig.default_llm_name = defaultLlmName;
+        }
+        updateActiveAgentDiagramConfig(currentProject, diagramConfig);
       }
 
       if (options?.markActive) {
@@ -924,6 +1443,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     configurationName,
     currentAgentDiagram,
     currentProject,
+    defaultLlmName,
     getConfigObject,
     refreshSavedConfigurations,
   ]);
@@ -999,7 +1519,16 @@ export const AgentConfigurationPanel: React.FC = () => {
     });
 
     if (currentProject) {
-      updateActiveAgentDiagramConfig(currentProject, stored.config as unknown as Record<string, unknown>);
+      const latestProject = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
+      const latestAgentDiagram = getActiveDiagram(latestProject, 'AgentDiagram');
+      const previousConfig = (latestAgentDiagram?.config ?? {}) as Record<string, unknown>;
+      const merged: Record<string, unknown> = {
+        ...(stored.config as unknown as Record<string, unknown>),
+      };
+      if (typeof previousConfig.default_llm_name === 'string' && previousConfig.default_llm_name) {
+        merged.default_llm_name = previousConfig.default_llm_name;
+      }
+      updateActiveAgentDiagramConfig(currentProject, merged);
     }
 
     LocalStorageRepository.setActiveAgentConfigurationId(stored.id);
@@ -1654,6 +2183,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           )}
 
           {activeTab === 'runtime' && currentAgentModel && (
+          <>
           <Card>
             <CardHeader>
               <CardTitle>Agent Runtime</CardTitle>
@@ -1697,63 +2227,69 @@ export const AgentConfigurationPanel: React.FC = () => {
 
                 {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-llm-provider">LLM Provider</Label>
+                    <Label htmlFor="agent-runtime-llm-name">LLM</Label>
                     <select
-                      id="agent-runtime-llm-provider"
+                      id="agent-runtime-llm-name"
                       className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      value={agentRuntimeConfig.agentLlmProvider}
+                      value={agentRuntimeConfig.agentLlmName}
                       onChange={(event) =>
-                        updateAgentRuntimeConfig({
-                          agentLlmProvider: event.target.value as AgentLLMProvider,
-                        })
+                        updateAgentRuntimeConfig({ agentLlmName: event.target.value })
                       }
                     >
-                      <option value="">None</option>
-                      <option value="openai">OpenAI</option>
-                      <option value="huggingface">Hugging Face</option>
-                      <option value="huggingfaceapi">Hugging Face API</option>
-                      <option value="replicate">Replicate</option>
+                      <option value="">(use default)</option>
+                      {agentLLMElements.map((entry) => (
+                        <option key={entry.id} value={entry.name}>
+                          {entry.name || '(unnamed LLM)'}
+                        </option>
+                      ))}
                     </select>
-                  </div>
-                )}
-
-                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && agentRuntimeConfig.agentLlmProvider === 'openai' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-llm-model">OpenAI Model</Label>
-                    <select
-                      id="agent-runtime-llm-model"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      value={agentRuntimeConfig.agentLlmModel}
-                      onChange={(event) =>
-                        updateAgentRuntimeConfig({ agentLlmModel: event.target.value })
-                      }
-                    >
-                      <option value="gpt-5">gpt-5</option>
-                      <option value="gpt-5-mini">gpt-5-mini</option>
-                      <option value="gpt-5-nano">gpt-5-nano</option>
-                      <option value="gpt-5.5">gpt-5.5</option>
-                      <option value="other">Other (custom)</option>
-                    </select>
-                  </div>
-                )}
-
-                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && agentRuntimeConfig.agentLlmProvider === 'openai' && agentRuntimeConfig.agentLlmModel === 'other' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-custom-model">Custom Model Name</Label>
-                    <Input
-                      id="agent-runtime-custom-model"
-                      value={agentRuntimeConfig.agentCustomLlmModel}
-                      placeholder="e.g. gpt-5-2025-04-01"
-                      onChange={(event) =>
-                        updateAgentRuntimeConfig({ agentCustomLlmModel: event.target.value })
-                      }
-                    />
+                    {agentLLMElements.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Define an LLM in the LLMs section below to use it here.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>LLMs</CardTitle>
+              <CardDescription>
+                LLMs available to the agent.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {agentLLMElements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No LLMs defined yet. Click "Add LLM" to create one.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {agentLLMElements.map((llm) => (
+                    <AgentLLMRow
+                      key={llm.id}
+                      element={llm}
+                      expanded={expandedLlmId === llm.id}
+                      isDefault={Boolean(defaultLlmName) && llm.name === defaultLlmName}
+                      onToggleExpanded={handleToggleExpandedLlm}
+                      onChange={handleUpdateAgentLLM}
+                      onRemove={handleRemoveAgentLLM}
+                      onSetDefault={handleSetDefaultLlm}
+                    />
+                  ))}
+                </div>
+              )}
+              <div>
+                <Button type="button" onClick={handleAddAgentLLM}>
+                  Add LLM
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          </>
           )}
 
           {activeTab === 'personalization' && (

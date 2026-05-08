@@ -106,6 +106,23 @@ const ResizableCodeMirrorWrapper = styled.div`
   }
 `;
 
+const LlmSelect = styled.select`
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid ${(props) => props.theme.color.gray};
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+`;
+
+const LlmFieldRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+`;
+
 interface OwnProps {
   element: AgentState;
 }
@@ -235,6 +252,16 @@ class StateUpdate extends Component<Props, State> {
           .filter((name) => name.length > 0),
       ),
     );
+    const AGENT_LLM_TYPE = (AgentElementType as Record<string, string>).AgentLLM ?? 'AgentLLM';
+    const llmNames = Array.from(
+      new Set(
+        Object.values(elements)
+          .filter((el: any) => el.type === AGENT_LLM_TYPE && typeof el.name === 'string')
+          .map((el: any) => el.name.trim())
+          .filter((name) => name.length > 0),
+      ),
+    );
+    const llmBody = bodies.find((body) => body.replyType === 'llm');
     const ragBody = bodies.find((body) => body.replyType === 'rag');
     const dbBody = bodies.find((body) => body.replyType === 'db_reply');
     const preserveTabs = (str: string): string => {
@@ -257,6 +284,7 @@ class StateUpdate extends Component<Props, State> {
     );
     const fallbackRagBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === 'rag');
     const fallbackDbBody = fallbackBodies.find((fallbackBody) => fallbackBody.replyType === 'db_reply');
+    const fallbackLlmBody = fallbackBodies.find((fb) => fb.replyType === 'llm');
 
     this.fallbackBodyReplyType = 'text';
     if (fallbackBodies.some((fb) => fb.replyType === 'rag')) {
@@ -525,12 +553,11 @@ class StateUpdate extends Component<Props, State> {
               <p>No RAG databases available. Create one from the palette first.</p>
             )
           ) : this.bodyReplyType === "db_reply" ? (
-            this.renderDbReplyEditor(dbBody, AgentStateBody)
+            this.renderDbReplyEditor(dbBody, AgentStateBody, llmNames)
           ) : (
             <>
-              <>
-                <p>An automated response will be generated.</p>
-              </>
+              <p>An automated response will be generated.</p>
+              {llmBody && this.renderLlmNameField(llmBody, llmNames, 'body-llm-name')}
             </>
           )}
         </Section>
@@ -757,7 +784,9 @@ class StateUpdate extends Component<Props, State> {
               <p>No RAG databases available. Create one from the palette first.</p>
             )
           ) : this.fallbackBodyReplyType === "db_reply" ? (
-            this.renderDbReplyEditor(fallbackDbBody, AgentStateFallbackBody)
+            this.renderDbReplyEditor(fallbackDbBody, AgentStateFallbackBody, llmNames)
+          ) : this.fallbackBodyReplyType === "llm" && fallbackLlmBody ? (
+            this.renderLlmNameField(fallbackLlmBody, llmNames, 'fallback-llm-name')
           ) : (<></>)}
 
         </Section>
@@ -806,9 +835,32 @@ class StateUpdate extends Component<Props, State> {
     });
   };
 
+  private renderLlmNameField = (
+    member: AgentStateMember,
+    llmNames: string[],
+    fieldId: string,
+  ) => (
+    <LlmFieldRow>
+      <Header>LLM</Header>
+      <LlmSelect
+        id={fieldId}
+        value={member.llm_name || ''}
+        onChange={(event) => this.props.update<AgentStateMember>(member.id, { llm_name: event.target.value })}
+      >
+        <option value="">(use default)</option>
+        {llmNames.map((name) => (
+          <option key={`${fieldId}-${name}`} value={name}>
+            {name}
+          </option>
+        ))}
+      </LlmSelect>
+    </LlmFieldRow>
+  );
+
   private renderDbReplyEditor = (
     member: AgentStateMember | undefined,
     Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+    llmNames: string[] = [],
   ) => {
     if (!member) {
       const handleInitializeDbReply = () => {
@@ -935,7 +987,10 @@ class StateUpdate extends Component<Props, State> {
               onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
             />
           ) : (
-            <p>Answer will be generated with LLM during runtime</p>
+            <>
+              <p>Answer will be generated with LLM during runtime</p>
+              {this.renderLlmNameField(member, llmNames, `db-llm-name-${member.id}`)}
+            </>
           )}
         </DbFieldRow>
       </>

@@ -30,6 +30,7 @@ export interface AgentRuntimeConfig {
   agentLlmProvider: AgentLLMProvider;
   agentLlmModel: string;
   agentCustomLlmModel: string;
+  agentLlmName: string;
 }
 
 export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
@@ -38,6 +39,7 @@ export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   agentLlmProvider: 'openai',
   agentLlmModel: 'gpt-5.5',
   agentCustomLlmModel: '',
+  agentLlmName: '',
 };
 
 export const normalizeAgentRuntimeConfig = (
@@ -61,6 +63,7 @@ export const normalizeAgentRuntimeConfig = (
     agentLlmProvider: provider,
     agentLlmModel: typeof raw.agentLlmModel === 'string' ? raw.agentLlmModel : '',
     agentCustomLlmModel: typeof raw.agentCustomLlmModel === 'string' ? raw.agentCustomLlmModel : '',
+    agentLlmName: typeof raw.agentLlmName === 'string' ? raw.agentLlmName : '',
   };
 };
 

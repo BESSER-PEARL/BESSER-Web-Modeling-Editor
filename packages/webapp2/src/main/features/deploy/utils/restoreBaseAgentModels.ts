@@ -50,14 +50,8 @@ const buildSystemOnlyAgentConfig = (system: AgentRuntimeConfig): Record<string, 
     agentPlatform: system.agentPlatform,
     intentRecognitionTechnology: system.intentRecognitionTechnology,
   };
-  if (system.agentLlmProvider) {
-    const resolvedModel = system.agentLlmModel === 'other'
-      ? system.agentCustomLlmModel.trim()
-      : system.agentLlmModel;
-    config.llm = {
-      provider: system.agentLlmProvider,
-      ...(resolvedModel ? { model: resolvedModel } : {}),
-    };
+  if (system.agentLlmName) {
+    config.llm = { name: system.agentLlmName };
   }
   return config;
 };

@@ -4,12 +4,15 @@ import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-element';
 import { UMLElementFeatures } from '../../../services/uml-element/uml-element-features';
+import * as Apollon from '../../../typings';
 import { assign } from '../../../utils/fx/assign';
 import { IBoundary } from '../../../utils/geometry/boundary';
 import { Text } from '../../../utils/svg/text';
 import { UMLElementType } from '../../uml-element-type';
 
-export interface IAgentRagElement extends IUMLElement {}
+export interface IAgentRagElement extends IUMLElement {
+  llm_name: string;
+}
 
 export class AgentRagElement extends UMLElement implements IAgentRagElement {
   static features: UMLElementFeatures = {
@@ -19,6 +22,7 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
   };
 
   type: UMLElementType = AgentElementType.AgentRagElement;
+  llm_name: string = '';
 
   bounds: IBoundary = {
     ...this.bounds,
@@ -32,6 +36,22 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
     if (!this.name) {
       this.name = '';
     }
+  }
+
+  serialize(children: UMLElement[] = []): Apollon.UMLModelElement {
+    return {
+      ...super.serialize(children),
+      type: this.type as UMLElementType,
+      llm_name: this.llm_name,
+    } as Apollon.UMLModelElement & { llm_name: string };
+  }
+
+  deserialize<T extends Apollon.UMLModelElement>(
+    values: T & { llm_name?: string },
+    children?: Apollon.UMLModelElement[],
+  ): void {
+    super.deserialize(values, children);
+    this.llm_name = values.llm_name || '';
   }
 
   render(layer: ILayer): ILayoutable[] {
