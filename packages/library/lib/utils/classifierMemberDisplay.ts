@@ -111,10 +111,17 @@ export const formatObjectMember = (
  * `mode === 'ER'` — Chen-style: drops the visibility symbol and the
  *   `{id, external id}` suffix. Identifying attributes are marked with
  *   an underline at render time.
+ *
+ * SA-FIX-CRITICAL-2 #2: when the parent class' `stereotype` is
+ * `'Enumeration'`, attribute rows are enumeration *literals* — emit just
+ * the bare name, no visibility prefix, no `: <Type>` suffix, no flag
+ * markers. Mirrors v3 `uml-classifier-component.tsx` which branched on
+ * the Enumeration stereotype to hide visibility / type columns.
  */
 export const formatDisplayName = (
   member: ClassifierMemberLike,
-  mode: "UML" | "ER" = "UML"
+  mode: "UML" | "ER" = "UML",
+  stereotype?: string | null
 ): string => {
   const visSymbol = VISIBILITY_SYMBOLS[member.visibility ?? "public"] || "+"
   const derivedPrefix = member.isDerived ? "/" : ""
@@ -147,6 +154,13 @@ export const formatDisplayName = (
     /:\s*[^:]+$/.test(bareName)
   ) {
     bareName = bareName.replace(/\s*:\s*[^:]+$/, "")
+  }
+
+  // SA-FIX-CRITICAL-2 #2: Enumeration literals are bare names — no
+  // visibility, no `: Type`, no flag markers, no default value. Return
+  // early before any UML/ER decoration logic runs.
+  if (stereotype === "Enumeration") {
+    return bareName
   }
 
   if (mode === "ER") {

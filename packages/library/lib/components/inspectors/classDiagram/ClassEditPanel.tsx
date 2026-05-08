@@ -136,6 +136,12 @@ interface AttributeRowProps {
   enumerationNames: string[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
+  /**
+   * SA-FIX-CRITICAL-2 #2: when the parent class is an Enumeration the
+   * row is a literal — hide the visibility dropdown and the type
+   * dropdown columns. Just the name + delete remain.
+   */
+  isEnumerationParent?: boolean
 }
 
 const AttributeRow: React.FC<AttributeRowProps> = ({
@@ -144,6 +150,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   enumerationNames,
   onPatch,
   onDelete,
+  isEnumerationParent = false,
 }) => {
   const visibility = row.visibility ?? "public"
   const attributeType = row.attributeType ?? "str"
@@ -188,25 +195,29 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
-        <Select
-          size="small"
-          value={visibility}
-          onChange={(e) =>
-            onPatch({ visibility: e.target.value as ClassifierVisibility })
-          }
-          sx={{ minWidth: 70 }}
-        >
-          {VISIBILITIES.map((v) => (
-            <MenuItem key={v.value} value={v.value}>
-              {v.label}
-            </MenuItem>
-          ))}
-        </Select>
+        {/* SA-FIX-CRITICAL-2 #2: hide visibility dropdown for Enumeration
+            literals — they're just names, no UML access modifier. */}
+        {!isEnumerationParent && (
+          <Select
+            size="small"
+            value={visibility}
+            onChange={(e) =>
+              onPatch({ visibility: e.target.value as ClassifierVisibility })
+            }
+            sx={{ minWidth: 70 }}
+          >
+            {VISIBILITIES.map((v) => (
+              <MenuItem key={v.value} value={v.value}>
+                {v.label}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
         <MuiTextField
           size="small"
           variant="outlined"
           fullWidth
-          placeholder="attribute name"
+          placeholder={isEnumerationParent ? "literal name" : "attribute name"}
           value={row.name}
           onChange={(e) =>
             onPatch({
@@ -214,58 +225,64 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             })
           }
         />
-        <Select
-          size="small"
-          value={isCustom ? CUSTOM_TYPE_SENTINEL : attributeType}
-          onChange={(e) => handleTypeSelect(String(e.target.value))}
-          sx={{ minWidth: 110 }}
-        >
-          {PRIMITIVE_TYPES.map((p) => (
-            <MenuItem key={p.value} value={p.value}>
-              {p.label}
-            </MenuItem>
-          ))}
-          {classNames.length > 0 && [
-            <MenuItem key="__divider__" disabled>
-              ── classes ──
-            </MenuItem>,
-            ...classNames.map((cn) => (
-              <MenuItem key={`class-${cn}`} value={cn}>
-                {cn}
-              </MenuItem>
-            )),
-          ]}
-          {enumerationNames.length > 0 && [
-            <MenuItem key="__edivider__" disabled>
-              ── enumerations ──
-            </MenuItem>,
-            ...enumerationNames.map((en) => (
-              <MenuItem key={`enum-${en}`} value={en}>
-                {en}
-              </MenuItem>
-            )),
-          ]}
-          <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
-        </Select>
-        <Tooltip title={showSettings ? "Hide flags" : "Show flags & default"}>
-          <IconButton
+        {/* SA-FIX-CRITICAL-2 #2: hide type dropdown for Enumeration
+            literals — they don't carry an attribute type. */}
+        {!isEnumerationParent && (
+          <Select
             size="small"
-            onClick={() => setShowSettings((s) => !s)}
-            sx={{
-              color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
-            }}
+            value={isCustom ? CUSTOM_TYPE_SENTINEL : attributeType}
+            onChange={(e) => handleTypeSelect(String(e.target.value))}
+            sx={{ minWidth: 110 }}
           >
-            <EditIcon width={14} height={14} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Delete attribute">
+            {PRIMITIVE_TYPES.map((p) => (
+              <MenuItem key={p.value} value={p.value}>
+                {p.label}
+              </MenuItem>
+            ))}
+            {classNames.length > 0 && [
+              <MenuItem key="__divider__" disabled>
+                ── classes ──
+              </MenuItem>,
+              ...classNames.map((cn) => (
+                <MenuItem key={`class-${cn}`} value={cn}>
+                  {cn}
+                </MenuItem>
+              )),
+            ]}
+            {enumerationNames.length > 0 && [
+              <MenuItem key="__edivider__" disabled>
+                ── enumerations ──
+              </MenuItem>,
+              ...enumerationNames.map((en) => (
+                <MenuItem key={`enum-${en}`} value={en}>
+                  {en}
+                </MenuItem>
+              )),
+            ]}
+            <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
+          </Select>
+        )}
+        {!isEnumerationParent && (
+          <Tooltip title={showSettings ? "Hide flags" : "Show flags & default"}>
+            <IconButton
+              size="small"
+              onClick={() => setShowSettings((s) => !s)}
+              sx={{
+                color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
+              }}
+            >
+              <EditIcon width={14} height={14} />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Tooltip title={isEnumerationParent ? "Delete literal" : "Delete attribute"}>
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
           </IconButton>
         </Tooltip>
       </Stack>
 
-      {isCustom && (
+      {!isEnumerationParent && isCustom && (
         <MuiTextField
           size="small"
           variant="outlined"
@@ -279,8 +296,12 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
 
       {/* SA-UX-FIX B3: flags + default value collapse behind the
           per-row settings (gear) toggle. v3 had the same affordance —
-          see `uml-classifier-attribute-update.tsx`. */}
-      {showSettings && (
+          see `uml-classifier-attribute-update.tsx`.
+          SA-FIX-CRITICAL-2 #2: Enumeration literals carry no flags or
+          default value, so the gear icon is hidden and the panel must
+          not render even if `showSettings` is initially true (legacy
+          fixtures may have stamped flags on enum literals). */}
+      {!isEnumerationParent && showSettings && (
         <>
           <Stack direction="row" spacing={1.5} flexWrap="wrap">
             <FormControlLabel
@@ -1059,6 +1080,9 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           enumerationNames={enumerationNames}
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
+          /* SA-FIX-CRITICAL-2 #2: hide visibility + type columns for
+             Enumeration literals. */
+          isEnumerationParent={nodeData.stereotype === "Enumeration"}
         />
       ))}
       <MuiTextField

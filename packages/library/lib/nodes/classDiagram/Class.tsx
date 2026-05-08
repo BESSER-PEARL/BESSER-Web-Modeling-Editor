@@ -23,10 +23,18 @@ import { useClassNotation } from "@/store/settingsStore"
  * string so the editor responds to notation toggles without round-tripping
  * to the inspector. Stock diagrams that only set `{id, name}` get the raw
  * `name` back unchanged.
+ *
+ * SA-FIX-CRITICAL-2 #2: when the parent class' `stereotype` is
+ * `'Enumeration'`, the row is an enumeration literal — `formatDisplayName`
+ * drops visibility / type / flag markers and returns just the bare name.
+ * We force-format Enumeration rows even when the row has no structured
+ * fields, because legacy fixtures may store visibility / type in the
+ * `name` itself ("+ FOO: int") and the Enumeration display must scrub it.
  */
 const formatRow = (
   row: ClassNodeElement,
-  mode: "UML" | "ER"
+  mode: "UML" | "ER",
+  stereotype?: string | null
 ): ClassNodeElement => {
   const hasStructuredFields =
     row.attributeType !== undefined ||
@@ -36,7 +44,8 @@ const formatRow = (
     row.isId !== undefined ||
     row.isExternalId !== undefined ||
     row.defaultValue !== undefined
-  if (!hasStructuredFields) return row
+  const isEnumeration = stereotype === "Enumeration"
+  if (!hasStructuredFields && !isEnumeration) return row
   const formatted = formatDisplayName(
     {
       name: row.name,
@@ -48,7 +57,8 @@ const formatRow = (
       isExternalId: row.isExternalId,
       defaultValue: row.defaultValue,
     },
-    mode
+    mode,
+    stereotype ?? undefined
   )
   return { ...row, name: formatted }
 }
@@ -70,12 +80,12 @@ export function Class({
   // `classNotation` re-renders this node whenever ER↔UML flips, with no
   // editor remount and no undo-history loss.
   const displayAttributes = useMemo(
-    () => attributes.map((a) => formatRow(a, classNotation)),
-    [attributes, classNotation]
+    () => attributes.map((a) => formatRow(a, classNotation, stereotype)),
+    [attributes, classNotation, stereotype]
   )
   const displayMethods = useMemo(
-    () => methods.map((m) => formatRow(m, classNotation)),
-    [methods, classNotation]
+    () => methods.map((m) => formatRow(m, classNotation, stereotype)),
+    [methods, classNotation, stereotype]
   )
 
   const isDiagramModifiable = useDiagramModifiable()

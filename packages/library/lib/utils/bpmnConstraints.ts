@@ -1,4 +1,52 @@
 /**
+ * SA-FIX-ENUM-NO-CONNECT: Predicate over the minimal node shape we
+ * care about (`type` + `data.stereotype`). Lives in
+ * `bpmnConstraints.ts` alongside `canDropIntoParent` because both are
+ * zero-dependency boolean rules consumed by event handlers — keeping
+ * them together avoids dragging React Flow types into the import
+ * graph of pure-helper tests.
+ */
+export interface MinimalNodeForConnect {
+  id?: string
+  type?: string
+  data?: { stereotype?: unknown } | null
+}
+
+/**
+ * SA-FIX-ENUM-NO-CONNECT: Returns `true` when the node represents a v3
+ * Enumeration class (`type === 'class'` and `data.stereotype ===
+ * 'Enumeration'`). v3 enumerations are referenced by *type* from
+ * class attributes and must never participate in an edge.
+ */
+export const isEnumerationClassNode = (
+  node: MinimalNodeForConnect | undefined | null
+): boolean => {
+  if (!node) return false
+  if (node.type !== "class") return false
+  return node.data?.stereotype === "Enumeration"
+}
+
+/**
+ * SA-FIX-ENUM-NO-CONNECT: Reject any connection where either endpoint
+ * resolves to an Enumeration class node. Mirrors SA-FIX-NN-DROPS's
+ * `canDropIntoParent` predicate style — a single boolean rule consumed
+ * by event handlers.
+ */
+export const canConnectEndpoints = (
+  nodes: readonly MinimalNodeForConnect[],
+  source: string | null | undefined,
+  target: string | null | undefined,
+  getId: (n: MinimalNodeForConnect) => string | undefined = (n) =>
+    (n as { id?: string }).id
+): boolean => {
+  const sourceNode = nodes.find((n) => getId(n) === source)
+  const targetNode = nodes.find((n) => getId(n) === target)
+  if (isEnumerationClassNode(sourceNode)) return false
+  if (isEnumerationClassNode(targetNode)) return false
+  return true
+}
+
+/**
  * Allowed NN layer kinds inside an `NNContainer`. Top-level-only kinds
  * (Configuration, TrainingDataset, TestDataset) are intentionally
  * excluded — datasets and configuration bind to the container via

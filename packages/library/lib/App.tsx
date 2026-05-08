@@ -82,8 +82,13 @@ function App({ onReactFlowInit }: AppProps) {
   const onNodeDragStop = useNodeDragStop()
   const onNodeDrag = useNodeDrag()
   const onDragOver = useDragOver()
-  const { onConnect, onConnectEnd, onConnectStart, onEdgesDelete } =
-    useConnect()
+  const {
+    onConnect,
+    onConnectEnd,
+    onConnectStart,
+    onEdgesDelete,
+    isValidConnection,
+  } = useConnect()
   const onReconnect = useReconnect()
   const { onBeforeDelete, onNodeDoubleClick, onEdgeDoubleClick } =
     useElementInteractions()
@@ -123,6 +128,7 @@ function App({ onReactFlowInit }: AppProps) {
         onConnect={onConnect}
         onEdgesDelete={onEdgesDelete}
         onConnectEnd={onConnectEnd}
+        isValidConnection={isValidConnection}
         zoomOnDoubleClick={false}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}

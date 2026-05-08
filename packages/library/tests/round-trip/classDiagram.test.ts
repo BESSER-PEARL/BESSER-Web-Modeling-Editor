@@ -21,6 +21,10 @@ import {
   migrateClassDiagramV3ToV4,
   convertV4ToV3Class,
 } from "@/utils/versionConverter"
+import {
+  canConnectEndpoints,
+  isEnumerationClassNode,
+} from "@/utils/bpmnConstraints"
 import type { ClassNodeProps } from "@/types"
 import classDiagramV3 from "../fixtures/v3/classDiagram.json"
 
@@ -571,5 +575,58 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
     expect((cmtAgain.data as { name: string }).name).toBe(
       "this needs review\nmulti-line ok"
     )
+  })
+})
+
+/**
+ * SA-FIX-ENUM-NO-CONNECT: regression test. Enumeration class nodes
+ * (`type === 'class'` && `data.stereotype === 'Enumeration'`) must not
+ * accept any connection — neither as source nor as target. v3 behavior:
+ * enumerations are referenced by *type* from class attributes, never
+ * via edges.
+ */
+describe("SA-FIX-ENUM-NO-CONNECT", () => {
+  const classNode = (id: string, stereotype?: string) => ({
+    id,
+    type: "class",
+    data: { name: id, stereotype, attributes: [], methods: [] },
+  })
+
+  it("flags class nodes with stereotype Enumeration", () => {
+    expect(isEnumerationClassNode(classNode("E", "Enumeration"))).toBe(true)
+    expect(isEnumerationClassNode(classNode("C", "Abstract"))).toBe(false)
+    expect(isEnumerationClassNode(classNode("C"))).toBe(false)
+    expect(isEnumerationClassNode(undefined)).toBe(false)
+    // A non-class node with the same stereotype string is irrelevant.
+    expect(
+      isEnumerationClassNode({
+        id: "x",
+        type: "comment",
+        data: { stereotype: "Enumeration" },
+      })
+    ).toBe(false)
+  })
+
+  it("blocks a connection whose source is an Enumeration class", () => {
+    const nodes = [classNode("enum-1", "Enumeration"), classNode("class-1")]
+    expect(canConnectEndpoints(nodes, "enum-1", "class-1")).toBe(false)
+  })
+
+  it("blocks a connection whose target is an Enumeration class", () => {
+    const nodes = [classNode("class-1"), classNode("enum-1", "Enumeration")]
+    expect(canConnectEndpoints(nodes, "class-1", "enum-1")).toBe(false)
+  })
+
+  it("blocks enum-to-enum connections", () => {
+    const nodes = [
+      classNode("enum-1", "Enumeration"),
+      classNode("enum-2", "Enumeration"),
+    ]
+    expect(canConnectEndpoints(nodes, "enum-1", "enum-2")).toBe(false)
+  })
+
+  it("allows class-to-class connections (non-enum)", () => {
+    const nodes = [classNode("class-1"), classNode("class-2", "Abstract")]
+    expect(canConnectEndpoints(nodes, "class-1", "class-2")).toBe(true)
   })
 })

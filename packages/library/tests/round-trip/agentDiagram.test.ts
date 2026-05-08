@@ -21,6 +21,8 @@ import { describe, it, expect } from "vitest"
 import {
   migrateAgentDiagramV3ToV4,
   convertV4ToV3Agent,
+  importDiagram,
+  normalizeAgentBodies,
 } from "@/utils/versionConverter"
 import type {
   AgentRagElementNodeProps,
@@ -476,5 +478,138 @@ describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () 
     }
     expect(v3Intent.intent_description).toBe("From parent (preferred)")
     expect(v3.elements["aid-Test-1"]).toBeUndefined()
+  })
+
+  /**
+   * SA-FIX-CRITICAL-2 Bug 1: a v4 fixture in which AgentStateBody
+   * leaked out as a separate top-level node (no parentId, parent
+   * AgentState's `data.bodies` missing) must be normalised on import:
+   * the body is folded onto the nearest AgentState's `data.bodies`,
+   * the floating node is dropped. User-shared fixture exact-match.
+   */
+  it("normalizes a v4 fixture with a floating AgentStateBody", () => {
+    const userFixture = {
+      id: "4o50nucpbkk",
+      version: "4.0.0",
+      title: "Agent Diagram",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "72ba6b84-aaaa-bbbb-cccc-state01",
+          width: 160,
+          height: 100,
+          type: "AgentState",
+          position: { x: 240, y: 310 },
+          data: { name: "AgentState", replyType: "text" },
+        },
+        {
+          id: "7da5d1ba-aaaa-bbbb-cccc-body01",
+          width: 220,
+          height: 30,
+          type: "AgentStateBody",
+          position: { x: 740, y: 510 },
+          data: { replyType: "text", name: "sdfsdf" },
+        },
+      ],
+      edges: [],
+      assessments: {},
+      interactive: { elements: {}, relationships: {} },
+    }
+
+    // Calling `importDiagram` (the universal entry point) must scrub
+    // the floating body — it routes through `normalizeAgentBodies`.
+    const result = importDiagram(userFixture as never)
+    expect(result.nodes.length).toBe(1)
+    expect(result.nodes[0].type).toBe("AgentState")
+    const data = result.nodes[0].data as AgentStateNodeProps
+    expect(data.bodies).toBeDefined()
+    expect(data.bodies!.length).toBe(1)
+    expect(data.bodies![0].name).toBe("sdfsdf")
+    expect(data.bodies![0].replyType).toBe("text")
+    // Body row should land in the non-fallback section since the
+    // source type was AgentStateBody (not the fallback variant).
+    expect(data.bodies![0].kind).not.toBe("fallback")
+  })
+
+  it("normalizes a floating AgentStateFallbackBody onto fallback section", () => {
+    const fixture = {
+      id: "test",
+      version: "4.0.0",
+      title: "Agent Diagram",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "state-1",
+          width: 160,
+          height: 100,
+          type: "AgentState",
+          position: { x: 200, y: 200 },
+          data: { name: "S1", replyType: "text" },
+        },
+        {
+          id: "fb-1",
+          width: 220,
+          height: 30,
+          type: "AgentStateFallbackBody",
+          position: { x: 700, y: 700 },
+          data: { replyType: "llm", name: "fallback" },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeAgentBodies(fixture as never)
+    expect(result.nodes.length).toBe(1)
+    const data = result.nodes[0].data as AgentStateNodeProps
+    expect(data.bodies?.length).toBe(1)
+    expect(data.bodies?.[0].kind).toBe("fallback")
+    expect(data.bodies?.[0].name).toBe("fallback")
+  })
+
+  it("drops orphan floating bodies when no AgentState exists", () => {
+    const fixture = {
+      id: "test",
+      version: "4.0.0",
+      title: "Agent Diagram",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "orphan-body",
+          width: 220,
+          height: 30,
+          type: "AgentStateBody",
+          position: { x: 0, y: 0 },
+          data: { name: "orphan" },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeAgentBodies(fixture as never)
+    expect(result.nodes.length).toBe(0)
+  })
+
+  it("is a no-op on a clean v4 model with no floating bodies", () => {
+    const fixture = {
+      id: "test",
+      version: "4.0.0",
+      title: "Agent Diagram",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "state-1",
+          width: 160,
+          height: 100,
+          type: "AgentState",
+          position: { x: 0, y: 0 },
+          data: {
+            name: "S1",
+            replyType: "text",
+            bodies: [{ id: "b1", kind: "do", name: "hi", replyType: "text" }],
+          },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeAgentBodies(fixture as never)
+    expect(result).toBe(fixture)
   })
 })

@@ -3493,11 +3493,151 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
 }
 
 /**
+ * SA-FIX-CRITICAL-2 #1: normalise a v4 model on load.
+ *
+ * Per SA-FIX-Agent's inline-body design, `AgentStateBody` /
+ * `AgentStateFallbackBody` MUST live on the parent AgentState's
+ * `data.bodies` array — they must NEVER appear as separate top-level
+ * React-Flow nodes. The v3→v4 migrator already folds them, but legacy
+ * v4 fixtures (or future bugs that re-introduce floating bodies) can
+ * still ship a model that violates the invariant.
+ *
+ * This pass walks the v4 nodes once, finds every floating body node
+ * (no `parentId`), folds it onto the *nearest* AgentState (by Euclidean
+ * distance from its `position`), and drops the floating node. Nodes
+ * that already have a `parentId` pointing at a v4 AgentState are still
+ * absorbed (they should never have been split children either, given
+ * the inline-body shape). Orphans without any AgentState in the
+ * diagram are dropped with a warning — there is no parent to attach
+ * them to.
+ */
+export function normalizeAgentBodies(model: UMLModel): UMLModel {
+  if (model.type !== "AgentDiagram") return model
+  // SA-FIX-Agent removed `AgentStateBody` / `AgentStateFallbackBody`
+  // from the canonical `DiagramNodeType` registry, so we compare against
+  // the raw string form to detect legacy floating nodes.
+  const isBodyType = (t: string): boolean =>
+    t === "AgentStateBody" || t === "AgentStateFallbackBody"
+  const isFallbackType = (t: string): boolean =>
+    t === "AgentStateFallbackBody"
+  const isAgentStateType = (t: string): boolean => t === "AgentState"
+
+  const floatingBodies = model.nodes.filter((n) => isBodyType(n.type as string))
+  if (floatingBodies.length === 0) return model
+
+  const agentStates = model.nodes.filter((n) =>
+    isAgentStateType(n.type as string)
+  )
+  if (agentStates.length === 0) {
+    log.warn(
+      `normalizeAgentBodies: dropping ${floatingBodies.length} floating ` +
+        `AgentStateBody node(s) — no AgentState parent exists in the diagram.`
+    )
+    return {
+      ...model,
+      nodes: model.nodes.filter((n) => !isBodyType(n.type as string)),
+    }
+  }
+
+  const distSq = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)
+  const findHostState = (body: BesserNode) => {
+    if (body.parentId) {
+      const p = agentStates.find((s) => s.id === body.parentId)
+      if (p) return p
+    }
+    let best = agentStates[0]
+    let bestD = distSq(best.position, body.position)
+    for (let i = 1; i < agentStates.length; i++) {
+      const d = distSq(agentStates[i].position, body.position)
+      if (d < bestD) {
+        best = agentStates[i]
+        bestD = d
+      }
+    }
+    return best
+  }
+
+  // Build a map of host AgentState id → list of folded body rows to add.
+  const newRowsByHost: Record<
+    string,
+    Array<Record<string, unknown>>
+  > = {}
+  for (const body of floatingBodies) {
+    const host = findHostState(body)
+    const d = (body.data ?? {}) as {
+      name?: string
+      replyType?: string
+      ragDatabaseName?: string
+      dbSelectionType?: string
+      dbCustomName?: string
+      dbQueryMode?: string
+      dbOperation?: string
+      dbSqlQuery?: string
+      code?: string
+      kind?: string
+      fillColor?: string
+      textColor?: string
+    }
+    const isFallback = isFallbackType(body.type as string)
+    const row: Record<string, unknown> = {
+      id: body.id,
+      kind: isFallback ? "fallback" : (d.kind ?? "do"),
+      ...(d.name !== undefined && { name: d.name }),
+      ...(d.replyType !== undefined && { replyType: d.replyType }),
+      ...(d.ragDatabaseName !== undefined && {
+        ragDatabaseName: d.ragDatabaseName,
+      }),
+      ...(d.dbSelectionType !== undefined && {
+        dbSelectionType: d.dbSelectionType,
+      }),
+      ...(d.dbCustomName !== undefined && { dbCustomName: d.dbCustomName }),
+      ...(d.dbQueryMode !== undefined && { dbQueryMode: d.dbQueryMode }),
+      ...(d.dbOperation !== undefined && { dbOperation: d.dbOperation }),
+      ...(d.dbSqlQuery !== undefined && { dbSqlQuery: d.dbSqlQuery }),
+      ...(d.code !== undefined && { code: d.code }),
+      ...(d.fillColor !== undefined && { fillColor: d.fillColor }),
+      ...(d.textColor !== undefined && { textColor: d.textColor }),
+    }
+    if (!newRowsByHost[host.id]) newRowsByHost[host.id] = []
+    newRowsByHost[host.id].push(row)
+  }
+
+  const nodes = model.nodes
+    .filter((n) => !isBodyType(n.type as string))
+    .map((n) => {
+      if (!isAgentStateType(n.type as string)) return n
+      const adds = newRowsByHost[n.id]
+      if (!adds || adds.length === 0) return n
+      const existingBodies =
+        ((n.data as { bodies?: Array<Record<string, unknown>> }).bodies ?? [])
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          bodies: [...existingBodies, ...adds],
+        },
+      } as BesserNode
+    })
+
+  log.warn(
+    `normalizeAgentBodies: folded ${floatingBodies.length} floating ` +
+      `AgentStateBody node(s) onto their parent AgentState's data.bodies.`
+  )
+  return { ...model, nodes }
+}
+
+/**
  * Universal import function that handles v2, v3 and v4 formats
  */
 export function importDiagram(data: any | V3UMLModel): UMLModel {
   if (isV4Format(data)) {
-    return data
+    // SA-FIX-CRITICAL-2 #1: normalise floating AgentStateBody /
+    // AgentStateFallbackBody nodes onto the parent AgentState before
+    // the editor sees them. v4 fixtures from older builds (or external
+    // tools that didn't honour the inline-body shape) can ship body
+    // nodes at the top level; this pass folds them.
+    return normalizeAgentBodies(data)
   }
 
   if (isV3Format(data)) {

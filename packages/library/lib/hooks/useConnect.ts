@@ -1,14 +1,17 @@
 import {
   type Edge,
+  type Node,
   Connection,
   useReactFlow,
   OnConnectEnd,
   OnConnectStart,
   OnConnectStartParams,
   OnEdgesDelete,
+  IsValidConnection,
 } from "@xyflow/react"
 import { useCallback, useRef } from "react"
 import { findClosestHandle, generateUUID, getDefaultEdgeType } from "@/utils"
+import { canConnectEndpoints } from "@/utils/bpmnConstraints"
 import { DiagramNodeTypeRecord } from "@/nodes"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
@@ -29,6 +32,19 @@ const resolveClassEdgeType = (
   if (isOcl(sourceType) || isOcl(targetType)) return "ClassOCLLink"
   return defaultType
 }
+
+/**
+ * SA-FIX-ENUM-NO-CONNECT: thin React Flow adapter over the pure
+ * `canConnectEndpoints` predicate (in `@/utils/bpmnConstraints`).
+ * Keeping the rule in a zero-dependency file lets the regression test
+ * import it without dragging React Flow / zustand into the test
+ * graph.
+ */
+const isConnectionAllowed = (
+  nodes: Node[],
+  source: string | null | undefined,
+  target: string | null | undefined
+): boolean => canConnectEndpoints(nodes, source, target, (n) => n.id)
 
 export const useConnect = () => {
   const startEdge = useRef<Edge | null>(null)
@@ -103,6 +119,13 @@ export const useConnect = () => {
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      // SA-FIX-ENUM-NO-CONNECT: Defensive guard — even though React
+      // Flow runs `isValidConnection` first, callers may invoke
+      // `onConnect` directly (programmatic edge creation). Reject any
+      // connection touching an Enumeration class node.
+      if (!isConnectionAllowed(nodes, connection.source, connection.target)) {
+        return
+      }
       // SA-UX-FIX B4: ClassDiagram-only auto-detect: if either endpoint
       // is an OCL constraint node, force `ClassOCLLink`; otherwise use
       // the diagram default edge type.
@@ -189,6 +212,14 @@ export const useConnect = () => {
             return
           }
 
+          // SA-FIX-ENUM-NO-CONNECT: refuse to reroute an existing edge
+          // onto / off of an Enumeration class node.
+          if (!isConnectionAllowed(nodes, newEdge.source, newEdge.target)) {
+            startEdge.current = null
+            connectionStartParams.current = null
+            return
+          }
+
           setEdges((eds) =>
             eds.map((edge) => (edge.id === newEdge.id ? newEdge : edge))
           )
@@ -201,6 +232,14 @@ export const useConnect = () => {
             sourceNodeId === nodeOnTop.id &&
             sourceHandleId === targetHandle
           ) {
+            startEdge.current = null
+            connectionStartParams.current = null
+            return
+          }
+
+          // SA-FIX-ENUM-NO-CONNECT: refuse to create a new edge whose
+          // source or target is an Enumeration class node.
+          if (!isConnectionAllowed(nodes, sourceNodeId, nodeOnTop.id)) {
             startEdge.current = null
             connectionStartParams.current = null
             return
@@ -250,5 +289,23 @@ export const useConnect = () => {
     connectionStartParams.current = null
   }, [setEdges])
 
-  return { onConnect, onConnectEnd, onConnectStart, onEdgesDelete }
+  /**
+   * SA-FIX-ENUM-NO-CONNECT: React Flow consults this *before* firing
+   * `onConnect`. Returning `false` aborts the drag so the user gets the
+   * "invalid" cursor. Enumeration class nodes never participate in
+   * edges — they're referenced by attribute type instead.
+   */
+  const isValidConnection: IsValidConnection = useCallback(
+    (connection) =>
+      isConnectionAllowed(nodes, connection.source, connection.target),
+    [nodes]
+  )
+
+  return {
+    onConnect,
+    onConnectEnd,
+    onConnectStart,
+    onEdgesDelete,
+    isValidConnection,
+  }
 }

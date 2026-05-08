@@ -19,6 +19,42 @@ import {
   pruneInteractiveElements,
   toggleInteractiveRecord,
 } from "@/utils/interactiveUtils"
+import { log } from "../logger"
+
+/**
+ * SA-FIX-CRITICAL-2 #1: runtime guard.
+ *
+ * AgentStateBody / AgentStateFallbackBody must NEVER live as separate
+ * top-level nodes — bodies are folded onto the parent AgentState's
+ * `data.bodies` array (see SA-FIX-Agent inline-body design). If a
+ * caller (palette drop, paste, plugin, etc.) tries to add such a node
+ * at the top level, drop it and warn. The inspector's "+ Add body"
+ * affordance is the only supported path to create a body row.
+ */
+const isFloatingAgentBody = (node: { type?: string; parentId?: string }) =>
+  (node.type === "AgentStateBody" || node.type === "AgentStateFallbackBody") &&
+  !node.parentId
+
+const dropFloatingAgentBodies = <T extends { type?: string; parentId?: string }>(
+  nodes: T[]
+): T[] => {
+  let dropped = 0
+  const kept = nodes.filter((n) => {
+    if (isFloatingAgentBody(n)) {
+      dropped++
+      return false
+    }
+    return true
+  })
+  if (dropped > 0) {
+    log.warn(
+      `diagramStore: dropped ${dropped} floating AgentStateBody/` +
+        `AgentStateFallbackBody node(s). Bodies must live on the parent ` +
+        `AgentState's data.bodies array (SA-FIX-Agent inline-body design).`
+    )
+  }
+  return kept
+}
 
 export type DiagramStoreData = {
   nodes: Node[]
@@ -255,6 +291,16 @@ export const createDiagramStore = (
         },
 
         addNode: (node) => {
+          // SA-FIX-CRITICAL-2 #1: guard against floating Agent bodies
+          // entering the store as separate top-level nodes.
+          if (isFloatingAgentBody(node)) {
+            log.warn(
+              `diagramStore.addNode: refused to add floating ` +
+                `${node.type} (id=${node.id}). Bodies must live on the parent ` +
+                `AgentState's data.bodies array.`
+            )
+            return
+          }
           ydoc.transact(() => {
             getNodesMap(ydoc).set(node.id, node)
           }, "store")
@@ -268,8 +314,10 @@ export const createDiagramStore = (
           set({ edges: [...get().edges, edge] }, undefined, "addEdge")
         },
         setNodes: (payload) => {
-          const nodes =
+          const rawNodes =
             typeof payload === "function" ? payload(get().nodes) : payload
+          // SA-FIX-CRITICAL-2 #1: scrub floating Agent body nodes.
+          const nodes = dropFloatingAgentBodies(rawNodes)
 
           if (deepEqual(get().nodes, nodes)) {
             return
@@ -328,7 +376,10 @@ export const createDiagramStore = (
           )
         },
 
-        setNodesAndEdges: (nodes, edges) => {
+        setNodesAndEdges: (rawNodes, edges) => {
+          // SA-FIX-CRITICAL-2 #1: scrub floating Agent body nodes before
+          // they reach the Yjs map / store.
+          const nodes = dropFloatingAgentBodies(rawNodes)
           ydoc.transact(() => {
             getNodesMap(ydoc).clear()
             getEdgesMap(ydoc).clear()
