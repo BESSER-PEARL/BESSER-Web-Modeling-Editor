@@ -1,34 +1,35 @@
 import {
   Box,
-  MenuItem,
-  Select,
-  Stack,
   TextField as MuiTextField,
 } from "@mui/material"
 import React from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { AgentRagElementNodeProps } from "@/types"
-import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
+import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { RagDbFields } from "./RagDbFields"
 
 /**
- * SA-4 inspector for `AgentRagElement`.
+ * SA-FIX-Agent inspector for `AgentRagElement`.
+ *
+ * PC-8 #2 fix: replaced the previous inline implementation (which used
+ * a plain `MuiTextField` for `dbSqlQuery` and offered a non-v3
+ * `'predefined'` value in the `dbSelectionType` enum) with the shared
+ * `RagDbFields` component. `RagDbFields` already provides the v3
+ * canonical enum (`'default'` / `'custom'`) and a Python CodeMirror
+ * editor for `dbSqlQuery` so editing the RAG element exposes the same
+ * field set users see in `AgentStateEditPanel`.
  *
  * Open question #5 resolution (per the SA-4 brief): exposes BOTH
- * `dbCustomName` and `ragDatabaseName` as separate fields. The
- * `dbSelectionType` discriminator tells the runtime / BAF generator
- * which one to consume:
- *   - `'predefined'` → use `ragDatabaseName`
- *   - `'custom'`     → use `dbCustomName`
- *   - `'default'`    → use `ragDatabaseName` (legacy)
+ * `dbCustomName` and `ragDatabaseName`. The `dbSelectionType`
+ * discriminator tells the runtime / BAF generator which one to consume:
+ *   - `'default'` → use `ragDatabaseName`
+ *   - `'custom'`  → use `dbCustomName`
  *
  * Both fields round-trip verbatim through the migrator so the v3 → v4 →
  * v3 cycle is lossless even when the user only edits one of them.
  */
-const SELECTION_TYPES = ["predefined", "custom", "default"] as const
-const QUERY_MODES = ["llm_query", "sql", "natural_language"] as const
-
 export const AgentRagElementEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
@@ -72,24 +73,6 @@ export const AgentRagElementEditPanel: React.FC<PopoverProps> = ({
         onChange={(e) => update({ name: e.target.value })}
       />
 
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Typography variant="caption" sx={{ minWidth: 90 }}>
-          dbSelectionType
-        </Typography>
-        <Select
-          size="small"
-          value={data.dbSelectionType ?? "default"}
-          onChange={(e) => update({ dbSelectionType: String(e.target.value) })}
-          sx={{ flex: 1 }}
-        >
-          {SELECTION_TYPES.map((t) => (
-            <MenuItem key={t} value={t}>
-              {t}
-            </MenuItem>
-          ))}
-        </Select>
-      </Stack>
-
       <MuiTextField
         size="small"
         variant="outlined"
@@ -97,59 +80,21 @@ export const AgentRagElementEditPanel: React.FC<PopoverProps> = ({
         label="ragDatabaseName"
         value={data.ragDatabaseName ?? ""}
         onChange={(e) => update({ ragDatabaseName: e.target.value })}
-        helperText="used when dbSelectionType = predefined / default"
-      />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        label="dbCustomName"
-        value={data.dbCustomName ?? ""}
-        onChange={(e) => update({ dbCustomName: e.target.value })}
-        helperText="used when dbSelectionType = custom"
+        helperText="Used when dbSelectionType = default."
       />
 
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Typography variant="caption" sx={{ minWidth: 90 }}>
-          dbQueryMode
-        </Typography>
-        <Select
-          size="small"
-          value={data.dbQueryMode ?? "llm_query"}
-          onChange={(e) => update({ dbQueryMode: String(e.target.value) })}
-          sx={{ flex: 1 }}
-        >
-          {QUERY_MODES.map((q) => (
-            <MenuItem key={q} value={q}>
-              {q}
-            </MenuItem>
-          ))}
-        </Select>
-      </Stack>
+      <DividerLine width="100%" />
 
-      {data.dbQueryMode === "sql" ? (
-        <>
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            fullWidth
-            label="dbOperation"
-            value={data.dbOperation ?? "any"}
-            onChange={(e) => update({ dbOperation: e.target.value })}
-          />
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            fullWidth
-            multiline
-            minRows={3}
-            label="dbSqlQuery"
-            value={data.dbSqlQuery ?? ""}
-            onChange={(e) => update({ dbSqlQuery: e.target.value })}
-            placeholder="SELECT * FROM …"
-          />
-        </>
-      ) : null}
+      {/* Shared field surface: dbSelectionType / dbCustomName /
+          dbQueryMode / dbOperation / dbSqlQuery. Provides a CodeMirror
+          Python editor for dbSqlQuery and the canonical v3 selection
+          enum. */}
+      <RagDbFields
+        value={data}
+        onChange={(patch) => update(patch)}
+        showRag={false}
+        showDb
+      />
 
       <MuiTextField
         size="small"

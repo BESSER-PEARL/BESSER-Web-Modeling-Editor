@@ -9,6 +9,10 @@ import { AgentIntentNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
+// Mirrors v3's `AGENT_INTENT_DESCRIPTION_HEIGHT` constant, used to
+// position the second divider line between description and body rows.
+const AGENT_INTENT_DESCRIPTION_HEIGHT = 30
+
 /**
  * SA-4 `AgentIntent` parent. Mirrors the v3 visual at
  * `agent-state-diagram/agent-intent-object-component/agent-intent-object-component.tsx`
@@ -105,6 +109,9 @@ export function AgentIntent({
               {`Intent: ${name}`}
             </text>
           )}
+          {/* Header divider — drawn whenever the intent has either a
+              description or body rows. Mirrors v3's
+              `(element.hasBody || hasIntentDescription)` guard. */}
           <line
             x1={0}
             x2={width}
@@ -113,6 +120,31 @@ export function AgentIntent({
             stroke={strokeColor}
             strokeWidth={1}
           />
+          {/* PC-8 #3: second divider line between description block and
+              body rows. v3 source:
+              `agent-intent-object-component/agent-intent-object-component.tsx:115-119`.
+              Drawn when both a description and at least one body row
+              exist. Body presence is approximated by `height` being big
+              enough to contain at least one body row past the description
+              area (mirrors v3's `element.hasBody` runtime check). */}
+          {(() => {
+            const hasIntentDescription =
+              !!data.intent_description &&
+              data.intent_description.trim().length > 0
+            const dividerY = headerHeight + AGENT_INTENT_DESCRIPTION_HEIGHT
+            const hasBody = height > dividerY + 4
+            if (!hasIntentDescription || !hasBody) return null
+            return (
+              <line
+                x1={0}
+                x2={width}
+                y1={dividerY}
+                y2={dividerY}
+                stroke={strokeColor}
+                strokeWidth={1}
+              />
+            )
+          })()}
         </svg>
       </div>
       <PopoverManager

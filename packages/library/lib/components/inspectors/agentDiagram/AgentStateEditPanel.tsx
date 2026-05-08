@@ -15,7 +15,7 @@ import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { generateUUID } from "@/utils"
 import {
-  AgentStateBodyNodeProps,
+  AgentStateBodyRow,
   AgentStateNodeProps,
 } from "@/types"
 import {
@@ -26,10 +26,9 @@ import {
 import { DeleteIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
 import { RagDbFields } from "./RagDbFields"
-import { Node } from "@xyflow/react"
 
 /**
- * SA-2.2 #21 — full AgentState body editor.
+ * SA-FIX-Agent — full AgentState body editor.
  *
  * Source-of-truth port: `packages/editor/src/main/packages/
  * agent-state-diagram/agent-state/agent-state-update.tsx` (~960 LoC).
@@ -39,20 +38,20 @@ import { Node } from "@xyflow/react"
  *      (text / llm / rag / db_reply / code) and renders the body
  *      editor for that mode below.
  *   2. Agent Fallback Action — same radio + editor pattern for the
- *      `AgentStateFallbackBody` children.
+ *      fallback bodies.
  *
- * Children of either kind hang off this `AgentState` via React-Flow
- * `parentId` (consistent with SA-3 / SA-4). Switching modes deletes
- * sibling bodies of the wrong reply type and creates one of the new
- * type when needed (mirroring v3's `componentDidMount` / radio
+ * SA-FIX-Agent (delta from SA-2.2): bodies are now stored on the
+ * parent's `data.bodies` array (inline, like a Class node's
+ * attributes) rather than as separate React-Flow children. Switching
+ * modes deletes existing rows of the wrong reply type within the
+ * relevant section (`fallback` vs not-fallback) and creates one of the
+ * new type when needed (mirroring v3's `componentDidMount` / radio
  * onChange behaviour).
  *
- * The RAG dropdown is sourced from sibling `AgentRagElement` nodes
- * via `nodes.filter(n => n.type === 'AgentRagElement').map(...)` per
- * the v3 source, with a free-text fallback when no RAG elements
- * exist. The DB-action editor reuses the shared `RagDbFields`
- * component so the same field set is available on
- * `AgentRagElementEditPanel` (SA-2.2 #22).
+ * The RAG dropdown is sourced from sibling `AgentRagElement` nodes per
+ * the v3 source. PC-7 #3: when no AgentRagElement is present the field
+ * is disabled with an inline "Create an AgentRagElement from the
+ * palette first" helper rather than falling back to a free-text input.
  */
 
 const STEREOTYPES: { value: string; label: string }[] = [
@@ -72,8 +71,7 @@ const REPLY_MODES: { value: ReplyMode; label: string }[] = [
   { value: "code", label: "Python Code" },
 ]
 
-const RAG_PROMPT_DEFAULT =
-  "RAG reply (select database)"
+const RAG_PROMPT_DEFAULT = "RAG reply (select database)"
 const CODE_BODY_DEFAULT =
   "def action_name(session: AgentSession):\n\n\n\n\n"
 const LLM_BODY_DEFAULT = "AI response 🪄"
@@ -104,10 +102,10 @@ const getDbDisplayName = (
   return `DB action using ${databaseLabel} (${modeLabel}, ${operationLabel})`
 }
 
-const isBodyType = (
-  childType: "AgentStateBody" | "AgentStateFallbackBody",
-  type: string | undefined
-) => type === childType
+type Section = "main" | "fallback"
+const isFallback = (b: AgentStateBodyRow) => b.kind === "fallback"
+const inSection = (b: AgentStateBodyRow, section: Section) =>
+  section === "fallback" ? isFallback(b) : !isFallback(b)
 
 export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { nodes, setNodes } = useDiagramStore(
@@ -120,6 +118,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   if (!node) return null
 
   const data = node.data as AgentStateNodeProps
+  const bodies: AgentStateBodyRow[] = data.bodies ?? []
 
   /* ─────────────────────── Top-level node helpers ─────────────────────── */
 
@@ -135,6 +134,12 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     updateNode({ [key]: value } as Partial<AgentStateNodeProps>)
   }
 
+  const replaceBodies = (
+    mapper: (rows: AgentStateBodyRow[]) => AgentStateBodyRow[]
+  ) => {
+    updateNode({ bodies: mapper(bodies) })
+  }
+
   /* ─────────────────────── Body / Fallback helpers ────────────────────── */
 
   const ragDatabaseOptions = React.useMemo(() => {
@@ -142,162 +147,125 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       new Set(
         nodes
           .filter((n) => n.type === "AgentRagElement")
-          .map(
-            (n) =>
-              ((n.data as { name?: string }).name ?? "").trim()
-          )
+          .map((n) => ((n.data as { name?: string }).name ?? "").trim())
           .filter((s) => s.length > 0)
       )
     )
   }, [nodes])
 
-  const childrenOfKind = (
-    kind: "AgentStateBody" | "AgentStateFallbackBody"
-  ): Node[] =>
-    nodes.filter((n) => n.parentId === elementId && isBodyType(kind, n.type))
+  const sectionRows = (section: Section): AgentStateBodyRow[] =>
+    bodies.filter((b) => inSection(b, section))
 
-  const getActiveMode = (
-    kind: "AgentStateBody" | "AgentStateFallbackBody"
-  ): ReplyMode => {
-    const children = childrenOfKind(kind)
+  const getActiveMode = (section: Section): ReplyMode => {
+    const rows = sectionRows(section)
     const order: ReplyMode[] = ["rag", "db_reply", "llm", "code", "text"]
     for (const m of order) {
-      if (
-        children.some(
-          (c) => (c.data as AgentStateBodyNodeProps).replyType === m
-        )
-      ) {
-        return m
-      }
+      if (rows.some((r) => r.replyType === m)) return m
     }
     return "text"
   }
 
-  const updateChild = (
-    childId: string,
-    patch: Partial<AgentStateBodyNodeProps>
+  const updateRow = (
+    rowId: string,
+    patch: Partial<AgentStateBodyRow>
   ) => {
-    setNodes((all) =>
-      all.map((n) =>
-        n.id === childId ? { ...n, data: { ...n.data, ...patch } } : n
-      )
+    replaceBodies((rows) =>
+      rows.map((r) => (r.id === rowId ? { ...r, ...patch } : r))
     )
   }
 
-  const removeChildrenWhere = (
-    kind: "AgentStateBody" | "AgentStateFallbackBody",
-    keep: (data: AgentStateBodyNodeProps) => boolean
-  ) => {
-    setNodes((all) =>
-      all.filter(
-        (n) =>
-          !(
-            n.parentId === elementId &&
-            isBodyType(kind, n.type) &&
-            !keep(n.data as AgentStateBodyNodeProps)
-          )
-      )
-    )
+  const removeRow = (rowId: string) => {
+    replaceBodies((rows) => rows.filter((r) => r.id !== rowId))
   }
 
-  const createChild = (
-    kind: "AgentStateBody" | "AgentStateFallbackBody",
-    init: Partial<AgentStateBodyNodeProps> & { name: string }
+  const addRow = (
+    section: Section,
+    init: Partial<AgentStateBodyRow> & { name?: string }
   ) => {
-    const newNode: Node = {
+    const sectionKind: AgentStateBodyRow["kind"] =
+      section === "fallback" ? "fallback" : init.kind ?? "do"
+    const newRow: AgentStateBodyRow = {
       id: generateUUID(),
-      type: kind,
-      parentId: elementId,
-      position: { x: 16, y: 32 + childrenOfKind(kind).length * 30 },
-      width: 220,
-      height: 30,
-      data: {
-        replyType: "text",
-        ...init,
-      } as AgentStateBodyNodeProps,
+      replyType: "text",
+      ...init,
+      // Section discriminator always wins over `init.kind` so fallback
+      // rows never get tagged with `entry` / `do` / `exit` / `on`.
+      kind: sectionKind,
     }
-    setNodes((all) => [...all, newNode])
+    replaceBodies((rows) => [...rows, newRow])
   }
 
-  const setMode = (
-    kind: "AgentStateBody" | "AgentStateFallbackBody",
-    next: ReplyMode
+  const removeRowsWhere = (
+    section: Section,
+    predicate: (r: AgentStateBodyRow) => boolean
   ) => {
+    replaceBodies((rows) =>
+      rows.filter((r) => !(inSection(r, section) && predicate(r)))
+    )
+  }
+
+  const setMode = (section: Section, next: ReplyMode) => {
+    const rows = sectionRows(section)
     if (next === "text") {
-      // Remove all non-text bodies; preserve existing text bodies.
-      removeChildrenWhere(
-        kind,
-        (d) => d.replyType === "text" || d.replyType === undefined
-      )
+      // Remove all non-text rows in this section.
+      removeRowsWhere(section, (r) => r.replyType !== "text")
       // No auto-create — user adds text bodies via the "+ add" button.
       return
     }
-    // For all single-body modes, delete siblings of other types and
-    // create one of the new type if absent.
-    const currentChildren = childrenOfKind(kind)
-    const hasMode = currentChildren.some(
-      (c) => (c.data as AgentStateBodyNodeProps).replyType === next
-    )
-    removeChildrenWhere(kind, (d) => d.replyType === next)
-    if (!hasMode) {
-      switch (next) {
-        case "llm":
-          createChild(kind, { name: LLM_BODY_DEFAULT, replyType: "llm" })
-          break
-        case "code":
-          createChild(kind, {
-            name: CODE_BODY_DEFAULT,
-            replyType: "code",
-            code: CODE_BODY_DEFAULT,
-          })
-          break
-        case "rag": {
-          const displayName = getRagDisplayName("")
-          createChild(kind, {
-            name: displayName,
-            replyType: "rag",
-            ragDatabaseName: "",
-          })
-          break
-        }
-        case "db_reply": {
-          const dbSelectionType = "default"
-          const dbCustomName = ""
-          const dbQueryMode = "llm_query"
-          const dbOperation = "any"
-          createChild(kind, {
-            name: getDbDisplayName(
-              dbSelectionType,
-              dbCustomName,
-              dbQueryMode,
-              dbOperation
-            ),
-            replyType: "db_reply",
+    const hasMode = rows.some((r) => r.replyType === next)
+    removeRowsWhere(section, (r) => r.replyType !== next)
+    if (hasMode) return
+    switch (next) {
+      case "llm":
+        addRow(section, { name: LLM_BODY_DEFAULT, replyType: "llm" })
+        break
+      case "code":
+        addRow(section, {
+          name: CODE_BODY_DEFAULT,
+          replyType: "code",
+          code: CODE_BODY_DEFAULT,
+        })
+        break
+      case "rag":
+        addRow(section, {
+          name: getRagDisplayName(""),
+          replyType: "rag",
+          ragDatabaseName: "",
+        })
+        break
+      case "db_reply": {
+        const dbSelectionType = "default"
+        const dbCustomName = ""
+        const dbQueryMode = "llm_query"
+        const dbOperation = "any"
+        addRow(section, {
+          name: getDbDisplayName(
             dbSelectionType,
             dbCustomName,
             dbQueryMode,
-            dbOperation,
-            dbSqlQuery: "",
-          })
-          break
-        }
+            dbOperation
+          ),
+          replyType: "db_reply",
+          dbSelectionType,
+          dbCustomName,
+          dbQueryMode,
+          dbOperation,
+          dbSqlQuery: "",
+        })
+        break
       }
     }
   }
 
-  const renderBodyEditor = (
-    kind: "AgentStateBody" | "AgentStateFallbackBody"
-  ) => {
-    const mode = getActiveMode(kind)
-    const children = childrenOfKind(kind)
+  const renderBodyEditor = (section: Section) => {
+    const mode = getActiveMode(section)
+    const rows = sectionRows(section)
 
     if (mode === "text") {
-      const textBodies = children.filter(
-        (c) => (c.data as AgentStateBodyNodeProps).replyType === "text"
-      )
+      const textRows = rows.filter((r) => r.replyType === "text")
       return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-          {textBodies.map((b) => (
+          {textRows.map((b) => (
             <Stack
               key={b.id}
               direction="row"
@@ -309,16 +277,12 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
                 variant="outlined"
                 fullWidth
                 placeholder="reply text"
-                value={(b.data as AgentStateBodyNodeProps).name ?? ""}
-                onChange={(e) =>
-                  updateChild(b.id, { name: e.target.value })
-                }
+                value={b.name ?? ""}
+                onChange={(e) => updateRow(b.id, { name: e.target.value })}
               />
               <IconButton
                 size="small"
-                onClick={() =>
-                  setNodes((all) => all.filter((n) => n.id !== b.id))
-                }
+                onClick={() => removeRow(b.id)}
                 aria-label="Remove text body"
               >
                 <DeleteIcon width={14} height={14} />
@@ -332,9 +296,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               color: "var(--besser-primary)",
               alignSelf: "flex-start",
             }}
-            onClick={() =>
-              createChild(kind, { name: "", replyType: "text" })
-            }
+            onClick={() => addRow(section, { name: "", replyType: "text" })}
           >
             + add text body
           </Typography>
@@ -343,10 +305,8 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }
 
     if (mode === "llm") {
-      const llmBody = children.find(
-        (c) => (c.data as AgentStateBodyNodeProps).replyType === "llm"
-      )
-      if (!llmBody) {
+      const llmRow = rows.find((r) => r.replyType === "llm")
+      if (!llmRow) {
         return (
           <Typography variant="caption">Initialising LLM body…</Typography>
         )
@@ -359,28 +319,23 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           multiline
           minRows={3}
           label="System prompt"
-          value={(llmBody.data as AgentStateBodyNodeProps).name ?? ""}
-          onChange={(e) => updateChild(llmBody.id, { name: e.target.value })}
+          value={llmRow.name ?? ""}
+          onChange={(e) => updateRow(llmRow.id, { name: e.target.value })}
         />
       )
     }
 
     if (mode === "code") {
-      const codeBody = children.find(
-        (c) => (c.data as AgentStateBodyNodeProps).replyType === "code"
-      )
-      if (!codeBody) {
+      const codeRow = rows.find((r) => r.replyType === "code")
+      if (!codeRow) {
         return (
           <Typography variant="caption">Initialising code body…</Typography>
         )
       }
-      const codeData = codeBody.data as AgentStateBodyNodeProps
       // v3 stored the code on `name`; v4 added a `code` field. Prefer
       // `code` when set, falling back to `name` for legacy fixtures.
       const codeValue =
-        (typeof codeData.code === "string" && codeData.code) ||
-        codeData.name ||
-        ""
+        (typeof codeRow.code === "string" && codeRow.code) || codeRow.name || ""
       return (
         <Box
           sx={{
@@ -392,9 +347,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           <CodeMirror
             value={codeValue}
             extensions={[python()]}
-            onChange={(v) =>
-              updateChild(codeBody.id, { code: v, name: v })
-            }
+            onChange={(v) => updateRow(codeRow.id, { code: v, name: v })}
             basicSetup={{
               lineNumbers: true,
               tabSize: 4,
@@ -407,10 +360,8 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }
 
     if (mode === "rag") {
-      const ragBody = children.find(
-        (c) => (c.data as AgentStateBodyNodeProps).replyType === "rag"
-      )
-      if (!ragBody) {
+      const ragRow = rows.find((r) => r.replyType === "rag")
+      if (!ragRow) {
         return (
           <Typography variant="caption">Initialising RAG body…</Typography>
         )
@@ -418,13 +369,10 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <RagDbFields
-            value={ragBody.data as AgentStateBodyNodeProps}
+            value={ragRow}
             onChange={(patch) => {
-              const next = {
-                ...(ragBody.data as AgentStateBodyNodeProps),
-                ...patch,
-              }
-              updateChild(ragBody.id, {
+              const next = { ...ragRow, ...patch }
+              updateRow(ragRow.id, {
                 ...patch,
                 name: getRagDisplayName(next.ragDatabaseName),
               })
@@ -440,8 +388,8 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             multiline
             minRows={2}
             label="RAG prompt (optional)"
-            value={(ragBody.data as { name?: string }).name ?? ""}
-            onChange={(e) => updateChild(ragBody.id, { name: e.target.value })}
+            value={ragRow.name ?? ""}
+            onChange={(e) => updateRow(ragRow.id, { name: e.target.value })}
             helperText="Override the auto-generated RAG label."
           />
         </Box>
@@ -449,10 +397,8 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }
 
     if (mode === "db_reply") {
-      const dbBody = children.find(
-        (c) => (c.data as AgentStateBodyNodeProps).replyType === "db_reply"
-      )
-      if (!dbBody) {
+      const dbRow = rows.find((r) => r.replyType === "db_reply")
+      if (!dbRow) {
         return (
           <Typography variant="caption">
             Initialising database action…
@@ -461,13 +407,10 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       }
       return (
         <RagDbFields
-          value={dbBody.data as AgentStateBodyNodeProps}
+          value={dbRow}
           onChange={(patch) => {
-            const next = {
-              ...(dbBody.data as AgentStateBodyNodeProps),
-              ...patch,
-            }
-            updateChild(dbBody.id, {
+            const next = { ...dbRow, ...patch }
+            updateRow(dbRow.id, {
               ...patch,
               name: getDbDisplayName(
                 next.dbSelectionType,
@@ -557,7 +500,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
       >
         {REPLY_MODES.map((m) => {
-          const active = getActiveMode("AgentStateBody") === m.value
+          const active = getActiveMode("main") === m.value
           return (
             <FormControlLabel
               key={`body-${m.value}`}
@@ -565,7 +508,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
                 <Checkbox
                   size="small"
                   checked={active}
-                  onChange={() => setMode("AgentStateBody", m.value)}
+                  onChange={() => setMode("main", m.value)}
                 />
               }
               label={m.label}
@@ -573,7 +516,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           )
         })}
       </Box>
-      {renderBodyEditor("AgentStateBody")}
+      {renderBodyEditor("main")}
 
       <DividerLine width="100%" />
 
@@ -585,7 +528,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
       >
         {REPLY_MODES.map((m) => {
-          const active = getActiveMode("AgentStateFallbackBody") === m.value
+          const active = getActiveMode("fallback") === m.value
           return (
             <FormControlLabel
               key={`fallback-${m.value}`}
@@ -593,7 +536,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
                 <Checkbox
                   size="small"
                   checked={active}
-                  onChange={() => setMode("AgentStateFallbackBody", m.value)}
+                  onChange={() => setMode("fallback", m.value)}
                 />
               }
               label={m.label}
@@ -601,7 +544,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           )
         })}
       </Box>
-      {renderBodyEditor("AgentStateFallbackBody")}
+      {renderBodyEditor("fallback")}
     </Box>
   )
 }

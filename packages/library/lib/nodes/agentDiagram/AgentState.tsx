@@ -5,19 +5,81 @@ import { useHandleOnResize } from "@/hooks"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
-import { AgentStateNodeProps } from "@/types"
+import { AgentStateBodyRow, AgentStateNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-4 `AgentState` parent. Mirrors SA-3's `State` visual but slightly
- * tweaked to match the v3 source at `agent-state-diagram/agent-state/
- * agent-state-component.tsx`. Children (AgentStateBody /
- * AgentStateFallbackBody / AgentRagElement) hang off via React Flow
- * `parentId` per the SA-4 brief — same pattern SA-3 settled on. The
- * `replyType` discriminator is surfaced on the inspector and round-trips
- * through the migrator.
+ * SA-FIX-Agent: `AgentState` renders body sections inline.
+ *
+ * v3 source (`agent-state-diagram/agent-state/agent-state-component.tsx`)
+ * drew the body rows directly inside the parent `<g>`, like a Class
+ * node draws attribute / method rows. SA-4 originally split bodies into
+ * separate React-Flow children connected via `parentId`; SA-FIX-Agent
+ * undoes that split — bodies live on `data.bodies` and render as inline
+ * rows here.
+ *
+ * Layout:
+ *  - Header (stereotype + name).
+ *  - Header divider (when any body row exists).
+ *  - Main body rows (entry / do / exit / on).
+ *  - Fallback divider (when at least one fallback row exists alongside
+ *    main rows; mirrors v3's `hasFallbackBody` check).
+ *  - Fallback rows.
  */
+const ROW_HEIGHT = 30
+
+const renderRow = (
+  body: AgentStateBodyRow,
+  index: number,
+  yOffset: number,
+  width: number,
+  textColor: string
+): React.ReactNode => {
+  const isCode = body.replyType === "code"
+  const codeText = body.code ?? body.name ?? ""
+  const labelText = body.name ?? ""
+  const y = yOffset + index * ROW_HEIGHT
+  if (isCode) {
+    return (
+      <foreignObject
+        key={body.id}
+        x={0}
+        y={y}
+        width={width}
+        height={ROW_HEIGHT}
+      >
+        <div
+          style={{
+            fontFamily: "monospace",
+            fontSize: 12,
+            whiteSpace: "pre",
+            color: textColor,
+            padding: "4px 10px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {codeText}
+        </div>
+      </foreignObject>
+    )
+  }
+  return (
+    <text
+      key={body.id}
+      x={10}
+      y={y + ROW_HEIGHT / 2 + 5}
+      textAnchor="start"
+      fontSize={LAYOUT.NAME_FONT_SIZE - 2}
+      fill={textColor}
+      fontStyle={body.kind === "fallback" ? "italic" : undefined}
+    >
+      {labelText}
+    </text>
+  )
+}
+
 export function AgentState({
   id,
   width,
@@ -32,12 +94,18 @@ export function AgentState({
   if (!width || !height) return null
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const { name, stereotype, italic, underline } = data
+  const { name, stereotype, italic, underline, bodies } = data
   const cornerRadius = 8
   const showStereotype = !!stereotype
   const headerHeight = showStereotype
     ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
     : LAYOUT.DEFAULT_HEADER_HEIGHT
+
+  const allBodies = bodies ?? []
+  const mainBodies = allBodies.filter((b) => b.kind !== "fallback")
+  const fallbackBodies = allBodies.filter((b) => b.kind === "fallback")
+  const fallbackDividerY = headerHeight + mainBodies.length * ROW_HEIGHT
+  const hasFallbackDivider = fallbackBodies.length > 0 && mainBodies.length > 0
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
@@ -105,14 +173,36 @@ export function AgentState({
               {name}
             </text>
           )}
-          <line
-            x1={0}
-            x2={width}
-            y1={headerHeight}
-            y2={headerHeight}
-            stroke={strokeColor}
-            strokeWidth={1}
-          />
+          {/* Header divider — drawn whenever any body row exists, like
+              v3's `hasBody` check. */}
+          {allBodies.length > 0 && (
+            <line
+              x1={0}
+              x2={width}
+              y1={headerHeight}
+              y2={headerHeight}
+              stroke={strokeColor}
+              strokeWidth={1}
+            />
+          )}
+          {mainBodies.map((b, i) =>
+            renderRow(b, i, headerHeight, width, textColor)
+          )}
+          {hasFallbackDivider && (
+            <line
+              x1={0}
+              x2={width}
+              y1={fallbackDividerY}
+              y2={fallbackDividerY}
+              stroke={strokeColor}
+              strokeWidth={1}
+              strokeDasharray="3 2"
+              opacity={0.6}
+            />
+          )}
+          {fallbackBodies.map((b, i) =>
+            renderRow(b, i, fallbackDividerY, width, textColor)
+          )}
         </svg>
       </div>
       <PopoverManager

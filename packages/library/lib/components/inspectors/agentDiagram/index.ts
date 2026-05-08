@@ -1,5 +1,5 @@
 /**
- * SA-4 AgentDiagram inspector registrations.
+ * SA-FIX-Agent AgentDiagram inspector registrations.
  *
  * Imported as a side-effect from `lib/components/inspectors/index.ts`,
  * which in turn is imported from `App.tsx`. Registers the panel-editor
@@ -7,13 +7,13 @@
  * (`registry.ts`); both `PropertiesPanel` and `PopoverManager` resolve
  * their bodies from that registry.
  *
- * Slot keys mirror the v4 `node.type` / `edge.type` strings declared in
- * `nodes/agentDiagram/index.ts` and the spec at
- * `docs/source/migrations/uml-v4-shape.md`.
+ * SA-FIX-Agent removed the `AgentStateBodyEditPanel` — body sections
+ * are now edited from `AgentStateEditPanel` (the parent inspector),
+ * since the bodies live inline on `AgentState.data.bodies` rather than
+ * as separate React Flow nodes.
  */
 import { registerInspector } from "../registry"
 import { AgentStateEditPanel } from "./AgentStateEditPanel"
-import { AgentStateBodyEditPanel } from "./AgentStateBodyEditPanel"
 import { AgentIntentEditPanel } from "./AgentIntentEditPanel"
 import { AgentIntentBodyEditPanel } from "./AgentIntentBodyEditPanel"
 import { AgentIntentDescriptionEditPanel } from "./AgentIntentDescriptionEditPanel"
@@ -23,9 +23,6 @@ import { AgentDiagramEdgeEditPanel } from "./AgentDiagramEdgeEditPanel"
 import { AgentDiagramInitEdgeEditPanel } from "./AgentDiagramInitEdgeEditPanel"
 
 registerInspector("AgentState", "edit", AgentStateEditPanel)
-// AgentStateBody and AgentStateFallbackBody share the same panel body.
-registerInspector("AgentStateBody", "edit", AgentStateBodyEditPanel)
-registerInspector("AgentStateFallbackBody", "edit", AgentStateBodyEditPanel)
 registerInspector("AgentIntent", "edit", AgentIntentEditPanel)
 registerInspector("AgentIntentBody", "edit", AgentIntentBodyEditPanel)
 registerInspector(
@@ -47,7 +44,6 @@ registerInspector(
 )
 
 export * from "./AgentStateEditPanel"
-export * from "./AgentStateBodyEditPanel"
 export * from "./AgentIntentEditPanel"
 export * from "./AgentIntentBodyEditPanel"
 export * from "./AgentIntentDescriptionEditPanel"

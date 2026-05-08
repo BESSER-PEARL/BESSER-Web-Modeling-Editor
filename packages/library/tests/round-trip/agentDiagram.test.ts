@@ -1,22 +1,21 @@
 /**
- * SA-4 round-trip tests for the BESSER AgentDiagram migration.
+ * SA-FIX-Agent round-trip tests for the BESSER AgentDiagram migration.
  *
- * Asserts (per the SA-4 brief and `uml-v4-shape.md`):
+ * Asserts (per the SA-FIX-Agent brief):
  *
- *  1. v3 fixture → `migrateAgentDiagramV3ToV4` produces a v4 model with
- *     8 BESSER agent node types preserved, including bodies / intent
- *     bodies / descriptions as separate React-Flow children with
- *     `parentId` (mirrors SA-3's State pattern).
+ *  1. v3 fixture → `migrateAgentDiagramV3ToV4` produces a v4 model
+ *     where AgentState body rows are folded onto the parent's
+ *     `data.bodies` inline array (no longer separate React-Flow
+ *     children). Body rows retain their original v3 ids and
+ *     reply-type-driven extras for round-trip parity.
  *  2. `AgentRagElement` retains BOTH `dbCustomName` and `ragDatabaseName`
  *     verbatim (open question #5 resolution).
  *  3. The migrator collapses ALL FIVE legacy `AgentStateTransition`
- *     shapes onto the canonical v4 `AgentStateTransitionData` form. A
- *     dedicated parameterized test covers each shape individually.
- *  4. `convertV4ToV3Agent(v4)` is structurally invertible — the v4 → v3
- *     → v4 cycle produces the same canonical view (compared via a
- *     normalization function, not strict equality, because the inverse
- *     migrator emits ONE canonical v3 shape).
+ *     shapes onto the canonical v4 `AgentStateTransitionData` form.
+ *  4. `convertV4ToV3Agent(v4)` is structurally invertible.
  *  5. Editing one transition's `name` is preserved through the cycle.
+ *  6. The inverse migrator emits AgentStateBody/Fallback elements back
+ *     to v3 with the original ids preserved (key new test).
  */
 import { describe, it, expect } from "vitest"
 import {
@@ -42,27 +41,38 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(v4.version).toMatch(/^4\./)
     expect(v4.type).toBe("AgentDiagram")
 
-    // 14 element ids in the fixture, all should land as v4 nodes
-    // (bodies / intent bodies / descriptions are NOT collapsed per
-    // the SA-4 brief, mirroring SA-3's pattern).
-    expect(v4.nodes.length).toBe(14)
+    // SA-FIX-Agent: AgentStateBody / AgentStateFallbackBody rows are
+    // folded onto the parent's `data.bodies` array, so the 14 v3
+    // element ids land as 11 v4 nodes (the 3 body/fallback rows are
+    // absorbed into their parent state).
+    expect(v4.nodes.length).toBe(11)
 
-    // AgentState — retains stereotype/replyType.
+    // AgentState — retains stereotype/replyType + inline bodies.
     const greet = v4.nodes.find((n) => n.id === "as-Greet")!
     expect(greet.type).toBe("AgentState")
-    expect((greet.data as AgentStateNodeProps).replyType).toBe("text")
+    const greetData = greet.data as AgentStateNodeProps
+    expect(greetData.replyType).toBe("text")
+    expect(greetData.bodies).toBeDefined()
+    expect(greetData.bodies!.length).toBe(2)
+    const greetBody = greetData.bodies!.find((b) => b.kind !== "fallback")!
+    expect(greetBody.id).toBe("asb-Greet-1")
+    expect(greetBody.name).toBe("Hello there!")
+    expect(greetBody.replyType).toBe("text")
+    const greetFallback = greetData.bodies!.find((b) => b.kind === "fallback")!
+    expect(greetFallback.id).toBe("asfb-Greet-1")
 
     const help = v4.nodes.find((n) => n.id === "as-Help")!
     expect(help.type).toBe("AgentState")
-    expect((help.data as AgentStateNodeProps).replyType).toBe("rag")
+    const helpData = help.data as AgentStateNodeProps
+    expect(helpData.replyType).toBe("rag")
+    expect(helpData.bodies?.length).toBe(1)
+    expect(helpData.bodies?.[0].id).toBe("asb-Help-1")
+    expect(helpData.bodies?.[0].replyType).toBe("rag")
 
-    // Bodies / fallback-bodies via parentId.
-    const body1 = v4.nodes.find((n) => n.id === "asb-Greet-1")!
-    expect(body1.type).toBe("AgentStateBody")
-    expect(body1.parentId).toBe("as-Greet")
-    const fallback1 = v4.nodes.find((n) => n.id === "asfb-Greet-1")!
-    expect(fallback1.type).toBe("AgentStateFallbackBody")
-    expect(fallback1.parentId).toBe("as-Greet")
+    // Body rows must NOT exist as standalone v4 nodes anymore.
+    expect(v4.nodes.find((n) => n.id === "asb-Greet-1")).toBeUndefined()
+    expect(v4.nodes.find((n) => n.id === "asfb-Greet-1")).toBeUndefined()
+    expect(v4.nodes.find((n) => n.id === "asb-Help-1")).toBeUndefined()
 
     // Intent + intent body + description.
     const greetIntent = v4.nodes.find((n) => n.id === "ai-Greeting")!
@@ -90,8 +100,7 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     const initEdge = v4.edges.find((e) => e.id === "init-edge-1")!
     expect(initEdge.type).toBe("AgentStateTransitionInit")
 
-    // 4 transitions — covering all five legacy shapes (shape5 lives in
-    // the dedicated parametric test below).
+    // 4 transitions — covering all five legacy shapes.
     const trans = v4.edges.filter((e) => e.type === "AgentStateTransition")
     expect(trans).toHaveLength(4)
 
@@ -135,7 +144,7 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
       targetValue: "10",
     })
 
-    // Shape #4 — legacy flat custom (`condition: 'custom_transition'`).
+    // Shape #4 — legacy flat custom.
     const t4 = v4.edges.find((e) => e.id === "trans-shape4")!
     expect((t4.data as { transitionType: string }).transitionType).toBe(
       "custom"
@@ -155,17 +164,6 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     const v3Round = convertV4ToV3Agent(v4)
     const v4Again = migrateAgentDiagramV3ToV4(v3Round)
 
-    // Normalization function — strips `legacyShape` and `legacy` from
-    // edge data, since the inverse migrator emits one canonical v3
-    // shape rather than reproducing the original. Compares the
-    // information-equivalent canonical fields only.
-    //
-    // SA-2.2 #28: `AgentIntentDescription` and `AgentIntentObjectComponent`
-    // are EXTRA-in-v4 child types — v3 has no matching element type
-    // (see `agent-state-diagram/index.ts:AgentElementType`). The
-    // exporter drops them and rolls description text up to the parent
-    // intent's `intent_description`, so they're filtered out of the
-    // round-trip equality check.
     const canonical = (m: typeof v4) => ({
       type: m.type,
       nodes: m.nodes
@@ -179,7 +177,6 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
           type: n.type,
           parentId: n.parentId ?? null,
           name: (n.data as { name?: string }).name ?? "",
-          // Agent-specific fields we care about for round-trip.
           replyType: (n.data as { replyType?: string }).replyType ?? null,
           ragDatabaseName:
             (n.data as { ragDatabaseName?: string }).ragDatabaseName ?? null,
@@ -188,6 +185,28 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
           intent_description:
             (n.data as { intent_description?: string })
               .intent_description ?? null,
+          // SA-FIX-Agent: inline bodies — compare by id + key fields.
+          bodies: (
+            (n.data as {
+              bodies?: Array<{
+                id: string
+                kind: string
+                name?: string
+                replyType?: string
+                ragDatabaseName?: string
+                dbCustomName?: string
+              }>
+            }).bodies ?? []
+          )
+            .map((b) => ({
+              id: b.id,
+              kind: b.kind,
+              name: b.name ?? "",
+              replyType: b.replyType ?? null,
+              ragDatabaseName: b.ragDatabaseName ?? null,
+              dbCustomName: b.dbCustomName ?? null,
+            }))
+            .sort((a, b) => a.id.localeCompare(b.id)),
         }))
         .sort((a, b) => a.id.localeCompare(b.id)),
       edges: m.edges
@@ -239,20 +258,44 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
       "renamed-custom-edge"
     )
   })
+
+  it("re-emits inline bodies as v3 elements with original ids preserved", () => {
+    // SA-FIX-Agent key new test.
+    const v4 = migrateAgentDiagramV3ToV4(agentV3 as never)
+    const v3Round = convertV4ToV3Agent(v4)
+
+    expect(v3Round.elements["asb-Greet-1"]).toBeDefined()
+    expect(v3Round.elements["asb-Greet-1"].type).toBe("AgentStateBody")
+    expect(v3Round.elements["asb-Greet-1"].owner).toBe("as-Greet")
+
+    expect(v3Round.elements["asfb-Greet-1"]).toBeDefined()
+    expect(v3Round.elements["asfb-Greet-1"].type).toBe(
+      "AgentStateFallbackBody"
+    )
+    expect(v3Round.elements["asfb-Greet-1"].owner).toBe("as-Greet")
+
+    expect(v3Round.elements["asb-Help-1"]).toBeDefined()
+    expect(v3Round.elements["asb-Help-1"].type).toBe("AgentStateBody")
+    expect(v3Round.elements["asb-Help-1"].owner).toBe("as-Help")
+
+    const greet = v3Round.elements["as-Greet"] as {
+      bodies?: string[]
+      fallbackBodies?: string[]
+    }
+    expect(greet.bodies).toEqual(["asb-Greet-1"])
+    expect(greet.fallbackBodies).toEqual(["asfb-Greet-1"])
+  })
 })
 
 /**
  * Parameterized round-trip test for the 5 legacy `AgentStateTransition`
- * shapes. Each fixture covers exactly one historical wire form; the
- * migrator must collapse them all to the canonical v4 shape and round
- * trip via the inverse migrator + a second migration.
+ * shapes.
  */
 describe("AgentStateTransition shape parameterized round-trip", () => {
   type ShapeCase = {
     name: string
     fixture: unknown
     expectedTransitionType: "predefined" | "custom"
-    /** Predicate to verify the canonical v4 shape after migration. */
     verify: (data: any) => void
   }
 
@@ -312,7 +355,6 @@ describe("AgentStateTransition shape parameterized round-trip", () => {
 
   cases.forEach((c) => {
     it(c.name, () => {
-      // First migration: v3 → v4
       const v4 = migrateAgentDiagramV3ToV4(c.fixture as never)
       const transition = v4.edges.find(
         (e) => e.type === "AgentStateTransition"
@@ -322,7 +364,6 @@ describe("AgentStateTransition shape parameterized round-trip", () => {
       )
       c.verify(transition.data)
 
-      // Round-trip: v4 → v3 → v4
       const v3Round = convertV4ToV3Agent(v4)
       const v4Again = migrateAgentDiagramV3ToV4(v3Round)
       const tAgain = v4Again.edges.find(
@@ -331,7 +372,6 @@ describe("AgentStateTransition shape parameterized round-trip", () => {
       expect((tAgain.data as any).transitionType).toBe(
         c.expectedTransitionType
       )
-      // Canonical fields must be preserved.
       c.verify(tAgain.data)
     })
   })
@@ -339,18 +379,10 @@ describe("AgentStateTransition shape parameterized round-trip", () => {
 
 /**
  * SA-2.2 #28 regression: ensure the v4-only `AgentIntentDescription` /
- * `AgentIntentObjectComponent` child types are dropped on export AND
- * their text-bearing data is preserved on the parent intent's v3
- * `intent_description` field. The v3 `AgentElementType` registry
- * (`packages/editor/.../agent-state-diagram/index.ts`) does NOT include
- * either child type, so emitting them through the v3 wire form would
- * cause silent data loss when v3 deserialisers see an unknown element
- * type.
+ * `AgentIntentObjectComponent` child types are dropped on export.
  */
 describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () => {
   it("rolls AgentIntentDescription child name up to the parent intent's intent_description on export, and skips both EXTRA-in-v4 child types", () => {
-    // Build a v4-shaped fixture directly (synthetic — we don't need a v3
-    // file because the codepath under test is v4 → v3).
     const v4 = {
       version: "4.0.0" as const,
       type: "AgentDiagram" as const,
@@ -361,8 +393,6 @@ describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () 
           position: { x: 0, y: 0 },
           width: 200,
           height: 80,
-          // Note: parent intent_description left undefined to force the
-          // exporter to roll up the child's `name` instead.
           data: { name: "TestIntent" },
         },
         {
@@ -398,7 +428,6 @@ describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () 
 
     const v3 = convertV4ToV3Agent(v4)
 
-    // The parent intent must carry the description text on the v3 wire.
     const v3Intent = v3.elements["ai-Test"] as {
       intent_description?: string
     }
@@ -407,12 +436,8 @@ describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () 
       "Description rolled up to parent"
     )
 
-    // Both EXTRA-in-v4 child types must be absent from the v3 elements
-    // map — emitting them would produce v3-side data corruption.
     expect(v3.elements["aid-Test-1"]).toBeUndefined()
     expect(v3.elements["aioc-Test-1"]).toBeUndefined()
-
-    // The legitimate v3 child type (AgentIntentBody) must survive.
     expect(v3.elements["aib-Test-1"]).toBeDefined()
   })
 

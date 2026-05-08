@@ -101,21 +101,37 @@ export const RagDbFields: React.FC<RagDbFieldsProps> = ({
               </Select>
             </Stack>
           ) : (
-            <MuiTextField
-              size="small"
-              variant="outlined"
-              fullWidth
-              label="ragDatabaseName"
-              value={value.ragDatabaseName ?? ""}
-              onChange={(e) =>
-                onChange({ ragDatabaseName: e.target.value })
-              }
-              helperText={
-                ragDatabaseOptions && ragDatabaseOptions.length === 0
-                  ? "No AgentRagElement nodes available."
-                  : undefined
-              }
-            />
+            // PC-7 #3: when no AgentRagElement exists in the diagram,
+            // present a disabled dropdown plus a helper line nudging the
+            // user to drop one onto the canvas first. This replaces the
+            // prior free-text fallback (which made it possible to write
+            // a name that doesn't resolve to any RAG element).
+            <Stack
+              direction="column"
+              spacing={0.5}
+              sx={{ display: "flex", flexDirection: "column" }}
+            >
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Typography variant="caption" sx={{ minWidth: 110 }}>
+                  ragDatabaseName
+                </Typography>
+                <Select
+                  size="small"
+                  disabled
+                  value=""
+                  displayEmpty
+                  sx={{ flex: 1 }}
+                >
+                  <MenuItem value="">— no RAG databases —</MenuItem>
+                </Select>
+              </Stack>
+              <Typography
+                variant="caption"
+                sx={{ opacity: 0.7, fontStyle: "italic" }}
+              >
+                Create an AgentRagElement from the palette first.
+              </Typography>
+            </Stack>
           )}
         </>
       )}
