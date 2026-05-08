@@ -5,7 +5,6 @@ import {
   parseDiagramType,
   mapFromReactFlowNodeToBesserNode,
   mapFromReactFlowEdgeToBesserEdge,
-  DeepPartial,
   filterRenderedElements,
   getSVG,
   getRenderedDiagramBounds,
@@ -37,6 +36,16 @@ import {
 import * as Y from "yjs"
 import { StoreApi } from "zustand"
 import * as Besser from "./typings"
+import {
+  addBesserErrorListener,
+  emitBesserError,
+  type BesserError,
+} from "@/services/errors"
+
+// SA-FIX-Editor PC-12.7: re-export the warning channel from the editor
+// barrel so external consumers can `import { BesserError, emitBesserError }`
+// from `@besser/wme` without reaching into `services/errors`.
+export { emitBesserError, type BesserError }
 
 export class BesserEditor {
   private root: ReactDOM.Root
@@ -237,16 +246,20 @@ export class BesserEditor {
 
   /**
    * renders a model as a svg and returns it. Therefore the svg is temporarily added to the dom and removed after it has been rendered.
+   *
+   * SA-FIX-Editor PC-12.10: the third positional `theme` parameter has
+   * been dropped — the BESSER theme is applied via CSS variables on the
+   * embedding document (`--besser-*`), so a per-call style override has
+   * no path to actually flow into the rendered SVG. Passing one was a
+   * silent no-op (`void theme`) and confused integrators. Removing it
+   * keeps the type signature honest.
    * @param model the BESSER WME model to export as a svg
    * @param options options to change the export behavior (add margin, exclude element ...)
-   * @param theme the theme which should be applied on the svg
    */
   static async exportModelAsSvg(
     model: Besser.UMLModel,
-    options?: Besser.ExportOptions,
-    theme?: DeepPartial<Besser.Styles>
+    options?: Besser.ExportOptions
   ): Promise<Besser.SVG> {
-    void theme
     const container = document.createElement("div")
     container.style.display = "flex"
     container.style.width = "4000px"
@@ -472,12 +485,114 @@ export class BesserEditor {
   set model(model: Besser.UMLModel) {
     const { nodes, edges, assessments, interactive } = model
 
+    // SA-FIX-Editor PC-12.9: replacing the model wholesale should also
+    // discard accumulated undo history — a user shouldn't be able to
+    // "undo" past a programmatic model swap into the previous diagram's
+    // state. v3 webapp call sites achieved this via the
+    // destroy+recreate (`editorRevision++`) hack; clearing the existing
+    // `UndoManager` here lets consumers keep the same editor instance.
+    const { undoManager } = this.diagramStore.getState()
+    undoManager?.clear()
+
     this.diagramStore.getState().setNodesAndEdges(nodes, edges)
     this.diagramStore.getState().setAssessments(assessments)
     this.diagramStore.getState().setInteractive(interactive)
     this.metadataStore
       .getState()
       .updateMetaData(model.title, parseDiagramType(model.type))
+  }
+
+  /**
+   * SA-FIX-Editor PC-12.5: replace the canvas selection. Mirrors the v3
+   * `editor.select(ids)` API. Filters to known node/edge ids so callers
+   * can pass a stale id set without surprising behaviour.
+   */
+  public select(ids: string[]): void {
+    const { nodes, edges, setSelectedElementsId } = this.diagramStore.getState()
+    const known = new Set<string>([
+      ...nodes.map((n) => n.id),
+      ...edges.map((e) => e.id),
+    ])
+    const filtered = ids.filter((id) => known.has(id))
+    setSelectedElementsId(filtered)
+  }
+
+  /**
+   * SA-FIX-Editor PC-12.6: subscribe to canvas selection changes.
+   * Coalesces consecutive selection mutations within the same tick into
+   * a single callback (`queueMicrotask` debounces to one tick). Returns
+   * a numeric subscriber id compatible with `unsubscribe(id)`, matching
+   * the existing `subscribeToModelChange` shape.
+   */
+  public subscribeToSelectionChange(
+    callback: (selectedElementIds: string[]) => void
+  ): number {
+    const subscriberId = this.getNewSubscriptionId()
+    let scheduled = false
+    const unsubscribeCallback = this.diagramStore.subscribe((state, prev) => {
+      if (state.selectedElementIds === prev.selectedElementIds) return
+      if (scheduled) return
+      scheduled = true
+      queueMicrotask(() => {
+        scheduled = false
+        callback([...this.diagramStore.getState().selectedElementIds])
+      })
+    })
+    this.subscribers[subscriberId] = unsubscribeCallback
+    return subscriberId
+  }
+
+  /**
+   * SA-FIX-Editor PC-12.7: subscribe to non-fatal warnings emitted from
+   * inside the library. Replaces the v3 `subscribeToApollonErrors` after
+   * SA-DEBRAND. Returns a numeric id usable with `unsubscribe(id)`.
+   */
+  public subscribeToBesserErrors(
+    callback: (err: BesserError) => void
+  ): number {
+    const subscriberId = this.getNewSubscriptionId()
+    const unsubscribeCallback = addBesserErrorListener(callback)
+    this.subscribers[subscriberId] = unsubscribeCallback
+    return subscriberId
+  }
+
+  /**
+   * @deprecated Use `subscribeToBesserErrors` instead. Alias retained
+   * so v3 webapp call sites keep type-checking during the SA-DEBRAND
+   * transition.
+   */
+  public subscribeToApollonErrors(
+    callback: (err: BesserError) => void
+  ): number {
+    return this.subscribeToBesserErrors(callback)
+  }
+
+  /**
+   * SA-FIX-Editor PC-12.7: publish a non-fatal warning. Library callers
+   * use this when they reject a malformed model or fall back to a
+   * default. Subscribers attached via `subscribeToBesserErrors` receive
+   * the payload.
+   */
+  public emitError(err: BesserError | string): void {
+    const payload: BesserError =
+      typeof err === "string" ? { message: err } : err
+    emitBesserError(payload)
+  }
+
+  /**
+   * SA-FIX-Editor PC-12.8: external undo. Proxies the Yjs `UndoManager`
+   * already wired in `diagramStore`. No-op when collaboration is on
+   * (the manager isn't initialised in that path) or the stack is empty.
+   */
+  public undo(): void {
+    this.diagramStore.getState().undo()
+  }
+
+  /**
+   * SA-FIX-Editor PC-12.8: external redo. See `undo()` above.
+   */
+  public redo(): void {
+    this.diagramStore.getState().redo()
   }
 
   public getSelectedElements(): string[] {

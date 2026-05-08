@@ -8,6 +8,10 @@
  * `getAvailableAssociations`, `getClassHierarchy`) preserved verbatim in
  * shape — internals walk the v4 arrays.
  */
+// SA-FIX-Editor PC-12.7: route non-fatal warnings through the editor's
+// pub/sub so consumers attached via `subscribeToBesserErrors` see them.
+// The console.warn/error fall-backs below stay for dev-tools visibility.
+import { emitBesserError } from "@/services/errors"
 
 /**
  * Interface for class diagram data structure (v4 wire shape).
@@ -225,6 +229,11 @@ export class DiagramBridgeService implements IDiagramBridgeService {
         })
     } catch (error) {
       console.error("Error extracting classes from diagram data:", error)
+      emitBesserError({
+        kind: "diagramBridge.extractClasses",
+        message: "Malformed class-diagram payload — failed to extract classes",
+        cause: error,
+      })
       return []
     }
   }
@@ -362,6 +371,11 @@ export class DiagramBridgeService implements IDiagramBridgeService {
       return associations
     } catch (error) {
       console.error("Error extracting associations from diagram data:", error)
+      emitBesserError({
+        kind: "diagramBridge.extractAssociations",
+        message: "Malformed class-diagram payload — failed to extract associations",
+        cause: error,
+      })
       return []
     }
   }

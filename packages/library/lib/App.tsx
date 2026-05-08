@@ -154,7 +154,13 @@ function App({ onReactFlowInit }: AppProps) {
         <AlignmentGuides />
         <AssessmentSelectionDebug />
       </ReactFlow>
-      {mode === BesserMode.Modelling && showPropertiesPanel && <PropertiesPanel />}
+      {/* SA-FIX-Editor PC-11.2: drop the `mode === Modelling` gate so the
+          properties panel mounts in Assessment mode too. The panel itself
+          decides what to render per-mode (edit / feedbackGive /
+          feedbackSee) via the inspector registry. PopoverManager already
+          mutually-excludes against `usePropertiesPanel`, so without this
+          mounting fix Assessment mode showed neither inspector surface. */}
+      {showPropertiesPanel && mode !== BesserMode.Exporting && <PropertiesPanel />}
       <ScrollOverlay />
     </div>
   )

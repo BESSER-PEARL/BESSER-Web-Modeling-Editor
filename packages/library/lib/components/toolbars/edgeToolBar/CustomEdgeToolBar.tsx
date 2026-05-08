@@ -12,6 +12,13 @@ interface CustomEdgeToolbarProps {
   onEditClick: (event: React.MouseEvent<HTMLElement>) => void
   onDeleteClick: (event: React.MouseEvent<HTMLElement>) => void
   anchorRef: React.RefObject<SVGForeignObjectElement>
+  /**
+   * SA-FIX-Editor PC-11.1: when the right-side properties panel is the
+   * active inspector surface, callers pass `showEdit={false}` to hide
+   * the pencil — the panel auto-shows on selection so the floating
+   * affordance is duplicate UI.
+   */
+  showEdit?: boolean
 }
 
 export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
@@ -20,6 +27,7 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
   onEditClick,
   onDeleteClick,
   anchorRef,
+  showEdit = true,
 }) => {
   const isDiagramModifiable = useDiagramModifiable()
   const selected = useIsOnlyThisElementSelected(edgeId)
@@ -81,23 +89,25 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
           >
             <DeleteIcon style={{ width: 16, height: 16 }} />
           </Box>
-          <Box
-            sx={{
-              width: "16px",
-              height: "16px",
-              backgroundColor: "var(--besser-background, white)",
-              borderRadius: 1,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              onEditClick(e)
-            }}
-          >
-            <EditIcon style={{ width: 16, height: 16 }} />
-          </Box>
+          {showEdit && (
+            <Box
+              sx={{
+                width: "16px",
+                height: "16px",
+                backgroundColor: "var(--besser-background, white)",
+                borderRadius: 1,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onEditClick(e)
+              }}
+            >
+              <EditIcon style={{ width: 16, height: 16 }} />
+            </Box>
+          )}
         </Box>
       )}
     </foreignObject>

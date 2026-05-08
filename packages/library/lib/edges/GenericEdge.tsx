@@ -8,6 +8,7 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import AssessmentIcon from "@/components/svgs/AssessmentIcon"
 import { DiagramEdgeType } from "."
 import { Assessment } from "@/typings"
+import { useUsePropertiesPanel } from "@/store/settingsStore"
 
 export interface BaseEdgeProps extends ExtendedEdgeProps {
   diagramType?: "class" | "usecase" | "activity" | "component" | "deployment"
@@ -190,6 +191,10 @@ export const CommonEdgeElements = ({
   type: string
 }) => {
   const nodeScore = assessments[id]?.score
+  // SA-FIX-Editor PC-11.1: same rationale as the node toolbar — when the
+  // properties panel is the active inspector surface, the floating pencil
+  // on edges is redundant and reads as duplicate UI.
+  const usePropertiesPanel = useUsePropertiesPanel()
 
   return (
     <>
@@ -197,6 +202,7 @@ export const CommonEdgeElements = ({
         edgeId={id}
         anchorRef={anchorRef}
         position={pathMiddlePosition}
+        showEdit={!usePropertiesPanel}
         onEditClick={() => setPopOverElementId(id)}
         onDeleteClick={handleDelete}
       />

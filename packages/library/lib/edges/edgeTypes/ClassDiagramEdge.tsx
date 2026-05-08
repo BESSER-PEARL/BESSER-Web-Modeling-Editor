@@ -16,6 +16,7 @@ import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
 import { AssessmentSelectableWrapper } from "@/components"
 import { getCustomColorsFromDataForEdge } from "@/utils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
+import { useSettingsStore } from "@/store/settingsStore"
 
 export const ClassDiagramEdge = ({
   id,
@@ -102,6 +103,19 @@ export const ClassDiagramEdge = ({
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
+  // SA-FIX-Editor PC-11.4: wire `showAssociationNames` to the rendered
+  // edge. v3 stored the user-typed association name on `data.name`
+  // (matches `ClassEdgeEditPanel`); when the global setting is on we
+  // render that name centred on the path. Inheritance / realization edges
+  // never have a name and the empty-string guard suppresses the label.
+  const showAssociationNames = useSettingsStore(
+    (s) => s.showAssociationNames
+  )
+  const associationName =
+    typeof (data as { name?: unknown })?.name === "string"
+      ? ((data as { name?: string }).name ?? "")
+      : ""
+
   return (
     <AssessmentSelectableWrapper elementId={id} asElement="g">
       <FeedbackDropzone elementId={id} asElement="path" elementType={type}>
@@ -186,6 +200,28 @@ export const ClassDiagramEdge = ({
           targetPosition={targetPosition}
           textColor={textColor}
         />
+
+        {/* SA-FIX-Editor PC-11.4: live association-name label, gated on
+            the `showAssociationNames` setting. Mirrors the v3 mid-edge
+            label position; centre-anchored above the midpoint. */}
+        {showAssociationNames && associationName && (
+          <text
+            x={edgeData.pathMiddlePosition.x}
+            y={edgeData.pathMiddlePosition.y - 8}
+            textAnchor="middle"
+            dominantBaseline="auto"
+            style={{
+              fontSize: "12px",
+              fontWeight: 600,
+              fill: textColor,
+              userSelect: "none",
+              pointerEvents: "none",
+            }}
+            className="nodrag nopan"
+          >
+            {associationName}
+          </text>
+        )}
 
         <CommonEdgeElements
           id={id}
