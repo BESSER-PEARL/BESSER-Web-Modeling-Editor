@@ -248,6 +248,10 @@ export const LocalStorageRepository = {
     return stored ? (JSON.parse(JSON.stringify(stored)) as UMLModel) : null;
   },
 
+  getAllAgentBaseModels: (): Record<string, UMLModel> => {
+    return JSON.parse(JSON.stringify(getStoredAgentBaseModels())) as Record<string, UMLModel>;
+  },
+
   saveUserProfile: (name: string, model: UMLModel) => {
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -427,6 +431,82 @@ export const LocalStorageRepository = {
     const legacyKey = legacyDeployLinkedRepoKey(projectId, target);
     if (legacyKey) {
       localStorage.removeItem(legacyKey);
+    }
+  },
+
+  /**
+   * Merge personalization data carried in a project-export envelope into
+   * existing localStorage state. Existing entries win on id collisions —
+   * the user's already-saved configurations / profiles / mappings are never
+   * overwritten by an import. Items with new ids are appended.
+   *
+   * ``activeAgentConfigurationId`` is applied only when the user has no
+   * active configuration set yet, so importing a project doesn't yank the
+   * active config out from under an in-progress session.
+   */
+  mergeImportedPersonalization: (data: {
+    agentConfigurations?: StoredAgentConfiguration[];
+    userProfiles?: StoredUserProfile[];
+    agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
+    activeAgentConfigurationId?: string | null;
+    agentBaseModels?: Record<string, UMLModel>;
+  }): void => {
+    if (Array.isArray(data.userProfiles) && data.userProfiles.length > 0) {
+      const existing = getStoredUserProfiles();
+      const existingIds = new Set(existing.map((p) => p.id));
+      const merged = [...existing];
+      for (const incoming of data.userProfiles) {
+        if (!existingIds.has(incoming.id)) {
+          merged.push(JSON.parse(JSON.stringify(incoming)));
+        }
+      }
+      persistUserProfiles(merged);
+    }
+
+    if (Array.isArray(data.agentConfigurations) && data.agentConfigurations.length > 0) {
+      const existing = getStoredAgentConfigurations();
+      const existingIds = new Set(existing.map((c) => c.id));
+      const merged = [...existing];
+      for (const incoming of data.agentConfigurations) {
+        if (!existingIds.has(incoming.id)) {
+          merged.push(JSON.parse(JSON.stringify(incoming)));
+        }
+      }
+      persistAgentConfigurations(merged);
+    }
+
+    if (Array.isArray(data.agentProfileMappings) && data.agentProfileMappings.length > 0) {
+      const existing = getStoredAgentProfileMappings();
+      const existingIds = new Set(existing.map((m) => m.id));
+      const merged = [...existing];
+      for (const incoming of data.agentProfileMappings) {
+        if (!existingIds.has(incoming.id)) {
+          merged.push(JSON.parse(JSON.stringify(incoming)));
+        }
+      }
+      persistAgentProfileMappings(merged);
+    }
+
+    if (data.agentBaseModels && typeof data.agentBaseModels === 'object') {
+      const existing = getStoredAgentBaseModels();
+      const merged: AgentBaseModelMap = { ...existing };
+      for (const [diagramId, model] of Object.entries(data.agentBaseModels)) {
+        if (!(diagramId in merged) && model) {
+          merged[diagramId] = JSON.parse(JSON.stringify(model)) as UMLModel;
+        }
+      }
+      persistAgentBaseModels(merged);
+    }
+
+    if (
+      typeof data.activeAgentConfigurationId === 'string' &&
+      data.activeAgentConfigurationId &&
+      !localStorage.getItem(localStorageActiveAgentConfiguration)
+    ) {
+      const allConfigs = getStoredAgentConfigurations();
+      if (allConfigs.some((c) => c.id === data.activeAgentConfigurationId)) {
+        safeSetItem(localStorageActiveAgentConfiguration, data.activeAgentConfigurationId);
+      }
     }
   },
 

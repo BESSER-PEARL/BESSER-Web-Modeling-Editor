@@ -8,14 +8,25 @@ import {
   getActiveDiagram,
 } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
+import { LocalStorageRepository } from '../storage/local-storage-repository';
+import {
+  StoredAgentConfiguration,
+  StoredAgentProfileConfigurationMapping,
+  StoredUserProfile,
+} from '../storage/local-storage-types';
 import { BACKEND_URL } from '../../constants/constant';
-import { UMLDiagramType } from '@besser/wme';
+import { UMLDiagramType, UMLModel } from '@besser/wme';
 
 // Interface for V2 JSON export format
 interface V2ExportData {
   project: BesserProject;
   exportedAt: string;
   version: string;
+  agentConfigurations?: StoredAgentConfiguration[];
+  userProfiles?: StoredUserProfile[];
+  agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
+  activeAgentConfigurationId?: string | null;
+  agentBaseModels?: Record<string, UMLModel>;
 }
 
 // Interface for legacy import validation (V1 format)
@@ -247,8 +258,16 @@ function isGUIModelEmpty(guiModel: any): boolean {
   return false;
 }
 
+interface ImportedPersonalization {
+  agentConfigurations?: StoredAgentConfiguration[];
+  userProfiles?: StoredUserProfile[];
+  agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
+  activeAgentConfigurationId?: string | null;
+  agentBaseModels?: Record<string, UMLModel>;
+}
+
 // Store imported project using the project storage system
-function storeImportedProject(project: BesserProject): void {
+function storeImportedProject(project: BesserProject, personalization?: ImportedPersonalization): void {
   // Check if the imported GUI model is empty
   const importedGUIDiagram = getActiveDiagram(project, 'GUINoCodeDiagram');
   const importedGUIModel = importedGUIDiagram?.model;
@@ -274,6 +293,27 @@ function storeImportedProject(project: BesserProject): void {
   }
 
   ProjectStorageRepository.saveProject(project);
+
+  if (personalization) {
+    LocalStorageRepository.mergeImportedPersonalization(personalization);
+  }
+}
+
+function extractPersonalization(data: V2ExportData): ImportedPersonalization | undefined {
+  const has =
+    (Array.isArray(data.agentConfigurations) && data.agentConfigurations.length > 0) ||
+    (Array.isArray(data.userProfiles) && data.userProfiles.length > 0) ||
+    (Array.isArray(data.agentProfileMappings) && data.agentProfileMappings.length > 0) ||
+    (data.agentBaseModels && Object.keys(data.agentBaseModels).length > 0) ||
+    !!data.activeAgentConfigurationId;
+  if (!has) return undefined;
+  return {
+    agentConfigurations: data.agentConfigurations,
+    userProfiles: data.userProfiles,
+    agentProfileMappings: data.agentProfileMappings,
+    activeAgentConfigurationId: data.activeAgentConfigurationId,
+    agentBaseModels: data.agentBaseModels,
+  };
 }
 
 // Import from BUML (.py)
@@ -305,7 +345,7 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
       name: `${jsonData.project.name}`,
       createdAt: new Date().toISOString(),
     });
-    storeImportedProject(project);
+    storeImportedProject(project, extractPersonalization(jsonData));
     return project;
 
   } else if (validateLegacyImportData(jsonData)) {
@@ -348,7 +388,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           });
 
           // Store using project storage
-          storeImportedProject(importedProject);
+          storeImportedProject(importedProject, extractPersonalization(jsonData));
 
           console.log(`Project "${importedProject.name}" imported successfully (V2 format)`);
           resolve(importedProject);
