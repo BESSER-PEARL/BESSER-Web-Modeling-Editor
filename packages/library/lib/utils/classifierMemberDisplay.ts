@@ -124,26 +124,54 @@ export const formatDisplayName = (
       ? ` = ${member.defaultValue}`
       : ""
 
-  if (mode === "ER") {
-    if (member.name && member.attributeType) {
-      return `${derivedPrefix}${member.name}${optionalMarker}: ${member.attributeType}${defaultSuffix}`
-    }
-    return `${derivedPrefix}${member.name}${optionalMarker}${defaultSuffix}`
+  // SA-FIX-CLASS-FUND #8: defensively strip a leading visibility symbol
+  // and a trailing `: <type>` from the *raw* name when the structured
+  // `attributeType` is also present. Legacy palette defaults shipped a
+  // pre-formatted "+ attribute: Type" string in `name`; without this
+  // strip the row would render as "+ + attribute: Type: str" once the
+  // user toggled an id/optional/derived flag (which forces structured
+  // formatting). This matches v3 `displayName` semantics — the name
+  // stored is just the bare identifier; visibility / type live in the
+  // structured fields.
+  let bareName = member.name ?? ""
+  if (/^[+\-#~]\s/.test(bareName)) {
+    bareName = bareName.replace(/^[+\-#~]\s+/, "")
+  }
+  // Strip a legacy `: <Type>` suffix on attribute rows (no parentheses).
+  // Method rows preserve their `(…)` signature in `name` and only carry
+  // the return type via `attributeType`/`returnType`, so the regex
+  // explicitly excludes that case.
+  if (
+    member.attributeType &&
+    !bareName.includes("(") &&
+    /:\s*[^:]+$/.test(bareName)
+  ) {
+    bareName = bareName.replace(/\s*:\s*[^:]+$/, "")
   }
 
-  // UML mode (default)
-  if (member.name && member.attributeType) {
-    // Check if name already contains visibility symbol (legacy format)
-    if (/^[+\-#~]\s/.test(member.name)) {
-      return member.name
+  if (mode === "ER") {
+    if (bareName && member.attributeType) {
+      return `${derivedPrefix}${bareName}${optionalMarker}: ${member.attributeType}${defaultSuffix}`
     }
+    return `${derivedPrefix}${bareName}${optionalMarker}${defaultSuffix}`
+  }
+
+  // UML mode (default).
+  // SA-FIX-CLASS-FUND #6: id / externalId / derived / optional markers
+  // are appended unconditionally when their flags are set. Previously
+  // a legacy-format `name` ("+ x: Type") fell through a fast-path that
+  // skipped the markers entirely — see history. The fast-path is gone:
+  // we always strip the legacy prefix/suffix above and rebuild the
+  // canonical UML display string here. This matches v3
+  // `UMLClassifierMember.displayName` (`uml-classifier-member.ts:111`).
+  if (bareName && member.attributeType) {
     const idMarkers = [
       member.isId ? "id" : null,
       member.isExternalId ? "external id" : null,
     ].filter(Boolean)
     const idSuffix = idMarkers.length > 0 ? ` {${idMarkers.join(", ")}}` : ""
-    return `${visSymbol} ${derivedPrefix}${member.name}${optionalMarker}: ${member.attributeType}${defaultSuffix}${idSuffix}`
+    return `${visSymbol} ${derivedPrefix}${bareName}${optionalMarker}: ${member.attributeType}${defaultSuffix}${idSuffix}`
   }
   // Fallback to name for backward compatibility or simple display
-  return member.name
+  return bareName
 }

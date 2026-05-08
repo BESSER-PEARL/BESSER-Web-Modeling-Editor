@@ -446,7 +446,13 @@ const MethodRow: React.FC<MethodRowProps> = ({
           fullWidth
           placeholder="method name"
           value={row.name}
-          onChange={(e) => onPatch({ name: e.target.value })}
+          // SA-FIX-CLASS-FUND #3: method names are committed as Python
+          // identifiers (no spaces, no punctuation other than `_`).
+          // Mirrors the attribute-name sanitiser at the row above and
+          // v3 `uml-classifier-update.tsx:475`.
+          onChange={(e) =>
+            onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
+          }
         />
         <Tooltip
           title={showSettings ? "Hide parameters & code" : "Parameters & code"}
@@ -852,12 +858,35 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     )
   }
 
+  // SA-FIX-CLASS-FUND #10: when no name is provided, generate
+  // `attribute1`, `attribute2`, … by scanning existing attribute names
+  // for the highest `attribute<N>` (or `method<N>`) suffix. Mirrors the
+  // v3 add-row affordance (auto-named on click).
+  const nextAutoName = (
+    existing: ClassNodeElement[],
+    base: "attribute" | "method"
+  ): string => {
+    const re = new RegExp(`^${base}(\\d+)$`)
+    let max = 0
+    for (const r of existing) {
+      const m = r.name?.match(re)
+      if (m) {
+        const n = parseInt(m[1], 10)
+        if (Number.isFinite(n) && n > max) max = n
+      }
+    }
+    return `${base}${max + 1}`
+  }
+
   const addAttribute = (rawName: string) => {
-    const trimmed = rawName.trim()
-    if (!trimmed) return
+    const sanitised = rawName.trim().replace(/[^a-zA-Z0-9_]/g, "")
+    const data = (nodes.find((n) => n.id === elementId)?.data ??
+      {}) as ClassNodeProps
+    const attrName =
+      sanitised || nextAutoName(data.attributes ?? [], "attribute")
     const newAttr: ClassNodeElement = {
       id: generateUUID(),
-      name: trimmed.replace(/[^a-zA-Z0-9_]/g, ""),
+      name: attrName,
       attributeType: "str",
       visibility: "public",
     }
@@ -907,11 +936,16 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   const addMethod = (rawName: string) => {
-    const trimmed = rawName.trim()
-    if (!trimmed) return
+    // SA-FIX-CLASS-FUND #3 + #10: sanitise to Python identifier and
+    // fall back to `method1`, `method2`, … when the input is empty.
+    const sanitised = rawName.trim().replace(/[^a-zA-Z0-9_]/g, "")
+    const data = (nodes.find((n) => n.id === elementId)?.data ??
+      {}) as ClassNodeProps
+    const methodName =
+      sanitised || nextAutoName(data.methods ?? [], "method")
     const newMethod: ClassNodeElement = {
       id: generateUUID(),
-      name: trimmed,
+      name: methodName,
       visibility: "public",
       attributeType: "any",
       returnType: "any",
@@ -1007,7 +1041,16 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
       <DividerLine width="100%" />
 
-      <Typography variant="h6">Attributes</Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <Typography variant="h6">Attributes</Typography>
+        {/* SA-FIX-CLASS-FUND #10: explicit + button auto-names the new
+            row as `attribute1`, `attribute2`, … */}
+        <Tooltip title="Add attribute">
+          <IconButton size="small" onClick={() => addAttribute("")}>
+            <Typography variant="caption">+</Typography>
+          </IconButton>
+        </Tooltip>
+      </Stack>
       {nodeData.attributes.map((row) => (
         <AttributeRow
           key={row.id}
@@ -1022,7 +1065,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        placeholder="+ Add attribute (Enter)"
+        placeholder="+ Add attribute (Enter for auto-name)"
         value={newAttrName}
         onChange={onAttrChange}
         onKeyDown={onAttrKey}
@@ -1040,7 +1083,20 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           (see `uml-classifier-update.tsx:344`). v4 mirrors that hide rule. */}
       {nodeData.stereotype !== "Enumeration" && (
         <>
-          <Typography variant="h6">Methods</Typography>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Typography variant="h6">Methods</Typography>
+            {/* SA-FIX-CLASS-FUND #10: + button auto-names new method
+                as `method1`, `method2`, … */}
+            <Tooltip title="Add method">
+              <IconButton size="small" onClick={() => addMethod("")}>
+                <Typography variant="caption">+</Typography>
+              </IconButton>
+            </Tooltip>
+          </Stack>
           {nodeData.methods.map((row) => (
             <MethodRow
               key={row.id}

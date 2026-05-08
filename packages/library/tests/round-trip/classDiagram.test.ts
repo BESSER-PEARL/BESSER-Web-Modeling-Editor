@@ -426,4 +426,90 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
     expect(ocl.strokeDashArray).toBe("4 2")
     expect(ocl.markerEnd).toBe("url(#class-ocl-link-marker)")
   })
+
+  // ---- SA-FIX-CLASS-FUND regression tests (#1, #2, #4, #6, #8) ----
+
+  it("SA-FIX-CLASS-FUND #2: getDefaultEdgeType returns ClassBidirectional", async () => {
+    const { getDefaultEdgeType } = await import("@/utils/edgeUtils")
+    expect(getDefaultEdgeType("ClassDiagram")).toBe("ClassBidirectional")
+  })
+
+  it("SA-FIX-CLASS-FUND #1: ClassDiagram palette includes ClassOCLConstraint", async () => {
+    const { dropElementConfigs } = await import("@/constants")
+    const cfg = dropElementConfigs["ClassDiagram"]
+    const ocl = cfg.find((c) => c.type === "ClassOCLConstraint")
+    expect(ocl).toBeDefined()
+    expect(ocl!.defaultData?.expression).toBeTruthy()
+  })
+
+  it("SA-FIX-CLASS-FUND #4 + #5: ClassDiagram palette ships clean structured defaults", async () => {
+    const { dropElementConfigs } = await import("@/constants")
+    const cfg = dropElementConfigs["ClassDiagram"]
+    // Plain Class entry (empty attributes/methods).
+    const plain = cfg.find(
+      (c) =>
+        c.type === "class" &&
+        (c.defaultData?.name as string | undefined) === "Class" &&
+        Array.isArray(c.defaultData?.attributes) &&
+        (c.defaultData?.attributes as unknown[]).length === 0
+    )
+    expect(plain).toBeDefined()
+    // Pre-populated "Class with attributes" entry.
+    const withAttrs = cfg.find(
+      (c) =>
+        c.type === "class" &&
+        Array.isArray(c.defaultData?.attributes) &&
+        ((c.defaultData?.attributes as { name?: string; attributeType?: string }[]) ?? [])
+          .some((a) => a.name === "attribute" && a.attributeType === "str")
+    )
+    expect(withAttrs).toBeDefined()
+    // Enumeration literals are now Enum_1..Enum_3.
+    const en = cfg.find(
+      (c) =>
+        c.type === "class" &&
+        (c.defaultData?.stereotype as string | undefined) === "Enumeration"
+    )
+    expect(en).toBeDefined()
+    const literals = (en!.defaultData?.attributes as { name: string }[]) ?? []
+    expect(literals.map((l) => l.name)).toEqual(["Enum_1", "Enum_2", "Enum_3"])
+  })
+
+  it("SA-FIX-CLASS-FUND #6: id / externalId / derived / optional markers reach formatDisplayName", async () => {
+    const { formatDisplayName } = await import("@/utils/classifierMemberDisplay")
+    // id flag → trailing `{id}` marker.
+    expect(
+      formatDisplayName({
+        name: "code",
+        attributeType: "str",
+        visibility: "public",
+        isId: true,
+      })
+    ).toBe("+ code: str {id}")
+    // external id + optional + derived combo.
+    expect(
+      formatDisplayName({
+        name: "ref",
+        attributeType: "int",
+        visibility: "private",
+        isExternalId: true,
+        isOptional: true,
+        isDerived: true,
+      })
+    ).toBe("- /ref?: int {external id}")
+  })
+
+  it("SA-FIX-CLASS-FUND #8: legacy `+ name: Type` strings do not double-format", async () => {
+    const { formatDisplayName } = await import("@/utils/classifierMemberDisplay")
+    // Legacy palette emitted "+ attribute: Type" as the raw name.
+    // Once structured fields are added, formatDisplayName must NOT
+    // produce "+ + attribute: Type: str" — it strips the embedded
+    // visibility prefix and trailing type from the name first.
+    const out = formatDisplayName({
+      name: "+ attribute: Type",
+      attributeType: "str",
+      visibility: "public",
+      isId: true,
+    })
+    expect(out).toBe("+ attribute: str {id}")
+  })
 })

@@ -798,8 +798,13 @@ export const getDefaultEdgeType = (
   diagramType: UMLDiagramType
 ): DiagramEdgeType => {
   switch (diagramType) {
+    // SA-FIX-CLASS-FUND #2: BESSER ClassDiagram defaults to a
+    // bidirectional association. v3 truth — the palette's "drop a line"
+    // affordance creates a plain bidirectional edge, not a
+    // unidirectional one. (Inheritance / aggregation / composition stay
+    // explicit relationship picks.)
     case "ClassDiagram":
-      return "ClassUnidirectional"
+      return "ClassBidirectional"
     case "ActivityDiagram":
       return "ActivityControlFlow"
 

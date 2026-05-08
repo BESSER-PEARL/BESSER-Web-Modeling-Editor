@@ -48,12 +48,24 @@ export const RowBlockSection: FC<RowBlockSectionProps> = ({
                 height={itemHeight - LAYOUT.LINE_WIDTH}
                 fill={fillColor}
               />
+              {/* SA-FIX-CLASS-FUND #6: id / external-id markers paint
+                  the row name with an underline (and italic for
+                  external-id) — mirrors v3
+                  `uml-classifier-member-component.tsx:91` which set
+                  `textDecoration='underline'` on the SVG <text> when
+                  `isId` was true. The canonical text already carries
+                  `/` (derived) and `?` (optional) inline via
+                  `formatDisplayName`, so those are not duplicated here. */}
               <CustomText
                 x={padding}
                 y={15 + index * itemHeight}
                 dominantBaseline="middle"
                 textAnchor="start"
                 fill={textColor}
+                textDecoration={
+                  item.isId || item.isExternalId ? "underline" : undefined
+                }
+                fontStyle={item.isExternalId ? "italic" : undefined}
               >
                 {item.name}
               </CustomText>

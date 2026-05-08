@@ -13,6 +13,7 @@ import {
   ActivityObjectNodeSVG,
   ActivitySVG,
   ClassSVG,
+  ClassOCLConstraintSVG,
   UseCaseNodeSVG,
   UseCaseSystemNodeSVG,
   UseCaseActorNodeSVG,
@@ -43,7 +44,6 @@ import {
   BPMNDataStoreNodeSVG,
   BPMNPoolNodeSVG,
   BPMNGroupNodeSVG,
-  ColorDescriptionSVG,
   SfcStartNodeSVG,
   SfcStepNodeSVG,
   SfcJumpNodeSVG,
@@ -70,7 +70,7 @@ import {
   AgentIntentObjectComponentSVG,
 } from "@/components/svgs/nodes/agentDiagram"
 import {
-  UserModelNameSVG,
+  UserModelStaticPreviewSVG,
   UserModelIconSVG,
   getUserModelNamePaletteEntries,
 } from "@/components/svgs/nodes/userDiagram"
@@ -366,6 +366,14 @@ export type DropElementConfig = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly svg: React.FC<any>
   readonly marginTop?: number
+  /**
+   * SA-FIX-NN-DROPS: optional palette section header rendered ABOVE
+   * this entry. Used by `Sidebar.tsx` to group large palettes (e.g.
+   * NNDiagram) into v3 visual sections. When set on the first entry
+   * of a group, the sidebar prepends a divider + label before
+   * rendering the entry. Leave undefined to skip.
+   */
+  readonly sectionLabel?: string
 }
 
 /**
@@ -381,13 +389,47 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // (Package.tsx, Interface stereotype) so re-enabling is a one-line
     // change.
     {
+      // SA-FIX-CLASS-FUND #4 + #8: empty starter Class (no embedded
+      // "+ attribute: Type" string). The first row will be added via
+      // the inspector's auto-increment "Add attribute" affordance.
+      type: "class",
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 70,
+      defaultData: {
+        name: "Class",
+        methods: [],
+        attributes: [],
+      },
+      svg: ClassSVG,
+    },
+    // SA-FIX-CLASS-FUND #5: pre-populated Class entry mirroring v3
+    // default at `packages/editor/.../uml-class/uml-class.ts`. Drops
+    // with a starter attribute + method already filled in.
+    {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 100,
       defaultData: {
         name: "Class",
-        methods: [{ id: generateUUID(), name: "+ method()" }],
-        attributes: [{ id: generateUUID(), name: "+ attribute: Type" }],
+        methods: [
+          {
+            id: generateUUID(),
+            name: "method",
+            visibility: "public",
+            attributeType: "any",
+            returnType: "any",
+            parameters: [],
+            implementationType: "none",
+          },
+        ],
+        attributes: [
+          {
+            id: generateUUID(),
+            name: "attribute",
+            visibility: "public",
+            attributeType: "str",
+          },
+        ],
       },
       svg: ClassSVG,
     },
@@ -398,11 +440,32 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: {
         name: "Abstract",
         stereotype: ClassType.Abstract,
-        methods: [{ id: generateUUID(), name: "+ method()" }],
-        attributes: [{ id: generateUUID(), name: "+ attribute: Type" }],
+        methods: [
+          {
+            id: generateUUID(),
+            name: "method",
+            visibility: "public",
+            attributeType: "any",
+            returnType: "any",
+            parameters: [],
+            implementationType: "none",
+          },
+        ],
+        attributes: [
+          {
+            id: generateUUID(),
+            name: "attribute",
+            visibility: "public",
+            attributeType: "str",
+          },
+        ],
       },
       svg: ClassSVG,
     },
+    // SA-FIX-CLASS-FUND #4: Enumeration literals start as `Enum_1`,
+    // `Enum_2`, `Enum_3` — valid Python identifiers. Previous
+    // "Case 1" / "Case 2" defaults included whitespace which the
+    // round-trip / generator layer rejects.
     {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
@@ -412,12 +475,27 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
         stereotype: ClassType.Enumeration,
         methods: [],
         attributes: [
-          { id: generateUUID(), name: "Case 1" },
-          { id: generateUUID(), name: "Case 2" },
-          { id: generateUUID(), name: "Case 3" },
+          { id: generateUUID(), name: "Enum_1" },
+          { id: generateUUID(), name: "Enum_2" },
+          { id: generateUUID(), name: "Enum_3" },
         ],
       },
       svg: ClassSVG,
+    },
+    // SA-FIX-CLASS-FUND #1: ClassOCLConstraint palette entry. The node
+    // code + inspector were added earlier (SA-UX-FIX B1) but the palette
+    // was missing — so the constraint could not be dragged from the
+    // sidebar. Sticky-note shape preview matches the canvas rendering
+    // at `lib/nodes/classDiagram/ClassOCLConstraint.tsx`.
+    {
+      type: "ClassOCLConstraint",
+      width: 180,
+      height: 90,
+      defaultData: {
+        name: "constraint",
+        expression: "context Class inv: true",
+      },
+      svg: ClassOCLConstraintSVG,
     },
   ],
   [UMLDiagramType.ObjectDiagram]: [
@@ -921,10 +999,11 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 100,
       defaultData: {
-        name: "Alice: User",
+        name: "Alice",
+        className: "User",
         attributes: [],
       },
-      svg: UserModelNameSVG,
+      svg: UserModelStaticPreviewSVG,
     },
     {
       type: "UserModelIcon" as never,
@@ -941,12 +1020,26 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
   // populates slots on first edit; the round-trip migrator preserves
   // any keys the user adds.
   [UMLDiagramType.NNDiagram]: [
+    // SA-FIX-NN-DROPS: v3 visual section order — Structure → Layers →
+    // TensorOps → Configuration → Datasets. Section labels mirror v3
+    // `editor/src/main/packages/nn-diagram/nn-preview.ts`. NNReference
+    // is reordered next to NNContainer so both Structure entries sit
+    // together. The `sectionLabel` field on a group's first entry
+    // tells `Sidebar.tsx` to prepend a divider + heading.
     {
       type: "NNContainer" as never,
       width: 320,
       height: 200,
       defaultData: { name: "MyModel" },
       svg: NNContainerSVG,
+      sectionLabel: "NN Structure",
+    },
+    {
+      type: "NNReference" as never,
+      width: 140,
+      height: 40,
+      defaultData: { name: "ref" },
+      svg: NNReferenceSVG,
     },
     // SA-UX-FIX-2 (B4): Heights bumped from 60 → 140 so the v3 80×80
     // layer-kind icon (restored in `_NNLayerBase.tsx`) has room above
@@ -957,6 +1050,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 140,
       defaultData: { name: "Conv1D", attributes: {} },
       svg: Conv1DLayerSVG,
+      sectionLabel: "NN Layers",
     },
     {
       type: "Conv2DLayer" as never,
@@ -1056,6 +1150,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 140,
       defaultData: { name: "TensorOp", attributes: {} },
       svg: TensorOpSVG,
+      sectionLabel: "NN TensorOps",
     },
     {
       type: "Configuration" as never,
@@ -1063,6 +1158,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 140,
       defaultData: { name: "Configuration", attributes: {} },
       svg: ConfigurationSVG,
+      sectionLabel: "NN Configuration",
     },
     {
       type: "TrainingDataset" as never,
@@ -1070,6 +1166,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 140,
       defaultData: { name: "TrainingDataset", attributes: {} },
       svg: TrainingDatasetSVG,
+      sectionLabel: "NN Datasets",
     },
     {
       type: "TestDataset" as never,
@@ -1077,13 +1174,6 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 140,
       defaultData: { name: "TestDataset", attributes: {} },
       svg: TestDatasetSVG,
-    },
-    {
-      type: "NNReference" as never,
-      width: 140,
-      height: 40,
-      defaultData: { name: "ref" },
-      svg: NNReferenceSVG,
     },
   ],
   [UMLDiagramType.Sfc]: [
@@ -1180,10 +1270,79 @@ export const dropElementConfigs: Readonly<
   },
 }) as Readonly<Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>>
 
-export const ColorDescriptionConfig: DropElementConfig = Object.freeze({
-  type: "colorDescription",
+/**
+ * SA-HIDE-NOISE: lightweight palette preview for the free-form Comment
+ * sticky-note. Mirrors the silhouette rendered by `lib/nodes/common/
+ * Comment.tsx` so the drag-ghost matches the dropped node. Inlined here
+ * (rather than as a new `components/svgs/...` file) to keep the diff
+ * scoped to `constants.ts` per the SA-HIDE-NOISE file allowlist.
+ */
+const CommentPaletteSVG: React.FC<{
+  width: number
+  height: number
+  data?: { name?: string }
+  SIDEBAR_PREVIEW_SCALE?: number
+}> = ({ width, height, data, SIDEBAR_PREVIEW_SCALE }) => {
+  const w = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const h = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const pointerHeight = 10
+  const pointerWidth = 12
+  const cornerRadius = 8
+  const bodyHeight = height - pointerHeight
+  return React.createElement(
+    "svg",
+    {
+      width: w,
+      height: h,
+      viewBox: `0 0 ${width} ${height}`,
+      overflow: "visible",
+    },
+    React.createElement("path", {
+      d: `
+        M ${cornerRadius} 0
+        L ${width - cornerRadius} 0
+        Q ${width} 0 ${width} ${cornerRadius}
+        L ${width} ${bodyHeight - cornerRadius}
+        Q ${width} ${bodyHeight} ${width - cornerRadius} ${bodyHeight}
+        L ${pointerWidth + 5} ${bodyHeight}
+        L ${pointerWidth / 2} ${height}
+        L 5 ${bodyHeight}
+        Q 0 ${bodyHeight} 0 ${bodyHeight - cornerRadius}
+        L 0 ${cornerRadius}
+        Q 0 0 ${cornerRadius} 0 Z
+      `,
+      fill: "#fff8c4",
+      stroke: "#bda21f",
+      strokeWidth: 1.2,
+      strokeMiterlimit: "10",
+    }),
+    React.createElement(
+      "text",
+      {
+        x: width / 2,
+        y: bodyHeight / 2,
+        textAnchor: "middle",
+        dominantBaseline: "middle",
+        fill: "#3a2e00",
+        style: { fontSize: "12px" },
+      },
+      data?.name ?? "Comment"
+    )
+  )
+}
+
+/**
+ * SA-HIDE-NOISE: free-form sticky-note Comment palette entry. Replaces
+ * the previously always-on `ColorDescriptionConfig` block in the
+ * `Sidebar` so designers can drop comment notes into any diagram. The
+ * ColorDescription node renderer + inspector code remain in the tree
+ * (re-enable is a one-line change in `Sidebar.tsx`) — only the palette
+ * surface is hidden, per the SA-HIDE-NOISE brief.
+ */
+export const CommentConfig: DropElementConfig = Object.freeze({
+  type: "comment",
   width: 160,
-  height: 50,
-  defaultData: { name: "Color Description" },
-  svg: ColorDescriptionSVG,
+  height: 60,
+  defaultData: { name: "Comment" },
+  svg: CommentPaletteSVG,
 })
