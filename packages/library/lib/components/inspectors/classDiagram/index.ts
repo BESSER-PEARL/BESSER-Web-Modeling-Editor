@@ -11,6 +11,7 @@
  */
 import { registerInspector } from "../registry"
 import { ClassEdgeEditPanel } from "./ClassEdgeEditPanel"
+import { ClassOCLConstraintEditPanel } from "./ClassOCLConstraintEditPanel"
 
 const CLASS_EDGE_TYPES = [
   "ClassInheritance",
@@ -30,5 +31,11 @@ for (const type of CLASS_EDGE_TYPES) {
   registerInspector(type, "edit", ClassEdgeEditPanel)
 }
 
+// SA-UX-FIX B1: free-standing OCL constraint node — separate inspector
+// body (minimal: name, kind, expression, description). Owned constraints
+// are still edited via the OCL section inside `ClassEditPanel`.
+registerInspector("ClassOCLConstraint", "edit", ClassOCLConstraintEditPanel)
+
 export * from "./ClassEditPanel"
 export * from "./ClassEdgeEditPanel"
+export * from "./ClassOCLConstraintEditPanel"

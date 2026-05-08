@@ -24,7 +24,7 @@ import {
 } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { StereotypeButtonGroup } from "@/components/ui/StereotypeButtonGroup"
-import { DeleteIcon } from "@/components/Icon"
+import { DeleteIcon, EditIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
 import {
   VISIBILITY_SYMBOLS,
@@ -79,11 +79,14 @@ const PRIMITIVE_TYPES: { value: string; label: string }[] = [
   { value: "any", label: "any" },
 ]
 
+// SA-UX-FIX B7: visibility dropdown shows only the canonical UML symbols
+// (`+ / - / # / ~`). The full word (`public`, etc.) is still the stored
+// value — only the display label is the symbol.
 const VISIBILITIES: { value: ClassifierVisibility; label: string }[] = [
-  { value: "public", label: `${VISIBILITY_SYMBOLS.public} public` },
-  { value: "private", label: `${VISIBILITY_SYMBOLS.private} private` },
-  { value: "protected", label: `${VISIBILITY_SYMBOLS.protected} protected` },
-  { value: "package", label: `${VISIBILITY_SYMBOLS.package} package` },
+  { value: "public", label: VISIBILITY_SYMBOLS.public },
+  { value: "private", label: VISIBILITY_SYMBOLS.private },
+  { value: "protected", label: VISIBILITY_SYMBOLS.protected },
+  { value: "package", label: VISIBILITY_SYMBOLS.package },
 ]
 
 const IMPLEMENTATION_TYPES: {
@@ -146,6 +149,17 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   const isCustom = !isPrimitiveType(attributeType)
   const [customTypeDraft, setCustomTypeDraft] = useState(
     isCustom ? attributeType : ""
+  )
+  // SA-UX-FIX B3: collapse the four flag checkboxes (`isId`,
+  // `isExternalId`, `isOptional`, `isDerived`) and the default-value
+  // input behind a per-row settings toggle so the inline row is just
+  // visibility + name + type + delete.
+  const [showSettings, setShowSettings] = useState(
+    !!row.isId ||
+      !!row.isExternalId ||
+      !!row.isOptional ||
+      !!row.isDerived ||
+      (row.defaultValue !== undefined && row.defaultValue !== "")
   )
 
   const handleTypeSelect = (value: string) => {
@@ -232,6 +246,17 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           ]}
           <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
         </Select>
+        <Tooltip title={showSettings ? "Hide flags" : "Show flags & default"}>
+          <IconButton
+            size="small"
+            onClick={() => setShowSettings((s) => !s)}
+            sx={{
+              color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
+            }}
+          >
+            <EditIcon width={14} height={14} />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Delete attribute">
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
@@ -251,72 +276,85 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         />
       )}
 
-      <Stack direction="row" spacing={1.5} flexWrap="wrap">
-        <FormControlLabel
-          control={
-            <Checkbox
-              size="small"
-              checked={!!row.isId}
-              onChange={(e) =>
-                onPatch({
-                  isId: e.target.checked,
-                  // Mutual-exclusion mirroring v3 metamodel constraint.
-                  isOptional: e.target.checked ? false : row.isOptional,
-                })
+      {/* SA-UX-FIX B3: flags + default value collapse behind the
+          per-row settings (gear) toggle. v3 had the same affordance —
+          see `uml-classifier-attribute-update.tsx`. */}
+      {showSettings && (
+        <>
+          <Stack direction="row" spacing={1.5} flexWrap="wrap">
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={!!row.isId}
+                  onChange={(e) =>
+                    onPatch({
+                      isId: e.target.checked,
+                      // Mutual-exclusion mirroring v3 metamodel constraint.
+                      isOptional: e.target.checked ? false : row.isOptional,
+                    })
+                  }
+                />
               }
+              label={<Typography variant="caption">id</Typography>}
             />
-          }
-          label={<Typography variant="caption">id</Typography>}
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              size="small"
-              checked={!!row.isExternalId}
-              onChange={(e) =>
-                onPatch({
-                  isExternalId: e.target.checked,
-                  isOptional: e.target.checked ? false : row.isOptional,
-                })
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={!!row.isExternalId}
+                  onChange={(e) =>
+                    onPatch({
+                      isExternalId: e.target.checked,
+                      isOptional: e.target.checked ? false : row.isOptional,
+                    })
+                  }
+                />
               }
+              label={<Typography variant="caption">external id</Typography>}
             />
-          }
-          label={<Typography variant="caption">external id</Typography>}
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              size="small"
-              checked={!!row.isOptional}
-              onChange={(e) => onPatch({ isOptional: e.target.checked })}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={!!row.isOptional}
+                  onChange={(e) => onPatch({ isOptional: e.target.checked })}
+                />
+              }
+              label={<Typography variant="caption">optional</Typography>}
             />
-          }
-          label={<Typography variant="caption">optional</Typography>}
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              size="small"
-              checked={!!row.isDerived}
-              onChange={(e) => onPatch({ isDerived: e.target.checked })}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  size="small"
+                  checked={!!row.isDerived}
+                  onChange={(e) => onPatch({ isDerived: e.target.checked })}
+                />
+              }
+              label={<Typography variant="caption">derived</Typography>}
             />
-          }
-          label={<Typography variant="caption">derived</Typography>}
-        />
-      </Stack>
+          </Stack>
 
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        placeholder="default value (optional)"
-        value={row.defaultValue !== undefined ? String(row.defaultValue) : ""}
-        onChange={(e) =>
-          onPatch({
-            defaultValue: e.target.value === "" ? undefined : e.target.value,
-          })
-        }
-      />
+          {/* SA-UX-FIX B6: default value is always a plain string text
+              input — class attribute types aren't enforced at this
+              layer, so type-aware widgets are wrong here. (Object
+              diagram values keep their type-aware widget — see
+              `ObjectEditPanel`.) */}
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            type="text"
+            placeholder="default value (optional)"
+            value={row.defaultValue !== undefined ? String(row.defaultValue) : ""}
+            onChange={(e) =>
+              onPatch({
+                defaultValue: e.target.value === "" ? undefined : e.target.value,
+              })
+            }
+          />
+        </>
+      )}
     </Box>
   )
 }
@@ -351,6 +389,16 @@ const MethodRow: React.FC<MethodRowProps> = ({
   const implementationType: ClassifierMethodImplementationType =
     row.implementationType ?? "none"
   const parameters = row.parameters ?? []
+  // SA-UX-FIX B3: collapse the parameters block + implementation-type
+  // section behind a per-row settings toggle so the inline row stays
+  // compact (visibility + name + return type only).
+  const [showSettings, setShowSettings] = useState(
+    parameters.length > 0 ||
+      implementationType !== "none" ||
+      !!row.code ||
+      !!row.stateMachineId ||
+      !!row.quantumCircuitId
+  )
 
   const handleReturnSelect = (value: string) => {
     if (value === CUSTOM_TYPE_SENTINEL) {
@@ -399,6 +447,19 @@ const MethodRow: React.FC<MethodRowProps> = ({
           value={row.name}
           onChange={(e) => onPatch({ name: e.target.value })}
         />
+        <Tooltip
+          title={showSettings ? "Hide parameters & code" : "Parameters & code"}
+        >
+          <IconButton
+            size="small"
+            onClick={() => setShowSettings((s) => !s)}
+            sx={{
+              color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
+            }}
+          >
+            <EditIcon width={14} height={14} />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Delete method">
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
@@ -452,6 +513,11 @@ const MethodRow: React.FC<MethodRowProps> = ({
         )}
       </Stack>
 
+      {/* SA-UX-FIX B3: parameters + implementation type + code editor are
+          collapsed behind the per-row settings toggle so the row stays
+          compact when the user is just naming methods. */}
+      {showSettings && (
+        <>
       {/* Parameter rows */}
       <Box>
         <Typography variant="caption" sx={{ fontWeight: 600 }}>
@@ -638,6 +704,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
             }
           />
         </Box>
+      )}
+        </>
       )}
     </Box>
   )

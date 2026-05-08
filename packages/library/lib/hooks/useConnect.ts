@@ -13,16 +13,34 @@ import { DiagramNodeTypeRecord } from "@/nodes"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 
+/**
+ * SA-UX-FIX B4: edge-type predicate. When the user drops a connection
+ * between an OCL constraint node and any other node, auto-pick
+ * `ClassOCLLink` (only meaningful for that endpoint pair). Otherwise
+ * fall back to the diagram default. Mirrors v3's
+ * `ClassOCLConstraint.supportedRelationships = [ClassOCLLink]`.
+ */
+const resolveClassEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  defaultType: string
+): string => {
+  const isOcl = (t?: string) => t === "ClassOCLConstraint"
+  if (isOcl(sourceType) || isOcl(targetType)) return "ClassOCLLink"
+  return defaultType
+}
+
 export const useConnect = () => {
   const startEdge = useRef<Edge | null>(null)
   const connectionStartParams = useRef<OnConnectStartParams | null>(null)
   const { screenToFlowPosition, getIntersectingNodes, getInternalNode } =
     useReactFlow()
-  const { setEdges, addEdge, edges } = useDiagramStore(
+  const { setEdges, addEdge, edges, nodes } = useDiagramStore(
     useShallow((state) => ({
       setEdges: state.setEdges,
       addEdge: state.addEdge,
       edges: state.edges,
+      nodes: state.nodes,
     }))
   )
 
@@ -85,16 +103,25 @@ export const useConnect = () => {
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      // SA-UX-FIX B4: ClassDiagram-only auto-detect: if either endpoint
+      // is an OCL constraint node, force `ClassOCLLink`; otherwise use
+      // the diagram default edge type.
+      const sourceType = nodes.find((n) => n.id === connection.source)?.type
+      const targetType = nodes.find((n) => n.id === connection.target)?.type
+      const resolvedType =
+        diagramType === "ClassDiagram"
+          ? resolveClassEdgeType(sourceType, targetType, defaultEdgeType)
+          : defaultEdgeType
       const newEdge: Edge = {
         ...connection,
         id: generateUUID(),
-        type: defaultEdgeType,
+        type: resolvedType,
         selected: false,
       }
 
       addEdge(newEdge)
     },
-    [addEdge, defaultEdgeType]
+    [addEdge, defaultEdgeType, diagramType, nodes]
   )
 
   const onConnectEnd: OnConnectEnd = useCallback(
@@ -179,12 +206,23 @@ export const useConnect = () => {
             return
           }
 
+          // SA-UX-FIX B4: same auto-detect logic as `onConnect`.
+          const sourceTypeOnEnd = nodes.find((n) => n.id === sourceNodeId)?.type
+          const targetTypeOnEnd = nodeOnTop.type
+          const resolvedTypeOnEnd =
+            diagramType === "ClassDiagram"
+              ? resolveClassEdgeType(
+                  sourceTypeOnEnd,
+                  targetTypeOnEnd,
+                  defaultEdgeType
+                )
+              : defaultEdgeType
           setEdges((eds) =>
             eds.concat({
               id: generateUUID(),
               source: sourceNodeId,
               target: nodeOnTop.id,
-              type: defaultEdgeType,
+              type: resolvedTypeOnEnd,
               sourceHandle: sourceHandleId,
               targetHandle,
             })
@@ -196,11 +234,13 @@ export const useConnect = () => {
     },
     [
       defaultEdgeType,
+      diagramType,
       edges,
       getDropPosition,
       getInternalNode,
       getIntersectingNodes,
       isFourHandleNode,
+      nodes,
       setEdges,
     ]
   )

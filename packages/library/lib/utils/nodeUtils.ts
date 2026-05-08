@@ -127,6 +127,10 @@ const NODE_LABEL_CAPABILITIES = {
   // Class diagram
   package: { wrapsName: true, rendersNameLabel: true },
   class: { wrapsName: false, rendersNameLabel: true },
+  // SA-UX-FIX B1: free-standing OCL constraint draws its own header
+  // text and wraps the body — neither the rename popover nor the
+  // global label workflow is appropriate here.
+  ClassOCLConstraint: { wrapsName: false, rendersNameLabel: false },
   objectName: { wrapsName: false, rendersNameLabel: true },
   communicationObjectName: { wrapsName: false, rendersNameLabel: true },
   colorDescription: { wrapsName: true, rendersNameLabel: true },

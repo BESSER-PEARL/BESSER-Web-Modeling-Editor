@@ -208,6 +208,12 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     Package: "package",
     ClassAttribute: "classAttribute",
     ClassMethod: "classMethod",
+    // SA-UX-FIX B1: free-standing OCL constraint nodes (when the v3
+    // element has no owner class) are emitted as a dedicated v4 node
+    // type rendered with a sticky-note shape — distinct from a regular
+    // class. Owned constraints are collapsed onto the parent's
+    // `data.oclConstraints` (handled by the filter in `convertV3ToV4`).
+    ClassOCLConstraint: "ClassOCLConstraint",
 
     // Activity Diagram
     ActivityInitialNode: "activityInitialNode",
@@ -703,6 +709,26 @@ function convertV3NodeDataToV4(
         ...(oclConstraints.length > 0 && { oclConstraints }),
       }
       return classData
+    }
+
+    case "ClassOCLConstraint": {
+      // SA-UX-FIX B1: Free-standing OCL constraint (no owner class).
+      // Owned constraints are filtered out in `convertV3ToV4` and
+      // collapsed onto their owner's `data.oclConstraints` instead.
+      const e = element as V3UMLElement & {
+        constraint?: string
+        expression?: string
+        description?: string
+        kind?: string
+      }
+      return {
+        ...baseData,
+        // v3 constraint body lives on `constraint`; legacy fixtures may
+        // use `expression`. Normalize to `expression` here.
+        expression: e.expression ?? e.constraint ?? "",
+        ...(e.description && { description: e.description }),
+        ...(e.kind && { kind: e.kind }),
+      }
     }
 
     case "ObjectName": {
@@ -2200,6 +2226,37 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
           bounds: { x: 0, y: 0, width: 0, height: 0 },
           icon: data.icon,
         } as V3UMLElement & { icon?: string }
+      }
+    } else if (node.type === "ClassOCLConstraint") {
+      // SA-UX-FIX B1: free-standing OCL constraint node — round-trip
+      // back to a v3 `ClassOCLConstraint` element with the OCL body
+      // stored in the v3-canonical `constraint` field.
+      const data = node.data as {
+        name?: string
+        expression?: string
+        description?: string
+        kind?: string
+      }
+      elements[node.id] = {
+        id: node.id,
+        name: data.name ?? "",
+        type: "ClassOCLConstraint",
+        owner: node.parentId ?? null,
+        bounds: {
+          x: node.position.x,
+          y: node.position.y,
+          width: node.width,
+          height: node.height,
+        },
+        ...(data.expression !== undefined && {
+          constraint: data.expression,
+        }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.kind !== undefined && { kind: data.kind }),
+      } as V3UMLElement & {
+        constraint?: string
+        description?: string
+        kind?: string
       }
     } else {
       // Other node types (e.g. Package): pass through with v3 type

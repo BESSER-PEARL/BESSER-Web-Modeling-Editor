@@ -5,6 +5,7 @@ import {
 } from "@/store/context"
 import { BesserMode } from "@/typings"
 import { useShallow } from "zustand/shallow"
+import { useUsePropertiesPanel } from "@/store/settingsStore"
 import {
   ClassEditPopover,
   ClassGiveFeedbackPopover,
@@ -74,6 +75,8 @@ import {
 
 type NodePopoverType =
   | "class"
+  // SA-UX-FIX B1: free-standing OCL constraint node.
+  | "ClassOCLConstraint"
   | "objectName"
   | "communicationObjectName"
   | "default"
@@ -648,8 +651,13 @@ export const PopoverManager = ({
         setPopOverElementId: state.setPopOverElementId,
       }))
     )
+  // SA-UX-FIX B2: when the right-side properties panel is the active
+  // editing surface, suppress the floating popover so the user only sees
+  // one inspector at a time. Per SA-1's `propertiesPanelStore` design,
+  // the two surfaces are mutually exclusive.
+  const usePropertiesPanel = useUsePropertiesPanel()
 
-  if (!anchorEl || !popupEnabled) {
+  if (!anchorEl || !popupEnabled || usePropertiesPanel) {
     return null
   }
 

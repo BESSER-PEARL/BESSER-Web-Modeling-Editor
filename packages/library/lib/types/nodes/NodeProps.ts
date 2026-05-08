@@ -112,6 +112,22 @@ export type ClassOCLConstraint = {
 }
 
 /**
+ * SA-UX-FIX (B1): Node data for a free-standing OCL constraint rendered as
+ * a sticky-note style box (yellow, dog-eared corner) — distinct from a
+ * regular Class node. Used when v3 emits a `ClassOCLConstraint` element
+ * with no owner class. Owned constraints continue to collapse onto the
+ * parent's `data.oclConstraints`.
+ */
+export type ClassOCLConstraintNodeProps = {
+  /** OCL expression body. */
+  expression: string
+  /** Optional human-readable description. */
+  description?: string
+  /** Constraint kind: 'inv' | 'pre' | 'post' (auto-derived if omitted). */
+  kind?: string
+} & DefaultNodeProps
+
+/**
  * Object-diagram per-instance attribute row.
  *
  * Differs from `ClassNodeElement` in two ways:

@@ -194,6 +194,69 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
     )
   })
 
+  it("SA-UX-FIX B1: free-standing ClassOCLConstraint round-trips as a dedicated node", () => {
+    // v3 fixture with an unowned `ClassOCLConstraint` element. Per the
+    // SA-UX-FIX B1 brief, free-standing OCL constraints emit a
+    // dedicated v4 node type (`ClassOCLConstraint`) rendered with a
+    // sticky-note shape, NOT the regular `class` node with a
+    // synthetic stereotype.
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-A": {
+          id: "node-A",
+          name: "A",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+        },
+        "free-ocl": {
+          id: "free-ocl",
+          name: "OCLContext",
+          type: "ClassOCLConstraint",
+          owner: null,
+          bounds: { x: 200, y: 200, width: 180, height: 90 },
+          constraint: "context A inv: self.x > 0",
+        },
+      },
+      relationships: {},
+    } as never
+
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const ocl = v4.nodes.find((n) => n.id === "free-ocl")!
+    expect(ocl).toBeDefined()
+    // CRITICAL: must emit a dedicated `ClassOCLConstraint` node type,
+    // NOT a `class` node with `stereotype: 'oclConstraint'`.
+    expect(ocl.type).toBe("ClassOCLConstraint")
+    const oclData = ocl.data as { name: string; expression: string }
+    expect(oclData.name).toBe("OCLContext")
+    expect(oclData.expression).toBe("context A inv: self.x > 0")
+
+    // Round-trip back to v3 and confirm the type + body survive.
+    const v3Round = convertV4ToV3Class(v4)
+    const v3OclRound = v3Round.elements["free-ocl"] as {
+      type: string
+      constraint?: string
+      name: string
+    }
+    expect(v3OclRound.type).toBe("ClassOCLConstraint")
+    expect(v3OclRound.constraint).toBe("context A inv: self.x > 0")
+    expect(v3OclRound.name).toBe("OCLContext")
+
+    // Idempotence cycle.
+    const v4Again = migrateClassDiagramV3ToV4(v3Round)
+    const oclAgain = v4Again.nodes.find((n) => n.id === "free-ocl")!
+    expect(oclAgain.type).toBe("ClassOCLConstraint")
+    expect((oclAgain.data as { expression: string }).expression).toBe(
+      "context A inv: self.x > 0"
+    )
+  })
+
   it("is idempotent on a v4 round-trip (toV4(toV3(toV4(m))) === toV4(m))", () => {
     const v4 = migrateClassDiagramV3ToV4(classDiagramV3 as never)
     const v3Round = convertV4ToV3Class(v4)

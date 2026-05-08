@@ -1,5 +1,5 @@
 import { NodeTypes } from "@xyflow/react" // Explicitly differentiate imported type
-import { Class, ColorDescription } from "./classDiagram"
+import { Class, ColorDescription, ClassOCLConstraintNode } from "./classDiagram"
 import { ObjectName } from "./objectDiagram"
 import { CommunicationObjectName } from "./communicationDiagram"
 import { TitleAndDesctiption } from "./TitleAndDescriptionNode"
@@ -71,6 +71,8 @@ import {
 const defaultNodeTypes = {
   package: Package,
   class: Class,
+  // SA-UX-FIX B1: free-standing OCL constraint as a sticky-note shape.
+  ClassOCLConstraint: ClassOCLConstraintNode,
   objectName: ObjectName,
   communicationObjectName: CommunicationObjectName,
   colorDescription: ColorDescription,
@@ -158,6 +160,7 @@ export type DiagramNodeType = keyof typeof defaultNodeTypes
 export const DiagramNodeTypeRecord: Record<DiagramNodeType, DiagramNodeType> = {
   package: "package",
   class: "class",
+  ClassOCLConstraint: "ClassOCLConstraint",
   objectName: "objectName",
   communicationObjectName: "communicationObjectName",
   colorDescription: "colorDescription",

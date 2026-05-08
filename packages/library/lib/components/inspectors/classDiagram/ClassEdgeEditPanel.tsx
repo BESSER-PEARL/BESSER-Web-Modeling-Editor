@@ -44,6 +44,12 @@ import { SwapHorizIcon } from "@/components/Icon"
  *   ClassDependency, ClassOCLLink, ClassLinkRel.
  */
 
+// SA-UX-FIX B4: `ClassOCLLink` and `ClassLinkRel` are no longer manual
+// picks — they're auto-detected by `useConnect` based on the endpoint
+// node types. The user can't change a regular association into one of
+// them, and a constraint-attached link can't accidentally be turned
+// into something else. The current edge keeps its type; the dropdown
+// just doesn't expose those two options.
 const EDGE_TYPE_OPTIONS = [
   { value: "ClassBidirectional", label: "Bi-Association" },
   { value: "ClassUnidirectional", label: "Uni-Association" },
@@ -52,13 +58,6 @@ const EDGE_TYPE_OPTIONS = [
   { value: "ClassInheritance", label: "Inheritance" },
   { value: "ClassRealization", label: "Realization" },
   { value: "ClassDependency", label: "Dependency" },
-  // SA-2.1: surface the two BESSER-specific edge types in the picker so
-  // users can switch into them. v3 had no UI to author these (they were
-  // created via the connection-source dropdown in the canvas), but the
-  // editing-flow audit calls for parity with the v3 form, which means
-  // letting the user pick them here.
-  { value: "ClassOCLLink", label: "OCL Link" },
-  { value: "ClassLinkRel", label: "Link (BESSER)" },
 ] as const
 
 const NON_DIRECTIONAL_TYPES = new Set([
@@ -161,17 +160,22 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         />
       )}
 
-      <Select
-        size="small"
-        value={edge.type ?? "ClassBidirectional"}
-        onChange={(e) => handleEdgeTypeChange(String(e.target.value))}
-      >
-        {EDGE_TYPE_OPTIONS.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
+      {/* SA-UX-FIX B4: hide the type-picker for auto-detected types
+          (ClassOCLLink, ClassLinkRel). For regular associations the
+          user can still choose between the seven canonical kinds. */}
+      {edge.type !== "ClassOCLLink" && edge.type !== "ClassLinkRel" && (
+        <Select
+          size="small"
+          value={edge.type ?? "ClassBidirectional"}
+          onChange={(e) => handleEdgeTypeChange(String(e.target.value))}
+        >
+          {EDGE_TYPE_OPTIONS.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      )}
 
       {!isInheritance && (
         <>

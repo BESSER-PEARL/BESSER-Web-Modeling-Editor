@@ -13,7 +13,6 @@ import {
   ActivityObjectNodeSVG,
   ActivitySVG,
   ClassSVG,
-  PackageSVG,
   UseCaseNodeSVG,
   UseCaseSystemNodeSVG,
   UseCaseActorNodeSVG,
@@ -375,13 +374,11 @@ export type DropElementConfig = {
  */
 const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>> = ({
   [UMLDiagramType.ClassDiagram]: [
-    {
-      type: "package",
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 120,
-      defaultData: { name: "Package" },
-      svg: PackageSVG,
-    },
+    // SA-UX-FIX B5: Interface and Package are temporarily hidden from
+    // the palette — the round-trip / generator surface for them is not
+    // wired yet on the v4 path. Their node code stays in the tree
+    // (Package.tsx, Interface stereotype) so re-enabling is a one-line
+    // change.
     {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
@@ -418,18 +415,6 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
           { id: generateUUID(), name: "Case 2" },
           { id: generateUUID(), name: "Case 3" },
         ],
-      },
-      svg: ClassSVG,
-    },
-    {
-      type: "class",
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 110,
-      defaultData: {
-        name: "Interface",
-        stereotype: ClassType.Interface,
-        methods: [{ id: generateUUID(), name: "+ method()" }],
-        attributes: [{ id: generateUUID(), name: "+ attribute: Type" }],
       },
       svg: ClassSVG,
     },
