@@ -242,6 +242,94 @@ const generateUUID = (): string => {
   );
 };
 
+/**
+ * SA-UX-FIX-2 (B3): seed for the UserDiagram template.
+ *
+ * The v3 editor surfaced a multi-class user-meta-model whenever the
+ * UserDiagram tab was opened (`composeUserModelPreview`). After the
+ * v4 cutover, opening the UserDiagram tab produced an empty canvas
+ * with at most a single placeholder card. Restore the v3 baseline by
+ * seeding the standard `Personal_Information` / `Skill` / `Education` /
+ * `Disability` user-meta-model classes (matching
+ * `packages/editor/src/main/packages/user-modeling/usermetamodel_buml_short.json`).
+ *
+ * Seeded as v4 React-Flow nodes (`UserModelName`) with their attribute
+ * rows already populated so the user lands on a usable template.
+ */
+const buildUserDiagramSeedNodes = (): UMLModel['nodes'] => {
+  // Coordinates picked to lay out the 4 cards on a single row with a
+  // small gap. Each card is auto-sized by `UserModelName`'s effect; we
+  // pre-set sensible widths/heights so the initial paint is stable.
+  const HEADER = 40;
+  const ATTR = 30;
+  const PAD = 10;
+  const W = 220;
+  const GAP = 30;
+
+  type AttrRow = { id: string; name: string; attributeType: string };
+  const mkAttr = (name: string, type: string): AttrRow => ({
+    id: generateUUID(),
+    name,
+    attributeType: type,
+  });
+
+  const cards: Array<{ name: string; attrs: AttrRow[] }> = [
+    {
+      name: 'Personal_Information',
+      attrs: [
+        mkAttr('age', 'int'),
+        mkAttr('lastName', 'str'),
+        mkAttr('firstName', 'str'),
+        mkAttr('nationality_iso3166', 'str'),
+        mkAttr('address', 'str'),
+        mkAttr('gender', 'GenderEnum'),
+      ],
+    },
+    {
+      name: 'Skill',
+      attrs: [mkAttr('name', 'CharacteristicsEnum'), mkAttr('score', 'int')],
+    },
+    {
+      name: 'Education',
+      attrs: [
+        mkAttr('fieldOfDegree', 'str'),
+        mkAttr('degreeType', 'DegreeEnum'),
+        mkAttr('providedBy', 'str'),
+        mkAttr('degreeName', 'str'),
+      ],
+    },
+    {
+      name: 'Disability',
+      attrs: [mkAttr('name', 'description'), mkAttr('description', 'str'), mkAttr('affects', 'AspectsEnum')],
+    },
+  ];
+
+  return cards.map((card, idx) => {
+    const height = HEADER + card.attrs.length * ATTR + PAD;
+    // `UserModelName` is a BESSER-registered node type (added at runtime
+    // via `registerNodeTypes`). The static `DiagramNodeType` union only
+    // tracks upstream defaults, so we cast through `unknown` at the
+    // boundary — same pattern other BESSER seed code uses.
+    return {
+      id: generateUUID(),
+      type: 'UserModelName',
+      position: { x: idx * (W + GAP), y: 0 },
+      width: W,
+      height,
+      measured: { width: W, height },
+      data: {
+        name: card.name,
+        attributes: card.attrs.map((a) => ({
+          id: a.id,
+          name: a.name,
+          attributeType: a.attributeType,
+          attributeOperator: '==',
+        })),
+      },
+    } as unknown as UMLModel['nodes'][number];
+  });
+};
+
 // Default diagram factory
 export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
   // For Quantum Circuit diagram
@@ -304,6 +392,10 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
   }
 
   // For UML diagrams (v4 shape)
+  // SA-UX-FIX-2 (B3): UserDiagram gets a default user-meta-model template
+  // so the tab is non-empty on first open. Other diagrams stay blank.
+  const seededNodes =
+    type === UMLDiagramType.UserDiagram ? buildUserDiagramSeedNodes() : [];
   return {
     id: generateUUID(),
     title,
@@ -312,7 +404,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
       id: generateUUID(),
       title,
       type,
-      nodes: [],
+      nodes: seededNodes,
       edges: [],
       interactive: { elements: {}, relationships: {} },
       assessments: {},

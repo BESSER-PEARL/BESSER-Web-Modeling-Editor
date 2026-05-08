@@ -5,13 +5,19 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { StateMarkerNodeProps } from "@/types"
-import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
  * Filled circle marking the entry point of a state machine. v3 source:
  * `uml-state-initial-node-component.tsx`. Defaults to 45×45; the v3
  * fork hid corner / mid handles so transitions only attach to the four
  * cardinal sides — same here.
+ *
+ * SA-UX-FIX-2 (B2): the v3 visual was a SOLID BLACK disc. The shared
+ * `getCustomColorsFromData` helper falls back to `var(--besser-background)`
+ * (white in the default theme), so using it here painted the marker
+ * white — invisible against the canvas. Read `data.fillColor` directly
+ * instead, with a hard `#000000` default so the marker always renders
+ * solid regardless of theme variables.
  */
 export function StateInitialNode({
   id,
@@ -24,7 +30,7 @@ export function StateInitialNode({
 
   if (!width || !height) return null
 
-  const { fillColor } = getCustomColorsFromData(data)
+  const fillColor = data?.fillColor || "var(--besser-primary-contrast, #000000)"
   const radius = Math.min(width, height) / 2
 
   return (
@@ -56,7 +62,7 @@ export function StateInitialNode({
             cx={width / 2}
             cy={height / 2}
             r={radius}
-            fill={fillColor || "var(--besser-primary-contrast, #000000)"}
+            fill={fillColor}
             stroke="none"
           />
         </svg>
