@@ -1,32 +1,22 @@
-import {
-  Box,
-  MenuItem,
-  Select,
-  Stack,
-  TextField as MuiTextField,
-} from "@mui/material"
+import { Box, TextField as MuiTextField } from "@mui/material"
 import React from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { ClassOCLConstraintNodeProps } from "@/types"
-import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
+import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
- * SA-UX-FIX B1: Inspector body for the free-standing OCL constraint node.
- * Used when a v3 `ClassOCLConstraint` element has no owner class — keeps
- * the field set minimal: name, kind, expression body, description.
+ * Inspector body for the free-standing OCL constraint node. Per user
+ * request, only two fields are surfaced: the OCL expression itself and
+ * an optional description. `name` and `kind` are intentionally NOT shown
+ * here — they remain on `data` and round-trip via the migrator, but are
+ * managed elsewhere (or left as defaults).
  *
- * Owned constraints (collapsed onto a class) are still edited via the
- * `OCLConstraintRow` block inside `ClassEditPanel`.
+ * Owned constraints (collapsed onto a class via `data.oclConstraints`)
+ * are still edited via the `OCLConstraintRow` block inside
+ * `ClassEditPanel`.
  */
-const KIND_OPTIONS = [
-  { value: "", label: "(auto)" },
-  { value: "inv", label: "inv (invariant)" },
-  { value: "pre", label: "pre (precondition)" },
-  { value: "post", label: "post (postcondition)" },
-] as const
-
 export const ClassOCLConstraintEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
@@ -60,39 +50,6 @@ export const ClassOCLConstraintEditPanel: React.FC<PopoverProps> = ({
         handleDataFieldUpdate={handleStyleFieldUpdate}
       />
       <DividerLine width="100%" />
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <Typography variant="caption" sx={{ minWidth: 80 }}>
-          name
-        </Typography>
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          placeholder="constraint name"
-          value={data.name ?? ""}
-          onChange={(e) => updateData({ name: e.target.value })}
-        />
-      </Stack>
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <Typography variant="caption" sx={{ minWidth: 80 }}>
-          kind
-        </Typography>
-        <Select
-          size="small"
-          value={data.kind ?? ""}
-          displayEmpty
-          onChange={(e) =>
-            updateData({ kind: String(e.target.value) || undefined })
-          }
-          sx={{ flex: 1 }}
-        >
-          {KIND_OPTIONS.map((k) => (
-            <MenuItem key={k.value} value={k.value}>
-              {k.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </Stack>
       <MuiTextField
         size="small"
         variant="outlined"

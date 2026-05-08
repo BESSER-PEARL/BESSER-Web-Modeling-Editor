@@ -1152,22 +1152,15 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         </>
       )}
 
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="h6">OCL Constraints</Typography>
-        <Tooltip title="Add OCL constraint">
-          <IconButton size="small" onClick={addOcl}>
-            <Typography variant="caption">+</Typography>
-          </IconButton>
-        </Tooltip>
-      </Stack>
-      {(nodeData.oclConstraints ?? []).map((row) => (
-        <OCLConstraintRow
-          key={row.id}
-          row={row}
-          onPatch={(patch) => patchOcl(row.id, patch)}
-          onDelete={() => deleteOcl(row.id)}
-        />
-      ))}
+      {/*
+        OCL Constraints section intentionally NOT rendered in the
+        Class inspector. Per user direction, OCL constraints are
+        edited only via the dedicated sticky-note node
+        (`ClassOCLConstraint`) and its `ClassOCLConstraintEditPanel`.
+        Any constraints already collapsed onto `data.oclConstraints`
+        by the v3→v4 migrator are still preserved on the data and
+        round-trip cleanly — they're just not exposed in this UI.
+      */}
     </Box>
   )
 }

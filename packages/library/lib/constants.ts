@@ -388,27 +388,33 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // wired yet on the v4 path. Their node code stays in the tree
     // (Package.tsx, Interface stereotype) so re-enabling is a one-line
     // change.
+    // Class palette entry #1: 1 starter attribute, no methods.
+    // Sidebar React keys include the array index so two entries with
+    // the same `type:"class" + name:"Class"` no longer collide.
     {
-      // SA-FIX-CLASS-FUND #4 + #8: empty starter Class (no embedded
-      // "+ attribute: Type" string). The first row will be added via
-      // the inspector's auto-increment "Add attribute" affordance.
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 70,
+      height: 90,
       defaultData: {
         name: "Class",
         methods: [],
-        attributes: [],
+        attributes: [
+          {
+            id: generateUUID(),
+            name: "attribute",
+            visibility: "public",
+            attributeType: "str",
+          },
+        ],
       },
       svg: ClassSVG,
     },
-    // SA-FIX-CLASS-FUND #5: pre-populated Class entry mirroring v3
-    // default at `packages/editor/.../uml-class/uml-class.ts`. Drops
-    // with a starter attribute + method already filled in.
+    // Class palette entry #2: 1 starter attribute + 1 starter method
+    // (mirrors v3 default at packages/editor/.../uml-class/uml-class.ts).
     {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 100,
+      height: 110,
       defaultData: {
         name: "Class",
         methods: [

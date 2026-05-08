@@ -90,8 +90,11 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       // Deep clone defaultData to avoid mutating the original config
       const defaultData = structuredClone(dropElementConfig.defaultData ?? {})
 
-      // Assign new IDs to methods and attributes
-      if (defaultData.methods) {
+      // Assign new IDs to methods and attributes — only when shaped as
+      // arrays. NN-layer palette entries store `attributes` as a slug→value
+      // dict (e.g. `{"pooling.dimension": "2D"}`), which would crash the
+      // .map() call below. Skip those; their keys are stable, no IDs needed.
+      if (Array.isArray(defaultData.methods)) {
         defaultData.methods = (defaultData.methods as Array<object>).map(
           (method) => ({
             ...method,
@@ -99,7 +102,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
           })
         )
       }
-      if (defaultData.attributes) {
+      if (Array.isArray(defaultData.attributes)) {
         defaultData.attributes = (defaultData.attributes as Array<object>).map(
           (attribute) => ({
             ...attribute,

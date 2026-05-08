@@ -1,10 +1,11 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { useDiagramStore } from "@/store/context"
 import { AgentStateBodyRow, AgentStateNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
@@ -106,6 +107,36 @@ export function AgentState({
   const fallbackBodies = allBodies.filter((b) => b.kind === "fallback")
   const fallbackDividerY = headerHeight + mainBodies.length * ROW_HEIGHT
   const hasFallbackDivider = fallbackBodies.length > 0 && mainBodies.length > 0
+
+  // Auto-grow node height to fit all body rows. Without this the SVG
+  // viewBox stays at the initial drop height (e.g. 100px) and rows
+  // beyond the third spill outside the parent rectangle — the
+  // user-reported "rows go out of the AgentState" symptom.
+  const requiredHeight =
+    headerHeight +
+    (mainBodies.length + fallbackBodies.length) * ROW_HEIGHT +
+    (hasFallbackDivider ? 12 : 0) +
+    16 // bottom padding
+  const setNodes = useDiagramStore((state) => state.setNodes)
+  useEffect(() => {
+    if (height < requiredHeight) {
+      setNodes((all) =>
+        all.map((n) =>
+          n.id === id
+            ? {
+                ...n,
+                height: requiredHeight,
+                measured: {
+                  width: n.measured?.width ?? width,
+                  height: requiredHeight,
+                },
+                style: { ...(n.style ?? {}), height: requiredHeight },
+              }
+            : n
+        )
+      )
+    }
+  }, [requiredHeight, height, id, setNodes, width])
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>

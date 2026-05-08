@@ -133,7 +133,7 @@ export const Sidebar = () => {
             (config.height + extraPreviewHeight) * previewScale
 
           return (
-            <React.Fragment key={`${config.type}_${config.defaultData?.name}`}>
+            <React.Fragment key={`${config.type}_${config.defaultData?.name}_${index}`}>
               {/* SA-FIX-NN-DROPS: render a section divider + heading
                   above any palette entry tagged with `sectionLabel`.
                   For the very first entry the divider is suppressed —
