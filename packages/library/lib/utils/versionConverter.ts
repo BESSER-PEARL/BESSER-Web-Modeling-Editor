@@ -691,14 +691,30 @@ function convertV3NodeDataToV4(
         }
       })
 
-      // Determine stereotype
-      let stereotype: ClassType | undefined
+      // Determine stereotype. PC-1 fix (SA-FIX-Class): freeform v3
+      // `stereotype` strings survive too.
+      let stereotype: string | undefined
       if (element.type === "AbstractClass") {
         stereotype = ClassType.Abstract
       } else if (element.type === "Interface") {
         stereotype = ClassType.Interface
       } else if (element.type === "Enumeration") {
         stereotype = ClassType.Enumeration
+      } else {
+        const freeform = (
+          element as V3UMLElement & { stereotype?: string | null }
+        ).stereotype
+        if (freeform) stereotype = freeform
+      }
+
+      // PC-1/PC-2/PC-11 fix (SA-FIX-Class): preserve italic / underline /
+      // description / uri / icon on the v4 node data.
+      const ce = element as V3UMLElement & {
+        italic?: boolean
+        underline?: boolean
+        description?: string
+        uri?: string
+        icon?: string
       }
 
       const classData: ClassNodeProps = {
@@ -706,6 +722,11 @@ function convertV3NodeDataToV4(
         methods,
         attributes,
         ...(stereotype && { stereotype }),
+        ...(ce.italic !== undefined && { italic: !!ce.italic }),
+        ...(ce.underline !== undefined && { underline: !!ce.underline }),
+        ...(ce.description !== undefined && { description: ce.description }),
+        ...(ce.uri !== undefined && { uri: ce.uri }),
+        ...(ce.icon !== undefined && { icon: ce.icon }),
         ...(oclConstraints.length > 0 && { oclConstraints }),
       }
       return classData
@@ -1022,52 +1043,106 @@ function convertV3NodeDataToV4(
       // v3 `AgentState` extends `IUMLState` with an additional
       // `replyType: string` (default `'text'`). Pass through `stereotype`
       // / `italic` / `underline` like SA-3's `State`.
+      //
+      // SA-FIX-Agent: walk the v3 element table and fold every
+      // `AgentStateBody` / `AgentStateFallbackBody` whose `owner` is
+      // this state into the parent's `data.bodies` array. v3 stored a
+      // `bodies: string[]` and `fallbackBodies: string[]` on the parent
+      // pointing at child element ids; we honour that order if present
+      // and fall back to insertion order. The original v3 element ids
+      // are preserved on each row so the inverse migrator emits them
+      // back with the same ids.
       const e = element as {
         stereotype?: string | null
         italic?: boolean
         underline?: boolean
         replyType?: string
+        bodies?: string[]
+        fallbackBodies?: string[]
       }
+      const v3RowToV4 = (
+        row: V3UMLElement,
+        kind: "entry" | "do" | "exit" | "on" | "fallback"
+      ) => {
+        const r = row as V3UMLElement & {
+          replyType?: string
+          ragDatabaseName?: string
+          dbSelectionType?: string
+          dbCustomName?: string
+          dbQueryMode?: string
+          dbOperation?: string
+          dbSqlQuery?: string
+          code?: string
+          kind?: string
+        }
+        const explicitKind = r.kind as
+          | "entry"
+          | "do"
+          | "exit"
+          | "on"
+          | "fallback"
+          | undefined
+        return {
+          id: r.id,
+          kind: explicitKind ?? kind,
+          name: r.name,
+          ...(r.replyType !== undefined && { replyType: r.replyType }),
+          ...(r.ragDatabaseName !== undefined && {
+            ragDatabaseName: r.ragDatabaseName,
+          }),
+          ...(r.dbSelectionType !== undefined && {
+            dbSelectionType: r.dbSelectionType,
+          }),
+          ...(r.dbCustomName !== undefined && {
+            dbCustomName: r.dbCustomName,
+          }),
+          ...(r.dbQueryMode !== undefined && { dbQueryMode: r.dbQueryMode }),
+          ...(r.dbOperation !== undefined && { dbOperation: r.dbOperation }),
+          ...(r.dbSqlQuery !== undefined && { dbSqlQuery: r.dbSqlQuery }),
+          ...(r.code !== undefined && { code: r.code }),
+          ...((r.fillColor as string | undefined) && {
+            fillColor: r.fillColor,
+          }),
+          ...((r.textColor as string | undefined) && {
+            textColor: r.textColor,
+          }),
+        }
+      }
+      const ownedByType = (
+        type: "AgentStateBody" | "AgentStateFallbackBody"
+      ): V3UMLElement[] =>
+        Object.values(allElements).filter(
+          (c) => c.owner === element.id && c.type === type
+        )
+      const orderedBodies: V3UMLElement[] =
+        Array.isArray(e.bodies) && e.bodies.length > 0
+          ? (e.bodies
+              .map((bid) => allElements[bid])
+              .filter(
+                (b): b is V3UMLElement =>
+                  !!b && b.type === "AgentStateBody"
+              ) as V3UMLElement[])
+          : ownedByType("AgentStateBody")
+      const orderedFallbacks: V3UMLElement[] =
+        Array.isArray(e.fallbackBodies) && e.fallbackBodies.length > 0
+          ? (e.fallbackBodies
+              .map((bid) => allElements[bid])
+              .filter(
+                (b): b is V3UMLElement =>
+                  !!b && b.type === "AgentStateFallbackBody"
+              ) as V3UMLElement[])
+          : ownedByType("AgentStateFallbackBody")
+      const bodies: Array<Record<string, unknown>> = []
+      for (const row of orderedBodies) bodies.push(v3RowToV4(row, "do"))
+      for (const row of orderedFallbacks)
+        bodies.push(v3RowToV4(row, "fallback"))
       return {
         ...baseData,
         replyType: e.replyType ?? "text",
         ...(e.stereotype !== undefined && { stereotype: e.stereotype }),
         ...(e.italic !== undefined && { italic: !!e.italic }),
         ...(e.underline !== undefined && { underline: !!e.underline }),
-      }
-    }
-
-    case "AgentStateBody":
-    case "AgentStateFallbackBody": {
-      // v3 `AgentStateMember` carries the optional reply-type-driven
-      // extras alongside the basic name. Preserve them all so the v4 →
-      // v3 → v4 cycle is lossless.
-      const e = element as {
-        replyType?: string
-        ragDatabaseName?: string
-        dbSelectionType?: string
-        dbCustomName?: string
-        dbQueryMode?: string
-        dbOperation?: string
-        dbSqlQuery?: string
-        code?: string
-        kind?: string
-      }
-      return {
-        ...baseData,
-        ...(e.replyType !== undefined && { replyType: e.replyType }),
-        ...(e.ragDatabaseName !== undefined && {
-          ragDatabaseName: e.ragDatabaseName,
-        }),
-        ...(e.dbSelectionType !== undefined && {
-          dbSelectionType: e.dbSelectionType,
-        }),
-        ...(e.dbCustomName !== undefined && { dbCustomName: e.dbCustomName }),
-        ...(e.dbQueryMode !== undefined && { dbQueryMode: e.dbQueryMode }),
-        ...(e.dbOperation !== undefined && { dbOperation: e.dbOperation }),
-        ...(e.dbSqlQuery !== undefined && { dbSqlQuery: e.dbSqlQuery }),
-        ...(e.code !== undefined && { code: e.code }),
-        ...(e.kind !== undefined && { kind: e.kind }),
+        ...(bodies.length > 0 && { bodies }),
       }
     }
 
@@ -1883,6 +1958,21 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
           element.type === "UserModelIcon") &&
         element.owner &&
         model.elements[element.owner]?.type === "UserModelName"
+      ) {
+        return false
+      }
+      // SA-FIX-Agent: AgentStateBody / AgentStateFallbackBody — collapse
+      // onto the owner AgentState's `data.bodies` array. v3 carried
+      // each body row as its own element connected via `owner`; v4
+      // renders them inline on the parent like Class attribute rows.
+      // The `convertV3ElementToV4Node` for `AgentState` walks the
+      // element table and folds children onto `data.bodies` (preserving
+      // their original ids for round-trip).
+      if (
+        (element.type === "AgentStateBody" ||
+          element.type === "AgentStateFallbackBody") &&
+        element.owner &&
+        model.elements[element.owner]?.type === "AgentState"
       ) {
         return false
       }
@@ -2757,7 +2847,73 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
 
     switch (nt) {
       case "AgentState": {
-        const data = node.data as Record<string, unknown>
+        // SA-FIX-Agent: re-expand the inline `data.bodies` array back
+        // into top-level v3 elements (`AgentStateBody` /
+        // `AgentStateFallbackBody`) with the original ids preserved.
+        // The parent state also re-emits the v3 `bodies: string[]` /
+        // `fallbackBodies: string[]` arrays so the v3 wire form is
+        // round-trip equivalent.
+        const data = node.data as Record<string, unknown> & {
+          bodies?: Array<{
+            id: string
+            kind: "entry" | "do" | "exit" | "on" | "fallback"
+            name?: string
+            code?: string
+            replyType?: string
+            ragDatabaseName?: string
+            dbSelectionType?: string
+            dbCustomName?: string
+            dbQueryMode?: string
+            dbOperation?: string
+            dbSqlQuery?: string
+            fillColor?: string
+            textColor?: string
+          }>
+        }
+        const bodyIds: string[] = []
+        const fallbackIds: string[] = []
+        for (const row of data.bodies ?? []) {
+          const isFallback = row.kind === "fallback"
+          const v3Type: string = isFallback
+            ? "AgentStateFallbackBody"
+            : "AgentStateBody"
+          elements[row.id] = {
+            id: row.id,
+            name: row.name ?? "",
+            type: v3Type,
+            owner: node.id,
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+            ...(row.replyType !== undefined && { replyType: row.replyType }),
+            ...(row.ragDatabaseName !== undefined && {
+              ragDatabaseName: row.ragDatabaseName,
+            }),
+            ...(row.dbSelectionType !== undefined && {
+              dbSelectionType: row.dbSelectionType,
+            }),
+            ...(row.dbCustomName !== undefined && {
+              dbCustomName: row.dbCustomName,
+            }),
+            ...(row.dbQueryMode !== undefined && {
+              dbQueryMode: row.dbQueryMode,
+            }),
+            ...(row.dbOperation !== undefined && {
+              dbOperation: row.dbOperation,
+            }),
+            ...(row.dbSqlQuery !== undefined && {
+              dbSqlQuery: row.dbSqlQuery,
+            }),
+            ...(row.code !== undefined && { code: row.code }),
+            // For non-fallback rows, preserve `kind` if it deviates
+            // from the default `'do'` so the v3 wire form is exact.
+            ...(!isFallback &&
+              row.kind !== undefined &&
+              row.kind !== "do" && { kind: row.kind }),
+            ...(row.fillColor && { fillColor: row.fillColor }),
+            ...(row.textColor && { textColor: row.textColor }),
+          } as V3UMLElement
+          if (isFallback) fallbackIds.push(row.id)
+          else bodyIds.push(row.id)
+        }
         elements[node.id] = {
           ...baseV3,
           ...(data.replyType !== undefined && {
@@ -2766,35 +2922,8 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           ...(data.stereotype !== undefined && { stereotype: data.stereotype }),
           ...(data.italic !== undefined && { italic: !!data.italic }),
           ...(data.underline !== undefined && { underline: !!data.underline }),
-        } as V3UMLElement
-        break
-      }
-      case "AgentStateBody":
-      case "AgentStateFallbackBody": {
-        const data = node.data as Record<string, unknown>
-        elements[node.id] = {
-          ...baseV3,
-          ...(data.replyType !== undefined && { replyType: data.replyType }),
-          ...(data.ragDatabaseName !== undefined && {
-            ragDatabaseName: data.ragDatabaseName,
-          }),
-          ...(data.dbSelectionType !== undefined && {
-            dbSelectionType: data.dbSelectionType,
-          }),
-          ...(data.dbCustomName !== undefined && {
-            dbCustomName: data.dbCustomName,
-          }),
-          ...(data.dbQueryMode !== undefined && {
-            dbQueryMode: data.dbQueryMode,
-          }),
-          ...(data.dbOperation !== undefined && {
-            dbOperation: data.dbOperation,
-          }),
-          ...(data.dbSqlQuery !== undefined && {
-            dbSqlQuery: data.dbSqlQuery,
-          }),
-          ...(data.code !== undefined && { code: data.code }),
-          ...(data.kind !== undefined && { kind: data.kind }),
+          ...(bodyIds.length > 0 && { bodies: bodyIds }),
+          ...(fallbackIds.length > 0 && { fallbackBodies: fallbackIds }),
         } as V3UMLElement
         break
       }
