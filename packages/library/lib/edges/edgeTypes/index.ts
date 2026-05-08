@@ -1,0 +1,6 @@
+export * from "./ActivityDiagramEdge"
+export * from "./ClassDiagramEdge"
+export * from "./UseCaseDiagramEdge"
+export * from "./ComponentDiagramEdge"
+export * from "./SyntaxTreeEdge"
+export * from "./SfcDiagramEdge"
