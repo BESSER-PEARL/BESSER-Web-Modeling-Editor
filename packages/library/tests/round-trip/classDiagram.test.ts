@@ -512,4 +512,64 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
     })
     expect(out).toBe("+ attribute: str {id}")
   })
+
+  it("SA-HIDE-NOISE: Comments node round-trips v3 ↔ v4 with body on `name`", () => {
+    // v3 stored the comment body on `UMLElement.name` (the v3
+    // inspector was a textarea bound to `name`). The v4 port keeps
+    // that contract — the migrator passes through unchanged so old
+    // fixtures don't lose their text.
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-A": {
+          id: "node-A",
+          name: "A",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+        },
+        "comment-1": {
+          id: "comment-1",
+          name: "this needs review\nmulti-line ok",
+          type: "Comments",
+          owner: null,
+          bounds: { x: 200, y: 100, width: 160, height: 60 },
+          fillColor: "#ffeebb",
+        },
+      },
+      relationships: {},
+    } as never
+
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const cmt = v4.nodes.find((n) => n.id === "comment-1")!
+    expect(cmt).toBeDefined()
+    expect(cmt.type).toBe("comment")
+    expect((cmt.data as { name: string }).name).toBe(
+      "this needs review\nmulti-line ok"
+    )
+    expect((cmt.data as { fillColor?: string }).fillColor).toBe("#ffeebb")
+
+    // v4 → v3 emits the v3 element type back as `Comments` (plural)
+    // with the body on `name`.
+    const v3Round = convertV4ToV3Class(v4)
+    const v3Cmt = v3Round.elements["comment-1"] as {
+      type: string
+      name: string
+    }
+    expect(v3Cmt.type).toBe("Comments")
+    expect(v3Cmt.name).toBe("this needs review\nmulti-line ok")
+
+    // Idempotence cycle.
+    const v4Again = migrateClassDiagramV3ToV4(v3Round)
+    const cmtAgain = v4Again.nodes.find((n) => n.id === "comment-1")!
+    expect(cmtAgain.type).toBe("comment")
+    expect((cmtAgain.data as { name: string }).name).toBe(
+      "this needs review\nmulti-line ok"
+    )
+  })
 })

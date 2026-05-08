@@ -1,100 +1,223 @@
+import { FC } from "react"
 import { SVGComponentProps } from "@/types/SVG"
+import {
+  ClassNodeElement,
+  UserModelAttributeRow,
+} from "@/types"
+import { LAYOUT } from "@/constants"
+import { StyledRect } from "@/components/svgs/StyledElements"
+import { SeparationLine } from "@/components/svgs/nodes/SeparationLine"
+import { CustomText } from "@/components/svgs/nodes/CustomText"
+import { RowBlockSection } from "@/components/svgs/nodes/RowBlockSection"
+import { useDiagramStore } from "@/store"
+import { useShallow } from "zustand/shallow"
+import AssessmentIcon from "@/components/svgs/AssessmentIcon"
+import { getCustomColorsFromData } from "@/utils"
 import {
   getUserMetaModelClasses,
   type UserMetaModelClass,
 } from "@/services/userMetaModel"
 
 /**
- * SA-4 / SA-FIX-User palette previews for UserDiagram.
+ * SA-FIX-USER-COMPLETE — full v3-parity rewrite of the UserDiagram SVGs.
  *
- * v3's `composeUserModelPreview` rendered ONE drag-source per
- * meta-model class (Personal_Information, Skill, Education,
- * Disability …) by walking `getAvailableClasses()` from the bridge.
- * The previous v4 ship replaced that with a single static "Alice:
- * User" preview, which left the sidebar effectively empty for the
- * user-modelling workflow. This module restores the v3 behaviour by
- * dynamically producing one `UserModelNameSVG` per meta-model class
- * and exposing `getUserModelNamePaletteEntries()` so `constants.ts`
- * can register them all.
+ * This module owns three concerns:
+ *
+ *  1. `UserModelNameSVG` — the canvas-side SVG used by `UserModelName.tsx`.
+ *     Renders a v3-`UMLUserModelName`-shaped node: underlined header
+ *     showing `name : className`, then the attribute rows below.
+ *     Visibility symbols are NOT rendered (unlike Class rows).
+ *
+ *  2. `UserModelIconSVG` — small icon preview (legacy palette entry).
+ *
+ *  3. `getUserModelNamePaletteEntries()` — the v3
+ *     `composeUserModelPreview` equivalent: walks the user-meta-model
+ *     JSON and emits one drag-source per Personal_Information / Skill /
+ *     Education / Disability class. Each preview pre-populates the
+ *     dropped node's `attributes` rows so the user lands on a wired card.
+ *
+ * v3 sources of truth:
+ *   - `packages/editor/.../user-modeling/uml-user-model-name.ts`
+ *   - `packages/editor/.../user-modeling/user-model-preview.ts`
+ *   - `packages/editor/.../user-modeling/uml-user-model-icon/uml-user-model-icon.ts`
  */
 
-/** Generic "name + attribute rows" preview shared by all classes. */
-function makeUserModelNameSVG(
-  className: string,
-  attrNames: string[]
-): React.FC<SVGComponentProps> {
-  const HEADER = 26
-  const ROW = 16
-  const Component: React.FC<SVGComponentProps> = ({
-    width,
-    height,
-    SIDEBAR_PREVIEW_SCALE,
-    svgAttributes,
-  }) => {
-    const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
-    const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
-    return (
-      <svg
-        width={sw}
-        height={sh}
-        viewBox={`0 0 ${width} ${height}`}
-        overflow="visible"
-        {...svgAttributes}
-      >
-        <rect
+interface UserModelNameSVGData {
+  name: string
+  className?: string
+  classId?: string
+  icon?: string
+  fillColor?: string
+  strokeColor?: string
+  textColor?: string
+  attributes: ClassNodeElement[]
+}
+
+interface UserModelNameSVGProps extends SVGComponentProps {
+  data: UserModelNameSVGData
+}
+
+/**
+ * The canvas-side SVG. Built from primitives directly (no ObjectNameSVG
+ * coupling) so the user-model visual is owned by this module.
+ */
+export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
+  id,
+  width,
+  height,
+  data,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+  showAssessmentResults = false,
+}) => {
+  const { name, className, attributes, icon } = data
+  const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
+  const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
+  const padding = LAYOUT.DEFAULT_PADDING
+
+  const assessments = useDiagramStore(useShallow((state) => state.assessments))
+
+  const processedAttributes = attributes.map((el) => {
+    const score = (assessments as Record<string, { score?: number }>)[el.id]
+      ?.score
+    return { ...el, score }
+  })
+  const nodeScore = (assessments as Record<string, { score?: number }>)[id]
+    ?.score
+
+  const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
+
+  const hasIcon = typeof icon === "string" && icon.trim() !== ""
+
+  // Header label per v3: instance name plus optional ` : className`.
+  const headerLabel = className ? `${name} : ${className}` : name
+
+  return (
+    <svg
+      width={scaledWidth}
+      height={scaledHeight}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      <g>
+        {/* Outer rectangle. */}
+        <StyledRect
           x={0}
           y={0}
           width={width}
           height={height}
-          fill="var(--besser-background, white)"
-          stroke="var(--besser-primary-contrast, #000)"
-          strokeWidth={1.5}
+          stroke={strokeColor}
         />
-        <text
+
+        {/* Header band (white fill, underlined name). v3 visual:
+            `:className` rendered alongside the instance name. */}
+        <rect
+          x={LAYOUT.LINE_WIDTH / 2}
+          y={LAYOUT.LINE_WIDTH / 2}
+          width={width - LAYOUT.LINE_WIDTH}
+          height={headerHeight - LAYOUT.LINE_WIDTH / 2}
+          fill={fillColor}
+        />
+        <CustomText
           x={width / 2}
-          y={HEADER - 8}
+          y={headerHeight / 2}
+          dominantBaseline="middle"
           textAnchor="middle"
-          fontSize={12}
-          fontWeight="600"
+          fontWeight="bold"
           textDecoration="underline"
-          fill="var(--besser-primary-contrast, #000)"
+          fill={textColor}
         >
-          {`: ${className}`}
-        </text>
-        <line
-          x1={0}
-          x2={width}
-          y1={HEADER}
-          y2={HEADER}
-          stroke="var(--besser-primary-contrast, #000)"
-          strokeWidth={1}
-        />
-        {attrNames.slice(0, 5).map((n, i) => (
-          <text
-            key={i}
-            x={6}
-            y={HEADER + ROW * (i + 1) - 4}
-            fontSize={10}
-            fill="var(--besser-primary-contrast, #000)"
+          <tspan
+            x={width / 2}
+            dy="0"
+            textDecoration="underline"
           >
-            {n}
-          </text>
-        ))}
-      </svg>
-    )
-  }
-  Component.displayName = `UserModelName_${className}_SVG`
-  return Component
+            {headerLabel}
+          </tspan>
+        </CustomText>
+
+        {/* If the model carries an icon body (rare; the v3 fork stored
+            inline SVG markup), embed it via foreignObject instead of
+            attributes. */}
+        {hasIcon && (
+          <foreignObject
+            x={0}
+            y={headerHeight + 4}
+            width={width}
+            height={Math.max(40, height - headerHeight - 8)}
+          >
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                pointerEvents: "none",
+              }}
+              // Trusted authoring-time SVG markup, mirrors v3's behaviour.
+              dangerouslySetInnerHTML={{ __html: icon as string }}
+            />
+          </foreignObject>
+        )}
+
+        {!hasIcon && attributes.length > 0 && (
+          <>
+            <SeparationLine
+              y={headerHeight}
+              width={width}
+              strokeColor={strokeColor}
+            />
+            <RowBlockSection
+              items={processedAttributes}
+              padding={padding}
+              itemHeight={attributeHeight}
+              width={width}
+              offsetFromTop={headerHeight}
+              showAssessmentResults={showAssessmentResults}
+              itemElementType="attribute"
+            />
+          </>
+        )}
+
+        {showAssessmentResults && (
+          <AssessmentIcon score={nodeScore} x={width - 15} y={-15} />
+        )}
+      </g>
+    </svg>
+  )
 }
 
 /**
- * Default "Alice: User" preview kept as a fallback for any code path
- * that imports `UserModelNameSVG` directly (back-compat with the
- * single-static-preview API).
+ * Static palette preview (kept for backward compat with code paths that
+ * import `UserModelNameSVG` directly). The dynamic palette entries below
+ * are the primary path; this is the fallback "Alice : User" card.
  */
-export const UserModelNameSVG = makeUserModelNameSVG("User", [])
+export const UserModelStaticPreviewSVG: FC<SVGComponentProps> = ({
+  width,
+  height,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+}) => (
+  <UserModelNameSVG
+    id="__preview__"
+    width={width}
+    height={height}
+    SIDEBAR_PREVIEW_SCALE={SIDEBAR_PREVIEW_SCALE}
+    svgAttributes={svgAttributes}
+    data={{
+      name: "Alice",
+      className: "User",
+      attributes: [],
+    }}
+  />
+)
 
-export const UserModelIconSVG: React.FC<SVGComponentProps> = ({
+/** Small circle icon preview (palette `UserModelIcon`). */
+export const UserModelIconSVG: FC<SVGComponentProps> = ({
   width,
   height,
   SIDEBAR_PREVIEW_SCALE,
@@ -131,22 +254,56 @@ export const UserModelIconSVG: React.FC<SVGComponentProps> = ({
 }
 
 /**
+ * Build a per-class palette preview SVG. v3's
+ * `composeUserModelPreview` rendered ONE drag-source per meta-model
+ * class — we replicate that by stamping a `UserModelNameSVG` with the
+ * class's attributes pre-populated as the row labels.
+ */
+function makeUserModelPaletteSVG(
+  className: string,
+  attrNames: string[]
+): FC<SVGComponentProps> {
+  const Component: FC<SVGComponentProps> = ({
+    width,
+    height,
+    SIDEBAR_PREVIEW_SCALE,
+    svgAttributes,
+  }) => (
+    <UserModelNameSVG
+      id={`__preview_${className}__`}
+      width={width}
+      height={height}
+      SIDEBAR_PREVIEW_SCALE={SIDEBAR_PREVIEW_SCALE}
+      svgAttributes={svgAttributes}
+      data={{
+        name: `${className.charAt(0).toLowerCase() + className.slice(1)}_1`,
+        className,
+        attributes: attrNames.map((n, i) => ({
+          id: `__preview_${className}_${i}__`,
+          name: `${n} =`,
+        })),
+      }}
+    />
+  )
+  Component.displayName = `UserModelName_${className}_SVG`
+  return Component
+}
+
+/**
  * Palette entry descriptor returned by `getUserModelNamePaletteEntries`.
- * Mirrors the shape of `DropElementConfig` (without dragging the
- * `constants.ts` import in — keeps this module a pure visual helper).
  */
 export interface UserModelPaletteEntry {
   type: "UserModelName"
   className: string
   attributes: { id: string; name: string; attributeType: string }[]
-  svg: React.FC<SVGComponentProps>
+  svg: FC<SVGComponentProps>
 }
 
 /**
- * Walk the user meta-model JSON (via `getUserMetaModelClasses`) and
- * produce one palette entry per meta-model class. The webapp / library
- * palette registry consumes this to render N drag-sources rather than
- * the single static "Alice: User" entry.
+ * Walk the user meta-model JSON via `getUserMetaModelClasses` and produce
+ * one palette entry per meta-model class. Mirrors v3
+ * `composeUserModelPreview` exactly (`Personal_Information`, `Skill`,
+ * `Education`, `Disability`, ...).
  */
 export function getUserModelNamePaletteEntries(): UserModelPaletteEntry[] {
   const classes: UserMetaModelClass[] = getUserMetaModelClasses()
@@ -154,9 +311,13 @@ export function getUserModelNamePaletteEntries(): UserModelPaletteEntry[] {
     type: "UserModelName" as const,
     className: c.name,
     attributes: c.attributes,
-    svg: makeUserModelNameSVG(
+    svg: makeUserModelPaletteSVG(
       c.name,
       c.attributes.map((a) => a.name)
     ),
   }))
 }
+
+// Touch the type alias so TypeScript's noUnusedLocals doesn't flag it
+// when this module is imported only for its side-effect helpers.
+export type { UserModelAttributeRow }

@@ -5,8 +5,9 @@ import {
   Select,
   Stack,
   TextField as MuiTextField,
+  Typography as MuiTypography,
 } from "@mui/material"
-import React from "react"
+import React, { useMemo } from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import {
@@ -18,28 +19,40 @@ import { DeleteIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
 import { normalizeType } from "@/utils/typeNormalization"
 import { generateUUID } from "@/utils"
-import { diagramBridge } from "@/services/diagramBridge"
+import {
+  getUserMetaModelClasses,
+  getUserMetaModelV4,
+  type UserMetaModelClass,
+} from "@/services/userMetaModel"
 
 /**
- * SA-4 / SA-2.2 inspector body for `UserModelName`. Mirrors SA-2's
- * `ObjectEditPanel` layout but slimmed down for the user-modelling
- * shape:
+ * SA-FIX-USER-COMPLETE inspector body for `UserModelName`. Full v3 port.
  *
- *  - Each attribute row has `name`, `type`, `defaultValue`, and the
- *    user-modelling `attributeOperator` (`<` / `<=` / `==` / `>=`
- *    / `>`).
- *  - SA-2.2 #36: when the row is linked to a class attribute whose
- *    type is an Enumeration, the value widget becomes a dropdown of
- *    the enumeration's literals (sourced from the bridge).
- *    Date / datetime / time / int / bool also pick widget by type.
- *  - SA-2.2 #37: the comparator dropdown only renders when the linked
- *    class attribute is integer-typed (`int` / `integer` / `number`),
- *    matching v3 `uml-user-model-attribute-update.tsx:106-109` and
- *    avoiding noise on string / enum rows where comparators don't
- *    apply.
- *  - No methods; the user model is constraint-style data only.
- *  - `classId` / `className` cross-link to a ClassDiagram (open
- *    question #1 resolution — preserved for parity with `ObjectName`).
+ * v3 source: `packages/editor/.../uml-object-name/uml-object-name-update.tsx`
+ * (the v3 fork registers `UMLObjectNameUpdate` for both ObjectName and
+ * UserModelName, with the user-side branch swapping the attribute
+ * sub-component for `UMLUserModelAttributeUpdate`).
+ *
+ * Key v3-parity behaviours:
+ *  - Class picker is driven by the **user-meta-model JSON**, not the
+ *    regular ClassDiagram. The user model has its own meta-model
+ *    (Personal_Information / Skill / Education / Disability ...) — the
+ *    picker presents that list. v3 routed the user-side dropdown
+ *    through the same diagramBridge call, but the v3 fork pre-loaded
+ *    the user-meta-model into the bridge for that diagram type.
+ *    SA-FIX-USER-COMPLETE makes the source explicit by reading the JSON
+ *    directly here.
+ *  - Selecting a meta-class auto-populates the row's `attributes` from
+ *    the meta-model class definition (mirrors v3 `onClassChange` —
+ *    `uml-object-name-update.tsx:80-130`).
+ *  - Each attribute row has its own type-aware editor (delegated to
+ *    the row component below), with the comparator dropdown only
+ *    rendered for integer-typed rows (v3
+ *    `uml-user-model-attribute-update.tsx:106-109` and `:200-218`).
+ *  - Enumeration-typed attribute values become a dropdown of the
+ *    Enumeration's literals, sourced from the user-meta-model JSON
+ *    (matches v3 `getEnumerationValues` — `uml-user-model-attribute-update.tsx:111-134`).
+ *  - No methods rendered. The user model is constraint-style data only.
  */
 const PRIMITIVE_TYPES: { value: string; label: string }[] = [
   { value: "str", label: "str (string)" },
@@ -60,76 +73,75 @@ const DATE_TYPES = new Set(["date"])
 const DATETIME_TYPES = new Set(["datetime"])
 const TIME_TYPES = new Set(["time"])
 const STRING_TYPES = new Set(["str", "string"])
+const PRIMITIVE_SET = new Set([
+  ...INTEGER_TYPES,
+  ...BOOLEAN_TYPES,
+  ...DATE_TYPES,
+  ...DATETIME_TYPES,
+  ...TIME_TYPES,
+  ...STRING_TYPES,
+  "float",
+  "double",
+  "any",
+])
+
+interface MetaContext {
+  classes: UserMetaModelClass[]
+  enumerations: Map<string, string[]>
+}
+
+/**
+ * Build a lookup of the user-meta-model's enumeration literals. v3 read
+ * these via `diagramBridge.getClassDiagramData()` after the bridge had
+ * been pre-loaded with the user-meta-model. We surface the same shape
+ * directly from the JSON so the inspector doesn't depend on bridge
+ * priming order.
+ */
+function buildMetaContext(): MetaContext {
+  const classes = getUserMetaModelClasses()
+  const enumerations = new Map<string, string[]>()
+  const v4 = getUserMetaModelV4()
+  for (const n of v4.nodes ?? []) {
+    const nd = (n as {
+      data?: { name?: string; stereotype?: string; attributes?: { name?: string }[] }
+    }).data
+    if (nd?.stereotype === "Enumeration" && typeof nd?.name === "string") {
+      enumerations.set(
+        nd.name,
+        (nd.attributes ?? [])
+          .map((a) => (typeof a.name === "string" ? a.name : ""))
+          .filter((s) => s.length > 0)
+      )
+    }
+  }
+  return { classes, enumerations }
+}
 
 interface AttrRowProps {
   row: UserModelAttributeRow
+  metaCtx: MetaContext
   onPatch: (patch: Partial<UserModelAttributeRow>) => void
   onDelete: () => void
 }
 
-/**
- * Find the linked class attribute via the diagram bridge. v3 read this
- * via `diagramBridge.getClassDiagramData().elements[attributeId]` —
- * v4 walks `nodes[*].data.attributes` instead.
- */
-function lookupLinkedAttribute(
-  attributeId?: string
-): { name?: string; attributeType?: string } | null {
-  if (!attributeId) return null
-  const data = diagramBridge.getClassDiagramData()
-  if (!data) return null
-  for (const node of data.nodes ?? []) {
-    const nodeData = (node?.data ?? {}) as {
-      attributes?: { id: string; name?: string; attributeType?: string }[]
+const AttrRow: React.FC<AttrRowProps> = ({
+  row,
+  metaCtx,
+  onPatch,
+  onDelete,
+}) => {
+  // Look up linked meta-class attribute (when this row was seeded from
+  // a meta-class). v3's `getAttributeDefinition` walked the bridge; we
+  // walk our pre-built classes list.
+  const linked = useMemo(() => {
+    if (!row.attributeId) return null
+    for (const c of metaCtx.classes) {
+      const found = c.attributes.find((a) => a.id === row.attributeId)
+      if (found) return found
     }
-    const found = (nodeData.attributes ?? []).find(
-      (a) => a.id === attributeId
-    )
-    if (found) return found
-  }
-  return null
-}
+    return null
+  }, [row.attributeId, metaCtx.classes])
 
-/**
- * Find the literals for a given Enumeration class name. v3 looked up
- * the Enumeration class in the bridge and returned its `attributes`
- * (treated as enum values).
- */
-function lookupEnumerationLiterals(typeName?: string): string[] {
-  if (!typeName) return []
-  const data = diagramBridge.getClassDiagramData()
-  if (!data) return []
-  for (const node of data.nodes ?? []) {
-    if (
-      node?.type !== "class" &&
-      node?.type !== "Enumeration" // tolerate v3 leakage
-    ) {
-      continue
-    }
-    const nodeData = (node?.data ?? {}) as {
-      name?: string
-      stereotype?: string
-      attributes?: { id: string; name?: string }[]
-    }
-    if (
-      (nodeData.stereotype === "Enumeration" ||
-        node?.type === "Enumeration") &&
-      nodeData.name === typeName
-    ) {
-      return (nodeData.attributes ?? [])
-        .map((a) => (typeof a.name === "string" ? a.name : ""))
-        .filter((s) => s.length > 0)
-    }
-  }
-  return []
-}
-
-const AttrRow: React.FC<AttrRowProps> = ({ row, onPatch, onDelete }) => {
-  // Resolve the linked class attribute once per render so we can pick
-  // the right comparator / widget based on the class-side type.
-  const linked = lookupLinkedAttribute(row.attributeId)
-  // The "effective" type for widget selection — prefer the link, fall
-  // back to the row's own attributeType.
   const effectiveType = (linked?.attributeType ?? row.attributeType ?? "")
     .toString()
     .toLowerCase()
@@ -141,9 +153,13 @@ const AttrRow: React.FC<AttrRowProps> = ({ row, onPatch, onDelete }) => {
   const isTime = TIME_TYPES.has(effectiveType)
   const isString = STRING_TYPES.has(effectiveType)
 
-  // SA-2.2 #36: enum literals via the bridge. We use the row's raw
-  // attributeType as the Enumeration class name — v3 did the same.
-  const enumLiterals = lookupEnumerationLiterals(linked?.attributeType)
+  // Enumeration literals via the meta-model. Use the linked attribute's
+  // raw type (preserves case sensitivity for enum class names like
+  // `GenderEnum`) when available, else the row's own type.
+  const enumTypeName = linked?.attributeType ?? row.attributeType
+  const enumLiterals = enumTypeName
+    ? metaCtx.enumerations.get(enumTypeName) ?? []
+    : []
   const isEnumeration = enumLiterals.length > 0
 
   const currentValue =
@@ -156,6 +172,10 @@ const AttrRow: React.FC<AttrRowProps> = ({ row, onPatch, onDelete }) => {
   const onValueChange = (v: string) =>
     onPatch({ value: v === "" ? undefined : v })
 
+  // The displayed row "name" comes from the linked meta-class attribute
+  // when one exists; otherwise users edit it directly.
+  const displayName = linked?.name ?? row.name
+
   return (
     <Box
       sx={{
@@ -167,36 +187,48 @@ const AttrRow: React.FC<AttrRowProps> = ({ row, onPatch, onDelete }) => {
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          placeholder="attribute name"
-          value={row.name}
-          onChange={(e) =>
-            onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
-          }
-        />
-        <Select
-          size="small"
-          value={row.attributeType ?? "str"}
-          onChange={(e) =>
-            onPatch({ attributeType: normalizeType(String(e.target.value)) })
-          }
-          sx={{ minWidth: 110 }}
-        >
-          {PRIMITIVE_TYPES.map((p) => (
-            <MenuItem key={p.value} value={p.value}>
-              {p.label}
-            </MenuItem>
-          ))}
-        </Select>
+        {linked ? (
+          <MuiTypography
+            variant="body2"
+            sx={{ flex: 1, fontWeight: 500, color: "var(--besser-text)" }}
+          >
+            {displayName}
+          </MuiTypography>
+        ) : (
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            placeholder="attribute name"
+            value={row.name}
+            onChange={(e) =>
+              onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
+            }
+          />
+        )}
+        {!linked && (
+          <Select
+            size="small"
+            value={
+              PRIMITIVE_SET.has(
+                String(row.attributeType ?? "str").toLowerCase()
+              )
+                ? row.attributeType ?? "str"
+                : "str"
+            }
+            onChange={(e) =>
+              onPatch({ attributeType: normalizeType(String(e.target.value)) })
+            }
+            sx={{ minWidth: 110 }}
+          >
+            {PRIMITIVE_TYPES.map((p) => (
+              <MenuItem key={p.value} value={p.value}>
+                {p.label}
+              </MenuItem>
+            ))}
+          </Select>
+        )}
 
-        {/* SA-2.2 #37: comparator dropdown only when the linked class
-            attribute is an integer-style numeric type. v3 hid it for
-            non-numeric rows since `==` is the only meaningful op
-            there. When there's no link, fall back to the row's own
-            type so user-defined integer rows still get the dropdown. */}
         {isInteger && (
           <Select
             size="small"
@@ -222,7 +254,7 @@ const AttrRow: React.FC<AttrRowProps> = ({ row, onPatch, onDelete }) => {
         </IconButton>
       </Stack>
 
-      {/* SA-2.2 #36: type-aware value widget. */}
+      {/* Type-aware value widget — v3 parity. */}
       {isEnumeration ? (
         <Select
           size="small"
@@ -280,6 +312,21 @@ const AttrRow: React.FC<AttrRowProps> = ({ row, onPatch, onDelete }) => {
   )
 }
 
+const PRIMITIVE_TYPE_NAMES = new Set([
+  "str",
+  "string",
+  "int",
+  "integer",
+  "float",
+  "double",
+  "bool",
+  "boolean",
+  "date",
+  "datetime",
+  "time",
+  "any",
+])
+
 export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
@@ -290,6 +337,11 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
     }))
   )
   const node = nodes.find((n) => n.id === elementId)
+
+  // Build the meta-model context once per render. Cheap — just walks
+  // the JSON in memory; the helper internally caches.
+  const metaCtx = useMemo(buildMetaContext, [])
+
   if (!node) return null
 
   const data = node.data as UserModelNameNodeProps
@@ -304,6 +356,45 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
 
   const handleDataFieldUpdate = (key: string, value: string) => {
     update({ [key]: value } as Partial<UserModelNameNodeProps>)
+  }
+
+  /**
+   * Class-picker handler. v3 `onClassChange` reset the attributes,
+   * stamped fresh ones from the class definition, and updated
+   * `classId` / `className`. We do the same — but the source of truth
+   * is the user-meta-model JSON, not the ClassDiagram bridge.
+   */
+  const onClassChange = (className: string) => {
+    if (!className) {
+      update({
+        classId: undefined,
+        className: undefined,
+        attributes: [],
+      })
+      return
+    }
+    const meta = metaCtx.classes.find((c) => c.name === className)
+    if (!meta) {
+      update({ className })
+      return
+    }
+    const newAttrs: UserModelAttributeRow[] = meta.attributes.map((a) => {
+      const isPrim = PRIMITIVE_TYPE_NAMES.has(a.attributeType.toLowerCase())
+      return {
+        id: generateUUID(),
+        name: a.name,
+        attributeType: isPrim ? a.attributeType : "",
+        // Link to the meta-attribute so the inspector can resolve enum
+        // literals + type when it isn't a primitive.
+        attributeId: a.id,
+        attributeOperator: "==",
+      }
+    })
+    update({
+      classId: meta.id,
+      className: meta.name,
+      attributes: newAttrs,
+    })
   }
 
   const setAttribute = (
@@ -351,14 +442,31 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        label="className (optional cached link)"
-        value={data.className ?? ""}
-        onChange={(e) => update({ className: e.target.value })}
-      />
+
+      {/* Class picker driven by the user-meta-model JSON. */}
+      <Stack direction="row" alignItems="center" spacing={0.5}>
+        <Typography variant="caption" sx={{ minWidth: 70 }}>
+          class
+        </Typography>
+        <Select
+          size="small"
+          value={data.className ?? ""}
+          onChange={(e) => onClassChange(String(e.target.value))}
+          displayEmpty
+          sx={{ flex: 1 }}
+        >
+          <MenuItem value="">— no class —</MenuItem>
+          {metaCtx.classes.map((c) => (
+            <MenuItem key={c.id} value={c.name}>
+              {c.name}
+              {c.attributes.length > 0
+                ? ` (${c.attributes.length} attrs)`
+                : ""}
+            </MenuItem>
+          ))}
+        </Select>
+      </Stack>
+
       <MuiTextField
         size="small"
         variant="outlined"
@@ -389,6 +497,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         <AttrRow
           key={row.id}
           row={row}
+          metaCtx={metaCtx}
           onPatch={(patch) => setAttribute(idx, patch)}
           onDelete={() => removeAttribute(idx)}
         />

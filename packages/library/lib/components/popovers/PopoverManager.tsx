@@ -136,6 +136,9 @@ type NodePopoverType =
   | "UserModelName"
   | "UserModelAttribute"
   | "UserModelIcon"
+  // SA-HIDE-NOISE: free-form sticky-note Comment ported from v3
+  // `common/comments`. Same registry pattern — type widening only.
+  | "comment"
 
 type EdgePopoverType =
   | "ClassAggregation"

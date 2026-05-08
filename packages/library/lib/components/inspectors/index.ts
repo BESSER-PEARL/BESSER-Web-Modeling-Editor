@@ -32,6 +32,9 @@ import "./userDiagram"
 // bodies. The generic `NNComponentEditPanel` is bound to all 17
 // layer-style kinds; `NNContainer` / `NNReference` get dedicated panels.
 import "./nnDiagram"
+// SA-HIDE-NOISE: shared / cross-diagram inspectors (currently the
+// free-form sticky-note `comment` node ported from v3 `common/comments`).
+import "./common"
 
 registerInspector("class", "edit", ClassEditPanel)
 registerInspector("objectName", "edit", ObjectEditPanel)
@@ -43,3 +46,4 @@ export * from "./stateMachineDiagram"
 export * from "./agentDiagram"
 export * from "./userDiagram"
 export * from "./nnDiagram"
+export * from "./common"

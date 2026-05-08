@@ -1,7 +1,7 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { useEffect, useMemo, useRef } from "react"
 import { DefaultNodeWrapper } from "../wrappers"
-import { ObjectNameSVG } from "@/components"
+import { UserModelNameSVG } from "@/components/svgs/nodes/userDiagram"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import {
@@ -15,34 +15,42 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import {
   ClassNodeElement,
-  ObjectNodeProps,
   UserModelAttributeRow,
   UserModelNameNodeProps,
 } from "@/types"
 
 /**
- * SA-4 `UserModelName`. Derived from SA-2's `ObjectName` per the SA-4 brief
- * — the user-modelling diagram is a special case of object diagram with
- * semantic constraints (validated server-side via `usermetamodel.json`).
+ * SA-FIX-USER-COMPLETE `UserModelName`. Full v3-parity rewrite.
  *
- * Key shape differences from `ObjectName`:
- *  - Each attribute carries an `attributeOperator` (`< / <= / == / >= / >`)
- *    that signals a constraint-style comparison rather than a simple
- *    value assignment. The display uses that operator instead of `=`.
- *  - Spec open question #1 resolution: `classId` (and cached `className`)
- *    are preserved verbatim for parity with `ObjectName.classId`.
- *  - Reuses `ObjectNameSVG` so the visual stays identical to ObjectDiagram.
+ * v3 source: `packages/editor/src/main/packages/user-modeling/uml-user-model-name/uml-user-model-name.ts`
+ *
+ * Visual contract (matches v3 `UMLUserModelName.render` + the way
+ * `composeUserModelPreview` emits one card per meta-model class):
+ *  - Underlined header showing `name` (the instance name) and the linked
+ *    class label `: className` when `className` is set — this matches the
+ *    v3 sidebar drag-source `${classInfo.name.charAt(0).toLowerCase() +
+ *    classInfo.name.slice(1)}_1` format and the v3 inspector workflow.
+ *  - No methods rendered (user-model is constraint-style data only).
+ *  - Each attribute row is rendered in `name = value` format. The
+ *    formatter prefers `attributeOperator` when present (so `>=`, `<=`
+ *    etc. round-trip from the v3 fixture untouched) and falls back to
+ *    `=` otherwise. Visibility symbols are NOT shown (per spec).
  */
-const formatUserModelAttribute = (
+const formatUserModelAttributeForDisplay = (
   row: UserModelAttributeRow
 ): ClassNodeElement => {
-  if (row.value === undefined || row.value === null || row.value === "") {
-    return row
-  }
-  const op = row.attributeOperator ?? "=="
   // Preserve any explicit operator the inspector already shaped.
   if (row.name && /[<>=]+/.test(row.name)) return row
-  return { ...row, name: `${row.name} ${op} ${row.value}` }
+  const op = row.attributeOperator ?? "="
+  if (row.value !== undefined && row.value !== null && row.value !== "") {
+    return { ...row, name: `${row.name} ${op} ${row.value}` }
+  }
+  // No value yet — still surface the operator so the user can read it
+  // off the canvas (`age >=`).
+  if (row.attributeOperator) {
+    return { ...row, name: `${row.name} ${row.attributeOperator}` }
+  }
+  return row
 }
 
 export function UserModelName({
@@ -51,9 +59,9 @@ export function UserModelName({
   height,
   data,
 }: NodeProps<Node<UserModelNameNodeProps>>) {
-  const { attributes, name } = data
+  const { attributes, name, className } = data
   const displayAttributes = useMemo(
-    () => attributes.map(formatUserModelAttribute),
+    () => attributes.map(formatUserModelAttributeForDisplay),
     [attributes]
   )
   const { setNodes } = useDiagramStore(
@@ -63,7 +71,6 @@ export function UserModelName({
   )
 
   const isDiagramModifiable = useDiagramModifiable()
-
   const userSvgWrapperRef = useRef<HTMLDivElement | null>(null)
 
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
@@ -72,13 +79,19 @@ export function UserModelName({
   const padding = LAYOUT.DEFAULT_PADDING
   const font = LAYOUT.DEFAULT_FONT
 
+  // Header label is the instance name plus optional `: className` suffix
+  // (v3 visual). Use that for sizing.
+  const headerLabel = useMemo(() => {
+    return className ? `${name} : ${className}` : name
+  }, [name, className])
+
   const maxTextWidth = useMemo(() => {
-    const headerTextWidth = measureTextWidth(name, font)
+    const headerTextWidth = measureTextWidth(headerLabel, font)
     const attributesTextWidths = displayAttributes.map(
       (attr: { name: string }) => measureTextWidth(attr.name, font)
     )
     return Math.max(headerTextWidth, ...attributesTextWidths, 0)
-  }, [name, displayAttributes, font])
+  }, [headerLabel, displayAttributes, font])
 
   const minWidth = useMemo(
     () => calculateMinWidth(maxTextWidth, padding),
@@ -131,20 +144,6 @@ export function UserModelName({
 
   const finalWidth = Math.max(width ?? 0, minWidth)
 
-  // Reuse `ObjectNameSVG` shape — the visual stays identical to
-  // ObjectDiagram per the SA-4 brief.
-  const renderData: ObjectNodeProps = {
-    name,
-    fillColor: data.fillColor,
-    strokeColor: data.strokeColor,
-    textColor: data.textColor,
-    methods: [],
-    attributes: displayAttributes,
-    classId: data.classId,
-    className: data.className,
-    icon: data.icon,
-  }
-
   return (
     <DefaultNodeWrapper
       width={width}
@@ -163,10 +162,19 @@ export function UserModelName({
       />
 
       <div ref={userSvgWrapperRef}>
-        <ObjectNameSVG
+        <UserModelNameSVG
           width={finalWidth}
           height={minHeight}
-          data={renderData}
+          data={{
+            name,
+            className,
+            classId: data.classId,
+            icon: data.icon,
+            fillColor: data.fillColor,
+            strokeColor: data.strokeColor,
+            textColor: data.textColor,
+            attributes: displayAttributes,
+          }}
           id={id}
           showAssessmentResults={!isDiagramModifiable}
         />

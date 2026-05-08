@@ -294,6 +294,11 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     // Special nodes
     ColorDescription: "colorDescription",
     TitleAndDescription: "titleAndDesctiption", // Note the typo in V4: "desctiption"
+    // SA-HIDE-NOISE: free-form sticky-note Comment ported from v3
+    // `common/comments`. v3 stored the body text on `UMLElement.name`,
+    // so the data conversion is a pass-through (baseData carries
+    // `name`). The v4 → v3 inverse map is in `invertNodeType`.
+    Comments: "comment",
 
     // SA-3: StateMachineDiagram — node types are PascalCase identical to
     // v3 element-type strings, so the migrator passes them through. Per
@@ -2521,6 +2526,9 @@ const invertNodeType = (v4Type: string): string => {
     class: "Class",
     package: "Package",
     objectName: "ObjectName",
+    // SA-HIDE-NOISE: free-form sticky-note Comment. v3 element type is
+    // `Comments` (plural — see `packages/editor/.../common/comments/`).
+    comment: "Comments",
     // SA-3: StateMachine node-type strings are PascalCase identical to
     // v3 element types — falling through is correct, but listed here
     // for grep-ability.

@@ -1,4 +1,5 @@
 export * from "./classDiagram"
+export * from "./common"
 export * from "./types"
 export * from "./TitleAndDescriptionNode"
 export * from "./flowchart"

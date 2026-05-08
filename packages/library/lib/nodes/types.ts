@@ -1,5 +1,6 @@
 import { NodeTypes } from "@xyflow/react" // Explicitly differentiate imported type
 import { Class, ColorDescription, ClassOCLConstraintNode } from "./classDiagram"
+import { Comment } from "./common"
 import { ObjectName } from "./objectDiagram"
 import { CommunicationObjectName } from "./communicationDiagram"
 import { TitleAndDesctiption } from "./TitleAndDescriptionNode"
@@ -76,6 +77,10 @@ const defaultNodeTypes = {
   objectName: ObjectName,
   communicationObjectName: CommunicationObjectName,
   colorDescription: ColorDescription,
+  // SA-HIDE-NOISE: free-form sticky-note Comment node, ported from
+  // v3 `common/comments`. Available across all diagram types so
+  // designers can annotate any model.
+  comment: Comment,
   titleAndDesctiption: TitleAndDesctiption,
   activity: Activity,
   activityInitialNode: ActivityInitialNode,
@@ -164,6 +169,7 @@ export const DiagramNodeTypeRecord: Record<DiagramNodeType, DiagramNodeType> = {
   objectName: "objectName",
   communicationObjectName: "communicationObjectName",
   colorDescription: "colorDescription",
+  comment: "comment",
   titleAndDesctiption: "titleAndDesctiption",
   activity: "activity",
   activityInitialNode: "activityInitialNode",
