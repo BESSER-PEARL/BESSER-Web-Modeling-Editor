@@ -11,8 +11,13 @@ const webappSrc = path.resolve(__dirname, './src');
 // internally; the webapp uses `@/*` → `src/*`. After flipping the
 // `@besser/wme` alias to point at library source, vite needs to pick the
 // right base depending on the importer.
+//
+// Note: Vite normalizes importer paths to forward slashes regardless of
+// platform (see vite/src/node/utils.ts). Match on `/packages/library/`
+// (literal) instead of `path.sep` so this works on Windows too.
 function resolveAtPath(source: string, importer?: string): string {
-  const inLibrary = importer && importer.includes(`${path.sep}packages${path.sep}library${path.sep}`);
+  const normalized = importer ? importer.replace(/\\/g, '/') : '';
+  const inLibrary = normalized.includes('/packages/library/');
   const base = inLibrary ? libraryLib : webappSrc;
   const target = path.join(base, source);
   if (fs.existsSync(target) && fs.statSync(target).isFile()) return target;
