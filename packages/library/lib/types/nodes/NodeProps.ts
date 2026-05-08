@@ -85,7 +85,18 @@ export type ClassNodeElement = {
 export type ClassNodeProps = {
   methods: ClassNodeElement[]
   attributes: ClassNodeElement[]
-  stereotype?: ClassType
+  /** Freeform stereotype (PC-1 fix: SA-FIX-Class). Was `ClassType` enum. */
+  stereotype?: string
+  /** Independent italic flag (PC-1 fix). */
+  italic?: boolean
+  /** Independent underline flag (PC-1 fix). */
+  underline?: boolean
+  /** Free-text description (v3 `StylePane.showDescription`). */
+  description?: string
+  /** Optional URI (v3 `StylePane.showUri`). */
+  uri?: string
+  /** Optional inline icon SVG body (v3 `StylePane.showIcon`). */
+  icon?: string
   /**
    * BESSER OCL constraints attached to this classifier. `expression` is the
    * raw OCL text; `name` is the constraint identifier shown in the panel.
@@ -349,33 +360,31 @@ export type StateMarkerNodeProps = DefaultNodeProps
 /* -------------------------------------------------------------------------- */
 
 /**
- * `AgentState` parent node — extends `StateNodeProps` with a `replyType`
- * discriminator. v3 source: `agent-state-diagram/agent-state/agent-state.ts`
- * (`replyType` defaults to `'text'` on `AgentStateMember`).
+ * SA-FIX-Agent inline-body row attached to `AgentState.data.bodies`.
  *
- * Children (`AgentStateBody` / `AgentStateFallbackBody` / `AgentRagElement`)
- * hang off via React Flow `parentId`, mirroring SA-3's State/StateBody
- * pattern instead of collapsing onto the parent's data — the SA-4 brief
- * inherits SA-3's choice for visual + auto-grow parity with v3.
+ * v3's `AgentState` rendered its body sections inline (entry / do /
+ * exit / on-transition / fallback) like a Class node renders attribute
+ * / method rows. SA-4 originally split each body into a separate
+ * `AgentStateBody` / `AgentStateFallbackBody` node connected via
+ * `parentId`; SA-FIX-Agent undoes that split and folds the bodies onto
+ * the parent's `data.bodies` array.
+ *
+ * Each row carries the v3 `AgentStateMember` reply-type-driven extras
+ * (`ragDatabaseName`, `dbCustomName`, …) verbatim so round-trip with v3
+ * fixtures stays lossless. The migrator preserves the original v3
+ * element ids on the body rows so v4 → v3 emits them back as top-level
+ * child elements with their original ids.
  */
-export type AgentStateNodeProps = StateNodeProps & {
-  /**
-   * Reply discriminator: `'text' | 'image' | 'json' | 'llm' | 'rag' | 'code'
-   * | 'db_reply'` per the v3 `AgentStateMember` defaults. Defaults to `'text'`.
-   */
-  replyType?: string
-}
-
-/**
- * `AgentStateBody` / `AgentStateFallbackBody` — child rows of an
- * `AgentState`. Carry the optional `replyType`-driven extras
- * (`ragDatabaseName`, `dbCustomName`, …) verbatim per the spec at
- * `docs/source/migrations/uml-v4-shape.md` — the spec mounts these on the
- * RAG element, but in practice v3's `AgentStateMember` carries them on
- * **every** agent-state body / fallback body, so the SA-4 port preserves
- * them on both shapes for round-trip fidelity.
- */
-export type AgentStateBodyNodeProps = DefaultNodeProps & {
+export type AgentStateBodyRow = {
+  /** Stable id (re-emitted as the v3 element id on export). */
+  id: string
+  /** Section discriminator: `entry` / `do` / `exit` / `on` / `fallback`. */
+  kind: "entry" | "do" | "exit" | "on" | "fallback"
+  /** Display label / row content (also stores v3 `name`). */
+  name?: string
+  /** Optional code body when `replyType === 'code'`. */
+  code?: string
+  /** v3 `AgentStateMember.replyType`. */
   replyType?: string
   ragDatabaseName?: string
   dbSelectionType?: string
@@ -383,8 +392,33 @@ export type AgentStateBodyNodeProps = DefaultNodeProps & {
   dbQueryMode?: string
   dbOperation?: string
   dbSqlQuery?: string
-  /** Optional code body when `replyType === 'code'`. */
-  code?: string
+  /** Optional fillColor / textColor passthrough for round-trip parity. */
+  fillColor?: string
+  textColor?: string
+}
+
+/**
+ * `AgentState` parent node — extends `StateNodeProps` with a `replyType`
+ * discriminator and an inline `bodies` array. v3 source:
+ * `agent-state-diagram/agent-state/agent-state.ts` (`replyType` defaults
+ * to `'text'` on `AgentStateMember`).
+ *
+ * SA-FIX-Agent: bodies render inline on the parent (table-style rows,
+ * like a Class node's attributes). Each `bodies[i]` carries the v3
+ * element id so the migrator emits them back as top-level v3 child
+ * elements with their original ids.
+ */
+export type AgentStateNodeProps = StateNodeProps & {
+  /**
+   * Reply discriminator: `'text' | 'image' | 'json' | 'llm' | 'rag' | 'code'
+   * | 'db_reply'` per the v3 `AgentStateMember` defaults. Defaults to `'text'`.
+   */
+  replyType?: string
+  /**
+   * Inline body rows. Folded from v3's child `AgentStateBody` /
+   * `AgentStateFallbackBody` elements per SA-FIX-Agent.
+   */
+  bodies?: AgentStateBodyRow[]
 }
 
 /**

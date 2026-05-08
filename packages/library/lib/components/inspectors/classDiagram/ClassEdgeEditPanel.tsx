@@ -15,6 +15,7 @@ import { DividerLine, EdgeStyleEditor, Typography } from "@/components/ui"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
 import { SwapHorizIcon } from "@/components/Icon"
+import { erCardinalityToUML } from "@/utils/multiplicity"
 
 /**
  * SA-2.1 ClassEdgeEditPanel — single inspector body bound to all nine
@@ -197,6 +198,11 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               onChange={(e) =>
                 updateData({ sourceMultiplicity: e.target.value })
               }
+              onBlur={(e) =>
+                updateData({
+                  sourceMultiplicity: erCardinalityToUML(e.target.value),
+                })
+              }
             />
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -228,6 +234,11 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               value={data.targetMultiplicity ?? ""}
               onChange={(e) =>
                 updateData({ targetMultiplicity: e.target.value })
+              }
+              onBlur={(e) =>
+                updateData({
+                  targetMultiplicity: erCardinalityToUML(e.target.value),
+                })
               }
             />
           </Stack>

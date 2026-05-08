@@ -2133,7 +2133,20 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
   for (const node of v4.nodes) {
     if (node.type === "class") {
       const data = node.data as ClassNodeProps
-      const v3Element: V3UMLElement = {
+      // PC-1/PC-2/PC-11 fix (SA-FIX-Class): preserve freeform stereotype
+      // + italic / underline / description / uri / icon on v3 emit.
+      const isPredefinedStereotype =
+        data.stereotype === ClassType.Abstract ||
+        data.stereotype === ClassType.Interface ||
+        data.stereotype === ClassType.Enumeration
+      const v3Element: V3UMLElement & {
+        stereotype?: string | null
+        italic?: boolean
+        underline?: boolean
+        description?: string
+        uri?: string
+        icon?: string
+      } = {
         id: node.id,
         name: data.name,
         type: classV3Type(data.stereotype),
@@ -2149,6 +2162,14 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         ...(data.fillColor && { fillColor: data.fillColor }),
         ...(data.strokeColor && { strokeColor: data.strokeColor }),
         ...(data.textColor && { textColor: data.textColor }),
+        ...(!isPredefinedStereotype && data.stereotype
+          ? { stereotype: data.stereotype }
+          : {}),
+        ...(data.italic !== undefined && { italic: !!data.italic }),
+        ...(data.underline !== undefined && { underline: !!data.underline }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.uri !== undefined && { uri: data.uri }),
+        ...(data.icon !== undefined && { icon: data.icon }),
       }
       elements[node.id] = v3Element
 

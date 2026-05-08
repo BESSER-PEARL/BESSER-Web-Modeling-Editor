@@ -120,20 +120,24 @@ export function Class({
     return result
   }, [maxTextWidth, padding])
 
-  // Calculate minimum dimensions
+  // Calculate minimum dimensions. PC-1 fix (SA-FIX-Class): Enumeration
+  // hides the methods compartment entirely; height drops the methods
+  // contribution to match.
+  const isEnumerationVariant = stereotype === "Enumeration"
+  const effectiveMethodCount = isEnumerationVariant ? 0 : methods.length
   const minHeight = useMemo(
     () =>
       calculateMinHeight(
         headerHeight,
         attributes.length,
-        methods.length,
+        effectiveMethodCount,
         attributeHeight,
         methodHeight
       ),
     [
       headerHeight,
       attributes.length,
-      methods.length,
+      effectiveMethodCount,
       attributeHeight,
       methodHeight,
     ]

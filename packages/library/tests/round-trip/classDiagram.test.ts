@@ -305,4 +305,125 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
       JSON.stringify(canonical(v4))
     )
   })
+
+  // ---- SA-FIX-Class regression tests (PC-1, PC-2, PC-3, PC-11) ----
+
+  it("SA-FIX-Class PC-1: freeform stereotype string survives v3 → v4 → v3", () => {
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-X": {
+          id: "node-X",
+          name: "X",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+          stereotype: "persistent",
+        },
+      },
+      relationships: {},
+    } as never
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const x = v4.nodes.find((n) => n.id === "node-X")!
+    expect((x.data as ClassNodeProps).stereotype).toBe("persistent")
+    const v3Round = convertV4ToV3Class(v4)
+    const xRound = v3Round.elements["node-X"] as { stereotype?: string }
+    expect(xRound.stereotype).toBe("persistent")
+  })
+
+  it("SA-FIX-Class PC-1: italic + underline flags round-trip", () => {
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-Y": {
+          id: "node-Y",
+          name: "Y",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+          italic: true,
+          underline: true,
+        },
+      },
+      relationships: {},
+    } as never
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const y = v4.nodes.find((n) => n.id === "node-Y")!
+    const data = y.data as ClassNodeProps
+    expect(data.italic).toBe(true)
+    expect(data.underline).toBe(true)
+    const v3Round = convertV4ToV3Class(v4)
+    const yRound = v3Round.elements["node-Y"] as {
+      italic?: boolean
+      underline?: boolean
+    }
+    expect(yRound.italic).toBe(true)
+    expect(yRound.underline).toBe(true)
+  })
+
+  it("SA-FIX-Class PC-2/11: description / uri / icon round-trip", () => {
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-Z": {
+          id: "node-Z",
+          name: "Z",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+          description: "the Z class",
+          uri: "https://example.com/Z",
+          icon: "<svg/>",
+        },
+      },
+      relationships: {},
+    } as never
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const z = v4.nodes.find((n) => n.id === "node-Z")!
+    const data = z.data as ClassNodeProps
+    expect(data.description).toBe("the Z class")
+    expect(data.uri).toBe("https://example.com/Z")
+    expect(data.icon).toBe("<svg/>")
+    const v3Round = convertV4ToV3Class(v4)
+    const zRound = v3Round.elements["node-Z"] as {
+      description?: string
+      uri?: string
+      icon?: string
+    }
+    expect(zRound.description).toBe("the Z class")
+    expect(zRound.uri).toBe("https://example.com/Z")
+    expect(zRound.icon).toBe("<svg/>")
+  })
+
+  it("SA-FIX-Class PC-3: ClassAggregation/Composition diamond on source end", async () => {
+    const { getEdgeMarkerStyles } = await import("@/utils/edgeUtils")
+    const agg = getEdgeMarkerStyles("ClassAggregation")
+    expect(agg.markerStart).toBe("url(#white-rhombus)")
+    expect(agg.markerEnd).toBeUndefined()
+    const comp = getEdgeMarkerStyles("ClassComposition")
+    expect(comp.markerStart).toBe("url(#black-rhombus)")
+    expect(comp.markerEnd).toBeUndefined()
+  })
+
+  it("SA-FIX-Class PC-3: ClassOCLLink renders dotted with open-arrow marker", async () => {
+    const { getEdgeMarkerStyles } = await import("@/utils/edgeUtils")
+    const ocl = getEdgeMarkerStyles("ClassOCLLink")
+    expect(ocl.strokeDashArray).toBe("4 2")
+    expect(ocl.markerEnd).toBe("url(#class-ocl-link-marker)")
+  })
 })
