@@ -11,6 +11,8 @@ import {
 } from "@mui/material"
 import React, { useMemo, useState, ChangeEvent, KeyboardEvent } from "react"
 import { useShallow } from "zustand/shallow"
+import CodeMirror from "@uiw/react-codemirror"
+import { python } from "@codemirror/lang-python"
 import { useDiagramStore } from "@/store/context"
 import {
   ClassNodeElement,
@@ -30,6 +32,33 @@ import {
 } from "@/utils/typeNormalization"
 import { generateUUID } from "@/utils"
 import { diagramBridge } from "@/services/diagramBridge"
+
+/**
+ * SA-2.1 helper: collect sibling Enumerations from the bridge data so the
+ * attribute-type picker can offer them. Mirrors v3
+ * `uml-classifier-update.tsx:200-202`.
+ */
+const collectEnumerationNames = (): string[] => {
+  const data = diagramBridge.getClassDiagramData()
+  if (!data) return []
+  return (data.nodes || [])
+    .filter(
+      (n: { type?: string; data?: { stereotype?: string | null } }) =>
+        // v4: stereotype === 'Enumeration' on `class`. v3 leak: type === 'Enumeration'.
+        (n.type === "class" && n.data?.stereotype === "Enumeration") ||
+        n.type === "Enumeration"
+    )
+    .map((n: { data?: { name?: string } }) => n.data?.name ?? "")
+    .filter((s): s is string => !!s)
+}
+
+/**
+ * SA-2.1 sanitiser for identifier-like fields. Mirrors v3
+ * `uml-classifier-update.tsx:475` (class name) and the attribute-name
+ * sanitiser already used elsewhere in this panel.
+ */
+const safeIdentifier = (raw: string): string =>
+  raw.replace(/[^a-zA-Z0-9_]/g, "")
 
 /**
  * Primitive type catalogue, mirrored verbatim from the v3 fork
@@ -99,6 +128,8 @@ const isPrimitiveType = (t: string | undefined): boolean =>
 interface AttributeRowProps {
   row: ClassNodeElement
   classNames: string[]
+  /** SA-2.1: enumeration names from sibling Enumerations. */
+  enumerationNames: string[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
 }
@@ -106,6 +137,7 @@ interface AttributeRowProps {
 const AttributeRow: React.FC<AttributeRowProps> = ({
   row,
   classNames,
+  enumerationNames,
   onPatch,
   onDelete,
 }) => {
@@ -185,6 +217,16 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             ...classNames.map((cn) => (
               <MenuItem key={`class-${cn}`} value={cn}>
                 {cn}
+              </MenuItem>
+            )),
+          ]}
+          {enumerationNames.length > 0 && [
+            <MenuItem key="__edivider__" disabled>
+              ── enumerations ──
+            </MenuItem>,
+            ...enumerationNames.map((en) => (
+              <MenuItem key={`enum-${en}`} value={en}>
+                {en}
               </MenuItem>
             )),
           ]}
@@ -560,21 +602,42 @@ const MethodRow: React.FC<MethodRowProps> = ({
       </Stack>
 
       {(implementationType === "code" || implementationType === "bal") && (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          multiline
-          minRows={3}
-          maxRows={12}
-          placeholder={
-            implementationType === "bal"
-              ? "BAL method body…"
-              : "Python method body…"
-          }
-          value={row.code ?? ""}
-          onChange={(e) => onPatch({ code: e.target.value })}
-        />
+        <Box
+          sx={{
+            border: "1px solid var(--apollon-gray, #e9ecef)",
+            borderRadius: 1,
+            overflow: "hidden",
+            "& .cm-editor": {
+              fontSize: "13px",
+              minHeight: 80,
+            },
+          }}
+        >
+          {/*
+           * SA-2.1 CodeMirror port — replaces the plain MUI multiline
+           * TextField for `code` / `bal` implementation types so the v3
+           * Python-syntax-highlighting + tab-indent UX is preserved.
+           * Source-of-truth: `uml-classifier-update.tsx` code editor.
+           * BAL is treated as Python-flavored for syntax highlighting
+           * (the v3 fork does the same — both share the same lexical
+           * grammar; BAL is a domain-specific subset).
+           */}
+          <CodeMirror
+            value={row.code ?? ""}
+            extensions={[python()]}
+            onChange={(value) => onPatch({ code: value })}
+            basicSetup={{
+              lineNumbers: true,
+              tabSize: 4,
+              indentOnInput: true,
+            }}
+            placeholder={
+              implementationType === "bal"
+                ? "BAL method body…"
+                : "Python method body…"
+            }
+          />
+        </Box>
       )}
     </Box>
   )
@@ -669,6 +732,9 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }
   }, [nodes])
 
+  // SA-2.1: enumeration list for the attribute-type picker (P12).
+  const enumerationNames = useMemo(() => collectEnumerationNames(), [nodes])
+
   const stateMachineDiagrams = diagramBridge.getStateMachineDiagrams()
   const quantumCircuitDiagrams = diagramBridge.getQuantumCircuitDiagrams()
 
@@ -678,7 +744,11 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   /* ----- Top-level node update helpers ----------------------------------- */
 
   const handleDataFieldUpdate = (key: string, value: string) => {
-    updateNode((d) => ({ ...d, [key]: value }))
+    // SA-2.1 (P10): class `name` field must be sanitised on commit, mirroring
+    // v3 `uml-classifier-update.tsx:475`. Other fields (style colors, etc.)
+    // pass through unchanged.
+    const sanitised = key === "name" ? safeIdentifier(value) : value
+    updateNode((d) => ({ ...d, [key]: sanitised }))
   }
 
   /* ----- Attribute helpers ----------------------------------------------- */
@@ -872,6 +942,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           key={row.id}
           row={row}
           classNames={availableClassNames}
+          enumerationNames={enumerationNames}
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
         />
@@ -894,35 +965,41 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <DividerLine width="100%" />
 
-      <Typography variant="h6">Methods</Typography>
-      {nodeData.methods.map((row) => (
-        <MethodRow
-          key={row.id}
-          row={row}
-          classNames={availableClassNames}
-          stateMachines={stateMachineDiagrams}
-          quantumCircuits={quantumCircuitDiagrams}
-          onPatch={(patch) => patchMethod(row.id, patch)}
-          onDelete={() => deleteMethod(row.id)}
-        />
-      ))}
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        placeholder="+ Add method (Enter)"
-        value={newMethodName}
-        onChange={onMethodChange}
-        onKeyDown={onMethodKey}
-        onBlur={() => {
-          if (newMethodName.trim()) {
-            addMethod(newMethodName)
-            setNewMethodName("")
-          }
-        }}
-      />
+      {/* SA-2.1 (P11): v3 hid the Methods section for Enumeration stereotype
+          (see `uml-classifier-update.tsx:344`). v4 mirrors that hide rule. */}
+      {nodeData.stereotype !== "Enumeration" && (
+        <>
+          <Typography variant="h6">Methods</Typography>
+          {nodeData.methods.map((row) => (
+            <MethodRow
+              key={row.id}
+              row={row}
+              classNames={availableClassNames}
+              stateMachines={stateMachineDiagrams}
+              quantumCircuits={quantumCircuitDiagrams}
+              onPatch={(patch) => patchMethod(row.id, patch)}
+              onDelete={() => deleteMethod(row.id)}
+            />
+          ))}
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            placeholder="+ Add method (Enter)"
+            value={newMethodName}
+            onChange={onMethodChange}
+            onKeyDown={onMethodKey}
+            onBlur={() => {
+              if (newMethodName.trim()) {
+                addMethod(newMethodName)
+                setNewMethodName("")
+              }
+            }}
+          />
 
-      <DividerLine width="100%" />
+          <DividerLine width="100%" />
+        </>
+      )}
 
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Typography variant="h6">OCL Constraints</Typography>

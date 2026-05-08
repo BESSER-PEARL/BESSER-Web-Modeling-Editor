@@ -4,6 +4,7 @@ import { SeparationLine } from "@/components/svgs/nodes/SeparationLine"
 import { HeaderSection } from "../HeaderSection"
 import { RowBlockSection } from "../RowBlockSection"
 import { useDiagramStore } from "@/store"
+import { useSettingsStore } from "@/store/settingsStore"
 import { useShallow } from "zustand/shallow"
 import AssessmentIcon from "../../AssessmentIcon"
 import { SVGComponentProps } from "@/types/SVG"
@@ -23,13 +24,22 @@ export const ObjectNameSVG = ({
   svgAttributes,
   showAssessmentResults = false,
 }: Props) => {
-  const { name, attributes, methods } = data
+  const { name, attributes, methods, icon } = data
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
   const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
 
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
+
+  // SA-2.1: respect the global icon-view toggle (settingsService key
+  // `showIconView`). When enabled and the node has a stored icon body,
+  // we render an icon view (header + inline SVG) instead of the
+  // attributes / methods table — mirrors v3
+  // `uml-object-name.ts:146-204`.
+  const showIconView = useSettingsStore((s) => s.showIconView)
+  const hasIcon = typeof icon === "string" && icon.trim() !== ""
+  const iconViewActive = showIconView && hasIcon
 
   const processElements = (elements: ClassNodeElement[]) =>
     elements.map((el) => {
@@ -75,8 +85,36 @@ export const ObjectNameSVG = ({
           textColor={textColor}
         />
 
+        {/* SA-2.1: icon view replaces attributes/methods sections. The
+            stored `icon` is an SVG markup string from the v3 fork — we
+            embed it via foreignObject so embedded styles / namespaces
+            survive. */}
+        {iconViewActive && (
+          <foreignObject
+            x={0}
+            y={headerHeight + 4}
+            width={width}
+            height={Math.max(40, height - headerHeight - 8)}
+          >
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                pointerEvents: "none",
+              }}
+              // Icon SVG body from v3 (e.g., `<svg>…</svg>`); rendered
+              // inline. Trusted authoring-time input — same trust model
+              // as v3, which used the string verbatim.
+              dangerouslySetInnerHTML={{ __html: icon as string }}
+            />
+          </foreignObject>
+        )}
+
         {/* Attributes Section */}
-        {attributes.length > 0 && (
+        {!iconViewActive && attributes.length > 0 && (
           <>
             {/* Separation Line After Header */}
             <SeparationLine
@@ -97,7 +135,7 @@ export const ObjectNameSVG = ({
         )}
 
         {/* Methods Section */}
-        {methods.length > 0 && (
+        {!iconViewActive && methods.length > 0 && (
           <>
             <SeparationLine
               y={headerHeight + attributes.length * attributeHeight}

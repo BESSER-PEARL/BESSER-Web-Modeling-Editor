@@ -112,6 +112,88 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
     expect(breedAgain.visibility).toBe("private")
   })
 
+  it("SA-2.1: round-trips ClassOCLLink and ClassLinkRel edge types", () => {
+    // Hand-authored v3 fixture exercising the two BESSER-specific edge
+    // types restored in P1. Without the edgeTypeMap entry these would
+    // fall through to the lowercase fallback (`return v3Type.toLowerCase()`)
+    // and silently de-type on import.
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-A": {
+          id: "node-A",
+          name: "A",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+        },
+        "node-B": {
+          id: "node-B",
+          name: "B",
+          type: "Class",
+          owner: null,
+          bounds: { x: 200, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+        },
+      },
+      relationships: {
+        "rel-ocl": {
+          id: "rel-ocl",
+          name: "ocl-context",
+          type: "ClassOCLLink",
+          owner: null,
+          bounds: { x: 100, y: 30, width: 100, height: 0 },
+          path: [
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+          ],
+          source: { element: "node-A", direction: "Right" },
+          target: { element: "node-B", direction: "Left" },
+        },
+        "rel-linkrel": {
+          id: "rel-linkrel",
+          name: "linkrel",
+          type: "ClassLinkRel",
+          owner: null,
+          bounds: { x: 100, y: 30, width: 100, height: 0 },
+          path: [
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+          ],
+          source: { element: "node-B", direction: "Left" },
+          target: { element: "node-A", direction: "Right" },
+        },
+      },
+    } as never
+
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const ocl = v4.edges.find((e) => e.id === "rel-ocl")!
+    const linkrel = v4.edges.find((e) => e.id === "rel-linkrel")!
+    expect(ocl.type).toBe("ClassOCLLink")
+    expect(linkrel.type).toBe("ClassLinkRel")
+
+    // Round-trip back to v3 — types must survive without dropping or
+    // de-typing.
+    const v3Round = convertV4ToV3Class(v4)
+    expect(v3Round.relationships["rel-ocl"].type).toBe("ClassOCLLink")
+    expect(v3Round.relationships["rel-linkrel"].type).toBe("ClassLinkRel")
+
+    // Final cycle for idempotence.
+    const v4Again = migrateClassDiagramV3ToV4(v3Round)
+    expect(v4Again.edges.find((e) => e.id === "rel-ocl")!.type).toBe(
+      "ClassOCLLink"
+    )
+    expect(v4Again.edges.find((e) => e.id === "rel-linkrel")!.type).toBe(
+      "ClassLinkRel"
+    )
+  })
+
   it("is idempotent on a v4 round-trip (toV4(toV3(toV4(m))) === toV4(m))", () => {
     const v4 = migrateClassDiagramV3ToV4(classDiagramV3 as never)
     const v3Round = convertV4ToV3Class(v4)

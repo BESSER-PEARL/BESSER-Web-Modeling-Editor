@@ -142,6 +142,10 @@ type EdgePopoverType =
   | "ClassBidirectional"
   | "ClassUnidirectional"
   | "ClassDependency"
+  // SA-2.1: BESSER-specific class edges (restored). Both extend
+  // UMLAssociation in v3 and share the same edit form.
+  | "ClassOCLLink"
+  | "ClassLinkRel"
   | "ActivityControlFlow"
   | "ObjectLink"
   | "CommunicationLink"
@@ -190,6 +194,8 @@ const editPopovers: {
   ClassBidirectional: React.FC<PopoverProps>
   ClassUnidirectional: React.FC<PopoverProps>
   ClassDependency: React.FC<PopoverProps>
+  ClassOCLLink: React.FC<PopoverProps>
+  ClassLinkRel: React.FC<PopoverProps>
   ActivityControlFlow: React.FC<PopoverProps>
   ObjectLink: React.FC<PopoverProps>
   CommunicationLink: React.FC<PopoverProps>
@@ -257,6 +263,8 @@ const editPopovers: {
   ClassBidirectional: EdgeEditPopover,
   ClassUnidirectional: EdgeEditPopover,
   ClassDependency: EdgeEditPopover,
+  ClassOCLLink: EdgeEditPopover,
+  ClassLinkRel: EdgeEditPopover,
   ActivityControlFlow: ActivityDiagramEdgeEditPopover,
   ObjectLink: ObjectDiagramEdgeEditPopover,
   CommunicationLink: CommunicationDiagramEdgeEditPopover,
@@ -326,6 +334,8 @@ const giveFeedbackPopovers: {
   ClassBidirectional: React.FC<PopoverProps>
   ClassUnidirectional: React.FC<PopoverProps>
   ClassDependency: React.FC<PopoverProps>
+  ClassOCLLink: React.FC<PopoverProps>
+  ClassLinkRel: React.FC<PopoverProps>
   ActivityControlFlow: React.FC<PopoverProps>
   ObjectLink: React.FC<PopoverProps>
   CommunicationLink: React.FC<PopoverProps>
@@ -393,6 +403,8 @@ const giveFeedbackPopovers: {
   ClassBidirectional: EdgeGiveFeedbackPopover,
   ClassUnidirectional: EdgeGiveFeedbackPopover,
   ClassDependency: EdgeGiveFeedbackPopover,
+  ClassOCLLink: EdgeGiveFeedbackPopover,
+  ClassLinkRel: EdgeGiveFeedbackPopover,
   ActivityControlFlow: EdgeGiveFeedbackPopover,
   ObjectLink: EdgeGiveFeedbackPopover,
   ReachabilityGraphArc: EdgeGiveFeedbackPopover,
@@ -462,6 +474,8 @@ const seeFeedbackPopovers: {
   ClassBidirectional: React.FC<PopoverProps>
   ClassUnidirectional: React.FC<PopoverProps>
   ClassDependency: React.FC<PopoverProps>
+  ClassOCLLink: React.FC<PopoverProps>
+  ClassLinkRel: React.FC<PopoverProps>
   ActivityControlFlow: React.FC<PopoverProps>
   ObjectLink: React.FC<PopoverProps>
   ReachabilityGraphArc: React.FC<PopoverProps>
@@ -529,6 +543,8 @@ const seeFeedbackPopovers: {
   ClassBidirectional: EdgeSeeFeedbackPopover,
   ClassUnidirectional: EdgeSeeFeedbackPopover,
   ClassDependency: EdgeSeeFeedbackPopover,
+  ClassOCLLink: EdgeSeeFeedbackPopover,
+  ClassLinkRel: EdgeSeeFeedbackPopover,
   ActivityControlFlow: EdgeSeeFeedbackPopover,
   ObjectLink: EdgeSeeFeedbackPopover,
   ReachabilityGraphArc: EdgeSeeFeedbackPopover,

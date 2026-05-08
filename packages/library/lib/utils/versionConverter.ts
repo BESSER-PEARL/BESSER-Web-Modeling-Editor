@@ -374,6 +374,13 @@ export function convertV3EdgeTypeToV4(
     ClassDependency: "ClassDependency",
     ClassAggregation: "ClassAggregation",
     ClassComposition: "ClassComposition",
+    // SA-2.1: BESSER-specific class edge types. v3 fork has no
+    // dedicated renderer for either (both extend UMLAssociation), so
+    // they passthrough verbatim — the v4 lib treats them as a
+    // ClassDiagramEdge with appropriate stroke / marker styling
+    // configured in `lib/edges/types.tsx`.
+    ClassOCLLink: "ClassOCLLink",
+    ClassLinkRel: "ClassLinkRel",
 
     // Activity Diagram
     ActivityControlFlow: "ActivityControlFlow",
@@ -1663,11 +1670,17 @@ function convertV3RelationshipToV4Edge(
   // v3 deserializer at
   // `packages/editor/.../uml-state-transition.ts:14` treats `params` as
   // `string | string[] | { [id]: string }`; v4 normalises to dict.
+  // SA-2.1: ObjectLink carries `associationId` at the v3 relationship
+  // root level (see `packages/editor/.../uml-object-link.ts:9`). Pull
+  // it through to the v4 edge `data` so the bridge-driven picker in
+  // `ObjectLinkEditPanel` can author and round-trip the link to a
+  // ClassDiagram association id.
   const r = relationship as V3UMLRelationship & {
     params?: string | string[] | { [id: string]: string }
     guard?: string
     code?: string
     eventName?: string
+    associationId?: string
   }
   const normalizedParams: { [id: string]: string } = {}
   if (r.params !== undefined && r.params !== null) {
@@ -1709,6 +1722,11 @@ function convertV3RelationshipToV4Edge(
       ...(r.guard && { guard: r.guard }),
       ...(r.code && { code: r.code }),
       ...(r.eventName && { eventName: r.eventName }),
+      // SA-2.1: ObjectLink-only field. Living on the same generic edge
+      // data shape is fine because the v3 source-of-truth puts it at
+      // the relationship root, alongside `name` / `path`. Other edge
+      // types simply don't carry it.
+      ...(r.associationId && { associationId: r.associationId }),
 
       // SA-4: AgentStateTransition canonical data — collapsed from the
       // five legacy v3 shapes (see `liftAgentTransitionDataToV4` and
@@ -2206,6 +2224,12 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
       ...(typeof data.flowType === "string" && {
         flowType: data.flowType as string,
       }),
+      // SA-2.1: ObjectLink → v3 root-level `associationId`. Other edge
+      // types never set this field, so the spread is a no-op for them.
+      ...(typeof data.associationId === "string" &&
+        data.associationId && {
+          associationId: data.associationId as string,
+        }),
     } as V3UMLRelationship
   }
 

@@ -26,6 +26,13 @@ const defaultEdgeTypes = {
   ClassBidirectional: ClassDiagramEdge,
   ClassUnidirectional: ClassDiagramEdge,
   ClassDependency: ClassDiagramEdge,
+  // SA-2.1: ClassOCLLink + ClassLinkRel — both v3 had no dedicated
+  // renderer (they extended UMLAssociation), so we wire them through
+  // ClassDiagramEdge. ClassOCLLink draws as a dashed dependency-style
+  // arrow (open arrow + dotted stroke) per the v3 component visual;
+  // ClassLinkRel draws as a plain solid line.
+  ClassOCLLink: ClassDiagramEdge,
+  ClassLinkRel: ClassDiagramEdge,
 
   ActivityControlFlow: ActivityDiagramEdge,
 
@@ -99,6 +106,11 @@ export const edgeConfig = {
   ClassBidirectional: { allowMidpointDragging: true },
   ClassUnidirectional: { allowMidpointDragging: true },
   ClassDependency: { allowMidpointDragging: true },
+  // SA-2.1: ClassOCLLink uses a dashed dependency-style stroke (matches
+  // v3 OCL link visual). ClassLinkRel is a plain solid association
+  // line (no markers, no roles).
+  ClassOCLLink: { allowMidpointDragging: true },
+  ClassLinkRel: { allowMidpointDragging: true },
 
   // Activity edges - allow midpoint dragging
   ActivityControlFlow: { allowMidpointDragging: true },

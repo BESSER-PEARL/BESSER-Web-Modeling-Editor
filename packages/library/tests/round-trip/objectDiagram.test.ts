@@ -77,6 +77,79 @@ describe("ObjectDiagram v3 → v4 round-trip", () => {
     expect(rexAgeAgain.name).toBe("age")
   })
 
+  it("SA-2.1: round-trips ObjectLink.associationId end-to-end", () => {
+    // Hand-authored v3 fixture: an ObjectLink with `associationId` set
+    // at the relationship root (mirrors v3
+    // `packages/editor/.../uml-object-link.ts:9`). Without P2 the field
+    // would be silently dropped on import.
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ObjectDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "obj-1": {
+          id: "obj-1",
+          name: "rex: Dog",
+          type: "ObjectName",
+          owner: null,
+          bounds: { x: 100, y: 100, width: 200, height: 80 },
+          attributes: [],
+          methods: [],
+          classId: "node-Dog",
+        },
+        "obj-2": {
+          id: "obj-2",
+          name: "alice: Owner",
+          type: "ObjectName",
+          owner: null,
+          bounds: { x: 400, y: 100, width: 200, height: 80 },
+          attributes: [],
+          methods: [],
+          classId: "node-Owner",
+        },
+      },
+      relationships: {
+        "link-assoc": {
+          id: "link-assoc",
+          name: "owns",
+          type: "ObjectLink",
+          owner: null,
+          bounds: { x: 250, y: 130, width: 0, height: 0 },
+          path: [
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+          ],
+          source: { element: "obj-2", direction: "Right" },
+          target: { element: "obj-1", direction: "Left" },
+          // The crucial field: in v3 this lives at the relationship root.
+          associationId: "assoc-Dog-Owner",
+        },
+      },
+    } as never
+
+    const v4 = migrateObjectDiagramV3ToV4(v3Fixture)
+    const link = v4.edges.find((e) => e.id === "link-assoc")!
+    expect(link.type).toBe("ObjectLink")
+    expect((link.data as { associationId?: string }).associationId).toBe(
+      "assoc-Dog-Owner"
+    )
+
+    // Round-trip back: the v3 emit must put the field back at the root.
+    const v3Round = convertV4ToV3Class(v4)
+    expect(
+      (v3Round.relationships["link-assoc"] as { associationId?: string })
+        .associationId
+    ).toBe("assoc-Dog-Owner")
+
+    // And one more cycle for full idempotence.
+    const v4Again = migrateObjectDiagramV3ToV4(v3Round)
+    const linkAgain = v4Again.edges.find((e) => e.id === "link-assoc")!
+    expect((linkAgain.data as { associationId?: string }).associationId).toBe(
+      "assoc-Dog-Owner"
+    )
+  })
+
   it("is idempotent on a v4 round-trip", () => {
     const v4 = migrateObjectDiagramV3ToV4(objectDiagramV3 as never)
     const v3Round = convertV4ToV3Class(v4)
