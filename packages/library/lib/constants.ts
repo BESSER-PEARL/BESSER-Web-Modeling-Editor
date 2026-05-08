@@ -72,6 +72,7 @@ import {
 import {
   UserModelNameSVG,
   UserModelIconSVG,
+  getUserModelNamePaletteEntries,
 } from "@/components/svgs/nodes/userDiagram"
 // SA-5: NNDiagram palette previews. Inlined alongside the other BESSER
 // SVGs per SA-3's pattern (avoids the TDZ cycle that direct
@@ -890,8 +891,31 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: StateFinalNodeSVG,
     },
   ],
-  // SA-4: BESSER UserDiagram palette.
+  // SA-4 / SA-FIX-User: BESSER UserDiagram palette. v3 generated one
+  // drag-source per meta-model class via `composeUserModelPreview`
+  // walking `getAvailableClasses()`. We replicate that here at module
+  // load by reading the user meta-model JSON and producing N entries —
+  // one per Personal_Information / Skill / Education / Disability / …
+  // Each entry's `defaultData` pre-populates the `attributes` rows so
+  // the dropped node lands fully wired to the meta-model. The
+  // `UserModelIcon` entry stays as a static second drag-source.
   [UMLDiagramType.UserDiagram]: [
+    ...getUserModelNamePaletteEntries().map((entry) => ({
+      type: "UserModelName" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 40 + entry.attributes.length * 30 + 10,
+      defaultData: {
+        name: `${entry.className.toLowerCase()}: ${entry.className}`,
+        className: entry.className,
+        attributes: entry.attributes.map((a) => ({
+          id: a.id,
+          name: a.name,
+          attributeType: a.attributeType,
+          attributeOperator: "==",
+        })),
+      },
+      svg: entry.svg,
+    })),
     {
       type: "UserModelName" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,

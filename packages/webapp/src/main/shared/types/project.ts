@@ -1,4 +1,4 @@
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { UMLDiagramType, UMLModel, getUserMetaModelClasses } from '@besser/wme';
 import { migrateUMLModelV3ToV4 } from '../services/storage/migrate-uml-v3-to-v4';
 // Supported diagram types in projects
 export type SupportedDiagramType =
@@ -243,20 +243,56 @@ const generateUUID = (): string => {
 };
 
 /**
- * SA-UX-FIX-2 (B3): seed for the UserDiagram template.
+ * SA-UX-FIX-2 (B3) / SA-FIX-User: seed for the UserDiagram template.
  *
  * The v3 editor surfaced a multi-class user-meta-model whenever the
  * UserDiagram tab was opened (`composeUserModelPreview`). After the
  * v4 cutover, opening the UserDiagram tab produced an empty canvas
  * with at most a single placeholder card. Restore the v3 baseline by
- * seeding the standard `Personal_Information` / `Skill` / `Education` /
- * `Disability` user-meta-model classes (matching
- * `packages/editor/src/main/packages/user-modeling/usermetamodel_buml_short.json`).
+ * seeding the four standard meta-model classes (Personal_Information /
+ * Skill / Education / Disability) — read directly from the meta-model
+ * JSON via `getUserMetaModelClasses()` so the seed is in lock-step
+ * with the source of truth.
+ *
+ * Type strategy (SA-FIX-User Fix #2): the meta-model JSON uses raw
+ * enum class names (`GenderEnum`, `DegreeEnum`, `AspectsEnum`, …) for
+ * enum-typed attributes. Those are NOT primitive types and the v4
+ * inspector resolves them by linking to the meta-model class via
+ * `attributeId`. Primitive types (`str`, `int`, `bool`, `float`,
+ * `date`, `datetime`, `time`) pass through verbatim; non-primitive
+ * types are converted to an empty `attributeType` plus an
+ * `attributeId` link pointing at the meta-model attribute's UUID. The
+ * inspector picks up the linked enum literals via the diagramBridge
+ * (which is fed `getUserMetaModelV4()`).
  *
  * Seeded as v4 React-Flow nodes (`UserModelName`) with their attribute
  * rows already populated so the user lands on a usable template.
  */
-const buildUserDiagramSeedNodes = (): UMLModel['nodes'] => {
+// The 4 default meta-model classes shown in v3's `composeUserModelPreview`.
+// Order matters — controls layout left-to-right.
+const DEFAULT_USER_META_CLASSES = [
+  'Personal_Information',
+  'Skill',
+  'Education',
+  'Disability',
+] as const;
+
+const PRIMITIVE_ATTRIBUTE_TYPES = new Set([
+  'str',
+  'string',
+  'int',
+  'integer',
+  'float',
+  'double',
+  'bool',
+  'boolean',
+  'date',
+  'datetime',
+  'time',
+  'any',
+]);
+
+export const buildUserDiagramSeedNodes = (): UMLModel['nodes'] => {
   // Coordinates picked to lay out the 4 cards on a single row with a
   // small gap. Each card is auto-sized by `UserModelName`'s effect; we
   // pre-set sensible widths/heights so the initial paint is stable.
@@ -266,46 +302,42 @@ const buildUserDiagramSeedNodes = (): UMLModel['nodes'] => {
   const W = 220;
   const GAP = 30;
 
-  type AttrRow = { id: string; name: string; attributeType: string };
-  const mkAttr = (name: string, type: string): AttrRow => ({
-    id: generateUUID(),
-    name,
-    attributeType: type,
-  });
+  // Pull the meta-model classes by name. If the JSON is unavailable for
+  // any reason we degrade to an empty seed rather than throwing.
+  const metaClassesByName: Record<string, ReturnType<typeof getUserMetaModelClasses>[number]> = {};
+  try {
+    for (const c of getUserMetaModelClasses()) {
+      metaClassesByName[c.name] = c;
+    }
+  } catch {
+    // Best-effort: if the helper is unavailable we still produce empty
+    // cards so the canvas isn't blank.
+  }
 
-  const cards: Array<{ name: string; attrs: AttrRow[] }> = [
-    {
-      name: 'Personal_Information',
-      attrs: [
-        mkAttr('age', 'int'),
-        mkAttr('lastName', 'str'),
-        mkAttr('firstName', 'str'),
-        mkAttr('nationality_iso3166', 'str'),
-        mkAttr('address', 'str'),
-        mkAttr('gender', 'GenderEnum'),
-      ],
-    },
-    {
-      name: 'Skill',
-      attrs: [mkAttr('name', 'CharacteristicsEnum'), mkAttr('score', 'int')],
-    },
-    {
-      name: 'Education',
-      attrs: [
-        mkAttr('fieldOfDegree', 'str'),
-        mkAttr('degreeType', 'DegreeEnum'),
-        mkAttr('providedBy', 'str'),
-        mkAttr('degreeName', 'str'),
-      ],
-    },
-    {
-      name: 'Disability',
-      attrs: [mkAttr('name', 'description'), mkAttr('description', 'str'), mkAttr('affects', 'AspectsEnum')],
-    },
-  ];
-
-  return cards.map((card, idx) => {
-    const height = HEADER + card.attrs.length * ATTR + PAD;
+  return DEFAULT_USER_META_CLASSES.map((className, idx) => {
+    const meta = metaClassesByName[className];
+    const attrs = (meta?.attributes ?? []).map((a) => {
+      const isPrimitive = PRIMITIVE_ATTRIBUTE_TYPES.has(a.attributeType.toLowerCase());
+      if (isPrimitive) {
+        return {
+          id: generateUUID(),
+          name: a.name,
+          attributeType: a.attributeType,
+          attributeOperator: '==',
+        };
+      }
+      // Non-primitive (enum / linked class): leave attributeType empty
+      // and link via attributeId so the inspector can resolve enum
+      // literals through the diagramBridge.
+      return {
+        id: generateUUID(),
+        name: a.name,
+        attributeType: '',
+        attributeId: a.id,
+        attributeOperator: '==',
+      };
+    });
+    const height = HEADER + Math.max(attrs.length, 0) * ATTR + PAD;
     // `UserModelName` is a BESSER-registered node type (added at runtime
     // via `registerNodeTypes`). The static `DiagramNodeType` union only
     // tracks upstream defaults, so we cast through `unknown` at the
@@ -318,13 +350,12 @@ const buildUserDiagramSeedNodes = (): UMLModel['nodes'] => {
       height,
       measured: { width: W, height },
       data: {
-        name: card.name,
-        attributes: card.attrs.map((a) => ({
-          id: a.id,
-          name: a.name,
-          attributeType: a.attributeType,
-          attributeOperator: '==',
-        })),
+        name: className,
+        // Cross-link to the meta-model class so other tooling can
+        // resolve which meta-model concept this user node instantiates.
+        classId: meta?.id,
+        className,
+        attributes: attrs,
       },
     } as unknown as UMLModel['nodes'][number];
   });
@@ -549,7 +580,48 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migrateProjectToV5(obj);
   }
 
+  // SA-FIX-User Fix #3: retrofit existing-but-empty UserDiagrams. v3
+  // showed a 4-class meta-model template via `composeUserModelPreview`,
+  // but PC-9 found that v4 only seeds via `createEmptyDiagram` (i.e.
+  // only on fresh project creation). Projects loaded from storage that
+  // were created before SA-UX-FIX-2 — or had their UserDiagram emptied
+  // by the user without re-seeding — would stay blank forever. Walk
+  // every UserDiagram entry and re-seed any whose `model.nodes` array
+  // is empty. Idempotent: never touches a UserDiagram that already has
+  // user content. Retrofit runs on every load (not gated behind a
+  // schemaVersion bump) because the symptom is "blank canvas", not
+  // "wrong schema".
+  retrofitEmptyUserDiagrams(obj);
+
   return obj;
+};
+
+/**
+ * SA-FIX-User Fix #3: walk a project's UserDiagram entries and seed
+ * any whose nodes array is empty. Mutates in place; returns nothing.
+ */
+const retrofitEmptyUserDiagrams = (project: BesserProject): void => {
+  const userDiagrams = project.diagrams?.UserDiagram ?? [];
+  for (const d of userDiagrams) {
+    const model = d?.model as UMLModel | undefined;
+    // Only retrofit when the model is a proper v4 UML shape with an
+    // empty nodes array. Skip GUI / quantum models (not UMLModels) and
+    // skip diagrams that already have user content.
+    if (
+      model &&
+      Array.isArray((model as any).nodes) &&
+      (model as any).nodes.length === 0 &&
+      Array.isArray((model as any).edges) // sanity: real v4 UMLModel
+    ) {
+      try {
+        (model as any).nodes = buildUserDiagramSeedNodes();
+      } catch (err) {
+        // Best-effort: a failed retrofit must not block the load.
+        // eslint-disable-next-line no-console
+        console.error('[retrofitEmptyUserDiagrams] seeding failed', d.id, err);
+      }
+    }
+  }
 };
 
 /**

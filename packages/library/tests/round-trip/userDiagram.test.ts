@@ -17,6 +17,11 @@ import {
   migrateUserDiagramV3ToV4,
   convertV4ToV3User,
 } from "@/utils/versionConverter"
+import {
+  getUserMetaModelClasses,
+  getUserMetaModelV4,
+} from "@/services/userMetaModel"
+import { getUserModelNamePaletteEntries } from "@/components/svgs/nodes/userDiagram"
 import type { UserModelNameNodeProps } from "@/types"
 import userV3 from "../fixtures/v3/userDiagram.json"
 
@@ -211,5 +216,57 @@ describe("UserModelAttribute attributeOperator synthesis from name", () => {
     expect(byId("ua-Alice-4").attributeOperator).toBe(">")
     // No comparator → no synthesized field (caller decides default).
     expect(byId("ua-Alice-5").attributeOperator).toBeUndefined()
+  })
+})
+
+/* -------------------------------------------------------------------------- */
+/* SA-FIX-User: meta-model helpers + dynamic palette                          */
+/* -------------------------------------------------------------------------- */
+
+describe("SA-FIX-User meta-model helpers", () => {
+  it("getUserMetaModelClasses lists the 4 default classes (and skips User)", () => {
+    const classes = getUserMetaModelClasses()
+    const names = classes.map((c) => c.name)
+    expect(names).toContain("Personal_Information")
+    expect(names).toContain("Skill")
+    expect(names).toContain("Education")
+    expect(names).toContain("Disability")
+    // The placeholder root class is intentionally hidden — it isn't a
+    // draggable concept in the v3 sidebar either.
+    expect(names).not.toContain("User")
+  })
+
+  it("getUserMetaModelV4 returns a v4-shape {nodes, edges} blob with class nodes", () => {
+    const v4 = getUserMetaModelV4()
+    expect(Array.isArray(v4.nodes)).toBe(true)
+    expect(Array.isArray(v4.edges)).toBe(true)
+    // Every node should be a v4 'class' node (or stereotyped Enumeration).
+    const classNode = v4.nodes.find(
+      (n: any) => n?.data?.name === "Personal_Information"
+    )
+    expect(classNode).toBeDefined()
+    expect(classNode!.type).toBe("class")
+    // The Enumeration stereotype must round-trip so
+    // `lookupEnumerationLiterals` in `UserModelNameEditPanel` can pick it up.
+    const enumNode = v4.nodes.find(
+      (n: any) => n?.data?.name === "GenderEnum"
+    )
+    expect(enumNode).toBeDefined()
+    expect(enumNode!.data.stereotype).toBe("Enumeration")
+  })
+})
+
+describe("SA-FIX-User dynamic palette", () => {
+  it("emits one palette entry per meta-model class (replicates v3 composeUserModelPreview)", () => {
+    const entries = getUserModelNamePaletteEntries()
+    // The 4 meta-model classes the v3 sidebar surfaced. Other classes
+    // (Culture, Language, Accessibility, Competence) are also produced
+    // since they live in the meta-model — total count must be > 1.
+    expect(entries.length).toBeGreaterThanOrEqual(4)
+    const classNames = entries.map((e) => e.className)
+    expect(classNames).toContain("Personal_Information")
+    expect(classNames).toContain("Skill")
+    expect(classNames).toContain("Education")
+    expect(classNames).toContain("Disability")
   })
 })

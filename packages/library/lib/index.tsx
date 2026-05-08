@@ -100,3 +100,14 @@ export type { ClassifierMemberLike } from "./utils/classifierMemberDisplay"
 // for the frontend's reference / tooling.
 import userMetaModelJson from "./services/userMetaModel/usermetamodel.json"
 export const userMetaModel = userMetaModelJson
+
+// SA-FIX-User: v4-shape converter + class-list helper for the user
+// meta-model. The webapp uses `getUserMetaModelV4()` when seeding the
+// `diagramBridge` (so enum lookups in `UserModelNameEditPanel` work),
+// and the library palette walks `getUserMetaModelClasses()` to produce
+// per-class drag-sources (replicating v3's `composeUserModelPreview`).
+export {
+  getUserMetaModelClasses,
+  getUserMetaModelV4,
+} from "./services/userMetaModel"
+export type { UserMetaModelClass } from "./services/userMetaModel"

@@ -19,7 +19,7 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
-import { userMetaModel } from '@besser/wme';
+import { getUserMetaModelV4 } from '@besser/wme';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -140,7 +140,12 @@ async function setupBridgeForActiveDiagram(
   } else if (diagramType === 'UserDiagram') {
     try {
       const { diagramBridge } = await import('@besser/wme');
-      diagramBridge.setClassDiagramData(userMetaModel as unknown as UMLModel);
+      // SA-FIX-User Fix #4: feed the v4-shape `{nodes, edges}` view of
+      // the user meta-model. The raw `userMetaModel` JSON is the v3
+      // `{elements, relationships}` shape — passing it directly caused
+      // every bridge reader (`getAvailableClasses`, enum-literal lookups
+      // in `UserModelNameEditPanel`) to silently return `[]`.
+      diagramBridge.setClassDiagramData(getUserMetaModelV4() as unknown as UMLModel);
     } catch {
       /* bridge not available */
     }

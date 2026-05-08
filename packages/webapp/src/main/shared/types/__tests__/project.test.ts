@@ -248,3 +248,85 @@ describe('preset helpers', () => {
     expect(map.AgentDiagram).toBe(false);
   });
 });
+
+/* -------------------------------------------------------------------------- */
+/* SA-FIX-User: UserDiagram seed + retrofit                                   */
+/* -------------------------------------------------------------------------- */
+
+describe('SA-FIX-User UserDiagram seed', () => {
+  it('seeds a fresh UserDiagram with the 4 default meta-model classes', () => {
+    const project = createDefaultProject('Fresh', '', 'me');
+    const userDiagram = project.diagrams.UserDiagram[0];
+    const model = userDiagram.model as UMLModel;
+    const names = (model.nodes as any[]).map((n) => n.data?.name);
+    expect(names).toEqual(['Personal_Information', 'Skill', 'Education', 'Disability']);
+  });
+
+  it('emits primitive types verbatim and links non-primitives via attributeId', () => {
+    const project = createDefaultProject('Fresh', '', 'me');
+    const userDiagram = project.diagrams.UserDiagram[0];
+    const model = userDiagram.model as UMLModel;
+    const personal = (model.nodes as any[]).find((n) => n.data?.name === 'Personal_Information');
+    expect(personal).toBeDefined();
+    const attrs = personal.data.attributes as { name: string; attributeType: string; attributeId?: string }[];
+    // Primitive `age=int` passes through verbatim.
+    const age = attrs.find((a) => a.name === 'age');
+    expect(age?.attributeType).toBe('int');
+    expect(age?.attributeId).toBeUndefined();
+    // Enum `gender=GenderEnum` is non-primitive, so attributeType is empty
+    // and attributeId links to the meta-model attribute.
+    const gender = attrs.find((a) => a.name === 'gender');
+    expect(gender?.attributeType).toBe('');
+    expect(typeof gender?.attributeId).toBe('string');
+    expect(gender?.attributeId).not.toBe('');
+  });
+
+  it("does not contain the previous 'description' typo on Disability.name", () => {
+    const project = createDefaultProject('Fresh', '', 'me');
+    const userDiagram = project.diagrams.UserDiagram[0];
+    const model = userDiagram.model as UMLModel;
+    const disability = (model.nodes as any[]).find((n) => n.data?.name === 'Disability');
+    const nameRow = (disability?.data?.attributes as any[]).find((a) => a.name === 'name');
+    // Pre-fix value was the literal string 'description'; should now be 'str'.
+    expect(nameRow.attributeType).toBe('str');
+  });
+});
+
+describe('SA-FIX-User retrofitEmptyUserDiagrams', () => {
+  it('seeds an empty UserDiagram on load', () => {
+    const project = createDefaultProject('Empty', '', 'me');
+    // Force the UserDiagram model to empty (simulating a project saved
+    // before SA-UX-FIX-2 or one whose user emptied it manually).
+    const userDiagram = project.diagrams.UserDiagram[0];
+    (userDiagram.model as UMLModel).nodes = [] as any;
+
+    const migrated = ensureProjectMigrated(project);
+    const nodes = (migrated.diagrams.UserDiagram[0].model as UMLModel).nodes as any[];
+    expect(nodes.length).toBeGreaterThan(0);
+    const names = nodes.map((n) => n.data?.name);
+    expect(names).toContain('Personal_Information');
+    expect(names).toContain('Disability');
+  });
+
+  it('leaves a populated UserDiagram untouched', () => {
+    const project = createDefaultProject('Populated', '', 'me');
+    const userDiagram = project.diagrams.UserDiagram[0];
+    const model = userDiagram.model as UMLModel;
+    // Seed a synthetic single-node user model.
+    (model.nodes as any[]) = [
+      {
+        id: 'usr-1',
+        type: 'UserModelName',
+        position: { x: 0, y: 0 },
+        width: 200,
+        height: 60,
+        data: { name: 'Custom', attributes: [] },
+      } as any,
+    ];
+
+    const migrated = ensureProjectMigrated(project);
+    const nodes = (migrated.diagrams.UserDiagram[0].model as UMLModel).nodes as any[];
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].data.name).toBe('Custom');
+  });
+});
