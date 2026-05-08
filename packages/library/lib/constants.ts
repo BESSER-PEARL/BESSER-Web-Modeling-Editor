@@ -74,6 +74,30 @@ import {
   UserModelNameSVG,
   UserModelIconSVG,
 } from "@/components/svgs/nodes/userDiagram"
+// SA-5: NNDiagram palette previews. Inlined alongside the other BESSER
+// SVGs per SA-3's pattern (avoids the TDZ cycle that direct
+// `registerPaletteEntry` side-effects would trigger).
+import {
+  Conv1DLayerSVG,
+  Conv2DLayerSVG,
+  Conv3DLayerSVG,
+  PoolingLayerSVG,
+  RNNLayerSVG,
+  LSTMLayerSVG,
+  GRULayerSVG,
+  LinearLayerSVG,
+  FlattenLayerSVG,
+  EmbeddingLayerSVG,
+  DropoutLayerSVG,
+  LayerNormalizationLayerSVG,
+  BatchNormalizationLayerSVG,
+  TensorOpSVG,
+  ConfigurationSVG,
+  TrainingDatasetSVG,
+  TestDatasetSVG,
+  NNContainerSVG,
+  NNReferenceSVG,
+} from "@/components/svgs/nodes/nnDiagram"
 import { DiagramNodeType } from "@/nodes"
 import { ClassType, UMLDiagramType } from "@/types"
 import { v4 as uuidv4 } from "uuid"
@@ -899,6 +923,155 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 50,
       defaultData: { name: "" },
       svg: UserModelIconSVG,
+    },
+  ],
+  // SA-5: BESSER NNDiagram palette. One palette item per top-level
+  // draggable: NNContainer, the 13 layer kinds, TrainingDataset,
+  // TestDataset, TensorOp, Configuration, NNReference. Inlined here per
+  // SA-3's pattern. Default `attributes` is `{}` — the inline editor
+  // populates slots on first edit; the round-trip migrator preserves
+  // any keys the user adds.
+  [UMLDiagramType.NNDiagram]: [
+    {
+      type: "NNContainer" as never,
+      width: 320,
+      height: 200,
+      defaultData: { name: "MyModel" },
+      svg: NNContainerSVG,
+    },
+    {
+      type: "Conv1DLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Conv1D", attributes: {} },
+      svg: Conv1DLayerSVG,
+    },
+    {
+      type: "Conv2DLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Conv2D", attributes: {} },
+      svg: Conv2DLayerSVG,
+    },
+    {
+      type: "Conv3DLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Conv3D", attributes: {} },
+      svg: Conv3DLayerSVG,
+    },
+    {
+      type: "PoolingLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: {
+        name: "Pooling",
+        // Disambiguated dimension slug: see open question #2.
+        attributes: { "pooling.dimension": "2D" },
+      },
+      svg: PoolingLayerSVG,
+    },
+    {
+      type: "RNNLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "RNN", attributes: {} },
+      svg: RNNLayerSVG,
+    },
+    {
+      type: "LSTMLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "LSTM", attributes: {} },
+      svg: LSTMLayerSVG,
+    },
+    {
+      type: "GRULayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "GRU", attributes: {} },
+      svg: GRULayerSVG,
+    },
+    {
+      type: "LinearLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Linear", attributes: {} },
+      svg: LinearLayerSVG,
+    },
+    {
+      type: "FlattenLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Flatten", attributes: {} },
+      svg: FlattenLayerSVG,
+    },
+    {
+      type: "EmbeddingLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Embedding", attributes: {} },
+      svg: EmbeddingLayerSVG,
+    },
+    {
+      type: "DropoutLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Dropout", attributes: {} },
+      svg: DropoutLayerSVG,
+    },
+    {
+      type: "LayerNormalizationLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "LayerNorm", attributes: {} },
+      svg: LayerNormalizationLayerSVG,
+    },
+    {
+      type: "BatchNormalizationLayer" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: {
+        name: "BatchNorm",
+        // Disambiguated dimension slug: see open question #2.
+        attributes: { "batch_normalization.dimension": "1D" },
+      },
+      svg: BatchNormalizationLayerSVG,
+    },
+    {
+      type: "TensorOp" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "TensorOp", attributes: {} },
+      svg: TensorOpSVG,
+    },
+    {
+      type: "Configuration" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "Configuration", attributes: {} },
+      svg: ConfigurationSVG,
+    },
+    {
+      type: "TrainingDataset" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "TrainingDataset", attributes: {} },
+      svg: TrainingDatasetSVG,
+    },
+    {
+      type: "TestDataset" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 60,
+      defaultData: { name: "TestDataset", attributes: {} },
+      svg: TestDatasetSVG,
+    },
+    {
+      type: "NNReference" as never,
+      width: 140,
+      height: 40,
+      defaultData: { name: "ref" },
+      svg: NNReferenceSVG,
     },
   ],
   [UMLDiagramType.Sfc]: [

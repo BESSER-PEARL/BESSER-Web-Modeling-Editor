@@ -28,6 +28,10 @@ import "./stateMachineDiagram"
 // panel-editor bodies.
 import "./agentDiagram"
 import "./userDiagram"
+// SA-5: side-effect import that registers the NNDiagram panel-editor
+// bodies. The generic `NNComponentEditPanel` is bound to all 17
+// layer-style kinds; `NNContainer` / `NNReference` get dedicated panels.
+import "./nnDiagram"
 
 registerInspector("class", "edit", ClassEditPanel)
 registerInspector("objectName", "edit", ObjectEditPanel)
@@ -38,3 +42,4 @@ export * from "./objectDiagram"
 export * from "./stateMachineDiagram"
 export * from "./agentDiagram"
 export * from "./userDiagram"
+export * from "./nnDiagram"

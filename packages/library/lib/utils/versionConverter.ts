@@ -42,6 +42,12 @@ import {
 } from "../types/nodes/NodeProps"
 import { MessageData } from "@/edges/EdgeProps"
 import { parseLegacyNameFormat } from "./classifierMemberDisplay"
+import {
+  COLLIDING_SLUGS,
+  V3_ATTRIBUTE_TYPE_TO_SLUG,
+  qualifySlug,
+  v3AttributeTypeFor,
+} from "@/nodes/nnDiagram/nnAttributeWidgetConfig"
 
 function normalizeImportedInterfaceGeometry(
   nodeType: string,
@@ -320,6 +326,33 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     UserModelName: "UserModelName",
     UserModelAttribute: "UserModelAttribute",
     UserModelIcon: "UserModelIcon",
+
+    // SA-5: NNDiagram — PascalCase passthrough for the 18 top-level
+    // node types. Per-attribute child elements (e.g.
+    // `KernelDimAttributeConv2D`) are NOT in this map; they're
+    // intercepted by the attribute-collapse filter and emitted onto
+    // the parent layer's `data.attributes`. See
+    // `convertV3NodeDataToV4` (NN cases) and the filter in
+    // `convertV3ToV4`.
+    Conv1DLayer: "Conv1DLayer",
+    Conv2DLayer: "Conv2DLayer",
+    Conv3DLayer: "Conv3DLayer",
+    PoolingLayer: "PoolingLayer",
+    RNNLayer: "RNNLayer",
+    LSTMLayer: "LSTMLayer",
+    GRULayer: "GRULayer",
+    LinearLayer: "LinearLayer",
+    FlattenLayer: "FlattenLayer",
+    EmbeddingLayer: "EmbeddingLayer",
+    DropoutLayer: "DropoutLayer",
+    LayerNormalizationLayer: "LayerNormalizationLayer",
+    BatchNormalizationLayer: "BatchNormalizationLayer",
+    TensorOp: "TensorOp",
+    Configuration: "Configuration",
+    TrainingDataset: "TrainingDataset",
+    TestDataset: "TestDataset",
+    NNContainer: "NNContainer",
+    NNReference: "NNReference",
   }
 
   return typeMap[v3Type] || v3Type.toLowerCase()
@@ -398,6 +431,11 @@ export function convertV3EdgeTypeToV4(
 
     // SA-4: UserDiagram — single link edge.
     UserModelLink: "UserModelLink",
+
+    // SA-5: NNDiagram — three edge kinds passed through verbatim.
+    NNNext: "NNNext",
+    NNComposition: "NNComposition",
+    NNAssociation: "NNAssociation",
   }
   if (v3Type === "BPMNFlow" && flowType) {
     const flowTypeMap: Record<string, string> = {
@@ -543,6 +581,44 @@ function extractOCLConstraint(
     ...(element.description && { description: element.description }),
     ...(element.kind && { kind: element.kind }),
   }
+}
+
+/**
+ * SA-5: collapse all v3 attribute child elements owned by a layer into
+ * a flat `Record<string, unknown>` keyed by the v4 slug. Booleans
+ * (`'true'` / `'false'`) are normalized to JS booleans per the brief;
+ * everything else (numeric strings, free-text, list literals like
+ * `'[3, 3]'`) is preserved as a string so the Python codegen can keep
+ * its current `int(...)` / `float(...)` parsing behaviour.
+ *
+ * Open question #2 disambiguation: when the v3 element type's mapped
+ * slug appears in `COLLIDING_SLUGS`, the result key is qualified with
+ * the layer-kind prefix (e.g. `pooling.dimension`). Backend
+ * (`nn_diagram_processor.py`, SA-6.1) already does the same.
+ */
+function collapseV3LayerAttributes(
+  layerId: string,
+  layerKind: string,
+  allElements: Record<string, V3UMLElement>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const child of Object.values(allElements)) {
+    if (child.owner !== layerId) continue
+    const slug = V3_ATTRIBUTE_TYPE_TO_SLUG[child.type]
+    if (!slug) continue
+    // Read the raw v3 value (most v3 attribute elements store it on a
+    // `value` field rather than `name`; both legacy fixtures exist).
+    const raw =
+      (child as { value?: unknown }).value !== undefined
+        ? (child as { value?: unknown }).value
+        : child.name
+    let coerced: unknown = raw
+    if (raw === "true") coerced = true
+    else if (raw === "false") coerced = false
+    const key = COLLIDING_SLUGS.has(slug) ? qualifySlug(layerKind, slug) : slug
+    out[key] = coerced
+  }
+  return out
 }
 
 /**
@@ -1111,6 +1187,98 @@ function convertV3NodeDataToV4(
       }
     }
 
+    /* ---------------------------------------------------------------- */
+    /* SA-5: NNDiagram                                                    */
+    /* ---------------------------------------------------------------- */
+
+    case "Conv1DLayer":
+    case "Conv2DLayer":
+    case "Conv3DLayer":
+    case "PoolingLayer":
+    case "RNNLayer":
+    case "LSTMLayer":
+    case "GRULayer":
+    case "LinearLayer":
+    case "FlattenLayer":
+    case "EmbeddingLayer":
+    case "DropoutLayer":
+    case "LayerNormalizationLayer":
+    case "BatchNormalizationLayer":
+    case "TensorOp":
+    case "Configuration":
+    case "TrainingDataset":
+    case "TestDataset": {
+      // Walk the v3 element table for every child whose `owner === layerId`
+      // and whose `type` maps to a v4 attribute slug; aggregate into a
+      // flat `attributes` dict. Open question #2: slugs that collide
+      // across layer kinds (`dimension` on Pooling vs BatchNorm) are
+      // emitted in qualified form (`pooling.dimension` /
+      // `batch_normalization.dimension`).
+      const attributes = collapseV3LayerAttributes(
+        element.id,
+        element.type,
+        allElements
+      )
+      // The v3 `Name*Attribute*` element holds the same name as the
+      // layer's `name` field; prefer the layer name (the v3 view's
+      // canonical authoring surface), falling back to the attribute
+      // value if the layer name is empty (per spec note in
+      // `uml-v4-shape.md` NNDiagram §).
+      const nameFromAttr = attributes["name"]
+      if (
+        (!element.name || element.name.trim() === "") &&
+        typeof nameFromAttr === "string" &&
+        nameFromAttr !== ""
+      ) {
+        ;(baseData as { name: string }).name = nameFromAttr
+      }
+      // The collapsed `name` attribute is redundant with the layer's
+      // own `name` field — drop it from the `attributes` dict so the
+      // round-trip doesn't double-write.
+      if ("name" in attributes) delete attributes["name"]
+      const e = element as {
+        description?: string
+        assessmentNote?: string
+      }
+      return {
+        ...baseData,
+        attributes,
+        ...(e.description && { description: e.description }),
+        ...(e.assessmentNote && { assessmentNote: e.assessmentNote }),
+      }
+    }
+
+    case "NNContainer": {
+      // Container retains name + optional entry-layer reference. v3
+      // names this field variously (`entryLayer`, `inputLayer`); we
+      // accept either and emit `entryLayerId` on v4.
+      const e = element as {
+        entryLayer?: string
+        inputLayer?: string
+        entryLayerId?: string
+        description?: string
+      }
+      const entryLayerId = e.entryLayerId ?? e.entryLayer ?? e.inputLayer
+      return {
+        ...baseData,
+        ...(entryLayerId && { entryLayerId }),
+        ...(e.description && { description: e.description }),
+      }
+    }
+
+    case "NNReference": {
+      const e = element as {
+        referenceTarget?: string
+        target?: string
+        referencedId?: string
+      }
+      const referenceTarget = e.referenceTarget ?? e.target ?? e.referencedId
+      return {
+        ...baseData,
+        ...(referenceTarget && { referenceTarget }),
+      }
+    }
+
     // For other BPMN elements that just need base data
     case "BPMNSubprocess":
     case "BPMNTransaction":
@@ -1632,6 +1800,20 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
       ) {
         return false
       }
+      // SA-5: NN attribute child elements collapse onto their owner
+      // layer's `data.attributes`. The slug map declares them
+      // exhaustively. Section helpers (`NNSectionTitle`,
+      // `NNSectionSeparator`) are sidebar-only — drop them entirely
+      // per `uml-v4-shape.md` NNDiagram §.
+      if (V3_ATTRIBUTE_TYPE_TO_SLUG[element.type] !== undefined) {
+        return false
+      }
+      if (
+        element.type === "NNSectionTitle" ||
+        element.type === "NNSectionSeparator"
+      ) {
+        return false
+      }
       return true
     })
     .map((element) => convertV3ElementToV4Node(element, model.elements))
@@ -2127,6 +2309,27 @@ const invertNodeType = (v4Type: string): string => {
     UserModelName: "UserModelName",
     UserModelAttribute: "UserModelAttribute",
     UserModelIcon: "UserModelIcon",
+
+    // SA-5: NNDiagram passthrough for the inverse migrator.
+    Conv1DLayer: "Conv1DLayer",
+    Conv2DLayer: "Conv2DLayer",
+    Conv3DLayer: "Conv3DLayer",
+    PoolingLayer: "PoolingLayer",
+    RNNLayer: "RNNLayer",
+    LSTMLayer: "LSTMLayer",
+    GRULayer: "GRULayer",
+    LinearLayer: "LinearLayer",
+    FlattenLayer: "FlattenLayer",
+    EmbeddingLayer: "EmbeddingLayer",
+    DropoutLayer: "DropoutLayer",
+    LayerNormalizationLayer: "LayerNormalizationLayer",
+    BatchNormalizationLayer: "BatchNormalizationLayer",
+    TensorOp: "TensorOp",
+    Configuration: "Configuration",
+    TrainingDataset: "TrainingDataset",
+    TestDataset: "TestDataset",
+    NNContainer: "NNContainer",
+    NNReference: "NNReference",
   }
   return map[v4Type] ?? v4Type
 }
@@ -2703,6 +2906,222 @@ export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
         ...baseV3,
         ...(data.icon !== undefined && { icon: data.icon }),
       } as V3UMLElement
+    } else {
+      elements[node.id] = baseV3
+    }
+  }
+
+  for (const edge of v4.edges) {
+    const data = (edge.data ?? {}) as Record<string, unknown>
+    const points = (data.points as { x: number; y: number }[]) ?? []
+    const minX = points.length ? Math.min(...points.map((p) => p.x)) : 0
+    const minY = points.length ? Math.min(...points.map((p) => p.y)) : 0
+    relationships[edge.id] = {
+      id: edge.id,
+      name: (data.name as string) ?? (data.label as string) ?? "",
+      type: edge.type,
+      owner: null,
+      bounds: { x: minX, y: minY, width: 0, height: 0 },
+      path: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
+      source: {
+        element: edge.source,
+        direction: invertHandle(edge.sourceHandle),
+      },
+      target: {
+        element: edge.target,
+        direction: invertHandle(edge.targetHandle),
+      },
+    } as V3UMLRelationship
+  }
+
+  return {
+    version: "3.0.0",
+    type: v4.type,
+    size: { width: 0, height: 0 },
+    interactive: v4.interactive
+      ? {
+          elements: v4.interactive.elements,
+          relationships: v4.interactive.relationships,
+        }
+      : { elements: {}, relationships: {} },
+    elements,
+    relationships,
+    assessments:
+      v4.assessments &&
+      Object.fromEntries(
+        Object.entries(v4.assessments).map(([id, a]) => [id, a as V3Assessment])
+      ),
+  } as V3UMLModel
+}
+
+/* -------------------------------------------------------------------------- */
+/* SA-5: NNDiagram migrator                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * SA-5 NNDiagram v3 → v4 migrator. Wraps `convertV3ToV4` with a type
+ * guard. Big-picture changes vs. v3 (per `uml-v4-shape.md` NNDiagram §):
+ *
+ *  - Per-attribute UMLElements (e.g. `KernelDimAttributeConv2D`) collapse
+ *    onto the parent layer's `data.attributes: Record<string, unknown>`.
+ *    Booleans normalise to JS `boolean`; numerics stay strings to match
+ *    the inline editor's text widget.
+ *  - Layer nodes inside an `NNContainer` get `parentId = container.id`
+ *    via the standard owner → parentId mapping in `convertV3ElementToV4Node`.
+ *  - `NNReference.referenceTarget` survives as plain data.
+ *  - Section helpers (`NNSectionTitle`, `NNSectionSeparator`) are dropped
+ *    by the migrator.
+ *
+ * Open question #2: slugs that collide across layer kinds (`dimension`
+ * on Pooling vs BatchNormalization) emit in qualified form
+ * (`pooling.dimension` / `batch_normalization.dimension`). SA-6.1's
+ * backend processor uses the same convention.
+ */
+export function migrateNNDiagramV3ToV4(
+  data: V3DiagramFormat | V3UMLModel
+): UMLModel {
+  const v4 = convertV3ToV4(data)
+  if (v4.type !== "NNDiagram") {
+    throw new Error(
+      `migrateNNDiagramV3ToV4: expected NNDiagram, got ${v4.type}`
+    )
+  }
+  return v4
+}
+
+/** v4 layer-node kinds that share the flat-`attributes` shape. */
+const NN_LAYER_KINDS: ReadonlySet<string> = new Set([
+  "Conv1DLayer",
+  "Conv2DLayer",
+  "Conv3DLayer",
+  "PoolingLayer",
+  "RNNLayer",
+  "LSTMLayer",
+  "GRULayer",
+  "LinearLayer",
+  "FlattenLayer",
+  "EmbeddingLayer",
+  "DropoutLayer",
+  "LayerNormalizationLayer",
+  "BatchNormalizationLayer",
+  "TensorOp",
+  "Configuration",
+  "TrainingDataset",
+  "TestDataset",
+])
+
+/**
+ * SA-5 inverse migrator: v4 NNDiagram → v3 `UMLModel`. Re-expands the
+ * collapsed `data.attributes` dict back into per-attribute child
+ * elements pointing at the layer via `owner`. The reconstructed v3
+ * attribute element-type string is recovered from the (layerKind,
+ * slug) pair via `v3AttributeTypeFor`. Attributes whose slugs aren't
+ * recognised (rare; would only happen if the user added a custom
+ * field via direct JSON editing) are dropped on emit — the round-trip
+ * test fixtures use only canonical slugs.
+ */
+export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
+  const elements: Record<string, V3UMLElement> = {}
+  const relationships: Record<string, V3UMLRelationship> = {}
+
+  for (const node of v4.nodes) {
+    const nt = node.type as string
+    const baseV3: V3UMLElement = {
+      id: node.id,
+      name: (node.data as { name?: string }).name ?? "",
+      type: invertNodeType(nt),
+      owner: node.parentId ?? null,
+      bounds: {
+        x: node.position.x,
+        y: node.position.y,
+        width: node.width,
+        height: node.height,
+      },
+      ...((node.data as { fillColor?: string }).fillColor && {
+        fillColor: (node.data as { fillColor?: string }).fillColor,
+      }),
+      ...((node.data as { strokeColor?: string }).strokeColor && {
+        strokeColor: (node.data as { strokeColor?: string }).strokeColor,
+      }),
+      ...((node.data as { textColor?: string }).textColor && {
+        textColor: (node.data as { textColor?: string }).textColor,
+      }),
+    }
+
+    if (NN_LAYER_KINDS.has(nt)) {
+      const data = node.data as Record<string, unknown> & {
+        attributes?: Record<string, unknown>
+        description?: string
+        assessmentNote?: string
+      }
+      const attrs = data.attributes ?? {}
+      // Re-emit one v3 element per (slug, value) pair.
+      const ownedAttributeIds: string[] = []
+      // Always synthesize the `Name*` attribute element that v3 expected
+      // alongside the layer; its value is the layer's `name`.
+      const nameType = v3AttributeTypeFor(nt, "name")
+      if (nameType) {
+        const nameId = `${node.id}-name`
+        elements[nameId] = {
+          id: nameId,
+          name: nameType,
+          type: nameType,
+          owner: node.id,
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          value: baseV3.name,
+        } as V3UMLElement & { value?: unknown }
+        ownedAttributeIds.push(nameId)
+      }
+      for (const [key, value] of Object.entries(attrs)) {
+        // Strip the layer-kind prefix off qualified slugs.
+        const plainSlug = key.includes(".") ? key.split(".").pop()! : key
+        const v3Type = v3AttributeTypeFor(nt, plainSlug)
+        if (!v3Type) continue
+        const childId = `${node.id}-attr-${plainSlug}`
+        const v3Value =
+          typeof value === "boolean"
+            ? value
+              ? "true"
+              : "false"
+            : value === null || value === undefined
+              ? ""
+              : String(value)
+        elements[childId] = {
+          id: childId,
+          name: v3Type,
+          type: v3Type,
+          owner: node.id,
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          value: v3Value,
+        } as V3UMLElement & { value?: unknown }
+        ownedAttributeIds.push(childId)
+      }
+      elements[node.id] = {
+        ...baseV3,
+        ...(data.description && { description: data.description }),
+        ...(data.assessmentNote && { assessmentNote: data.assessmentNote }),
+        ownedElements: ownedAttributeIds,
+      } as V3UMLElement & { ownedElements?: string[]; description?: string }
+    } else if (nt === "NNContainer") {
+      const data = node.data as Record<string, unknown> & {
+        entryLayerId?: string
+        description?: string
+      }
+      elements[node.id] = {
+        ...baseV3,
+        ...(data.entryLayerId && { entryLayerId: data.entryLayerId }),
+        ...(data.description && { description: data.description }),
+      } as V3UMLElement & { entryLayerId?: string; description?: string }
+    } else if (nt === "NNReference") {
+      const data = node.data as Record<string, unknown> & {
+        referenceTarget?: string
+      }
+      elements[node.id] = {
+        ...baseV3,
+        ...(data.referenceTarget && {
+          referenceTarget: data.referenceTarget,
+        }),
+      } as V3UMLElement & { referenceTarget?: string }
     } else {
       elements[node.id] = baseV3
     }

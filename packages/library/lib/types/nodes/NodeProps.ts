@@ -499,3 +499,69 @@ export type UserModelAttributeNodeProps = DefaultNodeProps & {
 export type UserModelIconNodeProps = DefaultNodeProps & {
   icon?: string
 }
+
+/* -------------------------------------------------------------------------- */
+/* NNDiagram (BESSER) — SA-5                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Generic data shape for a v4 NN layer node. SA-5 collapses the v3
+ * "every attribute is its own UMLElement" layout into a flat
+ * `attributes: Record<string, unknown>` per
+ * `docs/source/migrations/uml-v4-shape.md` (NNDiagram §). Keys follow
+ * the snake_case attribute slug stripped of the layer suffix
+ * (e.g. `KernelDimAttributeConv2D` → `kernel_dim`). For slugs that
+ * collide across layer kinds (`DimensionAttributePooling` vs
+ * `DimensionAttributeBatchNormalization`) the migrator emits
+ * `<layer_kind>.<slug>` to disambiguate (`pooling.dimension`,
+ * `batch_normalization.dimension`).
+ *
+ * Numeric attributes stay as **strings** in v4 to match the inline
+ * widget which edits them as text. Boolean attributes are normalised
+ * to JS `boolean`.
+ */
+export type NNLayerNodeProps = DefaultNodeProps & {
+  attributes: Record<string, unknown>
+  description?: string
+  assessmentNote?: string
+}
+
+/**
+ * Container for a sequential layer stack. Children attach via React
+ * Flow `parentId = container.id`. v3 stored an entry-point reference
+ * (which layer is the "input" side) on the container; the migrator
+ * preserves that as `entryLayerId` if present.
+ */
+export type NNContainerNodeProps = DefaultNodeProps & {
+  /** Optional entry-layer pointer (v3 named `entryLayer` / `inputLayer`). */
+  entryLayerId?: string
+  description?: string
+}
+
+/**
+ * Cross-container reference. v3 carried this as a free-floating element
+ * holding the referenced container id.
+ */
+export type NNReferenceNodeProps = DefaultNodeProps & {
+  /** id of the referenced container / layer. */
+  referenceTarget?: string
+}
+
+/**
+ * Tensor operation (reshape, concatenate, multiply, transpose, …).
+ * Same `attributes` shape as a layer node.
+ */
+export type NNTensorOpNodeProps = NNLayerNodeProps
+
+/**
+ * Model-level training configuration (loss, optimizer, batch size, …).
+ * Same flat `attributes` shape as a layer node.
+ */
+export type NNConfigurationNodeProps = NNLayerNodeProps
+
+/**
+ * Training/test dataset. Same flat `attributes` shape as a layer node;
+ * the inspector renders dataset-specific fields (`path_data`,
+ * `task_type`, `input_format`, `shape`, `normalize`).
+ */
+export type NNDatasetNodeProps = NNLayerNodeProps

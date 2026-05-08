@@ -10,3 +10,8 @@ export * from "./StateMachineDiagramEdge"
 export * from "./AgentDiagramEdge"
 export * from "./AgentDiagramInitEdge"
 export * from "./UserModelLink"
+// SA-5: side-effect imports that register the BESSER NNDiagram edge
+// types (NNNext / NNComposition / NNAssociation).
+export * from "./NNNext"
+export * from "./NNComposition"
+export * from "./NNAssociation"

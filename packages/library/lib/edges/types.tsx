@@ -198,6 +198,15 @@ export const edgeConfig = {
 
   // SA-4: UserDiagram link — same handling as ObjectLink (which it aliases).
   UserModelLink: { allowMidpointDragging: true },
+
+  // SA-5: NNDiagram edges. All allow midpoint dragging; relationship
+  // labels are off by default (NN edges carry no label in v3).
+  NNNext: { allowMidpointDragging: true, showRelationshipLabels: false },
+  NNComposition: { allowMidpointDragging: true, showRelationshipLabels: false },
+  NNAssociation: {
+    allowMidpointDragging: true,
+    showRelationshipLabels: false,
+  },
 } as const
 
 // Bound to `defaultEdgeTypes` (not `diagramEdgeTypes`) so the canonical

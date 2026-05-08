@@ -326,6 +326,30 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         strokeDashArray: "0",
         offset: 0,
       }
+    // SA-5: BESSER NNDiagram edges. `NNNext` is a unidirectional flow
+    // arrow; `NNComposition` puts a black diamond on the source side
+    // (the NNContainer); `NNAssociation` is a plain line (Dataset ↔
+    // NNContainer).
+    case "NNNext":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "NNComposition":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerStart: "url(#black-rhombus)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "NNAssociation":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "0",
+        offset: 0,
+      }
     default:
       return {
         markerPadding: EDGES.MARKER_PADDING,

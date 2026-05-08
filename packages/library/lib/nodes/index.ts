@@ -13,3 +13,7 @@ export * from "./stateMachineDiagram"
 // 8 BESSER AgentDiagram + 3 UserDiagram node types via `registerNodeTypes`.
 export * from "./agentDiagram"
 export * from "./userDiagram"
+// SA-5: side-effect import that extends the node-type registry with the
+// 18 BESSER NNDiagram node types via `registerNodeTypes`. NN-specific
+// data shape: per-attribute children collapsed onto `node.data.attributes`.
+export * from "./nnDiagram"
