@@ -1,5 +1,7 @@
-import { Box, MenuItem, Select, Stack, TextField as MuiTextField } from "@mui/material"
+import { Box, MenuItem, Select, Stack } from "@mui/material"
 import React from "react"
+import CodeMirror from "@uiw/react-codemirror"
+import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { StateCodeBlockProps } from "@/types"
@@ -10,6 +12,9 @@ import { PopoverProps } from "@/components/popovers/types"
  * SA-3 inspector body for `StateCodeBlock`. The body is a multi-line
  * code editor; v3 limited the language to Python but the inline
  * `language` field is exposed here for future BAL support.
+ *
+ * SA-FIX-State (PC-5 #2): the `code` field uses CodeMirror with Python
+ * syntax highlighting instead of plain MUI multiline.
  */
 const LANGUAGES = [
   { value: "python", label: "Python" },
@@ -68,20 +73,28 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
         </Select>
       </Stack>
 
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        multiline
-        minRows={8}
-        label="code"
-        value={data.code ?? ""}
-        onChange={(e) => update({ code: e.target.value })}
-        placeholder="# Sample Python code\nprint('Hello World')"
-        InputProps={{
-          sx: { fontFamily: "monospace", fontSize: 13 },
-        }}
-      />
+      <Stack spacing={0.5}>
+        <Typography variant="caption">code</Typography>
+        <Box
+          sx={{
+            border: "1px solid var(--besser-gray, #ccc)",
+            borderRadius: "4px",
+            "& .cm-editor": { fontSize: "13px", minHeight: 160 },
+          }}
+        >
+          <CodeMirror
+            value={data.code ?? ""}
+            extensions={[python()]}
+            onChange={(v) => update({ code: v })}
+            basicSetup={{
+              lineNumbers: true,
+              tabSize: 4,
+              indentOnInput: true,
+            }}
+            placeholder={"# Sample Python code\nprint('Hello World')"}
+          />
+        </Box>
+      </Stack>
     </Box>
   )
 }

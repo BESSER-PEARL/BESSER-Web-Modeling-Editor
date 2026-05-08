@@ -1,9 +1,18 @@
-import { Box, IconButton, Stack, TextField as MuiTextField } from "@mui/material"
+import {
+  Box,
+  IconButton,
+  Stack,
+  TextField as MuiTextField,
+  Tooltip,
+} from "@mui/material"
 import React from "react"
+import CodeMirror from "@uiw/react-codemirror"
+import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
-import { DividerLine, Typography } from "@/components/ui"
-import { DeleteIcon } from "@/components/Icon"
+import { DividerLine, EdgeStyleEditor, Typography } from "@/components/ui"
+import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
+import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
@@ -16,8 +25,15 @@ import { PopoverProps } from "@/components/popovers/types"
  *    `packages/editor/.../uml-state-transition.ts:14`.
  *  - SA-3 brief additions: `code` (action body) and `eventName`
  *    (explicit trigger).
+ *
+ * SA-FIX-State (PC-5 #1): flip + color editor surface via
+ * `EdgeStyleEditor` + `SwapHorizIcon`, mirroring the SA-2.1 class-edge
+ * and SA-2.2 #26 agent-edge approach.
+ *
+ * SA-FIX-State (PC-5 #2): the `code` field uses CodeMirror with Python
+ * syntax highlighting (matches AgentDiagramEdgeEditPanel).
  */
-type EdgeData = {
+type EdgeData = CustomEdgeProps & {
   name?: string
   guard?: string
   code?: string
@@ -48,6 +64,30 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     )
   }
 
+  const handleStyleFieldUpdate = (
+    key: "strokeColor" | "textColor",
+    value: string
+  ) => {
+    update({ [key]: value } as Partial<EdgeData>)
+  }
+
+  // SA-FIX-State PC-5 #1: flip swaps source/target/handle pairs on the
+  // edge, mirroring `ClassEdgeEditPanel.handleSwap`.
+  const handleSwap = () => {
+    setEdges((all) =>
+      all.map((e) => {
+        if (e.id !== elementId) return e
+        return {
+          ...e,
+          source: e.target,
+          sourceHandle: e.targetHandle,
+          target: e.source,
+          targetHandle: e.sourceHandle,
+        }
+      })
+    )
+  }
+
   const setParam = (key: string, value: string) => {
     update({ params: { ...params, [key]: value } })
   }
@@ -68,6 +108,21 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      {/* SA-FIX-State PC-5 #1: color editor + flip action */}
+      <EdgeStyleEditor
+        edgeData={data}
+        handleDataFieldUpdate={handleStyleFieldUpdate}
+        label="Transition"
+        sideElements={[
+          <Tooltip key="flip" title="Flip source / target">
+            <IconButton size="small" onClick={handleSwap}>
+              <SwapHorizIcon />
+            </IconButton>
+          </Tooltip>,
+        ]}
+      />
+      <DividerLine width="100%" />
+
       <MuiTextField
         size="small"
         variant="outlined"
@@ -93,17 +148,30 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         value={data.eventName ?? ""}
         onChange={(e) => update({ eventName: e.target.value })}
       />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        multiline
-        minRows={3}
-        label="code"
-        value={data.code ?? ""}
-        onChange={(e) => update({ code: e.target.value })}
-        placeholder="Action code executed on transition"
-      />
+
+      {/* SA-FIX-State PC-5 #2: CodeMirror Python editor for `code`. */}
+      <Stack spacing={0.5}>
+        <Typography variant="caption">code</Typography>
+        <Box
+          sx={{
+            border: "1px solid var(--besser-gray, #ccc)",
+            borderRadius: "4px",
+            "& .cm-editor": { fontSize: "13px", minHeight: 80 },
+          }}
+        >
+          <CodeMirror
+            value={data.code ?? ""}
+            extensions={[python()]}
+            onChange={(v) => update({ code: v })}
+            basicSetup={{
+              lineNumbers: true,
+              tabSize: 4,
+              indentOnInput: true,
+            }}
+            placeholder="Action code executed on transition"
+          />
+        </Box>
+      </Stack>
 
       <DividerLine width="100%" />
       <Stack

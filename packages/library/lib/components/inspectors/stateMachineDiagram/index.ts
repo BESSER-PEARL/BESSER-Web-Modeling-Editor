@@ -18,6 +18,7 @@ import { StateActionNodeEditPanel } from "./StateActionNodeEditPanel"
 import { StateObjectNodeEditPanel } from "./StateObjectNodeEditPanel"
 import { StateCodeBlockEditPanel } from "./StateCodeBlockEditPanel"
 import { StateLabelEditPanel } from "./StateLabelEditPanel"
+import { StateMergeNodeEditPanel } from "./StateMergeNodeEditPanel"
 import { StateMachineDiagramEdgeEditPanel } from "./StateMachineDiagramEdgeEditPanel"
 
 registerInspector("State", "edit", StateEditPanel)
@@ -26,9 +27,13 @@ registerInspector("StateFallbackBody", "edit", StateBodyEditPanel)
 registerInspector("StateActionNode", "edit", StateActionNodeEditPanel)
 registerInspector("StateObjectNode", "edit", StateObjectNodeEditPanel)
 registerInspector("StateCodeBlock", "edit", StateCodeBlockEditPanel)
+// SA-FIX-State PC-6 #2: Initial / Final / Fork / ForkHorizontal are
+// non-updatable in v3; `StateLabelEditPanel` short-circuits to NULL
+// for those types so the inspector renders the empty state.
 registerInspector("StateInitialNode", "edit", StateLabelEditPanel)
 registerInspector("StateFinalNode", "edit", StateLabelEditPanel)
-registerInspector("StateMergeNode", "edit", StateLabelEditPanel)
+// SA-FIX-State PC-6 #3: dedicated decisions editor for merge nodes.
+registerInspector("StateMergeNode", "edit", StateMergeNodeEditPanel)
 registerInspector("StateForkNode", "edit", StateLabelEditPanel)
 registerInspector("StateForkNodeHorizontal", "edit", StateLabelEditPanel)
 registerInspector("StateTransition", "edit", StateMachineDiagramEdgeEditPanel)
@@ -39,4 +44,5 @@ export * from "./StateActionNodeEditPanel"
 export * from "./StateObjectNodeEditPanel"
 export * from "./StateCodeBlockEditPanel"
 export * from "./StateLabelEditPanel"
+export * from "./StateMergeNodeEditPanel"
 export * from "./StateMachineDiagramEdgeEditPanel"

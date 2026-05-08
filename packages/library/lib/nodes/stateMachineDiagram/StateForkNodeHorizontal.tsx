@@ -6,11 +6,15 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { StateMarkerNodeProps } from "@/types"
-import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
  * Horizontal fork bar. Default size 60×20 (fixed height, resizable width)
  * — matches v3 `UMLStateForkNodeHorizontal.defaultWidth/Height`.
+ *
+ * SA-FIX-State (PC-6 #1): mirrors the SA-UX-FIX-2 fix applied to
+ * `StateInitialNode`. Read `data.fillColor` directly with a hard
+ * `#000000` default instead of going through `getCustomColorsFromData`
+ * (which falls back to a white-on-white background).
  */
 export function StateForkNodeHorizontal({
   id,
@@ -25,8 +29,7 @@ export function StateForkNodeHorizontal({
 
   if (!width || !height) return null
 
-  const { strokeColor, fillColor } = getCustomColorsFromData(data)
-  const fill = fillColor || strokeColor
+  const fill = data?.fillColor || "var(--besser-primary-contrast, #000000)"
 
   return (
     <DefaultNodeWrapper

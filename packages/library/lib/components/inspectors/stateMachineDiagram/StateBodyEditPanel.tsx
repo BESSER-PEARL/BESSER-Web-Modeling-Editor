@@ -1,5 +1,7 @@
 import { Box, MenuItem, Select, Stack, TextField as MuiTextField } from "@mui/material"
 import React from "react"
+import CodeMirror from "@uiw/react-codemirror"
+import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { StateBodyNodeProps } from "@/types"
@@ -16,6 +18,9 @@ import { PopoverProps } from "@/components/popovers/types"
  *   separate, but the inspector exposes a free-form kind tag stored
  *   inline on the `name` (e.g. `"entry / setup()"`).
  * - colors via the shared `NodeStyleEditor`.
+ *
+ * SA-FIX-State (PC-5 #2): the `code` field uses CodeMirror with Python
+ * syntax highlighting (matches AgentStateBodyEditPanel).
  */
 const BODY_KINDS = [
   { value: "entry", label: "entry" },
@@ -85,17 +90,28 @@ export const StateBodyEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         onChange={(e) => update({ name: e.target.value })}
       />
 
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        multiline
-        minRows={3}
-        label="code"
-        value={data.code ?? ""}
-        onChange={(e) => update({ code: e.target.value })}
-        placeholder="Action body (Python / BAL)…"
-      />
+      <Stack spacing={0.5}>
+        <Typography variant="caption">code</Typography>
+        <Box
+          sx={{
+            border: "1px solid var(--besser-gray, #ccc)",
+            borderRadius: "4px",
+            "& .cm-editor": { fontSize: "13px", minHeight: 80 },
+          }}
+        >
+          <CodeMirror
+            value={data.code ?? ""}
+            extensions={[python()]}
+            onChange={(v) => update({ code: v })}
+            basicSetup={{
+              lineNumbers: true,
+              tabSize: 4,
+              indentOnInput: true,
+            }}
+            placeholder="Action body (Python)…"
+          />
+        </Box>
+      </Stack>
     </Box>
   )
 }

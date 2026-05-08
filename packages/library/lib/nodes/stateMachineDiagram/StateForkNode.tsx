@@ -6,13 +6,19 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { StateMarkerNodeProps } from "@/types"
-import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
  * Vertical fork bar. Default size 20×60 (fixed width, resizable height)
  * — matches v3 `UMLStateForkNode.defaultWidth/Height` at
  * `packages/editor/.../uml-state-fork-node.ts`. The bar itself is just
  * a filled rectangle.
+ *
+ * SA-FIX-State (PC-6 #1): mirrors the SA-UX-FIX-2 fix applied to
+ * `StateInitialNode`. The shared `getCustomColorsFromData` helper falls
+ * back to `var(--besser-background)` (white in the default theme),
+ * which painted the fork bar invisible against the canvas. Read
+ * `data.fillColor` directly with a hard `#000000` default so the bar
+ * always renders solid regardless of theme variables.
  */
 export function StateForkNode({
   id,
@@ -27,8 +33,7 @@ export function StateForkNode({
 
   if (!width || !height) return null
 
-  const { strokeColor, fillColor } = getCustomColorsFromData(data)
-  const fill = fillColor || strokeColor
+  const fill = data?.fillColor || "var(--besser-primary-contrast, #000000)"
 
   return (
     <DefaultNodeWrapper
