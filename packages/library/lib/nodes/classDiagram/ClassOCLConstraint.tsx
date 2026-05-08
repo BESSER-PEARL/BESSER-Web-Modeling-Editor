@@ -7,46 +7,10 @@ import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 
 /**
- * SA-UX-FIX B1: Free-standing OCL constraint node.
- *
- * Source-of-truth port:
- *   `packages/editor/.../uml-class-ocl/uml-class-ocl-constraint-component.tsx`
- *
- * Rendered as a sticky-note rectangle with a folded corner — visually
- * distinct from a class node. Shows the constraint name (header), the
- * derived `«inv»/«pre»/«post»` badge (if the expression carries the
- * canonical `context X (inv|pre|post)` header), and a wrapped preview
- * of the expression body.
- *
- * Authoring happens in the inspector (`ClassEditPanel` already has an
- * `OCLConstraintRow` component — when this node is selected, the
- * inspector switches to a single-row mode keyed on `data.expression`).
+ * Free-standing OCL constraint node, rendered as a sticky-note rectangle
+ * with a folded corner. Per user directive the canvas surface shows only
+ * the OCL expression — no name header, no kind badge.
  */
-const _OCL_HEADER_RE =
-  /\bcontext\s+\w+(?:::(\w+)\s*\([^)]*\))?\s+(inv|pre|post)\b/i
-const _BADGE_LABEL: Record<string, string> = {
-  inv: "«inv»",
-  pre: "«pre»",
-  post: "«post»",
-}
-
-function deriveBadge(
-  constraint: string,
-  explicitKind?: string
-): { label: string; method?: string } | null {
-  if (explicitKind) {
-    const k = explicitKind.toLowerCase()
-    const short = k === "invariant" ? "inv" : k
-    if (_BADGE_LABEL[short]) return { label: _BADGE_LABEL[short] }
-  }
-  if (!constraint) return null
-  const match = _OCL_HEADER_RE.exec(constraint)
-  if (!match) return null
-  const method = match[1] || undefined
-  const kw = match[2].toLowerCase()
-  return { label: _BADGE_LABEL[kw], method }
-}
-
 function wrapText(text: string, maxCharsPerLine: number, maxLines: number): string[] {
   if (!text) return []
   const words = text.split(/\s+/)
@@ -96,14 +60,13 @@ export function ClassOCLConstraintNode({
   const fold = 14
   const padding = 12
   const contentWidth = w - padding * 2
-  const contentHeight = h - padding * 2 - 18 // reserve for header
+  const contentHeight = h - padding * 2
 
-  const badge = deriveBadge(data.expression || "", data.kind)
   const charsPerLine = Math.max(8, Math.floor((contentWidth - 4) / 7))
-  const maxLines = Math.max(1, Math.floor((contentHeight - 8) / 14))
+  const maxLines = Math.max(1, Math.floor(contentHeight / 14))
   const lines = wrapText(data.expression || "", charsPerLine, maxLines)
 
-  const fillColor = data.fillColor || "#fff8c4" // sticky-note yellow
+  const fillColor = data.fillColor || "#fff8c4"
   const strokeColor = data.strokeColor || "#bda21f"
   const textColor = data.textColor || "#3a2e00"
 
@@ -134,44 +97,8 @@ export function ClassOCLConstraintNode({
             strokeWidth={1.2}
           />
 
-          {/* Constraint name (header). */}
-          <text
-            x={padding}
-            y={padding + 4}
-            fill={textColor}
-            style={{
-              fontSize: "12px",
-              fontWeight: 600,
-              dominantBaseline: "hanging",
-            }}
-          >
-            {data.name || "constraint"}
-          </text>
-
-          {/* Stereotype badge (inv / pre / post). */}
-          {badge && (
-            <text
-              x={padding}
-              y={padding + 18}
-              fill={textColor}
-              style={{
-                fontSize: "10px",
-                fontStyle: "italic",
-                fontWeight: 600,
-                dominantBaseline: "hanging",
-              }}
-            >
-              {badge.label}
-              {badge.method ? ` ${badge.method}` : ""}
-            </text>
-          )}
-
-          {/* Wrapped expression body. */}
-          <g
-            transform={`translate(${padding}, ${
-              padding + (badge ? 34 : 22)
-            })`}
-          >
+          {/* Wrapped expression body — only surface, no name/kind badge. */}
+          <g transform={`translate(${padding}, ${padding})`}>
             <text
               fill={textColor}
               style={{

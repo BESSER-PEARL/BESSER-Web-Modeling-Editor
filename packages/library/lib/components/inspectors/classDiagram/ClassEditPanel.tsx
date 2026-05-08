@@ -21,7 +21,6 @@ import {
   ClassifierMethodImplementationType,
   ClassifierMethodParameter,
   ClassifierVisibility,
-  ClassOCLConstraint,
 } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { StereotypeButtonGroup } from "@/components/ui/StereotypeButtonGroup"
@@ -740,56 +739,6 @@ const MethodRow: React.FC<MethodRowProps> = ({
 }
 
 /* -------------------------------------------------------------------------- */
-/* OCL constraint row                                                          */
-/* -------------------------------------------------------------------------- */
-
-interface OCLConstraintRowProps {
-  row: ClassOCLConstraint
-  onPatch: (patch: Partial<ClassOCLConstraint>) => void
-  onDelete: () => void
-}
-
-const OCLConstraintRow: React.FC<OCLConstraintRowProps> = ({
-  row,
-  onPatch,
-  onDelete,
-}) => (
-  <Box
-    sx={{
-      display: "flex",
-      flexDirection: "column",
-      gap: 0.5,
-      padding: "6px 0",
-      borderBottom: "1px solid var(--besser-gray, #e9ecef)",
-    }}
-  >
-    <Stack direction="row" spacing={0.5} alignItems="center">
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        placeholder="constraint name"
-        value={row.name}
-        onChange={(e) => onPatch({ name: e.target.value })}
-        sx={{ flex: 1 }}
-      />
-      <IconButton size="small" onClick={onDelete}>
-        <DeleteIcon width={14} height={14} />
-      </IconButton>
-    </Stack>
-    <MuiTextField
-      size="small"
-      variant="outlined"
-      multiline
-      minRows={2}
-      maxRows={8}
-      placeholder="OCL expression…"
-      value={row.expression}
-      onChange={(e) => onPatch({ expression: e.target.value })}
-    />
-  </Box>
-)
-
-/* -------------------------------------------------------------------------- */
 /* Main panel                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -987,34 +936,6 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         }
       })
     )
-  }
-
-  /* ----- OCL constraint helpers ----------------------------------------- */
-
-  const patchOcl = (oclId: string, patch: Partial<ClassOCLConstraint>) => {
-    updateNode((d) => ({
-      ...d,
-      oclConstraints: (d.oclConstraints ?? []).map((c) =>
-        c.id === oclId ? { ...c, ...patch } : c
-      ),
-    }))
-  }
-
-  const deleteOcl = (oclId: string) => {
-    updateNode((d) => ({
-      ...d,
-      oclConstraints: (d.oclConstraints ?? []).filter((c) => c.id !== oclId),
-    }))
-  }
-
-  const addOcl = () => {
-    updateNode((d) => ({
-      ...d,
-      oclConstraints: [
-        ...(d.oclConstraints ?? []),
-        { id: generateUUID(), name: "constraint", expression: "" },
-      ],
-    }))
   }
 
   /* ----- Local "add new row" inputs ------------------------------------- */
