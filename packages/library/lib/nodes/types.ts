@@ -60,7 +60,15 @@ import {
   SfcJump,
 } from "./sfcDiagram"
 
-export const diagramNodeTypes = {
+/**
+ * Default React-Flow node-type registry shipped with upstream Apollon.
+ * The exported `diagramNodeTypes` is a **live, mutable view** of this
+ * registry plus any types BESSER (or other consumers) register at runtime
+ * via `registerNodeTypes`. Read sites (`App.tsx`, ReactFlow's `nodeTypes`
+ * prop) should consume `diagramNodeTypes` directly so additions take
+ * effect on next render.
+ */
+const defaultNodeTypes = {
   package: Package,
   class: Class,
   objectName: ObjectName,
@@ -115,8 +123,36 @@ export const diagramNodeTypes = {
   sfcJump: SfcJump,
 } satisfies NodeTypes
 
-// 2. Union type from keys
-export type DiagramNodeType = keyof typeof diagramNodeTypes
+/**
+ * Mutable registry. Defaults are seeded from `defaultNodeTypes`; consumers
+ * extend it via `registerNodeTypes`. We deliberately keep the *same object
+ * reference* so consumers reading `diagramNodeTypes` once still see updates.
+ */
+const _nodeTypeRegistry: NodeTypes = { ...defaultNodeTypes }
+
+/**
+ * Register additional node types. Existing entries are overwritten — this is
+ * intentional, so BESSER can swap an upstream stock node out for a custom
+ * implementation if needed.
+ */
+export const registerNodeTypes = (custom: NodeTypes): void => {
+  for (const [key, value] of Object.entries(custom)) {
+    _nodeTypeRegistry[key] = value
+  }
+}
+
+/**
+ * The merged node-type registry. Read sites pass this object to
+ * `<ReactFlow nodeTypes={diagramNodeTypes} />`.
+ */
+export const diagramNodeTypes: NodeTypes = _nodeTypeRegistry
+
+// 2. Union type from keys.
+// Bound to `defaultNodeTypes` (not `diagramNodeTypes`) so that the canonical
+// upstream key set stays visible in the type system. Custom types registered
+// via `registerNodeTypes` widen the runtime registry but pass through as
+// arbitrary strings — consumers cast to `DiagramNodeType` at the boundary.
+export type DiagramNodeType = keyof typeof defaultNodeTypes
 
 // 3. Enum-like object (manually declared once, same keys)
 export const DiagramNodeTypeRecord: Record<DiagramNodeType, DiagramNodeType> = {

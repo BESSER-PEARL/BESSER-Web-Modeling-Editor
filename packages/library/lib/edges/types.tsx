@@ -13,7 +13,12 @@ import { CommunicationDiagramEdge } from "./edgeTypes/CommunicationDiagramEdge"
 import { BPMNDiagramEdge } from "./edgeTypes/BPMNDiagramEdge"
 import { PetriNetEdge } from "./edgeTypes/PetriNetEdge"
 
-export const diagramEdgeTypes = {
+/**
+ * Default React-Flow edge-type registry shipped with upstream Apollon.
+ * `diagramEdgeTypes` (exported below) is a live, mutable view of this
+ * registry plus any types registered at runtime via `registerEdgeTypes`.
+ */
+const defaultEdgeTypes = {
   ClassAggregation: ClassDiagramEdge,
   ClassInheritance: ClassDiagramEdge,
   ClassRealization: ClassDiagramEdge,
@@ -61,6 +66,29 @@ export const diagramEdgeTypes = {
   BPMNAssociationFlow: BPMNDiagramEdge,
   BPMNDataAssociationFlow: BPMNDiagramEdge,
 } satisfies EdgeTypes
+
+/**
+ * Mutable registry. Defaults are seeded from `defaultEdgeTypes`; consumers
+ * extend it via `registerEdgeTypes`. Same object reference is preserved so
+ * existing callers reading `diagramEdgeTypes` once still see updates.
+ */
+const _edgeTypeRegistry: EdgeTypes = { ...defaultEdgeTypes }
+
+/**
+ * Register additional edge types. Existing entries are overwritten on
+ * conflict (intentional for component swaps).
+ */
+export const registerEdgeTypes = (custom: EdgeTypes): void => {
+  for (const [key, value] of Object.entries(custom)) {
+    _edgeTypeRegistry[key] = value
+  }
+}
+
+/**
+ * The merged edge-type registry. Read sites pass this to
+ * `<ReactFlow edgeTypes={diagramEdgeTypes} />`.
+ */
+export const diagramEdgeTypes: EdgeTypes = _edgeTypeRegistry
 
 export const edgeConfig = {
   // Class edges - all allow midpoint dragging
@@ -153,7 +181,10 @@ export const edgeConfig = {
   },
 } as const
 
-export type DiagramEdgeType = keyof typeof diagramEdgeTypes
+// Bound to `defaultEdgeTypes` (not `diagramEdgeTypes`) so the canonical
+// upstream key set stays statically known; runtime additions via
+// `registerEdgeTypes` are widened to string at the boundary.
+export type DiagramEdgeType = keyof typeof defaultEdgeTypes
 
 export interface IPoint {
   x: number

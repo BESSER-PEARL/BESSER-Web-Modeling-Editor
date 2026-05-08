@@ -34,6 +34,8 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts"
 import { usePaneClicked } from "./hooks/usePaneClicked"
 import { ApollonMode } from "./typings"
 import { getConnectionLineType } from "./utils/edgeUtils"
+import { PropertiesPanel } from "./components/propertiesPanel/PropertiesPanel"
+import { useUsePropertiesPanel } from "./store/settingsStore"
 
 interface AppProps {
   onReactFlowInit: (instance: ReactFlowInstance) => void
@@ -66,6 +68,10 @@ function App({ onReactFlowInit }: AppProps) {
     )
 
   const isDiagramModifiable = useDiagramModifiable()
+  // BESSER embed defaults to `true` — properties panel is the primary editing
+  // surface. Toggling `usePropertiesPanel` in `settingsService` flips this
+  // reactively without remounting the editor (replaces v3 `editorRevision++`).
+  const showPropertiesPanel = useUsePropertiesPanel()
 
   const connectionLineType = getConnectionLineType(diagramType)
   const onNodeDragStop = useNodeDragStop()
@@ -143,6 +149,7 @@ function App({ onReactFlowInit }: AppProps) {
         <AlignmentGuides />
         <AssessmentSelectionDebug />
       </ReactFlow>
+      {mode === ApollonMode.Modelling && showPropertiesPanel && <PropertiesPanel />}
       <ScrollOverlay />
     </div>
   )

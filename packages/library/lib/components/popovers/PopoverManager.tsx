@@ -67,6 +67,10 @@ import { SfcActionTableEditPopover, SfcEdgeEditPopover } from "./sfcDiagram"
 import { ReachabilityGraphEdgeEditPopover } from "./edgePopovers/ReachabilityGraphEdgeEditPopover"
 import { BPMNDiagramEdgeEditPopover } from "./edgePopovers/BPMNDiagramEdgeEditPopover"
 import { PetriNetEdgeEditPopover } from "./edgePopovers/PetriNetEdgeEditPopover"
+import {
+  getInspector,
+  registerInspectors,
+} from "../inspectors/registry"
 
 type NodePopoverType =
   | "class"
@@ -548,6 +552,20 @@ const seeFeedbackPopovers: {
   SfcDiagramEdge: EdgeSeeFeedbackPopover,
 }
 
+/**
+ * Seed the central inspector registry with the upstream defaults so
+ * `PropertiesPanel` (right rail) and this `PopoverManager` (floating popover)
+ * read from the same source. BESSER (and any other consumer) can override
+ * or extend slots via `registerInspector` / `registerInspectors` without
+ * editing this file.
+ *
+ * Registration runs once on module load. Idempotent — re-importing this
+ * module does not duplicate entries (Object.entries on the maps is stable).
+ */
+registerInspectors("edit", editPopovers)
+registerInspectors("feedbackGive", giveFeedbackPopovers)
+registerInspectors("feedbackSee", seeFeedbackPopovers)
+
 interface PopoverManagerProps {
   elementId: string
   anchorEl: HTMLElement | SVGSVGElement | null
@@ -612,12 +630,14 @@ export const PopoverManager = ({
   const isGivingFeedback = diagramMode === ApollonMode.Assessment && !readonly
   const isSeeingFeedback = diagramMode === ApollonMode.Assessment && readonly
 
+  // Read from the shared inspector registry (seeded above with upstream
+  // defaults; BESSER and other consumers extend it via `registerInspector`).
   if (isEditing) {
-    Component = editPopovers[type] ?? null
+    Component = getInspector(type, "edit")
   } else if (isGivingFeedback) {
-    Component = giveFeedbackPopovers[type] ?? null
+    Component = getInspector(type, "feedbackGive")
   } else if (isSeeingFeedback) {
-    Component = seeFeedbackPopovers[type] ?? null
+    Component = getInspector(type, "feedbackSee")
   }
 
   return Component ? (

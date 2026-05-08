@@ -322,9 +322,12 @@ export type DropElementConfig = {
   readonly marginTop?: number
 }
 
-export const dropElementConfigs: Readonly<
-  Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>
-> = Object.freeze({
+/**
+ * Default palette entries shipped with upstream Apollon. The mutable
+ * registry below seeds from this map; consumers add BESSER-specific
+ * diagram types via `registerPaletteEntry`.
+ */
+const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>> = ({
   [UMLDiagramType.ClassDiagram]: [
     {
       type: "package",
@@ -773,6 +776,50 @@ export const dropElementConfigs: Readonly<
     },
   ],
 })
+
+/**
+ * Mutable palette registry. Seeded from `defaultDropElementConfigs`;
+ * consumers register BESSER-specific palette entries (e.g. for
+ * StateMachineDiagram, AgentDiagram, NNDiagram, UserDiagram) via
+ * `registerPaletteEntry(diagramType, entries)`. The same object
+ * reference is preserved across mutations so existing reads
+ * (`Sidebar.tsx`) keep observing updates.
+ */
+const _paletteRegistry: Record<string, ReadonlyArray<DropElementConfig>> = {
+  ...defaultDropElementConfigs,
+}
+
+/**
+ * Append palette entries for a given diagram type. If the diagram type
+ * already has entries, the new ones are appended; pass `replace: true`
+ * to overwrite instead.
+ */
+export const registerPaletteEntry = (
+  diagramType: string,
+  entries: ReadonlyArray<DropElementConfig>,
+  options: { replace?: boolean } = {}
+): void => {
+  if (options.replace) {
+    _paletteRegistry[diagramType] = [...entries]
+    return
+  }
+  const existing = _paletteRegistry[diagramType] ?? []
+  _paletteRegistry[diagramType] = [...existing, ...entries]
+}
+
+/**
+ * The merged palette registry. Read sites:
+ *   `dropElementConfigs[diagramType].map(...)`
+ * Tolerates unknown diagram types by returning an empty array.
+ */
+export const dropElementConfigs: Readonly<
+  Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>
+> = new Proxy(_paletteRegistry, {
+  get(target, prop: string) {
+    if (prop in target) return target[prop]
+    return [] as ReadonlyArray<DropElementConfig>
+  },
+}) as Readonly<Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>>
 
 export const ColorDescriptionConfig: DropElementConfig = Object.freeze({
   type: "colorDescription",
