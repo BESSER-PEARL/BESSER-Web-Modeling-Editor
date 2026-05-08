@@ -99,6 +99,7 @@ export const ObjectDiagramEdge = ({
             pointerEvents="none"
             style={{
               stroke: strokeColor,
+              strokeWidth: 2,
               strokeDasharray: isReconnectingRef.current
                 ? "none"
                 : strokeDashArray,

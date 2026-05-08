@@ -92,7 +92,7 @@ export function AgentIntent({
                 fontWeight="600"
                 fill={textColor}
               >
-                {`Intent: ${name}`}
+                {name && name.toLowerCase() !== "intent" ? `Intent: ${name}` : "Intent"}
               </text>
             </>
           ) : (

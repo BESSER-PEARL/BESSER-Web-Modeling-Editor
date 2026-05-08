@@ -254,6 +254,16 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         strokeDashArray: "4 2",
         offset: 0,
       }
+    // ClassLinkRel — link relationship (dashed). v3 metamodel rendered
+    // these with `strokeDasharray="5,5"`. Without an explicit case here
+    // the type previously fell through to `default` and rendered as a
+    // plain solid line.
+    case "ClassLinkRel":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        strokeDashArray: "5 5",
+        offset: 0,
+      }
     case "BPMNSequenceFlow":
       return {
         markerPadding: EDGES.MARKER_PADDING,
@@ -344,22 +354,16 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         strokeDashArray: "0",
         offset: 0,
       }
-    // SA-FIX-Agent / PC-8 #1: BESSER AgentDiagram edges. v3 source:
-    // `agent-state-diagram/agent-state-transition/` and
-    // `agent-state-transition-init/`. Both render with an open arrowhead
-    // (`black-arrow`); the init edge additionally uses a dashed stroke.
-    case "AgentStateTransition":
-      return {
-        markerPadding: EDGES.MARKER_PADDING,
-        markerEnd: "url(#black-arrow)",
-        strokeDashArray: "0",
-        offset: 0,
-      }
+    // BESSER AgentDiagram init edge. v3 source
+    // `agent-state-transition-init-component.tsx` renders as a solid
+    // arrow (no `strokeDasharray`). `AgentStateTransition` itself is
+    // already covered by the combined `StateTransition` /
+    // `AgentStateTransition` case above.
     case "AgentStateTransitionInit":
       return {
         markerPadding: EDGES.MARKER_PADDING,
         markerEnd: "url(#black-arrow)",
-        strokeDashArray: "10",
+        strokeDashArray: "0",
         offset: 0,
       }
     // SA-5: BESSER NNDiagram edges. `NNNext` is a unidirectional flow
