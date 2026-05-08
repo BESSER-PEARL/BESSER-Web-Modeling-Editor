@@ -19,6 +19,11 @@
 import { registerInspector } from "./registry"
 import { ClassEditPanel } from "./classDiagram"
 import { ObjectEditPanel } from "./objectDiagram"
+// SA-3: side-effect import that registers the StateMachineDiagram
+// panel-editor bodies. Kept as a side-effect import (rather than a
+// per-call `registerInspector` here) so the slot ↔ body wiring lives
+// next to the bodies themselves.
+import "./stateMachineDiagram"
 
 registerInspector("class", "edit", ClassEditPanel)
 registerInspector("objectName", "edit", ObjectEditPanel)
@@ -26,3 +31,4 @@ registerInspector("objectName", "edit", ObjectEditPanel)
 export * from "./registry"
 export * from "./classDiagram"
 export * from "./objectDiagram"
+export * from "./stateMachineDiagram"

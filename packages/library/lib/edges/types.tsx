@@ -179,6 +179,12 @@ export const edgeConfig = {
   SfcDiagramEdge: {
     allowMidpointDragging: true,
   },
+
+  // SA-3: StateMachineDiagram transition.
+  StateTransition: {
+    allowMidpointDragging: true,
+    showRelationshipLabels: true,
+  },
 } as const
 
 // Bound to `defaultEdgeTypes` (not `diagramEdgeTypes`) so the canonical

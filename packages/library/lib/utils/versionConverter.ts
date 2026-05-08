@@ -33,6 +33,12 @@ import {
   ReachabilityGraphMarkingProps,
   ClassifierVisibility,
   ClassifierMethodImplementationType,
+  StateNodeProps,
+  StateBodyNodeProps,
+  StateActionNodeProps,
+  StateObjectNodeProps,
+  StateCodeBlockProps,
+  StateMarkerNodeProps,
 } from "../types/nodes/NodeProps"
 import { MessageData } from "@/edges/EdgeProps"
 import { parseLegacyNameFormat } from "./classifierMemberDisplay"
@@ -276,6 +282,23 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     // Special nodes
     ColorDescription: "colorDescription",
     TitleAndDescription: "titleAndDesctiption", // Note the typo in V4: "desctiption"
+
+    // SA-3: StateMachineDiagram — node types are PascalCase identical to
+    // v3 element-type strings, so the migrator passes them through. Per
+    // the SA-3 brief, body / fallback-body / code-block are kept as
+    // separate React-Flow nodes (using `parentId` for the State
+    // hierarchy) rather than collapsed onto the parent state's data.
+    State: "State",
+    StateBody: "StateBody",
+    StateFallbackBody: "StateFallbackBody",
+    StateCodeBlock: "StateCodeBlock",
+    StateActionNode: "StateActionNode",
+    StateObjectNode: "StateObjectNode",
+    StateInitialNode: "StateInitialNode",
+    StateFinalNode: "StateFinalNode",
+    StateMergeNode: "StateMergeNode",
+    StateForkNode: "StateForkNode",
+    StateForkNodeHorizontal: "StateForkNodeHorizontal",
   }
 
   return typeMap[v3Type] || v3Type.toLowerCase()
@@ -341,6 +364,11 @@ export function convertV3EdgeTypeToV4(
 
     // Flowchart
     FlowchartFlowline: "FlowChartFlowline",
+
+    // SA-3: StateMachineDiagram transition. Single edge type, passed
+    // through verbatim — `params` / `guard` / etc. live on the edge
+    // data (see `StateMachineDiagramEdge.tsx`).
+    StateTransition: "StateTransition",
   }
   if (v3Type === "BPMNFlow" && flowType) {
     const flowTypeMap: Record<string, string> = {
@@ -742,6 +770,84 @@ function convertV3NodeDataToV4(
       return reachabilityData
     }
 
+    /* ---------------------------------------------------------------- */
+    /* SA-3: StateMachineDiagram                                          */
+    /* ---------------------------------------------------------------- */
+
+    case "State": {
+      // v3 `IUMLState` carries `stereotype` / `italic` / `underline`
+      // verbatim. `deviderPosition`, `hasBody`, `hasFallbackBody` are
+      // recomputed at render time and don't survive into v4.
+      const stateData: StateNodeProps = {
+        ...baseData,
+        ...(element.stereotype !== undefined && {
+          stereotype: element.stereotype as string | null,
+        }),
+        ...((element as { italic?: boolean }).italic !== undefined && {
+          italic: !!(element as { italic?: boolean }).italic,
+        }),
+        ...((element as { underline?: boolean }).underline !== undefined && {
+          underline: !!(element as { underline?: boolean }).underline,
+        }),
+      }
+      return stateData
+    }
+
+    case "StateBody":
+    case "StateFallbackBody": {
+      // Both body kinds are simple labels in v3; pass through as-is so
+      // round-trip stays structural. `code` / `kind` are BESSER editor
+      // extensions surfaced by the inspector.
+      const e = element as { code?: string; kind?: string }
+      const data: StateBodyNodeProps & { code?: string; kind?: string } = {
+        ...baseData,
+        ...(e.code !== undefined && { code: e.code }),
+        ...(e.kind !== undefined && { kind: e.kind }),
+      }
+      return data
+    }
+
+    case "StateActionNode": {
+      const actionData: StateActionNodeProps = {
+        ...baseData,
+        ...((element as { code?: string }).code !== undefined && {
+          code: (element as { code?: string }).code,
+        }),
+      }
+      return actionData
+    }
+
+    case "StateObjectNode": {
+      // Spec open question 4 resolution: `classId` is preserved on
+      // `StateObjectNode` exactly like `ObjectName.classId`.
+      const e = element as { classId?: string; className?: string }
+      const objectData: StateObjectNodeProps = {
+        ...baseData,
+        ...(e.classId && { classId: e.classId }),
+        ...(e.className && { className: e.className }),
+      }
+      return objectData
+    }
+
+    case "StateCodeBlock": {
+      const e = element as { code?: string; language?: string }
+      const codeBlockData: StateCodeBlockProps = {
+        ...baseData,
+        code: e.code ?? "",
+        language: e.language ?? "python",
+      }
+      return codeBlockData
+    }
+
+    case "StateInitialNode":
+    case "StateFinalNode":
+    case "StateMergeNode":
+    case "StateForkNode":
+    case "StateForkNodeHorizontal": {
+      const markerData: StateMarkerNodeProps = baseData
+      return markerData
+    }
+
     // For other BPMN elements that just need base data
     case "BPMNSubprocess":
     case "BPMNTransaction":
@@ -844,6 +950,30 @@ function convertV3RelationshipToV4Edge(
     }))
   }
 
+  // SA-3: StateTransition carries params / guard / code / eventName
+  // alongside the generic edge data. Pull those through verbatim — the
+  // v3 deserializer at
+  // `packages/editor/.../uml-state-transition.ts:14` treats `params` as
+  // `string | string[] | { [id]: string }`; v4 normalises to dict.
+  const r = relationship as V3UMLRelationship & {
+    params?: string | string[] | { [id: string]: string }
+    guard?: string
+    code?: string
+    eventName?: string
+  }
+  const normalizedParams: { [id: string]: string } = {}
+  if (r.params !== undefined && r.params !== null) {
+    if (typeof r.params === "string") {
+      normalizedParams["0"] = r.params
+    } else if (Array.isArray(r.params)) {
+      r.params.forEach((p, idx) => {
+        normalizedParams[idx.toString()] = p
+      })
+    } else if (typeof r.params === "object") {
+      Object.assign(normalizedParams, r.params)
+    }
+  }
+
   const edge: ApollonEdge = {
     id: relationship.id,
     source: relationship.source.element,
@@ -853,6 +983,9 @@ function convertV3RelationshipToV4Edge(
     targetHandle: convertV3HandleToV4(relationship.target.direction || ""),
     data: {
       label: relationship.name || "",
+      // SA-3: hoist `name` so the StateMachineDiagramEdge label-formatter
+      // (`name [guard]`) can read a single field; keeps parity with v3.
+      ...(relationship.name && { name: relationship.name }),
       sourceMultiplicity: relationship.source.multiplicity || "",
       targetMultiplicity: relationship.target.multiplicity || "",
       sourceRole: relationship.source.role || "",
@@ -861,6 +994,13 @@ function convertV3RelationshipToV4Edge(
       messages: convertV3MessagesToV4(relationship.messages),
       // Preserve flowType for BPMN edges
       ...(relationship.flowType && { flowType: relationship.flowType }),
+      // SA-3: StateTransition-specific data.
+      ...(Object.keys(normalizedParams).length > 0 && {
+        params: normalizedParams,
+      }),
+      ...(r.guard && { guard: r.guard }),
+      ...(r.code && { code: r.code }),
+      ...(r.eventName && { eventName: r.eventName }),
       // Visual properties
       ...(relationship.fillColor && { fillColor: relationship.fillColor }),
       ...(relationship.strokeColor && {
@@ -1057,6 +1197,32 @@ export function migrateObjectDiagramV3ToV4(
   if (v4.type !== "ObjectDiagram") {
     throw new Error(
       `migrateObjectDiagramV3ToV4: expected ObjectDiagram, got ${v4.type}`
+    )
+  }
+  return v4
+}
+
+/**
+ * SA-3 StateMachineDiagram v3 → v4 migrator.
+ *
+ * Wraps `convertV3ToV4` with the per-diagram type guard. Per the SA-3
+ * brief, this migrator does **not** collapse `StateBody` /
+ * `StateFallbackBody` onto the parent state — those remain separate
+ * React-Flow child nodes whose `parentId` points at the containing
+ * `State`. That diverges from `uml-v4-shape.md`'s "collapse into
+ * `data.bodies`" recommendation; the brief's React-Flow `parentId`
+ * pattern wins because the State container resizes to accommodate
+ * children dragged in from the palette in the v3 fork (see
+ * `uml-state.ts::reorderChildren` / `uml-state.ts::render`), which
+ * `parentId` reproduces directly without re-implementing reorder/auto-grow.
+ */
+export function migrateStateMachineDiagramV3ToV4(
+  data: V3DiagramFormat | V3UMLModel
+): UMLModel {
+  const v4 = convertV3ToV4(data)
+  if (v4.type !== "StateMachineDiagram") {
+    throw new Error(
+      `migrateStateMachineDiagramV3ToV4: expected StateMachineDiagram, got ${v4.type}`
     )
   }
   return v4
@@ -1327,8 +1493,219 @@ const invertNodeType = (v4Type: string): string => {
     class: "Class",
     package: "Package",
     objectName: "ObjectName",
+    // SA-3: StateMachine node-type strings are PascalCase identical to
+    // v3 element types — falling through is correct, but listed here
+    // for grep-ability.
+    State: "State",
+    StateBody: "StateBody",
+    StateFallbackBody: "StateFallbackBody",
+    StateCodeBlock: "StateCodeBlock",
+    StateActionNode: "StateActionNode",
+    StateObjectNode: "StateObjectNode",
+    StateInitialNode: "StateInitialNode",
+    StateFinalNode: "StateFinalNode",
+    StateMergeNode: "StateMergeNode",
+    StateForkNode: "StateForkNode",
+    StateForkNodeHorizontal: "StateForkNodeHorizontal",
   }
   return map[v4Type] ?? v4Type
+}
+
+/**
+ * SA-3 inverse migrator: v4 StateMachineDiagram → v3 `UMLModel`.
+ *
+ * Mirrors `convertV4ToV3Class` but for the StateMachine universe. The
+ * only structural rewrite is the body/fallback-body mapping: in v4 they
+ * sit as children with `parentId`, and the parent state's v3 wire form
+ * cached `bodies: string[]` / `fallbackBodies: string[]`. We rebuild
+ * those arrays at emit time by walking the children once.
+ *
+ * Edge data round-trip:
+ *  - `name`, `guard` pass through verbatim,
+ *  - `params` dict is emitted in its richest form (object) — the v3
+ *    deserializer accepts string / array / object, so this is the
+ *    cleanest form for round-tripping,
+ *  - `code` and `eventName` (BESSER additions per the SA-3 brief) are
+ *    preserved on the relationship element.
+ */
+export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
+  const elements: Record<string, V3UMLElement> = {}
+  const relationships: Record<string, V3UMLRelationship> = {}
+
+  // Pre-index children by parentId so the State emitter can rebuild
+  // the v3 `bodies` / `fallbackBodies` id arrays without quadratic walks.
+  const childrenByParent: Record<
+    string,
+    { bodies: string[]; fallbackBodies: string[] }
+  > = {}
+  for (const node of v4.nodes) {
+    if (!node.parentId) continue
+    const slot = (childrenByParent[node.parentId] ||= {
+      bodies: [],
+      fallbackBodies: [],
+    })
+    // node.type is narrowed to upstream DiagramNodeType keys; widen with
+    // a string cast since BESSER state types are runtime-registered.
+    const nt = node.type as string
+    if (nt === "StateBody") slot.bodies.push(node.id)
+    else if (nt === "StateFallbackBody") slot.fallbackBodies.push(node.id)
+  }
+
+  for (const node of v4.nodes) {
+    const baseV3: V3UMLElement = {
+      id: node.id,
+      name: (node.data as { name?: string }).name ?? "",
+      type: invertNodeType(node.type as string),
+      owner: node.parentId ?? null,
+      bounds: {
+        x: node.position.x,
+        y: node.position.y,
+        width: node.width,
+        height: node.height,
+      },
+      ...((node.data as { fillColor?: string }).fillColor && {
+        fillColor: (node.data as { fillColor?: string }).fillColor,
+      }),
+      ...((node.data as { strokeColor?: string }).strokeColor && {
+        strokeColor: (node.data as { strokeColor?: string }).strokeColor,
+      }),
+      ...((node.data as { textColor?: string }).textColor && {
+        textColor: (node.data as { textColor?: string }).textColor,
+      }),
+    }
+
+    switch (node.type as string) {
+      case "State": {
+        const data = node.data as StateNodeProps
+        const slot = childrenByParent[node.id]
+        const stateOut = {
+          ...baseV3,
+          ...(data.stereotype !== undefined && {
+            stereotype: data.stereotype as string | null,
+          }),
+          ...(data.italic !== undefined && { italic: data.italic }),
+          ...(data.underline !== undefined && { underline: data.underline }),
+          bodies: slot?.bodies ?? [],
+          fallbackBodies: slot?.fallbackBodies ?? [],
+          hasBody: (slot?.bodies.length ?? 0) > 0,
+          hasFallbackBody: (slot?.fallbackBodies.length ?? 0) > 0,
+        } as unknown as V3UMLElement
+        elements[node.id] = stateOut
+        break
+      }
+      case "StateBody":
+      case "StateFallbackBody": {
+        const data = node.data as StateBodyNodeProps & {
+          code?: string
+          kind?: string
+        }
+        const out: V3UMLElement & { code?: string; kind?: string } = {
+          ...baseV3,
+          ...(data.code !== undefined && { code: data.code }),
+          ...(data.kind !== undefined && { kind: data.kind }),
+        }
+        elements[node.id] = out as V3UMLElement
+        break
+      }
+      case "StateActionNode": {
+        const data = node.data as StateActionNodeProps
+        elements[node.id] = {
+          ...baseV3,
+          ...(data.code !== undefined && {
+            code: data.code,
+          }),
+        } as V3UMLElement & { code?: string }
+        break
+      }
+      case "StateObjectNode": {
+        const data = node.data as StateObjectNodeProps
+        elements[node.id] = {
+          ...baseV3,
+          ...(data.classId && { classId: data.classId }),
+          ...(data.className && { className: data.className }),
+        } as V3UMLElement & { classId?: string; className?: string }
+        break
+      }
+      case "StateCodeBlock": {
+        const data = node.data as StateCodeBlockProps
+        elements[node.id] = {
+          ...baseV3,
+          code: data.code ?? "",
+          language: data.language ?? "python",
+        } as V3UMLElement & { code: string; language: string }
+        break
+      }
+      case "StateInitialNode":
+      case "StateFinalNode":
+      case "StateMergeNode":
+      case "StateForkNode":
+      case "StateForkNodeHorizontal": {
+        elements[node.id] = baseV3
+        break
+      }
+      default: {
+        // Other node types in a StateMachine fixture (unlikely): pass
+        // through with a best-effort shape.
+        elements[node.id] = baseV3
+      }
+    }
+  }
+
+  for (const edge of v4.edges) {
+    const data = (edge.data ?? {}) as Record<string, unknown>
+    const points = (data.points as { x: number; y: number }[]) ?? []
+    const minX = points.length ? Math.min(...points.map((p) => p.x)) : 0
+    const minY = points.length ? Math.min(...points.map((p) => p.y)) : 0
+    const params = (data.params as { [k: string]: string } | undefined) ?? {}
+    relationships[edge.id] = {
+      id: edge.id,
+      name: (data.name as string) ?? (data.label as string) ?? "",
+      type: edge.type,
+      owner: null,
+      bounds: { x: minX, y: minY, width: 0, height: 0 },
+      path: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
+      source: {
+        element: edge.source,
+        direction: invertHandle(edge.sourceHandle),
+      },
+      target: {
+        element: edge.target,
+        direction: invertHandle(edge.targetHandle),
+      },
+      ...(Object.keys(params).length > 0 && { params }),
+      ...(typeof data.guard === "string" && data.guard && {
+        guard: data.guard,
+      }),
+      ...(typeof data.code === "string" && data.code && { code: data.code }),
+      ...(typeof data.eventName === "string" && data.eventName && {
+        eventName: data.eventName,
+      }),
+    } as V3UMLRelationship & {
+      params?: { [k: string]: string }
+      guard?: string
+      code?: string
+      eventName?: string
+    }
+  }
+
+  return {
+    version: "3.0.0",
+    type: v4.type,
+    size: { width: 0, height: 0 },
+    interactive: v4.interactive
+      ? {
+          elements: v4.interactive.elements,
+          relationships: v4.interactive.relationships,
+        }
+      : { elements: {}, relationships: {} },
+    elements,
+    relationships,
+    assessments:
+      v4.assessments &&
+      Object.fromEntries(
+        Object.entries(v4.assessments).map(([id, a]) => [id, a as V3Assessment])
+      ),
+  } as V3UMLModel
 }
 
 const invertHandle = (h: string | undefined): string => {

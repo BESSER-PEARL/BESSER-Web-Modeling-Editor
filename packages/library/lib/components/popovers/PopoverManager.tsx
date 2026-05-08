@@ -105,6 +105,21 @@ type NodePopoverType =
   | "ReachabilityGraphMarking"
   | "Sfc"
   | "SfcActionTable"
+  // SA-3: BESSER StateMachineDiagram node types. PopoverManager only
+  // resolves the inspector body via `getInspector(type, kind)` so the
+  // additions here are purely a TypeScript widening — no body wiring
+  // happens in this file.
+  | "State"
+  | "StateBody"
+  | "StateFallbackBody"
+  | "StateActionNode"
+  | "StateObjectNode"
+  | "StateInitialNode"
+  | "StateFinalNode"
+  | "StateMergeNode"
+  | "StateForkNode"
+  | "StateForkNodeHorizontal"
+  | "StateCodeBlock"
 
 type EdgePopoverType =
   | "ClassAggregation"
@@ -141,6 +156,8 @@ type EdgePopoverType =
   | "SfcDiagramEdge"
   | "ReachabilityGraphArc"
   | "PetriNetArc"
+  // SA-3: StateMachineDiagram transition.
+  | "StateTransition"
 
 type PopoverType = NodePopoverType | EdgePopoverType
 

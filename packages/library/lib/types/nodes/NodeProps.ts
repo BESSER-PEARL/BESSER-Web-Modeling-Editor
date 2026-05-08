@@ -254,3 +254,69 @@ export type SfcActionTableProps = DefaultNodeProps & {
 export type SfcTransitionBranchNodeProps = DefaultNodeProps & {
   showHint: boolean
 }
+
+/* -------------------------------------------------------------------------- */
+/* StateMachineDiagram (BESSER)                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Body row attached to a `State` parent. Wire spec
+ * (`docs/source/migrations/uml-v4-shape.md`, StateMachineDiagram §):
+ * v4 represents `StateBody`/`StateFallbackBody` as React-Flow children with
+ * `parentId` pointing at the containing `State`. The brief instructs the
+ * port to ship them as separate node types so the parent State can use
+ * React Flow's `parentId` semantics — that's why this carries `data`
+ * inline rather than collapsing onto `StateNodeProps.bodies`.
+ */
+export type StateBodyNodeProps = DefaultNodeProps
+
+/**
+ * `State` parent node. Children (StateBody / StateFallbackBody /
+ * StateCodeBlock) hang off of it via React Flow `parentId`. The
+ * stereotype renders centred above the name; `italic`/`underline` style
+ * the name itself. v3 cached `bodyIds` / `fallbackBodyIds` arrays — in
+ * v4 those are derived at render time by walking children.
+ */
+export type StateNodeProps = DefaultNodeProps & {
+  stereotype?: string | null
+  italic?: boolean
+  underline?: boolean
+}
+
+/** StateActionNode — labelled rounded rectangle. */
+export type StateActionNodeProps = DefaultNodeProps & {
+  /** Optional Python / BAL action body, edited in the inspector. */
+  code?: string
+}
+
+/**
+ * StateObjectNode — references a class in a sibling ClassDiagram.
+ *
+ * Spec open question 4: the `classId` link is YES, mirroring
+ * `ObjectName.classId`. The inspector renders a class-picker driven by
+ * `diagramBridge.getAvailableClasses()`; the v3 fork stored the link on
+ * the element directly so the v3 → v4 migrator passes the field through
+ * verbatim.
+ */
+export type StateObjectNodeProps = DefaultNodeProps & {
+  classId?: string
+  /** Cached class name from the linked class — display-only. */
+  className?: string
+}
+
+/**
+ * StateCodeBlock — Python code panel. `language` defaults to `'python'`.
+ * The body is rendered inside a `foreignObject` so multi-line code keeps
+ * its formatting.
+ */
+export type StateCodeBlockProps = DefaultNodeProps & {
+  code: string
+  language?: string
+}
+
+/**
+ * StateInitialNode / StateFinalNode / StateMergeNode / StateForkNode /
+ * StateForkNodeHorizontal — markers with at most a `name` label. Use
+ * the shared `DefaultNodeProps` shape; no extra fields.
+ */
+export type StateMarkerNodeProps = DefaultNodeProps

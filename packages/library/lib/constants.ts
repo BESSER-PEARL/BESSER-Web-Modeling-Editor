@@ -52,6 +52,17 @@ import {
   SfcActionTableNodeSVG,
 } from "@/components"
 import { ReachabilityGraphMarkingSVG } from "@/components/svgs/nodes/reachabilityGraphDiagram/ReachabilityGraphMarkingSVG"
+import {
+  StateSVG,
+  StateActionNodeSVG,
+  StateObjectNodeSVG,
+  StateInitialNodeSVG,
+  StateFinalNodeSVG,
+  StateMergeNodeSVG,
+  StateForkNodeSVG,
+  StateForkNodeHorizontalSVG,
+  StateCodeBlockSVG,
+} from "@/components/svgs/nodes/stateMachineDiagram"
 import { DiagramNodeType } from "@/nodes"
 import { ClassType, UMLDiagramType } from "@/types"
 import { v4 as uuidv4 } from "uuid"
@@ -725,6 +736,79 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 80,
       defaultData: { name: "Pool" },
       svg: BPMNPoolNodeSVG,
+    },
+  ],
+  // SA-3: BESSER StateMachineDiagram palette. Mirrors the v3 fork's
+  // `packages/editor/.../uml-state-diagram/state-preview.ts`. Body /
+  // fallback-body are not draggable items — they are added inside an
+  // existing State container, matching v3 behaviour.
+  [UMLDiagramType.StateMachineDiagram]: [
+    {
+      type: "State" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: { name: "State" },
+      svg: StateSVG,
+    },
+    {
+      type: "StateInitialNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateInitialNodeSVG,
+    },
+    {
+      type: "StateFinalNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateFinalNodeSVG,
+    },
+    {
+      type: "StateActionNode" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 50,
+      defaultData: { name: "Action" },
+      svg: StateActionNodeSVG,
+    },
+    {
+      type: "StateObjectNode" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 50,
+      defaultData: { name: "Object" },
+      svg: StateObjectNodeSVG,
+    },
+    {
+      type: "StateMergeNode" as never,
+      width: 80,
+      height: 80,
+      defaultData: { name: "" },
+      svg: StateMergeNodeSVG,
+    },
+    {
+      type: "StateForkNode" as never,
+      width: 20,
+      height: 60,
+      defaultData: { name: "" },
+      svg: StateForkNodeSVG,
+    },
+    {
+      type: "StateForkNodeHorizontal" as never,
+      width: 60,
+      height: 20,
+      defaultData: { name: "" },
+      svg: StateForkNodeHorizontalSVG,
+    },
+    {
+      type: "StateCodeBlock" as never,
+      width: 200,
+      height: 150,
+      defaultData: {
+        name: "code",
+        code: '# Sample code\nprint("Hello World")',
+        language: "python",
+      },
+      svg: StateCodeBlockSVG,
     },
   ],
   [UMLDiagramType.Sfc]: [
