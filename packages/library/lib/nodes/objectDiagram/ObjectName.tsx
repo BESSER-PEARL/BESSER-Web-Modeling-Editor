@@ -14,20 +14,24 @@ import { LAYOUT } from "@/constants"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { formatObjectMember } from "@/utils/classifierMemberDisplay"
 
 /**
  * Object-diagram rows render as `attribute = value` (no visibility, no
- * type). When the row carries the BESSER `value` field we recompute the
- * label so editing the value live in the inspector reflects on the canvas
- * without round-tripping through the row name.
+ * type, no `{id}` markers — PC-4 Gap 3). v3 stripped these via
+ * `UMLObjectAttribute.displayName` (`uml-object-attribute.ts:23-25`); we
+ * route through `formatObjectMember` so the canvas label is consistent
+ * even when the inspector stores `visibility` / `attributeType` on the
+ * row.
  */
 const formatObjectAttribute = (row: ObjectNodeAttribute): ClassNodeElement => {
-  if (row.value === undefined || row.value === null || row.value === "") {
-    return row
-  }
   // Preserve any explicit "name = value" the popup writer already shaped.
   if (row.name && row.name.includes(" = ")) return row
-  return { ...row, name: `${row.name} = ${row.value}` }
+  const displayName = formatObjectMember({
+    name: row.name,
+    value: row.value,
+  })
+  return { ...row, name: displayName }
 }
 
 export function ObjectName({
@@ -36,7 +40,7 @@ export function ObjectName({
   height,
   data,
 }: NodeProps<Node<ObjectNodeProps>>) {
-  const { attributes, methods, name } = data
+  const { attributes, methods, name, stereotype } = data
   const displayAttributes = useMemo(
     () => attributes.map(formatObjectAttribute),
     [attributes]
@@ -51,15 +55,24 @@ export function ObjectName({
 
   const objectSvgWrapperRef = useRef<HTMLDivElement | null>(null)
 
-  // Object diagrams don't have stereotypes, so header height is consistent
-  const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
+  // PC-4 Gap 1: ObjectName carries an optional stereotype band; widen
+  // the header height to make room for the `«…»` line when set.
+  const hasStereotype = !!stereotype
+  const headerHeight = hasStereotype
+    ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
+    : LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
   const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
   const font = LAYOUT.DEFAULT_FONT
 
-  // Calculate the widest text accurately
+  // Calculate the widest text accurately. PC-4 Gap 1: include the
+  // `«stereotype»` line in the width budget when set so a long
+  // stereotype label doesn't get clipped.
   const maxTextWidth = useMemo(() => {
+    const stereotypeWidth = stereotype
+      ? measureTextWidth(`«${stereotype}»`, font)
+      : 0
     const headerTextWidth = measureTextWidth(name, font)
     const attributesTextWidths = displayAttributes.map(
       (attr: { name: string }) => measureTextWidth(attr.name, font)
@@ -68,6 +81,7 @@ export function ObjectName({
       measureTextWidth(method.name, font)
     )
     const allTextWidths = [
+      stereotypeWidth,
       headerTextWidth,
       ...attributesTextWidths,
       ...methodsTextWidths,
@@ -75,7 +89,7 @@ export function ObjectName({
 
     const result = Math.max(...allTextWidths, 0)
     return result
-  }, [name, displayAttributes, methods, font])
+  }, [stereotype, name, displayAttributes, methods, font])
 
   const minWidth = useMemo(() => {
     const result = calculateMinWidth(maxTextWidth, padding)

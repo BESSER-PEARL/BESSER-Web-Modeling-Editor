@@ -505,11 +505,14 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const addAttribute = (rawName: string) => {
     const trimmed = rawName.trim()
     if (!trimmed) return
+    // PC-4 Gap 3: object instances don't carry visibility semantics, so
+    // omit `visibility` here. The canvas formatter `formatObjectMember`
+    // also strips it, but skipping the field at construction keeps the
+    // BESSER round-trip output clean.
     const newAttr: ObjectNodeAttribute = {
       id: generateUUID(),
       name: trimmed.replace(/[^a-zA-Z0-9_]/g, ""),
       attributeType: "str",
-      visibility: "public",
     }
     setNodes((nodes) =>
       nodes.map((n) => {
@@ -548,10 +551,11 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     if (e.key === "Enter") {
       const trimmed = newMethodName.trim()
       if (!trimmed) return
+      // PC-4 Gap 3: object methods (like attributes) don't carry
+      // visibility — keep the row minimal.
       const m: ClassNodeElement = {
         id: generateUUID(),
         name: trimmed,
-        visibility: "public",
       }
       setNodes((nodes) =>
         nodes.map((n) => {
@@ -580,7 +584,10 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
       <DividerLine width="100%" />
 
-      {/* Linked class selector (cross-diagram bridge) */}
+      {/* Linked class selector (cross-diagram bridge).
+          PC-4 Gap 2: mirror v3 `getClassDisplayName` and append the
+          inheritance chain (`extends Parent, Other`) so similarly-named
+          subclasses are distinguishable. */}
       <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography variant="caption" sx={{ minWidth: 70 }}>
           class
@@ -593,13 +600,26 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           sx={{ flex: 1 }}
         >
           <MenuItem value="">— Unlinked —</MenuItem>
-          {availableClasses.map((c) => (
-            <MenuItem key={c.id} value={c.id}>
-              {c.name} {c.attributes.length > 0
-                ? `(${c.attributes.length} attrs)`
-                : ""}
-            </MenuItem>
-          ))}
+          {availableClasses.map((c) => {
+            // v3 parity (`uml-object-name-update.tsx:63-79`):
+            // hierarchy[0] is the class itself; the rest are parents.
+            let hierarchy: string[] = []
+            try {
+              hierarchy = diagramBridge.getClassHierarchy(c.id)
+            } catch {
+              hierarchy = []
+            }
+            const parents = hierarchy.length > 1 ? hierarchy.slice(1) : []
+            const extendsHint =
+              parents.length > 0 ? ` extends ${parents.join(", ")}` : ""
+            const attrHint =
+              c.attributes.length > 0 ? ` (${c.attributes.length} attrs)` : ""
+            return (
+              <MenuItem key={c.id} value={c.id}>
+                {`${c.name}${extendsHint}${attrHint}`}
+              </MenuItem>
+            )
+          })}
         </Select>
       </Stack>
 

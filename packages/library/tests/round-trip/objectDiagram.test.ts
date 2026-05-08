@@ -11,14 +11,46 @@
  *  - ObjectIcon child elements collapse into `data.icon` on the owner
  *    node.
  *  - ObjectLink edges round-trip with their source/target.
+ *  - PC-4: stereotype band, classId hierarchy hint, visibility leak.
  */
 import { describe, it, expect } from "vitest"
 import {
   migrateObjectDiagramV3ToV4,
   convertV4ToV3Class,
 } from "@/utils/versionConverter"
+import { formatObjectMember } from "@/utils/classifierMemberDisplay"
 import type { ObjectNodeProps } from "@/types"
 import objectDiagramV3 from "../fixtures/v3/objectDiagram.json"
+
+describe("PC-4 Gap 3: formatObjectMember strips visibility / type", () => {
+  it("renders `name = value` with no visibility symbol when visibility is set", () => {
+    const out = formatObjectMember({
+      name: "counter",
+      attributeType: "int",
+      visibility: "public",
+      value: "5",
+    })
+    expect(out).toBe("counter = 5")
+    expect(out).not.toContain("+")
+    expect(out).not.toContain(":")
+  })
+
+  it("falls back to bare name when no value is set", () => {
+    const out = formatObjectMember({
+      name: "counter",
+      attributeType: "int",
+      visibility: "private",
+    })
+    expect(out).toBe("counter")
+    expect(out).not.toContain("-")
+    expect(out).not.toContain(":")
+  })
+
+  it("treats empty string value as 'no value'", () => {
+    const out = formatObjectMember({ name: "x", value: "" })
+    expect(out).toBe("x")
+  })
+})
 
 describe("ObjectDiagram v3 → v4 round-trip", () => {
   it("migrates a representative v3 fixture, lifting classId / attributeId / value", () => {
@@ -148,6 +180,58 @@ describe("ObjectDiagram v3 → v4 round-trip", () => {
     expect((linkAgain.data as { associationId?: string }).associationId).toBe(
       "assoc-Dog-Owner"
     )
+  })
+
+  it("PC-4 Gap 1: lifts ObjectName.stereotype onto v4 data and round-trips", () => {
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ObjectDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "obj-1": {
+          id: "obj-1",
+          name: "rex: Dog",
+          type: "ObjectName",
+          owner: null,
+          bounds: { x: 100, y: 100, width: 200, height: 80 },
+          attributes: [],
+          methods: [],
+          // v3 ObjectName extends UMLClassifier and stores stereotype as
+          // a free-form string. Migration must preserve it.
+          stereotype: "auxiliary",
+        },
+      },
+      relationships: {},
+    } as never
+
+    const v4 = migrateObjectDiagramV3ToV4(v3Fixture)
+    const node = v4.nodes.find((n) => n.id === "obj-1")!
+    expect((node.data as ObjectNodeProps).stereotype).toBe("auxiliary")
+
+    // Round-trip: emit back to v3.
+    const v3Round = convertV4ToV3Class(v4)
+    expect(
+      (v3Round.elements["obj-1"] as { stereotype?: string | null }).stereotype
+    ).toBe("auxiliary")
+
+    // And one more cycle for full idempotence.
+    const v4Again = migrateObjectDiagramV3ToV4(v3Round)
+    expect(
+      (v4Again.nodes.find((n) => n.id === "obj-1")!.data as ObjectNodeProps)
+        .stereotype
+    ).toBe("auxiliary")
+  })
+
+  it("PC-4 Gap 1: ObjectNames with no stereotype don't gain one through migration", () => {
+    const v4 = migrateObjectDiagramV3ToV4(objectDiagramV3 as never)
+    for (const node of v4.nodes) {
+      if (node.type === "objectName") {
+        const data = node.data as ObjectNodeProps
+        // No fixture row sets stereotype -> migration must not invent one.
+        expect(data.stereotype ?? null).toBeNull()
+      }
+    }
   })
 
   it("is idempotent on a v4 round-trip", () => {

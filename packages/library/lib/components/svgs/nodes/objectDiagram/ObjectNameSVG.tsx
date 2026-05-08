@@ -1,4 +1,4 @@
-import { ClassNodeElement, ObjectNodeProps } from "@/types"
+import { ClassNodeElement, ClassType, ObjectNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { SeparationLine } from "@/components/svgs/nodes/SeparationLine"
 import { HeaderSection } from "../HeaderSection"
@@ -24,8 +24,14 @@ export const ObjectNameSVG = ({
   svgAttributes,
   showAssessmentResults = false,
 }: Props) => {
-  const { name, attributes, methods, icon } = data
-  const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
+  const { name, attributes, methods, icon, stereotype } = data
+  // PC-4 Gap 1: v3 ObjectName extends UMLClassifier and renders a
+  // `«stereotype»` band above the underlined name when set (see
+  // `uml-object-name-component.tsx:104-120`). Falsy => no band.
+  const hasStereotype = !!stereotype
+  const headerHeight = hasStereotype
+    ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
+    : LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
   const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
@@ -40,6 +46,18 @@ export const ObjectNameSVG = ({
   const showIconView = useSettingsStore((s) => s.showIconView)
   const hasIcon = typeof icon === "string" && icon.trim() !== ""
   const iconViewActive = showIconView && hasIcon
+
+  // SA-FIX-Editor PC-11.4: wire `showInstancedObjects` — v3's "preview
+  // instances" toggle. When the setting is off we suppress the
+  // attributes / methods rows so the node renders as just the name band.
+  // The header (with the underlined object name) is always kept so the
+  // object remains identifiable on the canvas; turning the toggle off
+  // collapses the body, mirroring the v3 instance-preview behaviour.
+  const showInstancedObjects = useSettingsStore(
+    (s) => s.showInstancedObjects
+  )
+  const showAttributes = showInstancedObjects && attributes.length > 0
+  const showMethods = showInstancedObjects && methods.length > 0
 
   const processElements = (elements: ClassNodeElement[]) =>
     elements.map((el) => {
@@ -73,10 +91,13 @@ export const ObjectNameSVG = ({
           stroke={strokeColor}
         />
 
-        {/* Header Section - Object name with underline */}
+        {/* Header Section - Object name with underline. Stereotype band
+            renders only when `data.stereotype` is set (PC-4 Gap 1). The
+            HeaderSection prop expects ClassType, but v3 stored arbitrary
+            string stereotypes on object instances — cast through. */}
         <HeaderSection
-          showStereotype={false}
-          stereotype={undefined}
+          showStereotype={hasStereotype}
+          stereotype={hasStereotype ? (stereotype as unknown as ClassType) : undefined}
           name={name}
           width={width}
           headerHeight={headerHeight}
@@ -114,7 +135,7 @@ export const ObjectNameSVG = ({
         )}
 
         {/* Attributes Section */}
-        {!iconViewActive && attributes.length > 0 && (
+        {!iconViewActive && showAttributes && (
           <>
             {/* Separation Line After Header */}
             <SeparationLine
@@ -135,7 +156,7 @@ export const ObjectNameSVG = ({
         )}
 
         {/* Methods Section */}
-        {!iconViewActive && methods.length > 0 && (
+        {!iconViewActive && showMethods && (
           <>
             <SeparationLine
               y={headerHeight + attributes.length * attributeHeight}
