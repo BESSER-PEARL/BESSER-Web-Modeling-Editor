@@ -17,6 +17,7 @@ import { useDiagramStore } from "@/store/context"
 import {
   ClassNodeElement,
   ClassNodeProps,
+  ClassType,
   ClassifierMethodImplementationType,
   ClassifierMethodParameter,
   ClassifierVisibility,
@@ -1000,7 +1001,9 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <DividerLine width="100%" />
       <StereotypeButtonGroup
         nodeId={elementId}
-        selectedStereotype={nodeData.stereotype}
+        selectedStereotype={
+          nodeData.stereotype as unknown as ClassType | undefined
+        }
       />
       <DividerLine width="100%" />
 

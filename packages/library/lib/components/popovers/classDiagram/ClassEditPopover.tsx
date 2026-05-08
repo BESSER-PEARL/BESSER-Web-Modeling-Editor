@@ -4,7 +4,7 @@ import {
   NodeStyleEditor,
 } from "@/components"
 import { useDiagramStore } from "@/store"
-import { ClassNodeProps } from "@/types"
+import { ClassNodeProps, ClassType } from "@/types"
 import { useShallow } from "zustand/shallow"
 import { EditableAttributeList } from "./EditableAttributesList"
 import { EditableMethodsList } from "./EditableMethodsList"
@@ -51,7 +51,9 @@ export const ClassEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
       <DividerLine width="100%" />
       <StereotypeButtonGroup
         nodeId={elementId}
-        selectedStereotype={nodeData.stereotype}
+        selectedStereotype={
+          nodeData.stereotype as unknown as ClassType | undefined
+        }
       />
       <DividerLine width="100%" />
       <EditableAttributeList nodeId={elementId} />

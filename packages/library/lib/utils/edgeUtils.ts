@@ -193,16 +193,18 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         offset: 0,
       }
     case "ClassAggregation":
+      // PC-3 fix (SA-FIX-Class): diamond on the source (whole) end.
       return {
         markerPadding: EDGES.MARKER_PADDING,
-        markerEnd: "url(#white-rhombus)",
+        markerStart: "url(#white-rhombus)",
         strokeDashArray: "0",
         offset: 0,
       }
     case "ClassComposition":
+      // PC-3 fix (SA-FIX-Class): diamond on the source (whole) end.
       return {
         markerPadding: EDGES.MARKER_PADDING,
-        markerEnd: "url(#black-rhombus)",
+        markerStart: "url(#black-rhombus)",
         strokeDashArray: "0",
         offset: 0,
       }
@@ -234,6 +236,14 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         markerPadding: EDGES.MARKER_PADDING,
         markerEnd: "url(#white-triangle)",
         strokeDashArray: "10",
+        offset: 0,
+      }
+    // PC-3 fix (SA-FIX-Class): ClassOCLLink — dashed line, open arrow.
+    case "ClassOCLLink":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#class-ocl-link-marker)",
+        strokeDashArray: "4 2",
         offset: 0,
       }
     case "BPMNSequenceFlow":
@@ -324,6 +334,24 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         markerPadding: EDGES.MARKER_PADDING + INTERFACE.SOCKET_GAP,
         markerEnd: "url(#required-interface-threequarter)",
         strokeDashArray: "0",
+        offset: 0,
+      }
+    // SA-FIX-Agent / PC-8 #1: BESSER AgentDiagram edges. v3 source:
+    // `agent-state-diagram/agent-state-transition/` and
+    // `agent-state-transition-init/`. Both render with an open arrowhead
+    // (`black-arrow`); the init edge additionally uses a dashed stroke.
+    case "AgentStateTransition":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "0",
+        offset: 0,
+      }
+    case "AgentStateTransitionInit":
+      return {
+        markerPadding: EDGES.MARKER_PADDING,
+        markerEnd: "url(#black-arrow)",
+        strokeDashArray: "10",
         offset: 0,
       }
     // SA-5: BESSER NNDiagram edges. `NNNext` is a unidirectional flow

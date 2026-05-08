@@ -5,10 +5,13 @@ import { LAYOUT } from "@/constants"
 
 interface HeaderSectionProps {
   showStereotype: boolean
-  stereotype?: ClassType
+  /** PC-1 fix (SA-FIX-Class): widened to string for freeform stereotypes. */
+  stereotype?: string
   name: string
   width: number
   headerHeight: number
+  /** Explicit italic flag — caller can derive from stereotype identity. */
+  isItalic?: boolean
   isUnderlined?: boolean
   textColor?: string
   fill?: string
@@ -20,10 +23,13 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
   name,
   width,
   headerHeight,
+  isItalic,
   isUnderlined = false,
   textColor,
   fill = "var(--besser-background, white)",
 }) => {
+  // Falls back to stereotype-derived italic when caller doesn't pass the flag.
+  const italic = isItalic ?? stereotype === ClassType.Abstract
   return (
     <>
       <rect
@@ -63,7 +69,7 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
         <tspan
           x={width / 2}
           dy={showStereotype ? "18" : "0"}
-          fontStyle={stereotype === ClassType.Abstract ? "italic" : "normal"}
+          fontStyle={italic ? "italic" : "normal"}
           textDecoration={isUnderlined ? "underline" : "normal"}
         >
           {name}

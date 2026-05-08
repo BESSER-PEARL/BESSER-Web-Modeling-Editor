@@ -1,4 +1,4 @@
-import { ClassNodeElement, ClassNodeProps } from "@/types"
+import { ClassNodeElement, ClassNodeProps, ClassType } from "@/types"
 import { LAYOUT } from "@/constants"
 import { SeparationLine } from "@/components/svgs/nodes/SeparationLine"
 import { HeaderSection } from "../HeaderSection"
@@ -30,14 +30,19 @@ export const ClassSVG = ({
   data,
 }: ClassSVGProps) => {
   // Layout constants
-  const { attributes, methods, name, stereotype } = data
+  const { attributes, methods, name, stereotype, italic, underline } = data
   const showStereotype = !!stereotype
+  // PC-1 fix (SA-FIX-Class): Enumeration must NOT draw a methods compartment.
+  const isEnumeration = stereotype === ClassType.Enumeration
   const headerHeight = showStereotype
     ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
     : LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
   const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
+  // PC-1 fix: explicit italic / underline from data.
+  const isItalic = italic ?? stereotype === ClassType.Abstract
+  const isUnderlined = !!underline
 
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
 
@@ -84,6 +89,8 @@ export const ClassSVG = ({
           name={name}
           width={width}
           headerHeight={headerHeight}
+          isItalic={isItalic}
+          isUnderlined={isUnderlined}
           textColor={textColor}
           fill={fillColor}
         />
@@ -109,8 +116,9 @@ export const ClassSVG = ({
           </>
         )}
 
-        {/* Methods Section */}
-        {methods.length >= 0 && (
+        {/* Methods Section — PC-1 fix (SA-FIX-Class): skip for Enumeration;
+            fix offsetFromTop to use attributeHeight (was methodHeight). */}
+        {!isEnumeration && methods.length >= 0 && (
           <>
             <SeparationLine
               y={headerHeight + attributes.length * attributeHeight}
@@ -122,7 +130,7 @@ export const ClassSVG = ({
               padding={padding}
               itemHeight={methodHeight}
               width={width}
-              offsetFromTop={headerHeight + attributes.length * methodHeight}
+              offsetFromTop={headerHeight + attributes.length * attributeHeight}
               showAssessmentResults={showAssessmentResults}
               itemElementType="method"
             />

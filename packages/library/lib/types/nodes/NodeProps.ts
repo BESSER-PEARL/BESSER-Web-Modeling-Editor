@@ -1,5 +1,3 @@
-import { ClassType } from "./enums"
-
 export type DefaultNodeProps = {
   name: string
   fillColor?: string
