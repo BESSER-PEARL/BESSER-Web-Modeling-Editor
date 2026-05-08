@@ -45,21 +45,25 @@ export const inspectorTheme: Theme = createTheme({
     button: { textTransform: "none", fontWeight: 500 },
   },
   palette: {
-    // Pull from the existing CSS variables so the panel adapts to the
-    // webapp's light/dark theme without any explicit mode switch.
+    // MUI palette fields go through `decomposeColor` which only accepts
+    // literal color values (#nnn, #nnnnnn, rgb(), rgba(), hsl(), hsla(),
+    // color()) — CSS `var()` is rejected at runtime. Use the same hex
+    // values that the `--besser-*` variables fall back to in the consuming
+    // styleOverride blocks below; the resulting palette renders correctly
+    // and the styleOverrides keep on resolving the live CSS variable for
+    // dynamic theme switching.
     primary: {
-      main: "var(--besser-primary, #2a8fbd)" as unknown as string,
+      main: "#2a8fbd",
     },
     text: {
-      primary: "var(--besser-primary-contrast, #0f172a)" as unknown as string,
-      secondary:
-        "var(--besser-gray-variant, #495057)" as unknown as string,
+      primary: "#0f172a",
+      secondary: "#495057",
     },
     background: {
-      paper: "var(--besser-background, #ffffff)" as unknown as string,
-      default: "var(--besser-background, #ffffff)" as unknown as string,
+      paper: "#ffffff",
+      default: "#ffffff",
     },
-    divider: "var(--besser-gray, #e9ecef)" as unknown as string,
+    divider: "#e9ecef",
   },
   components: {
     // ---- Inputs --------------------------------------------------------

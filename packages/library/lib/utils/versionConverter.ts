@@ -759,7 +759,6 @@ function convertV3NodeDataToV4(
 
     case "ObjectName": {
       const attributes: ObjectNodeAttribute[] = []
-      const methods: ClassNodeElement[] = []
 
       Object.values(allElements).forEach((childElement) => {
         if (childElement.owner === element.id) {
@@ -782,14 +781,22 @@ function convertV3NodeDataToV4(
             }
             attributes.push(member)
           } else if (childElement.type === "ObjectMethod") {
-            methods.push(extractClassifierMember(childElement))
+            // SA-FIX-OBJECT-DEEP: v3 ObjectMethod was a mistake —
+            // UML object diagrams don't render methods because objects
+            // are instances, not types. Drop the row on import (don't
+            // surface it on the v4 node) and log a warning so legacy
+            // fixtures with stray ObjectMethod elements are visible.
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[versionConverter] Dropping legacy ObjectMethod ${childElement.id} ` +
+                `under ObjectName ${element.id}; object instances do not carry methods.`
+            )
           }
         }
       })
 
       const objectData: ObjectNodeProps = {
         ...baseData,
-        methods,
         attributes,
         ...((element as { classId?: string }).classId && {
           classId: (element as { classId?: string }).classId,
@@ -2312,7 +2319,10 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
           height: node.height,
         },
         attributes: data.attributes.map((a) => a.id),
-        methods: data.methods.map((m) => m.id),
+        // SA-FIX-OBJECT-DEEP: object instances don't carry methods —
+        // emit an empty `methods` array on the v3 element so the wire
+        // shape stays compatible with consumers that read the field.
+        methods: [],
         ...(data.fillColor && { fillColor: data.fillColor }),
         ...(data.strokeColor && { strokeColor: data.strokeColor }),
         ...(data.textColor && { textColor: data.textColor }),
@@ -2340,9 +2350,8 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         }
         elements[attr.id] = child
       }
-      for (const m of data.methods) {
-        elements[m.id] = childRowToV3(m, node.id, "ObjectMethod")
-      }
+      // SA-FIX-OBJECT-DEEP: no ObjectMethod rows to emit — object
+      // instances don't carry methods.
       // Re-emit ObjectIcon as a separate child element when present.
       if (data.icon) {
         const iconId = `${node.id}-icon`
