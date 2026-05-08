@@ -984,12 +984,17 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
   // the dropped node lands fully wired to the meta-model. The
   // `UserModelIcon` entry stays as a static second drag-source.
   [UMLDiagramType.UserDiagram]: [
+    // SA-FINAL U2: align dropped node's `defaultData.name` with the
+    // preview SVG's header label. The preview uses
+    // `${className[0].toLowerCase()}${className.slice(1)}_1` (e.g.
+    // `personal_Information_1`) — keep parity so the dropped node
+    // visually matches the palette card the user clicked.
     ...getUserModelNamePaletteEntries().map((entry) => ({
       type: "UserModelName" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 40 + entry.attributes.length * 30 + 10,
       defaultData: {
-        name: `${entry.className.toLowerCase()}: ${entry.className}`,
+        name: `${entry.className.charAt(0).toLowerCase() + entry.className.slice(1)}_1`,
         className: entry.className,
         attributes: entry.attributes.map((a) => ({
           id: a.id,

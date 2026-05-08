@@ -379,21 +379,28 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           onDelete={() => deleteAttribute(row.id)}
         />
       ))}
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        placeholder="+ Add attribute (Enter)"
-        value={newAttrName}
-        onChange={onAttrChange}
-        onKeyDown={onAttrKey}
-        onBlur={() => {
-          if (newAttrName.trim()) {
-            addAttribute(newAttrName)
-            setNewAttrName("")
-          }
-        }}
-      />
+      {/* SA-FINAL O3: hide the free-form "Add attribute" input when
+          this object is linked to a class — its attributes are
+          auto-populated from the linked class and editing them ad-hoc
+          would diverge from the class definition. The picker is only
+          relevant for unlinked / ad-hoc instances. */}
+      {!nodeData.classId && (
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          placeholder="+ Add attribute (Enter)"
+          value={newAttrName}
+          onChange={onAttrChange}
+          onKeyDown={onAttrKey}
+          onBlur={() => {
+            if (newAttrName.trim()) {
+              addAttribute(newAttrName)
+              setNewAttrName("")
+            }
+          }}
+        />
+      )}
       {/* SA-FIX-OBJECT-DEEP: no Methods section — objects are
           instances, not types, so UML object diagrams don't show
           methods. */}

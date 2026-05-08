@@ -1062,6 +1062,40 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
       <DividerLine width="100%" />
 
+      {/* SA-FINAL C4: Metadata fields (description / uri / icon) — mirror v3
+          `uml-classifier-update.tsx` `StylePane`. Stored on `data.description`,
+          `data.uri`, `data.icon`; round-tripped by `convertV4ToV3Class`. */}
+      <Typography variant="h6">Metadata</Typography>
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        multiline
+        minRows={2}
+        placeholder="description"
+        value={nodeData.description ?? ""}
+        onChange={(e) =>
+          updateNode((d) => ({ ...d, description: e.target.value }))
+        }
+      />
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        placeholder="uri (e.g. https://example.com/MyClass)"
+        value={nodeData.uri ?? ""}
+        onChange={(e) => updateNode((d) => ({ ...d, uri: e.target.value }))}
+      />
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        placeholder="icon (svg body or url)"
+        value={nodeData.icon ?? ""}
+        onChange={(e) => updateNode((d) => ({ ...d, icon: e.target.value }))}
+      />
+      <DividerLine width="100%" />
+
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <Typography variant="h6">Attributes</Typography>
         {/* SA-FIX-CLASS-FUND #10: explicit + button auto-names the new

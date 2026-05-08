@@ -531,6 +531,15 @@ function extractClassifierMember(
     isId?: boolean
     isExternalId?: boolean
     defaultValue?: unknown
+    // SA-FINAL C2: v3 ClassMethod elements that round-tripped from v4
+    // carry the structured method signature alongside the legacy name.
+    parameters?: {
+      id: string
+      name: string
+      parameterType?: string
+      defaultValue?: unknown
+    }[]
+    returnType?: string
   }
 ): ClassNodeElement {
   const baseMember: ClassNodeElement = {
@@ -571,6 +580,25 @@ function extractClassifierMember(
       }),
       ...(childElement.defaultValue !== undefined && {
         defaultValue: childElement.defaultValue,
+      }),
+      // SA-FINAL C2: lift method-signature fields back into the v4 row
+      // shape. Mirrors `childRowToV3` so Class/Object methods round-trip
+      // their `parameters[]` and `returnType` losslessly.
+      ...(Array.isArray(childElement.parameters) &&
+        childElement.parameters.length > 0 && {
+          parameters: childElement.parameters.map((p) => ({
+            id: p.id,
+            name: p.name,
+            ...(p.parameterType !== undefined && {
+              parameterType: p.parameterType,
+            }),
+            ...(p.defaultValue !== undefined && {
+              defaultValue: p.defaultValue,
+            }),
+          })),
+        }),
+      ...(childElement.returnType !== undefined && {
+        returnType: childElement.returnType,
       }),
     }
   }
@@ -2506,6 +2534,14 @@ function childRowToV3(
     isId?: boolean
     isExternalId?: boolean
     defaultValue?: unknown
+    // SA-FINAL C2: ClassMethod-only fields. v3 v3 method elements
+    // historically baked params + return type into the `name` string
+    // ("foo(a: int): str"). The v4 row stores them as structured
+    // `parameters[]` + `returnType`. Persist both back to v3 so a
+    // round-trip cycle never loses data even though the legacy v3
+    // inspector cannot edit them out of band.
+    parameters?: { id: string; name: string; parameterType?: string; defaultValue?: unknown }[]
+    returnType?: string
   } = {
     id: row.id,
     name: row.name,
@@ -2527,6 +2563,19 @@ function childRowToV3(
   if (row.isId !== undefined) out.isId = row.isId
   if (row.isExternalId !== undefined) out.isExternalId = row.isExternalId
   if (row.defaultValue !== undefined) out.defaultValue = row.defaultValue
+  // SA-FINAL C2: only emit on method rows. Attribute rows never set
+  // these in v4 (they're documented "ignored on attribute rows").
+  if (type === "ClassMethod" || type === "ObjectMethod") {
+    if (Array.isArray(row.parameters) && row.parameters.length > 0) {
+      out.parameters = row.parameters.map((p) => ({
+        id: p.id,
+        name: p.name,
+        ...(p.parameterType !== undefined && { parameterType: p.parameterType }),
+        ...(p.defaultValue !== undefined && { defaultValue: p.defaultValue }),
+      }))
+    }
+    if (row.returnType !== undefined) out.returnType = row.returnType
+  }
   return out
 }
 

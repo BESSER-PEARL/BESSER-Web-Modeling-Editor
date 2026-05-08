@@ -49,7 +49,10 @@ export function StateInitialNode({
         HandleId.LeftTop,
       ]}
     >
-      <NodeToolbar elementId={id} />
+      {/* SA-FINAL S3: marker nodes have no editable body — hide the
+          pencil so the toolbar only exposes Delete. Mirrors v3
+          metamodel `updatable: false`. */}
+      <NodeToolbar elementId={id} showEdit={false} />
       <div ref={wrapperRef}>
         <svg
           width={width}

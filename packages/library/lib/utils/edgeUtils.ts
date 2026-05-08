@@ -186,6 +186,14 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     case "ClassUnidirectional":
     case "FlowChartFlowline":
     case "ReachabilityGraphArc":
+    // SA-FINAL S1: StateTransition / AgentStateTransition — directed
+    // arrow marker. v3 metamodel rendered both with the standard
+    // arrow-end marker (`uml-state-transition.tsx` /
+    // `agent-state-transition.tsx`); prior to this case they fell
+    // through to `default` which omits any marker, so transitions
+    // rendered as plain lines.
+    case "StateTransition":
+    case "AgentStateTransition":
       return {
         markerPadding: EDGES.MARKER_PADDING,
         markerEnd: "url(#black-arrow)",

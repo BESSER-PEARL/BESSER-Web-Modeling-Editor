@@ -118,12 +118,32 @@ export const StateMachineDiagramEdge = ({
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
-  // Compose the visible edge label: `name [guard] / code` mirrors the
-  // standard UML state-transition notation. `code` is shown only when
-  // sufficiently short — the inspector is the authoring surface.
-  const dataAny = (data ?? {}) as { name?: string; guard?: string }
+  // Compose the visible edge label: `name [params...] [guard]` mirrors
+  // v3 state-transition notation
+  // (`packages/editor/.../uml-state-transition.ts:38-65`), where
+  // `params` is a dict / array stored on the relationship root and
+  // each value is wrapped in its own bracket pair. `code` is reserved
+  // for the inspector — it's not part of the canvas label.
+  // SA-FINAL S2: include `params` entries before the guard.
+  const dataAny = (data ?? {}) as {
+    name?: string
+    guard?: string
+    params?: { [id: string]: string } | string[] | string
+  }
+  const paramValues: string[] = (() => {
+    const p = dataAny.params
+    if (!p) return []
+    if (typeof p === "string") return p ? [p] : []
+    if (Array.isArray(p)) return p.filter((v) => !!v)
+    return Object.values(p).filter((v) => typeof v === "string" && !!v)
+  })()
+  const paramSegment = paramValues.map((v) => `[${v}]`).join(" ")
   const label =
-    [dataAny.name, dataAny.guard ? `[${dataAny.guard}]` : ""]
+    [
+      dataAny.name,
+      paramSegment,
+      dataAny.guard ? `[${dataAny.guard}]` : "",
+    ]
       .filter(Boolean)
       .join(" ") || (data?.label as string | undefined) || ""
 

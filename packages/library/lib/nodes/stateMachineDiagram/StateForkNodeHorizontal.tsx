@@ -44,7 +44,9 @@ export function StateForkNodeHorizontal({
       ]}
       className="horizontally-not-resizable"
     >
-      <NodeToolbar elementId={id} />
+      {/* SA-FINAL S3: marker nodes have no editable body — hide the
+          pencil so the toolbar only exposes Delete. */}
+      <NodeToolbar elementId={id} showEdit={false} />
       <NodeResizer
         isVisible={isDiagramModifiable}
         onResize={onResize}

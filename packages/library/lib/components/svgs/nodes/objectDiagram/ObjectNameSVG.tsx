@@ -53,10 +53,16 @@ export const ObjectNameSVG = ({
   // collapses the body, mirroring the v3 instance-preview behaviour.
   // SA-FIX-OBJECT-DEEP: object instances never render a methods
   // section — UML object diagrams show data values, not types.
+  // SA-FINAL O2: `showInstancedObjects` is a *palette-preview only*
+  // toggle in v3. On the actual canvas, attributes are always shown
+  // when present. Detect palette context via `SIDEBAR_PREVIEW_SCALE`,
+  // which is only set by the sidebar/preview wrappers.
   const showInstancedObjects = useSettingsStore(
     (s) => s.showInstancedObjects
   )
-  const showAttributes = showInstancedObjects && attributes.length > 0
+  const isPalettePreview = SIDEBAR_PREVIEW_SCALE !== undefined
+  const showAttributes =
+    attributes.length > 0 && (!isPalettePreview || showInstancedObjects)
 
   const processElements = (elements: ClassNodeElement[]) =>
     elements.map((el) => {

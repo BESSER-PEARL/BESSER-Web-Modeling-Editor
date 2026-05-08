@@ -91,8 +91,9 @@ const fallbackForType = (attributeType?: string): string => {
 };
 
 /** Resolve an enumeration's first literal by name (v4). Enumerations are
- *  v4 nodes with `type: 'class'` and `data.stereotype === 'enumeration'`;
- *  literals live in `data.attributes` as ClassifierMember rows.
+ *  v4 nodes with `type: 'class'` and `data.stereotype === 'Enumeration'`
+ *  (PascalCase, per `ClassType.Enumeration`); literals live in
+ *  `data.attributes` as ClassifierMember rows.
  */
 const firstEnumLiteral = (
   enumName: string | undefined,
@@ -101,8 +102,13 @@ const firstEnumLiteral = (
   if (!enumName) return undefined;
   const enumNode = (classModel.nodes ?? []).find((n: any) => {
     const data = (n.data as any) || {};
+    // SA-FINAL C3: stereotype is PascalCase per the canonical enum
+    // (`ClassType.Enumeration === 'Enumeration'`). The previous
+    // lowercase compare never matched, so enum-typed attributes silently
+    // fell back to `fallbackForType` instead of resolving the first
+    // literal.
     const isEnumNode =
-      n.type === 'class' && data.stereotype === 'enumeration';
+      n.type === 'class' && data.stereotype === 'Enumeration';
     // Tolerate v3-shaped leaks where `n.type === 'Enumeration'`.
     const isLegacyEnum = n.type === 'Enumeration';
     return (isEnumNode || isLegacyEnum) && data.name === enumName;

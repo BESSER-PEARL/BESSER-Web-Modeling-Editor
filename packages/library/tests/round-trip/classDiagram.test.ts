@@ -517,6 +517,167 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
     expect(out).toBe("+ attribute: str {id}")
   })
 
+  it("SA-FINAL C1: source/target multiplicity + role round-trip v3 → v4 → v3 → v4", () => {
+    // Hand-authored fixture stresses every endpoint field independently
+    // so any silent drop on either side of the converter is surfaced.
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-A": {
+          id: "node-A",
+          name: "A",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+        },
+        "node-B": {
+          id: "node-B",
+          name: "B",
+          type: "Class",
+          owner: null,
+          bounds: { x: 200, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: [],
+        },
+      },
+      relationships: {
+        "rel-1": {
+          id: "rel-1",
+          name: "uses",
+          type: "ClassBidirectional",
+          owner: null,
+          bounds: { x: 100, y: 30, width: 100, height: 0 },
+          path: [
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+          ],
+          source: {
+            element: "node-A",
+            direction: "Right",
+            multiplicity: "1..*",
+            role: "src-role",
+          },
+          target: {
+            element: "node-B",
+            direction: "Left",
+            multiplicity: "0..1",
+            role: "tgt-role",
+          },
+        },
+      },
+    } as never
+
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const e = v4.edges.find((x) => x.id === "rel-1")!
+    expect(e.data?.sourceMultiplicity).toBe("1..*")
+    expect(e.data?.targetMultiplicity).toBe("0..1")
+    expect(e.data?.sourceRole).toBe("src-role")
+    expect(e.data?.targetRole).toBe("tgt-role")
+
+    const v3Round = convertV4ToV3Class(v4)
+    const r = v3Round.relationships["rel-1"]
+    expect(r.source.multiplicity).toBe("1..*")
+    expect(r.target.multiplicity).toBe("0..1")
+    expect(r.source.role).toBe("src-role")
+    expect(r.target.role).toBe("tgt-role")
+
+    const v4Again = migrateClassDiagramV3ToV4(v3Round)
+    const eAgain = v4Again.edges.find((x) => x.id === "rel-1")!
+    expect(eAgain.data?.sourceMultiplicity).toBe("1..*")
+    expect(eAgain.data?.targetMultiplicity).toBe("0..1")
+    expect(eAgain.data?.sourceRole).toBe("src-role")
+    expect(eAgain.data?.targetRole).toBe("tgt-role")
+  })
+
+  it("SA-FINAL C2: ClassMethod parameters[] + returnType round-trip", () => {
+    // Build a v4 ClassDiagram in memory with a fully-shaped method row,
+    // then round-trip via v3 and back. The v3 stage must persist
+    // `parameters[]` + `returnType` so the second v4 conversion sees
+    // the same structured data.
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "node-X": {
+          id: "node-X",
+          name: "X",
+          type: "Class",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 100, height: 60 },
+          attributes: [],
+          methods: ["method-X-foo"],
+        },
+        "method-X-foo": {
+          id: "method-X-foo",
+          name: "foo",
+          type: "ClassMethod",
+          owner: "node-X",
+          bounds: { x: 0, y: 0, width: 100, height: 30 },
+          visibility: "public",
+          attributeType: "str",
+          // Already-structured method (round-tripped from a prior v4).
+          returnType: "str",
+          parameters: [
+            { id: "p1", name: "a", parameterType: "int" },
+            { id: "p2", name: "b", parameterType: "bool", defaultValue: true },
+          ],
+        },
+      },
+      relationships: {},
+    } as never
+
+    const v4 = migrateClassDiagramV3ToV4(v3Fixture)
+    const x = v4.nodes.find((n) => n.id === "node-X")!
+    const data = x.data as ClassNodeProps
+    const foo = data.methods.find((m) => m.id === "method-X-foo")!
+    expect(foo.returnType).toBe("str")
+    expect(foo.parameters).toBeDefined()
+    expect(foo.parameters).toHaveLength(2)
+    expect(foo.parameters![0]).toMatchObject({
+      id: "p1",
+      name: "a",
+      parameterType: "int",
+    })
+    expect(foo.parameters![1]).toMatchObject({
+      id: "p2",
+      name: "b",
+      parameterType: "bool",
+      defaultValue: true,
+    })
+
+    // v4 → v3: method element must carry parameters[] + returnType.
+    const v3Round = convertV4ToV3Class(v4)
+    const v3Foo = v3Round.elements["method-X-foo"] as {
+      type: string
+      parameters?: { id: string; name: string; parameterType?: string }[]
+      returnType?: string
+    }
+    expect(v3Foo.type).toBe("ClassMethod")
+    expect(v3Foo.returnType).toBe("str")
+    expect(v3Foo.parameters).toHaveLength(2)
+    expect(v3Foo.parameters![0]).toMatchObject({
+      id: "p1",
+      name: "a",
+      parameterType: "int",
+    })
+
+    // Idempotent re-import.
+    const v4Again = migrateClassDiagramV3ToV4(v3Round)
+    const xAgain = v4Again.nodes.find((n) => n.id === "node-X")!
+    const fooAgain = (xAgain.data as ClassNodeProps).methods.find(
+      (m) => m.id === "method-X-foo"
+    )!
+    expect(fooAgain.returnType).toBe("str")
+    expect(fooAgain.parameters).toHaveLength(2)
+  })
+
   it("SA-HIDE-NOISE: Comments node round-trips v3 ↔ v4 with body on `name`", () => {
     // v3 stored the comment body on `UMLElement.name` (the v3
     // inspector was a textarea bound to `name`). The v4 port keeps

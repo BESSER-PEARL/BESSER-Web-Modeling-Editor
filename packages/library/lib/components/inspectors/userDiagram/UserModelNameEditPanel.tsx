@@ -5,6 +5,7 @@ import {
   Select,
   Stack,
   TextField as MuiTextField,
+  Tooltip,
   Typography as MuiTypography,
 } from "@mui/material"
 import React, { useMemo } from "react"
@@ -249,6 +250,50 @@ const AttrRow: React.FC<AttrRowProps> = ({
           </Select>
         )}
 
+        {/* SA-FINAL U3: per-row text-color picker — mirrors v3
+            `uml-user-model-attribute-update.tsx:233-238` ColorButton +
+            StylePane workflow. Uses a native color input as a
+            lightweight stand-in for the v3 popover; the swatch reflects
+            the current `textColor`, click opens the OS picker.
+            "Reset" resorts to no-color (uses theme default). */}
+        <Tooltip title="Row text color (right-click to reset)">
+          <Box
+            component="label"
+            sx={{
+              width: 18,
+              height: 18,
+              borderRadius: "50%",
+              border: "1px solid var(--besser-gray, #ccc)",
+              backgroundColor: row.textColor || "var(--besser-text, #000)",
+              cursor: "pointer",
+              display: "inline-block",
+              flexShrink: 0,
+              overflow: "hidden",
+            }}
+            onContextMenu={(e: React.MouseEvent) => {
+              e.preventDefault()
+              onPatch({ textColor: undefined })
+            }}
+          >
+            <input
+              type="color"
+              value={
+                typeof row.textColor === "string" && row.textColor
+                  ? row.textColor
+                  : "#000000"
+              }
+              onChange={(e) => onPatch({ textColor: e.target.value })}
+              style={{
+                opacity: 0,
+                width: "100%",
+                height: "100%",
+                cursor: "pointer",
+                border: "none",
+                padding: 0,
+              }}
+            />
+          </Box>
+        </Tooltip>
         <IconButton size="small" onClick={onDelete}>
           <DeleteIcon width={14} height={14} />
         </IconButton>

@@ -10,6 +10,7 @@ import { SeparationLine } from "@/components/svgs/nodes/SeparationLine"
 import { CustomText } from "@/components/svgs/nodes/CustomText"
 import { RowBlockSection } from "@/components/svgs/nodes/RowBlockSection"
 import { useDiagramStore } from "@/store"
+import { useSettingsStore } from "@/store/settingsStore"
 import { useShallow } from "zustand/shallow"
 import AssessmentIcon from "@/components/svgs/AssessmentIcon"
 import { getCustomColorsFromData } from "@/utils"
@@ -89,7 +90,13 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
+  // SA-FINAL U1: respect the global `showIconView` toggle (parity with
+  // ObjectNameSVG). The icon-view replaces attributes only when the
+  // toggle is on AND the node carries icon markup. Previously any
+  // non-empty icon string forced icon view regardless of the setting.
+  const showIconView = useSettingsStore((s) => s.showIconView)
   const hasIcon = typeof icon === "string" && icon.trim() !== ""
+  const iconViewActive = showIconView && hasIcon
 
   // Header label per v3: instance name plus optional ` : className`.
   const headerLabel = className ? `${name} : ${className}` : name
@@ -140,9 +147,9 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
         </CustomText>
 
         {/* If the model carries an icon body (rare; the v3 fork stored
-            inline SVG markup), embed it via foreignObject instead of
-            attributes. */}
-        {hasIcon && (
+            inline SVG markup) AND the user has the global `showIconView`
+            toggle on, embed it via foreignObject instead of attributes. */}
+        {iconViewActive && (
           <foreignObject
             x={0}
             y={headerHeight + 4}
@@ -164,7 +171,7 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
           </foreignObject>
         )}
 
-        {!hasIcon && attributes.length > 0 && (
+        {!iconViewActive && attributes.length > 0 && (
           <>
             <SeparationLine
               y={headerHeight}
