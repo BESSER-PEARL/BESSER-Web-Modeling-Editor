@@ -165,6 +165,7 @@ export type ObjectNodeAttribute = ClassNodeElement & {
 }
 
 export type ObjectNodeProps = {
+  methods: ClassNodeElement[]
   attributes: ObjectNodeAttribute[]
   /** Link to a class node id in a sibling ClassDiagram, when known. */
   classId?: string
