@@ -25,6 +25,7 @@ import {
   convertV4ToV3NN,
 } from "@/utils/versionConverter"
 import type { NNLayerNodeProps, NNContainerNodeProps } from "@/types"
+import { nextUniqueNNLayerName } from "@/nodes/nnDiagram/_NNLayerBase"
 import nnV3 from "../fixtures/v3/nnDiagram.json"
 
 describe("NNDiagram v3 → v4 round-trip", () => {
@@ -201,5 +202,72 @@ describe("NNDiagram v3 → v4 round-trip", () => {
     const conv2dAgain = v4Again.nodes.find((n) => n.id === "layer-conv2d")!
     expect((conv2dAgain.data as NNLayerNodeProps).attributes["out_channels"])
       .toBe("64")
+  })
+})
+
+/**
+ * SA-FIX-NN (PC-10) — auto-name uniqueness regression. v3 dedup logic in
+ * `nn-component-update.tsx:561-585` suffixed `Conv2D` → `Conv2D2` →
+ * `Conv2D3` on collision; the v4 helper at
+ * `_NNLayerBase.tsx:nextUniqueNNLayerName` reproduces that.
+ */
+describe("NNDiagram auto-name uniqueness on layer drop", () => {
+  it("returns the base name when no sibling collides", () => {
+    expect(
+      nextUniqueNNLayerName("Conv2D", "Conv2DLayer", [
+        { id: "x1", type: "Conv1DLayer", data: { name: "Conv1D" } },
+        { id: "x2", type: "PoolingLayer", data: { name: "Pooling" } },
+      ])
+    ).toBe("Conv2D")
+  })
+
+  it("suffixes 2 on the first collision", () => {
+    expect(
+      nextUniqueNNLayerName("Conv2D", "Conv2DLayer", [
+        { id: "x1", type: "Conv2DLayer", data: { name: "Conv2D" } },
+      ])
+    ).toBe("Conv2D2")
+  })
+
+  it("suffixes 3 when both Conv2D and Conv2D2 are taken", () => {
+    expect(
+      nextUniqueNNLayerName("Conv2D", "Conv2DLayer", [
+        { id: "x1", type: "Conv2DLayer", data: { name: "Conv2D" } },
+        { id: "x2", type: "Conv2DLayer", data: { name: "Conv2D2" } },
+      ])
+    ).toBe("Conv2D3")
+  })
+
+  it("walks past gaps to the first available index", () => {
+    // Conv2D and Conv2D3 taken — Conv2D2 is free, pick it (matches v3
+    // counter-loop behaviour).
+    expect(
+      nextUniqueNNLayerName("Conv2D", "Conv2DLayer", [
+        { id: "x1", type: "Conv2DLayer", data: { name: "Conv2D" } },
+        { id: "x2", type: "Conv2DLayer", data: { name: "Conv2D3" } },
+      ])
+    ).toBe("Conv2D2")
+  })
+
+  it("only collides with same-kind siblings", () => {
+    // Same name, different layer kind — no collision.
+    expect(
+      nextUniqueNNLayerName("Pooling", "PoolingLayer", [
+        { id: "x1", type: "Conv2DLayer", data: { name: "Pooling" } },
+      ])
+    ).toBe("Pooling")
+  })
+
+  it("ignores the calling node when re-rendering an existing layer", () => {
+    // The node currently named "Conv2D" with id "self" must not collide
+    // with itself when the effect re-runs.
+    expect(
+      nextUniqueNNLayerName(
+        "Conv2D",
+        "Conv2DLayer",
+        [{ id: "self", type: "Conv2DLayer", data: { name: "Conv2D" } }],
+        "self"
+      )
+    ).toBe("Conv2D")
   })
 })

@@ -10,14 +10,22 @@
  * those icons in favour of stereotype-only cards. Per the user, restore
  * them. The icon is rendered as an `<image>` element pulling from
  * `/images/nn-layers/{kind}.png` (the same asset folder webapp v3 used).
+ *
+ * SA-FIX-NN (PC-10): on first mount, dedupe the auto-assigned `name`
+ * against existing sibling layers of the same kind in the same diagram.
+ * Mirrors v3 `createMandatoryAttributes()` counter loop at
+ * `nn-component-update.tsx:561-585`. Two freshly-dropped Conv2D cards
+ * become `Conv2D` / `Conv2D2` instead of both `Conv2D`.
  */
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
+import { useShallow } from "zustand/shallow"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { useDiagramStore } from "@/store/context"
 import { NNLayerNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
@@ -50,6 +58,42 @@ const NN_LAYER_ICON_FILES: Record<string, string> = {
 
 const NN_LAYER_ICON_BASE = "/images/nn-layers/"
 
+/**
+ * SA-FIX-NN (PC-10): pure helper — given a desired base name, the layer
+ * `nodeType`, and the current set of nodes (any shape with `id`,
+ * `type`, `data.name`), return the first uncollided variant. v3 did this
+ * inside `createMandatoryAttributes` (`nn-component-update.tsx:561-585`)
+ * by suffixing `2`, `3`, … on the base name; this preserves that scheme.
+ *
+ * Walks only sibling nodes of the same `nodeType` (so two Conv2D cards
+ * collide while a Conv2D and a Conv1D do not) and skips the node with
+ * `selfId` so a re-render of the same node doesn't loop. Returns the
+ * input unchanged when no collision is found.
+ */
+export function nextUniqueNNLayerName(
+  baseName: string,
+  nodeType: string,
+  nodes: ReadonlyArray<{
+    id: string
+    type?: string
+    data?: { name?: string }
+  }>,
+  selfId?: string
+): string {
+  const siblings = nodes.filter(
+    (n) => n.id !== selfId && n.type === nodeType
+  )
+  const taken = new Set(
+    siblings
+      .map((n) => (n.data && typeof n.data.name === "string" ? n.data.name : ""))
+      .filter((s) => s !== "")
+  )
+  if (!taken.has(baseName)) return baseName
+  let i = 2
+  while (taken.has(`${baseName}${i}`)) i += 1
+  return `${baseName}${i}`
+}
+
 export interface NNLayerBaseProps {
   id: string
   width?: number
@@ -77,6 +121,38 @@ export function NNLayerBase({
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
+
+  // SA-FIX-NN (PC-10): dedupe auto-name against existing sibling layers
+  // of the same kind. Runs once per node id; the store check inside the
+  // effect guarantees we only rename when there is an actual collision.
+  const setNodes = useDiagramStore(
+    useShallow((state) => state.setNodes)
+  )
+  useEffect(() => {
+    if (!isDiagramModifiable) return
+    setNodes((all) => {
+      const self = all.find((n) => n.id === id)
+      if (!self) return all
+      const currentName = (self.data as { name?: string } | undefined)?.name
+      if (typeof currentName !== "string" || currentName === "") return all
+      const unique = nextUniqueNNLayerName(currentName, nodeType, all, id)
+      if (unique === currentName) return all
+      return all.map((n) =>
+        n.id === id
+          ? {
+              ...n,
+              data: {
+                ...(n.data as Record<string, unknown>),
+                name: unique,
+              },
+            }
+          : n
+      )
+    })
+    // Run only on first mount per node — same pattern as the
+    // mandatory-attribute auto-fill in `NNComponentEditPanel`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   if (!width || !height) return null
 
