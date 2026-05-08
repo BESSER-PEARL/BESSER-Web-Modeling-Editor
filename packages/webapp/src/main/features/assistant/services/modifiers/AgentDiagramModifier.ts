@@ -1,10 +1,41 @@
 /**
- * Agent Diagram Modifier
- * Handles all modification operations for Agent Diagrams
+ * Agent Diagram Modifier (v4-native)
+ *
+ * SA-7b.2: walks v4 `model.nodes[]` / `model.edges[]` directly — no v3↔v4
+ * conversion seam.
+ *
+ * v4 AgentDiagram shape (per docs/source/migrations/uml-v4-shape.md and
+ * docs/source/migrations/parity-final/agentDiagram.md):
+ *   - `AgentState` has inline `data.bodies[]` and `data.fallbackBodies[]`
+ *     row arrays (`{id, name}` plus optional `replyType`, `code`, RAG
+ *     fields). v3 AgentStateBody / AgentStateFallbackBody collapse into
+ *     these rows.
+ *   - `AgentIntent` has inline `data.bodies[]` (training phrases) plus
+ *     `data.intent_description`. v3 AgentIntentBody / IntentDescription
+ *     collapse into these rows.
+ *   - `AgentRagElement` is its own node (no children to collapse).
+ *   - Edge type `AgentStateTransition` carries the canonical
+ *     `{transitionType, predefined, custom, params, points}` data shape.
+ *     `AgentStateTransitionInit` is the initial-state marker edge — no
+ *     extra payload.
  */
-
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+
+type BodyRow = {
+  id: string;
+  name: string;
+  replyType?: string;
+  ragDatabaseName?: string;
+  code?: string;
+  kind?: string;
+};
+
+const AGENT_STATE = 'AgentState';
+const AGENT_INTENT = 'AgentIntent';
+const AGENT_RAG = 'AgentRagElement';
+const STATE_INITIAL = 'StateInitialNode';
 
 export class AgentDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -21,7 +52,7 @@ export class AgentDiagramModifier implements DiagramModifier {
       'remove_element',
       'remove_transition',
       'add_state_body',
-      'add_rag_element'
+      'add_rag_element',
     ].includes(action);
   }
 
@@ -52,423 +83,331 @@ export class AgentDiagramModifier implements DiagramModifier {
     }
   }
 
-  /**
-   * Add a new agent state with optional reply bodies
-   */
+  // ─── Helpers ────────────────────────────────────────────────────────────
+
+  private nextPosition(model: BESSERModel): { x: number; y: number } {
+    let maxY = 0;
+    for (const n of ModifierHelpers.nodes(model)) {
+      const bottom = (n.position?.y ?? 0) + (n.height ?? 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    return { x: 100, y: maxY + 40 };
+  }
+
+  private findNodeByNameAndType(
+    model: BESSERModel,
+    name: string,
+    type: string,
+  ): BesserNode | undefined {
+    return ModifierHelpers.findNodeByName(model, name, type);
+  }
+
+  private findStateNode(model: BESSERModel, name: string): BesserNode | undefined {
+    return this.findNodeByNameAndType(model, name, AGENT_STATE);
+  }
+
+  private findIntentNode(model: BESSERModel, name: string): BesserNode | undefined {
+    return this.findNodeByNameAndType(model, name, AGENT_INTENT);
+  }
+
+  private findInitialNode(model: BESSERModel): BesserNode | undefined {
+    return ModifierHelpers.findNodesByType(model, STATE_INITIAL)[0];
+  }
+
+  // ─── Action handlers ────────────────────────────────────────────────────
+
   private addState(model: BESSERModel, modification: ModelModification): BESSERModel {
     const changes = modification.changes;
     const target = modification.target;
+    const pos = this.nextPosition(model);
 
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
-
-    const stateId = ModifierHelpers.generateUniqueId('state');
-    const bodies: string[] = [];
-    const fallbackBodies: string[] = [];
-
-    // Estimate width from reply text lengths
     const replies = changes.replies || [];
     let stateWidth = 210;
-    for (const reply of replies) {
-      const estimated = (reply.text || '').length * 8 + 40;
+    for (const r of replies) {
+      const estimated = (r.text || '').length * 8 + 40;
       if (estimated > stateWidth) stateWidth = estimated;
     }
-    const bodyWidth = stateWidth - 1;
 
-    // Create state body elements from replies
-    let currentY = pos.y + 41;
-    for (const reply of replies) {
-      const bodyId = ModifierHelpers.generateUniqueId('body');
-      bodies.push(bodyId);
-
-      const bodyElement: any = {
-        id: bodyId,
+    const bodies: BodyRow[] = replies.map((reply) => {
+      const row: BodyRow = {
+        id: ModifierHelpers.generateUniqueId('body'),
         name: reply.text || '',
-        type: 'AgentStateBody',
-        owner: stateId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
-        replyType: reply.replyType || 'text'
+        replyType: reply.replyType || 'text',
       };
-      if (reply.ragDatabaseName) {
-        bodyElement.ragDatabaseName = reply.ragDatabaseName;
-      }
-      model.elements[bodyId] = bodyElement;
-      currentY += 30;
-    }
+      if (reply.ragDatabaseName) row.ragDatabaseName = reply.ragDatabaseName;
+      return row;
+    });
 
-    const totalHeight = Math.max(70, currentY - pos.y);
+    const totalHeight = Math.max(70, 41 + bodies.length * 30);
+    const stateName = target.stateName || changes.name || '';
 
-    model.elements[stateId] = {
+    const stateId = ModifierHelpers.generateUniqueId('state');
+    const node: BesserNode = {
       id: stateId,
-      name: target.stateName || changes.name || '',
-      type: 'AgentState',
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: stateWidth, height: totalHeight },
-      bodies,
-      fallbackBodies
+      type: AGENT_STATE as any,
+      position: pos,
+      width: stateWidth,
+      height: totalHeight,
+      measured: { width: stateWidth, height: totalHeight },
+      data: {
+        name: stateName,
+        bodies,
+        fallbackBodies: [] as BodyRow[],
+        replyType: 'text',
+      },
     };
 
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
-  /**
-   * Add a new intent with optional training phrases
-   */
   private addIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
     const changes = modification.changes;
     const target = modification.target;
+    const pos = this.nextPosition(model);
 
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
-
-    const intentId = ModifierHelpers.generateUniqueId('intent');
-    const bodies: string[] = [];
     const phrases = changes.trainingPhrases || [];
-
-    // Estimate width from phrase text lengths
     let intentWidth = 230;
-    for (const phrase of phrases) {
-      const estimated = phrase.length * 8 + 40;
+    for (const p of phrases) {
+      const estimated = (p || '').length * 8 + 40;
       if (estimated > intentWidth) intentWidth = estimated;
     }
-    const bodyWidth = intentWidth - 1;
 
-    // Create intent body elements from training phrases
-    let currentY = pos.y + 41;
-    for (const phrase of phrases) {
-      const bodyId = ModifierHelpers.generateUniqueId('intentBody');
-      bodies.push(bodyId);
+    const bodies: BodyRow[] = phrases.map((phrase) => ({
+      id: ModifierHelpers.generateUniqueId('intentBody'),
+      name: phrase,
+    }));
 
-      model.elements[bodyId] = {
-        id: bodyId,
-        name: phrase,
-        type: 'AgentIntentBody',
-        owner: intentId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 }
-      };
-      currentY += 30;
-    }
+    const totalHeight = Math.max(130, 41 + bodies.length * 30 + 10);
+    const intentName = target.intentName || changes.intentName || changes.name || '';
 
-    const totalHeight = Math.max(130, currentY - pos.y + 10);
-
-    model.elements[intentId] = {
+    const intentId = ModifierHelpers.generateUniqueId('intent');
+    const node: BesserNode = {
       id: intentId,
-      name: target.intentName || changes.intentName || changes.name || '',
-      type: 'AgentIntent',
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: intentWidth, height: totalHeight },
-      bodies
+      type: AGENT_INTENT as any,
+      position: pos,
+      width: intentWidth,
+      height: totalHeight,
+      measured: { width: intentWidth, height: totalHeight },
+      data: {
+        name: intentName,
+        bodies,
+        intent_description: '',
+      },
     };
 
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
-  /**
-   * Modify state properties (rename, etc.)
-   */
   private modifyState(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
-    const targetId = stateId || this.findStateIdByName(model, stateName!);
-
-    if (targetId && model.elements[targetId]) {
-      if (modification.changes.name) {
-        model.elements[targetId].name = modification.changes.name;
-      }
+    const node = (stateId ? ModifierHelpers.findNodeById(model, stateId) : undefined) ||
+      (stateName ? this.findStateNode(model, stateName) : undefined);
+    if (node && modification.changes.name) {
+      (node.data as any).name = modification.changes.name;
     }
-
     return model;
   }
 
-  /**
-   * Modify intent properties (rename, add training phrases)
-   */
   private modifyIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { intentId, intentName } = modification.target;
-    const targetId = intentId || this.findIntentIdByName(model, intentName!);
+    const node = (intentId ? ModifierHelpers.findNodeById(model, intentId) : undefined) ||
+      (intentName ? this.findIntentNode(model, intentName) : undefined);
+    if (!node) return model;
 
-    if (targetId && model.elements[targetId]) {
-      if (modification.changes.name) {
-        model.elements[targetId].name = modification.changes.name;
-      }
-      
-      // Add training phrase if specified
-      if (modification.changes.text) {
-        this.addIntentTrainingPhrase(model, targetId, modification.changes.text);
-      }
+    const data = node.data as any;
+    if (modification.changes.name) data.name = modification.changes.name;
+
+    // `text` is the LLM's idiom for "append a training phrase".
+    if (modification.changes.text) {
+      const bodies: BodyRow[] = Array.isArray(data.bodies) ? data.bodies : [];
+      bodies.push({
+        id: ModifierHelpers.generateUniqueId('intentBody'),
+        name: modification.changes.text,
+      });
+      data.bodies = bodies;
+      // Grow the node card visually so the new body row fits.
+      node.height = Math.max(130, 41 + bodies.length * 30 + 10);
+      node.measured = { width: node.width, height: node.height };
     }
 
     return model;
   }
 
-  /**
-   * Add a training phrase to an intent
-   */
-  private addIntentTrainingPhrase(model: BESSERModel, intentId: string, phrase: string): void {
-    const intent = model.elements[intentId];
-    if (!intent || intent.type !== 'AgentIntent') return;
-
-    const bodyId = ModifierHelpers.generateUniqueId('intentBody');
-    const intentElement = model.elements[intentId];
-    const bodies = intentElement.bodies || [];
-    
-    // Calculate position for new body
-    const lastBodyId = bodies[bodies.length - 1];
-    let newY = intentElement.bounds.y + 41;
-    
-    if (lastBodyId && model.elements[lastBodyId]) {
-      const lastBody = model.elements[lastBodyId];
-      newY = lastBody.bounds.y + lastBody.bounds.height;
-    }
-
-    // Create new training phrase body
-    model.elements[bodyId] = {
-      id: bodyId,
-      name: phrase,
-      type: 'AgentIntentBody',
-      owner: intentId,
-      bounds: { 
-        x: intentElement.bounds.x + 0.5, 
-        y: newY, 
-        width: 229, 
-        height: 30 
-      }
-    };
-
-    // Update intent to include new body
-    intentElement.bodies = [...bodies, bodyId];
-    
-    // Update intent height
-    intentElement.bounds.height = Math.max(130, newY - intentElement.bounds.y + 40);
-  }
-
-  /**
-   * Add state body (reply)
-   */
   private addStateBody(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
-    const targetId = stateId || this.findStateIdByName(model, stateName!);
+    const node = (stateId ? ModifierHelpers.findNodeById(model, stateId) : undefined) ||
+      (stateName ? this.findStateNode(model, stateName) : undefined);
 
-    if (!targetId || !model.elements[targetId]) {
+    if (!node) {
       throw new Error(`State not found: ${stateName || stateId}`);
     }
-
-    const stateElement = model.elements[targetId];
-    if (stateElement.type !== 'AgentState') {
+    if ((node.type as string) !== AGENT_STATE) {
       throw new Error('Target is not an AgentState');
     }
 
-    const bodyId = ModifierHelpers.generateUniqueId('body');
-    const bodies = stateElement.bodies || [];
-    
-    // Calculate position for new body
-    let newY = stateElement.bounds.y + 41;
-    if (bodies.length > 0) {
-      const lastBodyId = bodies[bodies.length - 1];
-      if (model.elements[lastBodyId]) {
-        const lastBody = model.elements[lastBodyId];
-        newY = lastBody.bounds.y + lastBody.bounds.height;
-      }
-    }
-
-    // Create new state body
-    const newBody: any = {
-      id: bodyId,
+    const data = node.data as any;
+    const bodies: BodyRow[] = Array.isArray(data.bodies) ? data.bodies : [];
+    const newBody: BodyRow = {
+      id: ModifierHelpers.generateUniqueId('body'),
       name: modification.changes.text || 'New reply',
-      type: 'AgentStateBody',
-      owner: targetId,
-      bounds: {
-        x: stateElement.bounds.x + 0.5,
-        y: newY,
-        width: 209,
-        height: 30
-      },
-      replyType: modification.changes.replyType || 'text'
+      replyType: modification.changes.replyType || 'text',
     };
-    if (modification.changes.ragDatabaseName) {
-      newBody.ragDatabaseName = modification.changes.ragDatabaseName;
-    }
-    model.elements[bodyId] = newBody;
+    if (modification.changes.ragDatabaseName) newBody.ragDatabaseName = modification.changes.ragDatabaseName;
+    if (modification.changes.code) newBody.code = modification.changes.code;
+    bodies.push(newBody);
+    data.bodies = bodies;
 
-    // Update state to include new body
-    stateElement.bodies = [...bodies, bodyId];
-    
-    // Update state height
-    stateElement.bounds.height = Math.max(70, newY - stateElement.bounds.y + 40);
+    node.height = Math.max(70, 41 + bodies.length * 30);
+    node.measured = { width: node.width, height: node.height };
 
     return model;
   }
 
   /**
-   * Add transition between states or from intent to state
+   * Add a transition between states / intents (or from the initial node).
+   *
+   * Source/target resolution priority:
+   *  - "initial" or empty string → the StateInitialNode (any) → init edge
+   *  - otherwise look up by AgentState name first, then AgentIntent name
    */
   private addTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.relationships) {
-      model.relationships = {};
-    }
-
     const changes = modification.changes;
     const target = modification.target;
 
-    const sourceName = changes.source || target.stateName || target.intentName;
-    const targetName = changes.target || target.targetClass;
-
-    if (!sourceName || !targetName) {
-      throw new Error('Transition requires both source and target (state or intent names).');
+    const sourceName = changes.source || target.stateName || target.intentName || '';
+    const targetName = changes.target || (changes as any).targetClass || '';
+    if (!targetName) {
+      throw new Error('Transition requires a target state name.');
     }
 
-    // Find source (could be state, intent, or initial node)
-    let sourceId: string | null = null;
-    if (sourceName.toLowerCase() === 'initial') {
-      sourceId = this.findInitialNodeId(model);
+    let sourceNode: BesserNode | undefined;
+    if (!sourceName || sourceName.toLowerCase() === 'initial') {
+      sourceNode = this.findInitialNode(model);
     } else {
-      sourceId = this.findStateIdByName(model, sourceName) || 
-                 this.findIntentIdByName(model, sourceName);
+      sourceNode = this.findStateNode(model, sourceName) || this.findIntentNode(model, sourceName);
     }
+    const targetNode = this.findStateNode(model, targetName);
 
-    // Find target (should be state)
-    const targetId = this.findStateIdByName(model, targetName);
-
-    if (!sourceId || !targetId) {
+    if (!sourceNode || !targetNode) {
       throw new Error(`Could not locate source (${sourceName}) or target (${targetName}) for transition.`);
     }
 
+    const isInit = (sourceNode.type as string) === STATE_INITIAL;
     const transitionId = ModifierHelpers.generateUniqueId('transition');
-    const sourceElement = model.elements[sourceId];
-    const isInitialTransition = sourceElement?.type === 'StateInitialNode';
 
-    const transition: any = {
-      id: transitionId,
+    // Build canonical v4 transition data. `predefined` / `custom` are
+    // populated based on whether the source is an AgentIntent (intent
+    // match) or has a free-form condition.
+    const transitionData: Record<string, unknown> = {
       name: changes.label || changes.name || '',
-      type: isInitialTransition ? 'AgentStateTransitionInit' : 'AgentStateTransition',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 100, height: 1 },
-      path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-      source: {
-        direction: 'Right',
-        element: sourceId
-      },
-      target: {
-        direction: 'Left',
-        element: targetId
-      },
-      isManuallyLayouted: false
+      params: {} as Record<string, string>,
+      points: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+      isManuallyLayouted: false,
     };
 
-    // Add condition for intent-based transitions
-    if (changes.condition || sourceElement?.type === 'AgentIntent') {
-      transition.condition = changes.condition || 'intent_matched';
-      transition.conditionValue = changes.name || sourceElement?.name || '';
+    if (!isInit) {
+      if ((sourceNode.type as string) === AGENT_INTENT) {
+        const intentName = (sourceNode.data as any)?.name || sourceName || '';
+        transitionData.transitionType = 'predefined';
+        transitionData.predefined = {
+          predefinedType: 'when_intent_matched',
+          intentName,
+        };
+      } else if (changes.condition) {
+        transitionData.transitionType = 'custom';
+        transitionData.custom = {
+          event: 'ReceiveTextEvent',
+          condition: [changes.condition],
+        };
+      } else {
+        transitionData.transitionType = 'predefined';
+        transitionData.predefined = { predefinedType: 'auto' };
+      }
     }
 
-    model.relationships[transitionId] = transition;
+    const edge: BesserEdge = {
+      id: transitionId,
+      source: sourceNode.id,
+      target: targetNode.id,
+      type: (isInit ? 'AgentStateTransitionInit' : 'AgentStateTransition') as any,
+      sourceHandle: 'Right',
+      targetHandle: 'Left',
+      data: transitionData as any,
+    };
 
+    ModifierHelpers.addEdge(model, edge);
     return model;
   }
 
-  /**
-   * Remove transition
-   */
   private removeTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const m = model as any;
     const { transitionId } = modification.target;
 
-    if (transitionId && model.relationships?.[transitionId]) {
-      delete model.relationships[transitionId];
-    } else if (modification.changes.source && modification.changes.target) {
-      // Find transition by source and target
-      const sourceName = modification.changes.source;
-      const targetName = modification.changes.target;
-      
-      const sourceId = this.findStateIdByName(model, sourceName) || 
-                       this.findIntentIdByName(model, sourceName);
-      const targetId = this.findStateIdByName(model, targetName);
+    if (transitionId) {
+      m.edges = (m.edges ?? []).filter((e: BesserEdge) => e.id !== transitionId);
+      return model;
+    }
 
-      if (sourceId && targetId && model.relationships) {
-        for (const [relId, rel] of Object.entries(model.relationships)) {
-          if (rel.source?.element === sourceId && rel.target?.element === targetId) {
-            delete model.relationships[relId];
-            break;
-          }
-        }
+    const sourceName = modification.changes?.source;
+    const targetName = modification.changes?.target;
+    if (sourceName && targetName) {
+      const src = this.findStateNode(model, sourceName) || this.findIntentNode(model, sourceName);
+      const tgt = this.findStateNode(model, targetName);
+      if (src && tgt) {
+        m.edges = (m.edges ?? []).filter(
+          (e: BesserEdge) => !(e.source === src.id && e.target === tgt.id),
+        );
       }
     }
 
     return model;
   }
 
-  /**
-   * Add a RAG knowledge base element
-   */
   private addRagElement(model: BESSERModel, modification: ModelModification): BESSERModel {
     const target = modification.target;
     const changes = modification.changes;
-
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
+    const pos = this.nextPosition(model);
 
     const ragId = ModifierHelpers.generateUniqueId('rag');
-
-    model.elements[ragId] = {
-      type: 'AgentRagElement',
-      id: ragId,
+    const data: Record<string, unknown> = {
       name: target.name || changes.name || 'RAG DB',
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 140, height: 120 }
+    };
+    if (changes.ragDatabaseName) data.ragDatabaseName = changes.ragDatabaseName;
+
+    const node: BesserNode = {
+      id: ragId,
+      type: AGENT_RAG as any,
+      position: pos,
+      width: 140,
+      height: 120,
+      measured: { width: 140, height: 120 },
+      data,
     };
 
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
-  /**
-   * Remove element (state, intent, or their bodies)
-   */
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName, intentId, intentName } = modification.target;
 
-    // Remove state
     if (stateId || stateName) {
-      const targetId = stateId || this.findStateIdByName(model, stateName!);
-      if (targetId) {
-        return ModifierHelpers.removeElementWithChildren(model, targetId);
-      }
+      const node = (stateId ? ModifierHelpers.findNodeById(model, stateId) : undefined) ||
+        (stateName ? this.findStateNode(model, stateName) : undefined);
+      if (node) return ModifierHelpers.removeNodeWithChildren(model, node.id);
     }
 
-    // Remove intent
     if (intentId || intentName) {
-      const targetId = intentId || this.findIntentIdByName(model, intentName!);
-      if (targetId) {
-        return ModifierHelpers.removeElementWithChildren(model, targetId);
-      }
+      const node = (intentId ? ModifierHelpers.findNodeById(model, intentId) : undefined) ||
+        (intentName ? this.findIntentNode(model, intentName) : undefined);
+      if (node) return ModifierHelpers.removeNodeWithChildren(model, node.id);
     }
 
     return model;
-  }
-
-  // Helper methods
-  private findStateIdByName(model: BESSERModel, stateName: string): string | null {
-    return ModifierHelpers.findElementByName(model, stateName, 'AgentState');
-  }
-
-  private findIntentIdByName(model: BESSERModel, intentName: string): string | null {
-    return ModifierHelpers.findElementByName(model, intentName, 'AgentIntent');
-  }
-
-  private findInitialNodeId(model: BESSERModel): string | null {
-    const results = ModifierHelpers.findElementsByType(model, 'StateInitialNode');
-    return results.length > 0 ? results[0].id : null;
   }
 }

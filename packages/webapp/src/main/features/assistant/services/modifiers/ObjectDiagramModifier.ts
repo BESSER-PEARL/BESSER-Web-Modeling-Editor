@@ -1,10 +1,37 @@
 /**
- * Object Diagram Modifier
- * Handles all modification operations for Object Diagrams
+ * Object Diagram Modifier (v4-native)
+ *
+ * SA-7b.2: walks v4 `model.nodes[]` / `model.edges[]` directly — no v3↔v4
+ * conversion seam.
+ *
+ * v4 ObjectDiagram shape (per docs/source/migrations/uml-v4-shape.md):
+ *   - `ObjectName` is the only node `type`. Attributes / methods / icon
+ *     collapse into rows on `node.data.attributes` / `data.methods` / a
+ *     plain `data.icon` string. There is no separate ObjectAttribute or
+ *     ObjectIcon node.
+ *   - `ObjectLink` is the only edge `type`. Endpoints are `edge.source` /
+ *     `edge.target` (object node ids).
+ *
+ * Display name format: `data.name` is just the instance name (no
+ * "instanceName: ClassName" suffix); the render layer appends the
+ * className via the bridge using `data.classId`. If no `classId` is
+ * supplied we fall back to embedding "instance: Class" in `data.name`
+ * since the render layer has nothing to look up.
  */
-
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+
+type ObjectAttributeRow = {
+  id: string;
+  name: string;
+  attributeId?: string;
+  attributeType?: string;
+  defaultValue?: unknown;
+  value?: unknown;
+};
+
+const OBJECT_NODE_TYPE = 'objectName';
 
 export class ObjectDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -17,7 +44,7 @@ export class ObjectDiagramModifier implements DiagramModifier {
       'modify_object',
       'modify_attribute_value',
       'add_link',
-      'remove_element'
+      'remove_element',
     ].includes(action);
   }
 
@@ -40,110 +67,145 @@ export class ObjectDiagramModifier implements DiagramModifier {
     }
   }
 
+  // ─── Helpers ────────────────────────────────────────────────────────────
+
+  /**
+   * Find an object node by its instance name. Tries:
+   *  1) exact `data.name` match,
+   *  2) before-the-colon prefix match (handles legacy "name: Class"
+   *     strings the LLM may emit),
+   *  3) case-insensitive variant of the above.
+   */
+  private findObjectNodeByName(model: BESSERModel, name: string): BesserNode | undefined {
+    if (!name) return undefined;
+    const normalized = name.trim().toLowerCase();
+    const candidates = ModifierHelpers.nodes(model).filter((n) => n.type === OBJECT_NODE_TYPE);
+    for (const n of candidates) {
+      const data = (n.data as any) || {};
+      if (data.name === name) return n;
+    }
+    for (const n of candidates) {
+      const data = (n.data as any) || {};
+      const nodeName = typeof data.name === 'string' ? data.name : '';
+      const nodeNameLower = nodeName.trim().toLowerCase();
+      if (nodeNameLower === normalized) return n;
+      const beforeColon = nodeNameLower.split(':')[0].trim();
+      if (beforeColon === normalized) return n;
+    }
+    return undefined;
+  }
+
+  /** Compute the next vertical slot below all existing nodes. */
+  private nextPosition(model: BESSERModel): { x: number; y: number } {
+    let maxY = 0;
+    for (const n of ModifierHelpers.nodes(model)) {
+      const bottom = (n.position?.y ?? 0) + (n.height ?? 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    return { x: 100, y: maxY + 40 };
+  }
+
+  // ─── Action handlers ────────────────────────────────────────────────────
+
   private addObject(model: BESSERModel, modification: ModelModification): BESSERModel {
     const changes = modification.changes;
     const target = modification.target;
 
-    let objectName = changes.objectName || target.objectName || changes.name || 'object';
-    const className = changes.className || '';
+    let objectName = (changes as any).objectName || target.objectName || changes.name || 'object';
+    const className = (changes as any).className || '';
 
-    // Sanitize objectName: strip any ": ClassName" suffix the LLM may have included
-    if (objectName.includes(':')) {
+    // Strip a "name: ClassName" suffix the LLM may have added.
+    if (typeof objectName === 'string' && objectName.includes(':')) {
       objectName = objectName.split(':')[0].trim();
     }
 
-    // If objectName is empty or equals className, generate a proper instance name
+    // Generate a sensible instance name when LLM omitted it (or echoed the
+    // class name back). Counts existing objects whose `data.classId`
+    // matches the requested class so re-runs auto-increment.
+    const requestedClassId = (changes as any).classId as string | undefined;
     if (!objectName || (className && objectName.toLowerCase() === className.toLowerCase())) {
       let count = 1;
-      for (const el of Object.values(model.elements)) {
-        if (el.type === 'ObjectName' && typeof el.name === 'string' && el.name.includes(`: ${className}`)) {
+      for (const n of ModifierHelpers.nodes(model)) {
+        if (n.type !== OBJECT_NODE_TYPE) continue;
+        const data = (n.data as any) || {};
+        if (
+          (requestedClassId && data.classId === requestedClassId) ||
+          (typeof data.name === 'string' && data.name.includes(`: ${className}`))
+        ) {
           count++;
         }
       }
       objectName = `${className.charAt(0).toLowerCase()}${className.slice(1)}${count}`;
     }
 
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
-
+    const pos = this.nextPosition(model);
     const objectId = ModifierHelpers.generateUniqueId('object');
-    const attrs = changes.attributes || [];
-    const baseHeight = 80;
-    const attrHeight = attrs.length * 30;
-    const totalHeight = baseHeight + attrHeight;
 
-    // Create ObjectName element. Propagate classId from the agent so the
-    // update panel can link this object to its class definition (otherwise
-    // the "class:" dropdown in the object popup shows nothing).
-    //
-    // When classId is set, store ONLY the instance name in `.name`; the
-    // component at uml-object-name-component.tsx appends " : ClassName"
-    // automatically via diagramBridge.getClassById(). Embedding the suffix
-    // here would double-render as "author2: Author : Author".
-    const displayName = changes.classId ? objectName : `${objectName}: ${className}`;
-    const objectElement: any = {
-      type: 'ObjectName',
-      id: objectId,
-      name: displayName,
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 240, height: totalHeight },
-      attributes: [] as string[],
-      methods: []
-    };
-    if (changes.classId) {
-      objectElement.classId = changes.classId;
-    }
-
-    // Create ObjectAttribute children
-    let currentY = pos.y + 60;
-    for (const attr of attrs) {
-      const attrId = ModifierHelpers.generateUniqueId('attr');
-      objectElement.attributes.push(attrId);
-
-      const attributeElement: any = {
-        id: attrId,
-        name: `${attr.name} = ${attr.value || ''}`,
-        type: 'ObjectAttribute',
-        owner: objectId,
-        bounds: { x: pos.x + 1, y: currentY, width: 238, height: 30 },
-        attributeType: attr.type || 'str'
+    // Build attribute rows directly on `data.attributes`.
+    const attrSpecs = (changes.attributes ?? []) as Array<{
+      name: string;
+      type?: string;
+      value?: string;
+      attributeId?: string;
+    }>;
+    const attributeRows: ObjectAttributeRow[] = attrSpecs.map((attr) => {
+      const row: ObjectAttributeRow = {
+        id: ModifierHelpers.generateUniqueId('attr'),
+        name: attr.value !== undefined && attr.value !== null && String(attr.value).length > 0
+          ? `${attr.name} = ${attr.value}`
+          : attr.name,
+        attributeType: attr.type || 'str',
       };
-      // Library attribute id — the update panel uses this to tie the
-      // object attribute back to its class-diagram definition.
-      if (attr.attributeId) {
-        attributeElement.attributeId = attr.attributeId;
-      }
-      model.elements[attrId] = attributeElement;
-      currentY += 30;
-    }
+      if (attr.attributeId) row.attributeId = attr.attributeId;
+      if (attr.value !== undefined) row.value = attr.value;
+      return row;
+    });
 
-    model.elements[objectId] = objectElement;
+    // Display name: when classId is set, `data.name` holds just the
+    // instance name (the render layer appends `: ClassName` via the
+    // bridge). Without classId, embed "instance: Class" so the canvas
+    // still shows something useful.
+    const displayName = requestedClassId ? objectName : (className ? `${objectName}: ${className}` : objectName);
 
+    const baseHeight = 80;
+    const totalHeight = baseHeight + attributeRows.length * 30;
+    const width = 240;
+
+    const nodeData: Record<string, unknown> = {
+      name: displayName,
+      attributes: attributeRows,
+      methods: [],
+    };
+    if (requestedClassId) nodeData.classId = requestedClassId;
+    if (className) nodeData.className = className;
+
+    const node: BesserNode = {
+      id: objectId,
+      type: OBJECT_NODE_TYPE as any,
+      position: { x: pos.x, y: pos.y },
+      width,
+      height: totalHeight,
+      measured: { width, height: totalHeight },
+      data: nodeData,
+    };
+
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
   private modifyObject(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { objectId, objectName } = modification.target;
-    const targetId = objectId || ModifierHelpers.findElementByName(model, objectName!, 'ObjectName');
-
-    if (targetId && model.elements[targetId]) {
-      if (modification.changes.name) {
-        model.elements[targetId].name = modification.changes.name;
-      }
+    const node = (objectId ? ModifierHelpers.findNodeById(model, objectId) : undefined) ||
+      (objectName ? this.findObjectNodeByName(model, objectName) : undefined);
+    if (node && modification.changes.name) {
+      (node.data as any).name = modification.changes.name;
     }
-
     return model;
   }
 
   /**
-   * Modify an attribute value on an existing object.
-   * Finds the ObjectAttribute child whose name starts with the target attributeName
-   * and updates its display string to "attributeName = newValue".
+   * Modify an attribute value on an existing object. v4: rows live on
+   * `data.attributes` directly, no need to walk owner pointers.
    */
   private modifyAttributeValue(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { objectName, attributeName } = modification.target;
@@ -153,21 +215,21 @@ export class ObjectDiagramModifier implements DiagramModifier {
       throw new Error('modify_attribute_value requires target.objectName, target.attributeName, and changes.value');
     }
 
-    // Find the owner object by name
-    const objectId = ModifierHelpers.findElementByName(model, objectName, 'ObjectName');
-    if (!objectId) {
+    const node = this.findObjectNodeByName(model, objectName);
+    if (!node) {
       throw new Error(`Object '${objectName}' not found in the model.`);
     }
 
-    // Search for the ObjectAttribute child owned by this object
+    const data = node.data as any;
+    const rows: ObjectAttributeRow[] = Array.isArray(data.attributes) ? data.attributes : [];
+    const targetLower = attributeName.toLowerCase();
+
     let found = false;
-    for (const [, element] of Object.entries(model.elements)) {
-      if (
-        element.type === 'ObjectAttribute' &&
-        element.owner === objectId &&
-        element.name?.split('=')[0]?.trim() === attributeName
-      ) {
-        element.name = `${attributeName} = ${newValue}`;
+    for (const row of rows) {
+      const rowName = (row.name || '').split('=')[0].trim();
+      if (rowName === attributeName || rowName.toLowerCase() === targetLower) {
+        row.name = `${attributeName} = ${newValue}`;
+        row.value = newValue as any;
         found = true;
         break;
       }
@@ -181,37 +243,38 @@ export class ObjectDiagramModifier implements DiagramModifier {
   }
 
   private addLink(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.relationships) {
-      model.relationships = {};
+    const sourceName = (modification.changes as any).source as string | undefined;
+    const targetName = (modification.changes as any).target as string | undefined;
+
+    let sourceNode: BesserNode | undefined;
+    if (modification.target.objectId) {
+      sourceNode = ModifierHelpers.findNodeById(model, modification.target.objectId);
     }
+    if (!sourceNode && sourceName) sourceNode = this.findObjectNodeByName(model, sourceName);
+    const targetNode = targetName ? this.findObjectNodeByName(model, targetName) : undefined;
 
-    const sourceId = modification.target.objectId || 
-                     ModifierHelpers.findElementByName(model, modification.changes.source!, 'ObjectName');
-    const targetId = ModifierHelpers.findElementByName(model, modification.changes.target!, 'ObjectName');
-
-    if (!sourceId || !targetId) {
+    if (!sourceNode || !targetNode) {
       throw new Error('Could not locate source or target object for link.');
     }
 
     const linkId = ModifierHelpers.generateUniqueId('link');
-
-    model.relationships[linkId] = {
+    const edge: BesserEdge = {
       id: linkId,
-      type: 'ObjectLink',
-      source: {
-        element: sourceId,
-        direction: 'Left'
+      type: 'ObjectLink' as any,
+      source: sourceNode.id,
+      target: targetNode.id,
+      sourceHandle: 'Right',
+      targetHandle: 'Left',
+      data: {
+        name: modification.changes.name || '',
+        points: [
+          { x: 100, y: 10 },
+          { x: 0, y: 10 },
+        ],
+        isManuallyLayouted: false,
       },
-      target: {
-        element: targetId,
-        direction: 'Right'
-      },
-      name: modification.changes.name || '',
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
-      path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
-      isManuallyLayouted: false
     };
-
+    ModifierHelpers.addEdge(model, edge);
     return model;
   }
 
@@ -219,9 +282,9 @@ export class ObjectDiagramModifier implements DiagramModifier {
     const target = modification.target || {};
     const { objectId } = target;
 
-    // Collect every possible name/identifier the LLM may have sent. Users
-    // phrase this many ways ("remove the class book1", "remove book1") and
-    // the LLM sometimes puts the name in className, name, or objectName.
+    // Collect every plausible name/identifier the LLM may have sent. Users
+    // phrase "remove the class book1" / "remove book1" in many ways and
+    // the LLM places the value in className / name / objectName variously.
     const candidates: string[] = [];
     for (const key of ['objectName', 'name', 'className', 'targetName', 'elementName']) {
       const v = (target as any)[key];
@@ -233,33 +296,20 @@ export class ObjectDiagramModifier implements DiagramModifier {
       }
     }
 
-    let targetId: string | null = objectId || null;
-
-    // Try to resolve against ObjectName elements. Their `name` is stored as
-    // "instanceName: ClassName" in Apollon, so exact matching on just the
-    // instance name fails — do a prefix/case-insensitive match on the part
-    // before the colon.
-    if (!targetId) {
+    let targetNode: BesserNode | undefined;
+    if (objectId) targetNode = ModifierHelpers.findNodeById(model, objectId);
+    if (!targetNode) {
       for (const cand of candidates) {
-        const normalized = cand.toLowerCase();
-        for (const [id, el] of Object.entries(model.elements || {})) {
-          if ((el as any).type !== 'ObjectName') continue;
-          const elName = ((el as any).name || '').toLowerCase();
-          const beforeColon = elName.split(':')[0].trim();
-          if (elName === normalized || beforeColon === normalized) {
-            targetId = id;
-            break;
-          }
-        }
-        if (targetId) break;
+        targetNode = this.findObjectNodeByName(model, cand);
+        if (targetNode) break;
       }
     }
 
-    if (targetId) {
-      return ModifierHelpers.removeElementWithChildren(model, targetId);
+    if (targetNode) {
+      return ModifierHelpers.removeNodeWithChildren(model, targetNode.id);
     }
 
-    // Idempotent: already removed in an earlier batch modification — no-op.
+    // Idempotent: already removed in an earlier batch — no-op.
     console.warn(
       `[ObjectDiagramModifier] removeElement: no object matching ${JSON.stringify(candidates)} — ` +
       `treating as already removed (no-op).`

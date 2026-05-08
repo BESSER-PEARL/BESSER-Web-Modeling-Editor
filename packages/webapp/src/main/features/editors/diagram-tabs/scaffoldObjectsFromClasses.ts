@@ -1,65 +1,37 @@
-import {
-  UMLDiagramType,
-  UMLModel,
-  convertV4ToV3Class,
-  migrateObjectDiagramV3ToV4,
-} from '@besser/wme';
-
 /**
- * SA-7b: this scaffold helper was written for v3 model shape (`elements`
- * record, `relationships` record, attribute/method elements as separate
- * UMLElements with `owner` pointers). The editor now stores models in v4
- * shape (`nodes` array, `edges` array, attributes/methods inline on
- * `node.data`). Rather than rewriting ~400 LoC of v3-shaped scaffolding,
- * we convert v4 → v3 at the top, run the existing logic, then v3 → v4
- * at the bottom. The lib's `convertV4ToV3Class` handles ClassDiagram +
- * ObjectDiagram, and `migrateObjectDiagramV3ToV4` handles the reverse
- * for the ObjectDiagram output.
- */
-function ensureV3(model: any): any {
-  if (!model || typeof model !== 'object') return model;
-  if (Array.isArray(model.elements)) return model; // not actually expected
-  if ('elements' in model && 'relationships' in model) return model; // already v3
-  if (Array.isArray(model.nodes) && Array.isArray(model.edges)) {
-    try {
-      return convertV4ToV3Class(model);
-    } catch {
-      return model;
-    }
-  }
-  return model;
-}
-
-/**
- * Generate a deterministic Object Diagram from a Class Diagram.
+ * Generate a deterministic Object Diagram from a Class Diagram (v4-native).
  *
- * For every concrete `Class` in the source class diagram, the helper
- * produces one `ObjectName` element on the object diagram, plus one
- * `ObjectAttribute` per `ClassAttribute` of that class. Slot values come
- * from the source attribute's `defaultValue` when set, otherwise from
- * {@link defaultForType} based on `attributeType`.
+ * SA-7b.2: walks v4 `model.nodes[]` / `model.edges[]` directly. No v3↔v4
+ * conversion seam.
  *
- * For every class-level association (`ClassBidirectional`,
+ * For every concrete `class` node in the source class diagram (skipping
+ * abstract / interface / enumeration variants identified by
+ * `data.stereotype`), the helper produces one `objectName` node on the
+ * object diagram, with one row per source `data.attributes` entry on the
+ * generated `data.attributes`. Slot values come from the source
+ * attribute's `defaultValue` when set, otherwise from {@link sampleByName}
+ * based on the attribute's name and type.
+ *
+ * For every class-level association edge (`ClassBidirectional`,
  * `ClassUnidirectional`, `ClassAggregation`, `ClassComposition`) the
- * helper creates a single `ObjectLink` between the generated objects on
- * each side. Inheritance, realization, and dependency edges are skipped —
- * those are static-structure relationships that don't have a meaningful
- * runtime instance.
+ * helper creates a single `ObjectLink` edge between the generated objects
+ * on each side. Inheritance, realization, and dependency edges are
+ * skipped — those are static-structure relationships that don't have a
+ * meaningful runtime instance.
  *
- * The function is **additive**: existing objects whose `classId` is
- * already present on the canvas are skipped (the helper still uses them
- * as link endpoints if a relevant association needs them), so re-running
- * the action after manual edits doesn't wipe the user's work.
- *
- * Abstract classes and enumerations are skipped — instantiating an
- * abstract class is meaningless, and an enumeration is a value type.
+ * The helper is **additive**: existing objects whose `data.classId` is
+ * already on the canvas are skipped (they're still valid link endpoints
+ * if a relevant association needs them), so re-running after manual edits
+ * doesn't wipe the user's work. Inheritance is honoured — child classes
+ * inherit ancestor `data.attributes` rows (deduplicated by name).
  */
+import { UMLDiagramType, UMLModel } from '@besser/wme';
 
 interface ScaffoldOptions {
-  /** Source class-diagram model (already validated to be a UMLModel). */
+  /** Source class-diagram model (v4 UMLModel). */
   classModel: UMLModel;
-  /** Current object-diagram model — used to skip already-instantiated classes
-   *  and to compute the next free X position. */
+  /** Current object-diagram model (v4 UMLModel) — used to skip already
+   *  instantiated classes and to compute the next free X position. */
   objectModel: UMLModel;
 }
 
@@ -73,10 +45,9 @@ const newId = (kind: string): string => {
   return `${ID_PREFIX}_${kind}_${Date.now().toString(36)}_${idCounter}_${Math.random().toString(36).slice(2, 7)}`;
 };
 
-/**
- * Built-in primitive types. Anything else in ``attributeType`` is treated
- * as a custom type — looked up in the class model (Enumeration → first
- * literal) and otherwise passed through as a literal type-name placeholder.
+/** Built-in primitive types. Anything else in `attributeType` is treated
+ *  as a custom type — looked up in the class model (Enumeration → first
+ *  literal) and otherwise passed through as a literal type-name placeholder.
  */
 const PRIMITIVE_TYPES = new Set([
   'int', 'integer', 'long',
@@ -87,14 +58,9 @@ const PRIMITIVE_TYPES = new Set([
   'any',
 ]);
 
-/**
- * Type-only fallback when no name-based heuristic matches. Picks something
- * non-zero so the slot looks "live" rather than placeholder-empty.
- *
- * Strings are returned unquoted: the editor displays the value as-is, and
- * users were getting visible double quotes around literals, which is noisy
- * and (more importantly) the validator's date type-check rejects a quoted
- * date string.
+/** Type-only fallback when no name-based heuristic matches. Strings are
+ *  returned unquoted: the editor displays the value as-is and the
+ *  validator's date type-check rejects a quoted date string.
  */
 const fallbackForType = (attributeType?: string): string => {
   switch ((attributeType ?? '').toLowerCase()) {
@@ -124,48 +90,36 @@ const fallbackForType = (attributeType?: string): string => {
   }
 };
 
-/**
- * Resolve an enumeration's first literal by name. Enumerations are stored
- * as ``Enumeration`` elements whose ``attributes`` array references
- * ``ClassAttribute`` elements that act as literals (their ``name`` is the
- * literal name). Returns ``undefined`` if no enum with that name exists or
- * the enum is empty — the caller falls back to a placeholder.
+/** Resolve an enumeration's first literal by name (v4). Enumerations are
+ *  v4 nodes with `type: 'class'` and `data.stereotype === 'enumeration'`;
+ *  literals live in `data.attributes` as ClassifierMember rows.
  */
 const firstEnumLiteral = (
   enumName: string | undefined,
   classModel: UMLModel,
 ): string | undefined => {
   if (!enumName) return undefined;
-  // SA-7b: by the time this is called, classModel has been down-converted to
-  // v3 shape (elements/relationships records). Cast to any so TS doesn't
-  // complain about the v4 typings.
-  const v3Model = classModel as any;
-  const enumElement = Object.values(v3Model.elements ?? {}).find(
-    (el: any) => el?.type === 'Enumeration' && el.name === enumName,
-  ) as any;
-  if (!enumElement) return undefined;
-  const literalIds: string[] = Array.isArray(enumElement.attributes) ? enumElement.attributes : [];
-  for (const id of literalIds) {
-    const lit: any = v3Model.elements?.[id];
-    if (lit && typeof lit.name === 'string' && lit.name.length > 0) {
-      return lit.name;
-    }
+  const enumNode = (classModel.nodes ?? []).find((n: any) => {
+    const data = (n.data as any) || {};
+    const isEnumNode =
+      n.type === 'class' && data.stereotype === 'enumeration';
+    // Tolerate v3-shaped leaks where `n.type === 'Enumeration'`.
+    const isLegacyEnum = n.type === 'Enumeration';
+    return (isEnumNode || isLegacyEnum) && data.name === enumName;
+  });
+  if (!enumNode) return undefined;
+  const data = (enumNode.data as any) || {};
+  const literals: any[] = Array.isArray(data.attributes) ? data.attributes : [];
+  for (const lit of literals) {
+    if (lit && typeof lit.name === 'string' && lit.name.length > 0) return lit.name;
   }
   return undefined;
 };
 
-/**
- * Name-aware sample-value generator. Looks at the attribute name first
- * (case- and word-boundary-insensitive) so the user gets
- * ``email = alice@example.com`` instead of ``email = sample``. Falls back
- * to {@link fallbackForType} when no name pattern matches.
- *
- * Strings are intentionally returned unquoted — the editor handles the
- * surrounding presentation, and the validator's date type-check rejects
- * quoted date literals.
- *
- * For non-primitive ``attributeType``s, looks up the type as an
- * Enumeration in the source class model and picks the first literal.
+/** Name-aware sample-value generator. Looks at the attribute name first
+ *  (case- and word-boundary-insensitive) so the user gets
+ *  `email = alice@example.com` instead of `email = sample`. Falls back to
+ *  {@link fallbackForType} when no name pattern matches.
  */
 const sampleByName = (
   rawName: string | undefined,
@@ -186,7 +140,7 @@ const sampleByName = (
     if (literal) return literal;
   }
 
-  // Booleans first — names like ``isActive`` should win over a generic match
+  // Booleans first — names like `isActive` should win over a generic match
   if (isBool || /^(is|has|can|should)[A-Z_]/.test(rawName ?? '')) {
     if (/(active|enabled|valid|available|published|visible|allowed|verified)/.test(name)) return 'true';
     if (/(deleted|disabled|hidden|blocked|locked|expired|archived)/.test(name)) return 'false';
@@ -259,10 +213,9 @@ const OBJECT_NAME_HEADER_HEIGHT = 40;
 const ATTRIBUTE_HEIGHT = 25;
 const HORIZONTAL_GAP = 50;
 
-/**
- * Class-level relationship types the helper turns into `ObjectLink`s. We
- * deliberately leave inheritance / realization / dependency out: those
- * describe static structure, not object-level relations.
+/** Class-level relationship types the helper turns into `ObjectLink`s.
+ *  Inheritance / realization / dependency are intentionally excluded —
+ *  those describe static structure, not object-level relations.
  */
 const ASSOCIATION_TYPES = new Set([
   'ClassBidirectional',
@@ -271,12 +224,6 @@ const ASSOCIATION_TYPES = new Set([
   'ClassComposition',
 ]);
 
-/**
- * Result of the scaffold operation, returned so the caller can show a
- * meaningful toast. `created` counts new objects; `skipped` counts
- * classes that already had an instance on the canvas; `links` counts
- * `ObjectLink`s emitted for class associations.
- */
 export interface ScaffoldResult {
   model: UMLModel;
   created: number;
@@ -284,12 +231,11 @@ export interface ScaffoldResult {
   links: number;
 }
 
-/**
- * Pull a value to seed an object slot. Source-attribute `defaultValue`
- * takes precedence so a deliberate model-level default is never lost;
- * otherwise we ask {@link sampleByName} for a realistic stand-in based
- * on the attribute's name and type, including enum-literal lookup for
- * non-primitive types via ``classModel``.
+/** Pull a value to seed an object slot. Source-attribute `defaultValue`
+ *  takes precedence so a deliberate model-level default is never lost;
+ *  otherwise we ask {@link sampleByName} for a realistic stand-in based
+ *  on the attribute's name and type, including enum-literal lookup for
+ *  non-primitive types via `classModel`.
  */
 const seedValue = (attr: any, classModel: UMLModel): string => {
   const explicit = attr?.defaultValue;
@@ -299,123 +245,189 @@ const seedValue = (attr: any, classModel: UMLModel): string => {
   return sampleByName(attr?.name, attr?.attributeType, classModel);
 };
 
+/**
+ * v4 helper: is this a "concrete" Class node (not abstract/interface/enum)?
+ *
+ * The migrator collapses all v3 classifier subtypes into `node.type ===
+ * 'class'` discriminated by `data.stereotype`. We also tolerate a v3-leak
+ * where the modifier accidentally writes `node.type === 'Class'` for
+ * back-compat — see ClassDiagramModifier.addClass which mirrors the
+ * stereotype to the legacy type label.
+ */
+const isConcreteClassNode = (n: any): boolean => {
+  if (!n || typeof n !== 'object') return false;
+  const data = (n.data as any) || {};
+  const isV4Class = n.type === 'class';
+  const isLegacyClass = n.type === 'Class';
+  if (!(isV4Class || isLegacyClass)) return false;
+  const stereotype = (data.stereotype || '').toString().toLowerCase();
+  if (stereotype === 'abstract' || stereotype === 'interface' || stereotype === 'enumeration') return false;
+  return true;
+};
+
+/**
+ * Walk the inheritance graph from `classNodeId` upward and collect all
+ * ancestor `data.attributes` rows (deepest-first wins; child rows
+ * override parent rows of the same name).
+ *
+ * Inheritance edges in v4 are `ClassInheritance` with `source = child`
+ * and `target = parent`.
+ */
+const collectInheritedAttributes = (
+  classNode: any,
+  classModel: UMLModel,
+): any[] => {
+  const visited = new Set<string>();
+  const ordered: any[] = [];
+  const stack: string[] = [classNode.id];
+  const nodesById = new Map<string, any>();
+  for (const n of (classModel.nodes ?? []) as any[]) nodesById.set(n.id, n);
+
+  // Walk parents first → push their attribute rows; then this class's
+  // rows shadow them.
+  const parents: any[] = [];
+  const queue: string[] = [classNode.id];
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    for (const e of (classModel.edges ?? []) as any[]) {
+      if (e.type === 'ClassInheritance' && e.source === id) {
+        const parent = nodesById.get(e.target);
+        if (parent) {
+          parents.push(parent);
+          queue.push(parent.id);
+        }
+      }
+    }
+    // Suppress unused warning
+    void stack;
+  }
+
+  // Deepest ancestor first so child rows dedupe on top.
+  for (let i = parents.length - 1; i >= 0; i--) {
+    const data = (parents[i].data as any) || {};
+    const rows: any[] = Array.isArray(data.attributes) ? data.attributes : [];
+    for (const r of rows) ordered.push(r);
+  }
+  const ownData = (classNode.data as any) || {};
+  const ownRows: any[] = Array.isArray(ownData.attributes) ? ownData.attributes : [];
+  for (const r of ownRows) ordered.push(r);
+
+  // Dedupe by attribute name (last-write-wins so child overrides parent).
+  const byName = new Map<string, any>();
+  for (const row of ordered) {
+    const key = (row?.name || '').toString().toLowerCase();
+    if (!key) continue;
+    byName.set(key, row);
+  }
+  return Array.from(byName.values());
+};
+
 export const scaffoldObjectsFromClasses = ({
   classModel,
   objectModel,
 }: ScaffoldOptions): ScaffoldResult => {
-  // SA-7b: down-convert to v3 so the existing scaffolding logic works.
-  classModel = ensureV3(classModel) as UMLModel;
-  objectModel = ensureV3(objectModel) as UMLModel;
+  // Defensive copies so we never mutate the live editor model.
+  const inputNodes: any[] = Array.isArray((objectModel as any).nodes) ? (objectModel as any).nodes : [];
+  const inputEdges: any[] = Array.isArray((objectModel as any).edges) ? (objectModel as any).edges : [];
+  const outNodes: any[] = inputNodes.map((n) => ({ ...n, data: { ...(n.data ?? {}) } }));
+  const outEdges: any[] = inputEdges.map((e) => ({ ...e, data: { ...(e.data ?? {}) } }));
 
-  // Defensive copy so we never mutate the live model the editor is rendering.
-  const elements: Record<string, any> = { ...((objectModel as any).elements ?? {}) };
-  const relationships: Record<string, any> = { ...((objectModel as any).relationships ?? {}) };
-
-  // Source class ID -> object element ID, so links can target them.
-  // Pre-populated from existing canvas objects so links can connect to
-  // user-created instances too, not just freshly generated ones.
+  // Source class ID → object node ID, so links can target them. Pre-populated
+  // from existing canvas objects so links connect to user-created instances
+  // too, not just freshly generated ones.
   const objectByClassId = new Map<string, string>();
-  for (const el of Object.values(elements)) {
-    if (el?.type === 'ObjectName' && typeof el.classId === 'string' && el.classId) {
-      objectByClassId.set(el.classId, el.id);
+  for (const n of outNodes) {
+    if (n.type !== 'objectName') continue;
+    const data = (n.data as any) || {};
+    if (typeof data.classId === 'string' && data.classId) {
+      objectByClassId.set(data.classId, n.id);
     }
   }
 
-  // Compute the next free x by looking at where existing elements end.
+  // Compute the next free X by looking at where existing objects end.
   let nextX = 0;
-  for (const el of Object.values(elements)) {
-    if (el?.type === 'ObjectName' && el.bounds) {
-      const right = (el.bounds.x ?? 0) + (el.bounds.width ?? OBJECT_NAME_WIDTH);
-      if (right + HORIZONTAL_GAP > nextX) nextX = right + HORIZONTAL_GAP;
-    }
+  for (const n of outNodes) {
+    if (n.type !== 'objectName') continue;
+    const right = (n.position?.x ?? 0) + (n.width ?? OBJECT_NAME_WIDTH);
+    if (right + HORIZONTAL_GAP > nextX) nextX = right + HORIZONTAL_GAP;
   }
 
   let created = 0;
   let skipped = 0;
 
-  for (const sourceClass of Object.values((classModel as any).elements ?? {}) as any[]) {
-    if (!sourceClass || typeof sourceClass !== 'object') continue;
-    // Skip non-instantiable kinds. AbstractClass is intentionally excluded;
-    // Enumerations are already value types.
-    if (sourceClass.type !== 'Class') continue;
+  for (const sourceClass of (classModel.nodes ?? []) as any[]) {
+    if (!isConcreteClassNode(sourceClass)) continue;
     if (objectByClassId.has(sourceClass.id)) {
       skipped += 1;
       continue;
     }
 
-    const sourceAttributeIds: string[] = Array.isArray((sourceClass as any).attributes)
-      ? (sourceClass as any).attributes
-      : [];
-    const sourceAttributes = sourceAttributeIds
-      .map((id) => (classModel as any).elements?.[id])
-      .filter((a: any) => a && a.type === 'ClassAttribute');
+    const sourceAttributes = collectInheritedAttributes(sourceClass, classModel);
+    const sourceData = (sourceClass.data as any) || {};
+    const sourceClassName: string = sourceData.name ?? 'object';
 
     const objectId = newId('obj');
-    const childIds: string[] = [];
-
-    sourceAttributes.forEach((attr: any, idx: number) => {
-      const attrId = newId('attr');
-      childIds.push(attrId);
+    const attrRows = sourceAttributes.map((attr: any) => {
       const value = seedValue(attr, classModel);
-      elements[attrId] = {
-        id: attrId,
-        name: `${attr.name} = ${value}`,
-        type: 'ObjectAttribute',
-        owner: objectId,
-        bounds: {
-          x: nextX,
-          y: OBJECT_NAME_HEADER_HEIGHT + idx * ATTRIBUTE_HEIGHT,
-          width: OBJECT_NAME_WIDTH,
-          height: ATTRIBUTE_HEIGHT,
-        },
+      return {
+        id: newId('attr'),
+        name: value !== undefined && value !== null && String(value).length > 0
+          ? `${attr.name} = ${value}`
+          : attr.name,
         attributeType: attr.attributeType ?? 'str',
-        // Store a back-pointer to the source attribute so future edits in
-        // the class diagram can be reconciled if we ever add a sync feature.
+        // Back-pointer to the source class attribute so future edits in
+        // the class diagram can be reconciled if we ever add a sync
+        // feature.
         attributeId: attr.id,
+        value,
       };
     });
 
-    elements[objectId] = {
+    const totalHeight = OBJECT_NAME_HEADER_HEIGHT + sourceAttributes.length * ATTRIBUTE_HEIGHT;
+    const instanceName = `${sourceClassName.charAt(0).toLowerCase()}${sourceClassName.slice(1)}1`;
+
+    outNodes.push({
       id: objectId,
-      name: `${(sourceClass.name ?? 'object').charAt(0).toLowerCase() + (sourceClass.name ?? 'object').slice(1)}1`,
-      type: 'ObjectName',
-      owner: null,
-      bounds: {
-        x: nextX,
-        y: 0,
-        width: OBJECT_NAME_WIDTH,
-        height: OBJECT_NAME_HEADER_HEIGHT + sourceAttributes.length * ATTRIBUTE_HEIGHT,
+      type: 'objectName',
+      position: { x: nextX, y: 0 },
+      width: OBJECT_NAME_WIDTH,
+      height: totalHeight,
+      measured: { width: OBJECT_NAME_WIDTH, height: totalHeight },
+      data: {
+        name: instanceName,
+        classId: sourceClass.id,
+        className: sourceClassName,
+        attributes: attrRows,
+        methods: [],
       },
-      attributes: childIds,
-      methods: [],
-      classId: sourceClass.id,
-      className: sourceClass.name,
-    };
+    });
 
     objectByClassId.set(sourceClass.id, objectId);
     created += 1;
     nextX += OBJECT_NAME_WIDTH + HORIZONTAL_GAP;
   }
 
-  // Track which (sourceClassA, sourceClassB) pairs already have an
-  // ObjectLink so we don't duplicate when the helper is re-run, and so
-  // multiple class associations between the same two classes still emit
-  // distinct links per association ID.
+  // Track which class associations already have an ObjectLink so we don't
+  // duplicate when the helper is re-run (multiple class associations
+  // between the same two classes still emit distinct links per
+  // associationId).
   const existingLinkAssociationIds = new Set<string>();
-  for (const rel of Object.values(relationships)) {
-    if (rel?.type === 'ObjectLink' && typeof rel.associationId === 'string') {
-      existingLinkAssociationIds.add(rel.associationId);
-    }
+  for (const e of outEdges) {
+    if (e.type !== 'ObjectLink') continue;
+    const data = (e.data as any) || {};
+    if (typeof data.associationId === 'string') existingLinkAssociationIds.add(data.associationId);
   }
 
   let links = 0;
-  for (const rel of Object.values((classModel as any).relationships ?? {}) as any[]) {
+  for (const rel of (classModel.edges ?? []) as any[]) {
     if (!rel || typeof rel !== 'object') continue;
     if (!ASSOCIATION_TYPES.has(rel.type)) continue;
     if (existingLinkAssociationIds.has(rel.id)) continue;
 
-    const sourceClassId = (rel as any).source?.element;
-    const targetClassId = (rel as any).target?.element;
+    const sourceClassId = rel.source;
+    const targetClassId = rel.target;
     const sourceObjectId = sourceClassId ? objectByClassId.get(sourceClassId) : undefined;
     const targetObjectId = targetClassId ? objectByClassId.get(targetClassId) : undefined;
     // If either side has no object on the canvas (abstract class, missing
@@ -424,57 +436,35 @@ export const scaffoldObjectsFromClasses = ({
     if (!sourceObjectId || !targetObjectId) continue;
 
     const linkId = newId('link');
-    relationships[linkId] = {
+    outEdges.push({
       id: linkId,
-      name: (rel as any).name ?? '',
       type: 'ObjectLink',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 0, height: 0 },
-      path: [
-        { x: 0, y: 0 },
-        { x: 0, y: 0 },
-      ],
-      source: {
-        direction: (rel as any).source?.direction ?? 'Right',
-        element: sourceObjectId,
+      source: sourceObjectId,
+      target: targetObjectId,
+      sourceHandle: (rel.sourceHandle as string) || 'Right',
+      targetHandle: (rel.targetHandle as string) || 'Left',
+      data: {
+        name: ((rel.data as any) || {}).name ?? '',
+        associationId: rel.id,
+        points: [
+          { x: 0, y: 0 },
+          { x: 0, y: 0 },
+        ],
+        isManuallyLayouted: false,
       },
-      target: {
-        direction: (rel as any).target?.direction ?? 'Left',
-        element: targetObjectId,
-      },
-      isManuallyLayouted: false,
-      associationId: (rel as any).id,
-    };
+    });
     links += 1;
   }
 
-  // Build a v3 ObjectDiagram payload, then up-convert back to v4 so the editor
-  // and Redux store can consume it directly.
-  const v3Output = {
+  const v4Model: UMLModel = {
     ...(objectModel as any),
-    elements,
-    relationships,
+    version: '4.0.0',
     type: (objectModel as any).type ?? UMLDiagramType.ObjectDiagram,
-    // The migrator expects a 3.x version string; if the down-converted model
-    // already has one, leave it alone.
-    version: (objectModel as any).version && String((objectModel as any).version).startsWith('3.')
-      ? (objectModel as any).version
-      : '3.0.0',
-  };
+    nodes: outNodes,
+    edges: outEdges,
+    interactive: (objectModel as any).interactive ?? { elements: {}, relationships: {} },
+    assessments: (objectModel as any).assessments ?? {},
+  } as UMLModel;
 
-  let v4Model: UMLModel;
-  try {
-    v4Model = migrateObjectDiagramV3ToV4(v3Output);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn('[scaffoldObjectsFromClasses] v3→v4 conversion failed; returning raw model', err);
-    v4Model = v3Output as UMLModel;
-  }
-
-  return {
-    model: v4Model,
-    created,
-    skipped,
-    links,
-  };
+  return { model: v4Model, created, skipped, links };
 };
