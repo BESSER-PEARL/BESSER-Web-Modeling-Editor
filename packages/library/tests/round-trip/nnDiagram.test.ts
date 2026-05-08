@@ -271,3 +271,96 @@ describe("NNDiagram auto-name uniqueness on layer drop", () => {
     ).toBe("Conv2D")
   })
 })
+
+/**
+ * SA-FIX-NN-DROPS regression — palette drops onto an `NNContainer`
+ * must propagate `parentId` so layers nest visually inside the
+ * container. Before the fix, neither `isParentNodeType` nor
+ * `canDropIntoParent` knew about NN node types, so the drop-handler
+ * in `DraggableGhost.tsx` skipped parent assignment and every layer
+ * landed at the canvas root.
+ *
+ * The user-reported symptom was "I can't even put them into the
+ * canvas" — drops succeeded technically but appeared at unexpected
+ * positions, which read as failure.
+ */
+import { isParentNodeType } from "@/utils/nodeUtils"
+import { canDropIntoParent } from "@/utils/bpmnConstraints"
+
+describe("SA-FIX-NN-DROPS: container drop validation", () => {
+  it("treats NNContainer / State / AgentIntent as parent node types", () => {
+    expect(isParentNodeType("NNContainer")).toBe(true)
+    expect(isParentNodeType("State")).toBe(true)
+    expect(isParentNodeType("AgentIntent")).toBe(true)
+    // SA-FIX-Agent inlined AgentState bodies, but we still surface
+    // it as a parent type so `canDropIntoParent` can explicitly
+    // reject drops instead of falling through to the permissive
+    // default.
+    expect(isParentNodeType("AgentState")).toBe(true)
+  })
+
+  it("does not surface unrelated nodes as parent types", () => {
+    expect(isParentNodeType("Conv2DLayer")).toBe(false)
+    expect(isParentNodeType("StateBody")).toBe(false)
+    expect(isParentNodeType(undefined)).toBe(false)
+  })
+
+  it("allows every NN layer kind into NNContainer", () => {
+    const allowed = [
+      "Conv1DLayer",
+      "Conv2DLayer",
+      "Conv3DLayer",
+      "PoolingLayer",
+      "RNNLayer",
+      "LSTMLayer",
+      "GRULayer",
+      "LinearLayer",
+      "FlattenLayer",
+      "EmbeddingLayer",
+      "DropoutLayer",
+      "LayerNormalizationLayer",
+      "BatchNormalizationLayer",
+      "TensorOp",
+      "NNReference",
+    ]
+    for (const kind of allowed) {
+      expect(canDropIntoParent(kind, "NNContainer")).toBe(true)
+    }
+  })
+
+  it("rejects datasets and configuration from nesting in NNContainer", () => {
+    // These bind via NNAssociation edges, not by parentId nesting.
+    expect(canDropIntoParent("TrainingDataset", "NNContainer")).toBe(false)
+    expect(canDropIntoParent("TestDataset", "NNContainer")).toBe(false)
+    expect(canDropIntoParent("Configuration", "NNContainer")).toBe(false)
+  })
+
+  it("allows the three legacy body shapes inside a State", () => {
+    expect(canDropIntoParent("StateBody", "State")).toBe(true)
+    expect(canDropIntoParent("StateFallbackBody", "State")).toBe(true)
+    expect(canDropIntoParent("StateCodeBlock", "State")).toBe(true)
+    // Nothing else should land inside a State.
+    expect(canDropIntoParent("Conv2DLayer", "State")).toBe(false)
+    expect(canDropIntoParent("class", "State")).toBe(false)
+  })
+
+  it("allows AgentIntent body / description / object component nesting", () => {
+    expect(canDropIntoParent("AgentIntentBody", "AgentIntent")).toBe(true)
+    expect(canDropIntoParent("AgentIntentDescription", "AgentIntent")).toBe(
+      true
+    )
+    expect(
+      canDropIntoParent("AgentIntentObjectComponent", "AgentIntent")
+    ).toBe(true)
+    expect(canDropIntoParent("Conv2DLayer", "AgentIntent")).toBe(false)
+  })
+
+  it("rejects every drop into AgentState (bodies are inlined)", () => {
+    // SA-FIX-Agent collapsed entry/do/exit/on/fallback rows onto
+    // `AgentState.data.bodies`. AgentState is no longer a real
+    // React-Flow parent — return false to prevent accidental nesting
+    // when the drop-handler walks intersecting parent candidates.
+    expect(canDropIntoParent("AgentIntentBody", "AgentState")).toBe(false)
+    expect(canDropIntoParent("AgentIntent", "AgentState")).toBe(false)
+  })
+})

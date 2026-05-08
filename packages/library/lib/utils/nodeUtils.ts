@@ -134,6 +134,11 @@ const NODE_LABEL_CAPABILITIES = {
   objectName: { wrapsName: false, rendersNameLabel: true },
   communicationObjectName: { wrapsName: false, rendersNameLabel: true },
   colorDescription: { wrapsName: true, rendersNameLabel: true },
+  // SA-HIDE-NOISE: free-form sticky-note Comment ported from v3
+  // `common/comments`. The body text wraps inside the note and the
+  // node renders its own label, so the global rename popover is
+  // unused here (the inspector edits via a multiline TextField).
+  comment: { wrapsName: true, rendersNameLabel: false },
   titleAndDesctiption: { wrapsName: false, rendersNameLabel: true },
 
   // Activity diagram
@@ -238,6 +243,17 @@ export const isParentNodeType = (nodeType?: string) => {
     nodeType === DiagramNodeTypeRecord.bpmnGroup ||
     nodeType === DiagramNodeTypeRecord.bpmnSubprocess ||
     nodeType === DiagramNodeTypeRecord.bpmnTransaction ||
-    nodeType === DiagramNodeTypeRecord.bpmnCallActivity
+    nodeType === DiagramNodeTypeRecord.bpmnCallActivity ||
+    // SA-FIX-NN-DROPS: BESSER-registered parent shapes (NN, State,
+    // Agent diagrams) live outside the default node-type registry —
+    // they're added at runtime via `registerNodeTypes`. Compare by
+    // string literal so the union type does not need to be widened.
+    // Without this the drop-handler in `DraggableGhost.tsx` /
+    // `useNodeDragStop.ts` never recognises these as parents and
+    // children land at the canvas root with no `parentId`.
+    nodeType === "NNContainer" ||
+    nodeType === "State" ||
+    nodeType === "AgentState" ||
+    nodeType === "AgentIntent"
   )
 }

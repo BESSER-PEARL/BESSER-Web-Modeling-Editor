@@ -1,4 +1,33 @@
 /**
+ * Allowed NN layer kinds inside an `NNContainer`. Top-level-only kinds
+ * (Configuration, TrainingDataset, TestDataset) are intentionally
+ * excluded — datasets and configuration bind to the container via
+ * NNAssociation edges, not by nesting.
+ *
+ * SA-FIX-NN-DROPS: keep this set in sync with the NN palette in
+ * `lib/constants.ts` (`UMLDiagramType.NNDiagram`). NNReference is
+ * allowed inside as well so a forward-reference can sit next to the
+ * layers it points at.
+ */
+const NN_LAYER_KINDS_IN_CONTAINER: ReadonlySet<string> = new Set([
+  "Conv1DLayer",
+  "Conv2DLayer",
+  "Conv3DLayer",
+  "PoolingLayer",
+  "RNNLayer",
+  "LSTMLayer",
+  "GRULayer",
+  "LinearLayer",
+  "FlattenLayer",
+  "EmbeddingLayer",
+  "DropoutLayer",
+  "LayerNormalizationLayer",
+  "BatchNormalizationLayer",
+  "TensorOp",
+  "NNReference",
+])
+
+/**
  * Determines if a node type can be dropped into a parent node type
  * based on BPMN rules and constraints
  */
@@ -6,6 +35,43 @@ export const canDropIntoParent = (
   childType: string,
   parentType: string
 ): boolean => {
+  // SA-FIX-NN-DROPS: NNContainer accepts the layer kinds (and only
+  // those). The drop-handler in `DraggableGhost.tsx` /
+  // `useNodeDragStop.ts` consults this to set `parentId` on the new
+  // node — without this rule layer drops land at the canvas root.
+  if (parentType === "NNContainer") {
+    return NN_LAYER_KINDS_IN_CONTAINER.has(childType)
+  }
+
+  // SA-FIX-NN-DROPS: State machine `State` parents the three legacy
+  // body shapes (entry/exit body, fallback body, code block). Mirrors
+  // SA-3's rendering contract — bodies use `parentId = state.id`.
+  if (parentType === "State") {
+    return (
+      childType === "StateBody" ||
+      childType === "StateFallbackBody" ||
+      childType === "StateCodeBlock"
+    )
+  }
+
+  // SA-FIX-NN-DROPS: AgentDiagram intent parents its body / description
+  // / object-component children. AgentState is intentionally absent —
+  // SA-FIX-Agent inlined those bodies onto `AgentState.data.bodies`.
+  if (parentType === "AgentIntent") {
+    return (
+      childType === "AgentIntentBody" ||
+      childType === "AgentIntentDescription" ||
+      childType === "AgentIntentObjectComponent"
+    )
+  }
+
+  // SA-FIX-NN-DROPS: AgentState exposes itself as a parent type so the
+  // drop-handler skips parent-assignment instead of falling through to
+  // the permissive default below — its bodies are inlined, not nested.
+  if (parentType === "AgentState") {
+    return false
+  }
+
   // BPMN Pool constraints
   if (parentType === "bpmnPool") {
     // Pools can contain most BPMN elements including other pools

@@ -1,6 +1,6 @@
 import React from "react"
 import {
-  ColorDescriptionConfig,
+  CommentConfig,
   DROPS,
   dropElementConfigs,
   LAYOUT,
@@ -134,6 +134,38 @@ export const Sidebar = () => {
 
           return (
             <React.Fragment key={`${config.type}_${config.defaultData?.name}`}>
+              {/* SA-FIX-NN-DROPS: render a section divider + heading
+                  above any palette entry tagged with `sectionLabel`.
+                  For the very first entry the divider is suppressed —
+                  the heading sits flush with the top edge there. */}
+              {config.sectionLabel && (
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px",
+                    marginTop: index === 0 ? 0 : 4,
+                  }}
+                >
+                  {index !== 0 && <DividerLine style={{ margin: "3px 0" }} />}
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                      color:
+                        "var(--besser-primary-contrast, rgba(0,0,0,0.6))",
+                      opacity: 0.7,
+                      textAlign: "center",
+                      width: "100%",
+                    }}
+                  >
+                    {config.sectionLabel}
+                  </div>
+                </div>
+              )}
               <DraggableGhost dropElementConfig={config}>
                 <div
                   className="prevent-select"
@@ -158,28 +190,36 @@ export const Sidebar = () => {
           )
         })}
 
+      {/*
+        SA-HIDE-NOISE: replace the always-on `ColorDescriptionConfig`
+        block with the free-form sticky-note `CommentConfig`. The
+        ColorDescription node renderer + inspector code stay in the tree
+        — re-enabling is a one-line swap here when a designer needs the
+        legend back. Comments are intentionally untethered for now;
+        binding to elements can be added later.
+      */}
       {view === BesserView.Modelling && (
         <>
           <DividerLine style={{ margin: "3px 0" }} />
-          <DraggableGhost dropElementConfig={ColorDescriptionConfig}>
+          <DraggableGhost dropElementConfig={CommentConfig}>
             <div
               className="prevent-select"
               style={{
                 width:
-                  ColorDescriptionConfig.width * DROPS.SIDEBAR_PREVIEW_SCALE,
+                  CommentConfig.width * DROPS.SIDEBAR_PREVIEW_SCALE,
                 height:
-                  ColorDescriptionConfig.height * DROPS.SIDEBAR_PREVIEW_SCALE,
+                  CommentConfig.height * DROPS.SIDEBAR_PREVIEW_SCALE,
                 zIndex: ZINDEX.DRAGGABLE_GHOST,
-                marginTop: ColorDescriptionConfig.marginTop,
+                marginTop: CommentConfig.marginTop,
               }}
             >
-              {React.createElement(ColorDescriptionConfig.svg, {
-                width: ColorDescriptionConfig.width,
-                height: ColorDescriptionConfig.height,
-                ...ColorDescriptionConfig.defaultData,
-                data: ColorDescriptionConfig.defaultData,
+              {React.createElement(CommentConfig.svg, {
+                width: CommentConfig.width,
+                height: CommentConfig.height,
+                ...CommentConfig.defaultData,
+                data: CommentConfig.defaultData,
                 SIDEBAR_PREVIEW_SCALE: DROPS.SIDEBAR_PREVIEW_SCALE,
-                id: "sidebarElement_ColorDescription",
+                id: "sidebarElement_Comment",
               })}
             </div>
           </DraggableGhost>
