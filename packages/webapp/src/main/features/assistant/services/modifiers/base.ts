@@ -1,8 +1,12 @@
 /**
  * Base Modifier Interface
- * Defines the contract for all diagram-specific modification handlers
+ * Defines the contract for all diagram-specific modification handlers.
+ *
+ * SA-7b.1: webapp internals are v4-native. Modifiers walk `model.nodes[]` /
+ * `model.edges[]` directly — no v3 elements/relationships records anywhere.
  */
 
+import type { ApollonEdge, ApollonNode } from '@besser/wme';
 import { BESSERModel } from '../UMLModelingService';
 import { DiagramType, generateUniqueId } from '../shared-types';
 
@@ -144,7 +148,7 @@ export interface DiagramModifier {
 }
 
 /**
- * Helper functions shared across modifiers
+ * Helper functions shared across modifiers (v4-native).
  */
 export class ModifierHelpers {
   /**
@@ -161,69 +165,97 @@ export class ModifierHelpers {
     return structuredClone(model);
   }
 
-  /**
-   * Find element by name and type
-   */
-  static findElementByName(model: BESSERModel, name: string, type: string): string | null {
-    const normalizedName = (name || '').trim().toLowerCase();
-    // First pass: exact match
-    for (const [id, element] of Object.entries(model.elements)) {
-      if (element.type === type && element.name === name) {
-        return id;
-      }
-    }
-    // Second pass: case-insensitive match
-    for (const [id, element] of Object.entries(model.elements)) {
-      if (element.type === type && (element.name || '').trim().toLowerCase() === normalizedName) {
-        return id;
-      }
-    }
-    return null;
+  /** Read-only convenience accessor for `model.nodes`. */
+  static nodes(model: BESSERModel): ApollonNode[] {
+    return ((model as any).nodes ?? []) as ApollonNode[];
+  }
+
+  /** Read-only convenience accessor for `model.edges`. */
+  static edges(model: BESSERModel): ApollonEdge[] {
+    return ((model as any).edges ?? []) as ApollonEdge[];
+  }
+
+  /** Find a node by id. */
+  static findNodeById(model: BESSERModel, id: string): ApollonNode | undefined {
+    return ModifierHelpers.nodes(model).find((n) => n.id === id);
+  }
+
+  /** Find an edge by id. */
+  static findEdgeById(model: BESSERModel, id: string): ApollonEdge | undefined {
+    return ModifierHelpers.edges(model).find((e) => e.id === id);
   }
 
   /**
-   * Find elements by type
+   * Push a new node onto the model.
    */
-  static findElementsByType(model: BESSERModel, type: string): Array<{ id: string; element: any }> {
-    const results: Array<{ id: string; element: any }> = [];
-    for (const [id, element] of Object.entries(model.elements)) {
-      if (element.type === type) {
-        results.push({ id, element });
-      }
-    }
-    return results;
+  static addNode(model: BESSERModel, node: ApollonNode): void {
+    const m = model as any;
+    if (!Array.isArray(m.nodes)) m.nodes = [];
+    m.nodes.push(node);
   }
 
   /**
-   * Remove element and its children
+   * Push a new edge onto the model.
    */
-  static removeElementWithChildren(model: BESSERModel, elementId: string): BESSERModel {
-    const element = model.elements[elementId];
-    if (!element) return model;
+  static addEdge(model: BESSERModel, edge: ApollonEdge): void {
+    const m = model as any;
+    if (!Array.isArray(m.edges)) m.edges = [];
+    m.edges.push(edge);
+  }
 
-    // Remove child elements (attributes, methods, bodies, etc.)
-    ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach(childProp => {
-      const children = element[childProp];
-      if (Array.isArray(children)) {
-        children.forEach((childId: string) => {
-          delete model.elements[childId];
-        });
-      }
-    });
+  /** Remove a node by id (and any of its children by parentId), plus incident edges. */
+  static removeNodeWithChildren(model: BESSERModel, nodeId: string): BESSERModel {
+    const m = model as any;
+    const target = ModifierHelpers.findNodeById(model, nodeId);
+    if (!target) return model;
 
-    // Remove the element itself
-    delete model.elements[elementId];
-
-    // Remove related relationships
-    if (model.relationships) {
-      Object.keys(model.relationships).forEach(relId => {
-        const rel = model.relationships[relId];
-        if (rel.source?.element === elementId || rel.target?.element === elementId) {
-          delete model.relationships[relId];
+    // Collect ids of nodes to remove: the target plus any descendants via parentId.
+    const toRemove = new Set<string>([nodeId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const n of ModifierHelpers.nodes(model)) {
+        if (n.parentId && toRemove.has(n.parentId) && !toRemove.has(n.id)) {
+          toRemove.add(n.id);
+          changed = true;
         }
-      });
+      }
     }
 
+    m.nodes = (m.nodes ?? []).filter((n: ApollonNode) => !toRemove.has(n.id));
+    m.edges = (m.edges ?? []).filter((e: ApollonEdge) => !toRemove.has(e.source) && !toRemove.has(e.target));
     return model;
+  }
+
+  /**
+   * Find a node by `data.name` matching the given name; optionally filtered by `node.type`.
+   * In v4, attributes/methods/bodies are inline rows on the parent node and are NOT
+   * separate nodes — so this only matches top-level UML element node types.
+   */
+  static findNodeByName(
+    model: BESSERModel,
+    name: string,
+    type?: string,
+  ): ApollonNode | undefined {
+    const normalizedName = (name || '').trim().toLowerCase();
+    const candidates = ModifierHelpers.nodes(model).filter((n) =>
+      type ? n.type === type : true,
+    );
+    // Exact match first
+    for (const n of candidates) {
+      const data: any = n.data || {};
+      if (data.name === name) return n;
+    }
+    // Case-insensitive fallback
+    for (const n of candidates) {
+      const data: any = n.data || {};
+      if (typeof data.name === 'string' && data.name.trim().toLowerCase() === normalizedName) return n;
+    }
+    return undefined;
+  }
+
+  /** Find all nodes whose `type` matches. */
+  static findNodesByType(model: BESSERModel, type: string): ApollonNode[] {
+    return ModifierHelpers.nodes(model).filter((n) => n.type === type);
   }
 }

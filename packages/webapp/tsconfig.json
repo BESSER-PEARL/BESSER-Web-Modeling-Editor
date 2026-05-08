@@ -16,7 +16,7 @@
     "baseUrl": ".",
     "types": ["vite/client", "node", "vitest/globals"],
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["src/*", "../library/lib/*"],
       "@besser/wme": ["../library/lib/index.tsx"],
       "shared": ["../shared/src/index.ts"],
       "webapp/*": ["./*"]

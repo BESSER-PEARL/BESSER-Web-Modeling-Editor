@@ -1,10 +1,18 @@
 /**
- * State Machine Modifier
- * Handles all modification operations for State Machine Diagrams
+ * State Machine Modifier (v4-native)
+ *
+ * SA-7b.1: walks v4 `model.nodes[]` / `model.edges[]` directly.
+ *
+ * v4 State diagram: State has `data.bodies[]` and `data.fallbackBodies[]` rows
+ * (StateBody/StateFallbackBody collapse onto the parent state — they are NOT
+ * separate nodes). Initial / Final / Code-Block nodes remain top-level.
  */
 
+import type { ApollonEdge, ApollonNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+
+type BodyRow = { id: string; name: string };
 
 export class StateMachineModifier implements DiagramModifier {
   getDiagramType() {
@@ -26,220 +34,177 @@ export class StateMachineModifier implements DiagramModifier {
     const updatedModel = ModifierHelpers.cloneModel(model);
 
     switch (modification.action) {
-      case 'add_state':
-        return this.addState(updatedModel, modification);
-      case 'modify_state':
-        return this.modifyState(updatedModel, modification);
-      case 'add_transition':
-        return this.addTransition(updatedModel, modification);
-      case 'remove_transition':
-        return this.removeTransition(updatedModel, modification);
-      case 'add_code_block':
-        return this.addCodeBlock(updatedModel, modification);
-      case 'remove_element':
-        return this.removeElement(updatedModel, modification);
+      case 'add_state':         return this.addState(updatedModel, modification);
+      case 'modify_state':      return this.modifyState(updatedModel, modification);
+      case 'add_transition':    return this.addTransition(updatedModel, modification);
+      case 'remove_transition': return this.removeTransition(updatedModel, modification);
+      case 'add_code_block':    return this.addCodeBlock(updatedModel, modification);
+      case 'remove_element':    return this.removeElement(updatedModel, modification);
       default:
         throw new Error(`Unsupported action for StateMachineDiagram: ${modification.action}`);
     }
   }
 
+  private nextPosition(model: BESSERModel): { x: number; y: number } {
+    let maxY = 0;
+    for (const node of ModifierHelpers.nodes(model)) {
+      const bottom = (node.position?.y || 0) + (node.height || 0);
+      if (bottom > maxY) maxY = bottom;
+    }
+    return { x: 100, y: maxY + 40 };
+  }
+
   private addState(model: BESSERModel, modification: ModelModification): BESSERModel {
     const changes = modification.changes;
     const stateType = (changes.stateType || changes.name || '').toLowerCase();
-
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
-
+    const pos = this.nextPosition(model);
     const stateId = ModifierHelpers.generateUniqueId('state');
 
-    // StateInitialNode and StateFinalNode are simple circles
     if (stateType === 'initial') {
-      model.elements[stateId] = {
-        type: 'StateInitialNode',
+      const node: ApollonNode = {
         id: stateId,
-        name: '',
-        owner: null,
-        bounds: { x: pos.x, y: pos.y, width: 45, height: 45 }
+        type: 'StateInitialNode' as any,
+        position: pos,
+        width: 45,
+        height: 45,
+        measured: { width: 45, height: 45 },
+        data: { name: '' },
       };
+      ModifierHelpers.addNode(model, node);
       return model;
     }
 
     if (stateType === 'final') {
-      model.elements[stateId] = {
-        type: 'StateFinalNode',
+      const node: ApollonNode = {
         id: stateId,
-        name: '',
-        owner: null,
-        bounds: { x: pos.x, y: pos.y, width: 45, height: 45 }
+        type: 'StateFinalNode' as any,
+        position: pos,
+        width: 45,
+        height: 45,
+        measured: { width: 45, height: 45 },
+        data: { name: '' },
       };
+      ModifierHelpers.addNode(model, node);
       return model;
     }
 
-    // Regular State with body elements for entry/do/exit actions
-    const bodies: string[] = [];
-    const fallbackBodies: string[] = [];
-    let currentY = pos.y + 41;
+    const bodies: BodyRow[] = [];
+    const fallbackBodies: BodyRow[] = [];
+    if (changes.entryAction) bodies.push({ id: ModifierHelpers.generateUniqueId('body'), name: `entry / ${changes.entryAction}` });
+    if (changes.doActivity) bodies.push({ id: ModifierHelpers.generateUniqueId('body'), name: `do / ${changes.doActivity}` });
+    if (changes.exitAction) bodies.push({ id: ModifierHelpers.generateUniqueId('body'), name: `exit / ${changes.exitAction}` });
 
-    if (changes.entryAction) {
-      const bodyId = ModifierHelpers.generateUniqueId('body');
-      bodies.push(bodyId);
-      model.elements[bodyId] = {
-        id: bodyId,
-        name: `entry / ${changes.entryAction}`,
-        type: 'StateBody',
-        owner: stateId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: 159, height: 30 }
-      };
-      currentY += 30;
-    }
-
-    if (changes.doActivity) {
-      const bodyId = ModifierHelpers.generateUniqueId('body');
-      bodies.push(bodyId);
-      model.elements[bodyId] = {
-        id: bodyId,
-        name: `do / ${changes.doActivity}`,
-        type: 'StateBody',
-        owner: stateId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: 159, height: 30 }
-      };
-      currentY += 30;
-    }
-
-    if (changes.exitAction) {
-      const bodyId = ModifierHelpers.generateUniqueId('body');
-      bodies.push(bodyId);
-      model.elements[bodyId] = {
-        id: bodyId,
-        name: `exit / ${changes.exitAction}`,
-        type: 'StateBody',
-        owner: stateId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: 159, height: 30 }
-      };
-      currentY += 30;
-    }
-
-    const totalHeight = Math.max(100, currentY - pos.y);
-
-    model.elements[stateId] = {
-      type: 'State',
+    const totalHeight = Math.max(100, 41 + bodies.length * 30);
+    const stateName = modification.target.stateName || changes.name || '';
+    const node: ApollonNode = {
       id: stateId,
-      name: modification.target.stateName || changes.name || '',
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 160, height: totalHeight },
-      bodies,
-      fallbackBodies
+      type: 'State' as any,
+      position: pos,
+      width: 160,
+      height: totalHeight,
+      measured: { width: 160, height: totalHeight },
+      data: {
+        name: stateName,
+        bodies,
+        fallbackBodies,
+      },
     };
-
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
   private modifyState(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
-    const targetId = stateId
-      || ModifierHelpers.findElementByName(model, stateName!, 'State')
-      || ModifierHelpers.findElementByName(model, stateName!, 'StateInitialNode')
-      || ModifierHelpers.findElementByName(model, stateName!, 'StateFinalNode');
-
-    if (targetId && model.elements[targetId]) {
-      if (modification.changes.name) {
-        model.elements[targetId].name = modification.changes.name;
-      }
+    let target: ApollonNode | undefined;
+    if (stateId) target = ModifierHelpers.findNodeById(model, stateId);
+    if (!target && stateName) {
+      target = ModifierHelpers.findNodeByName(model, stateName, 'State')
+        || ModifierHelpers.findNodeByName(model, stateName, 'StateInitialNode')
+        || ModifierHelpers.findNodeByName(model, stateName, 'StateFinalNode');
     }
-
+    if (target && modification.changes.name) {
+      (target.data as any).name = modification.changes.name;
+    }
     return model;
   }
 
   private addTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.relationships) {
-      model.relationships = {};
-    }
+    const m = model as any;
+    if (!Array.isArray(m.edges)) m.edges = [];
 
-    const sourceId = ModifierHelpers.findElementByName(model, modification.changes.source!, 'State')
-      ?? ModifierHelpers.findElementByName(model, modification.changes.source!, 'StateInitialNode')
-      ?? ModifierHelpers.findElementByName(model, modification.changes.source!, 'StateFinalNode');
-    const targetId = ModifierHelpers.findElementByName(model, modification.changes.target!, 'State')
-      ?? ModifierHelpers.findElementByName(model, modification.changes.target!, 'StateFinalNode')
-      ?? ModifierHelpers.findElementByName(model, modification.changes.target!, 'StateInitialNode');
+    const sourceName = modification.changes.source!;
+    const targetName = modification.changes.target!;
 
-    if (!sourceId || !targetId) {
+    const sourceNode = ModifierHelpers.findNodeByName(model, sourceName, 'State')
+      || ModifierHelpers.findNodeByName(model, sourceName, 'StateInitialNode')
+      || ModifierHelpers.findNodeByName(model, sourceName, 'StateFinalNode')
+      || (sourceName === '' ? ModifierHelpers.findNodesByType(model, 'StateInitialNode')[0] : undefined);
+    const targetNode = ModifierHelpers.findNodeByName(model, targetName, 'State')
+      || ModifierHelpers.findNodeByName(model, targetName, 'StateFinalNode')
+      || ModifierHelpers.findNodeByName(model, targetName, 'StateInitialNode');
+
+    if (!sourceNode || !targetNode) {
       throw new Error('Could not locate source or target state for transition.');
     }
 
     const transitionId = ModifierHelpers.generateUniqueId('transition');
-
-    model.relationships[transitionId] = {
+    const edge: ApollonEdge = {
       id: transitionId,
-      type: 'StateTransition',
-      source: {
-        element: sourceId,
-        direction: 'Right'
+      source: sourceNode.id,
+      target: targetNode.id,
+      type: 'StateTransition' as any,
+      sourceHandle: 'Right',
+      targetHandle: 'Left',
+      data: {
+        name: modification.changes.label || modification.changes.name || '',
+        params: {},
+        points: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+        isManuallyLayouted: false,
       },
-      target: {
-        element: targetId,
-        direction: 'Left'
-      },
-      name: modification.changes.label || modification.changes.name || '',
-      bounds: { x: 0, y: 0, width: 100, height: 1 },
-      path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-      isManuallyLayouted: false
     };
-
+    m.edges.push(edge);
     return model;
   }
 
   private removeTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { transitionId } = modification.target;
-
-    if (transitionId && model.relationships?.[transitionId]) {
-      delete model.relationships[transitionId];
-    }
-
+    if (!transitionId) return model;
+    const m = model as any;
+    m.edges = (m.edges ?? []).filter((e: ApollonEdge) => e.id !== transitionId);
     return model;
   }
 
   private addCodeBlock(model: BESSERModel, modification: ModelModification): BESSERModel {
     const changes = modification.changes;
-
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
-
-    const stateId = ModifierHelpers.generateUniqueId('codeblock');
-
-    model.elements[stateId] = {
-      type: 'StateCodeBlock',
-      id: stateId,
-      name: changes.name || modification.target.stateName || 'Code',
-      code: changes.code || '',
-      language: changes.language || 'python',
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 200, height: 150 }
+    const pos = this.nextPosition(model);
+    const codeBlockId = ModifierHelpers.generateUniqueId('codeblock');
+    const node: ApollonNode = {
+      id: codeBlockId,
+      type: 'StateCodeBlock' as any,
+      position: pos,
+      width: 200,
+      height: 150,
+      measured: { width: 200, height: 150 },
+      data: {
+        name: changes.name || modification.target.stateName || 'Code',
+        code: changes.code || '',
+        language: changes.language || 'python',
+      },
     };
-
+    ModifierHelpers.addNode(model, node);
     return model;
   }
 
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
-    const targetId = stateId
-      || ModifierHelpers.findElementByName(model, stateName!, 'State')
-      || ModifierHelpers.findElementByName(model, stateName!, 'StateInitialNode')
-      || ModifierHelpers.findElementByName(model, stateName!, 'StateFinalNode');
-
-    if (targetId) {
-      return ModifierHelpers.removeElementWithChildren(model, targetId);
+    let target: ApollonNode | undefined;
+    if (stateId) target = ModifierHelpers.findNodeById(model, stateId);
+    if (!target && stateName) {
+      target = ModifierHelpers.findNodeByName(model, stateName, 'State')
+        || ModifierHelpers.findNodeByName(model, stateName, 'StateInitialNode')
+        || ModifierHelpers.findNodeByName(model, stateName, 'StateFinalNode');
     }
-
+    if (target) return ModifierHelpers.removeNodeWithChildren(model, target.id);
     return model;
   }
 }
