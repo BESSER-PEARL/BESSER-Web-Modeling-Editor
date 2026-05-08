@@ -1,0 +1,216 @@
+{
+  "version": "3.0.0",
+  "type": "AgentDiagram",
+  "size": { "width": 1400, "height": 900 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "init-1": {
+      "id": "init-1",
+      "name": "",
+      "type": "StateInitialNode",
+      "owner": null,
+      "bounds": { "x": 60, "y": 60, "width": 45, "height": 45 }
+    },
+    "as-Greet": {
+      "id": "as-Greet",
+      "name": "Greet",
+      "type": "AgentState",
+      "owner": null,
+      "bounds": { "x": 160, "y": 50, "width": 240, "height": 120 },
+      "italic": false,
+      "underline": false,
+      "stereotype": null,
+      "replyType": "text"
+    },
+    "asb-Greet-1": {
+      "id": "asb-Greet-1",
+      "name": "Hello there!",
+      "type": "AgentStateBody",
+      "owner": "as-Greet",
+      "bounds": { "x": 160, "y": 90, "width": 240, "height": 30 },
+      "replyType": "text"
+    },
+    "asfb-Greet-1": {
+      "id": "asfb-Greet-1",
+      "name": "(fallback) sorry I missed that",
+      "type": "AgentStateFallbackBody",
+      "owner": "as-Greet",
+      "bounds": { "x": 160, "y": 120, "width": 240, "height": 30 },
+      "replyType": "text"
+    },
+    "as-Help": {
+      "id": "as-Help",
+      "name": "Help",
+      "type": "AgentState",
+      "owner": null,
+      "bounds": { "x": 460, "y": 50, "width": 240, "height": 100 },
+      "italic": false,
+      "underline": false,
+      "stereotype": null,
+      "replyType": "rag"
+    },
+    "asb-Help-1": {
+      "id": "asb-Help-1",
+      "name": "look up answer",
+      "type": "AgentStateBody",
+      "owner": "as-Help",
+      "bounds": { "x": 460, "y": 90, "width": 240, "height": 30 },
+      "replyType": "rag"
+    },
+    "ai-Greeting": {
+      "id": "ai-Greeting",
+      "name": "Greeting",
+      "type": "AgentIntent",
+      "owner": null,
+      "bounds": { "x": 60, "y": 250, "width": 280, "height": 160 },
+      "intent_description": "User says hello.",
+      "italic": false,
+      "underline": false,
+      "stereotype": null
+    },
+    "aib-Greeting-1": {
+      "id": "aib-Greeting-1",
+      "name": "hello",
+      "type": "AgentIntentBody",
+      "owner": "ai-Greeting",
+      "bounds": { "x": 60, "y": 290, "width": 280, "height": 30 }
+    },
+    "aib-Greeting-2": {
+      "id": "aib-Greeting-2",
+      "name": "hi there",
+      "type": "AgentIntentBody",
+      "owner": "ai-Greeting",
+      "bounds": { "x": 60, "y": 320, "width": 280, "height": 30 }
+    },
+    "aid-Greeting-1": {
+      "id": "aid-Greeting-1",
+      "name": "Greeting intent description",
+      "type": "AgentIntentDescription",
+      "owner": "ai-Greeting",
+      "bounds": { "x": 60, "y": 350, "width": 280, "height": 30 }
+    },
+    "ai-Help": {
+      "id": "ai-Help",
+      "name": "AskHelp",
+      "type": "AgentIntent",
+      "owner": null,
+      "bounds": { "x": 380, "y": 250, "width": 280, "height": 130 },
+      "intent_description": "User asks for help.",
+      "italic": false,
+      "underline": false,
+      "stereotype": null
+    },
+    "aib-Help-1": {
+      "id": "aib-Help-1",
+      "name": "help me",
+      "type": "AgentIntentBody",
+      "owner": "ai-Help",
+      "bounds": { "x": 380, "y": 290, "width": 280, "height": 30 }
+    },
+    "aid-Help-1": {
+      "id": "aid-Help-1",
+      "name": "User asks for help.",
+      "type": "AgentIntentDescription",
+      "owner": "ai-Help",
+      "bounds": { "x": 380, "y": 320, "width": 280, "height": 30 }
+    },
+    "rag-1": {
+      "id": "rag-1",
+      "name": "knowledge",
+      "type": "AgentRagElement",
+      "owner": null,
+      "bounds": { "x": 720, "y": 50, "width": 160, "height": 120 },
+      "ragDatabaseName": "kb_main",
+      "dbCustomName": "knowledge_corpus_v2",
+      "dbSelectionType": "custom",
+      "dbQueryMode": "llm_query"
+    }
+  },
+  "relationships": {
+    "init-edge-1": {
+      "id": "init-edge-1",
+      "name": "",
+      "type": "AgentStateTransitionInit",
+      "owner": null,
+      "bounds": { "x": 105, "y": 80, "width": 55, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 55, "y": 0 }
+      ],
+      "source": { "element": "init-1", "direction": "Right" },
+      "target": { "element": "as-Greet", "direction": "Left" }
+    },
+    "trans-shape1": {
+      "id": "trans-shape1",
+      "name": "onGreet",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": { "x": 340, "y": 100, "width": 60, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 60, "y": 0 }
+      ],
+      "source": { "element": "ai-Greeting", "direction": "Up" },
+      "target": { "element": "as-Greet", "direction": "Down" },
+      "transitionType": "predefined",
+      "predefined": {
+        "predefinedType": "when_intent_matched",
+        "intentName": "Greeting"
+      },
+      "custom": { "condition": [] }
+    },
+    "trans-shape2": {
+      "id": "trans-shape2",
+      "name": "onCustom",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": { "x": 400, "y": 200, "width": 100, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 100, "y": 0 }
+      ],
+      "source": { "element": "as-Greet", "direction": "Right" },
+      "target": { "element": "as-Help", "direction": "Left" },
+      "transitionType": "custom",
+      "predefined": { "predefinedType": "" },
+      "custom": {
+        "event": "ReceiveTextEvent",
+        "condition": ["len(msg) > 0"]
+      }
+    },
+    "trans-shape3": {
+      "id": "trans-shape3",
+      "name": "onScore",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": { "x": 700, "y": 200, "width": 100, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 100, "y": 0 }
+      ],
+      "source": { "element": "as-Help", "direction": "Right" },
+      "target": { "element": "as-Greet", "direction": "Right" },
+      "predefinedType": "when_variable_operation_matched",
+      "variable": "score",
+      "operator": ">=",
+      "targetValue": "10"
+    },
+    "trans-shape4": {
+      "id": "trans-shape4",
+      "name": "onWildcard",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": { "x": 700, "y": 300, "width": 100, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 100, "y": 0 }
+      ],
+      "source": { "element": "ai-Help", "direction": "Up" },
+      "target": { "element": "as-Help", "direction": "Down" },
+      "condition": "custom_transition",
+      "customEvent": "WildcardEvent",
+      "customConditions": ["x == 1"]
+    }
+  },
+  "assessments": {}
+}

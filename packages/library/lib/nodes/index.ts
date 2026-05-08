@@ -9,3 +9,7 @@ export * from "./sfcDiagram"
 // SA-3: side-effect import that extends the node-type registry with the
 // 11 BESSER StateMachineDiagram node types via `registerNodeTypes`.
 export * from "./stateMachineDiagram"
+// SA-4: side-effect imports that extend the node-type registry with the
+// 8 BESSER AgentDiagram + 3 UserDiagram node types via `registerNodeTypes`.
+export * from "./agentDiagram"
+export * from "./userDiagram"

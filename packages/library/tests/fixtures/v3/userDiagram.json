@@ -1,0 +1,102 @@
+{
+  "version": "3.0.0",
+  "type": "UserDiagram",
+  "size": { "width": 800, "height": 600 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "u-Alice": {
+      "id": "u-Alice",
+      "name": "Alice: Customer",
+      "type": "UserModelName",
+      "owner": null,
+      "bounds": { "x": 60, "y": 60, "width": 220, "height": 160 },
+      "classId": "node-Customer",
+      "className": "Customer",
+      "description": "A customer named Alice"
+    },
+    "ua-Alice-1": {
+      "id": "ua-Alice-1",
+      "name": "age",
+      "type": "UserModelAttribute",
+      "owner": "u-Alice",
+      "bounds": { "x": 60, "y": 90, "width": 220, "height": 30 },
+      "attributeType": "int",
+      "attributeOperator": ">=",
+      "defaultValue": 18
+    },
+    "ua-Alice-2": {
+      "id": "ua-Alice-2",
+      "name": "country",
+      "type": "UserModelAttribute",
+      "owner": "u-Alice",
+      "bounds": { "x": 60, "y": 120, "width": 220, "height": 30 },
+      "attributeType": "str",
+      "attributeOperator": "==",
+      "defaultValue": "ES"
+    },
+    "ua-Alice-3": {
+      "id": "ua-Alice-3",
+      "name": "premium",
+      "type": "UserModelAttribute",
+      "owner": "u-Alice",
+      "bounds": { "x": 60, "y": 150, "width": 220, "height": 30 },
+      "attributeType": "bool",
+      "attributeOperator": "==",
+      "defaultValue": true
+    },
+    "u-Bob": {
+      "id": "u-Bob",
+      "name": "Bob: Admin",
+      "type": "UserModelName",
+      "owner": null,
+      "bounds": { "x": 360, "y": 60, "width": 220, "height": 160 },
+      "classId": "node-Admin",
+      "className": "Admin"
+    },
+    "ua-Bob-1": {
+      "id": "ua-Bob-1",
+      "name": "role",
+      "type": "UserModelAttribute",
+      "owner": "u-Bob",
+      "bounds": { "x": 360, "y": 90, "width": 220, "height": 30 },
+      "attributeType": "str",
+      "attributeOperator": "==",
+      "defaultValue": "admin"
+    },
+    "ua-Bob-2": {
+      "id": "ua-Bob-2",
+      "name": "score",
+      "type": "UserModelAttribute",
+      "owner": "u-Bob",
+      "bounds": { "x": 360, "y": 120, "width": 220, "height": 30 },
+      "attributeType": "float",
+      "attributeOperator": ">=",
+      "defaultValue": 0.5
+    },
+    "ua-Bob-3": {
+      "id": "ua-Bob-3",
+      "name": "createdOn",
+      "type": "UserModelAttribute",
+      "owner": "u-Bob",
+      "bounds": { "x": 360, "y": 150, "width": 220, "height": 30 },
+      "attributeType": "date",
+      "attributeOperator": "<="
+    }
+  },
+  "relationships": {
+    "link-1": {
+      "id": "link-1",
+      "name": "manages",
+      "type": "UserModelLink",
+      "owner": null,
+      "bounds": { "x": 280, "y": 100, "width": 80, "height": 0 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 80, "y": 0 }
+      ],
+      "source": { "element": "u-Bob", "direction": "Left" },
+      "target": { "element": "u-Alice", "direction": "Right" }
+    }
+  },
+  "assessments": {}
+}

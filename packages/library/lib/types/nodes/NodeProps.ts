@@ -320,3 +320,182 @@ export type StateCodeBlockProps = DefaultNodeProps & {
  * the shared `DefaultNodeProps` shape; no extra fields.
  */
 export type StateMarkerNodeProps = DefaultNodeProps
+
+/* -------------------------------------------------------------------------- */
+/* AgentDiagram (BESSER) — SA-4                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `AgentState` parent node — extends `StateNodeProps` with a `replyType`
+ * discriminator. v3 source: `agent-state-diagram/agent-state/agent-state.ts`
+ * (`replyType` defaults to `'text'` on `AgentStateMember`).
+ *
+ * Children (`AgentStateBody` / `AgentStateFallbackBody` / `AgentRagElement`)
+ * hang off via React Flow `parentId`, mirroring SA-3's State/StateBody
+ * pattern instead of collapsing onto the parent's data — the SA-4 brief
+ * inherits SA-3's choice for visual + auto-grow parity with v3.
+ */
+export type AgentStateNodeProps = StateNodeProps & {
+  /**
+   * Reply discriminator: `'text' | 'image' | 'json' | 'llm' | 'rag' | 'code'
+   * | 'db_reply'` per the v3 `AgentStateMember` defaults. Defaults to `'text'`.
+   */
+  replyType?: string
+}
+
+/**
+ * `AgentStateBody` / `AgentStateFallbackBody` — child rows of an
+ * `AgentState`. Carry the optional `replyType`-driven extras
+ * (`ragDatabaseName`, `dbCustomName`, …) verbatim per the spec at
+ * `docs/source/migrations/uml-v4-shape.md` — the spec mounts these on the
+ * RAG element, but in practice v3's `AgentStateMember` carries them on
+ * **every** agent-state body / fallback body, so the SA-4 port preserves
+ * them on both shapes for round-trip fidelity.
+ */
+export type AgentStateBodyNodeProps = DefaultNodeProps & {
+  replyType?: string
+  ragDatabaseName?: string
+  dbSelectionType?: string
+  dbCustomName?: string
+  dbQueryMode?: string
+  dbOperation?: string
+  dbSqlQuery?: string
+  /** Optional code body when `replyType === 'code'`. */
+  code?: string
+}
+
+/**
+ * `AgentIntent` parent node. Children: `AgentIntentBody` (training utterance
+ * row), `AgentIntentDescription` (single description row),
+ * `AgentIntentObjectComponent` (entity/slot mapping). All nested via
+ * `parentId`.
+ */
+export type AgentIntentNodeProps = DefaultNodeProps & {
+  /** Free-text description rendered in the description row. */
+  intent_description?: string
+  stereotype?: string | null
+  italic?: boolean
+  underline?: boolean
+}
+
+/**
+ * `AgentIntentBody` — one training utterance row.
+ */
+export type AgentIntentBodyNodeProps = DefaultNodeProps
+
+/**
+ * `AgentIntentDescription` — single description block under the intent
+ * header. Stores its description on `data.name` for symmetry with the
+ * other intent body rows; the parent intent's `intent_description`
+ * mirrors this value during round-trip.
+ */
+export type AgentIntentDescriptionNodeProps = DefaultNodeProps
+
+/**
+ * `AgentIntentObjectComponent` — entity / slot mapping row. Carries
+ * the entity reference and slot config as plain strings; the inspector
+ * exposes them as form fields.
+ */
+export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
+  /** Entity name attached to this slot. */
+  entity?: string
+  /** Slot name (entity binding). */
+  slot?: string
+  /** Optional value — fixed value the agent expects. */
+  value?: string
+}
+
+/**
+ * `AgentRagElement` — RAG database element. Open question #5 resolution
+ * (per the SA-4 brief): retain BOTH `dbCustomName` and `ragDatabaseName`
+ * verbatim. The editor renders `dbCustomName ?? ragDatabaseName` for
+ * display, but stores both fields untouched on `data` so the v3 → v4 → v3
+ * round-trip is lossless. The BAF generator (backend) decides which one
+ * to consume by inspecting `dbSelectionType`.
+ */
+export type AgentRagElementNodeProps = DefaultNodeProps & {
+  /**
+   * Original v3 field — typically the canonical RAG database identifier
+   * (mapped to a vector store on the backend).
+   */
+  ragDatabaseName?: string
+  /**
+   * v3 selection-mode discriminator: `'predefined' | 'custom' | 'default'`.
+   * When `'custom'`, the editor and BAF generator both consume
+   * `dbCustomName` instead of `ragDatabaseName`.
+   */
+  dbSelectionType?: string
+  /**
+   * v3 custom-name field — preserved verbatim alongside `ragDatabaseName`
+   * (per open question #5). Display preference: `dbCustomName ??
+   * ragDatabaseName`.
+   */
+  dbCustomName?: string
+  /** v3 query-mode discriminator: `'sql' | 'natural_language' | 'llm_query' | …`. */
+  dbQueryMode?: string
+  /** v3 SQL operation type when `dbQueryMode === 'sql'`. */
+  dbOperation?: string
+  /** v3 SQL query text. */
+  dbSqlQuery?: string
+  /** Optional `ragType` discriminator surfaced by the inspector. */
+  ragType?: string
+}
+
+/* -------------------------------------------------------------------------- */
+/* UserDiagram (BESSER) — SA-4                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `UserModelAttribute` — per-instance attribute row on a `UserModelName`.
+ * Mirrors `ObjectNodeAttribute` (SA-2) plus the v3-only fields:
+ *
+ * - `attributeOperator` — comparator (`<` / `<=` / `==` / `>=` / `>`).
+ *   Defaults to `'=='`.
+ * - `attributeId` — link to a class attribute id in a sibling
+ *   ClassDiagram, when known.
+ */
+export type UserModelAttributeRow = ClassNodeElement & {
+  attributeId?: string
+  attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
+  defaultValue?: unknown
+  /** Runtime / constraint comparison value bound to this attribute. */
+  value?: unknown
+}
+
+/**
+ * `UserModelName` — top-level user node, similar to ObjectName but with
+ * the user-modelling discriminators. Spec open question #1 resolution
+ * (`docs/source/migrations/uml-v4-shape.md`): YES, `classId` is preserved
+ * for parity with `ObjectName.classId`.
+ */
+export type UserModelNameNodeProps = DefaultNodeProps & {
+  attributes: UserModelAttributeRow[]
+  description?: string
+  /** Cross-diagram link to a class node id in a sibling ClassDiagram. */
+  classId?: string
+  /** Cached class name from the linked class — display-only. */
+  className?: string
+  /** Inline icon SVG body for icon-view rendering. */
+  icon?: string
+}
+
+/**
+ * `UserModelAttribute` — separate React-Flow node when the v3 fixture
+ * stored attribute rows as siblings (rare; the migrator collapses them
+ * onto the owner). The inspector renders against the parent's
+ * `attributes` array; this node type exists for legacy round-trip.
+ */
+export type UserModelAttributeNodeProps = DefaultNodeProps & {
+  attributeType?: string
+  defaultValue?: unknown
+  attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
+}
+
+/**
+ * `UserModelIcon` — small icon node attached to a `UserModelName`. v3
+ * stored these as separate child elements; v4 keeps them as standalone
+ * marker nodes for round-trip.
+ */
+export type UserModelIconNodeProps = DefaultNodeProps & {
+  icon?: string
+}

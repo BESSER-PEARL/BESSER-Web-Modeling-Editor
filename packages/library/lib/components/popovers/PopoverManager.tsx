@@ -120,6 +120,19 @@ type NodePopoverType =
   | "StateForkNode"
   | "StateForkNodeHorizontal"
   | "StateCodeBlock"
+  // SA-4: BESSER AgentDiagram + UserDiagram node types — same registry
+  // pattern as SA-3, type widening only.
+  | "AgentState"
+  | "AgentStateBody"
+  | "AgentStateFallbackBody"
+  | "AgentIntent"
+  | "AgentIntentBody"
+  | "AgentIntentDescription"
+  | "AgentIntentObjectComponent"
+  | "AgentRagElement"
+  | "UserModelName"
+  | "UserModelAttribute"
+  | "UserModelIcon"
 
 type EdgePopoverType =
   | "ClassAggregation"
@@ -158,6 +171,10 @@ type EdgePopoverType =
   | "PetriNetArc"
   // SA-3: StateMachineDiagram transition.
   | "StateTransition"
+  // SA-4: AgentDiagram + UserDiagram edges.
+  | "AgentStateTransition"
+  | "AgentStateTransitionInit"
+  | "UserModelLink"
 
 type PopoverType = NodePopoverType | EdgePopoverType
 

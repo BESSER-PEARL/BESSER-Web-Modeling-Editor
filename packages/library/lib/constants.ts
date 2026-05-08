@@ -63,6 +63,17 @@ import {
   StateForkNodeHorizontalSVG,
   StateCodeBlockSVG,
 } from "@/components/svgs/nodes/stateMachineDiagram"
+// SA-4: AgentDiagram + UserDiagram palette previews.
+import {
+  AgentStateSVG,
+  AgentIntentSVG,
+  AgentRagElementSVG,
+  AgentIntentObjectComponentSVG,
+} from "@/components/svgs/nodes/agentDiagram"
+import {
+  UserModelNameSVG,
+  UserModelIconSVG,
+} from "@/components/svgs/nodes/userDiagram"
 import { DiagramNodeType } from "@/nodes"
 import { ClassType, UMLDiagramType } from "@/types"
 import { v4 as uuidv4 } from "uuid"
@@ -809,6 +820,85 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
         language: "python",
       },
       svg: StateCodeBlockSVG,
+    },
+  ],
+  // SA-4: BESSER AgentDiagram palette. Inlined directly here per
+  // SA-3's pattern (avoids the TDZ cycle `nodes/index → constants →
+  // @/components → @/utils/nodeUtils → @/nodes`). The non-droppable
+  // body / fallback / intent body / description child nodes are NOT
+  // included — they're inserted automatically inside the parent
+  // container, mirroring v3 behaviour.
+  [UMLDiagramType.AgentDiagram]: [
+    {
+      type: "AgentState" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: { name: "AgentState", replyType: "text" },
+      svg: AgentStateSVG,
+    },
+    {
+      type: "AgentIntent" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: { name: "Intent", intent_description: "" },
+      svg: AgentIntentSVG,
+    },
+    {
+      type: "AgentIntentObjectComponent" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 50,
+      defaultData: { name: "slot:entity" },
+      svg: AgentIntentObjectComponentSVG,
+    },
+    {
+      type: "AgentRagElement" as never,
+      width: 160,
+      height: 120,
+      defaultData: {
+        name: "RAG",
+        ragDatabaseName: "",
+        dbCustomName: "",
+        dbSelectionType: "default",
+        dbQueryMode: "llm_query",
+      },
+      svg: AgentRagElementSVG,
+    },
+    // Reuse SA-3's marker SVGs for state-machine-derived nodes that
+    // appear inside an AgentDiagram (initial / final / fork / merge,
+    // plus state-action / state-object / state-codeblock).
+    {
+      type: "StateInitialNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateInitialNodeSVG,
+    },
+    {
+      type: "StateFinalNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateFinalNodeSVG,
+    },
+  ],
+  // SA-4: BESSER UserDiagram palette.
+  [UMLDiagramType.UserDiagram]: [
+    {
+      type: "UserModelName" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: {
+        name: "Alice: User",
+        attributes: [],
+      },
+      svg: UserModelNameSVG,
+    },
+    {
+      type: "UserModelIcon" as never,
+      width: 50,
+      height: 50,
+      defaultData: { name: "" },
+      svg: UserModelIconSVG,
     },
   ],
   [UMLDiagramType.Sfc]: [

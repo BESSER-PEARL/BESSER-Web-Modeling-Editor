@@ -299,6 +299,27 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     StateMergeNode: "StateMergeNode",
     StateForkNode: "StateForkNode",
     StateForkNodeHorizontal: "StateForkNodeHorizontal",
+
+    // SA-4: AgentDiagram — same PascalCase passthrough as
+    // StateMachineDiagram. AgentState bodies / intents bodies stay as
+    // separate React-Flow children via `parentId`, mirroring SA-3.
+    AgentState: "AgentState",
+    AgentStateBody: "AgentStateBody",
+    AgentStateFallbackBody: "AgentStateFallbackBody",
+    AgentIntent: "AgentIntent",
+    AgentIntentBody: "AgentIntentBody",
+    AgentIntentDescription: "AgentIntentDescription",
+    AgentIntentObjectComponent: "AgentIntentObjectComponent",
+    AgentRagElement: "AgentRagElement",
+
+    // SA-4: UserDiagram — collapsed shape for `UserModelName`
+    // (attributes folded onto `data.attributes`). `UserModelAttribute`
+    // and `UserModelIcon` exist as standalone node types only when v3
+    // fixtures keep them unowned — the migrator's `convertV3ToV4`
+    // filter drops them when an owner exists (see filter list below).
+    UserModelName: "UserModelName",
+    UserModelAttribute: "UserModelAttribute",
+    UserModelIcon: "UserModelIcon",
   }
 
   return typeMap[v3Type] || v3Type.toLowerCase()
@@ -369,6 +390,14 @@ export function convertV3EdgeTypeToV4(
     // through verbatim — `params` / `guard` / etc. live on the edge
     // data (see `StateMachineDiagramEdge.tsx`).
     StateTransition: "StateTransition",
+
+    // SA-4: AgentDiagram — two edge types. The transition data shape is
+    // collapsed by `liftAgentTransitionDataToV4` below.
+    AgentStateTransition: "AgentStateTransition",
+    AgentStateTransitionInit: "AgentStateTransitionInit",
+
+    // SA-4: UserDiagram — single link edge.
+    UserModelLink: "UserModelLink",
   }
   if (v3Type === "BPMNFlow" && flowType) {
     const flowTypeMap: Record<string, string> = {
@@ -848,6 +877,240 @@ function convertV3NodeDataToV4(
       return markerData
     }
 
+    /* ---------------------------------------------------------------- */
+    /* SA-4: AgentDiagram                                                 */
+    /* ---------------------------------------------------------------- */
+
+    case "AgentState": {
+      // v3 `AgentState` extends `IUMLState` with an additional
+      // `replyType: string` (default `'text'`). Pass through `stereotype`
+      // / `italic` / `underline` like SA-3's `State`.
+      const e = element as {
+        stereotype?: string | null
+        italic?: boolean
+        underline?: boolean
+        replyType?: string
+      }
+      return {
+        ...baseData,
+        replyType: e.replyType ?? "text",
+        ...(e.stereotype !== undefined && { stereotype: e.stereotype }),
+        ...(e.italic !== undefined && { italic: !!e.italic }),
+        ...(e.underline !== undefined && { underline: !!e.underline }),
+      }
+    }
+
+    case "AgentStateBody":
+    case "AgentStateFallbackBody": {
+      // v3 `AgentStateMember` carries the optional reply-type-driven
+      // extras alongside the basic name. Preserve them all so the v4 →
+      // v3 → v4 cycle is lossless.
+      const e = element as {
+        replyType?: string
+        ragDatabaseName?: string
+        dbSelectionType?: string
+        dbCustomName?: string
+        dbQueryMode?: string
+        dbOperation?: string
+        dbSqlQuery?: string
+        code?: string
+        kind?: string
+      }
+      return {
+        ...baseData,
+        ...(e.replyType !== undefined && { replyType: e.replyType }),
+        ...(e.ragDatabaseName !== undefined && {
+          ragDatabaseName: e.ragDatabaseName,
+        }),
+        ...(e.dbSelectionType !== undefined && {
+          dbSelectionType: e.dbSelectionType,
+        }),
+        ...(e.dbCustomName !== undefined && { dbCustomName: e.dbCustomName }),
+        ...(e.dbQueryMode !== undefined && { dbQueryMode: e.dbQueryMode }),
+        ...(e.dbOperation !== undefined && { dbOperation: e.dbOperation }),
+        ...(e.dbSqlQuery !== undefined && { dbSqlQuery: e.dbSqlQuery }),
+        ...(e.code !== undefined && { code: e.code }),
+        ...(e.kind !== undefined && { kind: e.kind }),
+      }
+    }
+
+    case "AgentIntent": {
+      // v3 `AgentIntent` extends `IUMLState` with `intent_description`.
+      const e = element as {
+        intent_description?: string
+        stereotype?: string | null
+        italic?: boolean
+        underline?: boolean
+      }
+      return {
+        ...baseData,
+        ...(e.intent_description !== undefined && {
+          intent_description: e.intent_description,
+        }),
+        ...(e.stereotype !== undefined && { stereotype: e.stereotype }),
+        ...(e.italic !== undefined && { italic: !!e.italic }),
+        ...(e.underline !== undefined && { underline: !!e.underline }),
+      }
+    }
+
+    case "AgentIntentBody": {
+      // v3 stored the training utterance verbatim on `name`.
+      return baseData
+    }
+
+    case "AgentIntentDescription": {
+      // v3 stored the description text on `name`.
+      return baseData
+    }
+
+    case "AgentIntentObjectComponent": {
+      const e = element as {
+        entity?: string
+        slot?: string
+        value?: string
+      }
+      return {
+        ...baseData,
+        ...(e.entity !== undefined && { entity: e.entity }),
+        ...(e.slot !== undefined && { slot: e.slot }),
+        ...(e.value !== undefined && { value: e.value }),
+      }
+    }
+
+    case "AgentRagElement": {
+      // Open question #5: preserve BOTH `dbCustomName` and
+      // `ragDatabaseName` verbatim. Display in the editor resolves
+      // `dbCustomName ?? ragDatabaseName`; the BAF generator picks
+      // based on `dbSelectionType`.
+      const e = element as {
+        ragDatabaseName?: string
+        dbSelectionType?: string
+        dbCustomName?: string
+        dbQueryMode?: string
+        dbOperation?: string
+        dbSqlQuery?: string
+        ragType?: string
+      }
+      return {
+        ...baseData,
+        ...(e.ragDatabaseName !== undefined && {
+          ragDatabaseName: e.ragDatabaseName,
+        }),
+        ...(e.dbSelectionType !== undefined && {
+          dbSelectionType: e.dbSelectionType,
+        }),
+        ...(e.dbCustomName !== undefined && { dbCustomName: e.dbCustomName }),
+        ...(e.dbQueryMode !== undefined && { dbQueryMode: e.dbQueryMode }),
+        ...(e.dbOperation !== undefined && { dbOperation: e.dbOperation }),
+        ...(e.dbSqlQuery !== undefined && { dbSqlQuery: e.dbSqlQuery }),
+        ...(e.ragType !== undefined && { ragType: e.ragType }),
+      }
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* SA-4: UserDiagram                                                  */
+    /* ---------------------------------------------------------------- */
+
+    case "UserModelName": {
+      // Spec open question #1: preserve `classId` / `className` for
+      // parity with `ObjectName.classId`. Collapse `UserModelAttribute`
+      // children onto `data.attributes` (like ObjectAttribute does).
+      const attributes: Array<{
+        id: string
+        name: string
+        attributeType?: string
+        defaultValue?: unknown
+        attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
+        attributeId?: string
+        value?: unknown
+        fillColor?: string
+        textColor?: string
+      }> = []
+      Object.values(allElements).forEach((childElement) => {
+        if (
+          childElement.owner === element.id &&
+          childElement.type === "UserModelAttribute"
+        ) {
+          const c = childElement as V3UMLElement & {
+            attributeType?: string
+            defaultValue?: unknown
+            attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
+            attributeId?: string
+            value?: unknown
+          }
+          attributes.push({
+            id: c.id,
+            name: c.name,
+            ...(c.attributeType !== undefined && {
+              attributeType: c.attributeType,
+            }),
+            ...(c.defaultValue !== undefined && {
+              defaultValue: c.defaultValue,
+            }),
+            ...(c.attributeOperator !== undefined && {
+              attributeOperator: c.attributeOperator,
+            }),
+            ...(c.attributeId !== undefined && { attributeId: c.attributeId }),
+            ...(c.value !== undefined && { value: c.value }),
+            ...(c.fillColor && { fillColor: c.fillColor }),
+            ...(c.textColor && { textColor: c.textColor }),
+          })
+        }
+      })
+      const e = element as {
+        classId?: string
+        className?: string
+        description?: string
+        icon?: string
+      }
+      return {
+        ...baseData,
+        attributes,
+        ...(e.classId && { classId: e.classId }),
+        ...(e.className && { className: e.className }),
+        ...(e.description && { description: e.description }),
+        ...(() => {
+          const iconChild = Object.values(allElements).find(
+            (c) =>
+              c.owner === element.id && c.type === "UserModelIcon"
+          ) as { icon?: string } | undefined
+          if (e.icon) return { icon: e.icon }
+          if (iconChild?.icon) return { icon: iconChild.icon }
+          return {}
+        })(),
+      }
+    }
+
+    case "UserModelAttribute": {
+      // Standalone (unowned) UserModelAttribute — rare; the migrator
+      // collapses owned ones onto the parent. Preserve all fields.
+      const e = element as {
+        attributeType?: string
+        defaultValue?: unknown
+        attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
+      }
+      return {
+        ...baseData,
+        ...(e.attributeType !== undefined && {
+          attributeType: e.attributeType,
+        }),
+        ...(e.defaultValue !== undefined && {
+          defaultValue: e.defaultValue,
+        }),
+        ...(e.attributeOperator !== undefined && {
+          attributeOperator: e.attributeOperator,
+        }),
+      }
+    }
+
+    case "UserModelIcon": {
+      const e = element as { icon?: string }
+      return {
+        ...baseData,
+        ...(e.icon !== undefined && { icon: e.icon }),
+      }
+    }
+
     // For other BPMN elements that just need base data
     case "BPMNSubprocess":
     case "BPMNTransaction":
@@ -933,6 +1196,283 @@ function convertV3ElementToV4Node(
 }
 
 /**
+ * SA-4 AgentStateTransition data lifter.
+ *
+ * Collapses the 5 legacy v3 transition shapes into the canonical v4
+ * `AgentStateTransitionData` (per `docs/source/migrations/uml-v4-shape.md`
+ * "Legacy AgentStateTransition shapes"):
+ *
+ *   1. Canonical predefined: `{transitionType: 'predefined', predefined: {...}}`
+ *   2. Canonical custom:     `{transitionType: 'custom', custom: {...}}`
+ *   3. Legacy flat predefined: `{predefinedType, variable, operator, targetValue}`
+ *      (and the file-received variant `{predefinedType, fileType}`)
+ *   4. Legacy flat custom: `{condition: 'custom_transition', customEvent, customConditions}`
+ *   5. Legacy nested: `{conditionValue: { events, conditions }}`
+ *
+ * Detection priority cascade (per the SA-4 brief):
+ *   - `transitionType === 'custom'` → custom
+ *   - `condition === 'custom_transition'` → custom
+ *   - non-empty `custom.event` || `custom.condition` → custom
+ *   - nested `conditionValue.events` || `conditionValue.conditions` → custom
+ *   - otherwise → predefined with `predefinedType` resolved from
+ *     `predefined.predefinedType ?? predefinedType ?? legacy condition`.
+ *
+ * Returns the `data` patch fragment (empty for non-agent edges so the
+ * caller can spread it unconditionally). Also stamps `legacyShape` (1-5)
+ * + the original `legacy` bag for round-trip preservation.
+ */
+function liftAgentTransitionDataToV4(
+  relationship: V3UMLRelationship
+): Record<string, unknown> {
+  if (relationship.type !== "AgentStateTransition") return {}
+
+  const r = relationship as V3UMLRelationship & {
+    transitionType?: "predefined" | "custom"
+    predefinedType?: string
+    intentName?: string
+    variable?: string
+    operator?: string
+    targetValue?: string
+    fileType?: string
+    event?: string
+    customEvent?: string
+    customConditions?: string[]
+    conditions?: string[]
+    condition?: string | string[]
+    conditionValue?:
+      | string
+      | { variable?: string; operator?: string; targetValue?: string }
+      | { events?: string[]; conditions?: string[] }
+    predefined?: {
+      predefinedType?: string
+      intentName?: string
+      fileType?: string
+      conditionValue?:
+        | string
+        | { variable?: string; operator?: string; targetValue?: string }
+    }
+    custom?: {
+      event?: string
+      condition?: string[]
+    }
+    params?: Record<string, unknown>
+  }
+
+  const legacyConditionStr =
+    typeof r.condition === "string" ? r.condition : undefined
+  const legacyConditionArr = Array.isArray(r.condition) ? r.condition : undefined
+  const nested = r.conditionValue as
+    | { events?: string[]; conditions?: string[] }
+    | undefined
+  const hasNestedEventsConditions =
+    !!nested &&
+    typeof nested === "object" &&
+    nested !== null &&
+    ("events" in nested || "conditions" in nested) &&
+    !("variable" in nested) &&
+    !("operator" in nested)
+
+  const hasExplicitCustomBag =
+    !!r.custom &&
+    ((typeof r.custom.event === "string" && r.custom.event !== "None") ||
+      (Array.isArray(r.custom.condition) && r.custom.condition.length > 0))
+
+  // Detect legacy shape for round-trip preservation.
+  let legacyShape: 1 | 2 | 3 | 4 | 5 | undefined
+  if (
+    r.transitionType &&
+    (r.predefined?.predefinedType !== undefined ||
+      r.custom?.event !== undefined ||
+      r.custom?.condition !== undefined)
+  ) {
+    legacyShape = r.transitionType === "custom" ? 2 : 1
+  } else if (legacyConditionStr === "custom_transition") {
+    legacyShape = 4
+  } else if (hasNestedEventsConditions) {
+    legacyShape = 5
+  } else if (
+    r.predefinedType !== undefined &&
+    (r.variable !== undefined ||
+      r.operator !== undefined ||
+      r.targetValue !== undefined ||
+      r.fileType !== undefined)
+  ) {
+    legacyShape = 3
+  } else if (r.transitionType !== undefined) {
+    // Brief's shape #5 — `transitionType` already present without
+    // structured `predefined`/`custom`. (The brief calls this shape #5;
+    // the spec doc reuses #5 for the nested events/conditions shape —
+    // both legitimately collapse to the same canonical custom form.)
+    legacyShape = 5
+  }
+
+  // Compute the `transitionType` per priority cascade.
+  const isCustom =
+    r.transitionType === "custom" ||
+    legacyConditionStr === "custom_transition" ||
+    hasExplicitCustomBag ||
+    hasNestedEventsConditions ||
+    r.customEvent !== undefined ||
+    (Array.isArray(r.customConditions) && r.customConditions.length > 0)
+
+  if (isCustom) {
+    // Resolve event + conditions from the various legacy locations.
+    let event: string =
+      r.custom?.event ||
+      r.event ||
+      r.customEvent ||
+      (hasNestedEventsConditions && nested?.events && nested.events.length > 0
+        ? nested.events[0]!
+        : "WildcardEvent")
+
+    let condition: string[] = []
+    if (Array.isArray(r.custom?.condition) && r.custom.condition.length > 0) {
+      condition = r.custom.condition
+    } else if (Array.isArray(r.conditions) && r.conditions.length > 0) {
+      condition = r.conditions
+    } else if (legacyConditionArr) {
+      condition = legacyConditionArr
+    } else if (
+      Array.isArray(r.customConditions) &&
+      r.customConditions.length > 0
+    ) {
+      condition = r.customConditions
+    } else if (hasNestedEventsConditions && nested?.conditions) {
+      condition = nested.conditions
+    }
+
+    return {
+      transitionType: "custom" as const,
+      custom: { event, condition },
+      ...(legacyShape !== undefined && { legacyShape }),
+      legacy: {
+        ...(r.transitionType !== undefined && { transitionType: r.transitionType }),
+        ...(r.predefined && { predefined: r.predefined }),
+        ...(r.custom && { custom: r.custom }),
+        ...(r.predefinedType !== undefined && {
+          predefinedType: r.predefinedType,
+        }),
+        ...(r.condition !== undefined && { condition: r.condition }),
+        ...(r.conditionValue !== undefined && {
+          conditionValue: r.conditionValue,
+        }),
+        ...(r.event !== undefined && { event: r.event }),
+        ...(r.customEvent !== undefined && { customEvent: r.customEvent }),
+        ...(r.customConditions !== undefined && {
+          customConditions: r.customConditions,
+        }),
+      },
+    }
+  }
+
+  // Predefined branch.
+  const predefinedType =
+    r.predefined?.predefinedType ||
+    r.predefinedType ||
+    legacyConditionStr ||
+    "when_intent_matched"
+  const predefined: {
+    predefinedType: string
+    intentName?: string
+    fileType?: string
+    conditionValue?:
+      | string
+      | { variable?: string; operator?: string; targetValue?: string }
+  } = { predefinedType }
+
+  if (predefinedType === "when_intent_matched") {
+    predefined.intentName =
+      r.predefined?.intentName ??
+      r.intentName ??
+      (typeof r.predefined?.conditionValue === "string"
+        ? r.predefined.conditionValue
+        : typeof r.conditionValue === "string"
+          ? r.conditionValue
+          : "")
+  } else if (predefinedType === "when_file_received") {
+    predefined.fileType =
+      r.predefined?.fileType ??
+      r.fileType ??
+      (typeof r.predefined?.conditionValue === "string"
+        ? r.predefined.conditionValue
+        : typeof r.conditionValue === "string"
+          ? r.conditionValue
+          : "")
+  } else if (predefinedType === "when_variable_operation_matched") {
+    // Prefer the structured form on `predefined.conditionValue`, else
+    // fall back to flat fields, else the top-level `conditionValue`.
+    const cv = r.predefined?.conditionValue
+    if (
+      typeof cv === "object" &&
+      cv !== null &&
+      "variable" in cv &&
+      "operator" in cv &&
+      "targetValue" in cv
+    ) {
+      predefined.conditionValue = {
+        variable: (cv as { variable?: string }).variable ?? "",
+        operator: (cv as { operator?: string }).operator ?? "",
+        targetValue: (cv as { targetValue?: string }).targetValue ?? "",
+      }
+    } else if (
+      r.variable !== undefined ||
+      r.operator !== undefined ||
+      r.targetValue !== undefined
+    ) {
+      predefined.conditionValue = {
+        variable: r.variable ?? "",
+        operator: r.operator ?? "",
+        targetValue: r.targetValue ?? "",
+      }
+    } else if (
+      typeof r.conditionValue === "object" &&
+      r.conditionValue !== null &&
+      "variable" in r.conditionValue
+    ) {
+      predefined.conditionValue = {
+        variable:
+          (r.conditionValue as { variable?: string }).variable ?? "",
+        operator:
+          (r.conditionValue as { operator?: string }).operator ?? "",
+        targetValue:
+          (r.conditionValue as { targetValue?: string }).targetValue ?? "",
+      }
+    }
+  } else {
+    // Plain conditionValue (string), e.g. `when_no_intent_matched` =>
+    // empty string.
+    if (typeof r.predefined?.conditionValue === "string") {
+      predefined.conditionValue = r.predefined.conditionValue
+    } else if (typeof r.conditionValue === "string") {
+      predefined.conditionValue = r.conditionValue
+    }
+  }
+
+  return {
+    transitionType: "predefined" as const,
+    predefined,
+    ...(legacyShape !== undefined && { legacyShape }),
+    legacy: {
+      ...(r.transitionType !== undefined && { transitionType: r.transitionType }),
+      ...(r.predefined && { predefined: r.predefined }),
+      ...(r.custom && { custom: r.custom }),
+      ...(r.predefinedType !== undefined && {
+        predefinedType: r.predefinedType,
+      }),
+      ...(r.condition !== undefined && { condition: r.condition }),
+      ...(r.conditionValue !== undefined && {
+        conditionValue: r.conditionValue,
+      }),
+      ...(r.intentName !== undefined && { intentName: r.intentName }),
+      ...(r.variable !== undefined && { variable: r.variable }),
+      ...(r.operator !== undefined && { operator: r.operator }),
+      ...(r.targetValue !== undefined && { targetValue: r.targetValue }),
+      ...(r.fileType !== undefined && { fileType: r.fileType }),
+    },
+  }
+}
+
+/**
  * Convert v3 relationship to v4 edge
  */
 function convertV3RelationshipToV4Edge(
@@ -1001,6 +1541,12 @@ function convertV3RelationshipToV4Edge(
       ...(r.guard && { guard: r.guard }),
       ...(r.code && { code: r.code }),
       ...(r.eventName && { eventName: r.eventName }),
+
+      // SA-4: AgentStateTransition canonical data — collapsed from the
+      // five legacy v3 shapes (see `liftAgentTransitionDataToV4` and
+      // `uml-v4-shape.md` "Legacy AgentStateTransition shapes" §). The
+      // lifter is a no-op (returns `{}`) for any other edge type.
+      ...liftAgentTransitionDataToV4(relationship),
       // Visual properties
       ...(relationship.fillColor && { fillColor: relationship.fillColor }),
       ...(relationship.strokeColor && {
@@ -1074,6 +1620,17 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
         ) {
           return false
         }
+      }
+      // SA-4: UserModelAttribute / UserModelIcon — collapse onto the
+      // owner UserModelName when an owner exists. Standalone (unowned)
+      // nodes survive for legacy round-trip.
+      if (
+        (element.type === "UserModelAttribute" ||
+          element.type === "UserModelIcon") &&
+        element.owner &&
+        model.elements[element.owner]?.type === "UserModelName"
+      ) {
+        return false
       }
       return true
     })
@@ -1223,6 +1780,56 @@ export function migrateStateMachineDiagramV3ToV4(
   if (v4.type !== "StateMachineDiagram") {
     throw new Error(
       `migrateStateMachineDiagramV3ToV4: expected StateMachineDiagram, got ${v4.type}`
+    )
+  }
+  return v4
+}
+
+/**
+ * SA-4 AgentDiagram v3 → v4 migrator. See
+ * `migrateClassDiagramV3ToV4` for the shared shape rules; AgentDiagram
+ * additionally:
+ *  - Keeps `AgentStateBody` / `AgentStateFallbackBody` /
+ *    `AgentIntentBody` / `AgentIntentDescription` as separate React-Flow
+ *    children with `parentId` (mirrors SA-3's body/fallback-body
+ *    decision — brief wins over spec).
+ *  - Collapses the 5 legacy `AgentStateTransition` shapes onto the
+ *    canonical v4 `AgentStateTransitionData` via
+ *    `liftAgentTransitionDataToV4`. The `legacy` bag is preserved on
+ *    the edge data so the v3 → v4 → v3 cycle is information-equivalent.
+ *  - Resolves spec open question #5: `AgentRagElement.dbCustomName` and
+ *    `ragDatabaseName` are BOTH preserved verbatim on `data` — the
+ *    editor renders `dbCustomName ?? ragDatabaseName`.
+ */
+export function migrateAgentDiagramV3ToV4(
+  data: V3DiagramFormat | V3UMLModel
+): UMLModel {
+  const v4 = convertV3ToV4(data)
+  if (v4.type !== "AgentDiagram") {
+    throw new Error(
+      `migrateAgentDiagramV3ToV4: expected AgentDiagram, got ${v4.type}`
+    )
+  }
+  return v4
+}
+
+/**
+ * SA-4 UserDiagram v3 → v4 migrator. Wraps `convertV3ToV4` with the
+ * type guard. The user-modelling diagram collapses
+ * `UserModelAttribute` / `UserModelIcon` children onto their owner
+ * `UserModelName` (per `uml-v4-shape.md` UserDiagram §); the migrator's
+ * filter takes care of that.
+ *
+ * Spec open question #1 resolution: `classId` is preserved for parity
+ * with `ObjectName.classId`.
+ */
+export function migrateUserDiagramV3ToV4(
+  data: V3DiagramFormat | V3UMLModel
+): UMLModel {
+  const v4 = convertV3ToV4(data)
+  if (v4.type !== "UserDiagram") {
+    throw new Error(
+      `migrateUserDiagramV3ToV4: expected UserDiagram, got ${v4.type}`
     )
   }
   return v4
@@ -1507,6 +2114,19 @@ const invertNodeType = (v4Type: string): string => {
     StateMergeNode: "StateMergeNode",
     StateForkNode: "StateForkNode",
     StateForkNodeHorizontal: "StateForkNodeHorizontal",
+
+    // SA-4: AgentDiagram + UserDiagram — passthrough.
+    AgentState: "AgentState",
+    AgentStateBody: "AgentStateBody",
+    AgentStateFallbackBody: "AgentStateFallbackBody",
+    AgentIntent: "AgentIntent",
+    AgentIntentBody: "AgentIntentBody",
+    AgentIntentDescription: "AgentIntentDescription",
+    AgentIntentObjectComponent: "AgentIntentObjectComponent",
+    AgentRagElement: "AgentRagElement",
+    UserModelName: "UserModelName",
+    UserModelAttribute: "UserModelAttribute",
+    UserModelIcon: "UserModelIcon",
   }
   return map[v4Type] ?? v4Type
 }
@@ -1717,6 +2337,418 @@ const invertHandle = (h: string | undefined): string => {
     left: "Left",
   }
   return map[h] ?? h
+}
+
+/* -------------------------------------------------------------------------- */
+/* SA-4: AgentDiagram + UserDiagram reverse migrators                          */
+/* -------------------------------------------------------------------------- */
+
+type AgentTransitionV4 = {
+  name?: string
+  transitionType?: "predefined" | "custom"
+  predefined?: {
+    predefinedType?: string
+    intentName?: string
+    fileType?: string
+    conditionValue?:
+      | string
+      | { variable?: string; operator?: string; targetValue?: string }
+  }
+  custom?: { event?: string; condition?: string[] }
+  params?: { [k: string]: string }
+  legacyShape?: 1 | 2 | 3 | 4 | 5
+  legacy?: Record<string, unknown>
+}
+
+/**
+ * SA-4 inverse migrator: v4 AgentDiagram → v3 `UMLModel`.
+ *
+ * Re-emits the canonical v3 wire shape (matching the most common writer
+ * pattern — shapes #1 and #2 from the spec). The round-trip is
+ * "v3 → v4 → v3' where v3' is canonicalised but information-equivalent";
+ * the test asserts structural equality after a second migrate-back, not
+ * literal equality with the original v3 input.
+ *
+ * For `AgentStateTransition`:
+ *  - In the predefined branch, emit `{transitionType, predefined: {predefinedType,
+ *    intentName?, fileType?, conditionValue?}, custom: {condition: []}}`.
+ *  - In the custom branch, emit `{transitionType, predefined: {predefinedType: ''},
+ *    custom: {event, condition}}`.
+ */
+export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
+  const elements: Record<string, V3UMLElement> = {}
+  const relationships: Record<string, V3UMLRelationship> = {}
+
+  for (const node of v4.nodes) {
+    const nt = node.type as string
+    const baseV3: V3UMLElement = {
+      id: node.id,
+      name: (node.data as { name?: string }).name ?? "",
+      type: invertNodeType(nt),
+      owner: node.parentId ?? null,
+      bounds: {
+        x: node.position.x,
+        y: node.position.y,
+        width: node.width,
+        height: node.height,
+      },
+      ...((node.data as { fillColor?: string }).fillColor && {
+        fillColor: (node.data as { fillColor?: string }).fillColor,
+      }),
+      ...((node.data as { strokeColor?: string }).strokeColor && {
+        strokeColor: (node.data as { strokeColor?: string }).strokeColor,
+      }),
+      ...((node.data as { textColor?: string }).textColor && {
+        textColor: (node.data as { textColor?: string }).textColor,
+      }),
+    }
+
+    switch (nt) {
+      case "AgentState": {
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          ...(data.replyType !== undefined && {
+            replyType: data.replyType,
+          }),
+          ...(data.stereotype !== undefined && { stereotype: data.stereotype }),
+          ...(data.italic !== undefined && { italic: !!data.italic }),
+          ...(data.underline !== undefined && { underline: !!data.underline }),
+        } as V3UMLElement
+        break
+      }
+      case "AgentStateBody":
+      case "AgentStateFallbackBody": {
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          ...(data.replyType !== undefined && { replyType: data.replyType }),
+          ...(data.ragDatabaseName !== undefined && {
+            ragDatabaseName: data.ragDatabaseName,
+          }),
+          ...(data.dbSelectionType !== undefined && {
+            dbSelectionType: data.dbSelectionType,
+          }),
+          ...(data.dbCustomName !== undefined && {
+            dbCustomName: data.dbCustomName,
+          }),
+          ...(data.dbQueryMode !== undefined && {
+            dbQueryMode: data.dbQueryMode,
+          }),
+          ...(data.dbOperation !== undefined && {
+            dbOperation: data.dbOperation,
+          }),
+          ...(data.dbSqlQuery !== undefined && {
+            dbSqlQuery: data.dbSqlQuery,
+          }),
+          ...(data.code !== undefined && { code: data.code }),
+          ...(data.kind !== undefined && { kind: data.kind }),
+        } as V3UMLElement
+        break
+      }
+      case "AgentIntent": {
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          ...(data.intent_description !== undefined && {
+            intent_description: data.intent_description,
+          }),
+          ...(data.stereotype !== undefined && { stereotype: data.stereotype }),
+          ...(data.italic !== undefined && { italic: !!data.italic }),
+          ...(data.underline !== undefined && { underline: !!data.underline }),
+        } as V3UMLElement
+        break
+      }
+      case "AgentIntentBody":
+      case "AgentIntentDescription": {
+        elements[node.id] = baseV3
+        break
+      }
+      case "AgentIntentObjectComponent": {
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          ...(data.entity !== undefined && { entity: data.entity }),
+          ...(data.slot !== undefined && { slot: data.slot }),
+          ...(data.value !== undefined && { value: data.value }),
+        } as V3UMLElement
+        break
+      }
+      case "AgentRagElement": {
+        const data = node.data as Record<string, unknown>
+        // Open question #5: emit BOTH `ragDatabaseName` and
+        // `dbCustomName` verbatim.
+        elements[node.id] = {
+          ...baseV3,
+          ...(data.ragDatabaseName !== undefined && {
+            ragDatabaseName: data.ragDatabaseName,
+          }),
+          ...(data.dbSelectionType !== undefined && {
+            dbSelectionType: data.dbSelectionType,
+          }),
+          ...(data.dbCustomName !== undefined && {
+            dbCustomName: data.dbCustomName,
+          }),
+          ...(data.dbQueryMode !== undefined && {
+            dbQueryMode: data.dbQueryMode,
+          }),
+          ...(data.dbOperation !== undefined && {
+            dbOperation: data.dbOperation,
+          }),
+          ...(data.dbSqlQuery !== undefined && {
+            dbSqlQuery: data.dbSqlQuery,
+          }),
+          ...(data.ragType !== undefined && { ragType: data.ragType }),
+        } as V3UMLElement
+        break
+      }
+      default: {
+        elements[node.id] = baseV3
+      }
+    }
+  }
+
+  for (const edge of v4.edges) {
+    const data = (edge.data ?? {}) as Record<string, unknown> & AgentTransitionV4
+    const points = (data.points as { x: number; y: number }[]) ?? []
+    const minX = points.length ? Math.min(...points.map((p) => p.x)) : 0
+    const minY = points.length ? Math.min(...points.map((p) => p.y)) : 0
+
+    const baseRel: V3UMLRelationship = {
+      id: edge.id,
+      name: (data.name as string) ?? (data.label as string) ?? "",
+      type: edge.type,
+      owner: null,
+      bounds: { x: minX, y: minY, width: 0, height: 0 },
+      path: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
+      source: {
+        element: edge.source,
+        direction: invertHandle(edge.sourceHandle),
+      },
+      target: {
+        element: edge.target,
+        direction: invertHandle(edge.targetHandle),
+      },
+    }
+
+    if ((edge.type as string) === "AgentStateTransition") {
+      // Emit the canonical wire form (shape #1 / #2 in the spec). The
+      // round-trip test should compare via a normalization function
+      // because the original v3 fixture's exact shape will not survive.
+      const params = data.params ?? {}
+      if (data.transitionType === "custom") {
+        const ev = data.custom?.event ?? "WildcardEvent"
+        const cond = data.custom?.condition ?? []
+        relationships[edge.id] = {
+          ...baseRel,
+          transitionType: "custom",
+          predefined: { predefinedType: "" },
+          custom: { event: ev, condition: cond },
+          ...(Object.keys(params).length > 0 && { params }),
+        } as V3UMLRelationship
+      } else {
+        const pre = data.predefined ?? { predefinedType: "when_intent_matched" }
+        relationships[edge.id] = {
+          ...baseRel,
+          transitionType: "predefined",
+          predefined: pre,
+          custom: { condition: [] },
+          ...(Object.keys(params).length > 0 && { params }),
+        } as V3UMLRelationship
+      }
+    } else {
+      relationships[edge.id] = baseRel
+    }
+  }
+
+  return {
+    version: "3.0.0",
+    type: v4.type,
+    size: { width: 0, height: 0 },
+    interactive: v4.interactive
+      ? {
+          elements: v4.interactive.elements,
+          relationships: v4.interactive.relationships,
+        }
+      : { elements: {}, relationships: {} },
+    elements,
+    relationships,
+    assessments:
+      v4.assessments &&
+      Object.fromEntries(
+        Object.entries(v4.assessments).map(([id, a]) => [id, a as V3Assessment])
+      ),
+  } as V3UMLModel
+}
+
+/**
+ * SA-4 inverse migrator: v4 UserDiagram → v3 `UMLModel`. Re-expands
+ * the collapsed `UserModelAttribute` / `UserModelIcon` rows back into
+ * top-level `elements` keyed by id and pointing at the owner via
+ * `owner`.
+ */
+export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
+  const elements: Record<string, V3UMLElement> = {}
+  const relationships: Record<string, V3UMLRelationship> = {}
+
+  for (const node of v4.nodes) {
+    const nt = node.type as string
+    const baseV3: V3UMLElement = {
+      id: node.id,
+      name: (node.data as { name?: string }).name ?? "",
+      type: invertNodeType(nt),
+      owner: node.parentId ?? null,
+      bounds: {
+        x: node.position.x,
+        y: node.position.y,
+        width: node.width,
+        height: node.height,
+      },
+      ...((node.data as { fillColor?: string }).fillColor && {
+        fillColor: (node.data as { fillColor?: string }).fillColor,
+      }),
+      ...((node.data as { strokeColor?: string }).strokeColor && {
+        strokeColor: (node.data as { strokeColor?: string }).strokeColor,
+      }),
+      ...((node.data as { textColor?: string }).textColor && {
+        textColor: (node.data as { textColor?: string }).textColor,
+      }),
+    }
+
+    if (nt === "UserModelName") {
+      const data = node.data as Record<string, unknown> & {
+        attributes?: Array<{
+          id: string
+          name: string
+          attributeType?: string
+          defaultValue?: unknown
+          attributeOperator?: string
+          attributeId?: string
+          value?: unknown
+          fillColor?: string
+          textColor?: string
+        }>
+        classId?: string
+        className?: string
+        description?: string
+        icon?: string
+      }
+      const attrs = data.attributes ?? []
+      elements[node.id] = {
+        ...baseV3,
+        attributes: attrs.map((a) => a.id),
+        ...(data.classId && { classId: data.classId }),
+        ...(data.className && { className: data.className }),
+        ...(data.description && { description: data.description }),
+      } as V3UMLElement & {
+        attributes: string[]
+        classId?: string
+        className?: string
+        description?: string
+      }
+
+      // Re-expand attribute rows.
+      for (const a of attrs) {
+        elements[a.id] = {
+          id: a.id,
+          name: a.name,
+          type: "UserModelAttribute",
+          owner: node.id,
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          ...(a.attributeType !== undefined && {
+            attributeType: a.attributeType,
+          }),
+          ...(a.defaultValue !== undefined && {
+            defaultValue: a.defaultValue,
+          }),
+          ...(a.attributeOperator !== undefined && {
+            attributeOperator: a.attributeOperator,
+          }),
+          ...(a.attributeId !== undefined && { attributeId: a.attributeId }),
+          ...(a.value !== undefined && { value: a.value }),
+          ...(a.fillColor && { fillColor: a.fillColor }),
+          ...(a.textColor && { textColor: a.textColor }),
+        } as V3UMLElement
+      }
+
+      // Re-expand icon (rare).
+      if (data.icon) {
+        const iconId = `${node.id}-icon`
+        elements[iconId] = {
+          id: iconId,
+          name: "",
+          type: "UserModelIcon",
+          owner: node.id,
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          icon: data.icon,
+        } as V3UMLElement & { icon?: string }
+      }
+    } else if (nt === "UserModelAttribute") {
+      const data = node.data as Record<string, unknown>
+      elements[node.id] = {
+        ...baseV3,
+        ...(data.attributeType !== undefined && {
+          attributeType: data.attributeType,
+        }),
+        ...(data.defaultValue !== undefined && {
+          defaultValue: data.defaultValue,
+        }),
+        ...(data.attributeOperator !== undefined && {
+          attributeOperator: data.attributeOperator,
+        }),
+      } as V3UMLElement
+    } else if (nt === "UserModelIcon") {
+      const data = node.data as Record<string, unknown>
+      elements[node.id] = {
+        ...baseV3,
+        ...(data.icon !== undefined && { icon: data.icon }),
+      } as V3UMLElement
+    } else {
+      elements[node.id] = baseV3
+    }
+  }
+
+  for (const edge of v4.edges) {
+    const data = (edge.data ?? {}) as Record<string, unknown>
+    const points = (data.points as { x: number; y: number }[]) ?? []
+    const minX = points.length ? Math.min(...points.map((p) => p.x)) : 0
+    const minY = points.length ? Math.min(...points.map((p) => p.y)) : 0
+    relationships[edge.id] = {
+      id: edge.id,
+      name: (data.name as string) ?? (data.label as string) ?? "",
+      type: edge.type,
+      owner: null,
+      bounds: { x: minX, y: minY, width: 0, height: 0 },
+      path: points.map((p) => ({ x: p.x - minX, y: p.y - minY })),
+      source: {
+        element: edge.source,
+        direction: invertHandle(edge.sourceHandle),
+      },
+      target: {
+        element: edge.target,
+        direction: invertHandle(edge.targetHandle),
+      },
+    } as V3UMLRelationship
+  }
+
+  return {
+    version: "3.0.0",
+    type: v4.type,
+    size: { width: 0, height: 0 },
+    interactive: v4.interactive
+      ? {
+          elements: v4.interactive.elements,
+          relationships: v4.interactive.relationships,
+        }
+      : { elements: {}, relationships: {} },
+    elements,
+    relationships,
+    assessments:
+      v4.assessments &&
+      Object.fromEntries(
+        Object.entries(v4.assessments).map(([id, a]) => [id, a as V3Assessment])
+      ),
+  } as V3UMLModel
 }
 
 /**

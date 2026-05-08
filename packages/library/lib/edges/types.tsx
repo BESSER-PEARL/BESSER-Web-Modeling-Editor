@@ -185,6 +185,19 @@ export const edgeConfig = {
     allowMidpointDragging: true,
     showRelationshipLabels: true,
   },
+
+  // SA-4: AgentDiagram transitions.
+  AgentStateTransition: {
+    allowMidpointDragging: true,
+    showRelationshipLabels: true,
+  },
+  AgentStateTransitionInit: {
+    allowMidpointDragging: true,
+    showRelationshipLabels: false,
+  },
+
+  // SA-4: UserDiagram link — same handling as ObjectLink (which it aliases).
+  UserModelLink: { allowMidpointDragging: true },
 } as const
 
 // Bound to `defaultEdgeTypes` (not `diagramEdgeTypes`) so the canonical
