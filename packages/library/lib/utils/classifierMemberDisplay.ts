@@ -87,6 +87,22 @@ export const parseLegacyNameFormat = (
 }
 
 /**
+ * Format an Object-diagram attribute row for canvas rendering.
+ *
+ * Object instances don't carry visibility semantics (PC-4 Gap 3), so we
+ * render `name = value` (or just `name` when no value is present) with no
+ * `+/-/#/~` symbol and no `{id}` markers. Mirrors v3
+ * `UMLObjectAttribute.displayName` (`uml-object-attribute.ts:23-25`).
+ */
+export const formatObjectMember = (
+  member: ClassifierMemberLike & { value?: unknown }
+): string => {
+  const hasValue =
+    member.value !== undefined && member.value !== null && member.value !== ""
+  return hasValue ? `${member.name} = ${member.value}` : member.name
+}
+
+/**
  * Format a classifier member for rendering in a class row.
  *
  * `mode === 'UML'` (default) — produces the standard UML form:

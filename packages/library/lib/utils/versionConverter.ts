@@ -771,6 +771,13 @@ function convertV3NodeDataToV4(
         ...((element as { className?: string }).className && {
           className: (element as { className?: string }).className,
         }),
+        // PC-4 Gap 1: v3 ObjectName inherits `stereotype: string | null`
+        // from UMLClassifier. Lift it onto the v4 node so the SVG can
+        // render the `«…»` band.
+        ...((element as { stereotype?: string | null }).stereotype !== undefined &&
+          (element as { stereotype?: string | null }).stereotype !== null && {
+          stereotype: (element as { stereotype?: string | null }).stereotype as string,
+        }),
         // v3 stored ObjectIcon as a separate child element. Spec
         // (`uml-v4-shape.md`, ObjectDiagram §): collapse it into the owner
         // node's `data.icon` SVG body. Find the icon child by walking
@@ -2176,6 +2183,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
       const v3Element: V3UMLElement & {
         classId?: string
         className?: string
+        stereotype?: string | null
       } = {
         id: node.id,
         name: data.name,
@@ -2194,6 +2202,10 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         ...(data.textColor && { textColor: data.textColor }),
         ...(data.classId && { classId: data.classId }),
         ...(data.className && { className: data.className }),
+        // PC-4 Gap 1: re-emit stereotype on the v3 element so the round
+        // trip preserves the `«…»` band.
+        ...(data.stereotype !== undefined &&
+          data.stereotype !== null && { stereotype: data.stereotype }),
       }
       elements[node.id] = v3Element
 

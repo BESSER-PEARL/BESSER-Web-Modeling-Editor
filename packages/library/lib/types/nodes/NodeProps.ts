@@ -153,6 +153,13 @@ export type ObjectNodeProps = {
   className?: string
   /** Inline icon SVG body for icon-view rendering. */
   icon?: string
+  /**
+   * Optional stereotype band shown above the underlined name (PC-4
+   * Gap 1). v3 ObjectName extended UMLClassifier with a free-form
+   * `string | null` stereotype; we mirror that here so migrated
+   * fixtures keep their `«…»` label.
+   */
+  stereotype?: string | null
 } & DefaultNodeProps
 
 export type CommunicationObjectNodeProps = {

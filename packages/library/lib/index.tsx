@@ -90,6 +90,7 @@ export type { Visibility } from "./utils/typeNormalization"
 export {
   parseLegacyNameFormat,
   formatDisplayName,
+  formatObjectMember,
 } from "./utils/classifierMemberDisplay"
 export type { ClassifierMemberLike } from "./utils/classifierMemberDisplay"
 
