@@ -49,10 +49,24 @@ export class ApollonEditor {
   private readonly assessmentSelectionStore: StoreApi<AssessmentSelectionStore>
   private readonly alignmentGuidesStore: StoreApi<AlignmentGuidesStore>
   private subscribers: Apollon.Subscribers = {}
+  // SA-7a: `ready` resolves once React Flow has initialised (i.e. once
+  // `setReactFlowInstance` has been invoked by `<AppWithProvider
+  // onReactFlowInit={...} />`). It replaces the v3 `nextRender` getter
+  // — a Promise-shaped readiness signal v2 webapp call sites await
+  // before reading `editor.model` or interacting with the canvas.
+  private readyPromise!: Promise<void>
+  private resolveReady!: () => void
   constructor(element: HTMLElement, options?: Apollon.ApollonOptions) {
     if (!(element instanceof HTMLElement)) {
       throw new Error("Element is required to initialize Apollon")
     }
+
+    // SA-7a: prepare the `ready` promise before render. `setReactFlowInstance`
+    // resolves it once `<AppWithProvider />` mounts and React Flow signals
+    // its `onReactFlowInit` hook.
+    this.readyPromise = new Promise<void>((resolve) => {
+      this.resolveReady = resolve
+    })
 
     this.ydoc = new Y.Doc()
     this.diagramStore = createDiagramStore(this.ydoc)
@@ -156,6 +170,33 @@ export class ApollonEditor {
 
   private setReactFlowInstance(instance: ReactFlowInstance) {
     this.reactFlowInstance = instance
+    // SA-7a: resolve the `ready` promise so v2 webapp call sites awaiting
+    // `editor.ready` (or its `nextRender` alias) unblock the moment
+    // React Flow has produced its instance.
+    this.resolveReady?.()
+  }
+
+  /**
+   * Resolves once React Flow has finished initialising and the editor is
+   * safe to interact with (e.g. setting `model`, reading `getNodes()`).
+   * Mirrors React Flow's `onInit` semantics in promise form.
+   */
+  get ready(): Promise<void> {
+    return this.readyPromise
+  }
+
+  /**
+   * @deprecated Use `ready` instead. Alias retained for v2 webapp call sites.
+   */
+  get nextRender(): Promise<void> {
+    return this.ready
+  }
+
+  /**
+   * @deprecated Use `unsubscribe(id)` instead. Alias retained for v2 webapp call sites.
+   */
+  unsubscribeFromModelChange(id: number): void {
+    return this.unsubscribe(id)
   }
 
   public getNodes(): Node[] {
