@@ -1,202 +1,217 @@
 {
-    "version": "3.0.0",
-    "type": "AgentDiagram",
-    "size": {
-    "width": 1260,
-    "height": 400
-    },
-    "interactive": {
-    "elements": {},
-    "relationships": {}
-    },
-    "elements": {
-    "553fc567-842b-40f2-8ff1-3e24aa2e16a1": {
-        "id": "553fc567-842b-40f2-8ff1-3e24aa2e16a1",
-        "name": "initial",
-        "type": "AgentState",
-        "owner": null,
-        "bounds": {
+  "version": "4.0.0",
+  "id": "converted-diagram-1778241725879",
+  "title": "",
+  "type": "AgentDiagram",
+  "nodes": [
+    {
+      "id": "553fc567-842b-40f2-8ff1-3e24aa2e16a1",
+      "type": "AgentState",
+      "position": {
         "x": -470,
-        "y": -170,
+        "y": -170
+      },
+      "width": 170,
+      "height": 40,
+      "measured": {
         "width": 170,
         "height": 40
-        },
-        "bodies": [],
-        "fallbackBodies": []
+      },
+      "data": {
+        "name": "initial",
+        "replyType": "text"
+      }
     },
-    "903f2a3e-1775-4439-b820-2fb117d1b2ff": {
-        "id": "903f2a3e-1775-4439-b820-2fb117d1b2ff",
-        "name": "",
-        "type": "StateInitialNode",
-        "owner": null,
-        "bounds": {
+    {
+      "id": "903f2a3e-1775-4439-b820-2fb117d1b2ff",
+      "type": "StateInitialNode",
+      "position": {
         "x": -610,
-        "y": -180,
+        "y": -180
+      },
+      "width": 45,
+      "height": 45,
+      "measured": {
         "width": 45,
         "height": 45
-        }
+      },
+      "data": {
+        "name": ""
+      }
     },
-    "6a1a4f06-38ee-48dc-976b-487a3c1f22e3": {
-        "id": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3",
-        "name": "db_reply",
-        "type": "AgentState",
-        "owner": null,
-        "bounds": {
+    {
+      "id": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3",
+      "type": "AgentState",
+      "position": {
         "x": 30,
-        "y": -180,
+        "y": -180
+      },
+      "width": 420,
+      "height": 70,
+      "measured": {
         "width": 420,
         "height": 70
-        },
-        "bodies": [
-        "8fd21f47-eacf-44e3-b245-0092fe729767"
-        ],
-        "fallbackBodies": []
+      },
+      "data": {
+        "name": "db_reply",
+        "replyType": "text"
+      }
     },
-    "8fd21f47-eacf-44e3-b245-0092fe729767": {
-        "id": "8fd21f47-eacf-44e3-b245-0092fe729767",
-        "name": "DB action using Default database (LLM query, SELECT)",
-        "type": "AgentStateBody",
-        "owner": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3",
-        "bounds": {
-        "x": 30.5,
-        "y": -139.5,
+    {
+      "id": "8fd21f47-eacf-44e3-b245-0092fe729767",
+      "type": "AgentStateBody",
+      "position": {
+        "x": 0.5,
+        "y": 40.5
+      },
+      "width": 419,
+      "height": 30,
+      "measured": {
         "width": 419,
         "height": 30
-        },
+      },
+      "data": {
+        "name": "DB action using Default database (LLM query, SELECT)",
         "replyType": "db_reply",
         "dbSelectionType": "default",
         "dbCustomName": "",
         "dbQueryMode": "llm_query",
         "dbOperation": "select",
         "dbSqlQuery": ""
+      },
+      "parentId": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3"
     }
-    },
-    "relationships": {
-    "15348261-7ddf-4791-998a-5a3313e2356d": {
-        "id": "15348261-7ddf-4791-998a-5a3313e2356d",
-        "name": "",
-        "type": "AgentStateTransitionInit",
-        "owner": null,
-        "bounds": {
-        "x": -565,
-        "y": -150,
-        "width": 95,
-        "height": 3.75
-        },
-        "path": [
-        {
-            "x": 0,
-            "y": 3.75
-        },
-        {
-            "x": 47.5,
-            "y": 3.75
-        },
-        {
-            "x": 47.5,
-            "y": 0
-        },
-        {
-            "x": 95,
-            "y": 0
-        }
-        ],
-        "source": {
-        "direction": "Downright",
-        "element": "903f2a3e-1775-4439-b820-2fb117d1b2ff"
-        },
-        "target": {
-        "direction": "Left",
-        "element": "553fc567-842b-40f2-8ff1-3e24aa2e16a1"
-        },
-        "isManuallyLayouted": false
-    },
-    "225835e1-3c7c-4f47-93e6-f9aec127cb83": {
-        "id": "225835e1-3c7c-4f47-93e6-f9aec127cb83",
-        "name": "",
-        "type": "AgentStateTransition",
-        "owner": null,
-        "bounds": {
-        "x": -300,
-        "y": -150,
-        "width": 330,
-        "height": 1
-        },
-        "path": [
-        {
-            "x": 0,
-            "y": 0
-        },
-        {
-            "x": 330,
-            "y": 0
-        }
-        ],
-        "source": {
-        "direction": "Right",
-        "element": "553fc567-842b-40f2-8ff1-3e24aa2e16a1"
-        },
-        "target": {
-        "direction": "Downleft",
-        "element": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3"
-        },
+  ],
+  "edges": [
+    {
+      "id": "15348261-7ddf-4791-998a-5a3313e2356d",
+      "source": "903f2a3e-1775-4439-b820-2fb117d1b2ff",
+      "target": "553fc567-842b-40f2-8ff1-3e24aa2e16a1",
+      "type": "AgentStateTransitionInit",
+      "sourceHandle": "right-bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
         "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -565,
+            "y": -146.25
+          },
+          {
+            "x": -517.5,
+            "y": -146.25
+          },
+          {
+            "x": -517.5,
+            "y": -150
+          },
+          {
+            "x": -470,
+            "y": -150
+          }
+        ]
+      }
+    },
+    {
+      "id": "225835e1-3c7c-4f47-93e6-f9aec127cb83",
+      "source": "553fc567-842b-40f2-8ff1-3e24aa2e16a1",
+      "target": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3",
+      "type": "AgentStateTransition",
+      "sourceHandle": "right",
+      "targetHandle": "left-bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
         "transitionType": "custom",
-        "predefined": {
-        "predefinedType": ""
-        },
         "custom": {
-        "event": "ReceiveTextEvent",
-        "condition": []
-        }
+          "event": "ReceiveTextEvent",
+          "condition": []
+        },
+        "legacyShape": 2,
+        "legacy": {
+          "transitionType": "custom",
+          "predefined": {
+            "predefinedType": ""
+          },
+          "custom": {
+            "event": "ReceiveTextEvent",
+            "condition": []
+          }
+        },
+        "points": [
+          {
+            "x": -300,
+            "y": -150
+          },
+          {
+            "x": 30,
+            "y": -150
+          }
+        ]
+      }
     },
-    "acb35c81-99cf-400e-9bfa-fcb062abbafc": {
-        "id": "acb35c81-99cf-400e-9bfa-fcb062abbafc",
-        "name": "",
-        "type": "AgentStateTransition",
-        "owner": null,
-        "bounds": {
-        "x": -385,
-        "y": -130,
-        "width": 625,
-        "height": 60
-        },
-        "path": [
-        {
-            "x": 625,
-            "y": 20
-        },
-        {
-            "x": 625,
-            "y": 60
-        },
-        {
-            "x": 0,
-            "y": 60
-        },
-        {
-            "x": 0,
-            "y": 0
-        }
-        ],
-        "source": {
-        "direction": "Down",
-        "element": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3"
-        },
-        "target": {
-        "direction": "Down",
-        "element": "553fc567-842b-40f2-8ff1-3e24aa2e16a1"
-        },
+    {
+      "id": "acb35c81-99cf-400e-9bfa-fcb062abbafc",
+      "source": "6a1a4f06-38ee-48dc-976b-487a3c1f22e3",
+      "target": "553fc567-842b-40f2-8ff1-3e24aa2e16a1",
+      "type": "AgentStateTransition",
+      "sourceHandle": "bottom",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
         "isManuallyLayouted": false,
+        "messages": [],
         "transitionType": "predefined",
         "predefined": {
-        "predefinedType": "auto",
-        "conditionValue": ""
+          "predefinedType": "auto",
+          "conditionValue": ""
         },
-        "custom": {
-        "condition": []
-        }
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
+        },
+        "points": [
+          {
+            "x": 240,
+            "y": -110
+          },
+          {
+            "x": 240,
+            "y": -70
+          },
+          {
+            "x": -385,
+            "y": -70
+          },
+          {
+            "x": -385,
+            "y": -130
+          }
+        ]
+      }
     }
-    },
-    "assessments": {}
+  ],
+  "assessments": {}
 }

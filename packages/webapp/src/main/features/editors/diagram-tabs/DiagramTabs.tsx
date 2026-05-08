@@ -81,9 +81,9 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
 const isDiagramEmpty = (diagram: ProjectDiagram | undefined): boolean => {
   if (!diagram?.model) return true;
   if (isUMLModel(diagram.model)) {
-    const elCount = Object.keys(diagram.model.elements ?? {}).length;
-    const relCount = Object.keys(diagram.model.relationships ?? {}).length;
-    return elCount === 0 && relCount === 0;
+    const nodeCount = Array.isArray(diagram.model.nodes) ? diagram.model.nodes.length : 0;
+    const edgeCount = Array.isArray(diagram.model.edges) ? diagram.model.edges.length : 0;
+    return nodeCount === 0 && edgeCount === 0;
   }
   if (isGrapesJSProjectData(diagram.model)) {
     const pages = diagram.model.pages ?? [];
@@ -185,8 +185,8 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       toast.error('Pick a Class Diagram reference first.');
       return;
     }
-    const classCount = Object.values(refModel.elements ?? {}).filter(
-      (el: any) => el?.type === 'Class',
+    const classCount = (refModel.nodes ?? []).filter(
+      (n: any) => n?.type === 'class' || n?.type === 'Class',
     ).length;
     if (classCount === 0) {
       toast.warning('The referenced Class Diagram has no classes to instantiate.');

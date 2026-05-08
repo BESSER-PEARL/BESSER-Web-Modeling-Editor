@@ -71,9 +71,9 @@ function isUMLModelEmpty(diagram: ProjectDiagram | undefined): boolean {
   if (!diagram || !diagram.model) return true;
   if (!isUMLModel(diagram.model)) return true;
   const model = diagram.model;
-  const elementCount = model.elements ? Object.keys(model.elements).length : 0;
-  const relationshipCount = model.relationships ? Object.keys(model.relationships).length : 0;
-  return elementCount === 0 && relationshipCount === 0;
+  const nodeCount = Array.isArray(model.nodes) ? model.nodes.length : 0;
+  const edgeCount = Array.isArray(model.edges) ? model.edges.length : 0;
+  return nodeCount === 0 && edgeCount === 0;
 }
 
 function isGuiModelEmpty(guiModel: GrapesJSProjectData | undefined): boolean {
@@ -108,27 +108,39 @@ function getModelMetrics(project: BesserProject | undefined): Record<string, num
   if (!project) return empty;
   const diagram = getActiveDiagram(project, project.currentDiagramType);
   const model = diagram?.model as any;
-  if (!model || !model.elements) return empty;
+  if (!model || !Array.isArray(model.nodes)) return empty;
 
-  const elements = model.elements ? Object.values(model.elements) as any[] : [];
-  const countByType = (types: string[]) => elements.filter((el) => types.includes(el.type)).length;
+  // v4 collapsed ClassAttribute / ClassMethod into rows on the parent class's
+  // node.data.attributes / node.data.methods. We count those by walking nodes
+  // of type 'class' and summing the row arrays.
+  const nodes: any[] = Array.isArray(model.nodes) ? model.nodes : [];
+  const countByType = (types: string[]) => nodes.filter((n) => types.includes(n.type)).length;
 
-  const classesCount = countByType(['Class']);
-  const abstractClassesCount = countByType(['AbstractClass']);
-  const attributesCount = countByType(['ClassAttribute']);
-  const methodsCount = countByType(['ClassMethod']);
-  const enumerationsCount = countByType(['Enumeration']);
-  const relationshipsCount = model.relationships ? Object.keys(model.relationships).length : 0;
+  // v4 'class' nodes carry a `data.stereotype` discriminator: 'abstract',
+  // 'interface', 'enumeration', or null/undefined for a plain Class.
+  const classNodes = nodes.filter((n) => n.type === 'class');
+  const classesCount = classNodes.filter((n) => !n?.data?.stereotype).length;
+  const abstractClassesCount = classNodes.filter((n) => n?.data?.stereotype === 'abstract').length;
+  const enumerationsCount = classNodes.filter((n) => n?.data?.stereotype === 'enumeration').length;
+  // Fall back to counting v3-style standalone attribute/method nodes if the migrator
+  // ever leaves them around (it shouldn't) — defensive against partial models.
+  const attributesCount =
+    classNodes.reduce((sum, n) => sum + (Array.isArray(n?.data?.attributes) ? n.data.attributes.length : 0), 0) +
+    countByType(['ClassAttribute']);
+  const methodsCount =
+    classNodes.reduce((sum, n) => sum + (Array.isArray(n?.data?.methods) ? n.data.methods.length : 0), 0) +
+    countByType(['ClassMethod']);
+  const relationshipsCount = Array.isArray(model.edges) ? model.edges.length : 0;
 
   return {
-    elements_count: elements.length,
+    elements_count: nodes.length,
     classes_count: classesCount,
     abstract_classes_count: abstractClassesCount,
     attributes_count: attributesCount,
     methods_count: methodsCount,
     enumerations_count: enumerationsCount,
     relationships_count: relationshipsCount,
-    total_size: elements.length + relationshipsCount,
+    total_size: nodes.length + relationshipsCount,
   };
 }
 

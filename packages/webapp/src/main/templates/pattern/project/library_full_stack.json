@@ -2,7 +2,7 @@
   "project": {
     "id": "project_1778067071085_63id4cn1x",
     "type": "Project",
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "name": "Library (Full Stack)",
     "description": "A library management system: class diagram, agent and GUI no-code page (with the agent component) wired together.",
     "owner": "BESSER User",
@@ -24,749 +24,466 @@
           "id": "f913a44b-5a6c-4eb9-9fc9-ed23fca5d051",
           "title": "Library",
           "model": {
-            "version": "3.0.0",
+            "version": "4.0.0",
+            "id": "converted-diagram-1778241725884",
+            "title": "",
             "type": "ClassDiagram",
-            "size": {
-              "width": 1460,
-              "height": 800
-            },
-            "interactive": {
-              "elements": {},
-              "relationships": {}
-            },
-            "elements": {
-              "class_oho5ergc3_mjikkmod": {
+            "nodes": [
+              {
                 "id": "class_oho5ergc3_mjikkmod",
-                "name": "Book",
-                "type": "Class",
-                "owner": null,
-                "bounds": {
+                "type": "class",
+                "position": {
                   "x": -434,
-                  "y": -345,
+                  "y": -345
+                },
+                "width": 240,
+                "height": 215,
+                "measured": {
                   "width": 240,
                   "height": 215
                 },
-                "attributes": [
-                  "attr_a87fqdtdi_mjikkmod",
-                  "attr_v6ve12d44_mjikkmod",
-                  "attr_edi3c3l8k_mjikkmod",
-                  "attr_mczftcqfb_mjikkmod",
-                  "attr_785suq5yn_mjikkmod",
-                  "attr_urp7jb0c0_mjikkmod"
-                ],
-                "methods": [
-                  "method_rb01uirsh_mjikkmod"
-                ]
+                "data": {
+                  "name": "Book",
+                  "methods": [
+                    {
+                      "id": "method_rb01uirsh_mjikkmod",
+                      "name": "+ decrease_stock(qty: int)",
+                      "visibility": "public",
+                      "attributeType": "int): any",
+                      "code": "def decrease_stock(self, qty: int):\n    \"\"\"\n    Decrease the available stock by the given quantity.\n\n    :param qty: Number of items to remove from stock\n    :raises ValueError: If qty is negative or exceeds available stock\n    \"\"\"\n    if qty <= 0:\n        raise ValueError(\"Quantity must be a positive integer\")\n\n    if qty > self.stock:\n        raise ValueError(\n            f\"Cannot decrease stock by {qty}. Only {self.stock} items available.\"\n        )\n\n    self.stock -= qty\n\n",
+                      "implementationType": "code",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    }
+                  ],
+                  "attributes": [
+                    {
+                      "id": "attr_a87fqdtdi_mjikkmod",
+                      "name": "title",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "attr_v6ve12d44_mjikkmod",
+                      "name": "pages",
+                      "visibility": "public",
+                      "attributeType": "int",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "attr_edi3c3l8k_mjikkmod",
+                      "name": "stock",
+                      "visibility": "public",
+                      "attributeType": "int",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "attr_mczftcqfb_mjikkmod",
+                      "name": "price",
+                      "visibility": "public",
+                      "attributeType": "float",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "attr_785suq5yn_mjikkmod",
+                      "name": "release",
+                      "visibility": "public",
+                      "attributeType": "date",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "attr_urp7jb0c0_mjikkmod",
+                      "name": "genre",
+                      "visibility": "public",
+                      "attributeType": "Genre",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    }
+                  ]
+                }
               },
-              "attr_a87fqdtdi_mjikkmod": {
-                "id": "attr_a87fqdtdi_mjikkmod",
-                "name": "title",
-                "type": "ClassAttribute",
-                "owner": "class_oho5ergc3_mjikkmod",
-                "bounds": {
-                  "x": -433.5,
-                  "y": -304.5,
-                  "width": 239,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "attr_v6ve12d44_mjikkmod": {
-                "id": "attr_v6ve12d44_mjikkmod",
-                "name": "pages",
-                "type": "ClassAttribute",
-                "owner": "class_oho5ergc3_mjikkmod",
-                "bounds": {
-                  "x": -433.5,
-                  "y": -279.5,
-                  "width": 239,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "int",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "attr_edi3c3l8k_mjikkmod": {
-                "id": "attr_edi3c3l8k_mjikkmod",
-                "name": "stock",
-                "type": "ClassAttribute",
-                "owner": "class_oho5ergc3_mjikkmod",
-                "bounds": {
-                  "x": -433.5,
-                  "y": -254.5,
-                  "width": 239,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "int",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "attr_mczftcqfb_mjikkmod": {
-                "id": "attr_mczftcqfb_mjikkmod",
-                "name": "price",
-                "type": "ClassAttribute",
-                "owner": "class_oho5ergc3_mjikkmod",
-                "bounds": {
-                  "x": -433.5,
-                  "y": -229.5,
-                  "width": 239,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "float",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "attr_785suq5yn_mjikkmod": {
-                "id": "attr_785suq5yn_mjikkmod",
-                "name": "release",
-                "type": "ClassAttribute",
-                "owner": "class_oho5ergc3_mjikkmod",
-                "bounds": {
-                  "x": -433.5,
-                  "y": -204.5,
-                  "width": 239,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "date",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "attr_urp7jb0c0_mjikkmod": {
-                "id": "attr_urp7jb0c0_mjikkmod",
-                "name": "genre",
-                "type": "ClassAttribute",
-                "owner": "class_oho5ergc3_mjikkmod",
-                "bounds": {
-                  "x": -433.5,
-                  "y": -179.5,
-                  "width": 239,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "Genre",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "method_rb01uirsh_mjikkmod": {
-                "id": "method_rb01uirsh_mjikkmod",
-                "name": "+ decrease_stock(qty: int)",
-                "type": "ClassMethod",
-                "owner": "class_oho5ergc3_mjikkmod",
-                "bounds": {
-                  "x": -433.5,
-                  "y": -154.5,
-                  "width": 239,
-                  "height": 25
-                },
-                "code": "def decrease_stock(self, qty: int):\n    \"\"\"\n    Decrease the available stock by the given quantity.\n\n    :param qty: Number of items to remove from stock\n    :raises ValueError: If qty is negative or exceeds available stock\n    \"\"\"\n    if qty <= 0:\n        raise ValueError(\"Quantity must be a positive integer\")\n\n    if qty > self.stock:\n        raise ValueError(\n            f\"Cannot decrease stock by {qty}. Only {self.stock} items available.\"\n        )\n\n    self.stock -= qty\n\n",
-                "visibility": "public",
-                "attributeType": "int): any",
-                "implementationType": "code",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "class_06blhjj3h_mjikkmod": {
+              {
                 "id": "class_06blhjj3h_mjikkmod",
-                "name": "Library",
-                "type": "Class",
-                "owner": null,
-                "bounds": {
+                "type": "class",
+                "position": {
                   "x": -60,
-                  "y": -150,
+                  "y": -150
+                },
+                "width": 350,
+                "height": 185,
+                "measured": {
                   "width": 350,
                   "height": 185
                 },
-                "attributes": [
-                  "attr_eryfh37kl_mjikkmod",
-                  "f9608e0e-745d-4113-85ad-cd06b1900c09",
-                  "4391886d-13b5-4fa0-9894-09f1894af27f",
-                  "a487fd85-dec0-47b9-bd37-71ff92026963"
-                ],
-                "methods": [
-                  "35ef5329-889b-40f0-89ce-9836936fd8a9"
-                ]
+                "data": {
+                  "name": "Library",
+                  "methods": [
+                    {
+                      "id": "35ef5329-889b-40f0-89ce-9836936fd8a9",
+                      "name": "+ cheapest_book_by(author:Author): str",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "def cheapest_book_by(author:Author) -> str {\n    cheapest:Book = null;\n\tprice = 1000000000.0;\n\tfor(book in this.books){\n        if(book.authors.contains(author)\n\t\t\t&& book.price <= price){\n            cheapest = book;\n\t\t\tprice = book.price;\n\t\t}\n    }\n\treturn cheapest.title;\n}",
+                      "implementationType": "bal",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    }
+                  ],
+                  "attributes": [
+                    {
+                      "id": "attr_eryfh37kl_mjikkmod",
+                      "name": "name",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "f9608e0e-745d-4113-85ad-cd06b1900c09",
+                      "name": "web_page",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "4391886d-13b5-4fa0-9894-09f1894af27f",
+                      "name": "address",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "a487fd85-dec0-47b9-bd37-71ff92026963",
+                      "name": "telephone",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    }
+                  ]
+                }
               },
-              "attr_eryfh37kl_mjikkmod": {
-                "id": "attr_eryfh37kl_mjikkmod",
-                "name": "name",
-                "type": "ClassAttribute",
-                "owner": "class_06blhjj3h_mjikkmod",
-                "bounds": {
-                  "x": -59.5,
-                  "y": -109.5,
-                  "width": 349,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "f9608e0e-745d-4113-85ad-cd06b1900c09": {
-                "id": "f9608e0e-745d-4113-85ad-cd06b1900c09",
-                "name": "web_page",
-                "type": "ClassAttribute",
-                "owner": "class_06blhjj3h_mjikkmod",
-                "bounds": {
-                  "x": -59.5,
-                  "y": -84.5,
-                  "width": 349,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "4391886d-13b5-4fa0-9894-09f1894af27f": {
-                "id": "4391886d-13b5-4fa0-9894-09f1894af27f",
-                "name": "address",
-                "type": "ClassAttribute",
-                "owner": "class_06blhjj3h_mjikkmod",
-                "bounds": {
-                  "x": -59.5,
-                  "y": -54.5,
-                  "width": 349,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "a487fd85-dec0-47b9-bd37-71ff92026963": {
-                "id": "a487fd85-dec0-47b9-bd37-71ff92026963",
-                "name": "telephone",
-                "type": "ClassAttribute",
-                "owner": "class_06blhjj3h_mjikkmod",
-                "bounds": {
-                  "x": -59.5,
-                  "y": -24.5,
-                  "width": 349,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "35ef5329-889b-40f0-89ce-9836936fd8a9": {
-                "id": "35ef5329-889b-40f0-89ce-9836936fd8a9",
-                "name": "+ cheapest_book_by(author:Author): str",
-                "type": "ClassMethod",
-                "owner": "class_06blhjj3h_mjikkmod",
-                "bounds": {
-                  "x": -59.5,
-                  "y": 5.5,
-                  "width": 349,
-                  "height": 30
-                },
-                "code": "def cheapest_book_by(author:Author) -> str {\n    cheapest:Book = null;\n\tprice = 1000000000.0;\n\tfor(book in this.books){\n        if(book.authors.contains(author)\n\t\t\t&& book.price <= price){\n            cheapest = book;\n\t\t\tprice = book.price;\n\t\t}\n    }\n\treturn cheapest.title;\n}",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "bal",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "class_d3f0di6lb_mjikkmoe": {
+              {
                 "id": "class_d3f0di6lb_mjikkmoe",
-                "name": "Author",
-                "type": "Class",
-                "owner": null,
-                "bounds": {
+                "type": "class",
+                "position": {
                   "x": 10,
-                  "y": -380,
+                  "y": -380
+                },
+                "width": 220,
+                "height": 95,
+                "measured": {
                   "width": 220,
                   "height": 95
                 },
-                "attributes": [
-                  "attr_p3zqpt65k_mjikkmoe",
-                  "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db"
-                ],
-                "methods": []
+                "data": {
+                  "name": "Author",
+                  "methods": [],
+                  "attributes": [
+                    {
+                      "id": "attr_p3zqpt65k_mjikkmoe",
+                      "name": "name",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db",
+                      "name": "birth",
+                      "visibility": "public",
+                      "attributeType": "date",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    }
+                  ]
+                }
               },
-              "attr_p3zqpt65k_mjikkmoe": {
-                "id": "attr_p3zqpt65k_mjikkmoe",
-                "name": "name",
-                "type": "ClassAttribute",
-                "owner": "class_d3f0di6lb_mjikkmoe",
-                "bounds": {
-                  "x": 10.5,
-                  "y": -339.5,
-                  "width": 219,
-                  "height": 25
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db": {
-                "id": "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db",
-                "name": "birth",
-                "type": "ClassAttribute",
-                "owner": "class_d3f0di6lb_mjikkmoe",
-                "bounds": {
-                  "x": 10.5,
-                  "y": -314.5,
-                  "width": 219,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "date",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "50ffa27f-f8a9-438b-b81b-174266f39952": {
+              {
                 "id": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "name": "Genre",
-                "type": "Enumeration",
-                "owner": null,
-                "bounds": {
+                "type": "class",
+                "position": {
                   "x": -710,
-                  "y": -220,
+                  "y": -220
+                },
+                "width": 160,
+                "height": 350,
+                "measured": {
                   "width": 160,
                   "height": 350
                 },
-                "attributes": [
-                  "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
-                  "15d10eca-11e8-4894-8b27-d815dbc62596",
-                  "55346119-1f08-48c5-9629-b5223ea766e0",
-                  "67e73142-470c-4795-8864-96f08365ce49",
-                  "4ba07b68-1fd2-40fc-ad63-05766965aaad",
-                  "52114e47-c8c1-404a-847c-0b877de007e0",
-                  "65937dfa-011b-425e-a292-7d66dff5cd36",
-                  "994869fb-9b98-450f-add4-a2ee88a15c7f",
-                  "45fa6842-da64-4878-b875-c536f06f1d50",
-                  "6d81aaec-327a-42b9-89db-a17e54bb7b5a"
-                ],
-                "methods": []
+                "data": {
+                  "name": "Genre",
+                  "methods": [],
+                  "attributes": [
+                    {
+                      "id": "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
+                      "name": "Poetry",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "15d10eca-11e8-4894-8b27-d815dbc62596",
+                      "name": "Thriller",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "55346119-1f08-48c5-9629-b5223ea766e0",
+                      "name": "History",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "67e73142-470c-4795-8864-96f08365ce49",
+                      "name": "Technology",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "4ba07b68-1fd2-40fc-ad63-05766965aaad",
+                      "name": "Romance",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "52114e47-c8c1-404a-847c-0b877de007e0",
+                      "name": "Horror",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "65937dfa-011b-425e-a292-7d66dff5cd36",
+                      "name": "Adventure",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "994869fb-9b98-450f-add4-a2ee88a15c7f",
+                      "name": "Philosophy",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "45fa6842-da64-4878-b875-c536f06f1d50",
+                      "name": "Cookbooks",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    },
+                    {
+                      "id": "6d81aaec-327a-42b9-89db-a17e54bb7b5a",
+                      "name": "Fantasy",
+                      "visibility": "public",
+                      "attributeType": "str",
+                      "code": "",
+                      "implementationType": "none",
+                      "isOptional": false,
+                      "isDerived": false,
+                      "isId": false,
+                      "isExternalId": false
+                    }
+                  ],
+                  "stereotype": "Enumeration"
+                }
               },
-              "bfadf7ef-e6a4-43e3-b267-672be745c9c7": {
-                "id": "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
-                "name": "Poetry",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": -169.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "15d10eca-11e8-4894-8b27-d815dbc62596": {
-                "id": "15d10eca-11e8-4894-8b27-d815dbc62596",
-                "name": "Thriller",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": -139.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "55346119-1f08-48c5-9629-b5223ea766e0": {
-                "id": "55346119-1f08-48c5-9629-b5223ea766e0",
-                "name": "History",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": -109.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "67e73142-470c-4795-8864-96f08365ce49": {
-                "id": "67e73142-470c-4795-8864-96f08365ce49",
-                "name": "Technology",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": -79.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "4ba07b68-1fd2-40fc-ad63-05766965aaad": {
-                "id": "4ba07b68-1fd2-40fc-ad63-05766965aaad",
-                "name": "Romance",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": -49.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "52114e47-c8c1-404a-847c-0b877de007e0": {
-                "id": "52114e47-c8c1-404a-847c-0b877de007e0",
-                "name": "Horror",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": -19.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "65937dfa-011b-425e-a292-7d66dff5cd36": {
-                "id": "65937dfa-011b-425e-a292-7d66dff5cd36",
-                "name": "Adventure",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": 10.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "994869fb-9b98-450f-add4-a2ee88a15c7f": {
-                "id": "994869fb-9b98-450f-add4-a2ee88a15c7f",
-                "name": "Philosophy",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": 40.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "45fa6842-da64-4878-b875-c536f06f1d50": {
-                "id": "45fa6842-da64-4878-b875-c536f06f1d50",
-                "name": "Cookbooks",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": 70.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "6d81aaec-327a-42b9-89db-a17e54bb7b5a": {
-                "id": "6d81aaec-327a-42b9-89db-a17e54bb7b5a",
-                "name": "Fantasy",
-                "type": "ClassAttribute",
-                "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-                "bounds": {
-                  "x": -709.5,
-                  "y": 100.5,
-                  "width": 159,
-                  "height": 30
-                },
-                "code": "",
-                "visibility": "public",
-                "attributeType": "str",
-                "implementationType": "none",
-                "stateMachineId": "",
-                "quantumCircuitId": "",
-                "isOptional": false,
-                "isDerived": false,
-                "isId": false,
-                "isExternalId": false
-              },
-              "de57bf9a-a91f-4c69-9ad0-4879e2222edd": {
+              {
                 "id": "de57bf9a-a91f-4c69-9ad0-4879e2222edd",
-                "name": "",
-                "type": "ClassOCLConstraint",
-                "owner": null,
-                "bounds": {
+                "type": "classoclconstraint",
+                "position": {
                   "x": -710,
-                  "y": -380,
+                  "y": -380
+                },
+                "width": 210,
+                "height": 90,
+                "measured": {
                   "width": 210,
                   "height": 90
                 },
-                "constraint": "context Book inv inv1: self.pages> 10"
+                "data": {
+                  "name": ""
+                }
               }
-            },
-            "relationships": {
-              "rel_z26fdxrdq_mjikkmoe": {
+            ],
+            "edges": [
+              {
                 "id": "rel_z26fdxrdq_mjikkmoe",
-                "name": "books",
+                "source": "class_06blhjj3h_mjikkmod",
+                "target": "class_oho5ergc3_mjikkmod",
                 "type": "ClassBidirectional",
-                "owner": null,
-                "bounds": {
-                  "x": -194,
-                  "y": -247.5,
-                  "width": 134,
-                  "height": 228
-                },
-                "path": [
-                  {
-                    "x": 134,
-                    "y": 190
-                  },
-                  {
-                    "x": 67,
-                    "y": 190
-                  },
-                  {
-                    "x": 67,
-                    "y": 10
-                  },
-                  {
-                    "x": 0,
-                    "y": 10
-                  }
-                ],
-                "source": {
-                  "direction": "Left",
-                  "element": "class_06blhjj3h_mjikkmod",
-                  "multiplicity": "1..*",
-                  "role": "library",
-                  "bounds": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 0,
-                    "height": 0
-                  }
-                },
-                "target": {
-                  "direction": "Right",
-                  "element": "class_oho5ergc3_mjikkmod",
-                  "multiplicity": "*",
-                  "role": "books",
-                  "bounds": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 0,
-                    "height": 0
-                  }
-                },
-                "isManuallyLayouted": false
+                "sourceHandle": "left",
+                "targetHandle": "right",
+                "data": {
+                  "label": "books",
+                  "name": "books",
+                  "sourceMultiplicity": "1..*",
+                  "targetMultiplicity": "*",
+                  "sourceRole": "library",
+                  "targetRole": "books",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "points": [
+                    {
+                      "x": -60,
+                      "y": -57.5
+                    },
+                    {
+                      "x": -127,
+                      "y": -57.5
+                    },
+                    {
+                      "x": -127,
+                      "y": -237.5
+                    },
+                    {
+                      "x": -194,
+                      "y": -237.5
+                    }
+                  ]
+                }
               },
-              "rel_0ys2qxzq1_mjikkmoe": {
+              {
                 "id": "rel_0ys2qxzq1_mjikkmoe",
-                "name": "books",
+                "source": "class_d3f0di6lb_mjikkmoe",
+                "target": "class_oho5ergc3_mjikkmod",
                 "type": "ClassBidirectional",
-                "owner": null,
-                "bounds": {
-                  "x": -194,
-                  "y": -325,
-                  "width": 204,
-                  "height": 48
-                },
-                "path": [
-                  {
-                    "x": 204,
-                    "y": 10
-                  },
-                  {
-                    "x": 0,
-                    "y": 10
-                  }
-                ],
-                "source": {
-                  "direction": "Left",
-                  "element": "class_d3f0di6lb_mjikkmoe",
-                  "multiplicity": "1..*",
-                  "role": "authors",
-                  "bounds": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 0,
-                    "height": 0
-                  }
-                },
-                "target": {
-                  "direction": "Right",
-                  "element": "class_oho5ergc3_mjikkmod",
-                  "multiplicity": "*",
-                  "role": "books",
-                  "bounds": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 0,
-                    "height": 0
-                  }
-                },
-                "isManuallyLayouted": false
+                "sourceHandle": "left",
+                "targetHandle": "right",
+                "data": {
+                  "label": "books",
+                  "name": "books",
+                  "sourceMultiplicity": "1..*",
+                  "targetMultiplicity": "*",
+                  "sourceRole": "authors",
+                  "targetRole": "books",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "points": [
+                    {
+                      "x": 10,
+                      "y": -315
+                    },
+                    {
+                      "x": -194,
+                      "y": -315
+                    }
+                  ]
+                }
               }
-            },
+            ],
             "assessments": {}
           },
           "lastUpdate": "2026-05-06T11:31:20.817Z"
@@ -777,794 +494,950 @@
           "id": "c4adbd57-a9f2-4cb2-904f-adf653cd268c",
           "title": "Library Agent",
           "model": {
-            "version": "3.0.0",
+            "version": "4.0.0",
+            "id": "converted-diagram-1778241725884",
+            "title": "",
             "type": "AgentDiagram",
-            "size": {
-              "width": 2326,
-              "height": 1540
-            },
-            "interactive": {
-              "elements": {},
-              "relationships": {}
-            },
-            "elements": {
-              "initial_72th6ksf3_mm9b38u1": {
+            "nodes": [
+              {
                 "id": "initial_72th6ksf3_mm9b38u1",
-                "name": "",
                 "type": "StateInitialNode",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -1143,
-                  "y": -503,
+                  "y": -503
+                },
+                "width": 45,
+                "height": 45,
+                "measured": {
                   "width": 45,
                   "height": 45
+                },
+                "data": {
+                  "name": ""
                 }
               },
-              "intent_jtmr4apyg_mm9b38u1": {
+              {
                 "id": "intent_jtmr4apyg_mm9b38u1",
-                "name": "OpeningHours",
                 "type": "AgentIntent",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -680,
-                  "y": -100,
+                  "y": -100
+                },
+                "width": 410,
+                "height": 190,
+                "measured": {
                   "width": 410,
                   "height": 190
                 },
-                "bodies": [
-                  "intentBody_jn9sy9wl2_mm9b38u1",
-                  "intentBody_61dj9fnk0_mm9b38u1",
-                  "intentBody_b8jkj9t1s_mm9b38u1",
-                  "intentBody_jl9eozt0r_mm9b38u1"
-                ],
-                "intent_description": "Asking for the opening hours of the library."
+                "data": {
+                  "name": "OpeningHours",
+                  "intent_description": "Asking for the opening hours of the library."
+                }
               },
-              "intentBody_jn9sy9wl2_mm9b38u1": {
+              {
                 "id": "intentBody_jn9sy9wl2_mm9b38u1",
-                "name": "what are the opening hours?",
                 "type": "AgentIntentBody",
-                "owner": "intent_jtmr4apyg_mm9b38u1",
-                "bounds": {
-                  "x": -679.5,
-                  "y": -29.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 70.5
+                },
+                "width": 409,
+                "height": 30,
+                "measured": {
                   "width": 409,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "what are the opening hours?"
+                },
+                "parentId": "intent_jtmr4apyg_mm9b38u1"
               },
-              "intentBody_61dj9fnk0_mm9b38u1": {
+              {
                 "id": "intentBody_61dj9fnk0_mm9b38u1",
-                "name": "library hours",
                 "type": "AgentIntentBody",
-                "owner": "intent_jtmr4apyg_mm9b38u1",
-                "bounds": {
-                  "x": -679.5,
-                  "y": 0.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 100.5
+                },
+                "width": 409,
+                "height": 30,
+                "measured": {
                   "width": 409,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "library hours"
+                },
+                "parentId": "intent_jtmr4apyg_mm9b38u1"
               },
-              "intentBody_b8jkj9t1s_mm9b38u1": {
+              {
                 "id": "intentBody_b8jkj9t1s_mm9b38u1",
-                "name": "when do you open?",
                 "type": "AgentIntentBody",
-                "owner": "intent_jtmr4apyg_mm9b38u1",
-                "bounds": {
-                  "x": -679.5,
-                  "y": 30.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 130.5
+                },
+                "width": 409,
+                "height": 30,
+                "measured": {
                   "width": 409,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "when do you open?"
+                },
+                "parentId": "intent_jtmr4apyg_mm9b38u1"
               },
-              "intentBody_jl9eozt0r_mm9b38u1": {
+              {
                 "id": "intentBody_jl9eozt0r_mm9b38u1",
-                "name": "hours of operation",
                 "type": "AgentIntentBody",
-                "owner": "intent_jtmr4apyg_mm9b38u1",
-                "bounds": {
-                  "x": -679.5,
-                  "y": 60.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 160.5
+                },
+                "width": 409,
+                "height": 30,
+                "measured": {
                   "width": 409,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "hours of operation"
+                },
+                "parentId": "intent_jtmr4apyg_mm9b38u1"
               },
-              "intent_ggq3p9gv8_mm9b38u1": {
+              {
                 "id": "intent_ggq3p9gv8_mm9b38u1",
-                "name": "CheapestBook",
                 "type": "AgentIntent",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -250,
-                  "y": -100,
+                  "y": -100
+                },
+                "width": 490,
+                "height": 130,
+                "measured": {
                   "width": 490,
                   "height": 130
                 },
-                "bodies": [
-                  "intentBody_06wxt0vga_mm9b38u1",
-                  "intentBody_14tgxxf1f_mm9b38u1",
-                  "intentBody_j2ugmtuh8_mm9b38u1"
-                ],
-                "intent_description": ""
+                "data": {
+                  "name": "CheapestBook",
+                  "intent_description": ""
+                }
               },
-              "intentBody_06wxt0vga_mm9b38u1": {
+              {
                 "id": "intentBody_06wxt0vga_mm9b38u1",
-                "name": "how to get the title of the cheapest book of an author?",
                 "type": "AgentIntentBody",
-                "owner": "intent_ggq3p9gv8_mm9b38u1",
-                "bounds": {
-                  "x": -249.5,
-                  "y": -59.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 40.5
+                },
+                "width": 489,
+                "height": 30,
+                "measured": {
                   "width": 489,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "how to get the title of the cheapest book of an author?"
+                },
+                "parentId": "intent_ggq3p9gv8_mm9b38u1"
               },
-              "intentBody_14tgxxf1f_mm9b38u1": {
+              {
                 "id": "intentBody_14tgxxf1f_mm9b38u1",
-                "name": "I want to know the cheapest book",
                 "type": "AgentIntentBody",
-                "owner": "intent_ggq3p9gv8_mm9b38u1",
-                "bounds": {
-                  "x": -249.5,
-                  "y": -29.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 70.5
+                },
+                "width": 489,
+                "height": 30,
+                "measured": {
                   "width": 489,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "I want to know the cheapest book"
+                },
+                "parentId": "intent_ggq3p9gv8_mm9b38u1"
               },
-              "intentBody_j2ugmtuh8_mm9b38u1": {
+              {
                 "id": "intentBody_j2ugmtuh8_mm9b38u1",
-                "name": "which is the cheapest book?",
                 "type": "AgentIntentBody",
-                "owner": "intent_ggq3p9gv8_mm9b38u1",
-                "bounds": {
-                  "x": -249.5,
-                  "y": 0.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 100.5
+                },
+                "width": 489,
+                "height": 30,
+                "measured": {
                   "width": 489,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "which is the cheapest book?"
+                },
+                "parentId": "intent_ggq3p9gv8_mm9b38u1"
               },
-              "intent_zuidaui0x_mm9b38u1": {
+              {
                 "id": "intent_zuidaui0x_mm9b38u1",
-                "name": "Contact",
                 "type": "AgentIntent",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -1130,
-                  "y": -100,
+                  "y": -100
+                },
+                "width": 430,
+                "height": 160,
+                "measured": {
                   "width": 430,
                   "height": 160
                 },
-                "bodies": [
-                  "intentBody_9kmxc6vnq_mm9b38u1",
-                  "intentBody_mxczpzj8h_mm9b38u1",
-                  "intentBody_8yqem5n2k_mm9b38u1"
-                ],
-                "intent_description": "Requesting to speak with a human assistant."
+                "data": {
+                  "name": "Contact",
+                  "intent_description": "Requesting to speak with a human assistant."
+                }
               },
-              "intentBody_9kmxc6vnq_mm9b38u1": {
+              {
                 "id": "intentBody_9kmxc6vnq_mm9b38u1",
-                "name": "I need to speak to someone",
                 "type": "AgentIntentBody",
-                "owner": "intent_zuidaui0x_mm9b38u1",
-                "bounds": {
-                  "x": -1129.5,
-                  "y": -29.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 70.5
+                },
+                "width": 429,
+                "height": 30,
+                "measured": {
                   "width": 429,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "I need to speak to someone"
+                },
+                "parentId": "intent_zuidaui0x_mm9b38u1"
               },
-              "intentBody_mxczpzj8h_mm9b38u1": {
+              {
                 "id": "intentBody_mxczpzj8h_mm9b38u1",
-                "name": "contact support",
                 "type": "AgentIntentBody",
-                "owner": "intent_zuidaui0x_mm9b38u1",
-                "bounds": {
-                  "x": -1129.5,
-                  "y": 0.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 100.5
+                },
+                "width": 429,
+                "height": 30,
+                "measured": {
                   "width": 429,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "contact support"
+                },
+                "parentId": "intent_zuidaui0x_mm9b38u1"
               },
-              "intentBody_8yqem5n2k_mm9b38u1": {
+              {
                 "id": "intentBody_8yqem5n2k_mm9b38u1",
-                "name": "human assistance",
                 "type": "AgentIntentBody",
-                "owner": "intent_zuidaui0x_mm9b38u1",
-                "bounds": {
-                  "x": -1129.5,
-                  "y": 30.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 130.5
+                },
+                "width": 429,
+                "height": 30,
+                "measured": {
                   "width": 429,
                   "height": 30
-                }
+                },
+                "data": {
+                  "name": "human assistance"
+                },
+                "parentId": "intent_zuidaui0x_mm9b38u1"
               },
-              "state_zl3bfe65n_mm9b38u1": {
+              {
                 "id": "state_zl3bfe65n_mm9b38u1",
-                "name": "Idle",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -480,
-                  "y": -520,
+                  "y": -520
+                },
+                "width": 260,
+                "height": 70,
+                "measured": {
                   "width": 260,
                   "height": 70
                 },
-                "bodies": [
-                  "body_wybm5pc31_mm9b38u1"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "Idle",
+                  "replyType": "text"
+                }
               },
-              "body_wybm5pc31_mm9b38u1": {
+              {
                 "id": "body_wybm5pc31_mm9b38u1",
-                "name": "How can I assist you today?",
                 "type": "AgentStateBody",
-                "owner": "state_zl3bfe65n_mm9b38u1",
-                "bounds": {
-                  "x": -479.5,
-                  "y": -479.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 40.5
+                },
+                "width": 259,
+                "height": 30,
+                "measured": {
                   "width": 259,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "How can I assist you today?",
+                  "replyType": "text"
+                },
+                "parentId": "state_zl3bfe65n_mm9b38u1"
               },
-              "state_j5tnma02n_mm9b38u1": {
+              {
                 "id": "state_j5tnma02n_mm9b38u1",
-                "name": "OpeningHoursState",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 80,
-                  "y": -530,
+                  "y": -530
+                },
+                "width": 420,
+                "height": 100,
+                "measured": {
                   "width": 420,
                   "height": 100
                 },
-                "bodies": [
-                  "body_a8ph8sxrt_mm9b38u1",
-                  "fb1432f7-1778-4c8b-90f3-e471e86cec31"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "OpeningHoursState",
+                  "replyType": "text"
+                }
               },
-              "body_a8ph8sxrt_mm9b38u1": {
+              {
                 "id": "body_a8ph8sxrt_mm9b38u1",
-                "name": "Our opening hours are Monday–Friday 9 AM–6 PM.",
                 "type": "AgentStateBody",
-                "owner": "state_j5tnma02n_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -489.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 40.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "Our opening hours are Monday–Friday 9 AM–6 PM.",
+                  "replyType": "text"
+                },
+                "parentId": "state_j5tnma02n_mm9b38u1"
               },
-              "fb1432f7-1778-4c8b-90f3-e471e86cec31": {
+              {
                 "id": "fb1432f7-1778-4c8b-90f3-e471e86cec31",
-                "name": "Saturday 10 AM–4 PM. Closed Sunday.",
                 "type": "AgentStateBody",
-                "owner": "state_j5tnma02n_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -459.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 70.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "Saturday 10 AM–4 PM. Closed Sunday.",
+                  "replyType": "text"
+                },
+                "parentId": "state_j5tnma02n_mm9b38u1"
               },
-              "state_krso67h8q_mm9b38u1": {
+              {
                 "id": "state_krso67h8q_mm9b38u1",
-                "name": "CheapestBookState",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 80,
-                  "y": -750,
+                  "y": -750
+                },
+                "width": 420,
+                "height": 190,
+                "measured": {
                   "width": 420,
                   "height": 190
                 },
-                "bodies": [
-                  "body_38x5jthwr_mm9b38u1",
-                  "body_0yl3shkws_mm9b38u1",
-                  "b533e6a5-cc51-4f0d-a269-98bf81a02c31",
-                  "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a",
-                  "b779be48-1bc4-4984-9274-00c91203552a"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "CheapestBookState",
+                  "replyType": "text"
+                }
               },
-              "body_38x5jthwr_mm9b38u1": {
+              {
                 "id": "body_38x5jthwr_mm9b38u1",
-                "name": "To get the cheapest book of an author, follow these steps:",
                 "type": "AgentStateBody",
-                "owner": "state_krso67h8q_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -709.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 40.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "To get the cheapest book of an author, follow these steps:",
+                  "replyType": "text"
+                },
+                "parentId": "state_krso67h8q_mm9b38u1"
               },
-              "body_0yl3shkws_mm9b38u1": {
+              {
                 "id": "body_0yl3shkws_mm9b38u1",
-                "name": "1. Go to the Library tab.",
                 "type": "AgentStateBody",
-                "owner": "state_krso67h8q_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -679.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 70.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "1. Go to the Library tab.",
+                  "replyType": "text"
+                },
+                "parentId": "state_krso67h8q_mm9b38u1"
               },
-              "b533e6a5-cc51-4f0d-a269-98bf81a02c31": {
+              {
                 "id": "b533e6a5-cc51-4f0d-a269-98bf81a02c31",
-                "name": "2. In the table, select the library where you want to search.",
                 "type": "AgentStateBody",
-                "owner": "state_krso67h8q_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -649.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 100.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "2. In the table, select the library where you want to search.",
+                  "replyType": "text"
+                },
+                "parentId": "state_krso67h8q_mm9b38u1"
               },
-              "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a": {
+              {
                 "id": "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a",
-                "name": "3. Click on “Cheapest Book”.",
                 "type": "AgentStateBody",
-                "owner": "state_krso67h8q_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -619.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 130.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "3. Click on “Cheapest Book”.",
+                  "replyType": "text"
+                },
+                "parentId": "state_krso67h8q_mm9b38u1"
               },
-              "b779be48-1bc4-4984-9274-00c91203552a": {
+              {
                 "id": "b779be48-1bc4-4984-9274-00c91203552a",
-                "name": "4. Select an author and click “Execute”.",
                 "type": "AgentStateBody",
-                "owner": "state_krso67h8q_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -589.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 160.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "4. Select an author and click “Execute”.",
+                  "replyType": "text"
+                },
+                "parentId": "state_krso67h8q_mm9b38u1"
               },
-              "state_5emfhqwzt_mm9b38u1": {
+              {
                 "id": "state_5emfhqwzt_mm9b38u1",
-                "name": "ContactState",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 80,
-                  "y": -330,
+                  "y": -330
+                },
+                "width": 420,
+                "height": 100,
+                "measured": {
                   "width": 420,
                   "height": 100
                 },
-                "bodies": [
-                  "body_b6vkku4r1_mm9b38u1",
-                  "body_8i8n5kbs0_mm9b38u1"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "ContactState",
+                  "replyType": "text"
+                }
               },
-              "body_b6vkku4r1_mm9b38u1": {
+              {
                 "id": "body_b6vkku4r1_mm9b38u1",
-                "name": "You can contact a librarian at library@example.com or call +1 555-123-4567.",
                 "type": "AgentStateBody",
-                "owner": "state_5emfhqwzt_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -289.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 40.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "You can contact a librarian at library@example.com or call +1 555-123-4567.",
+                  "replyType": "text"
+                },
+                "parentId": "state_5emfhqwzt_mm9b38u1"
               },
-              "body_8i8n5kbs0_mm9b38u1": {
+              {
                 "id": "body_8i8n5kbs0_mm9b38u1",
-                "name": "They will get back to you shortly.",
                 "type": "AgentStateBody",
-                "owner": "state_5emfhqwzt_mm9b38u1",
-                "bounds": {
-                  "x": 80.5,
-                  "y": -259.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 70.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "They will get back to you shortly.",
+                  "replyType": "text"
+                },
+                "parentId": "state_5emfhqwzt_mm9b38u1"
               },
-              "46badadf-e50d-481e-8246-3ba2393fce47": {
+              {
                 "id": "46badadf-e50d-481e-8246-3ba2393fce47",
-                "name": "Greeting",
                 "type": "AgentState",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": -999,
-                  "y": -539,
+                  "y": -539
+                },
+                "width": 420,
+                "height": 70,
+                "measured": {
                   "width": 420,
                   "height": 70
                 },
-                "bodies": [
-                  "e3aad61a-89b4-46a6-8c16-6f80b861d717"
-                ],
-                "fallbackBodies": []
+                "data": {
+                  "name": "Greeting",
+                  "replyType": "text"
+                }
               },
-              "e3aad61a-89b4-46a6-8c16-6f80b861d717": {
+              {
                 "id": "e3aad61a-89b4-46a6-8c16-6f80b861d717",
-                "name": "Welcome to the library support system!",
                 "type": "AgentStateBody",
-                "owner": "46badadf-e50d-481e-8246-3ba2393fce47",
-                "bounds": {
-                  "x": -998.5,
-                  "y": -498.5,
+                "position": {
+                  "x": 0.5,
+                  "y": 40.5
+                },
+                "width": 419,
+                "height": 30,
+                "measured": {
                   "width": 419,
                   "height": 30
                 },
-                "replyType": "text"
+                "data": {
+                  "name": "Welcome to the library support system!",
+                  "replyType": "text"
+                },
+                "parentId": "46badadf-e50d-481e-8246-3ba2393fce47"
               },
-              "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13": {
+              {
                 "id": "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13",
-                "name": "Other",
                 "type": "AgentIntent",
-                "owner": null,
-                "bounds": {
+                "position": {
                   "x": 260,
-                  "y": -100,
+                  "y": -100
+                },
+                "width": 250,
+                "height": 70,
+                "measured": {
                   "width": 250,
                   "height": 70
                 },
-                "bodies": [],
-                "intent_description": "Any other question."
+                "data": {
+                  "name": "Other",
+                  "intent_description": "Any other question."
+                }
               }
-            },
-            "relationships": {
-              "transition_ixdyt9fr7_mm9b38u1": {
+            ],
+            "edges": [
+              {
                 "id": "transition_ixdyt9fr7_mm9b38u1",
-                "name": "",
+                "source": "initial_72th6ksf3_mm9b38u1",
+                "target": "46badadf-e50d-481e-8246-3ba2393fce47",
                 "type": "AgentStateTransitionInit",
-                "owner": null,
-                "bounds": {
-                  "x": -1098,
-                  "y": -504,
-                  "width": 99,
-                  "height": 23.5
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 23.5
-                  },
-                  {
-                    "x": 49.5,
-                    "y": 23.5
-                  },
-                  {
-                    "x": 49.5,
-                    "y": 0
-                  },
-                  {
-                    "x": 99,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Right",
-                  "element": "initial_72th6ksf3_mm9b38u1"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "46badadf-e50d-481e-8246-3ba2393fce47"
-                },
-                "isManuallyLayouted": false
+                "sourceHandle": "right",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "points": [
+                    {
+                      "x": -1098,
+                      "y": -480.5
+                    },
+                    {
+                      "x": -1048.5,
+                      "y": -480.5
+                    },
+                    {
+                      "x": -1048.5,
+                      "y": -504
+                    },
+                    {
+                      "x": -999,
+                      "y": -504
+                    }
+                  ]
+                }
               },
-              "transition_x8h483xz2_mm9b38u1": {
+              {
                 "id": "transition_x8h483xz2_mm9b38u1",
-                "name": "",
+                "source": "state_zl3bfe65n_mm9b38u1",
+                "target": "state_j5tnma02n_mm9b38u1",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -220,
-                  "y": -485,
-                  "width": 300,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
+                "sourceHandle": "right-top",
+                "targetHandle": "left-top",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "when_intent_matched",
+                    "intentName": "OpeningHours"
                   },
-                  {
-                    "x": 300,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Upright",
-                  "element": "state_zl3bfe65n_mm9b38u1"
-                },
-                "target": {
-                  "direction": "Upleft",
-                  "element": "state_j5tnma02n_mm9b38u1"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "when_intent_matched",
-                  "intentName": "OpeningHours"
-                },
-                "custom": {
-                  "condition": []
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "when_intent_matched",
+                      "intentName": "OpeningHours"
+                    },
+                    "custom": {
+                      "condition": []
+                    }
+                  },
+                  "points": [
+                    {
+                      "x": -220,
+                      "y": -485
+                    },
+                    {
+                      "x": 80,
+                      "y": -485
+                    }
+                  ]
                 }
               },
-              "transition_53oz6z5cc_mm9b38u1": {
+              {
                 "id": "transition_53oz6z5cc_mm9b38u1",
-                "name": "",
+                "source": "state_zl3bfe65n_mm9b38u1",
+                "target": "state_krso67h8q_mm9b38u1",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -285,
-                  "y": -655,
-                  "width": 365,
-                  "height": 135
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 135
+                "sourceHandle": "topright",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "when_intent_matched",
+                    "intentName": "CheapestBook"
                   },
-                  {
-                    "x": 0,
-                    "y": 0
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "when_intent_matched",
+                      "intentName": "CheapestBook"
+                    },
+                    "custom": {
+                      "condition": []
+                    }
                   },
-                  {
-                    "x": 365,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Topright",
-                  "element": "state_zl3bfe65n_mm9b38u1"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "state_krso67h8q_mm9b38u1"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "when_intent_matched",
-                  "intentName": "CheapestBook"
-                },
-                "custom": {
-                  "condition": []
+                  "points": [
+                    {
+                      "x": -285,
+                      "y": -520
+                    },
+                    {
+                      "x": -285,
+                      "y": -655
+                    },
+                    {
+                      "x": 80,
+                      "y": -655
+                    }
+                  ]
                 }
               },
-              "transition_jc0mk7kpn_mm9b38u1": {
+              {
                 "id": "transition_jc0mk7kpn_mm9b38u1",
-                "name": "",
+                "source": "state_zl3bfe65n_mm9b38u1",
+                "target": "state_5emfhqwzt_mm9b38u1",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -285,
-                  "y": -450,
-                  "width": 365,
-                  "height": 170
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
+                "sourceHandle": "bottomright",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "when_intent_matched",
+                    "intentName": "Contact"
                   },
-                  {
-                    "x": 0,
-                    "y": 170
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "when_intent_matched",
+                      "intentName": "Contact"
+                    },
+                    "custom": {
+                      "condition": []
+                    }
                   },
-                  {
-                    "x": 365,
-                    "y": 170
-                  }
-                ],
-                "source": {
-                  "direction": "Bottomright",
-                  "element": "state_zl3bfe65n_mm9b38u1"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "state_5emfhqwzt_mm9b38u1"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "when_intent_matched",
-                  "intentName": "Contact"
-                },
-                "custom": {
-                  "condition": []
+                  "points": [
+                    {
+                      "x": -285,
+                      "y": -450
+                    },
+                    {
+                      "x": -285,
+                      "y": -280
+                    },
+                    {
+                      "x": 80,
+                      "y": -280
+                    }
+                  ]
                 }
               },
-              "transition_zuuhzl5f9_mm9b38u1": {
+              {
                 "id": "transition_zuuhzl5f9_mm9b38u1",
-                "name": "",
+                "source": "state_krso67h8q_mm9b38u1",
+                "target": "state_zl3bfe65n_mm9b38u1",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -350,
-                  "y": -702.5,
-                  "width": 430,
-                  "height": 182.5
-                },
-                "path": [
-                  {
-                    "x": 430,
-                    "y": 0
+                "sourceHandle": "left-top",
+                "targetHandle": "top",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "auto",
+                    "conditionValue": ""
                   },
-                  {
-                    "x": 0,
-                    "y": 0
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "auto",
+                      "conditionValue": ""
+                    },
+                    "custom": {
+                      "condition": []
+                    }
                   },
-                  {
-                    "x": 0,
-                    "y": 182.5
-                  }
-                ],
-                "source": {
-                  "direction": "Upleft",
-                  "element": "state_krso67h8q_mm9b38u1"
-                },
-                "target": {
-                  "direction": "Up",
-                  "element": "state_zl3bfe65n_mm9b38u1"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "auto",
-                  "conditionValue": ""
-                },
-                "custom": {
-                  "condition": []
+                  "points": [
+                    {
+                      "x": 80,
+                      "y": -702.5
+                    },
+                    {
+                      "x": -350,
+                      "y": -702.5
+                    },
+                    {
+                      "x": -350,
+                      "y": -520
+                    }
+                  ]
                 }
               },
-              "transition_rjozmqoco_mm9b38u1": {
+              {
                 "id": "transition_rjozmqoco_mm9b38u1",
-                "name": "",
+                "source": "state_5emfhqwzt_mm9b38u1",
+                "target": "state_zl3bfe65n_mm9b38u1",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -350,
-                  "y": -450,
-                  "width": 640,
-                  "height": 260
-                },
-                "path": [
-                  {
-                    "x": 640,
-                    "y": 220
+                "sourceHandle": "bottom",
+                "targetHandle": "bottom",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "auto",
+                    "conditionValue": ""
                   },
-                  {
-                    "x": 640,
-                    "y": 260
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "auto",
+                      "conditionValue": ""
+                    },
+                    "custom": {
+                      "condition": []
+                    }
                   },
-                  {
-                    "x": 0,
-                    "y": 260
-                  },
-                  {
-                    "x": 0,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Down",
-                  "element": "state_5emfhqwzt_mm9b38u1"
-                },
-                "target": {
-                  "direction": "Down",
-                  "element": "state_zl3bfe65n_mm9b38u1"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "auto",
-                  "conditionValue": ""
-                },
-                "custom": {
-                  "condition": []
+                  "points": [
+                    {
+                      "x": 290,
+                      "y": -230
+                    },
+                    {
+                      "x": 290,
+                      "y": -190
+                    },
+                    {
+                      "x": -350,
+                      "y": -190
+                    },
+                    {
+                      "x": -350,
+                      "y": -450
+                    }
+                  ]
                 }
               },
-              "5f574d18-6641-4c80-bd19-92b862b47b7c": {
+              {
                 "id": "5f574d18-6641-4c80-bd19-92b862b47b7c",
-                "name": "",
+                "source": "state_j5tnma02n_mm9b38u1",
+                "target": "state_zl3bfe65n_mm9b38u1",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -220,
-                  "y": -467.5,
-                  "width": 405,
-                  "height": 77.5
-                },
-                "path": [
-                  {
-                    "x": 405,
-                    "y": 37.5
+                "sourceHandle": "bottomleft",
+                "targetHandle": "right-bottom",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "auto",
+                    "conditionValue": ""
                   },
-                  {
-                    "x": 405,
-                    "y": 77.5
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "auto",
+                      "conditionValue": ""
+                    },
+                    "custom": {
+                      "condition": []
+                    }
                   },
-                  {
-                    "x": 150,
-                    "y": 77.5
-                  },
-                  {
-                    "x": 150,
-                    "y": 0
-                  },
-                  {
-                    "x": 0,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Bottomleft",
-                  "element": "state_j5tnma02n_mm9b38u1"
-                },
-                "target": {
-                  "direction": "Downright",
-                  "element": "state_zl3bfe65n_mm9b38u1"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "auto",
-                  "conditionValue": ""
-                },
-                "custom": {
-                  "condition": []
+                  "points": [
+                    {
+                      "x": 185,
+                      "y": -430
+                    },
+                    {
+                      "x": 185,
+                      "y": -390
+                    },
+                    {
+                      "x": -70,
+                      "y": -390
+                    },
+                    {
+                      "x": -70,
+                      "y": -467.5
+                    },
+                    {
+                      "x": -220,
+                      "y": -467.5
+                    }
+                  ]
                 }
               },
-              "5cf30015-c8cf-47be-8ad0-80bbba94d35e": {
+              {
                 "id": "5cf30015-c8cf-47be-8ad0-80bbba94d35e",
-                "name": "",
+                "source": "46badadf-e50d-481e-8246-3ba2393fce47",
+                "target": "state_zl3bfe65n_mm9b38u1",
                 "type": "AgentStateTransition",
-                "owner": null,
-                "bounds": {
-                  "x": -579,
-                  "y": -494.5,
-                  "width": 99,
-                  "height": 1
-                },
-                "path": [
-                  {
-                    "x": 0,
-                    "y": 0
+                "sourceHandle": "right-bottom",
+                "targetHandle": "left",
+                "data": {
+                  "label": "",
+                  "sourceMultiplicity": "",
+                  "targetMultiplicity": "",
+                  "sourceRole": "",
+                  "targetRole": "",
+                  "isManuallyLayouted": false,
+                  "messages": [],
+                  "transitionType": "predefined",
+                  "predefined": {
+                    "predefinedType": "auto",
+                    "conditionValue": ""
                   },
-                  {
-                    "x": 99,
-                    "y": 0
-                  }
-                ],
-                "source": {
-                  "direction": "Downright",
-                  "element": "46badadf-e50d-481e-8246-3ba2393fce47"
-                },
-                "target": {
-                  "direction": "Left",
-                  "element": "state_zl3bfe65n_mm9b38u1"
-                },
-                "isManuallyLayouted": false,
-                "transitionType": "predefined",
-                "predefined": {
-                  "predefinedType": "auto",
-                  "conditionValue": ""
-                },
-                "custom": {
-                  "condition": []
+                  "legacyShape": 1,
+                  "legacy": {
+                    "transitionType": "predefined",
+                    "predefined": {
+                      "predefinedType": "auto",
+                      "conditionValue": ""
+                    },
+                    "custom": {
+                      "condition": []
+                    }
+                  },
+                  "points": [
+                    {
+                      "x": -579,
+                      "y": -494.5
+                    },
+                    {
+                      "x": -480,
+                      "y": -494.5
+                    }
+                  ]
                 }
               }
-            },
+            ],
             "assessments": {}
           },
           "lastUpdate": "2026-05-06T11:31:19.611Z"

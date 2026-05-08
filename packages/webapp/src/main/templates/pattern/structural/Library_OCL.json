@@ -1,1296 +1,954 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "converted-diagram-1778241725877",
+  "title": "",
   "type": "ClassDiagram",
-  "size": {
-    "width": 1446,
-    "height": 1230
-  },
-  "interactive": {
-    "elements": {},
-    "relationships": {}
-  },
-  "elements": {
-    "class_oho5ergc3_mjikkmod": {
+  "nodes": [
+    {
       "id": "class_oho5ergc3_mjikkmod",
-      "name": "Book",
-      "type": "Class",
-      "owner": null,
-      "bounds": {
+      "type": "class",
+      "position": {
         "x": -172,
-        "y": -232,
+        "y": -232
+      },
+      "width": 240,
+      "height": 215,
+      "measured": {
         "width": 240,
         "height": 215
       },
-      "attributes": [
-        "attr_a87fqdtdi_mjikkmod",
-        "attr_v6ve12d44_mjikkmod",
-        "attr_edi3c3l8k_mjikkmod",
-        "attr_mczftcqfb_mjikkmod",
-        "attr_785suq5yn_mjikkmod",
-        "attr_urp7jb0c0_mjikkmod"
-      ],
-      "methods": [
-        "method_rb01uirsh_mjikkmod"
-      ]
+      "data": {
+        "name": "Book",
+        "methods": [
+          {
+            "id": "method_rb01uirsh_mjikkmod",
+            "name": "+ decrease_stock(qty: int)",
+            "visibility": "public",
+            "attributeType": "int): any",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          }
+        ],
+        "attributes": [
+          {
+            "id": "attr_a87fqdtdi_mjikkmod",
+            "name": "title",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "attr_v6ve12d44_mjikkmod",
+            "name": "pages",
+            "visibility": "public",
+            "attributeType": "int",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "attr_edi3c3l8k_mjikkmod",
+            "name": "stock",
+            "visibility": "public",
+            "attributeType": "int",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "attr_mczftcqfb_mjikkmod",
+            "name": "price",
+            "visibility": "public",
+            "attributeType": "float",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "attr_785suq5yn_mjikkmod",
+            "name": "release",
+            "visibility": "public",
+            "attributeType": "date",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "attr_urp7jb0c0_mjikkmod",
+            "name": "genre",
+            "visibility": "public",
+            "attributeType": "Genre",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          }
+        ]
+      }
     },
-    "attr_a87fqdtdi_mjikkmod": {
-      "id": "attr_a87fqdtdi_mjikkmod",
-      "name": "title",
-      "type": "ClassAttribute",
-      "owner": "class_oho5ergc3_mjikkmod",
-      "bounds": {
-        "x": -171.5,
-        "y": -191.5,
-        "width": 239,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "attr_v6ve12d44_mjikkmod": {
-      "id": "attr_v6ve12d44_mjikkmod",
-      "name": "pages",
-      "type": "ClassAttribute",
-      "owner": "class_oho5ergc3_mjikkmod",
-      "bounds": {
-        "x": -171.5,
-        "y": -166.5,
-        "width": 239,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "int",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "attr_edi3c3l8k_mjikkmod": {
-      "id": "attr_edi3c3l8k_mjikkmod",
-      "name": "stock",
-      "type": "ClassAttribute",
-      "owner": "class_oho5ergc3_mjikkmod",
-      "bounds": {
-        "x": -171.5,
-        "y": -141.5,
-        "width": 239,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "int",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "attr_mczftcqfb_mjikkmod": {
-      "id": "attr_mczftcqfb_mjikkmod",
-      "name": "price",
-      "type": "ClassAttribute",
-      "owner": "class_oho5ergc3_mjikkmod",
-      "bounds": {
-        "x": -171.5,
-        "y": -116.5,
-        "width": 239,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "float",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "attr_785suq5yn_mjikkmod": {
-      "id": "attr_785suq5yn_mjikkmod",
-      "name": "release",
-      "type": "ClassAttribute",
-      "owner": "class_oho5ergc3_mjikkmod",
-      "bounds": {
-        "x": -171.5,
-        "y": -91.5,
-        "width": 239,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "date",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "attr_urp7jb0c0_mjikkmod": {
-      "id": "attr_urp7jb0c0_mjikkmod",
-      "name": "genre",
-      "type": "ClassAttribute",
-      "owner": "class_oho5ergc3_mjikkmod",
-      "bounds": {
-        "x": -171.5,
-        "y": -66.5,
-        "width": 239,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "Genre",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "method_rb01uirsh_mjikkmod": {
-      "id": "method_rb01uirsh_mjikkmod",
-      "name": "+ decrease_stock(qty: int)",
-      "type": "ClassMethod",
-      "owner": "class_oho5ergc3_mjikkmod",
-      "bounds": {
-        "x": -171.5,
-        "y": -41.5,
-        "width": 239,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "int): any",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "class_06blhjj3h_mjikkmod": {
+    {
       "id": "class_06blhjj3h_mjikkmod",
-      "name": "Library",
-      "type": "Class",
-      "owner": null,
-      "bounds": {
+      "type": "class",
+      "position": {
         "x": -11.999959309895758,
-        "y": 155.66665649414057,
+        "y": 155.66665649414057
+      },
+      "width": 350,
+      "height": 185,
+      "measured": {
         "width": 350,
         "height": 185
       },
-      "attributes": [
-        "attr_eryfh37kl_mjikkmod",
-        "f9608e0e-745d-4113-85ad-cd06b1900c09",
-        "4391886d-13b5-4fa0-9894-09f1894af27f",
-        "a487fd85-dec0-47b9-bd37-71ff92026963"
-      ],
-      "methods": [
-        "35ef5329-889b-40f0-89ce-9836936fd8a9"
-      ]
+      "data": {
+        "name": "Library",
+        "methods": [
+          {
+            "id": "35ef5329-889b-40f0-89ce-9836936fd8a9",
+            "name": "+ cheapest_book_by(author:Author): str",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "def cheapest_book_by(author:Author) -> str {\n    cheapest:Book = null;\n\tprice = 1000000000.0;\n\tfor(book in this.books){\n        if(book.authors.contains(author)\n\t\t\t&& book.price <= price){\n            cheapest = book;\n\t\t\tprice = book.price;\n\t\t}\n    }\n\treturn cheapest.title;\n}",
+            "implementationType": "bal",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          }
+        ],
+        "attributes": [
+          {
+            "id": "attr_eryfh37kl_mjikkmod",
+            "name": "name",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "f9608e0e-745d-4113-85ad-cd06b1900c09",
+            "name": "web_page",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "4391886d-13b5-4fa0-9894-09f1894af27f",
+            "name": "address",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "a487fd85-dec0-47b9-bd37-71ff92026963",
+            "name": "telephone",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          }
+        ]
+      }
     },
-    "attr_eryfh37kl_mjikkmod": {
-      "id": "attr_eryfh37kl_mjikkmod",
-      "name": "name",
-      "type": "ClassAttribute",
-      "owner": "class_06blhjj3h_mjikkmod",
-      "bounds": {
-        "x": -11.499959309895758,
-        "y": 196.16665649414057,
-        "width": 349,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "f9608e0e-745d-4113-85ad-cd06b1900c09": {
-      "id": "f9608e0e-745d-4113-85ad-cd06b1900c09",
-      "name": "web_page",
-      "type": "ClassAttribute",
-      "owner": "class_06blhjj3h_mjikkmod",
-      "bounds": {
-        "x": -11.499959309895758,
-        "y": 221.16665649414057,
-        "width": 349,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "4391886d-13b5-4fa0-9894-09f1894af27f": {
-      "id": "4391886d-13b5-4fa0-9894-09f1894af27f",
-      "name": "address",
-      "type": "ClassAttribute",
-      "owner": "class_06blhjj3h_mjikkmod",
-      "bounds": {
-        "x": -11.499959309895758,
-        "y": 251.16665649414057,
-        "width": 349,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "a487fd85-dec0-47b9-bd37-71ff92026963": {
-      "id": "a487fd85-dec0-47b9-bd37-71ff92026963",
-      "name": "telephone",
-      "type": "ClassAttribute",
-      "owner": "class_06blhjj3h_mjikkmod",
-      "bounds": {
-        "x": -11.499959309895758,
-        "y": 281.16665649414057,
-        "width": 349,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "35ef5329-889b-40f0-89ce-9836936fd8a9": {
-      "id": "35ef5329-889b-40f0-89ce-9836936fd8a9",
-      "name": "+ cheapest_book_by(author:Author): str",
-      "type": "ClassMethod",
-      "owner": "class_06blhjj3h_mjikkmod",
-      "bounds": {
-        "x": -11.499959309895758,
-        "y": 311.16665649414057,
-        "width": 349,
-        "height": 30
-      },
-      "code": "def cheapest_book_by(author:Author) -> str {\n    cheapest:Book = null;\n\tprice = 1000000000.0;\n\tfor(book in this.books){\n        if(book.authors.contains(author)\n\t\t\t&& book.price <= price){\n            cheapest = book;\n\t\t\tprice = book.price;\n\t\t}\n    }\n\treturn cheapest.title;\n}",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "bal",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "class_d3f0di6lb_mjikkmoe": {
+    {
       "id": "class_d3f0di6lb_mjikkmoe",
-      "name": "Author",
-      "type": "Class",
-      "owner": null,
-      "bounds": {
+      "type": "class",
+      "position": {
         "x": 271,
-        "y": -89,
+        "y": -89
+      },
+      "width": 220,
+      "height": 95,
+      "measured": {
         "width": 220,
         "height": 95
       },
-      "attributes": [
-        "attr_p3zqpt65k_mjikkmoe",
-        "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db"
-      ],
-      "methods": []
+      "data": {
+        "name": "Author",
+        "methods": [],
+        "attributes": [
+          {
+            "id": "attr_p3zqpt65k_mjikkmoe",
+            "name": "name",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db",
+            "name": "birth",
+            "visibility": "public",
+            "attributeType": "date",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          }
+        ]
+      }
     },
-    "attr_p3zqpt65k_mjikkmoe": {
-      "id": "attr_p3zqpt65k_mjikkmoe",
-      "name": "name",
-      "type": "ClassAttribute",
-      "owner": "class_d3f0di6lb_mjikkmoe",
-      "bounds": {
-        "x": 271.5,
-        "y": -48.5,
-        "width": 219,
-        "height": 25
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db": {
-      "id": "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db",
-      "name": "birth",
-      "type": "ClassAttribute",
-      "owner": "class_d3f0di6lb_mjikkmoe",
-      "bounds": {
-        "x": 271.5,
-        "y": -23.5,
-        "width": 219,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "date",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "50ffa27f-f8a9-438b-b81b-174266f39952": {
+    {
       "id": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "name": "Genre",
-      "type": "Enumeration",
-      "owner": null,
-      "bounds": {
+      "type": "class",
+      "position": {
         "x": 461,
-        "y": 27,
+        "y": 27
+      },
+      "width": 160,
+      "height": 350,
+      "measured": {
         "width": 160,
         "height": 350
       },
-      "attributes": [
-        "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
-        "15d10eca-11e8-4894-8b27-d815dbc62596",
-        "55346119-1f08-48c5-9629-b5223ea766e0",
-        "67e73142-470c-4795-8864-96f08365ce49",
-        "4ba07b68-1fd2-40fc-ad63-05766965aaad",
-        "52114e47-c8c1-404a-847c-0b877de007e0",
-        "65937dfa-011b-425e-a292-7d66dff5cd36",
-        "994869fb-9b98-450f-add4-a2ee88a15c7f",
-        "45fa6842-da64-4878-b875-c536f06f1d50",
-        "6d81aaec-327a-42b9-89db-a17e54bb7b5a"
-      ],
-      "methods": []
+      "data": {
+        "name": "Genre",
+        "methods": [],
+        "attributes": [
+          {
+            "id": "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
+            "name": "Poetry",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "15d10eca-11e8-4894-8b27-d815dbc62596",
+            "name": "Thriller",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "55346119-1f08-48c5-9629-b5223ea766e0",
+            "name": "History",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "67e73142-470c-4795-8864-96f08365ce49",
+            "name": "Technology",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "4ba07b68-1fd2-40fc-ad63-05766965aaad",
+            "name": "Romance",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "52114e47-c8c1-404a-847c-0b877de007e0",
+            "name": "Horror",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "65937dfa-011b-425e-a292-7d66dff5cd36",
+            "name": "Adventure",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "994869fb-9b98-450f-add4-a2ee88a15c7f",
+            "name": "Philosophy",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "45fa6842-da64-4878-b875-c536f06f1d50",
+            "name": "Cookbooks",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          },
+          {
+            "id": "6d81aaec-327a-42b9-89db-a17e54bb7b5a",
+            "name": "Fantasy",
+            "visibility": "public",
+            "attributeType": "str",
+            "code": "",
+            "implementationType": "none",
+            "isOptional": false,
+            "isDerived": false,
+            "isId": false,
+            "isExternalId": false
+          }
+        ],
+        "stereotype": "Enumeration"
+      }
     },
-    "bfadf7ef-e6a4-43e3-b267-672be745c9c7": {
-      "id": "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
-      "name": "Poetry",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 77.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "15d10eca-11e8-4894-8b27-d815dbc62596": {
-      "id": "15d10eca-11e8-4894-8b27-d815dbc62596",
-      "name": "Thriller",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 107.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "55346119-1f08-48c5-9629-b5223ea766e0": {
-      "id": "55346119-1f08-48c5-9629-b5223ea766e0",
-      "name": "History",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 137.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "67e73142-470c-4795-8864-96f08365ce49": {
-      "id": "67e73142-470c-4795-8864-96f08365ce49",
-      "name": "Technology",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 167.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "4ba07b68-1fd2-40fc-ad63-05766965aaad": {
-      "id": "4ba07b68-1fd2-40fc-ad63-05766965aaad",
-      "name": "Romance",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 197.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "52114e47-c8c1-404a-847c-0b877de007e0": {
-      "id": "52114e47-c8c1-404a-847c-0b877de007e0",
-      "name": "Horror",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 227.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "65937dfa-011b-425e-a292-7d66dff5cd36": {
-      "id": "65937dfa-011b-425e-a292-7d66dff5cd36",
-      "name": "Adventure",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 257.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "994869fb-9b98-450f-add4-a2ee88a15c7f": {
-      "id": "994869fb-9b98-450f-add4-a2ee88a15c7f",
-      "name": "Philosophy",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 287.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "45fa6842-da64-4878-b875-c536f06f1d50": {
-      "id": "45fa6842-da64-4878-b875-c536f06f1d50",
-      "name": "Cookbooks",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 317.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "6d81aaec-327a-42b9-89db-a17e54bb7b5a": {
-      "id": "6d81aaec-327a-42b9-89db-a17e54bb7b5a",
-      "name": "Fantasy",
-      "type": "ClassAttribute",
-      "owner": "50ffa27f-f8a9-438b-b81b-174266f39952",
-      "bounds": {
-        "x": 461.5,
-        "y": 347.5,
-        "width": 159,
-        "height": 30
-      },
-      "code": "",
-      "visibility": "public",
-      "attributeType": "str",
-      "implementationType": "none",
-      "stateMachineId": "",
-      "quantumCircuitId": "",
-      "isOptional": false,
-      "isDerived": false,
-      "isId": false,
-      "isExternalId": false
-    },
-    "ocl-example-00": {
+    {
       "id": "ocl-example-00",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -697,
-        "y": -281,
+        "y": -281
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Book inv book_positive_pages: self.pages > 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-01": {
+    {
       "id": "ocl-example-01",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -695,
-        "y": -171,
+        "y": -171
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Book inv book_nonneg_stock: self.stock >= 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-02": {
+    {
       "id": "ocl-example-02",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -697,
-        "y": -65,
+        "y": -65
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Book inv book_nonneg_price: self.price >= 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-03": {
+    {
       "id": "ocl-example-03",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -703,
-        "y": -389,
+        "y": -389
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Book inv book_has_title: self.title.size() > 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-04": {
+    {
       "id": "ocl-example-04",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": 198,
-        "y": 383,
+        "y": 383
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Library inv library_named: self.name.size() > 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-05": {
+    {
       "id": "ocl-example-05",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -88,
-        "y": 376,
+        "y": 376
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Library inv library_has_books: self.books->size() > 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-06": {
+    {
       "id": "ocl-example-06",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": 279,
-        "y": -285,
+        "y": -285
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Author inv author_named: self.name.size() > 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-07": {
+    {
       "id": "ocl-example-07",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -700,
-        "y": 151,
+        "y": 151
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Book::decrease_stock(qty: int) pre: qty > 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-08": {
+    {
       "id": "ocl-example-08",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -698,
-        "y": 42,
+        "y": 42
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Book::decrease_stock(qty: int) pre: self.stock >= qty"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-09": {
+    {
       "id": "ocl-example-09",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": -697,
-        "y": 343,
+        "y": 343
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Book::decrease_stock(qty: int) post: self.stock >= 0"
+      "data": {
+        "name": ""
+      }
     },
-    "ocl-example-10": {
+    {
       "id": "ocl-example-10",
-      "name": "",
-      "type": "ClassOCLConstraint",
-      "owner": null,
-      "bounds": {
+      "type": "classoclconstraint",
+      "position": {
         "x": 59,
-        "y": 505,
+        "y": 505
+      },
+      "width": 210,
+      "height": 90,
+      "measured": {
         "width": 210,
         "height": 90
       },
-      "description": "",
-      "constraint": "context Library::cheapest_book_by(author: Author) pre: self.books->size() > 0"
+      "data": {
+        "name": ""
+      }
     }
-  },
-  "relationships": {
-    "rel_z26fdxrdq_mjikkmoe": {
+  ],
+  "edges": [
+    {
       "id": "rel_z26fdxrdq_mjikkmoe",
-      "name": "books",
+      "source": "class_06blhjj3h_mjikkmod",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassBidirectional",
-      "owner": null,
-      "bounds": {
-        "x": -21.56247965494788,
-        "y": -17,
-        "width": 79.3515625,
-        "height": 181.66665649414057
-      },
-      "path": [
-        {
-          "x": 49.5625,
-          "y": 172.66665649414057
-        },
-        {
-          "x": 49.5625,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "class_06blhjj3h_mjikkmod",
-        "multiplicity": "1..*",
-        "role": "library",
-        "bounds": {
-          "x": 0,
-          "y": 0,
-          "width": 0,
-          "height": 0
-        }
-      },
-      "target": {
-        "direction": "Down",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "*",
-        "role": "books",
-        "bounds": {
-          "x": 0,
-          "y": 0,
-          "width": 0,
-          "height": 0
-        }
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "books",
+        "name": "books",
+        "sourceMultiplicity": "1..*",
+        "targetMultiplicity": "*",
+        "sourceRole": "library",
+        "targetRole": "books",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 28.00002034505212,
+            "y": 155.66665649414057
+          },
+          {
+            "x": 28.00002034505212,
+            "y": -17
+          }
+        ]
+      }
     },
-    "rel_0ys2qxzq1_mjikkmoe": {
+    {
       "id": "rel_0ys2qxzq1_mjikkmoe",
-      "name": "books",
+      "source": "class_d3f0di6lb_mjikkmoe",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassBidirectional",
-      "owner": null,
-      "bounds": {
-        "x": 68,
-        "y": -63,
-        "width": 203,
-        "height": 48
-      },
-      "path": [
-        {
-          "x": 203,
-          "y": 10
-        },
-        {
-          "x": 0,
-          "y": 10
-        }
-      ],
-      "source": {
-        "direction": "Left",
-        "element": "class_d3f0di6lb_mjikkmoe",
-        "multiplicity": "1..*",
-        "role": "authors",
-        "bounds": {
-          "x": 0,
-          "y": 0,
-          "width": 0,
-          "height": 0
-        }
-      },
-      "target": {
-        "direction": "Right",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "*",
-        "role": "books",
-        "bounds": {
-          "x": 0,
-          "y": 0,
-          "width": 0,
-          "height": 0
-        }
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "label": "books",
+        "name": "books",
+        "sourceMultiplicity": "1..*",
+        "targetMultiplicity": "*",
+        "sourceRole": "authors",
+        "targetRole": "books",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 271,
+            "y": -53
+          },
+          {
+            "x": 68,
+            "y": -53
+          }
+        ]
+      }
     },
-    "ocl-link-00": {
+    {
       "id": "ocl-link-00",
-      "name": "",
+      "source": "ocl-example-00",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": -487,
-        "y": -221.5,
-        "width": 315,
-        "height": 31
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 10
-        },
-        {
-          "x": 315,
-          "y": 10
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ocl-example-00",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Left",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -487,
+            "y": -211.5
+          },
+          {
+            "x": -172,
+            "y": -211.5
+          }
+        ]
+      }
     },
-    "ocl-link-01": {
+    {
       "id": "ocl-link-01",
-      "name": "",
+      "source": "ocl-example-01",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": -485,
-        "y": -136,
-        "width": 313,
-        "height": 31
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 10
-        },
-        {
-          "x": 313,
-          "y": 10
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ocl-example-01",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Left",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -485,
+            "y": -126
+          },
+          {
+            "x": -172,
+            "y": -126
+          }
+        ]
+      }
     },
-    "ocl-link-02": {
+    {
       "id": "ocl-link-02",
-      "name": "",
+      "source": "ocl-example-02",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": -487,
-        "y": -51,
-        "width": 315,
-        "height": 31
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 10
-        },
-        {
-          "x": 315,
-          "y": 10
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ocl-example-02",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Left",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -487,
+            "y": -41
+          },
+          {
+            "x": -172,
+            "y": -41
+          }
+        ]
+      }
     },
-    "ocl-link-03": {
+    {
       "id": "ocl-link-03",
-      "name": "",
+      "source": "ocl-example-03",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": -493,
-        "y": -354,
-        "width": 321,
-        "height": 250.5
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 10
-        },
-        {
-          "x": 160.5,
-          "y": 10
-        },
-        {
-          "x": 160.5,
-          "y": 229.5
-        },
-        {
-          "x": 321,
-          "y": 229.5
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ocl-example-03",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Left",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -493,
+            "y": -344
+          },
+          {
+            "x": -332.5,
+            "y": -344
+          },
+          {
+            "x": -332.5,
+            "y": -124.5
+          },
+          {
+            "x": -172,
+            "y": -124.5
+          }
+        ]
+      }
     },
-    "ocl-link-04": {
+    {
       "id": "ocl-link-04",
-      "name": "",
+      "source": "ocl-example-04",
+      "target": "class_06blhjj3h_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": 263.0000203450521,
-        "y": 340.66665649414057,
-        "width": 10,
-        "height": 42.33334350585943
-      },
-      "path": [
-        {
-          "x": 5,
-          "y": 42.33334350585943
-        },
-        {
-          "x": 5,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "ocl-example-04",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Down",
-        "element": "class_06blhjj3h_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 268.0000203450521,
+            "y": 383
+          },
+          {
+            "x": 268.0000203450521,
+            "y": 340.66665649414057
+          }
+        ]
+      }
     },
-    "ocl-link-05": {
+    {
       "id": "ocl-link-05",
-      "name": "",
+      "source": "ocl-example-05",
+      "target": "class_06blhjj3h_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": 50.00002034505212,
-        "y": 340.66665649414057,
-        "width": 10,
-        "height": 35.33334350585943
-      },
-      "path": [
-        {
-          "x": 5,
-          "y": 35.33334350585943
-        },
-        {
-          "x": 5,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "ocl-example-05",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Bottomleft",
-        "element": "class_06blhjj3h_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "top",
+      "targetHandle": "bottomleft",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 55.00002034505212,
+            "y": 376
+          },
+          {
+            "x": 55.00002034505212,
+            "y": 340.66665649414057
+          }
+        ]
+      }
     },
-    "ocl-link-06": {
+    {
       "id": "ocl-link-06",
-      "name": "",
+      "source": "ocl-example-06",
+      "target": "class_d3f0di6lb_mjikkmoe",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": 379,
-        "y": -195,
-        "width": 10,
-        "height": 106
-      },
-      "path": [
-        {
-          "x": 5,
-          "y": 0
-        },
-        {
-          "x": 5,
-          "y": 106
-        }
-      ],
-      "source": {
-        "direction": "Down",
-        "element": "ocl-example-06",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Up",
-        "element": "class_d3f0di6lb_mjikkmoe",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 384,
+            "y": -195
+          },
+          {
+            "x": 384,
+            "y": -89
+          }
+        ]
+      }
     },
-    "ocl-link-07": {
+    {
       "id": "ocl-link-07",
-      "name": "",
+      "source": "ocl-example-07",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": -490,
-        "y": -134.5,
-        "width": 318,
-        "height": 351.5
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 330.5
-        },
-        {
-          "x": 159,
-          "y": 330.5
-        },
-        {
-          "x": 159,
-          "y": 10
-        },
-        {
-          "x": 318,
-          "y": 10
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ocl-example-07",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Left",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -490,
+            "y": 196
+          },
+          {
+            "x": -331,
+            "y": 196
+          },
+          {
+            "x": -331,
+            "y": -124.5
+          },
+          {
+            "x": -172,
+            "y": -124.5
+          }
+        ]
+      }
     },
-    "ocl-link-08": {
+    {
       "id": "ocl-link-08",
-      "name": "",
+      "source": "ocl-example-08",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": -488,
-        "y": -134.5,
-        "width": 316,
-        "height": 242.5
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 221.5
-        },
-        {
-          "x": 158,
-          "y": 221.5
-        },
-        {
-          "x": 158,
-          "y": 10
-        },
-        {
-          "x": 316,
-          "y": 10
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ocl-example-08",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Left",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -488,
+            "y": 87
+          },
+          {
+            "x": -330,
+            "y": 87
+          },
+          {
+            "x": -330,
+            "y": -124.5
+          },
+          {
+            "x": -172,
+            "y": -124.5
+          }
+        ]
+      }
     },
-    "ocl-link-09": {
+    {
       "id": "ocl-link-09",
-      "name": "",
+      "source": "ocl-example-09",
+      "target": "class_oho5ergc3_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": -487,
-        "y": -134.5,
-        "width": 315,
-        "height": 543.5
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 522.5
-        },
-        {
-          "x": 157.5,
-          "y": 522.5
-        },
-        {
-          "x": 157.5,
-          "y": 10
-        },
-        {
-          "x": 315,
-          "y": 10
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "ocl-example-09",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Left",
-        "element": "class_oho5ergc3_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -487,
+            "y": 388
+          },
+          {
+            "x": -329.5,
+            "y": 388
+          },
+          {
+            "x": -329.5,
+            "y": -124.5
+          },
+          {
+            "x": -172,
+            "y": -124.5
+          }
+        ]
+      }
     },
-    "ocl-link-10": {
+    {
       "id": "ocl-link-10",
-      "name": "",
+      "source": "ocl-example-10",
+      "target": "class_06blhjj3h_mjikkmod",
       "type": "ClassOCLLink",
-      "owner": null,
-      "bounds": {
-        "x": 159,
-        "y": 340.66665649414057,
-        "width": 10,
-        "height": 164.33334350585943
-      },
-      "path": [
-        {
-          "x": 5,
-          "y": 164.33334350585943
-        },
-        {
-          "x": 5,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Up",
-        "element": "ocl-example-10",
-        "multiplicity": "",
-        "role": ""
-      },
-      "target": {
-        "direction": "Down",
-        "element": "class_06blhjj3h_mjikkmod",
-        "multiplicity": "",
-        "role": ""
-      },
-      "isManuallyLayouted": false
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 164,
+            "y": 505
+          },
+          {
+            "x": 164,
+            "y": 340.66665649414057
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

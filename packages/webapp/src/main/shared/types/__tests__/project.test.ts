@@ -18,16 +18,25 @@ import {
 import { PERSPECTIVES, isPresetActive, perspectivesFromDiagramList } from '../../perspectives';
 
 const populatedClassModel = (): UMLModel => ({
-  version: '3.0.0',
+  version: '4.0.0',
+  id: 'test-class-model',
+  title: 'Test',
   type: UMLDiagramType.ClassDiagram,
-  size: { width: 1400, height: 740 },
-  elements: {
-    'class-1': { id: 'class-1', name: 'Foo', type: 'Class', owner: null, bounds: { x: 0, y: 0, width: 0, height: 0 } } as any,
-  },
-  relationships: {},
+  nodes: [
+    {
+      id: 'class-1',
+      type: 'class',
+      position: { x: 0, y: 0 },
+      width: 200,
+      height: 50,
+      measured: { width: 200, height: 50 },
+      data: { name: 'Foo' },
+    } as any,
+  ],
+  edges: [],
   interactive: { elements: {}, relationships: {} },
   assessments: {},
-});
+}) as UMLModel;
 
 describe('createDefaultPerspectives', () => {
   it('returns true for every supported diagram type', () => {
@@ -102,7 +111,7 @@ describe('ensureProjectMigrated v3 → v4', () => {
     expect(isProject(v3Project)).toBe(true);
 
     const migrated = ensureProjectMigrated(v3Project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     for (const type of ALL_DIAGRAM_TYPES) {
       expect(migrated.settings.perspectives[type]).toBe(true);
     }
@@ -121,18 +130,18 @@ describe('ensureProjectMigrated v3 → v4', () => {
     } as BesserProject;
 
     const migrated = ensureProjectMigrated(v3Project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.settings.perspectives.ClassDiagram).toBe(false);
     expect(migrated.settings.perspectives.ObjectDiagram).toBe(true);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(true);
     expect(migrated.settings.perspectives.QuantumCircuitDiagram).toBe(true);
   });
 
-  it('is idempotent on an already-migrated v4 project', () => {
+  it('is idempotent on an already-migrated v5 project', () => {
     const project = createDefaultProject('Fresh', '', 'me');
     project.settings.perspectives.AgentDiagram = false;
     const migrated = ensureProjectMigrated(project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
     expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
   });
@@ -158,7 +167,7 @@ describe('findHiddenReferencedPerspectives', () => {
     const objectDiagram = createEmptyDiagram('Obj', UMLDiagramType.ObjectDiagram);
     objectDiagram.model = {
       ...(objectDiagram.model as UMLModel),
-      elements: { 'obj-1': { id: 'obj-1' } as any },
+      nodes: [{ id: 'obj-1' } as any],
     } as any;
     project = withDiagrams(project, 'ObjectDiagram', [objectDiagram]);
 
@@ -202,14 +211,14 @@ describe('findHiddenReferencedPerspectives', () => {
     const obj = createEmptyDiagram('Obj', UMLDiagramType.ObjectDiagram);
     obj.model = {
       ...(obj.model as UMLModel),
-      elements: { 'obj-1': { id: 'obj-1' } as any },
+      nodes: [{ id: 'obj-1' } as any],
     } as any;
     project = withDiagrams(project, 'ObjectDiagram', [obj]);
 
     const agent = createEmptyDiagram('Agent', UMLDiagramType.AgentDiagram);
     agent.model = {
       ...(agent.model as UMLModel),
-      elements: { 'a-1': { id: 'a-1' } as any },
+      nodes: [{ id: 'a-1' } as any],
     } as any;
     project = withDiagrams(project, 'AgentDiagram', [agent]);
 

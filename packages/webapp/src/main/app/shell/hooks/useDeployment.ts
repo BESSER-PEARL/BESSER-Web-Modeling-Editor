@@ -37,8 +37,8 @@ const hasAgentDeploymentInputs = (project: BesserProject | null): boolean => {
   if (!project) return false;
   return project.diagrams.AgentDiagram.some((diagram) => {
     if (!diagram?.model || typeof diagram.model !== 'object') return false;
-    const modelWithElements = diagram.model as { elements?: Record<string, unknown> };
-    return Boolean(modelWithElements.elements && Object.keys(modelWithElements.elements).length > 0);
+    const modelWithNodes = diagram.model as { nodes?: unknown[] };
+    return Array.isArray(modelWithNodes.nodes) && modelWithNodes.nodes.length > 0;
   });
 };
 

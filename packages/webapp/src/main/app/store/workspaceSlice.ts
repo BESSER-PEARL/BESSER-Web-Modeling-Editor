@@ -19,7 +19,7 @@ import {
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { DeepPartial } from '../../shared/utils/types';
-import userMetaModel from '../../../../../editor/src/main/packages/user-modeling/usermetamodel_buml_short.json';
+import { userMetaModel } from '@besser/wme';
 
 // ── Types ──────────────────────────────────────────────────────────────
 

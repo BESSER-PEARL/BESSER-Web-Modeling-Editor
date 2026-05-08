@@ -12,7 +12,7 @@ function makeAgentDiagram(id: string, title: string): ProjectDiagram {
   return {
     id,
     title,
-    model: { version: '3.0.0', type: 'AgentDiagram', elements: {}, relationships: {} } as any,
+    model: { version: '4.0.0', id, title, type: 'AgentDiagram', nodes: [], edges: [] } as any,
     lastUpdate: new Date().toISOString(),
   };
 }

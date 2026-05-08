@@ -21,22 +21,24 @@ import {
 // Helpers
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Create a UML diagram that has at least one element (i.e. non-empty). */
+/** Create a UML diagram that has at least one node (i.e. non-empty, v4 shape). */
 const createNonEmptyUMLDiagram = (
   title: string,
   type: UMLDiagramType,
 ): ProjectDiagram => {
   const diagram = createEmptyDiagram(title, type);
   const model = diagram.model as any;
-  model.elements = {
-    'element-1': {
+  model.nodes = [
+    {
       id: 'element-1',
-      name: 'TestClass',
-      type: 'Class',
-      owner: null,
-      bounds: { x: 100, y: 100, width: 200, height: 100 },
+      type: 'class',
+      position: { x: 100, y: 100 },
+      width: 200,
+      height: 100,
+      measured: { width: 200, height: 100 },
+      data: { name: 'TestClass' },
     },
-  };
+  ];
   return diagram;
 };
 
@@ -63,22 +65,22 @@ const createNonEmptyQuantumDiagram = (title: string): ProjectDiagram => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('diagramHasContent', () => {
-  it('returns false for empty UML diagram (no elements, no relationships)', () => {
+  it('returns false for empty UML diagram (no nodes, no edges)', () => {
     const diagram = createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram);
     expect(diagramHasContent(diagram)).toBe(false);
   });
 
-  it('returns true for UML diagram with elements', () => {
+  it('returns true for UML diagram with nodes', () => {
     const diagram = createNonEmptyUMLDiagram('Class Diagram', UMLDiagramType.ClassDiagram);
     expect(diagramHasContent(diagram)).toBe(true);
   });
 
-  it('returns true for UML diagram with only relationships', () => {
+  it('returns true for UML diagram with only edges', () => {
     const diagram = createEmptyDiagram('Class Diagram', UMLDiagramType.ClassDiagram);
     const model = diagram.model as any;
-    model.relationships = {
-      'rel-1': { id: 'rel-1', type: 'ClassBidirectional' },
-    };
+    model.edges = [
+      { id: 'rel-1', type: 'ClassBidirectional', source: 'a', target: 'b', sourceHandle: '', targetHandle: '', data: { points: [] } },
+    ];
     expect(diagramHasContent(diagram)).toBe(true);
   });
 
@@ -336,8 +338,8 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
 
     // 5. The original non-empty ClassDiagram content is preserved
     const classModel = restored.diagrams.ClassDiagram[0].model as any;
-    expect(classModel.elements).toBeDefined();
-    expect(Object.keys(classModel.elements).length).toBeGreaterThan(0);
+    expect(Array.isArray(classModel.nodes)).toBe(true);
+    expect(classModel.nodes.length).toBeGreaterThan(0);
   });
 
   it('fully empty project round-trips: export has no diagrams, import restores all empty', () => {

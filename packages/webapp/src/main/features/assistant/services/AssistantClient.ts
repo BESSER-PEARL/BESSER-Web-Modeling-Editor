@@ -167,30 +167,36 @@ const buildDiagramSummary = (diagram: any, diagramType: string, diagramId?: stri
 
   const model = diagram.model;
 
-  // For UML-style models (Class, Object, StateMachine, Agent) that have elements & relationships
-  if (model.elements && model.relationships) {
-    const elements = Object.values(model.elements) as any[];
-    const relationships = Object.values(model.relationships) as any[];
+  // For UML-style models (Class, Object, StateMachine, Agent) that have nodes & edges (v4 shape)
+  if (Array.isArray(model.nodes) && Array.isArray(model.edges)) {
+    const nodes = model.nodes as any[];
+    const edges = model.edges as any[];
 
-    // Group elements by their type field
+    // Group nodes by their type field; v4 stores names under node.data.name.
     const elementsByType: Record<string, string[]> = {};
-    for (const el of elements) {
-      const type = el.type || 'unknown';
+    for (const n of nodes) {
+      const type = n?.type || 'unknown';
       if (!elementsByType[type]) elementsByType[type] = [];
-      if (el.name) elementsByType[type].push(el.name);
+      const name = n?.data?.name;
+      if (typeof name === 'string' && name) elementsByType[type].push(name);
     }
 
     const summary: DiagramSummary = {
       type: diagramType,
       diagramId,
-      elementCount: elements.length,
-      relationshipCount: relationships.length,
+      elementCount: nodes.length,
+      relationshipCount: edges.length,
       elementsByType,
     };
 
-    // For ClassDiagrams include class names so cross-diagram references are easy to resolve
+    // For ClassDiagrams include class names so cross-diagram references are easy to resolve.
+    // v4 collapses Class/AbstractClass/Interface/Enumeration into a single 'class' node type
+    // discriminated by data.stereotype (null = plain Class).
     if (diagramType === 'ClassDiagram') {
-      summary.classNames = elements.filter((e: any) => e.type === 'Class').map((e: any) => e.name);
+      summary.classNames = nodes
+        .filter((n: any) => n?.type === 'class' && !n?.data?.stereotype)
+        .map((n: any) => n?.data?.name)
+        .filter((name: unknown): name is string => typeof name === 'string' && !!name);
     }
 
     return summary;

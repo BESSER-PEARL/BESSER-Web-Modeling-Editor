@@ -1,7 +1,39 @@
 import path from 'node:path';
+import fs from 'node:fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
+
+const libraryLib = path.resolve(__dirname, '../library/lib');
+const webappSrc = path.resolve(__dirname, './src');
+
+// SA-7b: dual-package `@/*` resolution. The library uses `@/*` → `lib/*`
+// internally; the webapp uses `@/*` → `src/*`. After flipping the
+// `@besser/wme` alias to point at library source, vite needs to pick the
+// right base depending on the importer.
+function resolveAtPath(source: string, importer?: string): string {
+  const inLibrary = importer && importer.includes(`${path.sep}packages${path.sep}library${path.sep}`);
+  const base = inLibrary ? libraryLib : webappSrc;
+  const target = path.join(base, source);
+  if (fs.existsSync(target) && fs.statSync(target).isFile()) return target;
+  for (const ext of ['.ts', '.tsx', '.js', '.jsx']) {
+    if (fs.existsSync(target + ext)) return target + ext;
+  }
+  if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+    for (const ext of ['ts', 'tsx', 'js', 'jsx']) {
+      const idx = path.join(target, `index.${ext}`);
+      if (fs.existsSync(idx)) return idx;
+    }
+  }
+  return target;
+}
+const conditionalAtAlias = {
+  find: /^@\/(.*)/,
+  replacement: '$1',
+  customResolver(source: string, importer?: string) {
+    return resolveAtPath(source, importer);
+  },
+};
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -10,12 +42,12 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), svgr()],
     publicDir: 'assets',
     resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'),
-        '@besser/wme': path.resolve(__dirname, '../editor/src/main/index.ts'),
-        shared: path.resolve(__dirname, '../shared/src/index.ts'),
-        webapp: path.resolve(__dirname, '.'),
-      },
+      alias: [
+        conditionalAtAlias,
+        { find: '@besser/wme', replacement: path.resolve(__dirname, '../library/lib/index.tsx') },
+        { find: 'shared', replacement: path.resolve(__dirname, '../shared/src/index.ts') },
+        { find: /^webapp\/(.*)/, replacement: path.resolve(__dirname, './$1') },
+      ],
     },
     define: {
       'process.env.APPLICATION_SERVER_VERSION': JSON.stringify(env.APPLICATION_SERVER_VERSION ?? ''),

@@ -1,4 +1,34 @@
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import {
+  UMLDiagramType,
+  UMLModel,
+  convertV4ToV3Class,
+  migrateObjectDiagramV3ToV4,
+} from '@besser/wme';
+
+/**
+ * SA-7b: this scaffold helper was written for v3 model shape (`elements`
+ * record, `relationships` record, attribute/method elements as separate
+ * UMLElements with `owner` pointers). The editor now stores models in v4
+ * shape (`nodes` array, `edges` array, attributes/methods inline on
+ * `node.data`). Rather than rewriting ~400 LoC of v3-shaped scaffolding,
+ * we convert v4 → v3 at the top, run the existing logic, then v3 → v4
+ * at the bottom. The lib's `convertV4ToV3Class` handles ClassDiagram +
+ * ObjectDiagram, and `migrateObjectDiagramV3ToV4` handles the reverse
+ * for the ObjectDiagram output.
+ */
+function ensureV3(model: any): any {
+  if (!model || typeof model !== 'object') return model;
+  if (Array.isArray(model.elements)) return model; // not actually expected
+  if ('elements' in model && 'relationships' in model) return model; // already v3
+  if (Array.isArray(model.nodes) && Array.isArray(model.edges)) {
+    try {
+      return convertV4ToV3Class(model);
+    } catch {
+      return model;
+    }
+  }
+  return model;
+}
 
 /**
  * Generate a deterministic Object Diagram from a Class Diagram.
@@ -106,13 +136,17 @@ const firstEnumLiteral = (
   classModel: UMLModel,
 ): string | undefined => {
   if (!enumName) return undefined;
-  const enumElement = Object.values(classModel.elements ?? {}).find(
+  // SA-7b: by the time this is called, classModel has been down-converted to
+  // v3 shape (elements/relationships records). Cast to any so TS doesn't
+  // complain about the v4 typings.
+  const v3Model = classModel as any;
+  const enumElement = Object.values(v3Model.elements ?? {}).find(
     (el: any) => el?.type === 'Enumeration' && el.name === enumName,
   ) as any;
   if (!enumElement) return undefined;
   const literalIds: string[] = Array.isArray(enumElement.attributes) ? enumElement.attributes : [];
   for (const id of literalIds) {
-    const lit: any = classModel.elements?.[id];
+    const lit: any = v3Model.elements?.[id];
     if (lit && typeof lit.name === 'string' && lit.name.length > 0) {
       return lit.name;
     }
@@ -269,9 +303,13 @@ export const scaffoldObjectsFromClasses = ({
   classModel,
   objectModel,
 }: ScaffoldOptions): ScaffoldResult => {
+  // SA-7b: down-convert to v3 so the existing scaffolding logic works.
+  classModel = ensureV3(classModel) as UMLModel;
+  objectModel = ensureV3(objectModel) as UMLModel;
+
   // Defensive copy so we never mutate the live model the editor is rendering.
-  const elements: Record<string, any> = { ...(objectModel.elements ?? {}) };
-  const relationships: Record<string, any> = { ...(objectModel.relationships ?? {}) };
+  const elements: Record<string, any> = { ...((objectModel as any).elements ?? {}) };
+  const relationships: Record<string, any> = { ...((objectModel as any).relationships ?? {}) };
 
   // Source class ID -> object element ID, so links can target them.
   // Pre-populated from existing canvas objects so links can connect to
@@ -295,7 +333,7 @@ export const scaffoldObjectsFromClasses = ({
   let created = 0;
   let skipped = 0;
 
-  for (const sourceClass of Object.values(classModel.elements ?? {})) {
+  for (const sourceClass of Object.values((classModel as any).elements ?? {}) as any[]) {
     if (!sourceClass || typeof sourceClass !== 'object') continue;
     // Skip non-instantiable kinds. AbstractClass is intentionally excluded;
     // Enumerations are already value types.
@@ -309,8 +347,8 @@ export const scaffoldObjectsFromClasses = ({
       ? (sourceClass as any).attributes
       : [];
     const sourceAttributes = sourceAttributeIds
-      .map((id) => classModel.elements?.[id])
-      .filter((a) => a && a.type === 'ClassAttribute');
+      .map((id) => (classModel as any).elements?.[id])
+      .filter((a: any) => a && a.type === 'ClassAttribute');
 
     const objectId = newId('obj');
     const childIds: string[] = [];
@@ -371,7 +409,7 @@ export const scaffoldObjectsFromClasses = ({
   }
 
   let links = 0;
-  for (const rel of Object.values(classModel.relationships ?? {})) {
+  for (const rel of Object.values((classModel as any).relationships ?? {}) as any[]) {
     if (!rel || typeof rel !== 'object') continue;
     if (!ASSOCIATION_TYPES.has(rel.type)) continue;
     if (existingLinkAssociationIds.has(rel.id)) continue;
@@ -410,13 +448,31 @@ export const scaffoldObjectsFromClasses = ({
     links += 1;
   }
 
+  // Build a v3 ObjectDiagram payload, then up-convert back to v4 so the editor
+  // and Redux store can consume it directly.
+  const v3Output = {
+    ...(objectModel as any),
+    elements,
+    relationships,
+    type: (objectModel as any).type ?? UMLDiagramType.ObjectDiagram,
+    // The migrator expects a 3.x version string; if the down-converted model
+    // already has one, leave it alone.
+    version: (objectModel as any).version && String((objectModel as any).version).startsWith('3.')
+      ? (objectModel as any).version
+      : '3.0.0',
+  };
+
+  let v4Model: UMLModel;
+  try {
+    v4Model = migrateObjectDiagramV3ToV4(v3Output);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[scaffoldObjectsFromClasses] v3→v4 conversion failed; returning raw model', err);
+    v4Model = v3Output as UMLModel;
+  }
+
   return {
-    model: {
-      ...objectModel,
-      elements,
-      relationships,
-      type: objectModel.type ?? UMLDiagramType.ObjectDiagram,
-    },
+    model: v4Model,
     created,
     skipped,
     links,

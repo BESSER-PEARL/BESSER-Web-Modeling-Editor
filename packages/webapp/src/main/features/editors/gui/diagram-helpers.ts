@@ -37,34 +37,65 @@ function getAgentDiagramModel() {
   return getReferencedDiagram(project, activeGUI, 'AgentDiagram')?.model;
 }
 
+/**
+ * SA-7b: v4 ClassDiagram nodes carry attribute/method rows inline on
+ * `node.data.attributes` / `node.data.methods` (each row has `id`, `name`,
+ * `attributeType`, `visibility`, ...). Previously v3 had each attribute /
+ * method as a separate UMLElement with `owner === classId`.
+ *
+ * `node.type === 'class'` covers Class | AbstractClass | Interface |
+ * Enumeration; the `data.stereotype` discriminates them.
+ */
+function isPlainOrAbstractClassNode(node: any): boolean {
+  if (!node) return false;
+  if (node.type === 'class') {
+    const stereo = node?.data?.stereotype;
+    return !stereo || stereo === 'abstract';
+  }
+  return node.type === 'Class' || node.type === 'AbstractClass';
+}
+
+function classNodeName(node: any): string {
+  return node?.data?.name ?? node?.name ?? '';
+}
+
+function classNodeAttributes(node: any): any[] {
+  return Array.isArray(node?.data?.attributes) ? node.data.attributes : [];
+}
+
+function classNodeMethods(node: any): any[] {
+  return Array.isArray(node?.data?.methods) ? node.data.methods : [];
+}
+
 export function getClassOptions(): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes)) {
     console.warn('[diagram-helpers] No UML class diagram data available');
     return [];
   }
 
-  return Object.values(classDiagram.elements)
-    .filter((element: any) => (element?.type === 'Class' || element?.type === 'AbstractClass'))
-    .map((element: any) => ({ value: element.id, label: element.name }));
+  return classDiagram.nodes
+    .filter((n: any) => isPlainOrAbstractClassNode(n))
+    .map((n: any) => ({ value: n.id, label: classNodeName(n) }));
 }
 
 export function getAttributeOptionsByClassId(classId: string): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes)) {
     return [];
   }
 
-  return Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => {
-      const cleanName = stripVisibility(attr.name);
-      // Extract just the attribute name (without type suffix if present in legacy format)
-      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
-      return { value: attr.id, label: justName };
-    });
+  const classNode = classDiagram.nodes.find((n: any) => n.id === classId);
+  if (!classNode) return [];
+
+  return classNodeAttributes(classNode).map((attr: any) => {
+    const cleanName = stripVisibility(attr.name);
+    // Extract just the attribute name (without type suffix if present in legacy format)
+    const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+    return { value: attr.id, label: justName };
+  });
 }
 
 /**
@@ -73,24 +104,25 @@ export function getAttributeOptionsByClassId(classId: string): { value: string; 
 export function getAttributeOptionsByType(classId: string, requireNumeric: boolean = false): { value: string; label: string; type: string }[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes)) {
     return [];
   }
 
-  const attributes = Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => {
-      const cleanName = stripVisibility(attr.name);
-      // Use attributeType property if available (new format), otherwise parse from name (legacy)
-      const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
-      // Extract just the attribute name (without type suffix)
-      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
-      return {
-        value: attr.id,
-        label: justName,
-        type: type
-      };
-    });
+  const classNode = classDiagram.nodes.find((n: any) => n.id === classId);
+  if (!classNode) return [];
+
+  const attributes = classNodeAttributes(classNode).map((attr: any) => {
+    const cleanName = stripVisibility(attr.name);
+    // Use attributeType property if available (new format), otherwise parse from name (legacy)
+    const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+    // Extract just the attribute name (without type suffix)
+    const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+    return {
+      value: attr.id,
+      label: justName,
+      type: type
+    };
+  });
 
   if (requireNumeric) {
     return attributes.filter(attr => isNumericType(attr.type));
@@ -107,60 +139,73 @@ export function getAttributeOptionsByType(classId: string, requireNumeric: boole
 export function getClassMetadata(classId: string, includeInherited: boolean = true): ClassMetadata | undefined {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes)) {
     return undefined;
   }
 
-  const classElement = Object.values(classDiagram.elements).find(
-    (el: any) => (el?.type === 'Class' || el?.type === 'AbstractClass') && el?.id === classId
+  const classNode = classDiagram.nodes.find(
+    (n: any) => isPlainOrAbstractClassNode(n) && n.id === classId,
   ) as any;
 
-  if (!classElement) {
+  if (!classNode) {
     return undefined;
   }
 
-  // Get direct attributes
-  const attributes: AttributeMetadata[] = Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'ClassAttribute' && element?.owner === classId)
-    .map((attr: any) => {
-      const cleanName = stripVisibility(attr.name);
-      // Use attributeType property if available (new format), otherwise parse from name (legacy)
-      const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
-      // Extract just the attribute name (without type suffix)
-      const justName = cleanName?.split(':')[0]?.trim() || cleanName;
-      return {
-        id: attr.id,
-        name: justName,
-        type: type,
-        isNumeric: isNumericType(type),
-        isString: isStringType(type)
-      };
-    });
+  // Get direct attributes (rows on node.data.attributes)
+  const attributes: AttributeMetadata[] = classNodeAttributes(classNode).map((attr: any) => {
+    const cleanName = stripVisibility(attr.name);
+    // Use attributeType property if available (new format), otherwise parse from name (legacy)
+    const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+    // Extract just the attribute name (without type suffix)
+    const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+    return {
+      id: attr.id,
+      name: justName,
+      type: type,
+      isNumeric: isNumericType(type),
+      isString: isStringType(type)
+    };
+  });
 
-  // Add inherited attributes if requested
-  if (includeInherited && classDiagram.relationships) {
-    const inheritedAttributeIds = getInheritedAttributeOptionsByClassId(classId).map(a => a.value);
-    const inheritedAttributes = Object.values(classDiagram.elements)
-      .filter((element: any) => element?.type === 'ClassAttribute' && inheritedAttributeIds.includes(element.id))
-      .map((attr: any) => {
-        const cleanName = stripVisibility(attr.name);
-        const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
-        const justName = cleanName?.split(':')[0]?.trim() || cleanName;
-        return {
-          id: attr.id,
-          name: justName,
-          type: type,
-          isNumeric: isNumericType(type),
-          isString: isStringType(type)
-        };
-      });
-    
-    attributes.push(...inheritedAttributes);
+  // Add inherited attributes (walk inheritance edges to parent classes)
+  if (includeInherited && Array.isArray(classDiagram.edges)) {
+    // Collect parent class IDs by walking ClassInheritance edges (source = child).
+    const visited = new Set<string>();
+    const collectParents = (currentId: string): string[] => {
+      if (visited.has(currentId)) return [];
+      visited.add(currentId);
+      const parents = (classDiagram.edges as any[])
+        .filter((e: any) => e?.type === 'ClassInheritance' && e?.source === currentId)
+        .map((e: any) => e.target);
+      return parents.reduce<string[]>((acc, parentId) => {
+        acc.push(parentId);
+        acc.push(...collectParents(parentId));
+        return acc;
+      }, []);
+    };
+    const parentIds = collectParents(classId);
+    if (parentIds.length > 0) {
+      const parentNodes = classDiagram.nodes.filter((n: any) => parentIds.includes(n.id));
+      for (const parentNode of parentNodes) {
+        for (const attr of classNodeAttributes(parentNode)) {
+          const cleanName = stripVisibility(attr.name);
+          const type = attr.attributeType || cleanName?.split(':')[1]?.trim() || 'str';
+          const justName = cleanName?.split(':')[0]?.trim() || cleanName;
+          attributes.push({
+            id: attr.id,
+            name: justName,
+            type,
+            isNumeric: isNumericType(type),
+            isString: isStringType(type),
+          });
+        }
+      }
+    }
   }
 
   return {
-    id: classElement.id,
-    name: classElement.name,
+    id: classNode.id,
+    name: classNodeName(classNode),
     attributes
   };
 }
@@ -168,69 +213,47 @@ export function getClassMetadata(classId: string, includeInherited: boolean = tr
 export function getEndsByClassId(classId: string, includeInherited: boolean = true): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.relationships) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.edges)) {
     return [];
   }
 
-  // Only return association ends with navigability from the given class
-  const directEnds = Object.values(classDiagram.relationships)
-    .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
-    .map((relationship: any) => {
-      // For bidirectional, both ends are navigable
-      if (relationship.type === 'ClassBidirectional') {
-        if (relationship.source.element === classId) {
-          // Navigable from source to target
-          const otherElementId = relationship.target.element;
-          const role = relationship.target.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-        if (relationship.target.element === classId) {
-          // Navigable from target to source
-          const otherElementId = relationship.source.element;
-          const role = relationship.source.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
+  // v4 edge mapping (per migrations/uml-v4-shape.md ClassDiagram §):
+  //   - source/target are now node ids on the edge itself.
+  //   - role / multiplicity moved to edge.data.{sourceRole, sourceMultiplicity,
+  //     targetRole, targetMultiplicity}.
+  const nodes = classDiagram.nodes ?? [];
+  const findNode = (id: string) => nodes.find((n: any) => n.id === id);
+
+  const directEnds = (classDiagram.edges as any[])
+    .filter((edge: any) => edge?.type !== 'ClassInheritance')
+    .map((edge: any) => {
+      const sourceId = edge.source;
+      const targetId = edge.target;
+      const sourceRole = edge?.data?.sourceRole;
+      const targetRole = edge?.data?.targetRole;
+
+      // For bidirectional, composition, aggregation, both ends are navigable.
+      const bothNavigable =
+        edge.type === 'ClassBidirectional' ||
+        edge.type === 'ClassComposition' ||
+        edge.type === 'ClassAggregation';
+      // Unidirectional only navigable from source.
+      const sourceNavigable = bothNavigable || edge.type === 'ClassUnidirectional';
+      const targetNavigable = bothNavigable;
+
+      if (sourceId === classId && sourceNavigable) {
+        const otherNode: any = findNode(targetId);
+        if (otherNode?.type === 'ClassOCLConstraint') return null;
+        let label = targetRole;
+        if (!label || label.trim() === '') label = classNodeName(otherNode);
+        return { value: targetId, label };
       }
-      // For unidirectional, only source can navigate to target
-      if (relationship.type === 'ClassUnidirectional') {
-        if (relationship.source.element === classId) {
-          const otherElementId = relationship.target.element;
-          const role = relationship.target.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-      }
-      // For composition/aggregation, both ends are navigable (same as bidirectional)
-      if (relationship.type === 'ClassComposition' || relationship.type === 'ClassAggregation') {
-        if (relationship.source.element === classId) {
-          const otherElementId = relationship.target.element;
-          const role = relationship.target.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-        if (relationship.target.element === classId) {
-          const otherElementId = relationship.source.element;
-          const role = relationship.source.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
+      if (targetId === classId && targetNavigable) {
+        const otherNode: any = findNode(sourceId);
+        if (otherNode?.type === 'ClassOCLConstraint') return null;
+        let label = sourceRole;
+        if (!label || label.trim() === '') label = classNodeName(otherNode);
+        return { value: sourceId, label };
       }
       return null;
     })
@@ -248,12 +271,13 @@ export function getEndsByClassId(classId: string, includeInherited: boolean = tr
 export function getElementNameById(elementId: string): string | null {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes)) {
     return null;
   }
 
-  const element = Object.values(classDiagram.elements).find((el: any) => el?.id === elementId);
-  return element ? (element as any).name : null;
+  const node = classDiagram.nodes.find((n: any) => n.id === elementId);
+  if (!node) return null;
+  return classNodeName(node) || null;
 }
 
 /**
@@ -262,17 +286,17 @@ export function getElementNameById(elementId: string): string | null {
 export function getInheritedAttributeOptionsByClassId(classId: string): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements || !('relationships' in classDiagram) || !classDiagram.relationships) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes) || !Array.isArray(classDiagram.edges)) {
     return [];
   }
 
-  // Helper to recursively collect parent class IDs (where classId is the source, parent is the target)
+  // Walk inheritance edges (source = child class, target = parent class).
   function getParentClassIds(currentId: string, visited = new Set<string>()): string[] {
     if (visited.has(currentId)) return [];
     visited.add(currentId);
-    const parents = Object.values((classDiagram as any).relationships)
-      .filter((rel: any) => rel?.type === 'ClassInheritance' && rel?.source?.element === currentId)
-      .map((rel: any) => rel.target.element);
+    const parents = ((classDiagram as any).edges as any[])
+      .filter((edge: any) => edge?.type === 'ClassInheritance' && edge?.source === currentId)
+      .map((edge: any) => edge.target);
     return parents.reduce((acc: string[], parentId: string) => {
       acc.push(parentId);
       acc.push(...getParentClassIds(parentId, visited));
@@ -283,16 +307,14 @@ export function getInheritedAttributeOptionsByClassId(classId: string): { value:
   const parentIds = getParentClassIds(classId);
   if (parentIds.length === 0) return [];
 
-  // Collect attributes from all parent classes
-  const inheritedAttributes = Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'ClassAttribute' && parentIds.includes(element.owner))
-    .map((attr: any) => {
+  const inheritedAttributes: { value: string; label: string }[] = [];
+  for (const parentNode of (classDiagram.nodes as any[]).filter((n: any) => parentIds.includes(n.id))) {
+    for (const attr of classNodeAttributes(parentNode)) {
       const cleanName = stripVisibility(attr.name);
-      // Extract just the attribute name (without type suffix if present in legacy format)
       const justName = cleanName?.split(':')[0]?.trim() || cleanName;
-      return { value: attr.id, label: justName };
-    });
-
+      inheritedAttributes.push({ value: attr.id, label: justName });
+    }
+  }
   return inheritedAttributes;
 }
 
@@ -302,17 +324,16 @@ export function getInheritedAttributeOptionsByClassId(classId: string): { value:
 export function getInheritedEndsByClassId(classId: string): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements || !('relationships' in classDiagram) || !classDiagram.relationships) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.edges)) {
     return [];
   }
 
-  // Helper to recursively collect parent class IDs (where classId is the source, parent is the target)
   function getParentClassIds(currentId: string, visited = new Set<string>()): string[] {
     if (visited.has(currentId)) return [];
     visited.add(currentId);
-    const parents = Object.values((classDiagram as any).relationships)
-      .filter((rel: any) => rel?.type === 'ClassInheritance' && rel?.source?.element === currentId)
-      .map((rel: any) => rel.target.element);
+    const parents = ((classDiagram as any).edges as any[])
+      .filter((edge: any) => edge?.type === 'ClassInheritance' && edge?.source === currentId)
+      .map((edge: any) => edge.target);
     return parents.reduce((acc: string[], parentId: string) => {
       acc.push(parentId);
       acc.push(...getParentClassIds(parentId, visited));
@@ -323,15 +344,15 @@ export function getInheritedEndsByClassId(classId: string): { value: string; lab
   const parentIds = getParentClassIds(classId);
   if (parentIds.length === 0) return [];
 
-  // Collect relationships from all parent classes (excluding inheritance relationships)
+  // Collect non-inheritance edges from all parent classes
   const inheritedEnds: { value: string; label: string }[] = [];
-  Object.values((classDiagram as any).relationships)
-    .filter((rel: any) => rel?.type !== 'ClassInheritance')
-    .forEach((rel: any) => {
-      if (parentIds.includes(rel?.source?.element)) {
-        inheritedEnds.push({ value: rel.target.element, label: rel.target.role });
-      } else if (parentIds.includes(rel?.target?.element)) {
-        inheritedEnds.push({ value: rel.source.element, label: rel.source.role });
+  (classDiagram.edges as any[])
+    .filter((edge: any) => edge?.type !== 'ClassInheritance')
+    .forEach((edge: any) => {
+      if (parentIds.includes(edge?.source)) {
+        inheritedEnds.push({ value: edge.target, label: edge?.data?.targetRole ?? '' });
+      } else if (parentIds.includes(edge?.target)) {
+        inheritedEnds.push({ value: edge.source, label: edge?.data?.sourceRole ?? '' });
       }
     });
 
@@ -345,7 +366,7 @@ export function getInheritedEndsByClassId(classId: string): { value: string; lab
 export function getRelatedClassAttributeOptions(classId: string): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements || !classDiagram.relationships) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes) || !Array.isArray(classDiagram.edges)) {
     return [];
   }
 
@@ -417,21 +438,20 @@ export interface MethodParameter {
 export function getMethodsByClassId(classId: string): MethodMetadata[] {
   const classDiagram = getClassDiagramModel();
 
-  if (!isUMLModel(classDiagram) || !classDiagram.elements) {
+  if (!isUMLModel(classDiagram) || !Array.isArray(classDiagram.nodes)) {
     return [];
   }
 
-  // Find class by name (classId might be a name now)
-  const classElement = Object.values(classDiagram.elements).find(
-    (element: any) => (element?.type === 'Class' || element?.type === 'AbstractClass') && (element?.id === classId || element?.name === classId)
+  // Find class by id or name (classId might be a name now)
+  const classNode: any = classDiagram.nodes.find(
+    (n: any) => isPlainOrAbstractClassNode(n) && (n.id === classId || classNodeName(n) === classId),
   );
-  
-  if (!classElement) {
+
+  if (!classNode) {
     return [];
   }
 
-  return Object.values(classDiagram.elements)
-    .filter((element: any) => element?.type === 'ClassMethod' && element?.owner === (classElement as any).id)
+  return classNodeMethods(classNode)
     .map((method: any) => {
       // Parse method signature to extract parameters
       const methodName = method.name || '';

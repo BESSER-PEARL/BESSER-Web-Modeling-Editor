@@ -5,6 +5,84 @@ import type { DiagramType } from './shared-types';
 import { ModifierFactory, ModelModification } from './modifiers';
 import { LAYOUT_COLUMNS, LAYOUT_H_GAP, LAYOUT_V_GAP, LAYOUT_START_X, LAYOUT_START_Y } from './shared/layoutUtils';
 import { pushUndoSnapshot } from './undoStack';
+import {
+  convertV4ToV3Class,
+  convertV4ToV3StateMachine,
+  convertV4ToV3Agent,
+  convertV4ToV3User,
+  convertV4ToV3NN,
+  migrateClassDiagramV3ToV4,
+  migrateObjectDiagramV3ToV4,
+  migrateStateMachineDiagramV3ToV4,
+  migrateAgentDiagramV3ToV4,
+  migrateUserDiagramV3ToV4,
+  migrateNNDiagramV3ToV4,
+} from '@besser/wme';
+
+/**
+ * SA-7b: the assistant subsystem is built around the v3 wire shape (`elements`
+ * record, `relationships` record). After the editor migration the editor
+ * canonical model is v4. Rather than rewrite ~5k LoC of LLM-facing model
+ * manipulation, we translate at the editor boundary: read v4 → v3 when the
+ * assistant pulls the current model, and v3 → v4 before pushing back.
+ */
+function v4ToV3ForAssistant(v4Model: any): any {
+  if (!v4Model || typeof v4Model !== 'object') return v4Model;
+  // Already v3? No-op.
+  if ('elements' in v4Model && 'relationships' in v4Model) return v4Model;
+  if (!Array.isArray((v4Model as any).nodes) || !Array.isArray((v4Model as any).edges)) return v4Model;
+  const type = (v4Model as any).type;
+  try {
+    switch (type) {
+      case 'ClassDiagram':
+      case 'ObjectDiagram':
+        return convertV4ToV3Class(v4Model);
+      case 'StateMachineDiagram':
+        return convertV4ToV3StateMachine(v4Model);
+      case 'AgentDiagram':
+        return convertV4ToV3Agent(v4Model);
+      case 'UserDiagram':
+        return convertV4ToV3User(v4Model);
+      case 'NNDiagram':
+        return convertV4ToV3NN(v4Model);
+      default:
+        return v4Model;
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[UMLModelingService] v4→v3 conversion failed; using raw model', err);
+    return v4Model;
+  }
+}
+
+function v3ToV4ForEditor(v3Model: any): any {
+  if (!v3Model || typeof v3Model !== 'object') return v3Model;
+  // Already v4? No-op.
+  if (Array.isArray((v3Model as any).nodes) && Array.isArray((v3Model as any).edges)) return v3Model;
+  const type = (v3Model as any).type;
+  try {
+    switch (type) {
+      case 'ClassDiagram':
+        return migrateClassDiagramV3ToV4(v3Model);
+      case 'ObjectDiagram':
+        return migrateObjectDiagramV3ToV4(v3Model);
+      case 'StateMachineDiagram':
+        return migrateStateMachineDiagramV3ToV4(v3Model);
+      case 'AgentDiagram':
+        return migrateAgentDiagramV3ToV4(v3Model);
+      case 'UserDiagram':
+        return migrateUserDiagramV3ToV4(v3Model);
+      case 'NNDiagram':
+        return migrateNNDiagramV3ToV4(v3Model);
+      default:
+        return v3Model;
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('[UMLModelingService] v3→v4 conversion failed; using raw model', err);
+    return v3Model;
+  }
+}
 
 // Re-export ModelModification for backward compatibility
 export type { ModelModification };
@@ -114,7 +192,8 @@ export class UMLModelingService {
     }
 
     if (this.editor?.model) {
-      return this.editor.model;
+      // SA-7b: editor.model is v4 post-cutover; assistant operates on v3.
+      return v4ToV3ForAssistant(this.editor.model) as BESSERModel;
     }
 
     // Return default model structure with current diagram type
@@ -344,15 +423,18 @@ export class UMLModelingService {
           throw new Error(`Unknown update type: ${update.type}`);
       }
 
+      // SA-7b: convert v3 → v4 at the editor / Redux boundary.
+      const v4Model = v3ToV4ForEditor(updatedModel);
+
       // Persist to Redux store first, then update editor
       await this.dispatch(updateDiagramModelThunk({
-        model: updatedModel as any,
+        model: v4Model as any,
       })).unwrap();
 
       if (this.editor) {
-        await this.editor.nextRender;
-        this.editor.model = { ...updatedModel };
-        await this.editor.nextRender;
+        await this.editor.ready;
+        this.editor.model = { ...v4Model };
+        await this.editor.ready;
       } else {
         console.warn('[UMLModelingService] No editor reference — model saved to Redux only');
       }
@@ -409,15 +491,18 @@ export class UMLModelingService {
       throw new Error('Model payload does not include any elements to render');
     }
 
+    // SA-7b: convert v3 → v4 at the editor / Redux boundary.
+    const v4Merged = v3ToV4ForEditor(mergedModel);
+
     // Persist to Redux store first, then update editor
     await this.dispatch(updateDiagramModelThunk({
-      model: mergedModel as any,
+      model: v4Merged as any,
     })).unwrap();
 
     if (this.editor) {
-      await this.editor.nextRender;
-      this.editor.model = { ...mergedModel };
-      await this.editor.nextRender;
+      await this.editor.ready;
+      this.editor.model = { ...v4Merged };
+      await this.editor.ready;
     } else {
       console.warn('[UMLModelingService] No editor reference — model saved to Redux only');
     }

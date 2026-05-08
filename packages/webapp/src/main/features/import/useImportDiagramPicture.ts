@@ -27,8 +27,8 @@ export const useImportDiagramPictureFromImage = () => {
       const activeClassDiagram = classDiagramsForMerge[
         Math.min(classActiveIndex, Math.max(classDiagramsForMerge.length - 1, 0))
       ];
-      const activeClassElements = (activeClassDiagram as any)?.model?.elements;
-      if (activeClassElements && Object.keys(activeClassElements).length > 0) {
+      const activeClassNodes = (activeClassDiagram as any)?.model?.nodes;
+      if (Array.isArray(activeClassNodes) && activeClassNodes.length > 0) {
         formData.append('existing_model', JSON.stringify({
           title: activeClassDiagram.title,
           model: (activeClassDiagram as any).model,

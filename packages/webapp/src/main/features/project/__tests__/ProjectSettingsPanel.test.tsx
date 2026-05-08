@@ -104,14 +104,15 @@ const renderWithStore = (project: BesserProject | null) => {
 const createProjectWithContent = (): BesserProject => {
   const project = createDefaultProject('My Project', 'A test project', 'alice');
   project.diagrams.ClassDiagram[0].model = {
-    version: '3.0.0' as const,
+    version: '4.0.0' as const,
+    id: 'cd-test',
+    title: 'Class Diagram',
     type: UMLDiagramType.ClassDiagram,
-    size: { width: 1400, height: 740 },
-    elements: { 'element-1': { id: 'element-1', type: 'Class', name: 'User' } as any },
-    relationships: {},
+    nodes: [{ id: 'element-1', type: 'class', position: { x: 0, y: 0 }, width: 100, height: 50, measured: { width: 100, height: 50 }, data: { name: 'User' } } as any],
+    edges: [],
     interactive: { elements: {}, relationships: {} },
     assessments: {},
-  };
+  } as any;
   return project;
 };
 

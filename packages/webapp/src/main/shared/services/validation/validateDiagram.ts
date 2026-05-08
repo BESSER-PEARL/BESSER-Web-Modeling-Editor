@@ -47,9 +47,9 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       return { isValid: false, errors: ['No diagram available'] };
     }
 
-    const hasElements = model.elements && Object.keys(model.elements).length > 0;
-    const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
-    if (!hasElements && !hasRelationships) {
+    const hasNodes = Array.isArray(model.nodes) && model.nodes.length > 0;
+    const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;
+    if (!hasNodes && !hasEdges) {
       if (!suppressToasts) {
         toast.info('The diagram is empty. Add elements before running the quality check.', {
           position: 'top-right',

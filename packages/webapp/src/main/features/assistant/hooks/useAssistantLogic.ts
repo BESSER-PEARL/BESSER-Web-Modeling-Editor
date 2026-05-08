@@ -263,7 +263,12 @@ export function useAssistantLogic({
 
   useEffect(() => {
     if (modelingService && activeDiagram?.model && isUMLModel(activeDiagram.model)) {
-      modelingService.updateCurrentModel(activeDiagram.model);
+      // SA-7b: assistant operates on v3 BESSERModel internally; activeDiagram.model
+      // is v4. The service's updateCurrentModel expects v3, but we cast through
+      // any here — getCurrentModel() handles the v4→v3 conversion when reading
+      // back via editor.model. The local cache may be a v4 snapshot but is
+      // overwritten on next read.
+      modelingService.updateCurrentModel(activeDiagram.model as any);
     }
   }, [activeDiagram, modelingService]);
 
@@ -715,8 +720,18 @@ export function useAssistantLogic({
 
       // Analytics
       const activeModel = modelSnapshot as any;
-      const elementsCount = activeModel?.elements ? Object.keys(activeModel.elements).length : 0;
-      const relationshipsCount = activeModel?.relationships ? Object.keys(activeModel.relationships).length : 0;
+      // Accept either v3 (elements/relationships) or v3 (nodes/edges) shape — the
+      // assistant's getCurrentModel returns v3, but context.activeModel may be v4.
+      const elementsCount = Array.isArray(activeModel?.nodes)
+        ? activeModel.nodes.length
+        : activeModel?.elements
+        ? Object.keys(activeModel.elements).length
+        : 0;
+      const relationshipsCount = Array.isArray(activeModel?.edges)
+        ? activeModel.edges.length
+        : activeModel?.relationships
+        ? Object.keys(activeModel.relationships).length
+        : 0;
       getPostHog()?.capture('assistant_message', {
         diagram_type: context.activeDiagramType,
         message_length: messageText.length,

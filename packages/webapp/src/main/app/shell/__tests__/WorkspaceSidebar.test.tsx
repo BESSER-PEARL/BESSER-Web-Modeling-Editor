@@ -177,14 +177,15 @@ describe('WorkspaceSidebar', () => {
       title: 'Class Diagram 2',
       lastUpdate: new Date().toISOString(),
       model: {
-        version: '3.0.0' as const,
+        version: '4.0.0' as const,
+        id: 'second-class',
+        title: 'Class Diagram 2',
         type: UMLDiagramType.ClassDiagram,
-        size: { width: 1400, height: 740 },
-        elements: {},
-        relationships: {},
+        nodes: [],
+        edges: [],
         interactive: { elements: {}, relationships: {} },
         assessments: {},
-      },
+      } as any,
     });
 
     render(<WorkspaceSidebar {...defaultProps({ project })} />);

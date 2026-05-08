@@ -1,4 +1,5 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { migrateUMLModelV3ToV4 } from '../services/storage/migrate-uml-v3-to-v4';
 // Supported diagram types in projects
 export type SupportedDiagramType =
   | 'ClassDiagram'
@@ -11,7 +12,7 @@ export type SupportedDiagramType =
   | 'NNDiagram';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 4;
+export const PROJECT_SCHEMA_VERSION = 5;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram',
@@ -302,19 +303,20 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
     };
   }
 
-  // For UML diagrams
+  // For UML diagrams (v4 shape)
   return {
     id: generateUUID(),
     title,
     model: {
-      version: '3.0.0' as const,
+      version: '4.0.0' as const,
+      id: generateUUID(),
+      title,
       type,
-      size: { width: 1400, height: 740 },
-      elements: {},
-      relationships: {},
+      nodes: [],
+      edges: [],
       interactive: { elements: {}, relationships: {} },
       assessments: {},
-    },
+    } as UMLModel,
     lastUpdate: new Date().toISOString(),
   };
 };
@@ -450,7 +452,42 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migratePerspectiveSettings(obj);
   }
 
+  // Migrate v4 → v5: convert v3-shape UML models (elements/relationships) to v4 (nodes/edges)
+  if (!obj.schemaVersion || obj.schemaVersion < 5) {
+    obj = migrateProjectToV5(obj);
+  }
+
   return obj;
+};
+
+/**
+ * Migrate v4 → v5: walk every per-diagram UML model and run the v3 → v4
+ * shape migrator from `@besser/wme`. GUI / quantum diagrams are skipped
+ * because their models are not UMLModels.
+ *
+ * On migration failure, log and keep the v3 model in place so users don't
+ * lose data. The next launch will retry the migration.
+ */
+export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
+  if (project.schemaVersion >= 5) return project;
+
+  for (const type of ALL_DIAGRAM_TYPES) {
+    if (type === 'GUINoCodeDiagram' || type === 'QuantumCircuitDiagram') continue;
+    const diagrams = project.diagrams[type] ?? [];
+    for (const d of diagrams) {
+      if (d.model && isV3UMLModel(d.model)) {
+        try {
+          d.model = migrateUMLModelV3ToV4(d.model, type);
+        } catch (err) {
+          // Keep v3 model in place on failure; will retry next launch
+          // eslint-disable-next-line no-console
+          console.error('[migrateProjectToV5] Failed to migrate diagram', d.id, type, err);
+        }
+      }
+    }
+  }
+  project.schemaVersion = 5;
+  return project;
 };
 
 /**
@@ -543,9 +580,20 @@ export const isUMLModel = (model: unknown): model is UMLModel => {
   return (
     typeof candidate.type === 'string' &&
     typeof candidate.version === 'string' &&
-    typeof candidate.elements === 'object' &&
-    typeof candidate.relationships === 'object'
+    Array.isArray(candidate.nodes) &&
+    Array.isArray(candidate.edges)
   );
+};
+
+/**
+ * Detect a v3 UMLModel (pre-migration). Used by the v3→v4 migrator to know
+ * whether a stored project diagram needs translation. v3 models have
+ * `elements` and `relationships` records; v4 has `nodes` and `edges` arrays.
+ */
+export const isV3UMLModel = (model: unknown): boolean => {
+  if (!model || typeof model !== 'object') return false;
+  const candidate = model as Record<string, unknown>;
+  return 'elements' in candidate && 'relationships' in candidate;
 };
 
 export const isGrapesJSProjectData = (model: unknown): model is GrapesJSProjectData => {
@@ -614,9 +662,9 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   if (!model) return false;
 
   if (isUMLModel(model)) {
-    const hasElements = model.elements && Object.keys(model.elements).length > 0;
-    const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
-    return !!(hasElements || hasRelationships);
+    const hasNodes = Array.isArray(model.nodes) && model.nodes.length > 0;
+    const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;
+    return hasNodes || hasEdges;
   }
 
   if (isGrapesJSProjectData(model)) {
