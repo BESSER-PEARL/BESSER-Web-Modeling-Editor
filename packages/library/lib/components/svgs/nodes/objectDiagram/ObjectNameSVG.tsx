@@ -24,7 +24,7 @@ export const ObjectNameSVG = ({
   svgAttributes,
   showAssessmentResults = false,
 }: Props) => {
-  const { name, attributes, methods, icon, stereotype } = data
+  const { name, attributes, icon, stereotype } = data
   // PC-4 Gap 1: v3 ObjectName extends UMLClassifier and renders a
   // `«stereotype»` band above the underlined name when set (see
   // `uml-object-name-component.tsx:104-120`). Falsy => no band.
@@ -33,7 +33,6 @@ export const ObjectNameSVG = ({
     ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
     : LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
-  const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
 
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
@@ -41,23 +40,23 @@ export const ObjectNameSVG = ({
   // SA-2.1: respect the global icon-view toggle (settingsService key
   // `showIconView`). When enabled and the node has a stored icon body,
   // we render an icon view (header + inline SVG) instead of the
-  // attributes / methods table — mirrors v3
-  // `uml-object-name.ts:146-204`.
+  // attributes table — mirrors v3 `uml-object-name.ts:146-204`.
   const showIconView = useSettingsStore((s) => s.showIconView)
   const hasIcon = typeof icon === "string" && icon.trim() !== ""
   const iconViewActive = showIconView && hasIcon
 
   // SA-FIX-Editor PC-11.4: wire `showInstancedObjects` — v3's "preview
   // instances" toggle. When the setting is off we suppress the
-  // attributes / methods rows so the node renders as just the name band.
-  // The header (with the underlined object name) is always kept so the
+  // attribute rows so the node renders as just the name band. The
+  // header (with the underlined object name) is always kept so the
   // object remains identifiable on the canvas; turning the toggle off
   // collapses the body, mirroring the v3 instance-preview behaviour.
+  // SA-FIX-OBJECT-DEEP: object instances never render a methods
+  // section — UML object diagrams show data values, not types.
   const showInstancedObjects = useSettingsStore(
     (s) => s.showInstancedObjects
   )
   const showAttributes = showInstancedObjects && attributes.length > 0
-  const showMethods = showInstancedObjects && methods.length > 0
 
   const processElements = (elements: ClassNodeElement[]) =>
     elements.map((el) => {
@@ -66,7 +65,6 @@ export const ObjectNameSVG = ({
     })
 
   const processedAttributes = processElements(attributes)
-  const processedMethods = processElements(methods)
   const nodeScore = assessments[id]?.score
 
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
@@ -134,7 +132,9 @@ export const ObjectNameSVG = ({
           </foreignObject>
         )}
 
-        {/* Attributes Section */}
+        {/* Attributes Section. SA-FIX-OBJECT-DEEP: object instances
+            don't render methods — UML object diagrams show data
+            values, not types. */}
         {!iconViewActive && showAttributes && (
           <>
             {/* Separation Line After Header */}
@@ -151,26 +151,6 @@ export const ObjectNameSVG = ({
               offsetFromTop={headerHeight}
               showAssessmentResults={showAssessmentResults}
               itemElementType="attribute"
-            />
-          </>
-        )}
-
-        {/* Methods Section */}
-        {!iconViewActive && showMethods && (
-          <>
-            <SeparationLine
-              y={headerHeight + attributes.length * attributeHeight}
-              width={width}
-              strokeColor={strokeColor}
-            />
-            <RowBlockSection
-              items={processedMethods}
-              padding={padding}
-              itemHeight={methodHeight}
-              width={width}
-              offsetFromTop={headerHeight + attributes.length * methodHeight}
-              showAssessmentResults={showAssessmentResults}
-              itemElementType="method"
             />
           </>
         )}

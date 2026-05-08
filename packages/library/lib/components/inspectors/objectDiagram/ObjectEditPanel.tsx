@@ -6,213 +6,77 @@ import {
   Stack,
   TextField as MuiTextField,
   Tooltip,
+  Typography as MuiTypography,
 } from "@mui/material"
 import React, { useMemo, useState, ChangeEvent, KeyboardEvent } from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
-import {
-  ClassNodeElement,
-  ObjectNodeAttribute,
-  ObjectNodeProps,
-} from "@/types"
+import { ObjectNodeAttribute, ObjectNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { DeleteIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
-import { normalizeType } from "@/utils/typeNormalization"
 import { generateUUID } from "@/utils"
 import { diagramBridge, IClassInfo } from "@/services/diagramBridge"
 
-const PRIMITIVE_TYPES: { value: string; label: string }[] = [
-  { value: "str", label: "str (string)" },
-  { value: "int", label: "int (integer)" },
-  { value: "float", label: "float (double)" },
-  { value: "bool", label: "bool (boolean)" },
-  { value: "date", label: "date" },
-  { value: "datetime", label: "datetime" },
-  { value: "time", label: "time" },
-  { value: "timedelta", label: "timedelta" },
-  { value: "any", label: "any" },
-]
-
-const CUSTOM_TYPE_SENTINEL = "__custom__"
-
-const isPrimitiveType = (t: string | undefined): boolean =>
-  !!t && PRIMITIVE_TYPES.some((p) => p.value === t)
-
-/**
- * SA-2.1 type-aware widget classification, mirroring v3
- * `uml-object-attribute-update.tsx:144-176`. Empty string when the row
- * type doesn't trigger a special widget.
- */
-type DateWidgetKind = "date" | "datetime-local" | "time" | "duration" | null
-
-const dateWidgetKindFor = (t: string | undefined): DateWidgetKind => {
-  if (!t) return null
-  const lower = t.toLowerCase()
-  if (lower === "date" || lower === "localdate") return "date"
-  if (
-    lower === "datetime" ||
-    lower === "timestamp" ||
-    lower === "localdatetime" ||
-    lower === "offsetdatetime" ||
-    lower === "zoneddatetime" ||
-    lower === "instant"
-  )
-    return "datetime-local"
-  if (lower === "time" || lower === "localtime" || lower === "offsettime")
-    return "time"
-  if (
-    lower === "timedelta" ||
-    lower === "duration" ||
-    lower === "period" ||
-    lower === "timespan"
-  )
-    return "duration"
-  return null
-}
-
 interface ObjectAttrRowProps {
   row: ObjectNodeAttribute
-  /** Class attributes available on the linked classifier (when `classId` is set). */
-  linkedClassAttrs: { id: string; name: string; type: string }[]
-  classNames: string[]
-  /** Sibling enumerations and their literals — drives enum dropdown widget. */
-  enumerations: { name: string; literals: string[] }[]
+  /** Cached read-only display type, auto-inherited from the linked class. */
+  displayType?: string
   onPatch: (patch: Partial<ObjectNodeAttribute>) => void
   onDelete: () => void
 }
 
+/**
+ * SA-FIX-OBJECT-DEEP: simplified per-attribute row for the
+ * ObjectDiagram inspector. Renders a single inline `name = value`
+ * widget — two compact fields side by side with a fixed `=` glyph.
+ * The type is read-only (auto-inherited from the linked class) and
+ * surfaces only as a small caption beside the value field; v3's
+ * type-aware widgets (date pickers, enum dropdowns, custom-type
+ * editors) are intentionally dropped here. The full v3 layout lives
+ * in `packages/editor/.../uml-object-name-update.tsx`; we mirror its
+ * minimal `name = value` shape because that's all an object instance
+ * needs to capture (UML object diagrams show data values, not type
+ * structure).
+ */
 const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
   row,
-  linkedClassAttrs,
-  classNames,
-  enumerations,
+  displayType,
   onPatch,
   onDelete,
 }) => {
-  const attributeType = row.attributeType ?? "str"
-  const isCustom = !isPrimitiveType(attributeType)
-  const [customDraft, setCustomDraft] = useState(isCustom ? attributeType : "")
-
-  const handleTypeSelect = (value: string) => {
-    if (value === CUSTOM_TYPE_SENTINEL) {
-      onPatch({ attributeType: customDraft || attributeType })
-      return
-    }
-    onPatch({ attributeType: normalizeType(value) })
-  }
-
-  const handleAttrLinkSelect = (linkedId: string) => {
-    if (!linkedId) {
-      onPatch({ attributeId: undefined })
-      return
-    }
-    const target = linkedClassAttrs.find((a) => a.id === linkedId)
-    if (!target) return
-    onPatch({
-      attributeId: target.id,
-      name: target.name,
-      attributeType: target.type,
-    })
-  }
-
-  /* ----- Type-aware value widget (SA-2.1) ------------------------------ */
-
-  const matchingEnum = useMemo(
-    () => enumerations.find((e) => e.name === attributeType),
-    [enumerations, attributeType]
-  )
-  const dateKind = dateWidgetKindFor(attributeType)
-
   const valueAsString =
     row.value !== undefined && row.value !== null ? String(row.value) : ""
 
-  const renderValueWidget = () => {
-    // 1. Enumeration → dropdown of literals.
-    if (matchingEnum && matchingEnum.literals.length > 0) {
-      return (
-        <Select
-          size="small"
-          value={valueAsString}
-          displayEmpty
-          onChange={(e) =>
-            onPatch({
-              value: e.target.value === "" ? undefined : e.target.value,
-            })
-          }
-          fullWidth
-        >
-          <MenuItem value="">— no value —</MenuItem>
-          {matchingEnum.literals.map((lit) => (
-            <MenuItem key={lit} value={lit}>
-              {lit}
-            </MenuItem>
-          ))}
-        </Select>
-      )
-    }
-
-    // 2. Date / datetime / time → matching <input type="...">.
-    if (dateKind === "date" || dateKind === "datetime-local" || dateKind === "time") {
-      return (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          type={dateKind}
-          value={valueAsString}
-          onChange={(e) =>
-            onPatch({
-              value: e.target.value === "" ? undefined : e.target.value,
-            })
-          }
-        />
-      )
-    }
-
-    // 3. timedelta / duration → free-form duration input.
-    if (dateKind === "duration") {
-      return (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          placeholder="e.g., 1d 2h 30m, P1DT2H30M, 1:30:00"
-          value={valueAsString}
-          onChange={(e) =>
-            onPatch({
-              value: e.target.value === "" ? undefined : e.target.value,
-            })
-          }
-        />
-      )
-    }
-
-    // 4. str → quote-wrapped textfield. Display as `"..."` but store
-    // the unquoted value, mirroring v3 `uml-object-attribute-update.tsx`.
-    if (attributeType === "str") {
-      return (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          placeholder='"value"'
-          value={valueAsString ? `"${valueAsString}"` : ""}
-          onChange={(e) => {
-            // Strip surrounding quotes (paired or unpaired) before storing.
-            const raw = e.target.value.replace(/^"|"$/g, "")
-            onPatch({ value: raw === "" ? undefined : raw })
-          }}
-        />
-      )
-    }
-
-    // 5. else → plain text input.
-    return (
+  return (
+    <Stack
+      direction="row"
+      spacing={0.5}
+      alignItems="center"
+      sx={{
+        padding: "4px 0",
+        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
+      }}
+    >
       <MuiTextField
         size="small"
         variant="outlined"
-        fullWidth
+        placeholder="name"
+        value={row.name}
+        onChange={(e) =>
+          onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
+        }
+        sx={{ flex: 1 }}
+      />
+      <MuiTypography
+        component="span"
+        sx={{ px: 0.5, fontWeight: 500, userSelect: "none" }}
+      >
+        =
+      </MuiTypography>
+      <MuiTextField
+        size="small"
+        variant="outlined"
         placeholder="value"
         value={valueAsString}
         onChange={(e) =>
@@ -220,137 +84,30 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
             value: e.target.value === "" ? undefined : e.target.value,
           })
         }
+        sx={{ flex: 1 }}
       />
-    )
-  }
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.5,
-        padding: "6px 0",
-        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
-      }}
-    >
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          placeholder="attribute name"
-          value={row.name}
-          onChange={(e) =>
-            onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
-          }
-        />
-        <Select
-          size="small"
-          value={isCustom ? CUSTOM_TYPE_SENTINEL : attributeType}
-          onChange={(e) => handleTypeSelect(String(e.target.value))}
-          sx={{ minWidth: 110 }}
-        >
-          {PRIMITIVE_TYPES.map((p) => (
-            <MenuItem key={p.value} value={p.value}>
-              {p.label}
-            </MenuItem>
-          ))}
-          {classNames.length > 0 && [
-            <MenuItem key="__divider__" disabled>
-              ── classes ──
-            </MenuItem>,
-            ...classNames.map((cn) => (
-              <MenuItem key={`class-${cn}`} value={cn}>
-                {cn}
-              </MenuItem>
-            )),
-          ]}
-          {enumerations.length > 0 && [
-            <MenuItem key="__edivider__" disabled>
-              ── enumerations ──
-            </MenuItem>,
-            ...enumerations.map((e) => (
-              <MenuItem key={`enum-${e.name}`} value={e.name}>
-                {e.name}
-              </MenuItem>
-            )),
-          ]}
-          <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
-        </Select>
-        <Tooltip title="Delete attribute">
-          <IconButton size="small" onClick={onDelete}>
-            <DeleteIcon width={14} height={14} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
-
-      {isCustom && (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          placeholder="custom type"
-          value={customDraft || attributeType}
-          onChange={(e) => setCustomDraft(e.target.value)}
-          onBlur={() => {
-            if (customDraft.trim()) {
-              onPatch({ attributeType: normalizeType(customDraft.trim()) })
-            }
-          }}
-        />
-      )}
-
-      {linkedClassAttrs.length > 0 && (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          <Typography variant="caption" sx={{ minWidth: 70 }}>
-            link
-          </Typography>
-          <Select
-            size="small"
-            value={row.attributeId ?? ""}
-            displayEmpty
-            onChange={(e) => handleAttrLinkSelect(String(e.target.value))}
-            sx={{ flex: 1 }}
+      {displayType && (
+        <Tooltip title={`type inherited from class: ${displayType}`}>
+          <MuiTypography
+            variant="caption"
+            sx={{
+              minWidth: 40,
+              color: "var(--besser-text-muted, #6c757d)",
+              fontStyle: "italic",
+              userSelect: "none",
+            }}
           >
-            <MenuItem value="">— Unlinked —</MenuItem>
-            {linkedClassAttrs.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}: {a.type}
-              </MenuItem>
-            ))}
-          </Select>
-        </Stack>
+            : {displayType}
+          </MuiTypography>
+        </Tooltip>
       )}
-
-      {renderValueWidget()}
-    </Box>
+      <Tooltip title="Delete attribute">
+        <IconButton size="small" onClick={onDelete}>
+          <DeleteIcon width={14} height={14} />
+        </IconButton>
+      </Tooltip>
+    </Stack>
   )
-}
-
-/**
- * Walk the bridge data and surface sibling Enumerations as
- * `{ name, literals }` rows. v3 used `availableEnumerations` for this;
- * v4 inlines the walk because no dedicated bridge accessor exists yet.
- */
-const collectEnumerations = (): { name: string; literals: string[] }[] => {
-  const bridgeData = diagramBridge.getClassDiagramData()
-  if (!bridgeData) return []
-  return (bridgeData.nodes || [])
-    .filter(
-      (n: { type?: string; data?: { stereotype?: string | null } }) =>
-        // v4: stereotype === 'Enumeration' on a `class` node.
-        // v3 leak: type === 'Enumeration'.
-        (n.type === "class" && n.data?.stereotype === "Enumeration") ||
-        n.type === "Enumeration"
-    )
-    .map((n: { data?: { name?: string; attributes?: { name: string }[] } }) => ({
-      name: n.data?.name ?? "",
-      literals: (n.data?.attributes ?? [])
-        .map((a) => a.name)
-        .filter((s): s is string => !!s),
-    }))
-    .filter((e) => !!e.name)
 }
 
 /**
@@ -358,15 +115,15 @@ const collectEnumerations = (): { name: string; literals: string[] }[] => {
  * the per-instance shape:
  *  - top-level `classId` selector (+ classes from sibling ClassDiagram via
  *    `diagramBridge`),
- *  - per-attribute `attributeId` selector (linking back to the source
- *    class's attribute when known),
- *  - a runtime `value` field instead of `defaultValue`,
+ *  - per-attribute inline `name = value` text widget (SA-FIX-OBJECT-DEEP),
+ *  - no Methods section — objects are instances, not types
+ *    (SA-FIX-OBJECT-DEEP),
  *  - no visibility / id-flag controls (object instances inherit those
  *    from their class).
  *
  * SA-2.1: auto-populates attributes from the linked class on `classId`
- * change (mirrors v3 `uml-object-name-update.tsx:107-128`); per-row
- * value field is type-aware.
+ * change (mirrors v3 `uml-object-name-update.tsx:107-128`); the
+ * attribute type is auto-inherited and shown read-only.
  */
 export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { nodes, setNodes } = useDiagramStore(
@@ -385,19 +142,36 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }
   }, [nodes])
 
-  const enumerations = useMemo(() => collectEnumerations(), [nodes])
-
-  const classNames = availableClasses.map((c) => c.name).filter(Boolean)
-
   if (!node) return null
   const nodeData = node.data as ObjectNodeProps
 
-  // Class attributes for the currently linked class (drives the per-row
-  // attributeId selector).
+  // Class attributes for the currently linked class (drives the
+  // read-only type lookup for each row).
   const linkedClass = nodeData.classId
     ? availableClasses.find((c) => c.id === nodeData.classId)
     : undefined
   const linkedClassAttrs = linkedClass?.attributes ?? []
+
+  /**
+   * Resolve the read-only display type for a row. Lookup order:
+   *  1. linked class attribute by `attributeId`,
+   *  2. linked class attribute by `name` (when the attribute id was
+   *     never bound),
+   *  3. row's stored `attributeType` (legacy / unlinked rows).
+   */
+  const resolveDisplayType = (
+    row: ObjectNodeAttribute
+  ): string | undefined => {
+    if (row.attributeId) {
+      const byId = linkedClassAttrs.find((a) => a.id === row.attributeId)
+      if (byId?.type) return byId.type
+    }
+    if (row.name) {
+      const byName = linkedClassAttrs.find((a) => a.name === row.name)
+      if (byName?.type) return byName.type
+    }
+    return row.attributeType
+  }
 
   const update = (updater: (d: ObjectNodeProps) => ObjectNodeProps) => {
     setNodes((nodes) =>
@@ -530,15 +304,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     )
   }
 
-  const patchMethod = (mid: string, patch: Partial<ClassNodeElement>) => {
-    update((d) => ({
-      ...d,
-      methods: d.methods.map((m) => (m.id === mid ? { ...m, ...patch } : m)),
-    }))
-  }
-
   const [newAttrName, setNewAttrName] = useState("")
-  const [newMethodName, setNewMethodName] = useState("")
   const onAttrKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       addAttribute(newAttrName)
@@ -547,28 +313,6 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
   const onAttrChange = (e: ChangeEvent<HTMLInputElement>) =>
     setNewAttrName(e.target.value)
-  const onMethodKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      const trimmed = newMethodName.trim()
-      if (!trimmed) return
-      // PC-4 Gap 3: object methods (like attributes) don't carry
-      // visibility — keep the row minimal.
-      const m: ClassNodeElement = {
-        id: generateUUID(),
-        name: trimmed,
-      }
-      setNodes((nodes) =>
-        nodes.map((n) => {
-          if (n.id !== elementId) return n
-          const data = n.data as ObjectNodeProps
-          return { ...n, data: { ...data, methods: [...data.methods, m] } }
-        })
-      )
-      setNewMethodName("")
-    }
-  }
-  const onMethodChange = (e: ChangeEvent<HTMLInputElement>) =>
-    setNewMethodName(e.target.value)
 
   const placeholderName =
     nodeData.className && nodeData.className.length > 0
@@ -630,13 +374,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         <ObjectAttrRow
           key={row.id}
           row={row}
-          linkedClassAttrs={linkedClassAttrs.map((a) => ({
-            id: a.id,
-            name: a.name,
-            type: a.type,
-          }))}
-          classNames={classNames}
-          enumerations={enumerations}
+          displayType={resolveDisplayType(row)}
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
         />
@@ -656,48 +394,9 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           }
         }}
       />
-
-      <DividerLine width="100%" />
-
-      <Typography variant="h6">Methods</Typography>
-      {nodeData.methods.map((row) => (
-        <Stack
-          key={row.id}
-          direction="row"
-          spacing={0.5}
-          alignItems="center"
-          sx={{ padding: "4px 0" }}
-        >
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            fullWidth
-            placeholder="method name"
-            value={row.name}
-            onChange={(e) => patchMethod(row.id, { name: e.target.value })}
-          />
-          <IconButton
-            size="small"
-            onClick={() =>
-              update((d) => ({
-                ...d,
-                methods: d.methods.filter((m) => m.id !== row.id),
-              }))
-            }
-          >
-            <DeleteIcon width={14} height={14} />
-          </IconButton>
-        </Stack>
-      ))}
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        placeholder="+ Add method (Enter)"
-        value={newMethodName}
-        onChange={onMethodChange}
-        onKeyDown={onMethodKey}
-      />
+      {/* SA-FIX-OBJECT-DEEP: no Methods section — objects are
+          instances, not types, so UML object diagrams don't show
+          methods. */}
     </Box>
   )
 }

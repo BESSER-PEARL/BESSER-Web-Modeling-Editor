@@ -31,14 +31,8 @@ export const ObjectSeeFeedbackPopover = ({ elementId }: PopoverProps) => {
           type="Attribute"
         />
       ))}
-      {nodeData.methods.map((method) => (
-        <SeeFeedbackAssessmentBox
-          key={method.id}
-          elementId={method.id}
-          name={method.name}
-          type="Method"
-        />
-      ))}
+      {/* SA-FIX-OBJECT-DEEP: object instances don't carry methods —
+          UML object diagrams show data values, not types. */}
       <Button
         variant="contained"
         size="small"

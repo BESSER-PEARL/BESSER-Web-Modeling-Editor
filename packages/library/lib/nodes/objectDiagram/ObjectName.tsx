@@ -40,7 +40,7 @@ export function ObjectName({
   height,
   data,
 }: NodeProps<Node<ObjectNodeProps>>) {
-  const { attributes, methods, name, stereotype } = data
+  const { attributes, name, stereotype } = data
   const displayAttributes = useMemo(
     () => attributes.map(formatObjectAttribute),
     [attributes]
@@ -68,7 +68,10 @@ export function ObjectName({
 
   // Calculate the widest text accurately. PC-4 Gap 1: include the
   // `«stereotype»` line in the width budget when set so a long
-  // stereotype label doesn't get clipped.
+  // stereotype label doesn't get clipped. SA-FIX-OBJECT-DEEP: object
+  // instances don't carry methods (UML object diagrams show data
+  // values, not types — methods are owned by the class), so the width
+  // budget excludes any method row.
   const maxTextWidth = useMemo(() => {
     const stereotypeWidth = stereotype
       ? measureTextWidth(`«${stereotype}»`, font)
@@ -77,39 +80,35 @@ export function ObjectName({
     const attributesTextWidths = displayAttributes.map(
       (attr: { name: string }) => measureTextWidth(attr.name, font)
     )
-    const methodsTextWidths = methods.map((method: { name: string }) =>
-      measureTextWidth(method.name, font)
-    )
     const allTextWidths = [
       stereotypeWidth,
       headerTextWidth,
       ...attributesTextWidths,
-      ...methodsTextWidths,
     ]
 
     const result = Math.max(...allTextWidths, 0)
     return result
-  }, [stereotype, name, displayAttributes, methods, font])
+  }, [stereotype, name, displayAttributes, font])
 
   const minWidth = useMemo(() => {
     const result = calculateMinWidth(maxTextWidth, padding)
     return result
   }, [maxTextWidth, padding])
 
-  // Calculate minimum dimensions
+  // Calculate minimum dimensions. SA-FIX-OBJECT-DEEP: pass `0` for the
+  // method row count — objects render no method section.
   const minHeight = useMemo(
     () =>
       calculateMinHeight(
         headerHeight,
         attributes.length,
-        methods.length,
+        0,
         attributeHeight,
         methodHeight
       ),
     [
       headerHeight,
       attributes.length,
-      methods.length,
       attributeHeight,
       methodHeight,
     ]

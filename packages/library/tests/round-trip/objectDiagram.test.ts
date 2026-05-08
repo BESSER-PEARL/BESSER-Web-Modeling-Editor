@@ -13,7 +13,7 @@
  *  - ObjectLink edges round-trip with their source/target.
  *  - PC-4: stereotype band, classId hierarchy hint, visibility leak.
  */
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import {
   migrateObjectDiagramV3ToV4,
   convertV4ToV3Class,
@@ -232,6 +232,81 @@ describe("ObjectDiagram v3 → v4 round-trip", () => {
         expect(data.stereotype ?? null).toBeNull()
       }
     }
+  })
+
+  it("SA-FIX-OBJECT-DEEP: drops legacy v3 ObjectMethod children on import", () => {
+    // v3 fixture with a stray ObjectMethod child — v4 must not surface
+    // it on the parent ObjectName, because UML object diagrams don't
+    // show methods (objects are instances, not types). The migrator
+    // logs a warning; here we just check the field is absent.
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ObjectDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "obj-1": {
+          id: "obj-1",
+          name: "rex: Dog",
+          type: "ObjectName",
+          owner: null,
+          bounds: { x: 100, y: 100, width: 200, height: 80 },
+          attributes: ["attr-1"],
+          methods: ["method-1"],
+          classId: "node-Dog",
+        },
+        "attr-1": {
+          id: "attr-1",
+          name: "name = Rex",
+          type: "ObjectAttribute",
+          owner: "obj-1",
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          attributeType: "str",
+        },
+        "method-1": {
+          id: "method-1",
+          name: "bark()",
+          type: "ObjectMethod",
+          owner: "obj-1",
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+        },
+      },
+      relationships: {},
+    } as never
+
+    // Silence the expected warning — we surface it for visibility, not
+    // as a test failure signal.
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined)
+
+    const v4 = migrateObjectDiagramV3ToV4(v3Fixture)
+
+    // The ObjectMethod element is dropped — no v4 node should reference it.
+    expect(v4.nodes.some((n) => n.id === "method-1")).toBe(false)
+
+    const rex = v4.nodes.find((n) => n.id === "obj-1")!
+    const rexData = rex.data as ObjectNodeProps
+    // No `methods` field — `ObjectNodeProps` no longer carries one.
+    expect((rexData as unknown as { methods?: unknown }).methods).toBeUndefined()
+    // Attributes still come through normally.
+    expect(rexData.attributes).toHaveLength(1)
+    expect(rexData.attributes[0].name).toBe("name")
+    expect(rexData.attributes[0].value).toBe("Rex")
+
+    // The migrator logged a warning for the dropped ObjectMethod row.
+    expect(warnSpy).toHaveBeenCalled()
+    expect(warnSpy.mock.calls.some((c) => /ObjectMethod/.test(String(c[0]))))
+      .toBe(true)
+    warnSpy.mockRestore()
+
+    // Round-trip back: the v3 element keeps the attribute as a child
+    // but emits an empty `methods` array; the legacy ObjectMethod is
+    // gone for good (it was a v3 mistake).
+    const v3Round = convertV4ToV3Class(v4)
+    const rexEl = v3Round.elements["obj-1"] as { methods?: string[] }
+    expect(rexEl.methods).toEqual([])
+    expect(v3Round.elements["method-1"]).toBeUndefined()
   })
 
   it("is idempotent on a v4 round-trip", () => {

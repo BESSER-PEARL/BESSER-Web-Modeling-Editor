@@ -3,7 +3,6 @@ import { useDiagramStore } from "@/store"
 import { ObjectNodeProps } from "@/types"
 import { useShallow } from "zustand/shallow"
 import { EditableAttributeList } from "../classDiagram/EditableAttributesList"
-import { EditableMethodsList } from "../classDiagram/EditableMethodsList"
 import { PopoverProps } from "../types"
 
 export const ObjectEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
@@ -46,8 +45,8 @@ export const ObjectEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
       />
       <DividerLine width="100%" />
       <EditableAttributeList nodeId={elementId} />
-      <DividerLine width="100%" />
-      <EditableMethodsList nodeId={elementId} />
+      {/* SA-FIX-OBJECT-DEEP: object instances don't carry methods —
+          UML object diagrams show data values, not types. */}
     </>
   )
 }
