@@ -7,34 +7,41 @@ import {
   TextField as MuiTextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
 } from "@mui/material"
 import React from "react"
+import CodeMirror from "@uiw/react-codemirror"
+import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
-import { DividerLine, Typography } from "@/components/ui"
-import { DeleteIcon } from "@/components/Icon"
+import { DividerLine, EdgeStyleEditor, Typography } from "@/components/ui"
+import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
+import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
- * SA-4 inspector body for the `AgentStateTransition` edge — the most
- * complex panel in the migration.
+ * SA-4 / SA-2.2 inspector body for the `AgentStateTransition` edge.
  *
- * Mode toggle:
- *   - `predefined`: pick a `predefinedType` from the known list. Renders
- *     intent-name / variable-operator-target / file-type sub-fields
- *     based on which `predefinedType` is selected.
- *   - `custom`:     pick a `custom.event`, edit `custom.condition[]`.
+ * Source-of-truth port:
+ * `packages/editor/.../agent-state-transition-update.tsx`.
  *
- * Either branch can also edit the shared `name` and `params`. The edge
- * data shape mirrors `docs/source/migrations/uml-v4-shape.md`'s canonical
- * `AgentStateTransitionData`.
+ * SA-2.2 deltas (audit recommendations 23–26):
+ *   - #23: when `predefinedType === 'when_intent_matched'`, the
+ *     intent-name picker is a Select sourced from sibling
+ *     `AgentIntent` nodes (was free TextField).
+ *   - #24: when `predefinedType === 'when_file_received'`, fileType
+ *     becomes a Select with options PDF / TXT / JSON.
+ *   - #25: the custom-condition editor uses CodeMirror with Python
+ *     syntax highlighting.
+ *   - #26: flip + color editing surface via `EdgeStyleEditor` +
+ *     `SwapHorizIcon`, mirroring SA-2.1's class-edge approach.
  *
- * Round-trip note: the migrator collapses the 5 legacy v3 transition
- * shapes onto this canonical form. The migrator preserves a `legacy` bag
- * + `legacyShape` discriminator so the v3 → v4 → v3 cycle round-trips
- * structurally — see `versionConverter.ts::migrateAgentDiagramV3ToV4`.
+ * The edge data shape mirrors `docs/source/migrations/uml-v4-shape.md`'s
+ * canonical `AgentStateTransitionData`. The migrator collapses the 5
+ * legacy v3 transition shapes onto this canonical form (see
+ * `versionConverter.ts::liftAgentTransitionDataToV4`).
  */
-type EdgeData = {
+type EdgeData = CustomEdgeProps & {
   name?: string
   transitionType?: "predefined" | "custom"
   predefined?: {
@@ -79,11 +86,29 @@ const CUSTOM_EVENTS = [
 
 const VARIABLE_OPERATORS = ["==", "!=", "<", "<=", ">", ">="] as const
 
+const FILE_TYPES = ["PDF", "TXT", "JSON"] as const
+
+const CUSTOM_CONDITION_TEMPLATE = `def condition(session: 'Session', params: dict) -> bool:
+    """Boolean function
+
+    Args:
+        session (Session): the current user session
+        params (dict): the function parameters
+
+    Returns:
+        bool: True or False
+    """
+    if session.get('x') > 10:
+        return True
+    else:
+        return False`
+
 export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
-  const { edges, setEdges } = useDiagramStore(
+  const { nodes, edges, setEdges } = useDiagramStore(
     useShallow((state) => ({
+      nodes: state.nodes,
       edges: state.edges,
       setEdges: state.setEdges,
     }))
@@ -97,6 +122,22 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   const custom = data.custom ?? { event: "None", condition: [] }
   const params = data.params ?? {}
 
+  // SA-2.2 #23: source intent-name options from sibling AgentIntent
+  // nodes. v3 read these from `state.elements`; v4 reads them off the
+  // store's `nodes` array.
+  const intentNames = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          nodes
+            .filter((n) => n.type === "AgentIntent")
+            .map((n) => ((n.data as { name?: string }).name ?? "").trim())
+            .filter((s) => s.length > 0)
+        )
+      ),
+    [nodes]
+  )
+
   const update = (patch: Partial<EdgeData>) => {
     setEdges((all) =>
       all.map((e) =>
@@ -105,9 +146,34 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     )
   }
 
+  const handleStyleFieldUpdate = (
+    key: "strokeColor" | "textColor",
+    value: string
+  ) => {
+    update({ [key]: value } as Partial<EdgeData>)
+  }
+
+  // SA-2.2 #26: flip swaps source/target/handle pairs on the edge,
+  // mirroring SA-2.1's `ClassEdgeEditPanel.handleSwap`.
+  const handleSwap = () => {
+    setEdges((all) =>
+      all.map((e) => {
+        if (e.id !== elementId) return e
+        return {
+          ...e,
+          source: e.target,
+          sourceHandle: e.targetHandle,
+          target: e.source,
+          targetHandle: e.sourceHandle,
+        }
+      })
+    )
+  }
+
   // Sub-field helpers.
-  const setPredefined = (patch: Partial<NonNullable<EdgeData["predefined"]>>) =>
-    update({ predefined: { ...predefined, ...patch } })
+  const setPredefined = (
+    patch: Partial<NonNullable<EdgeData["predefined"]>>
+  ) => update({ predefined: { ...predefined, ...patch } })
 
   const setCustom = (patch: Partial<NonNullable<EdgeData["custom"]>>) =>
     update({ custom: { ...custom, ...patch } })
@@ -154,7 +220,12 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     setCustom({ condition: next })
   }
   const addCondition = () =>
-    setCustom({ condition: [...(custom.condition ?? []), ""] })
+    setCustom({
+      condition: [
+        ...(custom.condition ?? []),
+        CUSTOM_CONDITION_TEMPLATE,
+      ],
+    })
   const removeCondition = (idx: number) => {
     const next = [...(custom.condition ?? [])]
     next.splice(idx, 1)
@@ -176,9 +247,11 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
       ? (cv.targetValue ?? "")
       : ""
 
-  const setVariableOp = (
-    next: { variable?: string; operator?: string; targetValue?: string }
-  ) => {
+  const setVariableOp = (next: {
+    variable?: string
+    operator?: string
+    targetValue?: string
+  }) => {
     setPredefined({
       conditionValue: {
         variable: next.variable ?? variable,
@@ -190,6 +263,21 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      {/* SA-2.2 #26: color editor + flip action */}
+      <EdgeStyleEditor
+        edgeData={data}
+        handleDataFieldUpdate={handleStyleFieldUpdate}
+        label="Transition"
+        sideElements={[
+          <Tooltip key="flip" title="Flip source / target">
+            <IconButton size="small" onClick={handleSwap}>
+              <SwapHorizIcon />
+            </IconButton>
+          </Tooltip>,
+        ]}
+      />
+      <DividerLine width="100%" />
+
       <MuiTextField
         size="small"
         variant="outlined"
@@ -231,27 +319,68 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
             </Select>
           </Stack>
 
+          {/* SA-2.2 #23 — intent-name dropdown sourced from sibling
+              AgentIntent nodes; falls back to a free TextField when no
+              intents exist (pre-authoring scenario). */}
           {predefined.predefinedType === "when_intent_matched" ? (
-            <MuiTextField
-              size="small"
-              variant="outlined"
-              fullWidth
-              label="intentName"
-              value={predefined.intentName ?? ""}
-              onChange={(e) => setPredefined({ intentName: e.target.value })}
-            />
+            intentNames.length > 0 ? (
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Typography variant="caption" sx={{ minWidth: 90 }}>
+                  intentName
+                </Typography>
+                <Select
+                  size="small"
+                  value={predefined.intentName ?? ""}
+                  onChange={(e) =>
+                    setPredefined({ intentName: String(e.target.value) })
+                  }
+                  displayEmpty
+                  sx={{ flex: 1 }}
+                >
+                  <MenuItem value="">— select intent —</MenuItem>
+                  {intentNames.map((name) => (
+                    <MenuItem key={name} value={name}>
+                      {name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Stack>
+            ) : (
+              <MuiTextField
+                size="small"
+                variant="outlined"
+                fullWidth
+                label="intentName"
+                value={predefined.intentName ?? ""}
+                onChange={(e) => setPredefined({ intentName: e.target.value })}
+                helperText="No AgentIntent nodes — create one to enable the dropdown."
+              />
+            )
           ) : null}
 
+          {/* SA-2.2 #24 — fileType dropdown (PDF / TXT / JSON). */}
           {predefined.predefinedType === "when_file_received" ? (
-            <MuiTextField
-              size="small"
-              variant="outlined"
-              fullWidth
-              label="fileType"
-              value={predefined.fileType ?? ""}
-              onChange={(e) => setPredefined({ fileType: e.target.value })}
-              placeholder="image/png, application/pdf, …"
-            />
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <Typography variant="caption" sx={{ minWidth: 90 }}>
+                fileType
+              </Typography>
+              <Select
+                size="small"
+                value={predefined.fileType ?? ""}
+                onChange={(e) =>
+                  setPredefined({ fileType: String(e.target.value) })
+                }
+                displayEmpty
+                sx={{ flex: 1 }}
+              >
+                <MenuItem value="">— select file type —</MenuItem>
+                {FILE_TYPES.map((ft) => (
+                  <MenuItem key={ft} value={ft}>
+                    {ft}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Stack>
           ) : null}
 
           {predefined.predefinedType === "when_variable_operation_matched" ? (
@@ -282,7 +411,9 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
                 variant="outlined"
                 label="targetValue"
                 value={targetValue}
-                onChange={(e) => setVariableOp({ targetValue: e.target.value })}
+                onChange={(e) =>
+                  setVariableOp({ targetValue: e.target.value })
+                }
                 sx={{ flex: 1 }}
               />
             </Stack>
@@ -325,22 +456,41 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
           {(custom.condition ?? []).map((c, idx) => (
             <Stack
               key={idx}
-              direction="row"
-              alignItems="center"
+              direction="column"
+              alignItems="stretch"
               spacing={0.5}
               sx={{ padding: "4px 0" }}
             >
-              <MuiTextField
-                size="small"
-                variant="outlined"
-                fullWidth
-                placeholder="condition expression"
-                value={c}
-                onChange={(e) => setCondition(idx, e.target.value)}
-              />
-              <IconButton size="small" onClick={() => removeCondition(idx)}>
-                <DeleteIcon width={14} height={14} />
-              </IconButton>
+              {/* SA-2.2 #25 — CodeMirror Python editor for custom
+                  conditions, mirroring v3's `react-codemirror2` Python
+                  mode at `agent-state-transition-update.tsx:329-348`. */}
+              <Box
+                sx={{
+                  border: "1px solid var(--apollon-gray, #ccc)",
+                  borderRadius: "4px",
+                  "& .cm-editor": { fontSize: "13px", minHeight: 120 },
+                }}
+              >
+                <CodeMirror
+                  value={c}
+                  extensions={[python()]}
+                  onChange={(v) => setCondition(idx, v)}
+                  basicSetup={{
+                    lineNumbers: true,
+                    tabSize: 4,
+                    indentOnInput: true,
+                  }}
+                />
+              </Box>
+              <Stack direction="row" justifyContent="flex-end">
+                <IconButton
+                  size="small"
+                  onClick={() => removeCondition(idx)}
+                  aria-label="Remove condition"
+                >
+                  <DeleteIcon width={14} height={14} />
+                </IconButton>
+              </Stack>
             </Stack>
           ))}
         </>

@@ -123,3 +123,93 @@ describe("UserDiagram v3 → v4 round-trip", () => {
     )
   })
 })
+
+/**
+ * SA-2.2 #38 regression: when a v3 fixture embeds the comparator into
+ * the row's `name` (`"age >= 18"`) instead of providing the explicit
+ * `attributeOperator` field, the migrator must synthesize it. Mirrors
+ * v3's `extractComparatorFromName` at
+ * `packages/editor/.../uml-user-model-attribute.ts:27-33`.
+ */
+describe("UserModelAttribute attributeOperator synthesis from name", () => {
+  it("synthesizes attributeOperator from embedded comparator in name", () => {
+    const v3 = {
+      version: "3.0.0" as const,
+      type: "UserDiagram" as const,
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "u-Alice": {
+          id: "u-Alice",
+          name: "Alice: Customer",
+          type: "UserModelName",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 200, height: 120 },
+          classId: "node-Customer",
+        },
+        "ua-Alice-1": {
+          id: "ua-Alice-1",
+          name: "age >= 18", // embedded comparator
+          type: "UserModelAttribute",
+          owner: "u-Alice",
+          bounds: { x: 0, y: 30, width: 200, height: 30 },
+          attributeType: "int",
+          // no attributeOperator field — must be synthesized
+        },
+        "ua-Alice-2": {
+          id: "ua-Alice-2",
+          name: "score < 0.9",
+          type: "UserModelAttribute",
+          owner: "u-Alice",
+          bounds: { x: 0, y: 60, width: 200, height: 30 },
+          attributeType: "float",
+        },
+        "ua-Alice-3": {
+          id: "ua-Alice-3",
+          name: "country = ES", // legacy single-`=`
+          type: "UserModelAttribute",
+          owner: "u-Alice",
+          bounds: { x: 0, y: 90, width: 200, height: 30 },
+          attributeType: "str",
+        },
+        "ua-Alice-4": {
+          id: "ua-Alice-4",
+          name: "explicit_field", // no embedded comparator
+          type: "UserModelAttribute",
+          owner: "u-Alice",
+          bounds: { x: 0, y: 120, width: 200, height: 30 },
+          attributeType: "str",
+          attributeOperator: ">", // explicit field wins
+        },
+        "ua-Alice-5": {
+          id: "ua-Alice-5",
+          name: "name_only_field",
+          type: "UserModelAttribute",
+          owner: "u-Alice",
+          bounds: { x: 0, y: 150, width: 200, height: 30 },
+          attributeType: "str",
+          // no comparator anywhere — operator should be undefined
+        },
+      },
+      relationships: {},
+    }
+
+    const v4 = migrateUserDiagramV3ToV4(v3 as never)
+    const alice = v4.nodes.find((n) => n.id === "u-Alice")!
+    const aliceData = alice.data as UserModelNameNodeProps
+
+    const byId = (id: string) =>
+      aliceData.attributes.find((a) => a.id === id)!
+
+    // Embedded `>=` is extracted.
+    expect(byId("ua-Alice-1").attributeOperator).toBe(">=")
+    // Embedded `<` is extracted.
+    expect(byId("ua-Alice-2").attributeOperator).toBe("<")
+    // Single `=` normalises to `==` (per v3 `normalizeUserModelAttributeComparator`).
+    expect(byId("ua-Alice-3").attributeOperator).toBe("==")
+    // Explicit `attributeOperator` field wins over name extraction.
+    expect(byId("ua-Alice-4").attributeOperator).toBe(">")
+    // No comparator → no synthesized field (caller decides default).
+    expect(byId("ua-Alice-5").attributeOperator).toBeUndefined()
+  })
+})

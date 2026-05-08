@@ -58,11 +58,18 @@ export const TNS_TYPE_OPTIONS = [
 ] as const
 export const TASK_TYPE_OPTIONS = ["binary", "multi_class", "regression"] as const
 export const INPUT_FORMAT_OPTIONS = ["csv", "images"] as const
+// SA-2.2 #32: include the v3 `global_*` pooling types so legacy
+// fixtures (`pooling_type = 'global_average' | 'global_max'`) round
+// trip without silent value reset. Mirrors the optional-attribute
+// filter at `nn-component-update.tsx:649-669` which references both
+// values.
 export const POOLING_TYPE_OPTIONS = [
   "average",
   "max",
   "adaptive_average",
   "adaptive_max",
+  "global_average",
+  "global_max",
 ] as const
 export const POOLING_DIMENSION_OPTIONS = ["1D", "2D", "3D"] as const
 export const BATCHNORM_DIMENSION_OPTIONS = ["1D", "2D", "3D"] as const

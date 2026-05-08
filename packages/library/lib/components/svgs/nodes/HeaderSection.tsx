@@ -47,10 +47,24 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
             {`«${stereotype}»`}
           </tspan>
         )}
+        {/*
+         * SA-2.2 #35: explicitly forward `textDecoration` to the inner
+         * tspan as well. SVG inheritance from the parent <text> works
+         * in modern browsers, but Chromium has historically dropped
+         * `text-decoration: underline` on tspans when the parent also
+         * specifies a `dy` offset. Mirroring v3 `UMLUserModelName`
+         * (and ObjectName), we want the name underlined whether or
+         * not a stereotype line precedes it. Setting it directly on
+         * the tspan guarantees consistent rendering across both
+         * `ObjectName` (header always underlined) and the SA-4
+         * `UserModelName` (delegates to ObjectNameSVG with the same
+         * `isUnderlined={true}` prop).
+         */}
         <tspan
           x={width / 2}
           dy={showStereotype ? "18" : "0"}
           fontStyle={stereotype === ClassType.Abstract ? "italic" : "normal"}
+          textDecoration={isUnderlined ? "underline" : "normal"}
         >
           {name}
         </tspan>

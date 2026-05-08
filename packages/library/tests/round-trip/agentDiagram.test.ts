@@ -159,9 +159,21 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     // edge data, since the inverse migrator emits one canonical v3
     // shape rather than reproducing the original. Compares the
     // information-equivalent canonical fields only.
+    //
+    // SA-2.2 #28: `AgentIntentDescription` and `AgentIntentObjectComponent`
+    // are EXTRA-in-v4 child types — v3 has no matching element type
+    // (see `agent-state-diagram/index.ts:AgentElementType`). The
+    // exporter drops them and rolls description text up to the parent
+    // intent's `intent_description`, so they're filtered out of the
+    // round-trip equality check.
     const canonical = (m: typeof v4) => ({
       type: m.type,
       nodes: m.nodes
+        .filter(
+          (n) =>
+            n.type !== "AgentIntentDescription" &&
+            n.type !== "AgentIntentObjectComponent"
+        )
         .map((n) => ({
           id: n.id,
           type: n.type,
@@ -322,5 +334,122 @@ describe("AgentStateTransition shape parameterized round-trip", () => {
       // Canonical fields must be preserved.
       c.verify(tAgain.data)
     })
+  })
+})
+
+/**
+ * SA-2.2 #28 regression: ensure the v4-only `AgentIntentDescription` /
+ * `AgentIntentObjectComponent` child types are dropped on export AND
+ * their text-bearing data is preserved on the parent intent's v3
+ * `intent_description` field. The v3 `AgentElementType` registry
+ * (`packages/editor/.../agent-state-diagram/index.ts`) does NOT include
+ * either child type, so emitting them through the v3 wire form would
+ * cause silent data loss when v3 deserialisers see an unknown element
+ * type.
+ */
+describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () => {
+  it("rolls AgentIntentDescription child name up to the parent intent's intent_description on export, and skips both EXTRA-in-v4 child types", () => {
+    // Build a v4-shaped fixture directly (synthetic — we don't need a v3
+    // file because the codepath under test is v4 → v3).
+    const v4 = {
+      version: "4.0.0" as const,
+      type: "AgentDiagram" as const,
+      nodes: [
+        {
+          id: "ai-Test",
+          type: "AgentIntent",
+          position: { x: 0, y: 0 },
+          width: 200,
+          height: 80,
+          // Note: parent intent_description left undefined to force the
+          // exporter to roll up the child's `name` instead.
+          data: { name: "TestIntent" },
+        },
+        {
+          id: "aib-Test-1",
+          type: "AgentIntentBody",
+          parentId: "ai-Test",
+          position: { x: 0, y: 80 },
+          width: 200,
+          height: 30,
+          data: { name: "hello" },
+        },
+        {
+          id: "aid-Test-1",
+          type: "AgentIntentDescription",
+          parentId: "ai-Test",
+          position: { x: 0, y: 110 },
+          width: 200,
+          height: 30,
+          data: { name: "Description rolled up to parent" },
+        },
+        {
+          id: "aioc-Test-1",
+          type: "AgentIntentObjectComponent",
+          parentId: "ai-Test",
+          position: { x: 0, y: 140 },
+          width: 200,
+          height: 30,
+          data: { name: "slot1", entity: "city", slot: "departure" },
+        },
+      ],
+      edges: [],
+    } as never
+
+    const v3 = convertV4ToV3Agent(v4)
+
+    // The parent intent must carry the description text on the v3 wire.
+    const v3Intent = v3.elements["ai-Test"] as {
+      intent_description?: string
+    }
+    expect(v3Intent).toBeDefined()
+    expect(v3Intent.intent_description).toBe(
+      "Description rolled up to parent"
+    )
+
+    // Both EXTRA-in-v4 child types must be absent from the v3 elements
+    // map — emitting them would produce v3-side data corruption.
+    expect(v3.elements["aid-Test-1"]).toBeUndefined()
+    expect(v3.elements["aioc-Test-1"]).toBeUndefined()
+
+    // The legitimate v3 child type (AgentIntentBody) must survive.
+    expect(v3.elements["aib-Test-1"]).toBeDefined()
+  })
+
+  it("prefers the parent's existing intent_description over a child's name when both are set", () => {
+    const v4 = {
+      version: "4.0.0" as const,
+      type: "AgentDiagram" as const,
+      nodes: [
+        {
+          id: "ai-Test",
+          type: "AgentIntent",
+          position: { x: 0, y: 0 },
+          width: 200,
+          height: 80,
+          data: {
+            name: "TestIntent",
+            intent_description: "From parent (preferred)",
+          },
+        },
+        {
+          id: "aid-Test-1",
+          type: "AgentIntentDescription",
+          parentId: "ai-Test",
+          position: { x: 0, y: 110 },
+          width: 200,
+          height: 30,
+          data: { name: "From child (ignored)" },
+        },
+      ],
+      edges: [],
+    } as never
+
+    const v3 = convertV4ToV3Agent(v4)
+    const v3Intent = v3.elements["ai-Test"] as {
+      intent_description?: string
+    }
+    expect(v3Intent.intent_description).toBe("From parent (preferred)")
+    expect(v3.elements["aid-Test-1"]).toBeUndefined()
   })
 })

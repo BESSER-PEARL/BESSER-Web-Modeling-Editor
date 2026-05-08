@@ -486,6 +486,27 @@ function calculateRelativePosition(
  * `stateMachineId`, `quantumCircuitId`) are passed through verbatim — they
  * have always been first-class properties on the v3 `IUMLClassifierMember`.
  */
+
+/**
+ * SA-2.2 #38: extract a `UserModelAttribute` comparator from the row's
+ * `name` (the v3 wire form `"age >= 18"` embeds it instead of the
+ * separate field). Returns `undefined` when the name does not contain
+ * a recognised comparator. Mirrors v3's `extractComparatorFromName` at
+ * `packages/editor/.../uml-user-model-attribute.ts:27-33` — but
+ * returns `undefined` instead of the v3 `'=='` default so the caller
+ * can decide whether to fall back.
+ */
+function extractAttributeOperatorFromName(
+  name?: string
+): "<" | "<=" | "==" | ">=" | ">" | undefined {
+  if (!name) return undefined
+  const match = name.match(/^(?:.*?)(<=|>=|==|=|<|>)/)
+  if (!match) return undefined
+  const raw = match[1]
+  if (raw === "=") return "=="
+  return raw as "<" | "<=" | "==" | ">=" | ">"
+}
+
 function extractClassifierMember(
   childElement: V3UMLElement & {
     visibility?: ClassifierVisibility
@@ -1121,6 +1142,16 @@ function convertV3NodeDataToV4(
             attributeId?: string
             value?: unknown
           }
+          // SA-2.2 #38: synthesize `attributeOperator` from the name
+          // when the v3 fixture only embeds the comparator in the row's
+          // `name` (`"age >= 18"` rather than as a separate field).
+          // Mirrors v3's `extractComparatorFromName` at
+          // `uml-user-model-attribute.ts:27-33`. When both are present
+          // the explicit field wins (matching v3's `deserialize` order
+          // at `uml-user-model-attribute.ts:73-77`).
+          const synthesizedOperator =
+            c.attributeOperator ??
+            extractAttributeOperatorFromName(c.name)
           attributes.push({
             id: c.id,
             name: c.name,
@@ -1130,8 +1161,8 @@ function convertV3NodeDataToV4(
             ...(c.defaultValue !== undefined && {
               defaultValue: c.defaultValue,
             }),
-            ...(c.attributeOperator !== undefined && {
-              attributeOperator: c.attributeOperator,
+            ...(synthesizedOperator !== undefined && {
+              attributeOperator: synthesizedOperator,
             }),
             ...(c.attributeId !== undefined && { attributeId: c.attributeId }),
             ...(c.value !== undefined && { value: c.value }),
@@ -1172,6 +1203,10 @@ function convertV3NodeDataToV4(
         defaultValue?: unknown
         attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
       }
+      // SA-2.2 #38 (also applies to unowned rows): synthesize the
+      // comparator from `name` when not stored explicitly.
+      const synthesized =
+        e.attributeOperator ?? extractAttributeOperatorFromName(element.name)
       return {
         ...baseData,
         ...(e.attributeType !== undefined && {
@@ -1180,8 +1215,8 @@ function convertV3NodeDataToV4(
         ...(e.defaultValue !== undefined && {
           defaultValue: e.defaultValue,
         }),
-        ...(e.attributeOperator !== undefined && {
-          attributeOperator: e.attributeOperator,
+        ...(synthesized !== undefined && {
+          attributeOperator: synthesized,
         }),
       }
     }
@@ -2675,10 +2710,32 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
       }
       case "AgentIntent": {
         const data = node.data as Record<string, unknown>
+        // SA-2.2 #28: roll up the v4-only `AgentIntentDescription` child node
+        // into the v3 parent's `intent_description` field. v3 has no
+        // `AgentIntentDescription` element type (see
+        // `packages/editor/.../agent-state-diagram/index.ts:AgentElementType`),
+        // so emitting the child as a separate v3 element silently drops it
+        // when v3 deserialises. Prefer the v4 parent's
+        // `intent_description` if set; otherwise fall back to the
+        // description child's `name`.
+        let intentDescription = data.intent_description as string | undefined
+        if (intentDescription === undefined || intentDescription === "") {
+          const descChild = v4.nodes.find(
+            (c) =>
+              c.parentId === node.id &&
+              (c.type as string) === "AgentIntentDescription"
+          )
+          if (descChild) {
+            const childName = (descChild.data as { name?: string }).name
+            if (typeof childName === "string" && childName !== "") {
+              intentDescription = childName
+            }
+          }
+        }
         elements[node.id] = {
           ...baseV3,
-          ...(data.intent_description !== undefined && {
-            intent_description: data.intent_description,
+          ...(intentDescription !== undefined && {
+            intent_description: intentDescription,
           }),
           ...(data.stereotype !== undefined && { stereotype: data.stereotype }),
           ...(data.italic !== undefined && { italic: !!data.italic }),
@@ -2686,19 +2743,24 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         } as V3UMLElement
         break
       }
-      case "AgentIntentBody":
-      case "AgentIntentDescription": {
+      case "AgentIntentBody": {
         elements[node.id] = baseV3
         break
       }
+      case "AgentIntentDescription":
       case "AgentIntentObjectComponent": {
-        const data = node.data as Record<string, unknown>
-        elements[node.id] = {
-          ...baseV3,
-          ...(data.entity !== undefined && { entity: data.entity }),
-          ...(data.slot !== undefined && { slot: data.slot }),
-          ...(data.value !== undefined && { value: data.value }),
-        } as V3UMLElement
+        // SA-2.2 #28: skip these EXTRA-in-v4 child types on export. v3
+        // doesn't recognise `AgentIntentDescription` /
+        // `AgentIntentObjectComponent` as element types (they're absent
+        // from the v3 `AgentElementType` registry). Description content
+        // is preserved on the parent intent's `intent_description`
+        // (rolled up in the `AgentIntent` case above). Object-component
+        // entity/slot/value data is currently unmapped on the v3 wire —
+        // skipping prevents v3 deserialisers from emitting "unknown
+        // element type" warnings or silently constructing an invalid
+        // node. Round-trip parity is maintained because
+        // `migrateAgentDiagramV3ToV4` re-creates these children from
+        // the parent's `intent_description` text on import.
         break
       }
       case "AgentRagElement": {
