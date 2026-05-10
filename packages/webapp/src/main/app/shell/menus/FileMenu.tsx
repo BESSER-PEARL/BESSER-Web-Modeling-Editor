@@ -22,6 +22,7 @@ interface FileMenuProps {
   onImportSingleDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
+  onOpenDatabaseImport: () => void;
   onOpenProjectPreview: () => void;
 }
 
@@ -34,6 +35,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onImportSingleDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
+  onOpenDatabaseImport,
   onOpenProjectPreview,
 }) => {
   return (
@@ -60,6 +62,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
           <DropdownMenuSubContent>
             <DropdownMenuItem onClick={onOpenAssistantImportImage}>Image to Project</DropdownMenuItem>
             <DropdownMenuItem onClick={onOpenAssistantImportKg}>KG to Project</DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenDatabaseImport}>Database to Project</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>

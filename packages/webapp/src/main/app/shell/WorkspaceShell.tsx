@@ -55,6 +55,9 @@ const FeedbackDialog = React.lazy(() =>
 const HelpGuideDialog = React.lazy(() =>
   import('../../shared/dialogs/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
 );
+const DatabaseImportDialog = React.lazy(() =>
+  import('../../features/import/DatabaseImportDialog').then((m) => ({ default: m.DatabaseImportDialog })),
+);
 // The keyboard toggle hook must be imported eagerly (it registers a global listener).
 // KeyboardShortcutsDialog is imported statically alongside the hook to avoid Vite's
 // mixed static/dynamic import warning (the module is already in this chunk).
@@ -166,6 +169,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
   const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
+  const [isDatabaseImportOpen, setIsDatabaseImportOpen] = useState(false);
   const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
 
   // Derived values
@@ -724,6 +728,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onImportSingleDiagram={handleImportSingleDiagram}
         onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
+        onOpenDatabaseImport={() => {
+          if (!currentProject) {
+            toast.error('Create or load a project first.');
+            return;
+          }
+          setIsDatabaseImportOpen(true);
+        }}
         onOpenProjectPreview={handleOpenProjectPreview}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
@@ -931,6 +942,14 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
       <Suspense fallback={null}>
         <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <DatabaseImportDialog
+          open={isDatabaseImportOpen}
+          onOpenChange={setIsDatabaseImportOpen}
+          onImported={(title) => toast.success(`Class diagram "${title}" imported from database.`)}
+        />
       </Suspense>
 
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
