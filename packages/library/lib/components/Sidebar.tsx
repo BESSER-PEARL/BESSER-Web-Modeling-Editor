@@ -35,7 +35,7 @@ export const Sidebar = () => {
     "petriNetTransition",
   ])
 
-  // SA-FINAL-3 Tier 7 #27: previously short-circuited the entire sidebar
+  // Previously short-circuited the entire sidebar
   // whenever the active diagram had no palette entries — but the
   // Comment-sticky-note ("always-on") palette section below still needs
   // to render. Now we just stop emitting the diagram-specific block when
@@ -138,7 +138,7 @@ export const Sidebar = () => {
 
           return (
             <React.Fragment key={`${config.type}_${config.defaultData?.name}_${index}`}>
-              {/* SA-FIX-NN-DROPS: render a section divider + heading
+              {/* Render a section divider + heading
                   above any palette entry tagged with `sectionLabel`.
                   For the very first entry the divider is suppressed —
                   the heading sits flush with the top edge there. */}
@@ -195,7 +195,7 @@ export const Sidebar = () => {
         })}
 
       {/*
-        SA-HIDE-NOISE: replace the always-on `ColorDescriptionConfig`
+        Replace the always-on `ColorDescriptionConfig`
         block with the free-form sticky-note `CommentConfig`. The
         ColorDescription node renderer + inspector code stay in the tree
         — re-enabling is a one-line swap here when a designer needs the

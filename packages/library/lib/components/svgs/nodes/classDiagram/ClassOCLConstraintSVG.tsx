@@ -1,5 +1,5 @@
 /**
- * SA-FIX-CLASS-FUND #1: Sticky-note palette preview for the
+ * Sticky-note palette preview for the
  * `ClassOCLConstraint` node type. Mirrors the canvas rendering at
  * `lib/nodes/classDiagram/ClassOCLConstraint.tsx`: outer rect with a
  * folded top-right corner, header line for the constraint name, and a

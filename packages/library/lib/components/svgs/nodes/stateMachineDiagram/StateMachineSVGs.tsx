@@ -4,7 +4,7 @@ import { SVGComponentProps } from "@/types/SVG"
  * Lightweight palette previews for StateMachineDiagram. Mirror the
  * minimum visual of each canvas node — they exist purely to populate
  * the sidebar drag-source. Drawn in plain SVG without the SVG-themed
- * wrappers per the SA-3 brief.
+ * wrappers per the brief.
  */
 
 export const StateSVG: React.FC<SVGComponentProps> = ({
@@ -314,7 +314,7 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
         python
       </text>
       {/*
-        SA-FINAL-3 Tier 6 #24: palette preview shows a multi-line code snippet
+        Palette preview shows a multi-line code snippet
         rather than the literal "# code" placeholder, so the drag ghost
         previews the same shape the dropped canvas card renders.
       */}

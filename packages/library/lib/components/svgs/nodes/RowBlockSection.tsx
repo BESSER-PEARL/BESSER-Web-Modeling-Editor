@@ -48,7 +48,7 @@ export const RowBlockSection: FC<RowBlockSectionProps> = ({
                 height={itemHeight - LAYOUT.LINE_WIDTH}
                 fill={fillColor}
               />
-              {/* SA-FIX-CLASS-FUND #6: id / external-id markers paint
+              {/* Id / external-id markers paint
                   the row name with an underline (and italic for
                   external-id) — mirrors v3
                   `uml-classifier-member-component.tsx:91` which set

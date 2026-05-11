@@ -75,7 +75,7 @@ import {
 
 type NodePopoverType =
   | "class"
-  // SA-UX-FIX B1: free-standing OCL constraint node.
+  // Free-standing OCL constraint node.
   | "ClassOCLConstraint"
   | "objectName"
   | "communicationObjectName"
@@ -108,7 +108,7 @@ type NodePopoverType =
   | "ReachabilityGraphMarking"
   | "Sfc"
   | "SfcActionTable"
-  // SA-3: BESSER StateMachineDiagram node types. PopoverManager only
+  // BESSER StateMachineDiagram node types. PopoverManager only
   // resolves the inspector body via `getInspector(type, kind)` so the
   // additions here are purely a TypeScript widening — no body wiring
   // happens in this file.
@@ -123,9 +123,9 @@ type NodePopoverType =
   | "StateForkNode"
   | "StateForkNodeHorizontal"
   | "StateCodeBlock"
-  // SA-4: BESSER AgentDiagram + UserDiagram node types. SA-FIX-Agent
+  // BESSER AgentDiagram + UserDiagram node types.
   // removed `AgentStateBody` / `AgentStateFallbackBody` — bodies live
-  // inline on the parent AgentState's `data.bodies` array. SA-FIX-INTENT-
+  // inline on the parent AgentState's `data.bodies` array. -
   // INLINE removed `AgentIntentBody` / `AgentIntentDescription` /
   // `AgentIntentObjectComponent` — same story, training phrases /
   // entity slots / description live inline on AgentIntent.data.
@@ -135,7 +135,7 @@ type NodePopoverType =
   | "UserModelName"
   | "UserModelAttribute"
   | "UserModelIcon"
-  // SA-HIDE-NOISE: free-form sticky-note Comment ported from v3
+  // Free-form sticky-note Comment ported from v3
   // `common/comments`. Same registry pattern — type widening only.
   | "comment"
 
@@ -147,7 +147,7 @@ type EdgePopoverType =
   | "ClassBidirectional"
   | "ClassUnidirectional"
   | "ClassDependency"
-  // SA-2.1: BESSER-specific class edges (restored). Both extend
+  // BESSER-specific class edges (restored). Both extend
   // UMLAssociation in v3 and share the same edit form.
   | "ClassOCLLink"
   | "ClassLinkRel"
@@ -178,13 +178,13 @@ type EdgePopoverType =
   | "SfcDiagramEdge"
   | "ReachabilityGraphArc"
   | "PetriNetArc"
-  // SA-3: StateMachineDiagram transition.
+  // StateMachineDiagram transition.
   | "StateTransition"
-  // SA-4: AgentDiagram + UserDiagram edges.
+  // AgentDiagram + UserDiagram edges.
   | "AgentStateTransition"
   | "AgentStateTransitionInit"
   | "UserModelLink"
-  // SA-FINAL-3 Tier 7 #26: placeholder CommentLink (dashed dependency
+  // Placeholder CommentLink (dashed dependency
   // arrow from a Comment to any element). No inspector body yet — the
   // edit/give/see-feedback registry treats this as "no popover".
   | "CommentLink"
@@ -657,9 +657,9 @@ export const PopoverManager = ({
         setPopOverElementId: state.setPopOverElementId,
       }))
     )
-  // SA-UX-FIX B2: when the right-side properties panel is the active
+  // When the right-side properties panel is the active
   // editing surface, suppress the floating popover so the user only sees
-  // one inspector at a time. Per SA-1's `propertiesPanelStore` design,
+  // one inspector at a time. Per `propertiesPanelStore` design,
   // the two surfaces are mutually exclusive.
   const usePropertiesPanel = useUsePropertiesPanel()
 

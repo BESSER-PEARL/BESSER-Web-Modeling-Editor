@@ -20,7 +20,7 @@ import {
 } from "@/services/userMetaModel"
 
 /**
- * SA-FIX-USER-COMPLETE — full v3-parity rewrite of the UserDiagram SVGs.
+ * Full v3-parity rewrite of the UserDiagram SVGs.
  *
  * This module owns three concerns:
  *
@@ -53,7 +53,7 @@ interface UserModelNameSVGData {
   textColor?: string
   attributes: ClassNodeElement[]
   /**
-   * SA-FIX-USER-ICON: per-node render mode. `"icon"` (default) renders
+   * Per-node render mode. `"icon"` (default) renders
    * the person/class icon — mirrors the v3 preferred UserDiagram view.
    * `"attributes"` shows the underlined header + attribute table.
    */
@@ -65,7 +65,7 @@ interface UserModelNameSVGProps extends SVGComponentProps {
 }
 
 /**
- * SA-FIX-USER-ICON: hardcoded fallback person SVG used when the linked
+ * Hardcoded fallback person SVG used when the linked
  * class has no `icon` and the node hasn't been seeded with one (e.g. an
  * `Alice : User` node where the `User` meta-class supplies its own icon
  * is preferred — this fallback fires only when nothing is available).
@@ -129,14 +129,14 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
-  // SA-FIX-USER-ICON: per-node `data.view` selects between the icon
+  // Per-node `data.view` selects between the icon
   // body (default — mirrors the v3 preferred preview where a UserDiagram
   // card shows a person/class glyph) and the v3 "normal" attribute
   // table. Unset → `"icon"`. The legacy global `showIconView` toggle is
   // still read by other diagrams; on the user diagram the per-node
   // setting wins so v4-authored fixtures behave deterministically.
   // Touch the settings store once so call sites that flipped it before
-  // SA-FIX-USER-ICON don't accidentally bring down the subscription.
+  // Don't accidentally bring down the subscription.
   useSettingsStore((s) => s.showIconView)
   const view = data.view ?? "icon"
   const iconViewActive = view === "icon"
@@ -189,7 +189,7 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
           </tspan>
         </CustomText>
 
-        {/* SA-FIX-USER-ICON: when icon view is active, drop a person /
+        {/* When icon view is active, drop a person /
             class glyph into the body of the node. The icon body is
             resolved from `data.icon` → linked meta-class icon →
             hardcoded fallback (see `resolveIconBody`). The v3 fork
@@ -262,7 +262,7 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
  * import `UserModelNameSVG` directly). The dynamic palette entries below
  * are the primary path; this is the fallback "Alice : User" card.
  *
- * SA-FIX-USER-ICON: defaults to `view: "icon"` so the palette ghost
+ * Defaults to `view: "icon"` so the palette ghost
  * shows the person glyph (matches the v3 fork's preferred preview).
  */
 export const UserModelStaticPreviewSVG: FC<SVGComponentProps> = ({
@@ -352,7 +352,7 @@ function makeUserModelPaletteSVG(
           id: `__preview_${className}_${i}__`,
           name: `${n} =`,
         })),
-        // SA-FIX-USER-ICON: palette ghosts render the icon view so the
+        // Palette ghosts render the icon view so the
         // user sees the person/class glyph at drag time, matching the
         // v3 preferred preview.
         view: "icon",

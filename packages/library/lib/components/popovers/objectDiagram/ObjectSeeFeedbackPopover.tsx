@@ -31,7 +31,7 @@ export const ObjectSeeFeedbackPopover = ({ elementId }: PopoverProps) => {
           type="Attribute"
         />
       ))}
-      {/* SA-FIX-OBJECT-DEEP: object instances don't carry methods —
+      {/* Object instances don't carry methods —
           UML object diagrams show data values, not types. */}
       <Button
         variant="contained"

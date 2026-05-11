@@ -45,7 +45,7 @@ export const ObjectEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
       />
       <DividerLine width="100%" />
       <EditableAttributeList nodeId={elementId} />
-      {/* SA-FIX-OBJECT-DEEP: object instances don't carry methods —
+      {/* Object instances don't carry methods —
           UML object diagrams show data values, not types. */}
     </>
   )

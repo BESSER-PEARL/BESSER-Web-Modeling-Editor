@@ -2,7 +2,7 @@ import { PopoverProps } from "../types"
 import { ObjectLinkEditPanel } from "@/components/inspectors/objectDiagram/ObjectLinkEditPanel"
 
 /**
- * SA-FINAL O1: Object diagram edge popover — delegate to the full
+ * Object diagram edge popover — delegate to the full
  * `ObjectLinkEditPanel` so the toolbar pencil exposes the same controls
  * (name, flip, association picker, color) the inspector dock does.
  *
@@ -14,4 +14,3 @@ import { ObjectLinkEditPanel } from "@/components/inspectors/objectDiagram/Objec
 export const ObjectDiagramEdgeEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => <ObjectLinkEditPanel elementId={elementId} />
-

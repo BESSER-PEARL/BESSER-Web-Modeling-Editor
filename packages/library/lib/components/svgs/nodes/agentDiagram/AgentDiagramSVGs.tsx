@@ -1,7 +1,7 @@
 import { SVGComponentProps } from "@/types/SVG"
 
 /**
- * SA-4 lightweight palette previews for AgentDiagram. Mirror the
+ * Lightweight palette previews for AgentDiagram. Mirror the
  * minimum visual of each canvas node — they exist purely to populate
  * the sidebar drag-source. Plain SVG; no themed wrappers.
  */
@@ -127,7 +127,7 @@ export const AgentRagElementSVG: React.FC<SVGComponentProps> = ({
         stroke="#668"
       />
       {/*
-        SA-FINAL-3 Tier 6 #22: palette ghost mirrors the canvas component —
+        Palette ghost mirrors the canvas component —
         "RAG DB" stereotype line near the top ellipse PLUS the resolved
         display name ("RAG" by default) below it. Without the second line
         the drag ghost looked empty under the cylinder.

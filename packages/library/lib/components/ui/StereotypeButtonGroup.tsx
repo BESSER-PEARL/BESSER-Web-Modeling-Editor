@@ -9,7 +9,7 @@ interface StereotypeButtonGroupProps {
   selectedStereotype?: ClassType
 }
 
-// SA-UX-FIX B5: `Interface` is temporarily hidden from the dropdown
+// `Interface` is temporarily hidden from the dropdown
 // while v4 wiring catches up. The enum value is kept (so existing
 // diagrams round-trip), but users can't pick it from the inspector.
 const stereotypes: ClassType[] = [

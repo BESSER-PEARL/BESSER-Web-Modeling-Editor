@@ -34,7 +34,7 @@ export const ClassSVG = ({
   // Layout constants
   const { attributes, methods, name, stereotype, italic, underline } = data
   const showStereotype = !!stereotype
-  // PC-1 fix (SA-FIX-Class): Enumeration must NOT draw a methods compartment.
+  // Enumeration must NOT draw a methods compartment.
   const isEnumeration = stereotype === ClassType.Enumeration
   // ER (Chen) mode hides the methods compartment for entity-capable
   // classifiers — plain Class and Abstract. Interfaces define operations
@@ -52,7 +52,7 @@ export const ClassSVG = ({
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
   const methodHeight = LAYOUT.DEFAULT_METHOD_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
-  // PC-1 fix: explicit italic / underline from data.
+  // Explicit italic / underline from data.
   const isItalic = italic ?? stereotype === ClassType.Abstract
   const isUnderlined = !!underline
 
@@ -166,7 +166,7 @@ export const ClassSVG = ({
           </>
         )}
 
-        {/* Methods Section — PC-1 fix (SA-FIX-Class): skip for Enumeration;
+        {/* Methods Section fix: skip for Enumeration;
             fix offsetFromTop to use attributeHeight (was methodHeight).
             ER mode also hides the methods compartment for entity-capable
             classifiers (Class / Abstract) — ER notation has no concept of

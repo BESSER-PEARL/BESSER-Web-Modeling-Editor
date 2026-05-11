@@ -25,7 +25,7 @@ export const ObjectNameSVG = ({
   showAssessmentResults = false,
 }: Props) => {
   const { name, attributes, icon, stereotype } = data
-  // PC-4 Gap 1: v3 ObjectName extends UMLClassifier and renders a
+  // V3 ObjectName extends UMLClassifier and renders a
   // `«stereotype»` band above the underlined name when set (see
   // `uml-object-name-component.tsx:104-120`). Falsy => no band.
   const hasStereotype = !!stereotype
@@ -37,7 +37,7 @@ export const ObjectNameSVG = ({
 
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
 
-  // SA-2.1: respect the global icon-view toggle (settingsService key
+  // Respect the global icon-view toggle (settingsService key
   // `showIconView`). When enabled and the node has a stored icon body,
   // we render an icon view (header + inline SVG) instead of the
   // attributes table — mirrors v3 `uml-object-name.ts:146-204`.
@@ -45,15 +45,15 @@ export const ObjectNameSVG = ({
   const hasIcon = typeof icon === "string" && icon.trim() !== ""
   const iconViewActive = showIconView && hasIcon
 
-  // SA-FIX-Editor PC-11.4: wire `showInstancedObjects` — v3's "preview
+  // Wire `showInstancedObjects` — v3's "preview
   // instances" toggle. When the setting is off we suppress the
   // attribute rows so the node renders as just the name band. The
   // header (with the underlined object name) is always kept so the
   // object remains identifiable on the canvas; turning the toggle off
   // collapses the body, mirroring the v3 instance-preview behaviour.
-  // SA-FIX-OBJECT-DEEP: object instances never render a methods
+  // Object instances never render a methods
   // section — UML object diagrams show data values, not types.
-  // SA-FINAL O2: `showInstancedObjects` is a *palette-preview only*
+  // `showInstancedObjects` is a *palette-preview only*
   // toggle in v3. On the actual canvas, attributes are always shown
   // when present. Detect palette context via `SIDEBAR_PREVIEW_SCALE`,
   // which is only set by the sidebar/preview wrappers.
@@ -96,7 +96,7 @@ export const ObjectNameSVG = ({
         />
 
         {/* Header Section - Object name with underline. Stereotype band
-            renders only when `data.stereotype` is set (PC-4 Gap 1). The
+            renders only when `data.stereotype` is set. The
             HeaderSection prop expects ClassType, but v3 stored arbitrary
             string stereotypes on object instances — cast through. */}
         <HeaderSection
@@ -110,7 +110,7 @@ export const ObjectNameSVG = ({
           textColor={textColor}
         />
 
-        {/* SA-2.1: icon view replaces attributes/methods sections. The
+        {/* Icon view replaces attributes/methods sections. The
             stored `icon` is an SVG markup string from the v3 fork — we
             embed it via foreignObject so embedded styles / namespaces
             survive. */}
@@ -138,7 +138,7 @@ export const ObjectNameSVG = ({
           </foreignObject>
         )}
 
-        {/* Attributes Section. SA-FIX-OBJECT-DEEP: object instances
+        {/* Attributes Section. object instances
             don't render methods — UML object diagrams show data
             values, not types. */}
         {!iconViewActive && showAttributes && (

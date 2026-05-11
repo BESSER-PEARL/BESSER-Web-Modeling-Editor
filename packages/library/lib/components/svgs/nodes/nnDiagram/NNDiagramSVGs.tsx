@@ -1,12 +1,12 @@
 import { SVGComponentProps } from "@/types/SVG"
 
 /**
- * SA-5 lightweight palette previews for NNDiagram. Each palette item
+ * Lightweight palette previews for NNDiagram. Each palette item
  * mirrors the canvas card's basic shape — kind label header + a
  * placeholder body — so the sidebar drag-source matches the dropped
  * appearance closely enough for users to recognise the kind.
  *
- * SA-FIX-NN (PC-10): mirror the canvas card. After SA-UX-FIX-2 restored
+ * Mirror the canvas card. restored
  * the per-kind PNG icons in `_NNLayerBase.tsx`, the previews now also
  * render the same `<image>` element + a `«kind»` stereotype header + the
  * default `name`, so the drag source shown in the sidebar visually
@@ -209,7 +209,7 @@ export const ConfigurationSVG = buildLayerPreview(
   "#FCE4EC",
   "configuration.png"
 )
-// SA-FINAL-3 Tier 6 #23: palette preview labels match the canvas default
+// Palette preview labels match the canvas default
 // `data.name` ("TrainingDataset" / "TestDataset") so the drag ghost reads
 // the same text as the dropped card. Previously the ghost showed "Training"
 // / "Test" and the dropped card grew to "TrainingDataset" / "TestDataset".

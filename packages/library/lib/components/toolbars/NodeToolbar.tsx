@@ -21,7 +21,7 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
 
   const isDiagramModifiable = useDiagramModifiable()
   const selected = useIsOnlyThisElementSelected(elementId)
-  // SA-FIX-Editor PC-11.1: when the right-side properties panel is the
+  // When the right-side properties panel is the
   // active editing surface (`usePropertiesPanel=true`), the floating
   // pencil affordance becomes redundant — the panel auto-shows on
   // selection. Hide the pencil to avoid the duplicate-UI confusion.

@@ -5,7 +5,7 @@ import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { BesserMode } from "@/typings"
 import { useResizable } from "./useResizable"
 import { getInspector, InspectorKind } from "../inspectors/registry"
-// SA-PANEL-STYLE: Approach B — keep MUI primitives but theme them to
+// Approach B — keep MUI primitives but theme them to
 // match the webapp's Tailwind/Radix design tokens. The override file
 // maps borderRadius, font, padding, and focus rings to the same look as
 // `packages/webapp/src/components/ui/`.
@@ -131,7 +131,7 @@ export const PropertiesPanel: React.FC = () => {
             flexDirection: "column",
             height: "100%",
             overflow: "hidden",
-            // SA-PANEL-STYLE: align border + shadow with the webapp's
+            // Align border + shadow with the webapp's
             // `border-input` (1px) + subtle elevation-2 shadow.
             borderLeft: "1px solid var(--besser-gray, #e9ecef)",
             background: "var(--besser-background, #ffffff)",

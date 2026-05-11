@@ -13,7 +13,7 @@ interface CustomEdgeToolbarProps {
   onDeleteClick: (event: React.MouseEvent<HTMLElement>) => void
   anchorRef: React.RefObject<SVGForeignObjectElement>
   /**
-   * SA-FIX-Editor PC-11.1: when the right-side properties panel is the
+   * When the right-side properties panel is the
    * active inspector surface, callers pass `showEdit={false}` to hide
    * the pencil — the panel auto-shows on selection so the floating
    * affordance is duplicate UI.
