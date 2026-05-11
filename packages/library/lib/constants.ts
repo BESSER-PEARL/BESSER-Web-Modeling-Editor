@@ -1024,9 +1024,12 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // together. The `sectionLabel` field on a group's first entry
     // tells `Sidebar.tsx` to prepend a divider + heading.
     {
+      // Palette preview is rendered at a fixed sidebar scale, so the
+      // 320 × 200 canvas default was getting clipped. Drop it to a
+      // compact preview-friendly size; users can resize on the canvas.
       type: "NNContainer" as never,
-      width: 320,
-      height: 200,
+      width: 220,
+      height: 140,
       defaultData: { name: "MyModel" },
       svg: NNContainerSVG,
       sectionLabel: "NN Structure",
@@ -1043,7 +1046,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // the stereotype/name header.
     {
       type: "Conv1DLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Conv1D", attributes: {} },
       svg: Conv1DLayerSVG,
@@ -1051,21 +1054,21 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     },
     {
       type: "Conv2DLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Conv2D", attributes: {} },
       svg: Conv2DLayerSVG,
     },
     {
       type: "Conv3DLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Conv3D", attributes: {} },
       svg: Conv3DLayerSVG,
     },
     {
       type: "PoolingLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: {
         name: "Pooling",
@@ -1082,63 +1085,63 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     },
     {
       type: "RNNLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "RNN", attributes: {} },
       svg: RNNLayerSVG,
     },
     {
       type: "LSTMLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "LSTM", attributes: {} },
       svg: LSTMLayerSVG,
     },
     {
       type: "GRULayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "GRU", attributes: {} },
       svg: GRULayerSVG,
     },
     {
       type: "LinearLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Linear", attributes: {} },
       svg: LinearLayerSVG,
     },
     {
       type: "FlattenLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Flatten", attributes: {} },
       svg: FlattenLayerSVG,
     },
     {
       type: "EmbeddingLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Embedding", attributes: {} },
       svg: EmbeddingLayerSVG,
     },
     {
       type: "DropoutLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Dropout", attributes: {} },
       svg: DropoutLayerSVG,
     },
     {
       type: "LayerNormalizationLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "LayerNorm", attributes: {} },
       svg: LayerNormalizationLayerSVG,
     },
     {
       type: "BatchNormalizationLayer" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: {
         name: "BatchNorm",
@@ -1151,7 +1154,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     },
     {
       type: "TensorOp" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "TensorOp", attributes: {} },
       svg: TensorOpSVG,
@@ -1159,7 +1162,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     },
     {
       type: "Configuration" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "Configuration", attributes: {} },
       svg: ConfigurationSVG,
@@ -1167,7 +1170,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     },
     {
       type: "TrainingDataset" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "TrainingDataset", attributes: {} },
       svg: TrainingDatasetSVG,
@@ -1175,7 +1178,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     },
     {
       type: "TestDataset" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      width: 110,
       height: 110,
       defaultData: { name: "TestDataset", attributes: {} },
       svg: TestDatasetSVG,
