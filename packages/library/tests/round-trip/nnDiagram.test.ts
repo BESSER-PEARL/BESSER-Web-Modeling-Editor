@@ -364,3 +364,434 @@ describe("SA-FIX-NN-DROPS: container drop validation", () => {
     expect(canDropIntoParent("AgentIntent", "AgentState")).toBe(false)
   })
 })
+
+/**
+ * SA-FIX-NN-ATTRS — per-layer v3 attribute schema parity.
+ *
+ * The v3 fork shipped per-layer attribute classes (e.g.
+ * `KernelDimAttributeConv2D`) with hard-coded default values and
+ * mandatory flags. v4 collapses those onto a flat `attributes` dict
+ * but still has to surface the same defaults / mandatory flags so the
+ * inspector seeds the same starting state on drop.
+ *
+ * The table below is the v3 source-of-truth captured from the
+ * `nn-*-attributes/*.ts` files. Adding a new layer kind only requires
+ * appending a row.
+ */
+import {
+  COLLIDING_SLUGS,
+  getLayerSchema,
+  qualifySlug,
+  V3_ATTRIBUTE_TYPE_TO_SLUG,
+  v3AttributeTypeFor,
+} from "@/nodes/nnDiagram/nnAttributeWidgetConfig"
+import {
+  NN_ATTRIBUTE_DEFAULTS,
+  getAttributeDefaultValue,
+  getListExpectation,
+} from "@/nodes/nnDiagram/nnValidationDefaults"
+import { dropElementConfigs } from "@/constants"
+
+interface V3AttrSpec {
+  slug: string
+  default: string
+  mandatory: boolean
+}
+
+const V3_SCHEMA: Record<string, V3AttrSpec[]> = {
+  Conv1DLayer: [
+    { slug: "name", default: "conv1d_layer", mandatory: true },
+    { slug: "kernel_dim", default: "[3]", mandatory: true },
+    { slug: "out_channels", default: "16", mandatory: true },
+    { slug: "stride_dim", default: "[1]", mandatory: false },
+    { slug: "in_channels", default: "3", mandatory: false },
+    { slug: "padding_amount", default: "0", mandatory: false },
+    { slug: "padding_type", default: "valid", mandatory: false },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+    { slug: "permute_in", default: "false", mandatory: false },
+    { slug: "permute_out", default: "false", mandatory: false },
+  ],
+  Conv2DLayer: [
+    { slug: "name", default: "conv2d_layer", mandatory: true },
+    { slug: "kernel_dim", default: "[3, 3]", mandatory: true },
+    { slug: "out_channels", default: "16", mandatory: true },
+    { slug: "stride_dim", default: "[1, 1]", mandatory: false },
+    { slug: "in_channels", default: "3", mandatory: false },
+    { slug: "padding_amount", default: "0", mandatory: false },
+    { slug: "padding_type", default: "valid", mandatory: false },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+    { slug: "permute_in", default: "false", mandatory: false },
+    { slug: "permute_out", default: "false", mandatory: false },
+  ],
+  Conv3DLayer: [
+    { slug: "name", default: "conv3d_layer", mandatory: true },
+    { slug: "kernel_dim", default: "[3, 3, 3]", mandatory: true },
+    { slug: "out_channels", default: "16", mandatory: true },
+    { slug: "stride_dim", default: "[1, 1, 1]", mandatory: false },
+    { slug: "in_channels", default: "3", mandatory: false },
+    { slug: "padding_amount", default: "0", mandatory: false },
+    { slug: "padding_type", default: "valid", mandatory: false },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+    { slug: "permute_in", default: "false", mandatory: false },
+    { slug: "permute_out", default: "false", mandatory: false },
+  ],
+  PoolingLayer: [
+    { slug: "name", default: "Pooling_layer", mandatory: true },
+    { slug: "pooling_type", default: "max", mandatory: true },
+    { slug: "dimension", default: "2D", mandatory: true },
+    { slug: "kernel_dim", default: "[3, 3]", mandatory: false },
+    { slug: "stride_dim", default: "[1, 1]", mandatory: false },
+    { slug: "padding_amount", default: "0", mandatory: false },
+    { slug: "padding_type", default: "valid", mandatory: false },
+    { slug: "output_dim", default: "[16, 16]", mandatory: false },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+    { slug: "permute_in", default: "false", mandatory: false },
+    { slug: "permute_out", default: "false", mandatory: false },
+  ],
+  RNNLayer: [
+    { slug: "name", default: "RNN_layer", mandatory: true },
+    { slug: "hidden_size", default: "128", mandatory: true },
+    { slug: "return_type", default: "full", mandatory: false },
+    { slug: "input_size", default: "64", mandatory: false },
+    { slug: "bidirectional", default: "false", mandatory: false },
+    { slug: "dropout", default: "0.0", mandatory: false },
+    { slug: "batch_first", default: "true", mandatory: false },
+    { slug: "actv_func", default: "tanh", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  LSTMLayer: [
+    { slug: "name", default: "LSTM_layer", mandatory: true },
+    { slug: "hidden_size", default: "128", mandatory: true },
+    { slug: "return_type", default: "full", mandatory: false },
+    { slug: "input_size", default: "64", mandatory: false },
+    { slug: "bidirectional", default: "false", mandatory: false },
+    { slug: "dropout", default: "0.0", mandatory: false },
+    { slug: "batch_first", default: "true", mandatory: false },
+    { slug: "actv_func", default: "tanh", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  GRULayer: [
+    { slug: "name", default: "GRU_layer", mandatory: true },
+    { slug: "hidden_size", default: "128", mandatory: true },
+    { slug: "return_type", default: "full", mandatory: false },
+    { slug: "input_size", default: "64", mandatory: false },
+    { slug: "bidirectional", default: "false", mandatory: false },
+    { slug: "dropout", default: "0.0", mandatory: false },
+    { slug: "batch_first", default: "true", mandatory: false },
+    { slug: "actv_func", default: "tanh", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  LinearLayer: [
+    { slug: "name", default: "linear_layer", mandatory: true },
+    { slug: "out_features", default: "128", mandatory: true },
+    { slug: "in_features", default: "64", mandatory: false },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  FlattenLayer: [
+    { slug: "name", default: "Flatten_layer", mandatory: true },
+    { slug: "start_dim", default: "1", mandatory: false },
+    { slug: "end_dim", default: "-1", mandatory: false },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  EmbeddingLayer: [
+    { slug: "name", default: "Embedding_layer", mandatory: true },
+    { slug: "num_embeddings", default: "1000", mandatory: true },
+    { slug: "embedding_dim", default: "128", mandatory: true },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  DropoutLayer: [
+    { slug: "name", default: "Dropout_layer", mandatory: true },
+    { slug: "rate", default: "0.5", mandatory: true },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  LayerNormalizationLayer: [
+    { slug: "name", default: "LayerNorm_layer", mandatory: true },
+    { slug: "normalized_shape", default: "[-1]", mandatory: true },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  BatchNormalizationLayer: [
+    { slug: "name", default: "BatchNorm_layer", mandatory: true },
+    { slug: "num_features", default: "128", mandatory: true },
+    { slug: "dimension", default: "2D", mandatory: true },
+    { slug: "actv_func", default: "relu", mandatory: false },
+    { slug: "name_module_input", default: "", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  TensorOp: [
+    { slug: "name", default: "TensorOp_layer", mandatory: true },
+    { slug: "tns_type", default: "reshape", mandatory: true },
+    { slug: "concatenate_dim", default: "0", mandatory: false },
+    { slug: "layers_of_tensors", default: "[]", mandatory: false },
+    { slug: "reshape_dim", default: "[-1]", mandatory: false },
+    { slug: "transpose_dim", default: "[0, 1]", mandatory: false },
+    { slug: "permute_dim", default: "[0, 1, 2]", mandatory: false },
+    { slug: "input_reused", default: "false", mandatory: false },
+  ],
+  Configuration: [
+    { slug: "batch_size", default: "32", mandatory: true },
+    { slug: "epochs", default: "10", mandatory: true },
+    { slug: "learning_rate", default: "0.001", mandatory: true },
+    { slug: "optimizer", default: "adam", mandatory: true },
+    { slug: "loss_function", default: "crossentropy", mandatory: true },
+    { slug: "metrics", default: "[accuracy]", mandatory: true },
+    { slug: "weight_decay", default: "0.0", mandatory: false },
+    { slug: "momentum", default: "0", mandatory: false },
+  ],
+  TrainingDataset: [
+    { slug: "name", default: "dataset", mandatory: true },
+    { slug: "path_data", default: "path/to/data", mandatory: true },
+    { slug: "task_type", default: "multi_class", mandatory: false },
+    { slug: "input_format", default: "images", mandatory: false },
+    { slug: "shape", default: "[32, 32, 3]", mandatory: false },
+    { slug: "normalize", default: "false", mandatory: false },
+  ],
+  TestDataset: [
+    { slug: "name", default: "dataset", mandatory: true },
+    { slug: "path_data", default: "path/to/data", mandatory: true },
+    { slug: "task_type", default: "multi_class", mandatory: false },
+    { slug: "input_format", default: "images", mandatory: false },
+    { slug: "shape", default: "[32, 32, 3]", mandatory: false },
+    { slug: "normalize", default: "false", mandatory: false },
+  ],
+}
+
+describe("SA-FIX-NN-ATTRS: per-layer v3 attribute schema parity", () => {
+  // Slugs whose defaults live in NN_ATTRIBUTE_DEFAULTS (shared, layer
+  // agnostic) rather than as `defaultValue` on the widget schema.
+  const FREE_TEXT_SLUGS = new Set(["name_module_input", "shape"])
+  // List-shape slugs whose default comes from `getListExpectation`
+  // (varies per layer kind / pooling dimension).
+  const LIST_SHAPE_SLUGS = new Set([
+    "kernel_dim",
+    "stride_dim",
+    "normalized_shape",
+  ])
+
+  for (const [layerKind, v3Fields] of Object.entries(V3_SCHEMA)) {
+    describe(layerKind, () => {
+      const schema = getLayerSchema(layerKind)
+      const schemaSlugs = new Set(schema.map((f) => f.slug))
+
+      it("declares every v3 attribute slug", () => {
+        for (const f of v3Fields) {
+          expect(schemaSlugs.has(f.slug)).toBe(true)
+        }
+      })
+
+      it("marks the same fields mandatory as v3", () => {
+        for (const f of v3Fields) {
+          const v4Field = schema.find((x) => x.slug === f.slug)!
+          expect(Boolean(v4Field.mandatory)).toBe(f.mandatory)
+        }
+      })
+
+      it("surfaces the v3 default for every mandatory field", () => {
+        for (const f of v3Fields) {
+          if (!f.mandatory) continue
+          if (f.slug === "name") continue // derived from node.name
+          // For list-shape slugs the default comes from
+          // `getListExpectation` (per-layer-kind). All other mandatory
+          // slugs must resolve to the v3 default via the widget config
+          // OR the shared `NN_ATTRIBUTE_DEFAULTS` table.
+          if (LIST_SHAPE_SLUGS.has(f.slug)) {
+            const expected = getListExpectation(layerKind, f.slug, "2D")
+            expect(expected.example).toBe(f.default)
+            continue
+          }
+          const v4Field = schema.find((x) => x.slug === f.slug)!
+          const resolved =
+            v4Field.defaultValue ??
+            NN_ATTRIBUTE_DEFAULTS[f.slug] ??
+            getAttributeDefaultValue(f.slug)
+          expect(resolved).toBe(f.default)
+        }
+      })
+
+      it("surfaces the v3 default for every optional dropdown / typed field", () => {
+        for (const f of v3Fields) {
+          if (f.mandatory) continue
+          if (FREE_TEXT_SLUGS.has(f.slug)) continue
+          if (LIST_SHAPE_SLUGS.has(f.slug)) {
+            const expected = getListExpectation(layerKind, f.slug, "2D")
+            expect(expected.example).toBe(f.default)
+            continue
+          }
+          const v4Field = schema.find((x) => x.slug === f.slug)!
+          // Optional dropdowns store the default on the widget config,
+          // optional numerics fall back through NN_ATTRIBUTE_DEFAULTS.
+          const resolved =
+            v4Field.defaultValue ??
+            NN_ATTRIBUTE_DEFAULTS[f.slug] ??
+            ""
+          // `name_module_input` defaults to empty in v3 — already filtered.
+          expect(resolved).toBe(f.default)
+        }
+      })
+    })
+  }
+
+  it("declares every v3 attribute element-type in V3_ATTRIBUTE_TYPE_TO_SLUG", () => {
+    // Spot-check the reverse mapping for the four kinds that drove the
+    // bug report — Conv2D, Pooling, BatchNormalization, Configuration.
+    const cases: Array<[string, string]> = [
+      ["KernelDimAttributeConv2D", "kernel_dim"],
+      ["DimensionAttributePooling", "dimension"],
+      ["DimensionAttributeBatchNormalization", "dimension"],
+      ["OptimizerAttributeConfiguration", "optimizer"],
+      ["LossFunctionAttributeConfiguration", "loss_function"],
+      ["MetricsAttributeConfiguration", "metrics"],
+      ["PathDataAttributeDataset", "path_data"],
+    ]
+    for (const [t, slug] of cases) {
+      expect(V3_ATTRIBUTE_TYPE_TO_SLUG[t]).toBe(slug)
+    }
+  })
+
+  it("qualifies the `dimension` slug for Pooling and BatchNormalization", () => {
+    expect(COLLIDING_SLUGS.has("dimension")).toBe(true)
+    expect(qualifySlug("PoolingLayer", "dimension")).toBe("pooling.dimension")
+    expect(qualifySlug("BatchNormalizationLayer", "dimension")).toBe(
+      "batch_normalization.dimension"
+    )
+    // Non-colliding slugs pass through unchanged.
+    expect(qualifySlug("Conv2DLayer", "kernel_dim")).toBe("kernel_dim")
+  })
+
+  it("recovers the v3 element-type from (layerKind, slug)", () => {
+    expect(v3AttributeTypeFor("Conv2DLayer", "kernel_dim")).toBe(
+      "KernelDimAttributeConv2D"
+    )
+    expect(v3AttributeTypeFor("PoolingLayer", "dimension")).toBe(
+      "DimensionAttributePooling"
+    )
+    expect(v3AttributeTypeFor("BatchNormalizationLayer", "dimension")).toBe(
+      "DimensionAttributeBatchNormalization"
+    )
+    expect(v3AttributeTypeFor("Configuration", "optimizer")).toBe(
+      "OptimizerAttributeConfiguration"
+    )
+  })
+})
+
+describe("SA-FIX-NN-ATTRS: NNContainer / NNReference / Dataset / Configuration", () => {
+  it("preserves NNReference target carried on legacy `referencedNN`", () => {
+    // v3 fixture variant that uses the legacy `referencedNN` field.
+    const v3 = {
+      version: "3.0.1",
+      type: "NNDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "ref-1": {
+          id: "ref-1",
+          name: "MyTargetNN",
+          type: "NNReference",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 140, height: 40 },
+          referencedNN: "MyTargetNN",
+        },
+      },
+      relationships: {},
+      assessments: {},
+    }
+    const v4 = migrateNNDiagramV3ToV4(v3 as never)
+    const ref = v4.nodes.find((n) => n.id === "ref-1")!
+    expect(ref.type).toBe("NNReference")
+    expect(
+      (ref.data as { referenceTarget?: string }).referenceTarget
+    ).toBe("MyTargetNN")
+  })
+
+  it("preserves NNReference target across v4 -> v3 -> v4 round trip", () => {
+    const v3 = {
+      version: "3.0.1",
+      type: "NNDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "ref-1": {
+          id: "ref-1",
+          name: "MyTargetNN",
+          type: "NNReference",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 140, height: 40 },
+          referencedNN: "MyTargetNN",
+        },
+      },
+      relationships: {},
+      assessments: {},
+    }
+    const v4 = migrateNNDiagramV3ToV4(v3 as never)
+    const v3Round = convertV4ToV3NN(v4)
+    // The inverse migrator emits both `referenceTarget` and the legacy
+    // `referencedNN` slot so a v3-only consumer can still read it.
+    const refV3 = v3Round.elements["ref-1"] as {
+      referenceTarget?: string
+      referencedNN?: string
+    }
+    expect(refV3.referenceTarget).toBe("MyTargetNN")
+    expect(refV3.referencedNN).toBe("MyTargetNN")
+
+    const v4Again = migrateNNDiagramV3ToV4(v3Round)
+    const refAgain = v4Again.nodes.find((n) => n.id === "ref-1")!
+    expect(
+      (refAgain.data as { referenceTarget?: string }).referenceTarget
+    ).toBe("MyTargetNN")
+  })
+
+  it("seeds Pooling palette drop with v3-default mandatory attributes", () => {
+    // The constants.ts palette ships `pooling.dimension = '2D'` +
+    // `pooling_type = 'max'` so a freshly dropped node already passes
+    // mandatory-field validation. The auto-fill effect in the inspector
+    // would otherwise still fill them on first render — this guards the
+    // happy path before any inspector code runs.
+    const nnPalette = dropElementConfigs.NNDiagram as ReadonlyArray<{
+      type: string
+      defaultData?: Record<string, unknown>
+    }>
+    const pooling = nnPalette.find((p) => p.type === "PoolingLayer")!
+    const attrs = (pooling.defaultData as { attributes: Record<string, unknown> })
+      .attributes
+    expect(attrs["pooling.dimension"]).toBe("2D")
+    expect(attrs["pooling_type"]).toBe("max")
+  })
+
+  it("seeds BatchNormalization palette drop with v3-default `2D` dimension", () => {
+    const nnPalette = dropElementConfigs.NNDiagram as ReadonlyArray<{
+      type: string
+      defaultData?: Record<string, unknown>
+    }>
+    const bn = nnPalette.find((p) => p.type === "BatchNormalizationLayer")!
+    const attrs = (bn.defaultData as { attributes: Record<string, unknown> })
+      .attributes
+    expect(attrs["batch_normalization.dimension"]).toBe("2D")
+  })
+
+  it("declares NNContainer / NNReference as parameterless nodes", () => {
+    // Container and reference don't have an `attributes` dict — they
+    // carry `entryLayerId` / `referenceTarget` as top-level data.
+    // The schema lookup for these returns `[]` (renderless).
+    expect(getLayerSchema("NNContainer")).toEqual([])
+    expect(getLayerSchema("NNReference")).toEqual([])
+  })
+})

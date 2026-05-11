@@ -1464,12 +1464,21 @@ function convertV3NodeDataToV4(
     }
 
     case "NNReference": {
+      // SA-FIX-NN-ATTRS: v3's `NNReference` carries the referenced NN
+      // on the legacy `referencedNN` slot (see
+      // `packages/editor/.../nn-reference.ts`). The previous migrator
+      // only knew about `referenceTarget` / `target` / `referencedId`
+      // so legacy v3 fixtures silently lost their target. Accept
+      // `referencedNN` first so round-trips through the live editor
+      // preserve it.
       const e = element as {
         referenceTarget?: string
         target?: string
         referencedId?: string
+        referencedNN?: string
       }
-      const referenceTarget = e.referenceTarget ?? e.target ?? e.referencedId
+      const referenceTarget =
+        e.referenceTarget ?? e.target ?? e.referencedId ?? e.referencedNN
       return {
         ...baseData,
         ...(referenceTarget && { referenceTarget }),
@@ -3498,6 +3507,10 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
         ...(data.description && { description: data.description }),
       } as V3UMLElement & { entryLayerId?: string; description?: string }
     } else if (nt === "NNReference") {
+      // SA-FIX-NN-ATTRS: emit both the v4 `referenceTarget` and the v3
+      // legacy `referencedNN` field so a round-trip through the v3
+      // editor (which still reads `referencedNN`) preserves the
+      // reference target.
       const data = node.data as Record<string, unknown> & {
         referenceTarget?: string
       }
@@ -3505,8 +3518,9 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
         ...baseV3,
         ...(data.referenceTarget && {
           referenceTarget: data.referenceTarget,
+          referencedNN: data.referenceTarget,
         }),
-      } as V3UMLElement & { referenceTarget?: string }
+      } as V3UMLElement & { referenceTarget?: string; referencedNN?: string }
     } else {
       elements[node.id] = baseV3
     }

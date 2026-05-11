@@ -281,14 +281,28 @@ const POOLING_FIELDS: AttributeWidgetConfig[] = [
   },
 ]
 
+/** SA-FIX-NN-ATTRS: RNN-family `actv_func` defaults to `tanh` in v3
+ * (mirrors PyTorch's `RNN`/`LSTM`/`GRU` activation default), distinct
+ * from the convolutional `relu` baseline. Inlined here rather than
+ * sharing `ACTV_FUNC_FIELD` so the recurrent panel renders the v3
+ * default. */
+const RECURRENT_ACTV_FUNC_FIELD: AttributeWidgetConfig = {
+  slug: "actv_func",
+  widget: "dropdown",
+  options: ACTV_FUNC_OPTIONS,
+  defaultValue: "tanh",
+  label: "actv_func",
+}
+
 const RECURRENT_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
   { slug: "hidden_size", widget: "text", label: "hidden_size", mandatory: true },
+  // SA-FIX-NN-ATTRS: v3 default = 'full' (not 'last').
   {
     slug: "return_type",
     widget: "dropdown",
     options: RETURN_OPTIONS,
-    defaultValue: "last",
+    defaultValue: "full",
     label: "return_type",
   },
   { slug: "input_size", widget: "text", label: "input_size" },
@@ -300,14 +314,16 @@ const RECURRENT_FIELDS: AttributeWidgetConfig[] = [
     label: "bidirectional",
   },
   { slug: "dropout", widget: "text", label: "dropout" },
+  // SA-FIX-NN-ATTRS: v3 default = 'true' (PyTorch-style channel-first
+  // tensors with the batch dimension leading).
   {
     slug: "batch_first",
     widget: "dropdown",
     options: BOOLEAN_OPTIONS,
-    defaultValue: "false",
+    defaultValue: "true",
     label: "batch_first",
   },
-  ACTV_FUNC_FIELD,
+  RECURRENT_ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
 ]
@@ -384,11 +400,13 @@ const BATCH_NORM_FIELDS: AttributeWidgetConfig[] = [
   },
   // Collision-aware: stored as `batch_normalization.dimension` on a
   // BatchNormalization node.
+  // SA-FIX-NN-ATTRS: v3 default = '2D' (mirrors the convolutional
+  // baseline so `BatchNorm2d` lands where users expect).
   {
     slug: "dimension",
     widget: "dropdown",
     options: BATCHNORM_DIMENSION_OPTIONS,
-    defaultValue: "1D",
+    defaultValue: "2D",
     label: "dimension",
     mandatory: true,
   },
@@ -397,6 +415,12 @@ const BATCH_NORM_FIELDS: AttributeWidgetConfig[] = [
   INPUT_REUSED_FIELD,
 ]
 
+// SA-FIX-NN-ATTRS: v3 TensorOp shipped defaults per `tns_type` branch
+// (e.g. `reshape_dim = '[-1]'`, `transpose_dim = '[0, 1]'`,
+// `permute_dim = '[0, 1, 2]'`, `concatenate_dim = '0'`,
+// `layers_of_tensors = '[]'`). Surfacing them as `defaultValue` here
+// drives the inspector's "enable optional row" experience to a
+// non-empty starter value.
 const TENSOR_OP_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
   {
@@ -407,18 +431,43 @@ const TENSOR_OP_FIELDS: AttributeWidgetConfig[] = [
     label: "tns_type",
     mandatory: true,
   },
-  { slug: "concatenate_dim", widget: "text", label: "concatenate_dim" },
+  {
+    slug: "concatenate_dim",
+    widget: "text",
+    label: "concatenate_dim",
+    defaultValue: "0",
+  },
   {
     slug: "layers_of_tensors",
     widget: "layers_of_tensors",
     label: "layers_of_tensors",
+    defaultValue: "[]",
   },
-  { slug: "reshape_dim", widget: "text", label: "reshape_dim" },
-  { slug: "transpose_dim", widget: "text", label: "transpose_dim" },
-  { slug: "permute_dim", widget: "text", label: "permute_dim" },
+  {
+    slug: "reshape_dim",
+    widget: "text",
+    label: "reshape_dim",
+    defaultValue: "[-1]",
+  },
+  {
+    slug: "transpose_dim",
+    widget: "text",
+    label: "transpose_dim",
+    defaultValue: "[0, 1]",
+  },
+  {
+    slug: "permute_dim",
+    widget: "text",
+    label: "permute_dim",
+    defaultValue: "[0, 1, 2]",
+  },
   INPUT_REUSED_FIELD,
 ]
 
+// SA-FIX-NN-ATTRS: v3 Configuration shipped string defaults for every
+// mandatory training field. Surface them on the schema so the
+// auto-fill effect seeds the node on drop. `weight_decay` /
+// `momentum` defaults live in NN_ATTRIBUTE_DEFAULTS already.
 const CONFIGURATION_FIELDS: AttributeWidgetConfig[] = [
   { slug: "batch_size", widget: "text", label: "batch_size", mandatory: true },
   { slug: "epochs", widget: "text", label: "epochs", mandatory: true },
@@ -428,21 +477,42 @@ const CONFIGURATION_FIELDS: AttributeWidgetConfig[] = [
     label: "learning_rate",
     mandatory: true,
   },
-  { slug: "optimizer", widget: "text", label: "optimizer", mandatory: true },
+  {
+    slug: "optimizer",
+    widget: "text",
+    label: "optimizer",
+    mandatory: true,
+    defaultValue: "adam",
+  },
   {
     slug: "loss_function",
     widget: "text",
     label: "loss_function",
     mandatory: true,
+    defaultValue: "crossentropy",
   },
-  { slug: "metrics", widget: "text", label: "metrics", mandatory: true },
+  {
+    slug: "metrics",
+    widget: "text",
+    label: "metrics",
+    mandatory: true,
+    defaultValue: "[accuracy]",
+  },
   { slug: "weight_decay", widget: "text", label: "weight_decay" },
   { slug: "momentum", widget: "text", label: "momentum" },
 ]
 
 const DATASET_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
-  { slug: "path_data", widget: "text", label: "path_data", mandatory: true },
+  // SA-FIX-NN-ATTRS: v3 default = 'path/to/data'. Mandatory in v3, so
+  // surface the placeholder default for parity with the v3 auto-fill.
+  {
+    slug: "path_data",
+    widget: "text",
+    label: "path_data",
+    mandatory: true,
+    defaultValue: "path/to/data",
+  },
   {
     slug: "task_type",
     widget: "dropdown",

@@ -1097,7 +1097,13 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: {
         name: "Pooling",
         // Disambiguated dimension slug: see open question #2.
-        attributes: { "pooling.dimension": "2D" },
+        // SA-FIX-NN-ATTRS: seed the `pooling_type` mandatory slug so
+        // a freshly dropped node reads the v3 default `max` before the
+        // inspector's auto-fill effect runs.
+        attributes: {
+          "pooling.dimension": "2D",
+          pooling_type: "max",
+        },
       },
       svg: PoolingLayerSVG,
     },
@@ -1164,7 +1170,9 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: {
         name: "BatchNorm",
         // Disambiguated dimension slug: see open question #2.
-        attributes: { "batch_normalization.dimension": "1D" },
+        // SA-FIX-NN-ATTRS: v3 default = '2D' (mirrors the conv2d
+        // baseline). The widget's auto-fill effect honours this seed.
+        attributes: { "batch_normalization.dimension": "2D" },
       },
       svg: BatchNormalizationLayerSVG,
     },

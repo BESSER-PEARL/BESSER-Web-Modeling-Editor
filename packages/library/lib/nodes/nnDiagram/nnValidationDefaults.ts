@@ -28,6 +28,16 @@ export const NN_ATTRIBUTE_DEFAULTS: Readonly<Record<string, string>> =
     learning_rate: "0.001",
     weight_decay: "0.0",
     momentum: "0",
+    // SA-FIX-NN-ATTRS: v3-parity defaults for Configuration / Dataset /
+    // TensorOp slugs that were missing from the v4 fallback table.
+    optimizer: "adam",
+    loss_function: "crossentropy",
+    metrics: "[accuracy]",
+    path_data: "path/to/data",
+    reshape_dim: "[-1]",
+    transpose_dim: "[0, 1]",
+    permute_dim: "[0, 1, 2]",
+    layers_of_tensors: "[]",
   })
 
 /** Look up the default text for a given slug, falling back to the
