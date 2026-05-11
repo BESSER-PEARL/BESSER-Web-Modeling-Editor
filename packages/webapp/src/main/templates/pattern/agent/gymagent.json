@@ -644,7 +644,7 @@
       "target": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
       "type": "AgentStateTransition",
       "sourceHandle": "left-top",
-      "targetHandle": "bottomright",
+      "targetHandle": "bottom-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -692,7 +692,7 @@
       "target": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
       "type": "AgentStateTransition",
       "sourceHandle": "left-top",
-      "targetHandle": "bottomleft",
+      "targetHandle": "bottom-left",
       "data": {
         "label": "",
         "sourceMultiplicity": "",

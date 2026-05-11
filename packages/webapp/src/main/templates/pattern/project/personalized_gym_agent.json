@@ -2719,7 +2719,7 @@
                 "source": "8b66ecde-05bb-43f9-a5ac-b1e1279e8cb3",
                 "target": "61f3399d-3642-4d70-8170-fa67b7184867",
                 "type": "ObjectLink",
-                "sourceHandle": "bottomright",
+                "sourceHandle": "bottom-right",
                 "targetHandle": "left-top",
                 "data": {
                   "label": "",

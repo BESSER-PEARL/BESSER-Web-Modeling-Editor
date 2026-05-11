@@ -5,7 +5,7 @@ import {
   ReactFlow,
   SelectionMode,
 } from "@xyflow/react"
-import { useCallback } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import {
   CustomBackground,
   CustomControls,
@@ -95,12 +95,37 @@ function App({ onReactFlowInit }: AppProps) {
     useElementInteractions()
   const { onPaneClicked } = usePaneClicked()
 
+  const reactFlowInstanceRef = useRef<ReactFlowInstance | null>(null)
   const handleReactFlowInit = useCallback(
     (instance: ReactFlowInstance) => {
+      reactFlowInstanceRef.current = instance
       onReactFlowInit(instance)
     },
     [onReactFlowInit]
   )
+
+  // Auto fit-view whenever the diagram id changes (template / project load).
+  // The `onInit` fitView only fires on first mount; loading a stored model
+  // afterwards repopulates `nodes` but leaves the viewport at its previous
+  // position — which is empty for newly-opened templates, so the user
+  // landed on a blank pane and had to pan to find the content. Re-fit on
+  // every diagram swap so the canvas always frames the loaded nodes.
+  useEffect(() => {
+    const instance = reactFlowInstanceRef.current
+    if (!instance) return
+    if (nodes.length === 0) return
+    // Wait a tick so React Flow has the latest node measurements before
+    // computing the bounds.
+    const t = setTimeout(() => {
+      try {
+        instance.fitView({ maxZoom: 1.0, minZoom: 0.4, duration: 0 })
+      } catch {
+        /* fitView can throw if the instance was torn down mid-flight */
+      }
+    }, 50)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diagramId])
 
   return (
     <div

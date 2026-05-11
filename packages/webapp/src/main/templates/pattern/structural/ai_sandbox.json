@@ -1718,8 +1718,8 @@
       "source": "d6a622b9-2432-4411-a3f2-5815dff2085e",
       "target": "d4ce3767-e639-4fbb-8db1-7dbfa291d31d",
       "type": "ClassInheritance",
-      "sourceHandle": "topleft",
-      "targetHandle": "bottomright",
+      "sourceHandle": "top-left",
+      "targetHandle": "bottom-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -1754,7 +1754,7 @@
       "target": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
       "type": "ClassBidirectional",
       "sourceHandle": "right-bottom",
-      "targetHandle": "topright",
+      "targetHandle": "top-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "*",
@@ -1874,7 +1874,7 @@
       "target": "d6a622b9-2432-4411-a3f2-5815dff2085e",
       "type": "ClassInheritance",
       "sourceHandle": "left",
-      "targetHandle": "topright",
+      "targetHandle": "top-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -1905,7 +1905,7 @@
       "target": "d6a622b9-2432-4411-a3f2-5815dff2085e",
       "type": "ClassInheritance",
       "sourceHandle": "left",
-      "targetHandle": "topright",
+      "targetHandle": "top-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -1989,8 +1989,8 @@
       "source": "125ca586-c0a9-4b29-83f5-630fc998f763",
       "target": "2a69bf8c-9f74-4e89-9801-c21f8aa9daf1",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomleft",
-      "targetHandle": "bottomright",
+      "sourceHandle": "bottom-left",
+      "targetHandle": "bottom-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "1",
@@ -2024,7 +2024,7 @@
       "source": "c573dd39-569b-4257-af67-e10f88ebdb47",
       "target": "d6a622b9-2432-4411-a3f2-5815dff2085e",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomright",
+      "sourceHandle": "bottom-right",
       "targetHandle": "right-bottom",
       "data": {
         "label": "",
@@ -2055,7 +2055,7 @@
       "source": "a7736e21-9ef2-4315-9048-68fc0471f98b",
       "target": "8efefcb2-fee3-4dfe-9209-5b717238c726",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomleft",
+      "sourceHandle": "bottom-left",
       "targetHandle": "right-top",
       "data": {
         "label": "",
@@ -2086,7 +2086,7 @@
       "source": "a7736e21-9ef2-4315-9048-68fc0471f98b",
       "target": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomright",
+      "sourceHandle": "bottom-right",
       "targetHandle": "right",
       "data": {
         "label": "",
@@ -2118,7 +2118,7 @@
       "target": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
       "type": "ClassBidirectional",
       "sourceHandle": "left-bottom",
-      "targetHandle": "topleft",
+      "targetHandle": "top-left",
       "data": {
         "label": "evaluates_eval",
         "name": "evaluates_eval",
@@ -2177,7 +2177,7 @@
       "target": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
       "type": "ClassInheritance",
       "sourceHandle": "top",
-      "targetHandle": "bottomright",
+      "targetHandle": "bottom-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -2231,7 +2231,7 @@
       "target": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
       "type": "ClassInheritance",
       "sourceHandle": "top",
-      "targetHandle": "bottomright",
+      "targetHandle": "bottom-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -2296,7 +2296,7 @@
       "source": "8efefcb2-fee3-4dfe-9209-5b717238c726",
       "target": "e17fa351-a73e-4ca5-ab53-0385b5d0c54e",
       "type": "ClassBidirectional",
-      "sourceHandle": "topleft",
+      "sourceHandle": "top-left",
       "targetHandle": "right-top",
       "data": {
         "label": "",
@@ -2390,7 +2390,7 @@
       "target": "d4ce3767-e639-4fbb-8db1-7dbfa291d31d",
       "type": "ClassInheritance",
       "sourceHandle": "top",
-      "targetHandle": "topright",
+      "targetHandle": "top-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -2459,8 +2459,8 @@
       "source": "8efefcb2-fee3-4dfe-9209-5b717238c726",
       "target": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomleft",
-      "targetHandle": "topright",
+      "sourceHandle": "bottom-left",
+      "targetHandle": "top-right",
       "data": {
         "label": "",
         "sourceMultiplicity": "*",
@@ -2517,7 +2517,7 @@
       "source": "b910ce24-f2bd-40de-b141-ce2956087223",
       "target": "e17fa351-a73e-4ca5-ab53-0385b5d0c54e",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomright",
+      "sourceHandle": "bottom-right",
       "targetHandle": "left-bottom",
       "data": {
         "label": "",
@@ -2583,7 +2583,7 @@
       "source": "e4422346-28c3-44e5-b12b-b0eafe8f9796",
       "target": "d4ce3767-e639-4fbb-8db1-7dbfa291d31d",
       "type": "ClassInheritance",
-      "sourceHandle": "topleft",
+      "sourceHandle": "top-left",
       "targetHandle": "left-top",
       "data": {
         "label": "",

@@ -791,7 +791,7 @@
       "target": "class_06blhjj3h_mjikkmod",
       "type": "ClassOCLLink",
       "sourceHandle": "top",
-      "targetHandle": "bottomleft",
+      "targetHandle": "bottom-left",
       "data": {
         "label": "",
         "sourceMultiplicity": "",

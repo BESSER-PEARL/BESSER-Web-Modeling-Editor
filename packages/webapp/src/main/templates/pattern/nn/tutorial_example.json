@@ -476,7 +476,7 @@
       "target": "6feb868b-45bf-4c44-88ab-6af624191fa9",
       "type": "NNComposition",
       "sourceHandle": "top",
-      "targetHandle": "bottomleft",
+      "targetHandle": "bottom-left",
       "data": {
         "label": "",
         "sourceMultiplicity": "",

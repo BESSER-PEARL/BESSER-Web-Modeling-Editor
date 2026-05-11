@@ -584,7 +584,7 @@
       "source": "d2c3ac6c-2869-4555-a599-4810168a3164",
       "target": "97627a74-e4e6-48af-9989-8d714dfe83b8",
       "type": "AgentStateTransition",
-      "sourceHandle": "bottomleft",
+      "sourceHandle": "bottom-left",
       "targetHandle": "bottom",
       "data": {
         "label": "",

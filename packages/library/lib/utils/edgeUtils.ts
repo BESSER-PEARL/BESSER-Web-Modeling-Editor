@@ -382,9 +382,14 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         offset: 0,
       }
     case "NNComposition":
+      // UML composition convention: diamond at the WHOLE end. The
+      // NNContainer is the whole, Configuration is the part. Auto-drag
+      // (Configuration → NNContainer in `resolveNNEdgeType`) puts
+      // NNContainer at the target end, so the diamond lives on
+      // markerEnd, not markerStart.
       return {
         markerPadding: EDGES.MARKER_PADDING,
-        markerStart: "url(#black-rhombus)",
+        markerEnd: "url(#black-rhombus)",
         strokeDashArray: "0",
         offset: 0,
       }

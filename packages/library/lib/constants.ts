@@ -1030,7 +1030,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       type: "NNContainer" as never,
       width: 220,
       height: 140,
-      defaultData: { name: "MyModel" },
+      defaultData: { name: "Neural_Network" },
       svg: NNContainerSVG,
       sectionLabel: "NN Structure",
     },

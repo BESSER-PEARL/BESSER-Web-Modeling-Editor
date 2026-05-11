@@ -230,7 +230,7 @@
       "source": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
       "target": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
       "type": "AgentStateTransition",
-      "sourceHandle": "bottomleft",
+      "sourceHandle": "bottom-left",
       "targetHandle": "left",
       "data": {
         "label": "",
@@ -278,8 +278,8 @@
       "source": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
       "target": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
       "type": "AgentStateTransition",
-      "sourceHandle": "topleft",
-      "targetHandle": "bottomleft",
+      "sourceHandle": "top-left",
+      "targetHandle": "bottom-left",
       "data": {
         "label": "",
         "sourceMultiplicity": "",

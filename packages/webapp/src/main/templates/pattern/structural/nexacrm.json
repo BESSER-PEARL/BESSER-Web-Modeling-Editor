@@ -1505,7 +1505,7 @@
       "source": "278327b9-3f33-4fcc-aa98-c144c0933a65",
       "target": "aaddf56f-d3cb-4eab-8223-f08b85c10f1f",
       "type": "ClassBidirectional",
-      "sourceHandle": "topleft",
+      "sourceHandle": "top-left",
       "targetHandle": "right-bottom",
       "data": {
         "label": "contact_created_by",
@@ -1593,7 +1593,7 @@
       "source": "2d584aa6-7ca2-4d21-8510-57f70750bfb4",
       "target": "72d64804-891c-438b-bfed-6ecee0bfd085",
       "type": "ClassBidirectional",
-      "sourceHandle": "topright",
+      "sourceHandle": "top-right",
       "targetHandle": "right-bottom",
       "data": {
         "label": "email_template_link",
@@ -1625,7 +1625,7 @@
       "source": "aaddf56f-d3cb-4eab-8223-f08b85c10f1f",
       "target": "fb02ddde-ec4d-4181-bc34-7cabad68eca1",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomright",
+      "sourceHandle": "bottom-right",
       "targetHandle": "top",
       "data": {
         "label": "task_contact",
@@ -1721,7 +1721,7 @@
       "source": "72d64804-891c-438b-bfed-6ecee0bfd085",
       "target": "278327b9-3f33-4fcc-aa98-c144c0933a65",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomleft",
+      "sourceHandle": "bottom-left",
       "targetHandle": "right-top",
       "data": {
         "label": "email_user",
@@ -1754,7 +1754,7 @@
       "target": "278327b9-3f33-4fcc-aa98-c144c0933a65",
       "type": "ClassBidirectional",
       "sourceHandle": "right",
-      "targetHandle": "topright",
+      "targetHandle": "top-right",
       "data": {
         "label": "interaction_user",
         "name": "interaction_user",
@@ -1845,7 +1845,7 @@
       "source": "aaddf56f-d3cb-4eab-8223-f08b85c10f1f",
       "target": "00c036a4-454e-4449-9a9b-6b3f03969d49",
       "type": "ClassBidirectional",
-      "sourceHandle": "bottomleft",
+      "sourceHandle": "bottom-left",
       "targetHandle": "top",
       "data": {
         "label": "opportunity_contact",

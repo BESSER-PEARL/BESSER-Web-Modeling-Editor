@@ -653,7 +653,7 @@
       "source": "state_zl3bfe65n_mm9b38u1",
       "target": "state_krso67h8q_mm9b38u1",
       "type": "AgentStateTransition",
-      "sourceHandle": "topright",
+      "sourceHandle": "top-right",
       "targetHandle": "left",
       "data": {
         "label": "",
@@ -693,7 +693,7 @@
       "source": "state_zl3bfe65n_mm9b38u1",
       "target": "state_5emfhqwzt_mm9b38u1",
       "type": "AgentStateTransition",
-      "sourceHandle": "bottomright",
+      "sourceHandle": "bottom-right",
       "targetHandle": "left",
       "data": {
         "label": "",
@@ -817,7 +817,7 @@
       "source": "state_j5tnma02n_mm9b38u1",
       "target": "state_zl3bfe65n_mm9b38u1",
       "type": "AgentStateTransition",
-      "sourceHandle": "bottomleft",
+      "sourceHandle": "bottom-left",
       "targetHandle": "right-bottom",
       "data": {
         "label": "",
