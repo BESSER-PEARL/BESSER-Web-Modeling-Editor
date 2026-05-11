@@ -24,6 +24,33 @@ export const getPositionOnCanvas = (
   return position
 }
 
+/**
+ * Per-parent minimum size floor. Matches the per-node `NodeResizer` minWidth/
+ * minHeight values in the canvas components so we never shrink a parent below
+ * the size it would clamp to anyway. Falls back to a conservative 80x60.
+ */
+const PARENT_MIN_SIZE: Record<string, { width: number; height: number }> = {
+  package: { width: 200, height: 100 },
+  activity: { width: 200, height: 120 },
+  useCaseSystem: { width: 200, height: 120 },
+  componentSubsystem: { width: 180, height: 120 },
+  deploymentNode: { width: 180, height: 120 },
+  deploymentComponent: { width: 180, height: 120 },
+  bpmnPool: { width: 200, height: 120 },
+  bpmnGroup: { width: 160, height: 60 },
+  bpmnSubprocess: { width: 160, height: 60 },
+  bpmnTransaction: { width: 160, height: 60 },
+  bpmnCallActivity: { width: 160, height: 60 },
+  NNContainer: { width: 200, height: 140 },
+  State: { width: 160, height: 100 },
+  AgentIntent: { width: 160, height: 100 },
+}
+
+const DEFAULT_PARENT_MIN = { width: 80, height: 60 }
+
+const getParentMinSize = (parentType?: string) =>
+  (parentType && PARENT_MIN_SIZE[parentType]) || DEFAULT_PARENT_MIN
+
 export const resizeAllParents = (node: Node, allNodes: Node[]) => {
   let currentNode = node
 
@@ -52,6 +79,58 @@ export const resizeAllParents = (node: Node, allNodes: Node[]) => {
     }
     if (currentNode.position.y + currentNode.height! > parent.height!) {
       parent.height = currentNode.position.y + currentNode.height!
+    }
+
+    // SA-FINAL-3 Tier 5 #18: shrink the parent to the tight bounds of its
+    // remaining children once the grow-branch above has fired. v3's
+    // `UMLContainer.render` recomputed bounds from the child set every
+    // pass; the previous implementation only grew, so once a child was
+    // moved away or deleted the parent stayed bloated.
+    if (allChildren.length > 0) {
+      const PADDING = 10
+      let tightMinX = Infinity
+      let tightMinY = Infinity
+      let tightMaxX = -Infinity
+      let tightMaxY = -Infinity
+      for (const child of allChildren) {
+        const cw = child.width ?? 0
+        const ch = child.height ?? 0
+        tightMinX = Math.min(tightMinX, child.position.x)
+        tightMinY = Math.min(tightMinY, child.position.y)
+        tightMaxX = Math.max(tightMaxX, child.position.x + cw)
+        tightMaxY = Math.max(tightMaxY, child.position.y + ch)
+      }
+
+      const floor = getParentMinSize(parent.type)
+      // Translate parent + children if the tight bounds leave dead space at
+      // the top-left corner (e.g. all children moved down/right by 30 px →
+      // shift the whole frame so the children stay glued to the corner).
+      if (tightMinX > PADDING) {
+        const dx = tightMinX - PADDING
+        parent.position.x = parent.position.x + dx
+        parent.width = parent.width! - dx
+        allChildren.forEach((child) => {
+          child.position.x = child.position.x - dx
+        })
+        tightMaxX -= dx
+      }
+      if (tightMinY > PADDING) {
+        const dy = tightMinY - PADDING
+        parent.position.y = parent.position.y + dy
+        parent.height = parent.height! - dy
+        allChildren.forEach((child) => {
+          child.position.y = child.position.y - dy
+        })
+        tightMaxY -= dy
+      }
+      // Refit to `desiredWidth` = max(tight bounds + padding, floor).
+      // We assign unconditionally so a previous over-aggressive shift
+      // (which deflated `parent.width` past `desiredWidth`) is corrected,
+      // and so subsequent runs with the same child set stay deterministic.
+      const desiredWidth = Math.max(tightMaxX + PADDING, floor.width)
+      const desiredHeight = Math.max(tightMaxY + PADDING, floor.height)
+      parent.width = desiredWidth
+      parent.height = desiredHeight
     }
 
     currentNode = allNodes.find((n) => n.id === currentNode.parentId)!
@@ -253,7 +332,12 @@ export const isParentNodeType = (nodeType?: string) => {
     // children land at the canvas root with no `parentId`.
     nodeType === "NNContainer" ||
     nodeType === "State" ||
-    nodeType === "AgentState" ||
+    // SA-FINAL-3 Tier 5 #19: AgentState bodies are inlined on
+    // `AgentState.data.bodies`, not nested children. Listing AgentState as
+    // a parent here advertised a drop target the `canDropIntoParent`
+    // predicate then rejected — the hover halo lit up but nothing landed.
+    // Removing it from this set short-circuits the drop handler so the
+    // child lands at the canvas root, matching v3 behaviour.
     nodeType === "AgentIntent"
   )
 }

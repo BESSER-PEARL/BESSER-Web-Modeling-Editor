@@ -113,9 +113,12 @@ export const canDropIntoParent = (
     )
   }
 
-  // SA-FIX-NN-DROPS: AgentState exposes itself as a parent type so the
-  // drop-handler skips parent-assignment instead of falling through to
-  // the permissive default below — its bodies are inlined, not nested.
+  // SA-FINAL-3 Tier 5 #19: AgentState is no longer advertised by
+  // `isParentNodeType` (its bodies are inlined on `data.bodies`), so we
+  // shouldn't reach this branch from the drop handler. We keep the guard
+  // defensively so any other call site that still passes "AgentState"
+  // for parentType gets a clean rejection rather than the permissive
+  // fallthrough at the bottom of this function.
   if (parentType === "AgentState") {
     return false
   }

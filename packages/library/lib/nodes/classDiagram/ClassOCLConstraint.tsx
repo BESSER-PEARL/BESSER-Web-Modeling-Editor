@@ -1,5 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { useRef } from "react"
+import { Tooltip } from "@mui/material"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { ClassOCLConstraintNodeProps } from "@/types"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
@@ -66,9 +67,18 @@ export function ClassOCLConstraintNode({
   const maxLines = Math.max(1, Math.floor(contentHeight / 14))
   const lines = wrapText(data.expression || "", charsPerLine, maxLines)
 
-  const fillColor = data.fillColor || "#fff8c4"
-  const strokeColor = data.strokeColor || "#bda21f"
-  const textColor = data.textColor || "#3a2e00"
+  // SA-FINAL-3 Tier 2 #6: theme-portable sticky-note palette. Vars defined
+  // in themings.json switch the OCL/Comment note to a muted amber in dark
+  // mode while keeping the v3 Post-it yellow in light mode.
+  const fillColor = data.fillColor || "var(--besser-sticky-fill, #fff8c4)"
+  const strokeColor = data.strokeColor || "var(--besser-sticky-stroke, #bda21f)"
+  const textColor = data.textColor || "var(--besser-sticky-text, #3a2e00)"
+
+  // SA-FINAL-3 Tier 7 #25: surface `data.description` as a hover tooltip so
+  // the long-form description is reachable on the canvas without opening the
+  // inspector. Only mount the Tooltip when there's something to show.
+  const description = (data.description ?? "").trim()
+  const tooltipDisabled = description.length === 0
 
   return (
     <DefaultNodeWrapper width={w} height={h} elementId={id}>
@@ -80,6 +90,14 @@ export function ClassOCLConstraintNode({
         minHeight={MIN_HEIGHT}
         handleStyle={{ width: 8, height: 8 }}
       />
+      <Tooltip
+        title={description}
+        disableHoverListener={tooltipDisabled}
+        disableFocusListener={tooltipDisabled}
+        disableTouchListener={tooltipDisabled}
+        placement="top"
+        arrow
+      >
       <div ref={wrapperRef}>
         <svg width={w} height={h} style={{ overflow: "visible" }}>
           {/* Outer note shape with folded corner. */}
@@ -117,6 +135,7 @@ export function ClassOCLConstraintNode({
           </g>
         </svg>
       </div>
+      </Tooltip>
 
       <PopoverManager
         anchorEl={wrapperRef.current}

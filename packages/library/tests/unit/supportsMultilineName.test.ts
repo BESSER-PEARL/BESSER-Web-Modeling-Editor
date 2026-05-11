@@ -76,8 +76,15 @@ describe("rendersNameLabel", () => {
   })
 
   it("never allows multiline for a type that hides the rename input", () => {
-    // A hidden rename input with multiline enabled is nonsense. Pin it.
+    // A hidden rename input with multiline enabled is nonsense — UNLESS the
+    // node has its own dedicated inspector editing path that uses a
+    // multiline TextField. The free-form Comment sticky-note is the lone
+    // exception: `wrapsName=true` (the SVG renders multi-line) but
+    // `rendersNameLabel=false` (the global rename popover is hidden;
+    // editing happens via the inspector's multiline TextField).
+    const COMMENT_TYPE = "comment"
     for (const type of Object.values(DiagramNodeTypeRecord)) {
+      if (type === COMMENT_TYPE) continue
       if (!rendersNameLabel(type)) {
         expect(supportsMultilineName(type)).toBe(false)
       }

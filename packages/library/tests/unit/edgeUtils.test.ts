@@ -256,17 +256,21 @@ describe("getEdgeMarkerStyles", () => {
     expect(result.markerEnd).toBe("url(#black-arrow)")
   })
 
-  // Rhombus marker group
-  it("returns white-rhombus for ClassAggregation", () => {
+  // Rhombus marker group — PC-3 fix (SA-FIX-Class): diamond marker is on
+  // the SOURCE end (whole side), not the target end. Tests updated to
+  // assert `markerStart` per v3 parity.
+  it("returns white-rhombus markerStart for ClassAggregation", () => {
     const result = getEdgeMarkerStyles("ClassAggregation")
-    expect(result.markerEnd).toBe("url(#white-rhombus)")
+    expect(result.markerStart).toBe("url(#white-rhombus)")
+    expect(result.markerEnd).toBeUndefined()
     expect(result.markerPadding).toBe(EDGES.MARKER_PADDING)
     expect(result.offset).toBe(0)
   })
 
-  it("returns black-rhombus for ClassComposition", () => {
+  it("returns black-rhombus markerStart for ClassComposition", () => {
     const result = getEdgeMarkerStyles("ClassComposition")
-    expect(result.markerEnd).toBe("url(#black-rhombus)")
+    expect(result.markerStart).toBe("url(#black-rhombus)")
+    expect(result.markerEnd).toBeUndefined()
     expect(result.markerPadding).toBe(EDGES.MARKER_PADDING)
     expect(result.offset).toBe(0)
   })
@@ -1029,8 +1033,11 @@ describe("getMarkerSegmentPath", () => {
 // getDefaultEdgeType
 // ---------------------------------------------------------------------------
 describe("getDefaultEdgeType", () => {
+  // SA-FIX-CLASS-FUND #2: ClassDiagram defaults to a bidirectional
+  // association per v3 parity (not the unidirectional default that the
+  // test previously asserted).
   const cases: [string, string][] = [
-    ["ClassDiagram", "ClassUnidirectional"],
+    ["ClassDiagram", "ClassBidirectional"],
     ["ActivityDiagram", "ActivityControlFlow"],
     ["UseCaseDiagram", "UseCaseAssociation"],
     ["ComponentDiagram", "ComponentDependency"],

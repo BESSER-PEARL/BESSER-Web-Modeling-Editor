@@ -77,7 +77,18 @@ export enum BesserView {
   Highlight = "Highlight",
 }
 
-export type SvgExportMode = "web" | "compat"
+/**
+ * SVG export post-processing modes.
+ * - "web": keep CSS variables unresolved so the host page's current theme
+ *   drives colors (best for in-browser preview / copy-to-clipboard).
+ * - "compat": resolve CSS variables + inline attributes for non-browser
+ *   renderers (PowerPoint, Inkscape, resvg).
+ * - "standalone": resolve CSS variables to their current computed values and
+ *   inline an `<style>` block at the top of the `<svg>` so the file is
+ *   self-contained when downloaded (also adds an XML prolog). Default for
+ *   downloaded exports — see SA-FINAL-3 Tier 2 #8.
+ */
+export type SvgExportMode = "web" | "compat" | "standalone"
 
 export type BesserOptions = {
   type?: UMLDiagramType
@@ -124,6 +135,8 @@ export type ExportOptions = {
    * Controls how SVG output is post-processed.
    * - "web": keep CSS variables for theme-adaptive rendering in browsers
    * - "compat": resolve CSS variables + inline attributes for PowerPoint/Inkscape
+   * - "standalone": embed an inline `<style>` block with the current resolved
+   *   palette and prepend an XML prolog so the SVG file is self-contained.
    */
   svgMode?: SvgExportMode
 }

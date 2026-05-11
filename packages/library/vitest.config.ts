@@ -8,7 +8,16 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "lib"),
       "@/": resolve(__dirname, "lib/"),
+      // SA-FINAL-3 Tier 8 #13: force test + source to share a single React
+      // instance. `packages/library/node_modules/react` is 18.3.1 and
+      // `frontend/node_modules/react` is 18.2.0; without this alias the
+      // test imports React from one tree and the rendered component
+      // imports it from the other, so `useMemo` reads a `null` dispatcher
+      // and every <MultilineText> render test crashes (8 failures).
+      react: resolve(__dirname, "../../node_modules/react"),
+      "react-dom": resolve(__dirname, "../../node_modules/react-dom"),
     },
+    dedupe: ["react", "react-dom"],
   },
   test: {
     globals: true,

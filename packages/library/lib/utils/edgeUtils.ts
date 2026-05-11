@@ -233,6 +233,10 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     case "ComponentDependency":
     case "ClassDependency":
     case "DeploymentDependency":
+    // SA-FINAL-3 Tier 7 #26: CommentLink placeholder — render the
+    // dashed-dependency style so comment-to-element anchors look like
+    // their v3 counterpart. TODO: full inspector port (label, kind, etc).
+    case "CommentLink":
       return {
         markerPadding: EDGES.MARKER_PADDING,
         markerEnd: "url(#black-arrow)",

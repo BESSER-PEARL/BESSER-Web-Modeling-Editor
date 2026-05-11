@@ -16,7 +16,55 @@ const svgFontStyles = `
     }
   `
 
-type SvgExportMode = "web" | "compat"
+type SvgExportMode = "web" | "compat" | "standalone"
+
+/**
+ * SA-FINAL-3 Tier 2 #8: theme-portable SVG export. The "web" mode keeps the
+ * raw `var(--besser-*)` references — which is fine for in-browser preview /
+ * clipboard, but produces a broken file when downloaded and opened outside
+ * a `<html>` host that defines those vars. "standalone" snapshots the
+ * current computed values from `document.documentElement` and inlines them
+ * in a `<style>` block at the top of the `<svg>`.
+ *
+ * Variables listed here mirror the set referenced from library components
+ * (see `deep-css-dark-mode.md`). New vars added under `--besser-*` should
+ * be appended here so they're preserved in standalone exports.
+ */
+const STANDALONE_PALETTE_VARS = [
+  "--besser-primary",
+  "--besser-primary-contrast",
+  "--besser-secondary",
+  "--besser-background",
+  "--besser-background-variant",
+  "--besser-background-inverse",
+  "--besser-gray",
+  "--besser-gray-variant",
+  "--besser-grid",
+  "--besser-interactive-selection",
+  "--besser-guide-vertical",
+  "--besser-guide-horizontal",
+  "--besser-warning-yellow",
+  "--besser-text",
+  "--besser-text-muted",
+  "--besser-gray-700",
+  "--besser-sticky-fill",
+  "--besser-sticky-stroke",
+  "--besser-sticky-text",
+] as const
+
+function snapshotStandalonePalette(): string {
+  if (typeof document === "undefined" || !document.documentElement) return ""
+  const computed = getComputedStyle(document.documentElement)
+  const declarations: string[] = []
+  for (const cssVar of STANDALONE_PALETTE_VARS) {
+    const value = computed.getPropertyValue(cssVar).trim()
+    if (value) {
+      declarations.push(`  ${cssVar}: ${value};`)
+    }
+  }
+  if (declarations.length === 0) return ""
+  return `:root {\n${declarations.join("\n")}\n}\n`
+}
 
 type ExportFilterOptions = {
   include?: string[]
@@ -71,7 +119,11 @@ export const getSVG = (
   const width = clip.width
   const height = clip.height
 
-  const svgMode = options?.svgMode ?? "web"
+  // SA-FINAL-3 Tier 2 #8: default downloaded SVGs to "standalone" so the
+  // file is portable when opened outside the host page. Hosts that need the
+  // raw CSS-var output for in-browser preview / clipboard can still pass
+  // `svgMode: "web"` explicitly.
+  const svgMode = options?.svgMode ?? "standalone"
   const vp = container.querySelector(".react-flow__viewport")
 
   if (!vp) return emptySVG
@@ -82,7 +134,14 @@ export const getSVG = (
   const styleEl = document.createElementNS(SVG_NS, "style")
   // In web mode, keep CSS variables unresolved so the host app theme can drive
   // light/dark colors. Compat mode resolves variables to static values below.
-  styleEl.textContent = svgFontStyles
+  // Standalone mode prepends a snapshot of the current `--besser-*` palette so
+  // the downloaded file resolves correctly when opened outside the host page.
+  if (svgMode === "standalone") {
+    const paletteRule = snapshotStandalonePalette()
+    styleEl.textContent = `${paletteRule}${svgFontStyles}`
+  } else {
+    styleEl.textContent = svgFontStyles
+  }
   mainSVG.appendChild(styleEl)
   mainSVG.setAttribute("viewBox", `${clip.x} ${clip.y} ${width} ${height}`)
   mainSVG.setAttribute("width", `${width}`)
@@ -214,6 +273,13 @@ export const getSVG = (
     ensureTextFontDefaults(mainSVG)
     removeMarkerElements(mainSVG)
     replaceTextDecorationWithManualUnderline(mainSVG)
+  }
+
+  if (svgMode === "standalone") {
+    // Standalone files need an XML prolog so they're recognized as standalone
+    // SVG documents by external tooling. The `<style>` block embedded above
+    // already carries the resolved palette snapshot.
+    return `<?xml version="1.0" encoding="UTF-8"?>\n${mainSVG.outerHTML}`
   }
 
   return mainSVG.outerHTML

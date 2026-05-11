@@ -33,6 +33,12 @@ const defaultEdgeTypes = {
   // ClassLinkRel draws as a plain solid line.
   ClassOCLLink: ClassDiagramEdge,
   ClassLinkRel: ClassDiagramEdge,
+  // SA-FINAL-3 Tier 7 #26: CommentLink placeholder. v3 supported a dashed
+  // dependency-style arrow from a Comment to any element; the full
+  // inspector port is TODO, but exposing the type here lets users at
+  // least anchor a link from the now-visible Comment handles. The visual
+  // is the dashed-arrow `getEdgeMarkerStyles("CommentLink")` style.
+  CommentLink: ClassDiagramEdge,
 
   ActivityControlFlow: ActivityDiagramEdge,
 
@@ -111,6 +117,8 @@ export const edgeConfig = {
   // line (no markers, no roles).
   ClassOCLLink: { allowMidpointDragging: true },
   ClassLinkRel: { allowMidpointDragging: true },
+  // SA-FINAL-3 Tier 7 #26: placeholder Comment→element dashed link.
+  CommentLink: { allowMidpointDragging: true },
 
   // Activity edges - allow midpoint dragging
   ActivityControlFlow: { allowMidpointDragging: true },

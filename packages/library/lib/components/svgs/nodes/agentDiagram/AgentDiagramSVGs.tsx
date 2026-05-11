@@ -126,15 +126,31 @@ export const AgentRagElementSVG: React.FC<SVGComponentProps> = ({
         fill="#E8F0FF"
         stroke="#668"
       />
+      {/*
+        SA-FINAL-3 Tier 6 #22: palette ghost mirrors the canvas component —
+        "RAG DB" stereotype line near the top ellipse PLUS the resolved
+        display name ("RAG" by default) below it. Without the second line
+        the drag ghost looked empty under the cylinder.
+      */}
       <text
         x={width / 2}
-        y={height / 2 + 5}
+        y={height / 2 - 2}
+        textAnchor="middle"
+        fontSize={11}
+        fontStyle="italic"
+        fill="var(--besser-primary-contrast, #000)"
+      >
+        RAG DB
+      </text>
+      <text
+        x={width / 2}
+        y={height / 2 + 14}
         textAnchor="middle"
         fontSize={12}
         fontWeight="600"
         fill="var(--besser-primary-contrast, #000)"
       >
-        RAG DB
+        RAG
       </text>
     </svg>
   )

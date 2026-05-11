@@ -35,9 +35,13 @@ export const Sidebar = () => {
     "petriNetTransition",
   ])
 
-  if (dropElementConfigs[diagramType].length === 0) {
-    return null
-  }
+  // SA-FINAL-3 Tier 7 #27: previously short-circuited the entire sidebar
+  // whenever the active diagram had no palette entries — but the
+  // Comment-sticky-note ("always-on") palette section below still needs
+  // to render. Now we just stop emitting the diagram-specific block when
+  // it's empty (the `dropElementConfigs[diagramType].map(...)` loop
+  // naturally renders nothing in that case) and keep the Comment block.
+  const diagramPaletteConfigs = dropElementConfigs[diagramType] ?? []
 
   return (
     <aside
@@ -123,7 +127,7 @@ export const Sidebar = () => {
       )}
 
       {view === BesserView.Modelling &&
-        dropElementConfigs[diagramType].map((config, index) => {
+        diagramPaletteConfigs.map((config, index) => {
           const extraPreviewHeight = labelPreviewTypes.has(config.type)
             ? LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
             : 0

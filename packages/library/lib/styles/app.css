@@ -1,3 +1,35 @@
+/*
+ * SA-FINAL-3 Tier 2 #7: define the four CSS vars that were referenced from
+ * library components but never declared anywhere — `--besser-text`,
+ * `--besser-text-muted`, `--besser-warning-yellow`, `--besser-gray-700`. Also
+ * define the sticky-note family (`--besser-sticky-fill`, `-stroke`, `-text`)
+ * used by ClassOCLConstraint and Comment so dark mode flips them to a muted
+ * amber palette. Webapp's themings.json runtime setProperty still wins when
+ * the host sets a value; these are only fallbacks (and the place where dark
+ * variants live, since webapp's themings doesn't carry them yet).
+ */
+:root {
+  --besser-text: #212529;
+  --besser-text-muted: #6b7280;
+  --besser-warning-yellow: #f59e0b;
+  --besser-gray-700: #374151;
+  --besser-sticky-fill: #fff8c4;
+  --besser-sticky-stroke: #bda21f;
+  --besser-sticky-text: #3a2e00;
+}
+
+/* Dark-mode fallbacks — webapp toggles `dark` on documentElement. */
+html.dark,
+:root[data-theme="dark"] {
+  --besser-text: #ffffff;
+  --besser-text-muted: #94a3b8;
+  --besser-warning-yellow: #fbbf24;
+  --besser-gray-700: #cbd5e1;
+  --besser-sticky-fill: #3f3a20;
+  --besser-sticky-stroke: #bda21f;
+  --besser-sticky-text: #fef3c7;
+}
+
 .react-flow {
   --panel-background: var(--besser-background, #ffffff);
   --panel-shadow: 0 0 4px 0 var(--besser-background-variant, #f8f9fa);

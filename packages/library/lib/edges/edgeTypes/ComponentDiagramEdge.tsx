@@ -179,7 +179,7 @@ export const ComponentDiagramEdge = ({
                 cx={point.x}
                 cy={point.y}
                 r={10}
-                fill="lightgray"
+                fill="var(--besser-gray-variant, #adb5bd)"
                 stroke="none"
                 style={{ cursor: "grab", zIndex: 9999 }}
                 onPointerDown={(e) => handlePointerDown(e, midPointIndex)}

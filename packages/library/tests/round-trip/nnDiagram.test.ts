@@ -292,11 +292,11 @@ describe("SA-FIX-NN-DROPS: container drop validation", () => {
     expect(isParentNodeType("NNContainer")).toBe(true)
     expect(isParentNodeType("State")).toBe(true)
     expect(isParentNodeType("AgentIntent")).toBe(true)
-    // SA-FIX-Agent inlined AgentState bodies, but we still surface
-    // it as a parent type so `canDropIntoParent` can explicitly
-    // reject drops instead of falling through to the permissive
-    // default.
-    expect(isParentNodeType("AgentState")).toBe(true)
+    // SA-FINAL-3 Tier 5 #19: AgentState bodies are inlined on
+    // `data.bodies`, so AgentState is no longer surfaced as a parent
+    // here. The drop-handler in `DraggableGhost.tsx` short-circuits
+    // before reaching `canDropIntoParent("AgentState", …)`.
+    expect(isParentNodeType("AgentState")).toBe(false)
   })
 
   it("does not surface unrelated nodes as parent types", () => {

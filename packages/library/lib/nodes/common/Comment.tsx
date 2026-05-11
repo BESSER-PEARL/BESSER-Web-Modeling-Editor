@@ -85,9 +85,10 @@ export function Comment({
   const w = Math.max(width ?? 0, MIN_WIDTH)
   const h = Math.max(height ?? 0, MIN_HEIGHT)
 
-  const fillColor = data.fillColor || "#fff8c4"
-  const strokeColor = data.strokeColor || "#bda21f"
-  const textColor = data.textColor || "#3a2e00"
+  // SA-FINAL-3 Tier 2 #6: theme-portable sticky-note palette. See ClassOCLConstraint.
+  const fillColor = data.fillColor || "var(--besser-sticky-fill, #fff8c4)"
+  const strokeColor = data.strokeColor || "var(--besser-sticky-stroke, #bda21f)"
+  const textColor = data.textColor || "var(--besser-sticky-text, #3a2e00)"
 
   const bodyHeight = h - POINTER_HEIGHT
   const innerWidth = w - PADDING * 2
@@ -96,12 +97,15 @@ export function Comment({
   const maxLines = Math.max(1, Math.floor(innerHeight / 14))
   const lines = wrapText(data.name || "", charsPerLine, maxLines)
 
+  // SA-FINAL-3 Tier 7 #26: make Comment handles visible so the user can
+  // anchor a CommentLink dependency arrow to any element. Full CommentLink
+  // inspector port is TODO — for now the placeholder edge type is registered
+  // in `edges/edgeTypes/index.ts` and uses the dashed dependency style.
   return (
     <DefaultNodeWrapper
       width={w}
       height={h}
       elementId={id}
-      hiddenHandles={true}
     >
       <NodeToolbar elementId={id} />
       <NodeResizer

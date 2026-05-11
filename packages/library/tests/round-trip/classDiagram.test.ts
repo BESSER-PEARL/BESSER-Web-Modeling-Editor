@@ -449,13 +449,20 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
   it("SA-FIX-CLASS-FUND #4 + #5: ClassDiagram palette ships clean structured defaults", async () => {
     const { dropElementConfigs } = await import("@/constants")
     const cfg = dropElementConfigs["ClassDiagram"]
-    // Plain Class entry (empty attributes/methods).
+    // SA-FIX-CLASS-FUND #4: every palette Class entry now ships at least
+    // one starter attribute (`attribute: str`), matching the v3 default
+    // at `packages/editor/.../uml-class/uml-class.ts`. The old expectation
+    // of a "plain Class with empty attributes" entry was dropped in favour
+    // of the more useful "Class with 1 attribute (no methods)" preset —
+    // verify that one is present.
     const plain = cfg.find(
       (c) =>
         c.type === "class" &&
         (c.defaultData?.name as string | undefined) === "Class" &&
         Array.isArray(c.defaultData?.attributes) &&
-        (c.defaultData?.attributes as unknown[]).length === 0
+        (c.defaultData?.attributes as unknown[]).length >= 1 &&
+        Array.isArray(c.defaultData?.methods) &&
+        (c.defaultData?.methods as unknown[]).length === 0
     )
     expect(plain).toBeDefined()
     // Pre-populated "Class with attributes" entry.

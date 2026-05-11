@@ -199,15 +199,19 @@ export const ConfigurationSVG = buildLayerPreview(
   "#FCE4EC",
   "configuration.png"
 )
+// SA-FINAL-3 Tier 6 #23: palette preview labels match the canvas default
+// `data.name` ("TrainingDataset" / "TestDataset") so the drag ghost reads
+// the same text as the dropped card. Previously the ghost showed "Training"
+// / "Test" and the dropped card grew to "TrainingDataset" / "TestDataset".
 export const TrainingDatasetSVG = buildLayerPreview(
   "TrainingDataset",
-  "Training",
+  "TrainingDataset",
   "#E8F5E9",
   "train_data.png"
 )
 export const TestDatasetSVG = buildLayerPreview(
   "TestDataset",
-  "Test",
+  "TestDataset",
   "#FFEBEE",
   "test_data.png"
 )

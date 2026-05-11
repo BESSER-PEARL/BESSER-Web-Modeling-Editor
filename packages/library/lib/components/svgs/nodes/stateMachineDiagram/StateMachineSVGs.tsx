@@ -313,6 +313,11 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
       <text x={10} y={14} fontSize={10} fill="var(--besser-background, #ffffff)">
         python
       </text>
+      {/*
+        SA-FINAL-3 Tier 6 #24: palette preview shows a multi-line code snippet
+        rather than the literal "# code" placeholder, so the drag ghost
+        previews the same shape the dropped canvas card renders.
+      */}
       <text
         x={10}
         y={36}
@@ -320,7 +325,8 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
         fontFamily="monospace"
         fill="var(--besser-primary-contrast, #000)"
       >
-        # code
+        <tspan x={10} dy={0}>{"# Sample code"}</tspan>
+        <tspan x={10} dy={14}>{'print("Hello World")'}</tspan>
       </text>
     </svg>
   )

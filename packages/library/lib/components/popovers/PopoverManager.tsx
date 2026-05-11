@@ -185,6 +185,10 @@ type EdgePopoverType =
   | "AgentStateTransition"
   | "AgentStateTransitionInit"
   | "UserModelLink"
+  // SA-FINAL-3 Tier 7 #26: placeholder CommentLink (dashed dependency
+  // arrow from a Comment to any element). No inspector body yet — the
+  // edit/give/see-feedback registry treats this as "no popover".
+  | "CommentLink"
 
 type PopoverType = NodePopoverType | EdgePopoverType
 

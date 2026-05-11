@@ -519,11 +519,18 @@ describe("convertV3ToV4", () => {
       elements: { o1: parent, oa1: oa, om1: om },
     })
     const result = convertV3ToV4(data)
+    // The v3 standalone ObjectAttribute / ObjectMethod elements are
+    // collapsed onto the ObjectName parent (attributes) and dropped
+    // (methods — SA-FIX-OBJECT-DEEP: object diagrams don't carry methods).
     expect(result.nodes).toHaveLength(1)
     expect(result.nodes[0].id).toBe("o1")
     const nd = result.nodes[0].data
     expect(nd.attributes).toHaveLength(1)
-    expect(nd.methods).toHaveLength(1)
+    // SA-FIX-OBJECT-DEEP: ObjectMethod rows are intentionally dropped
+    // on import. The v4 ObjectName node no longer surfaces a `methods`
+    // field — the legacy expectation has been replaced with a check
+    // that the field is either missing or empty.
+    expect((nd.methods ?? []).length).toBe(0)
   })
 
   // --- Class stereotype mapping ---

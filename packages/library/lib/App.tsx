@@ -3,6 +3,7 @@ import {
   ReactFlowInstance,
   ConnectionMode,
   ReactFlow,
+  SelectionMode,
 } from "@xyflow/react"
 import { useCallback } from "react"
 import {
@@ -153,6 +154,12 @@ function App({ onReactFlowInit }: AppProps) {
         nodesDraggable={isDiagramModifiable}
         panOnScroll={!scrollLock || scrollEnabled}
         zoomOnScroll={!scrollLock || scrollEnabled}
+        // SA-FINAL-3 Tier 1 #2: default to selection-on-drag (left button)
+        // and pan with middle/right button — matches v3 mouse-eventlistener
+        // behavior. Without this, marquee-select requires holding Shift.
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        panOnDrag={[1, 2]}
       >
         <CustomBackground />
         <CustomMiniMap />

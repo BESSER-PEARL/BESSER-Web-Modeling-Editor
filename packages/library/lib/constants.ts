@@ -836,9 +836,11 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: BPMNDataStoreNodeSVG,
     },
     {
+      // SA-FINAL-3 Tier 6 #21: match the canvas's `minWidth=200, minHeight=120`
+      // so the dropped pool no longer balloons immediately after drop.
       type: "bpmnPool",
-      width: 160,
-      height: 80,
+      width: 200,
+      height: 120,
       defaultData: { name: "Pool" },
       svg: BPMNPoolNodeSVG,
     },
