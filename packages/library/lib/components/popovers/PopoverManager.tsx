@@ -123,15 +123,14 @@ type NodePopoverType =
   | "StateForkNode"
   | "StateForkNodeHorizontal"
   | "StateCodeBlock"
-  // SA-4: BESSER AgentDiagram + UserDiagram node types — same registry
-  // pattern as SA-3, type widening only. SA-FIX-Agent removed
-  // `AgentStateBody` / `AgentStateFallbackBody` — bodies live inline
-  // on the parent AgentState's `data.bodies` array.
+  // SA-4: BESSER AgentDiagram + UserDiagram node types. SA-FIX-Agent
+  // removed `AgentStateBody` / `AgentStateFallbackBody` — bodies live
+  // inline on the parent AgentState's `data.bodies` array. SA-FIX-INTENT-
+  // INLINE removed `AgentIntentBody` / `AgentIntentDescription` /
+  // `AgentIntentObjectComponent` — same story, training phrases /
+  // entity slots / description live inline on AgentIntent.data.
   | "AgentState"
   | "AgentIntent"
-  | "AgentIntentBody"
-  | "AgentIntentDescription"
-  | "AgentIntentObjectComponent"
   | "AgentRagElement"
   | "UserModelName"
   | "UserModelAttribute"

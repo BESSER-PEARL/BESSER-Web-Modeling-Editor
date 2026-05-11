@@ -391,11 +391,18 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 100,
+      height: 90,
       defaultData: {
         name: "Class",
         methods: [],
-        attributes: [],
+        attributes: [
+          {
+            id: generateUUID(),
+            name: "attribute",
+            visibility: "public",
+            attributeType: "str",
+          },
+        ],
       },
       svg: ClassSVG,
     },
