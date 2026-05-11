@@ -211,6 +211,11 @@ export const NNContainerSVG: React.FC<SVGComponentProps> = ({
 }) => {
   const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  // UML-package style preview: tab on top-left with the name, plain
+  // body below. Matches the canvas renderer in `NNContainer.tsx`.
+  const tabHeight = 20
+  const tabWidth = Math.min(width - 8, 80)
+  const stroke = "var(--besser-primary-contrast, #000)"
   return (
     <svg
       width={sw}
@@ -219,51 +224,35 @@ export const NNContainerSVG: React.FC<SVGComponentProps> = ({
       overflow="visible"
       {...svgAttributes}
     >
+      {/* Tab */}
       <rect
         x={0}
         y={0}
-        width={width}
-        height={height}
-        rx={8}
-        fill="#F5F5F5"
-        stroke="var(--besser-primary-contrast, #000)"
+        width={tabWidth}
+        height={tabHeight}
+        fill="white"
+        stroke={stroke}
         strokeWidth={1.5}
       />
       <text
-        x={width / 2}
-        y={20}
+        x={tabWidth / 2}
+        y={tabHeight / 2 + 4}
         textAnchor="middle"
-        fontSize={13}
+        fontSize={11}
         fontWeight="600"
-        fill="var(--besser-primary-contrast, #000)"
+        fill={stroke}
       >
         NNContainer
       </text>
-      <line
-        x1={0}
-        x2={width}
-        y1={28}
-        y2={28}
-        stroke="var(--besser-primary-contrast, #000)"
-      />
-      {/* hint of two stacked layers */}
+      {/* Body */}
       <rect
-        x={20}
-        y={40}
-        width={width - 40}
-        height={18}
-        rx={4}
+        x={0}
+        y={tabHeight}
+        width={width}
+        height={height - tabHeight}
         fill="white"
-        stroke="#999"
-      />
-      <rect
-        x={20}
-        y={66}
-        width={width - 40}
-        height={18}
-        rx={4}
-        fill="white"
-        stroke="#999"
+        stroke={stroke}
+        strokeWidth={1.5}
       />
     </svg>
   )

@@ -11,16 +11,13 @@ import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * `NNContainer` — parent node for a sequential layer stack. v3
- * source: `packages/editor/src/main/packages/nn-diagram/nn-container/`.
- * Children attach via React Flow `parentId = container.id`. The
- * container's `data` carries the model name and (optionally) an
- * `entryLayerId` indicating which layer is the input side.
+ * `NNContainer` — UML-package-style parent node for a sequential layer
+ * stack. A small "tab" sits on the top-left carrying the model name;
+ * the body below holds the layers / TensorOps / NNReferences attached
+ * via React-Flow `parentId`.
  *
- * Visual: large rounded rectangle with a header bar and a thin border.
- * Layers are rendered as separate React-Flow nodes inside the container
- * so the user can drag-resize / reorder them with native React-Flow
- * interactions.
+ * Plain rectangle, no shadow, no tint. The tab visually anchors the
+ * name without competing with the children rendered inside the body.
  */
 export function NNContainer({
   id,
@@ -37,13 +34,22 @@ export function NNContainer({
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
   const { name } = data
-  const containerFill = !data.fillColor ? "#F5F5F5" : fillColor
-  const cornerRadius = 8
-  const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
+  const containerFill = !data.fillColor ? "#FFFFFF" : fillColor
+  const borderWidth = LAYOUT.LINE_WIDTH
 
-  // Show a helper hint inside the container body when no child layer /
-  // TensorOp has been dropped yet. Subscribe to the node list so the
-  // hint disappears as soon as the user attaches a child.
+  // Tab metrics — fits the name plus a little side padding. The body
+  // rectangle sits below; the tab visually overlaps its top-left edge
+  // by 1 px so the strokes merge cleanly.
+  const tabHeight = 24
+  const namePadding = 18
+  // Rough char width approximation; SVG renders monospaceish, this is
+  // generous enough that tabs widen to fit longer names without
+  // clipping. Capped so a long name doesn't push the tab beyond the
+  // body width.
+  const approxNameWidth = Math.max(name?.length ?? 0, 4) * 7.5
+  const tabWidth = Math.min(width - 8, namePadding + approxNameWidth)
+  const bodyTop = tabHeight
+
   const hasChildren = useDiagramStore((s) =>
     s.nodes.some((n) => n.parentId === id)
   )
@@ -55,8 +61,7 @@ export function NNContainer({
   ]
   const hintLineHeight = 18
   const hintBlockHeight = hintLines.length * hintLineHeight
-  const hintTopY =
-    headerHeight + (height - headerHeight - hintBlockHeight) / 2 + 14
+  const hintTopY = bodyTop + (height - bodyTop - hintBlockHeight) / 2 + 14
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
@@ -75,35 +80,39 @@ export function NNContainer({
           viewBox={`0 0 ${width} ${height}`}
           overflow="visible"
         >
+          {/* Name tab (top-left). Drawn first so the body stroke
+              overlaps the tab's bottom edge, hiding the seam. */}
           <rect
             x={0}
             y={0}
-            width={width}
-            height={height}
-            rx={cornerRadius}
-            ry={cornerRadius}
+            width={tabWidth}
+            height={tabHeight}
             fill={containerFill}
             stroke={strokeColor}
-            strokeWidth={LAYOUT.LINE_WIDTH}
+            strokeWidth={borderWidth}
           />
           <text
-            x={width / 2}
-            y={26}
+            x={tabWidth / 2}
+            y={tabHeight / 2 + 5}
             textAnchor="middle"
-            fontSize={LAYOUT.NAME_FONT_SIZE}
+            fontSize={LAYOUT.NAME_FONT_SIZE - 2}
             fontWeight="600"
             fill={textColor}
           >
             {name}
           </text>
-          <line
-            x1={0}
-            x2={width}
-            y1={headerHeight}
-            y2={headerHeight}
+
+          {/* Container body */}
+          <rect
+            x={0}
+            y={bodyTop}
+            width={width}
+            height={height - bodyTop}
+            fill={containerFill}
             stroke={strokeColor}
-            strokeWidth={1}
+            strokeWidth={borderWidth}
           />
+
           {!hasChildren &&
             hintLines.map((line, i) => (
               <text

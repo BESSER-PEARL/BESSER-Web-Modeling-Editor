@@ -6,16 +6,12 @@
   "nodes": [
     {
       "id": "class_oho5ergc3_mjikkmod",
+      "width": 270,
+      "height": 250,
       "type": "class",
       "position": {
-        "x": 571,
-        "y": 197
-      },
-      "width": 240,
-      "height": 215,
-      "measured": {
-        "width": 240,
-        "height": 215
+        "x": 570,
+        "y": 200
       },
       "data": {
         "name": "Book",
@@ -107,20 +103,19 @@
             "isExternalId": false
           }
         ]
+      },
+      "measured": {
+        "width": 270
       }
     },
     {
       "id": "class_06blhjj3h_mjikkmod",
+      "width": 350,
+      "height": 190,
       "type": "class",
       "position": {
         "x": 731.0000406901042,
         "y": 584.6666564941406
-      },
-      "width": 350,
-      "height": 185,
-      "measured": {
-        "width": 350,
-        "height": 185
       },
       "data": {
         "name": "Library",
@@ -188,20 +183,20 @@
             "isExternalId": false
           }
         ]
+      },
+      "measured": {
+        "width": 350,
+        "height": 190
       }
     },
     {
       "id": "class_d3f0di6lb_mjikkmoe",
+      "width": 220,
+      "height": 100,
       "type": "class",
       "position": {
-        "x": 1014,
-        "y": 340
-      },
-      "width": 220,
-      "height": 95,
-      "measured": {
-        "width": 220,
-        "height": 95
+        "x": 1020,
+        "y": 275
       },
       "data": {
         "name": "Author",
@@ -232,20 +227,20 @@
             "isExternalId": false
           }
         ]
+      },
+      "measured": {
+        "width": 220,
+        "height": 100
       }
     },
     {
       "id": "50ffa27f-f8a9-438b-b81b-174266f39952",
+      "width": 160,
+      "height": 350,
       "type": "class",
       "position": {
         "x": 1204,
         "y": 456
-      },
-      "width": 160,
-      "height": 350,
-      "measured": {
-        "width": 160,
-        "height": 350
       },
       "data": {
         "name": "Genre",
@@ -255,333 +250,277 @@
             "id": "bfadf7ef-e6a4-43e3-b267-672be745c9c7",
             "name": "Poetry",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "15d10eca-11e8-4894-8b27-d815dbc62596",
             "name": "Thriller",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "55346119-1f08-48c5-9629-b5223ea766e0",
             "name": "History",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "67e73142-470c-4795-8864-96f08365ce49",
             "name": "Technology",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "4ba07b68-1fd2-40fc-ad63-05766965aaad",
             "name": "Romance",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "52114e47-c8c1-404a-847c-0b877de007e0",
             "name": "Horror",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "65937dfa-011b-425e-a292-7d66dff5cd36",
             "name": "Adventure",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "994869fb-9b98-450f-add4-a2ee88a15c7f",
             "name": "Philosophy",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "45fa6842-da64-4878-b875-c536f06f1d50",
             "name": "Cookbooks",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           },
           {
             "id": "6d81aaec-327a-42b9-89db-a17e54bb7b5a",
             "name": "Fantasy",
             "visibility": "public",
-            "attributeType": "str",
-            "code": "",
-            "implementationType": "none",
-            "isOptional": false,
-            "isDerived": false,
-            "isId": false,
-            "isExternalId": false
+            "attributeType": "str"
           }
         ],
         "stereotype": "Enumeration"
+      },
+      "measured": {
+        "width": 160,
+        "height": 350
       }
     },
     {
       "id": "ocl-example-00",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 46,
-        "y": 148
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 40,
+        "y": 180
       },
       "data": {
         "name": "",
         "expression": "context Book inv book_positive_pages: self.pages > 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-01",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 48,
-        "y": 258
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 40,
+        "y": 280
       },
       "data": {
         "name": "",
         "expression": "context Book inv book_nonneg_stock: self.stock >= 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-02",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 46,
-        "y": 364
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 40,
+        "y": 380
       },
       "data": {
         "name": "",
         "expression": "context Book inv book_nonneg_price: self.price >= 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-03",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 40,
-        "y": 40
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 40,
+        "y": 80
       },
       "data": {
         "name": "",
         "expression": "context Book inv book_has_title: self.title.size() > 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-04",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 941,
-        "y": 812
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 975,
+        "y": 840
       },
       "data": {
         "name": "",
         "expression": "context Library inv library_named: self.name.size() > 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-05",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 655,
-        "y": 805
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 635,
+        "y": 840
       },
       "data": {
         "name": "",
         "expression": "context Library inv library_has_books: self.books->size() > 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-06",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 1022,
-        "y": 144
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 1025,
+        "y": 145
       },
       "data": {
         "name": "",
         "expression": "context Author inv author_named: self.name.size() > 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-07",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 43,
-        "y": 580
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 40,
+        "y": 580
       },
       "data": {
         "name": "",
         "expression": "context Book::decrease_stock(qty: int) pre: qty > 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-08",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 45,
-        "y": 471
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 40,
+        "y": 480
       },
       "data": {
         "name": "",
         "expression": "context Book::decrease_stock(qty: int) pre: self.stock >= qty",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-09",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 46,
-        "y": 772
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 40,
+        "y": 685
       },
       "data": {
         "name": "",
         "expression": "context Book::decrease_stock(qty: int) post: self.stock >= 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     },
     {
       "id": "ocl-example-10",
-      "type": "classoclconstraint",
-      "position": {
-        "x": 802,
-        "y": 934
-      },
       "width": 210,
       "height": 90,
-      "measured": {
-        "width": 210,
-        "height": 90
+      "type": "ClassOCLConstraint",
+      "position": {
+        "x": 800,
+        "y": 940
       },
       "data": {
         "name": "",
         "expression": "context Library::cheapest_book_by(author: Author) pre: self.books->size() > 0",
         "description": ""
+      },
+      "measured": {
+        "width": 210,
+        "height": 90
       }
     }
   ],
@@ -633,12 +572,6 @@
       "targetHandle": "left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -651,12 +584,6 @@
       "targetHandle": "left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -669,12 +596,6 @@
       "targetHandle": "left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -687,12 +608,6 @@
       "targetHandle": "left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -702,15 +617,9 @@
       "target": "class_06blhjj3h_mjikkmod",
       "type": "ClassOCLLink",
       "sourceHandle": "top",
-      "targetHandle": "bottom",
+      "targetHandle": "bottom-right",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -723,12 +632,6 @@
       "targetHandle": "bottom-left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -741,12 +644,6 @@
       "targetHandle": "top",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -759,12 +656,6 @@
       "targetHandle": "left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -777,12 +668,6 @@
       "targetHandle": "left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -795,12 +680,6 @@
       "targetHandle": "left",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     },
@@ -813,12 +692,6 @@
       "targetHandle": "bottom",
       "data": {
         "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
         "points": []
       }
     }
