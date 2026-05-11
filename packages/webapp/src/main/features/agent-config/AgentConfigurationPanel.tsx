@@ -1495,7 +1495,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Agent Configuration</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Agent Customization</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Tailor your agent to a specific user profile from the User Diagram. Adjust how it talks, looks, and behaves to match that audience, then save the result as a named configuration you can switch between later.
           </p>
@@ -1537,24 +1537,24 @@ export const AgentConfigurationPanel: React.FC = () => {
         {activeTab === 'personalization' && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2">
             <span className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Load a saved configuration
+              Load a saved customization
             </span>
             {activeConfigId && (
-              <Badge variant="secondary" title={activeConfigName || 'Unnamed configuration'}>
+              <Badge variant="secondary" title={activeConfigName || 'Unnamed customization'}>
                 <span className="block max-w-[180px] truncate">
                   Active: {activeConfigName || 'Unnamed'}
                 </span>
               </Badge>
             )}
             <select
-              aria-label="Load a saved configuration"
+              aria-label="Load a saved customization"
               className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
               value={selectedConfigId}
               onChange={(event) => setSelectedConfigId(event.target.value)}
               disabled={savedConfigs.length === 0}
             >
               <option value="">
-                {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a saved configuration'}
+                {savedConfigs.length === 0 ? 'No saved customizations yet' : 'Select a saved customization'}
               </option>
               {savedConfigs.map((entry) => (
                 <option key={entry.id} value={entry.id}>
@@ -2215,14 +2215,14 @@ export const AgentConfigurationPanel: React.FC = () => {
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Save this configuration</CardTitle>
+                <CardTitle>Save this customization</CardTitle>
                 <CardDescription>
-                  When you're done filling in the form above, name your configuration and save it here. Saved configurations show up in the "Load a saved configuration" picker at the top of the page so you can switch between them later.
+                  When you're done filling in the form above, name your customization and save it here. Saved customizations show up in the "Load a saved customization" picker at the top of the page so you can switch between them later.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="configuration-name">Configuration Name</Label>
+                  <Label htmlFor="configuration-name">Customization Name</Label>
                   <Input
                     id="configuration-name"
                     value={configurationName}
@@ -2232,15 +2232,15 @@ export const AgentConfigurationPanel: React.FC = () => {
                   {activeConfigId ? (
                     <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                       <Badge variant="secondary">Active</Badge>
-                      <span>{activeConfigName || 'Unnamed configuration'}</span>
+                      <span>{activeConfigName || 'Unnamed customization'}</span>
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Not linked to a saved configuration yet.</p>
+                    <p className="text-xs text-muted-foreground">Not linked to a saved customization yet.</p>
                   )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="saved-configurations">Saved Configurations</Label>
+                  <Label htmlFor="saved-configurations">Saved Customizations</Label>
                   <select
                     id="saved-configurations"
                     className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -2249,7 +2249,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     disabled={savedConfigs.length === 0}
                   >
                     <option value="">
-                      {savedConfigs.length === 0 ? 'No saved configurations yet' : 'Select a configuration'}
+                      {savedConfigs.length === 0 ? 'No saved customizations yet' : 'Select a customization'}
                     </option>
                     {savedConfigs.map((entry) => (
                       <option key={entry.id} value={entry.id}>
