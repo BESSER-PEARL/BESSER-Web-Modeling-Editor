@@ -846,9 +846,37 @@ export const getDefaultEdgeType = (
       return "CommunicationLink"
     case "PetriNet":
       return "PetriNetArc"
+    case "NNDiagram":
+      return "NNNext"
     default:
       return "ClassUnidirectional"
   }
+}
+
+/**
+ * Auto-detect the NNDiagram edge type from its endpoints. Configuration
+ * → NNContainer is a composition (diamond on the Configuration side, v3
+ * `NNComposition`); TrainingDataset / TestDataset → NNContainer is the
+ * association line (`NNAssociation`); everything else (layer → layer,
+ * TensorOp → layer) is the standard `NNNext` flow arrow.
+ */
+export const resolveNNEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType => {
+  if (!sourceType || !targetType) return fallback
+  const containerTouching =
+    sourceType === "NNContainer" || targetType === "NNContainer"
+  if (!containerTouching) return fallback
+  const datasetTypes = new Set(["TrainingDataset", "TestDataset"])
+  if (sourceType === "Configuration" || targetType === "Configuration") {
+    return "NNComposition"
+  }
+  if (datasetTypes.has(sourceType) || datasetTypes.has(targetType)) {
+    return "NNAssociation"
+  }
+  return fallback
 }
 
 /**

@@ -10,7 +10,12 @@ import {
   IsValidConnection,
 } from "@xyflow/react"
 import { useCallback, useRef } from "react"
-import { findClosestHandle, generateUUID, getDefaultEdgeType } from "@/utils"
+import {
+  findClosestHandle,
+  generateUUID,
+  getDefaultEdgeType,
+  resolveNNEdgeType,
+} from "@/utils"
 import { canConnectEndpoints } from "@/utils/bpmnConstraints"
 import { DiagramNodeTypeRecord } from "@/nodes"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
@@ -139,13 +144,27 @@ export const useConnect = () => {
       }
       // ClassDiagram-only auto-detect: if either endpoint
       // is an OCL constraint node, force `ClassOCLLink`; otherwise use
-      // the diagram default edge type.
+      // the diagram default edge type. NNDiagram auto-detect:
+      // Configuration ↔ NNContainer is a composition, Dataset ↔
+      // NNContainer is an association; everything else uses NNNext.
       const sourceType = nodes.find((n) => n.id === connection.source)?.type
       const targetType = nodes.find((n) => n.id === connection.target)?.type
-      const resolvedType =
-        diagramType === "ClassDiagram"
-          ? resolveClassEdgeType(sourceType, targetType, defaultEdgeType)
-          : defaultEdgeType
+      let resolvedType: typeof defaultEdgeType
+      if (diagramType === "ClassDiagram") {
+        resolvedType = resolveClassEdgeType(
+          sourceType,
+          targetType,
+          defaultEdgeType
+        )
+      } else if (diagramType === "NNDiagram") {
+        resolvedType = resolveNNEdgeType(
+          sourceType,
+          targetType,
+          defaultEdgeType
+        )
+      } else {
+        resolvedType = defaultEdgeType
+      }
       const newEdge: Edge = {
         ...connection,
         id: generateUUID(),
@@ -259,14 +278,22 @@ export const useConnect = () => {
           // Same auto-detect logic as `onConnect`.
           const sourceTypeOnEnd = nodes.find((n) => n.id === sourceNodeId)?.type
           const targetTypeOnEnd = nodeOnTop.type
-          const resolvedTypeOnEnd =
-            diagramType === "ClassDiagram"
-              ? resolveClassEdgeType(
-                  sourceTypeOnEnd,
-                  targetTypeOnEnd,
-                  defaultEdgeType
-                )
-              : defaultEdgeType
+          let resolvedTypeOnEnd: typeof defaultEdgeType
+          if (diagramType === "ClassDiagram") {
+            resolvedTypeOnEnd = resolveClassEdgeType(
+              sourceTypeOnEnd,
+              targetTypeOnEnd,
+              defaultEdgeType
+            )
+          } else if (diagramType === "NNDiagram") {
+            resolvedTypeOnEnd = resolveNNEdgeType(
+              sourceTypeOnEnd,
+              targetTypeOnEnd,
+              defaultEdgeType
+            )
+          } else {
+            resolvedTypeOnEnd = defaultEdgeType
+          }
           setEdges((eds) =>
             eds.concat({
               id: generateUUID(),
