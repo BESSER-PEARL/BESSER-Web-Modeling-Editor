@@ -118,3 +118,4 @@ packages/webapp2/dist/*
 
 # Personal
 .adem/
+.claude/
