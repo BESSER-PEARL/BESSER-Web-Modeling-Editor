@@ -18,7 +18,8 @@
         "height": 100
       },
       "data": {
-        "name": "teamCenter"
+        "name": "teamCenter",
+        "expression": "context Team inv inv2: self.players-> collect(p:Player| p.position = 'center')->size()<3"
       }
     },
     {
@@ -117,7 +118,8 @@
         "height": 100
       },
       "data": {
-        "name": "playerAge"
+        "name": "playerAge",
+        "expression": "context Player inv inv1: self.age > 10"
       }
     }
   ],

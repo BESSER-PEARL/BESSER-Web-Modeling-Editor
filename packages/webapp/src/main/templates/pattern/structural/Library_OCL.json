@@ -389,7 +389,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book inv book_positive_pages: self.pages > 0",
+        "description": ""
       }
     },
     {
@@ -406,7 +408,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book inv book_nonneg_stock: self.stock >= 0",
+        "description": ""
       }
     },
     {
@@ -423,7 +427,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book inv book_nonneg_price: self.price >= 0",
+        "description": ""
       }
     },
     {
@@ -440,7 +446,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book inv book_has_title: self.title.size() > 0",
+        "description": ""
       }
     },
     {
@@ -457,7 +465,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Library inv library_named: self.name.size() > 0",
+        "description": ""
       }
     },
     {
@@ -474,7 +484,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Library inv library_has_books: self.books->size() > 0",
+        "description": ""
       }
     },
     {
@@ -491,7 +503,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Author inv author_named: self.name.size() > 0",
+        "description": ""
       }
     },
     {
@@ -508,7 +522,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book::decrease_stock(qty: int) pre: qty > 0",
+        "description": ""
       }
     },
     {
@@ -525,7 +541,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book::decrease_stock(qty: int) pre: self.stock >= qty",
+        "description": ""
       }
     },
     {
@@ -542,7 +560,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book::decrease_stock(qty: int) post: self.stock >= 0",
+        "description": ""
       }
     },
     {
@@ -559,7 +579,9 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Library::cheapest_book_by(author: Author) pre: self.books->size() > 0",
+        "description": ""
       }
     }
   ],

@@ -316,7 +316,8 @@
         "height": 90
       },
       "data": {
-        "name": ""
+        "name": "",
+        "expression": "context Book inv inv1: self.pages> 10"
       }
     }
   ],
