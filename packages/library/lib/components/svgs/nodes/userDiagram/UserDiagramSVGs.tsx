@@ -138,11 +138,11 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   // Touch the settings store once so call sites that flipped it before
   // Don't accidentally bring down the subscription.
   useSettingsStore((s) => s.showIconView)
-  const view = data.view ?? "icon"
-  const iconViewActive = view === "icon"
-  // Header label per v3: instance name plus optional ` : className`.
-  const headerLabel = className ? `${name} : ${className}` : name
-  const iconBody = iconViewActive ? resolveIconBody(data) : ""
+  // v3 parity: UserDiagram nodes always render as icon, header is just
+  // the instance name (no `: className` suffix).
+  const iconViewActive = true
+  const headerLabel = name
+  const iconBody = resolveIconBody(data)
 
   return (
     <svg

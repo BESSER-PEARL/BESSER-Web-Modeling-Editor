@@ -60,9 +60,10 @@ export function UserModelName({
   data,
 }: NodeProps<Node<UserModelNameNodeProps>>) {
   const { attributes, name, className } = data
-  // Per-node `view` — default to `"icon"` (v3 preferred
-  // preview). The class-style attribute table is opt-in via the inspector.
-  const view = data.view ?? "icon"
+  // v3 parity: UserDiagram nodes always render as an icon. The class-style
+  // attribute table is not exposed. `data.view` is preserved for
+  // round-trip but ignored at render time.
+  const view = "icon" as const
   const displayAttributes = useMemo(
     () => attributes.map(formatUserModelAttributeForDisplay),
     [attributes]
@@ -82,11 +83,10 @@ export function UserModelName({
   const padding = LAYOUT.DEFAULT_PADDING
   const font = LAYOUT.DEFAULT_FONT
 
-  // Header label is the instance name plus optional `: className` suffix
-  // (v3 visual). Use that for sizing.
-  const headerLabel = useMemo(() => {
-    return className ? `${name} : ${className}` : name
-  }, [name, className])
+  // v3 parity: the header is just the instance name. The classId/className
+  // link is kept in data for round-trip with the meta-model but is not
+  // shown in the header.
+  const headerLabel = useMemo(() => name, [name])
 
   const maxTextWidth = useMemo(() => {
     const headerTextWidth = measureTextWidth(headerLabel, font)

@@ -410,45 +410,6 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
     update({ [key]: value } as Partial<UserModelNameNodeProps>)
   }
 
-  /**
-   * Class-picker handler. v3 `onClassChange` reset the attributes,
-   * stamped fresh ones from the class definition, and updated
-   * `classId` / `className`. We do the same — but the source of truth
-   * is the user-meta-model JSON, not the ClassDiagram bridge.
-   */
-  const onClassChange = (className: string) => {
-    if (!className) {
-      update({
-        classId: undefined,
-        className: undefined,
-        attributes: [],
-      })
-      return
-    }
-    const meta = metaCtx.classes.find((c) => c.name === className)
-    if (!meta) {
-      update({ className })
-      return
-    }
-    const newAttrs: UserModelAttributeRow[] = meta.attributes.map((a) => {
-      const isPrim = PRIMITIVE_TYPE_NAMES.has(a.attributeType.toLowerCase())
-      return {
-        id: generateUUID(),
-        name: a.name,
-        attributeType: isPrim ? a.attributeType : "",
-        // Link to the meta-attribute so the inspector can resolve enum
-        // literals + type when it isn't a primitive.
-        attributeId: a.id,
-        attributeOperator: "==",
-      }
-    })
-    update({
-      classId: meta.id,
-      className: meta.name,
-      attributes: newAttrs,
-    })
-  }
-
   const setAttribute = (
     idx: number,
     patch: Partial<UserModelAttributeRow>
@@ -486,39 +447,6 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
       />
       <DividerLine width="100%" />
 
-      {/* Per-node `view` toggle. v3 surfaced this as a
-          global setting; v4 owns it on the node so different cards on
-          the same diagram can pick independently. Defaults to `"icon"`
-          (matches the v3 preferred preview). */}
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <InspectorSectionHeader sx={{ minWidth: 50 }}>
-          view
-        </InspectorSectionHeader>
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={data.view ?? "icon"}
-          onChange={(_e, next) => {
-            // MUI emits `null` when the active button is clicked again.
-            // Ignore that so the toggle always has a value.
-            if (next === "icon" || next === "attributes") {
-              update({ view: next })
-            }
-          }}
-          sx={{ flex: 1 }}
-        >
-          <ToggleButton value="icon" sx={{ flex: 1, textTransform: "none" }}>
-            Icon
-          </ToggleButton>
-          <ToggleButton
-            value="attributes"
-            sx={{ flex: 1, textTransform: "none" }}
-          >
-            Attributes
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Stack>
-
       <MuiTextField
         size="small"
         variant="outlined"
@@ -528,29 +456,12 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         onChange={(e) => update({ name: e.target.value })}
       />
 
-      {/* Class picker driven by the user-meta-model JSON. */}
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Typography variant="caption" sx={{ minWidth: 70 }}>
-          class
-        </Typography>
-        <Select
-          size="small"
-          value={data.className ?? ""}
-          onChange={(e) => onClassChange(String(e.target.value))}
-          displayEmpty
-          sx={{ flex: 1 }}
-        >
-          <MenuItem value="">— no class —</MenuItem>
-          {metaCtx.classes.map((c) => (
-            <MenuItem key={c.id} value={c.name}>
-              {c.name}
-              {c.attributes.length > 0
-                ? ` (${c.attributes.length} attrs)`
-                : ""}
-            </MenuItem>
-          ))}
-        </Select>
-      </Stack>
+      {/* v3 parity: no class selector and no Icon/Attributes view toggle.
+          UserDiagram nodes always render as an icon, and the class link
+          is bound to the meta-model entry that produced the palette card
+          (set at drop time). `data.classId` / `data.className` /
+          `data.view` are preserved in the type for round-trip but not
+          editable here. */}
 
       {/* Description collapsed behind a Metadata
           Accordion so the panel doesn't burn vertical real estate when
