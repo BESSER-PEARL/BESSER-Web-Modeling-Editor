@@ -66,18 +66,34 @@ const renderRow = (
       </foreignObject>
     )
   }
+  // Use foreignObject for non-code rows too so long reply text clips
+  // with an ellipsis at the node boundary instead of spilling outside
+  // the rounded rectangle (user report 2025-05).
   return (
-    <text
+    <foreignObject
       key={body.id}
-      x={10}
-      y={y + ROW_HEIGHT / 2 + 5}
-      textAnchor="start"
-      fontSize={LAYOUT.NAME_FONT_SIZE - 2}
-      fill={textColor}
-      fontStyle={body.kind === "fallback" ? "italic" : undefined}
+      x={0}
+      y={y}
+      width={width}
+      height={ROW_HEIGHT}
     >
-      {labelText}
-    </text>
+      <div
+        style={{
+          fontSize: LAYOUT.NAME_FONT_SIZE - 2,
+          color: textColor,
+          padding: "0 10px",
+          height: ROW_HEIGHT,
+          lineHeight: `${ROW_HEIGHT}px`,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          fontStyle: body.kind === "fallback" ? "italic" : undefined,
+        }}
+        title={labelText}
+      >
+        {labelText}
+      </div>
+    </foreignObject>
   )
 }
 

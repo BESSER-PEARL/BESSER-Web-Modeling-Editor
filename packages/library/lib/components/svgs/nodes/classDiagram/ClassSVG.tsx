@@ -60,6 +60,19 @@ export const ClassSVG = ({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
+  // Palette-preview hint: when the ghost has no rows, render "+ attribute"
+  // / "+ method" as muted placeholder text so the sidebar entry reads as
+  // an invitation to add, not an empty box. On canvas (no
+  // SIDEBAR_PREVIEW_SCALE) empty sections stay empty.
+  const isPreview = !!SIDEBAR_PREVIEW_SCALE
+  const showAttributeHint = isPreview && attributes.length === 0
+  const showMethodHint =
+    isPreview && !isEnumeration && methods.length === 0
+  const hintFill =
+    typeof textColor === "string"
+      ? `color-mix(in srgb, ${textColor} 55%, transparent)`
+      : textColor
+
   return (
     <svg
       width={scaledWidth}
@@ -113,6 +126,17 @@ export const ClassSVG = ({
               showAssessmentResults={showAssessmentResults}
               itemElementType="attribute"
             />
+            {showAttributeHint && (
+              <text
+                x={padding}
+                y={headerHeight + 15}
+                dominantBaseline="middle"
+                fontStyle="italic"
+                fill={hintFill}
+              >
+                + attribute
+              </text>
+            )}
           </>
         )}
 
@@ -121,7 +145,11 @@ export const ClassSVG = ({
         {!isEnumeration && methods.length >= 0 && (
           <>
             <SeparationLine
-              y={headerHeight + attributes.length * attributeHeight}
+              y={
+                headerHeight +
+                Math.max(attributes.length, showAttributeHint ? 1 : 0) *
+                  attributeHeight
+              }
               width={width}
               strokeColor={strokeColor}
             />
@@ -130,10 +158,30 @@ export const ClassSVG = ({
               padding={padding}
               itemHeight={methodHeight}
               width={width}
-              offsetFromTop={headerHeight + attributes.length * attributeHeight}
+              offsetFromTop={
+                headerHeight +
+                Math.max(attributes.length, showAttributeHint ? 1 : 0) *
+                  attributeHeight
+              }
               showAssessmentResults={showAssessmentResults}
               itemElementType="method"
             />
+            {showMethodHint && (
+              <text
+                x={padding}
+                y={
+                  headerHeight +
+                  Math.max(attributes.length, showAttributeHint ? 1 : 0) *
+                    attributeHeight +
+                  15
+                }
+                dominantBaseline="middle"
+                fontStyle="italic"
+                fill={hintFill}
+              >
+                + method
+              </text>
+            )}
           </>
         )}
 

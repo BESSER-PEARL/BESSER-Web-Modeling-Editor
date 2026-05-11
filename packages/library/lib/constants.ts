@@ -53,13 +53,8 @@ import {
 import { ReachabilityGraphMarkingSVG } from "@/components/svgs/nodes/reachabilityGraphDiagram/ReachabilityGraphMarkingSVG"
 import {
   StateSVG,
-  StateActionNodeSVG,
-  StateObjectNodeSVG,
   StateInitialNodeSVG,
   StateFinalNodeSVG,
-  StateMergeNodeSVG,
-  StateForkNodeSVG,
-  StateForkNodeHorizontalSVG,
   StateCodeBlockSVG,
 } from "@/components/svgs/nodes/stateMachineDiagram"
 // SA-4 / SA-FIX-AGENT-OCL: AgentDiagram + UserDiagram palette previews.
@@ -397,18 +392,11 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 90,
+      height: 100,
       defaultData: {
         name: "Class",
         methods: [],
-        attributes: [
-          {
-            id: generateUUID(),
-            name: "attribute",
-            visibility: "public",
-            attributeType: "str",
-          },
-        ],
+        attributes: [],
       },
       svg: ClassSVG,
     },
@@ -874,41 +862,11 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "" },
       svg: StateFinalNodeSVG,
     },
-    {
-      type: "StateActionNode" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 50,
-      defaultData: { name: "Action" },
-      svg: StateActionNodeSVG,
-    },
-    {
-      type: "StateObjectNode" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 50,
-      defaultData: { name: "Object" },
-      svg: StateObjectNodeSVG,
-    },
-    {
-      type: "StateMergeNode" as never,
-      width: 80,
-      height: 80,
-      defaultData: { name: "" },
-      svg: StateMergeNodeSVG,
-    },
-    {
-      type: "StateForkNode" as never,
-      width: 20,
-      height: 60,
-      defaultData: { name: "" },
-      svg: StateForkNodeSVG,
-    },
-    {
-      type: "StateForkNodeHorizontal" as never,
-      width: 60,
-      height: 20,
-      defaultData: { name: "" },
-      svg: StateForkNodeHorizontalSVG,
-    },
+    // Per user (2025-05): drop StateActionNode / StateObjectNode /
+    // StateMergeNode / StateForkNode / StateForkNodeHorizontal from the
+    // StateMachineDiagram palette. The v3 BESSER state metamodel did not
+    // expose these; their node implementations remain in the codebase so
+    // existing models that reference them still render.
     {
       type: "StateCodeBlock" as never,
       width: 200,
@@ -957,22 +915,16 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "RAG" },
       svg: AgentRagElementSVG,
     },
-    // Reuse SA-3's marker SVGs for state-machine-derived nodes that
-    // appear inside an AgentDiagram (initial / final / fork / merge,
-    // plus state-action / state-object / state-codeblock).
+    // Per user (2025-05): AgentDiagram palette only carries the initial
+    // state marker. The final-state marker was removed because the
+    // BESSER agent metamodel doesn't have a final-state concept (an
+    // agent loops on user input rather than terminating).
     {
       type: "StateInitialNode" as never,
       width: 45,
       height: 45,
       defaultData: { name: "" },
       svg: StateInitialNodeSVG,
-    },
-    {
-      type: "StateFinalNode" as never,
-      width: 45,
-      height: 45,
-      defaultData: { name: "" },
-      svg: StateFinalNodeSVG,
     },
   ],
   // SA-4 / SA-FIX-User: BESSER UserDiagram palette. v3 generated one
