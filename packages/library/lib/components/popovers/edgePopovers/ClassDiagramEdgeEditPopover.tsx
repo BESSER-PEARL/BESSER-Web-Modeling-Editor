@@ -29,15 +29,15 @@ export const EdgeEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
   const sourceName = (sourceNode?.data?.name as string) ?? "Source"
   const targetName = (targetNode?.data?.name as string) ?? "Target"
 
+  // v3 BESSER parity: only the four edge kinds with a BUML metamodel
+  // equivalent are pickable. Aggregation, Realization, and Dependency
+  // are masked (legacy fixtures still render via ``edgeUtils.ts``).
   const getEdgeTypeOptions = () => {
     return [
       { value: "ClassBidirectional", label: "Bi-Association" },
       { value: "ClassUnidirectional", label: "Uni-Association" },
-      { value: "ClassAggregation", label: "Aggregation" },
       { value: "ClassComposition", label: "Composition" },
       { value: "ClassInheritance", label: "Inheritance" },
-      { value: "ClassDependency", label: "Dependency" },
-      { value: "ClassRealization", label: "Realization" },
     ]
   }
 

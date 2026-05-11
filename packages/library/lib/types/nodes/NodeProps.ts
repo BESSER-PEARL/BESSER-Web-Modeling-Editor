@@ -148,16 +148,28 @@ export type ClassOCLConstraintNodeProps = {
 export type CommentNodeProps = DefaultNodeProps
 
 /**
- * Object-diagram per-instance attribute row.
- *
- * Differs from `ClassNodeElement` in two ways:
- *  - `value` carries the runtime value (or its string form) — class
- *    attributes default it via `defaultValue`, instances commit it via
- *    `value`.
- *  - `attributeId` links back to the source `ClassNodeElement.id` on the
- *    owning class, so the inspector can pin the attribute name/type.
+ * Object-diagram per-instance attribute row. v3 parity: object attribute
+ * rows carry only the attribute identity (name + type) and a runtime
+ * value — never the class-method-only fields (`code`,
+ * `implementationType`, `stateMachineId`, `quantumCircuitId`,
+ * `parameters`, `returnType`). The previous shape extended
+ * `ClassNodeElement` wholesale and surfaced those by accident.
  */
-export type ObjectNodeAttribute = ClassNodeElement & {
+export type ObjectNodeAttribute = Pick<
+  ClassNodeElement,
+  | "id"
+  | "name"
+  | "attributeType"
+  | "visibility"
+  | "isOptional"
+  | "isDerived"
+  | "isId"
+  | "isExternalId"
+  | "defaultValue"
+  | "fillColor"
+  | "strokeColor"
+  | "textColor"
+> & {
   /** Link to a class attribute id in a sibling ClassDiagram, when known. */
   attributeId?: string
   /** Runtime value of the attribute on this instance. */
@@ -342,11 +354,9 @@ export type StateNodeProps = DefaultNodeProps & {
   fallbackBodies?: StateBodyRow[]
 }
 
-/** StateActionNode — labelled rounded rectangle. */
-export type StateActionNodeProps = DefaultNodeProps & {
-  /** Optional Python / BAL action body, edited in the inspector. */
-  code?: string
-}
+/** StateActionNode — labelled rounded rectangle. v3 parity: only the
+ *  `name` is editable; v3 had no code body on the action node. */
+export type StateActionNodeProps = DefaultNodeProps
 
 /**
  * StateObjectNode — references a class in a sibling ClassDiagram.
@@ -642,8 +652,6 @@ export type UserModelIconNodeProps = DefaultNodeProps & {
  */
 export type NNLayerNodeProps = DefaultNodeProps & {
   attributes: Record<string, unknown>
-  description?: string
-  assessmentNote?: string
 }
 
 /**

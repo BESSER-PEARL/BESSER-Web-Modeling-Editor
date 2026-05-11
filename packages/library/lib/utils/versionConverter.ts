@@ -35,6 +35,7 @@ import {
   ClassifierMethodImplementationType,
   StateNodeProps,
   StateBodyNodeProps,
+  StateBodyRow,
   StateActionNodeProps,
   StateObjectNodeProps,
   StateCodeBlockProps,
@@ -1010,44 +1011,78 @@ function convertV3NodeDataToV4(
 
     case "State": {
       // v3 `IUMLState` carries `stereotype` / `italic` / `underline`
-      // verbatim. `deviderPosition`, `hasBody`, `hasFallbackBody` are
-      // recomputed at render time and don't survive into v4.
+      // verbatim plus `bodies: string[]` / `fallbackBodies: string[]`
+      // arrays of child element ids (`UMLStateBody` /
+      // `UMLStateFallbackBody`). v4 collapses those children onto the
+      // parent's inline `bodies` / `fallbackBodies` arrays — same shape
+      // as `AgentState`. Preserve original v3 element ids on each row
+      // so the inverse migrator emits them back with stable ids.
+      const e = element as {
+        stereotype?: string | null
+        italic?: boolean
+        underline?: boolean
+        bodies?: string[]
+        fallbackBodies?: string[]
+      }
+      const v3RowToV4 = (row: V3UMLElement): StateBodyRow => ({
+        id: row.id,
+        ...(row.name && { name: row.name }),
+      })
+      const collectByOrder = (
+        orderedIds: string[] | undefined,
+        kind: "StateBody" | "StateFallbackBody",
+        out: StateBodyRow[]
+      ) => {
+        const seen = new Set<string>()
+        if (orderedIds) {
+          orderedIds.forEach((id) => {
+            const child = allElements[id]
+            if (child && child.type === kind && child.owner === element.id) {
+              out.push(v3RowToV4(child))
+              seen.add(id)
+            }
+          })
+        }
+        Object.values(allElements).forEach((child) => {
+          if (
+            child.type === kind &&
+            child.owner === element.id &&
+            !seen.has(child.id)
+          ) {
+            out.push(v3RowToV4(child))
+          }
+        })
+      }
+      const bodies: StateBodyRow[] = []
+      const fallbackBodies: StateBodyRow[] = []
+      collectByOrder(e.bodies, "StateBody", bodies)
+      collectByOrder(e.fallbackBodies, "StateFallbackBody", fallbackBodies)
+
       const stateData: StateNodeProps = {
         ...baseData,
-        ...(element.stereotype !== undefined && {
-          stereotype: element.stereotype as string | null,
+        ...(e.stereotype !== undefined && {
+          stereotype: e.stereotype as string | null,
         }),
-        ...((element as { italic?: boolean }).italic !== undefined && {
-          italic: !!(element as { italic?: boolean }).italic,
-        }),
-        ...((element as { underline?: boolean }).underline !== undefined && {
-          underline: !!(element as { underline?: boolean }).underline,
-        }),
+        ...(e.italic !== undefined && { italic: !!e.italic }),
+        ...(e.underline !== undefined && { underline: !!e.underline }),
+        ...(bodies.length > 0 && { bodies }),
+        ...(fallbackBodies.length > 0 && { fallbackBodies }),
       }
       return stateData
     }
 
     case "StateBody":
     case "StateFallbackBody": {
-      // Both body kinds are simple labels in v3; pass through as-is so
-      // round-trip stays structural. `code` / `kind` are BESSER editor
-      // extensions surfaced by the inspector.
-      const e = element as { code?: string; kind?: string }
-      const data: StateBodyNodeProps & { code?: string; kind?: string } = {
-        ...baseData,
-        ...(e.code !== undefined && { code: e.code }),
-        ...(e.kind !== undefined && { kind: e.kind }),
-      }
+      // Orphan path only — owned bodies are filtered out earlier and
+      // folded onto the parent's inline `bodies` / `fallbackBodies`.
+      // v3 parity: only `name` survives — no `kind`, no `code`.
+      const data: StateBodyNodeProps = { ...baseData }
       return data
     }
 
     case "StateActionNode": {
-      const actionData: StateActionNodeProps = {
-        ...baseData,
-        ...((element as { code?: string }).code !== undefined && {
-          code: (element as { code?: string }).code,
-        }),
-      }
+      // v3 parity: only `name` survives on the action node.
+      const actionData: StateActionNodeProps = { ...baseData }
       return actionData
     }
 
@@ -1461,21 +1496,28 @@ function convertV3NodeDataToV4(
     }
 
     case "NNReference": {
-      // V3's `NNReference` carries the referenced NN
-      // on the legacy `referencedNN` slot (see
-      // `packages/editor/.../nn-reference.ts`). The previous migrator
-      // only knew about `referenceTarget` / `target` / `referencedId`
-      // so legacy v3 fixtures silently lost their target. Accept
-      // `referencedNN` first so round-trips through the live editor
-      // preserve it.
+      // V3's `NNReference` carries the referenced NN on the legacy
+      // `referencedNN` slot which holds the container NAME (see
+      // `packages/editor/.../nn-reference.ts`). v4 stores the
+      // container ID. Convert by looking the container up by name in
+      // the element table. When the name resolves we emit a stable
+      // id; when it doesn't (orphaned reference) we fall back to the
+      // raw string so the backend can still re-interpret it
+      // defensively.
       const e = element as {
         referenceTarget?: string
         target?: string
         referencedId?: string
         referencedNN?: string
       }
-      const referenceTarget =
-        e.referenceTarget ?? e.target ?? e.referencedId ?? e.referencedNN
+      let referenceTarget =
+        e.referenceTarget ?? e.target ?? e.referencedId
+      if (!referenceTarget && e.referencedNN) {
+        const byName = Object.values(allElements).find(
+          (el) => el.type === "NNContainer" && el.name === e.referencedNN
+        )
+        referenceTarget = byName?.id ?? e.referencedNN
+      }
       return {
         ...baseData,
         ...(referenceTarget && { referenceTarget }),
@@ -1861,34 +1903,37 @@ function convertV3RelationshipToV4Edge(
     }))
   }
 
-  // StateTransition carries params / guard / code / eventName
-  // alongside the generic edge data. Pull those through verbatim — the
-  // v3 deserializer at
-  // `packages/editor/.../uml-state-transition.ts:14` treats `params` as
-  // `string | string[] | { [id]: string }`; v4 normalises to dict.
-  // ObjectLink carries `associationId` at the v3 relationship
-  // root level (see `packages/editor/.../uml-object-link.ts:9`). Pull
-  // it through to the v4 edge `data` so the bridge-driven picker in
+  // StateTransition carries `params` + `guard` alongside the generic
+  // edge data (v3 BESSER fork: `params` is a single free-text string,
+  // `guard` is an optional boolean expression). v4 keeps `params` as a
+  // string for parity with the v3 spec; legacy fixtures may also ship
+  // an array or `{[id]: string}` dict (older deserializer at
+  // `packages/editor/.../uml-state-transition.ts:14`) which we coerce
+  // back to a single string. The migrator does NOT carry over
+  // `code` / `eventName` — those were schema-creep in earlier ports
+  // and have no v3 source.
+  //
+  // ObjectLink carries `associationId` at the v3 relationship root
+  // level (see `packages/editor/.../uml-object-link.ts:9`). Pull it
+  // through to the v4 edge `data` so the bridge-driven picker in
   // `ObjectLinkEditPanel` can author and round-trip the link to a
   // ClassDiagram association id.
   const r = relationship as V3UMLRelationship & {
     params?: string | string[] | { [id: string]: string }
     guard?: string
-    code?: string
-    eventName?: string
     associationId?: string
   }
-  const normalizedParams: { [id: string]: string } = {}
-  if (r.params !== undefined && r.params !== null) {
-    if (typeof r.params === "string") {
-      normalizedParams["0"] = r.params
-    } else if (Array.isArray(r.params)) {
-      r.params.forEach((p, idx) => {
-        normalizedParams[idx.toString()] = p
-      })
-    } else if (typeof r.params === "object") {
-      Object.assign(normalizedParams, r.params)
-    }
+  let normalizedParams: string | undefined
+  if (typeof r.params === "string") {
+    normalizedParams = r.params
+  } else if (Array.isArray(r.params)) {
+    const joined = r.params.filter((p) => typeof p === "string").join(", ")
+    if (joined.length > 0) normalizedParams = joined
+  } else if (r.params && typeof r.params === "object") {
+    const values = Object.values(r.params).filter(
+      (v): v is string => typeof v === "string" && v.length > 0
+    )
+    if (values.length > 0) normalizedParams = values.join(", ")
   }
 
   const edge: BesserEdge = {
@@ -1911,13 +1956,10 @@ function convertV3RelationshipToV4Edge(
       messages: convertV3MessagesToV4(relationship.messages),
       // Preserve flowType for BPMN edges
       ...(relationship.flowType && { flowType: relationship.flowType }),
-      // StateTransition-specific data.
-      ...(Object.keys(normalizedParams).length > 0 && {
-        params: normalizedParams,
-      }),
+      // StateTransition-specific data — v3 parity: `name` + `params`
+      // (string) + optional `guard`. No `code`, no `eventName`.
+      ...(normalizedParams !== undefined && { params: normalizedParams }),
       ...(r.guard && { guard: r.guard }),
-      ...(r.code && { code: r.code }),
-      ...(r.eventName && { eventName: r.eventName }),
       // ObjectLink-only field. Living on the same generic edge
       // data shape is fine because the v3 source-of-truth puts it at
       // the relationship root, alongside `name` / `path`. Other edge
@@ -2026,6 +2068,18 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
           element.type === "AgentStateFallbackBody") &&
         element.owner &&
         model.elements[element.owner]?.type === "AgentState"
+      ) {
+        return false
+      }
+      // StateBody / StateFallbackBody — collapse onto the owner
+      // State's inline `bodies` / `fallbackBodies` arrays (same shape
+      // as AgentState). The State case in `convertV3NodeDataToV4` does
+      // the actual fold and preserves the original v3 ids on each row.
+      if (
+        (element.type === "StateBody" ||
+          element.type === "StateFallbackBody") &&
+        element.owner &&
+        model.elements[element.owner]?.type === "State"
       ) {
         return false
       }

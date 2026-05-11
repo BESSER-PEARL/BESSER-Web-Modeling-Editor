@@ -52,14 +52,16 @@ import { InspectorSectionHeader } from "../_shared"
 // them, and a constraint-attached link can't accidentally be turned
 // into something else. The current edge keeps its type; the dropdown
 // just doesn't expose those two options.
+// v3 BESSER parity: the editor only exposes the four edge kinds that
+// have a BUML metamodel equivalent — bi / uni association, composition,
+// and inheritance. Aggregation, Realization, and Dependency are masked
+// from the picker (legacy fixtures still render correctly via
+// ``edgeUtils.ts``; users just can't author new ones).
 const EDGE_TYPE_OPTIONS = [
-  { value: "ClassBidirectional", label: "Bi-Association" },
-  { value: "ClassUnidirectional", label: "Uni-Association" },
-  { value: "ClassAggregation", label: "Aggregation" },
+  { value: "ClassBidirectional", label: "Association (Bidirectional)" },
+  { value: "ClassUnidirectional", label: "Association (Unidirectional)" },
   { value: "ClassComposition", label: "Composition" },
   { value: "ClassInheritance", label: "Inheritance" },
-  { value: "ClassRealization", label: "Realization" },
-  { value: "ClassDependency", label: "Dependency" },
 ] as const
 
 const NON_DIRECTIONAL_TYPES = new Set([

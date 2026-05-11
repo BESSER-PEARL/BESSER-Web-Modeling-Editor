@@ -1,18 +1,15 @@
 import { Box, TextField as MuiTextField } from "@mui/material"
 import React from "react"
-import CodeMirror from "@uiw/react-codemirror"
-import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { StateActionNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
-import { InspectorSectionHeader } from "../_shared"
 
 /**
- * Inspector body for `StateActionNode`. Editable: `name` plus the
- * (optional) `code` body. Kept deliberately small — the v3 update panel
- * was a single-textfield rename.
+ * Inspector body for `StateActionNode`. v3 parity: only `name` is
+ * editable plus the shared style controls. v3 had no code body on the
+ * action node.
  */
 export const StateActionNodeEditPanel: React.FC<PopoverProps> = ({
   elementId,
@@ -55,28 +52,6 @@ export const StateActionNodeEditPanel: React.FC<PopoverProps> = ({
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />
-      <Box>
-        <InspectorSectionHeader>code</InspectorSectionHeader>
-        <Box
-          sx={{
-            border: "1px solid var(--besser-gray, #e9ecef)",
-            borderRadius: 1,
-            overflow: "hidden",
-          }}
-        >
-          <CodeMirror
-            value={data.code ?? ""}
-            height="120px"
-            extensions={[python()]}
-            onChange={(value) => update({ code: value })}
-            basicSetup={{
-              lineNumbers: false,
-              foldGutter: false,
-              highlightActiveLineGutter: false,
-            }}
-          />
-        </Box>
-      </Box>
     </Box>
   )
 }

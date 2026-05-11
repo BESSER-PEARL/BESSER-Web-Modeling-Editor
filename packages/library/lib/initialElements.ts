@@ -118,6 +118,10 @@ export const initialNodes: Node[] = [
   // },
 ]
 
+// v3 BESSER parity: demo uses only the four edge kinds the editor
+// exposes — bi / uni association, composition, and inheritance. The
+// previously-shown Aggregation / Realization / Dependency demos were
+// dropped now that those types are masked from the picker.
 export const initialEdges: Edge[] = [
   {
     id: "11->2",
@@ -133,7 +137,7 @@ export const initialEdges: Edge[] = [
     target: "3",
     sourceHandle: "top",
     targetHandle: "top-right",
-    type: "ClassRealization",
+    type: "ClassInheritance",
   },
   {
     id: "3->4",
@@ -141,7 +145,7 @@ export const initialEdges: Edge[] = [
     target: "4",
     sourceHandle: "top-left",
     targetHandle: "top-left",
-    type: "ClassAggregation",
+    type: "ClassBidirectional",
   },
   {
     id: "4->5",
@@ -150,13 +154,5 @@ export const initialEdges: Edge[] = [
     sourceHandle: "top",
     targetHandle: "top",
     type: "ClassComposition",
-  },
-  {
-    id: "5->11",
-    source: "5",
-    target: "11",
-    sourceHandle: "left",
-    targetHandle: "bottom-right",
-    type: "ClassDependency",
   },
 ]
