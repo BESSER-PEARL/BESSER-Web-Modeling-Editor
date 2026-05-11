@@ -4,8 +4,6 @@ import {
   FormControlLabel,
   IconButton,
   MenuItem,
-  Radio,
-  RadioGroup,
   Select,
   Stack,
   TextField as MuiTextField,
@@ -491,39 +489,35 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <DividerLine width="100%" />
 
       <InspectorSectionHeader>Agent Action</InspectorSectionHeader>
-      <RadioGroup
+      <Select
+        size="small"
+        fullWidth
         value={getActiveMode("main")}
-        onChange={(_, value) => setMode("main", value as ReplyMode)}
-        sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
+        onChange={(e) => setMode("main", e.target.value as ReplyMode)}
       >
         {REPLY_MODES.map((m) => (
-          <FormControlLabel
-            key={`body-${m.value}`}
-            value={m.value}
-            control={<Radio size="small" />}
-            label={m.label}
-          />
+          <MenuItem key={`body-${m.value}`} value={m.value}>
+            {m.label}
+          </MenuItem>
         ))}
-      </RadioGroup>
+      </Select>
       {renderBodyEditor("main")}
 
       <DividerLine width="100%" />
 
       <InspectorSectionHeader>Agent Fallback Action</InspectorSectionHeader>
-      <RadioGroup
+      <Select
+        size="small"
+        fullWidth
         value={getActiveMode("fallback")}
-        onChange={(_, value) => setMode("fallback", value as ReplyMode)}
-        sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
+        onChange={(e) => setMode("fallback", e.target.value as ReplyMode)}
       >
         {REPLY_MODES.map((m) => (
-          <FormControlLabel
-            key={`fallback-${m.value}`}
-            value={m.value}
-            control={<Radio size="small" />}
-            label={m.label}
-          />
+          <MenuItem key={`fallback-${m.value}`} value={m.value}>
+            {m.label}
+          </MenuItem>
         ))}
-      </RadioGroup>
+      </Select>
       {renderBodyEditor("fallback")}
     </Box>
   )
