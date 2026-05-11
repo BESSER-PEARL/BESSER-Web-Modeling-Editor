@@ -8,7 +8,6 @@ import React from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import {
-  AgentIntentEntitySlot,
   AgentIntentNodeProps,
   AgentIntentTrainingPhrase,
 } from "@/types"
@@ -44,7 +43,6 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
   const data = intent.data as AgentIntentNodeProps
   const phrases = data.training_phrases ?? []
-  const slots = data.entity_slots ?? []
 
   const updateData = (patch: Partial<AgentIntentNodeProps>) => {
     setNodes((all) =>
@@ -84,39 +82,19 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     updateData({ training_phrases: [...phrases, next] })
   }
 
-  const setSlotField = (
-    rowId: string,
-    patch: Partial<AgentIntentEntitySlot>
-  ) => {
-    updateData({
-      entity_slots: slots.map((s) =>
-        s.id === rowId ? { ...s, ...patch } : s
-      ),
-    })
-  }
-
-  const removeSlot = (rowId: string) => {
-    updateData({
-      entity_slots: slots.filter((s) => s.id !== rowId),
-    })
-  }
-
-  const addSlot = () => {
-    const next: AgentIntentEntitySlot = {
-      id: generateUUID(),
-      name: "",
-      entity: "",
-      slot: "",
-      value: "",
-    }
-    updateData({ entity_slots: [...slots, next] })
-  }
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      {/*
+       * Match v3 fork: intent inspector exposes only intent name +
+       * description + training phrases. The duplicate name field that
+       * `NodeStyleEditor` would render is suppressed via
+       * `showNameInputChange={false}`; the style controls (fill / line /
+       * text color) remain.
+       */}
       <NodeStyleEditor
         nodeData={data}
         handleDataFieldUpdate={handleDataFieldUpdate}
+        showNameInputChange={false}
       />
       <DividerLine width="100%" />
 
@@ -177,75 +155,13 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         ))
       )}
 
-      <DividerLine width="100%" />
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-      >
-        <InspectorSectionHeader>entity slots</InspectorSectionHeader>
-        <AddRowButton onClick={addSlot} />
-      </Stack>
-      {slots.length === 0 ? (
-        <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          no entity slots yet
-        </Typography>
-      ) : (
-        slots.map((s) => (
-          <Stack key={s.id} spacing={0.5} sx={{ mb: 0.5 }}>
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <MuiTextField
-                size="small"
-                variant="outlined"
-                fullWidth
-                label="name"
-                value={s.name ?? ""}
-                onChange={(e) => setSlotField(s.id, { name: e.target.value })}
-              />
-              <IconButton
-                size="small"
-                aria-label="delete entity slot"
-                onClick={() => removeSlot(s.id)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Stack>
-            <Stack direction="row" spacing={0.5}>
-              <MuiTextField
-                size="small"
-                variant="outlined"
-                label="entity"
-                value={s.entity ?? ""}
-                onChange={(e) =>
-                  setSlotField(s.id, { entity: e.target.value })
-                }
-                sx={{ flex: 1 }}
-              />
-              <MuiTextField
-                size="small"
-                variant="outlined"
-                label="slot"
-                value={s.slot ?? ""}
-                onChange={(e) =>
-                  setSlotField(s.id, { slot: e.target.value })
-                }
-                sx={{ flex: 1 }}
-              />
-            </Stack>
-            <MuiTextField
-              size="small"
-              variant="outlined"
-              fullWidth
-              label="value"
-              value={s.value ?? ""}
-              onChange={(e) =>
-                setSlotField(s.id, { value: e.target.value })
-              }
-              placeholder="optional fixed value"
-            />
-          </Stack>
-        ))
-      )}
+      {/*
+       * Entity-slots section removed: v3 fork's intent inspector exposed
+       * only intent name + description + training phrases. The
+       * `entity_slots[]` data field still exists on `AgentIntentNodeProps`
+       * for round-trip preservation, but is not editable from this
+       * inspector.
+       */}
     </Box>
   )
 }

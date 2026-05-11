@@ -55,13 +55,6 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  * palette first" helper rather than falling back to a free-text input.
  */
 
-const STEREOTYPES: { value: string; label: string }[] = [
-  { value: "", label: "— none —" },
-  { value: "initial", label: "«initial»" },
-  { value: "final", label: "«final»" },
-  { value: "intent", label: "«intent»" },
-]
-
 type ReplyMode = "text" | "llm" | "rag" | "db_reply" | "code"
 
 const REPLY_MODES: { value: ReplyMode; label: string }[] = [
@@ -442,26 +435,13 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         onChange={(e) => updateNode({ name: e.target.value })}
       />
 
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Typography variant="caption" sx={{ minWidth: 70 }}>
-          stereotype
-        </Typography>
-        <Select
-          size="small"
-          value={data.stereotype ?? ""}
-          onChange={(e) => {
-            const v = String(e.target.value)
-            updateNode({ stereotype: v === "" ? null : v })
-          }}
-          sx={{ flex: 1 }}
-        >
-          {STEREOTYPES.map((s) => (
-            <MenuItem key={s.value} value={s.value}>
-              {s.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </Stack>
+      {/*
+       * Match v3 fork: AgentState inspector exposed only name + italic /
+       * underline / bodies. The stereotype selector was a SA-4 addition
+       * that the BESSER metamodel doesn't use, so it's removed from the
+       * inspector. The `stereotype` field still exists on the node data
+       * for round-trip preservation but is not editable here.
+       */}
 
       <Stack direction="row" spacing={1}>
         <FormControlLabel
