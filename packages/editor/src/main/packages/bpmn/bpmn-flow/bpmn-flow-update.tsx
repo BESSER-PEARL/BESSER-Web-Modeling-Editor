@@ -20,17 +20,31 @@ import { Switch } from '../../../components/controls/switch/switch';
 import { UMLElement } from '../../../services/uml-element/uml-element';
 import { getAllowedBpmnFlowTypes } from './bpmn-flow-semantics';
 import { UMLElementType } from '../../uml-element-type';
+import { BPMNGateway, BPMNGatewayType } from '../bpmn-gateway/bpmn-gateway';
 
-const ALLOWED_DEFAULT_SOURCES: ReadonlySet<UMLElementType> = new Set([
-  UMLElementType.BPMNGateway,
+// BPMN 2.0.2 § 8.3.13, p. 98: default sequence flow source whitelist.
+const ALLOWED_DEFAULT_ACTIVITY_TYPES: ReadonlySet<UMLElementType> = new Set([
   UMLElementType.BPMNTask,
   UMLElementType.BPMNSubprocess,
   UMLElementType.BPMNTransaction,
   UMLElementType.BPMNCallActivity,
 ]);
 
-const canBeDefault = (flowType: BPMNFlowType, sourceType?: UMLElementType): boolean =>
-  flowType === 'sequence' && !!sourceType && ALLOWED_DEFAULT_SOURCES.has(sourceType);
+const ALLOWED_DEFAULT_GATEWAY_TYPES: ReadonlySet<BPMNGatewayType> = new Set<BPMNGatewayType>([
+  'exclusive',
+  'inclusive',
+  'complex',
+]);
+
+const canBeDefault = (flowType: BPMNFlowType, sourceElement?: UMLElement): boolean => {
+  if (flowType !== 'sequence' || !sourceElement) return false;
+  const t = sourceElement.type as UMLElementType;
+  if (ALLOWED_DEFAULT_ACTIVITY_TYPES.has(t)) return true;
+  if (t === UMLElementType.BPMNGateway) {
+    return ALLOWED_DEFAULT_GATEWAY_TYPES.has((sourceElement as BPMNGateway).gatewayType);
+  }
+  return false;
+};
 
 interface OwnProps {
   element: BPMNFlow;
@@ -125,7 +139,7 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
             {flowTypeItems}
           </Dropdown>
         </section>
-        {canBeDefault(element.flowType, sourceElement?.type as UMLElementType | undefined) && (
+        {canBeDefault(element.flowType, sourceElement) && (
           <>
             <Divider />
             <section>
