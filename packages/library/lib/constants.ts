@@ -69,7 +69,6 @@ import {
 } from "@/components/svgs/nodes/agentDiagram"
 import {
   UserModelStaticPreviewSVG,
-  UserModelIconSVG,
   getUserModelNamePaletteEntries,
 } from "@/components/svgs/nodes/userDiagram"
 // SA-5: NNDiagram palette previews. Inlined alongside the other BESSER
@@ -979,13 +978,9 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       },
       svg: UserModelStaticPreviewSVG,
     },
-    {
-      type: "UserModelIcon" as never,
-      width: 50,
-      height: 50,
-      defaultData: { name: "" },
-      svg: UserModelIconSVG,
-    },
+    // Per user (2025-05): the standalone UserModelIcon palette entry is
+    // dropped — every UserModelName already renders in icon view by
+    // default, so the dedicated icon-only drag-source was redundant.
   ],
   // SA-5: BESSER NNDiagram palette. One palette item per top-level
   // draggable: NNContainer, the 13 layer kinds, TrainingDataset,

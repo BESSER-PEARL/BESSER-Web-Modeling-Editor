@@ -212,6 +212,19 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
                 pointerEvents: "none",
               }}
               // Trusted authoring-time SVG markup, mirrors v3's behaviour.
+              // Scale child SVG to fit the foreignObject bounds — the
+              // raw markup carries fixed `width="96" height="96"`, which
+              // cropped against smaller node bounds before this rule.
+              ref={(node) => {
+                if (!node) return
+                const inner = node.querySelector("svg")
+                if (!inner) return
+                inner.setAttribute("width", "100%")
+                inner.setAttribute("height", "100%")
+                inner.setAttribute("preserveAspectRatio", "xMidYMid meet")
+                inner.style.maxWidth = "100%"
+                inner.style.maxHeight = "100%"
+              }}
               dangerouslySetInnerHTML={{ __html: iconBody }}
             />
           </foreignObject>

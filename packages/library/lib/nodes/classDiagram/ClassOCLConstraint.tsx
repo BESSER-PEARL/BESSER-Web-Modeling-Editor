@@ -9,8 +9,13 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 
 /**
  * Free-standing OCL constraint node, rendered as a sticky-note rectangle
- * with a folded corner. Per user directive the canvas surface shows only
- * the OCL expression — no name header, no kind badge.
+ * with a folded corner. The canvas shows:
+ *  - `data.name` as a small bold header (so the user can identify the
+ *    constraint at a glance; the inspector edits only expression and
+ *    description, so name is read-only from templates / import).
+ *  - `data.expression` wrapped as the body.
+ *  - `data.description` is reachable via the hover tooltip.
+ * No kind badge — that lives only in the round-trip data.
  */
 function wrapText(text: string, maxCharsPerLine: number, maxLines: number): string[] {
   if (!text) return []
@@ -60,8 +65,12 @@ export function ClassOCLConstraintNode({
 
   const fold = 14
   const padding = 12
+  const headerHeight = 18
+  const name = (data.name ?? "").trim()
+  const showName = name.length > 0
+  const contentTop = padding + (showName ? headerHeight : 0)
   const contentWidth = w - padding * 2
-  const contentHeight = h - padding * 2
+  const contentHeight = h - contentTop - padding
 
   const charsPerLine = Math.max(8, Math.floor((contentWidth - 4) / 7))
   const maxLines = Math.max(1, Math.floor(contentHeight / 14))
@@ -115,8 +124,25 @@ export function ClassOCLConstraintNode({
             strokeWidth={1.2}
           />
 
-          {/* Wrapped expression body — only surface, no name/kind badge. */}
-          <g transform={`translate(${padding}, ${padding})`}>
+          {/* Constraint name header — read-only from `data.name`. The
+              inspector exposes only expression + description, so name
+              comes from templates / import. */}
+          {showName && (
+            <text
+              x={padding}
+              y={padding + 2}
+              fill={textColor}
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                dominantBaseline: "hanging",
+              }}
+            >
+              {name}
+            </text>
+          )}
+          {/* Wrapped expression body. */}
+          <g transform={`translate(${padding}, ${contentTop})`}>
             <text
               fill={textColor}
               style={{

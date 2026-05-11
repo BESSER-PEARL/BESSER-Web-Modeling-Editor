@@ -56,6 +56,14 @@ export const resizeAllParents = (node: Node, allNodes: Node[]) => {
 
   while (currentNode.parentId) {
     const parent = allNodes.find((n) => n.id === currentNode.parentId)!
+    // Per user (2025-05): NNContainer keeps the size the user picks. The
+    // resize cascade still walks UP through grandparents, but NNContainer
+    // itself is left alone — its NodeResizer handles is the only way to
+    // change its dimensions.
+    if (parent.type === "NNContainer") {
+      currentNode = parent
+      continue
+    }
     const allChildren = allNodes.filter((n) => n.parentId === parent.id)
 
     if (currentNode.position.x < 0) {
