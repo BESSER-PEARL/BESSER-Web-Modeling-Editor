@@ -388,10 +388,13 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // Class palette entry #1: 1 starter attribute, no methods.
     // Sidebar React keys include the array index so two entries with
     // the same `type:"class" + name:"Class"` no longer collide.
+    // Height = header (40, no stereotype) + 1 × attribute row (30) = 70,
+    // matching the minHeight that Class.tsx snaps to so the selection
+    // box hugs the visible card with no empty strip below.
     {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 90,
+      height: 70,
       defaultData: {
         name: "Class",
         methods: [],
@@ -406,12 +409,12 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       },
       svg: ClassSVG,
     },
-    // Class palette entry #2: 1 starter attribute + 1 starter method
-    // (mirrors v3 default at packages/editor/.../uml-class/uml-class.ts).
+    // Class palette entry #2: 1 starter attribute + 1 starter method.
+    // Height = header (40, no stereotype) + 1 attr (30) + 1 method (30) = 100.
     {
       type: "class",
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 110,
+      height: 100,
       defaultData: {
         name: "Class",
         methods: [
@@ -436,35 +439,35 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       },
       svg: ClassSVG,
     },
-    {
-      type: "class",
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 110,
-      defaultData: {
-        name: "Abstract",
-        stereotype: ClassType.Abstract,
-        methods: [
-          {
-            id: generateUUID(),
-            name: "method",
-            visibility: "public",
-            attributeType: "any",
-            returnType: "any",
-            parameters: [],
-            implementationType: "none",
-          },
-        ],
-        attributes: [
-          {
-            id: generateUUID(),
-            name: "attribute",
-            visibility: "public",
-            attributeType: "str",
-          },
-        ],
-      },
-      svg: ClassSVG,
-    },
+    // {
+    //   type: "class",
+    //   width: DROPS.DEFAULT_ELEMENT_WIDTH,
+    //   height: 110,
+    //   defaultData: {
+    //     name: "Abstract",
+    //     stereotype: ClassType.Abstract,
+    //     methods: [
+    //       {
+    //         id: generateUUID(),
+    //         name: "method",
+    //         visibility: "public",
+    //         attributeType: "any",
+    //         returnType: "any",
+    //         parameters: [],
+    //         implementationType: "none",
+    //       },
+    //     ],
+    //     attributes: [
+    //       {
+    //         id: generateUUID(),
+    //         name: "attribute",
+    //         visibility: "public",
+    //         attributeType: "str",
+    //       },
+    //     ],
+    //   },
+    //   svg: ClassSVG,
+    // },
     // Enumeration literals start as `Enum_1`,
     // `Enum_2`, `Enum_3` — valid Python identifiers. Previous
     // "Case 1" / "Case 2" defaults included whitespace which the
@@ -1041,7 +1044,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "Conv1DLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Conv1D", attributes: {} },
       svg: Conv1DLayerSVG,
       sectionLabel: "NN Layers",
@@ -1049,21 +1052,21 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "Conv2DLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Conv2D", attributes: {} },
       svg: Conv2DLayerSVG,
     },
     {
       type: "Conv3DLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Conv3D", attributes: {} },
       svg: Conv3DLayerSVG,
     },
     {
       type: "PoolingLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: {
         name: "Pooling",
         // Disambiguated dimension slug: see open question #2.
@@ -1080,63 +1083,63 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "RNNLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "RNN", attributes: {} },
       svg: RNNLayerSVG,
     },
     {
       type: "LSTMLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "LSTM", attributes: {} },
       svg: LSTMLayerSVG,
     },
     {
       type: "GRULayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "GRU", attributes: {} },
       svg: GRULayerSVG,
     },
     {
       type: "LinearLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Linear", attributes: {} },
       svg: LinearLayerSVG,
     },
     {
       type: "FlattenLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Flatten", attributes: {} },
       svg: FlattenLayerSVG,
     },
     {
       type: "EmbeddingLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Embedding", attributes: {} },
       svg: EmbeddingLayerSVG,
     },
     {
       type: "DropoutLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Dropout", attributes: {} },
       svg: DropoutLayerSVG,
     },
     {
       type: "LayerNormalizationLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "LayerNorm", attributes: {} },
       svg: LayerNormalizationLayerSVG,
     },
     {
       type: "BatchNormalizationLayer" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: {
         name: "BatchNorm",
         // Disambiguated dimension slug: see open question #2.
@@ -1149,7 +1152,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "TensorOp" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "TensorOp", attributes: {} },
       svg: TensorOpSVG,
       sectionLabel: "NN TensorOps",
@@ -1157,7 +1160,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "Configuration" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "Configuration", attributes: {} },
       svg: ConfigurationSVG,
       sectionLabel: "NN Configuration",
@@ -1165,7 +1168,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "TrainingDataset" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "TrainingDataset", attributes: {} },
       svg: TrainingDatasetSVG,
       sectionLabel: "NN Datasets",
@@ -1173,7 +1176,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       type: "TestDataset" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 140,
+      height: 110,
       defaultData: { name: "TestDataset", attributes: {} },
       svg: TestDatasetSVG,
     },

@@ -37,16 +37,20 @@ const buildLayerPreview = (
   }: SVGComponentProps) {
     const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
     const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
-    // Header geometry mirrors `_NNLayerBase.tsx`: stereotype line at
-    // y=18, name at y=38, divider at y=50. Below the divider we centre
-    // the icon in the remaining space so the preview is a faithful
-    // miniature of the canvas card.
-    const headerHeight = 50
-    const availableIconHeight = Math.max(0, height - headerHeight - 6)
-    const iconSize = Math.min(80, width - 24, availableIconHeight)
+    // v3 parity: NN layer previews mirror the canvas card — icon on top,
+    // layer name directly below the icon, no `«kindLabel»` stereotype
+    // band. Icon fills as much of the card as the layout allows.
+    const nameBandHeight = 22
+    const iconPad = 4
+    const availableIconHeight = Math.max(
+      0,
+      height - nameBandHeight - iconPad * 2
+    )
+    const iconSize = Math.min(width - iconPad * 2, availableIconHeight)
     const showIcon = !!iconFile && iconSize >= 18
     const iconX = (width - iconSize) / 2
-    const iconY = headerHeight + (availableIconHeight - iconSize) / 2
+    const iconY = iconPad
+    const nameY = Math.min(height - 4, iconY + iconSize + 14)
     return (
       <svg
         width={sw}
@@ -55,56 +59,19 @@ const buildLayerPreview = (
         overflow="visible"
         {...svgAttributes}
       >
-        {/*
-         * v3 parity: NN layer cards with a kind icon (Conv1D / Conv2D /
-         * RNN / …) had no outer box — just the stereotype + name above a
-         * standalone icon. Mirror `_NNLayerBase.tsx`: only render the
-         * boxed card (rect + header divider) when there is no icon.
-         */}
         {!showIcon && (
-          <>
-            <rect
-              x={0}
-              y={0}
-              width={width}
-              height={height}
-              rx={6}
-              ry={6}
-              fill={fill}
-              stroke="var(--besser-primary-contrast, #000)"
-              strokeWidth={1.5}
-            />
-            {height > headerHeight + 4 && (
-              <line
-                x1={0}
-                x2={width}
-                y1={headerHeight}
-                y2={headerHeight}
-                stroke="var(--besser-primary-contrast, #000)"
-                strokeWidth={1}
-              />
-            )}
-          </>
+          <rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            rx={6}
+            ry={6}
+            fill={fill}
+            stroke="var(--besser-primary-contrast, #000)"
+            strokeWidth={1.5}
+          />
         )}
-        <text
-          x={width / 2}
-          y={18}
-          textAnchor="middle"
-          fontSize={11}
-          fill="var(--besser-primary-contrast, #000)"
-        >
-          {`«${kindLabel}»`}
-        </text>
-        <text
-          x={width / 2}
-          y={38}
-          textAnchor="middle"
-          fontSize={13}
-          fontWeight="600"
-          fill="var(--besser-primary-contrast, #000)"
-        >
-          {defaultName}
-        </text>
         {showIcon && (
           <image
             href={`${NN_LAYER_ICON_BASE}${iconFile}`}
@@ -115,6 +82,16 @@ const buildLayerPreview = (
             preserveAspectRatio="xMidYMid meet"
           />
         )}
+        <text
+          x={width / 2}
+          y={showIcon ? nameY : height / 2 + 5}
+          textAnchor="middle"
+          fontSize={13}
+          fontWeight="600"
+          fill="var(--besser-primary-contrast, #000)"
+        >
+          {defaultName}
+        </text>
       </svg>
     )
   }

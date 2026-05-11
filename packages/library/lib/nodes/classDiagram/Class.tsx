@@ -161,7 +161,14 @@ export function Class({
   )
 
   useEffect(() => {
-    if (height && height <= minHeight) {
+    // Always snap height to `minHeight`. The NodeResizer already caps
+    // `maxHeight = minHeight`, so heights can never exceed the content
+    // height — but the palette config can drop nodes with default heights
+    // *larger* than the computed minimum (e.g. height: 90 with one
+    // attribute → minHeight 70). Without snapping down, the selection
+    // bounding box stays at the palette default while the SVG only draws
+    // the minHeight band, leaving an empty strip below the visible class.
+    if (height && height !== minHeight) {
       setNodes((prev) =>
         prev.map((node) => {
           if (node.id === id) {

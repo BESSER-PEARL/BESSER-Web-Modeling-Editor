@@ -159,16 +159,27 @@ export function NNLayerBase({
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
   const fill = !data.fillColor && defaultFill ? defaultFill : fillColor
   const cornerRadius = 6
-  const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
   const iconFile = NN_LAYER_ICON_FILES[nodeType]
-  // Icon area sits below the divider, vertically centred in the
-  // remaining card space. Width caps the icon at 80×80 (v3 default),
-  // shrinking on small cards so it never overflows.
-  const availableIconHeight = Math.max(0, height - headerHeight - 8)
-  const iconSize = Math.min(80, width - 24, availableIconHeight)
-  const showIcon = !!iconFile && iconSize >= 24
+  const hasIcon = !!iconFile
+  // v3 parity: NN layer cards with an icon render the icon centred in
+  // the card with the layer NAME directly BELOW it. No `«kindLabel»`
+  // stereotype band. The icon is sized larger than the v3 80 px cap but
+  // capped at 100 px so the card has clear breathing room around it —
+  // the selection rectangle hugs the card without the icon visually
+  // pushing it edge-to-edge.
+  const MAX_ICON_SIZE = 70
+  const nameBandHeight = 22
+  const iconPad = 6
+  const availableIconHeight = Math.max(0, height - nameBandHeight - iconPad * 2)
+  const iconSize = Math.min(
+    MAX_ICON_SIZE,
+    width - iconPad * 2,
+    availableIconHeight
+  )
+  const showIcon = hasIcon && iconSize >= 24
   const iconX = (width - iconSize) / 2
-  const iconY = headerHeight + (availableIconHeight - iconSize) / 2
+  const iconY = iconPad
+  const nameY = Math.min(height - 6, iconY + iconSize + 16)
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
@@ -187,67 +198,51 @@ export function NNLayerBase({
           viewBox={`0 0 ${width} ${height}`}
           overflow="visible"
         >
-          {/*
-           * v3 parity: NN layer cards with a kind icon (Conv1D / Conv2D /
-           * RNN / …) had no outer box — just the stereotype + name above a
-           * standalone icon. Only render the boxed card (rect + header
-           * divider) when there is no icon to show, so the boxed look is
-           * limited to icon-less variants (e.g. layers without a PNG asset
-           * yet).
-           */}
           {!showIcon && (
-            <>
-              <rect
-                x={0}
-                y={0}
-                width={width}
-                height={height}
-                rx={cornerRadius}
-                ry={cornerRadius}
-                fill={fill}
-                stroke={strokeColor}
-                strokeWidth={LAYOUT.LINE_WIDTH}
-              />
-              {height > headerHeight + 4 && (
-                <line
-                  x1={0}
-                  x2={width}
-                  y1={headerHeight}
-                  y2={headerHeight}
-                  stroke={strokeColor}
-                  strokeWidth={1}
-                />
-              )}
-            </>
-          )}
-          <text
-            x={width / 2}
-            y={18}
-            textAnchor="middle"
-            fontSize={LAYOUT.STEREOTYPE_LINE_HEIGHT}
-            fill={textColor}
-          >
-            {`«${kindLabel}»`}
-          </text>
-          <text
-            x={width / 2}
-            y={38}
-            textAnchor="middle"
-            fontSize={LAYOUT.NAME_FONT_SIZE}
-            fontWeight="600"
-            fill={textColor}
-          >
-            {data.name}
-          </text>
-          {showIcon && (
-            <image
-              href={`${NN_LAYER_ICON_BASE}${iconFile}`}
-              x={iconX}
-              y={iconY}
-              width={iconSize}
-              height={iconSize}
-              preserveAspectRatio="xMidYMid meet"
+            <rect
+              x={0}
+              y={0}
+              width={width}
+              height={height}
+              rx={cornerRadius}
+              ry={cornerRadius}
+              fill={fill}
+              stroke={strokeColor}
+              strokeWidth={LAYOUT.LINE_WIDTH}
             />
+          )}
+          {showIcon ? (
+            <>
+              <image
+                href={`${NN_LAYER_ICON_BASE}${iconFile}`}
+                x={iconX}
+                y={iconY}
+                width={iconSize}
+                height={iconSize}
+                preserveAspectRatio="xMidYMid meet"
+              />
+              <text
+                x={width / 2}
+                y={nameY}
+                textAnchor="middle"
+                fontSize={LAYOUT.NAME_FONT_SIZE}
+                fontWeight="600"
+                fill={textColor}
+              >
+                {data.name}
+              </text>
+            </>
+          ) : (
+            <text
+              x={width / 2}
+              y={height / 2 + 6}
+              textAnchor="middle"
+              fontSize={LAYOUT.NAME_FONT_SIZE}
+              fontWeight="600"
+              fill={textColor}
+            >
+              {data.name}
+            </text>
           )}
         </svg>
       </div>
