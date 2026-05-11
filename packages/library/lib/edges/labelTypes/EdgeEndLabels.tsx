@@ -1,6 +1,8 @@
 import { useMemo } from "react"
 import { calculateDynamicEdgeLabels } from "@/utils/edgeUtils"
 import { IPoint } from "../Connection"
+import { useClassNotation } from "@/store/settingsStore"
+import { toERCardinality } from "@/utils/multiplicity"
 
 interface EdgeEndLabelsProps {
   data?: {
@@ -63,6 +65,18 @@ export const EdgeEndLabels = ({
     )
   }, [activePoints, targetX, targetY, targetPosition])
 
+  // Re-render multiplicities in the active notation. Data is always
+  // stored in canonical UML "1..*" form; ER mode displays as "(1,N)".
+  const classNotation = useClassNotation()
+  const sourceMultiplicityDisplay =
+    classNotation === "ER"
+      ? toERCardinality(data?.sourceMultiplicity ?? undefined)
+      : data?.sourceMultiplicity
+  const targetMultiplicityDisplay =
+    classNotation === "ER"
+      ? toERCardinality(data?.targetMultiplicity ?? undefined)
+      : data?.targetMultiplicity
+
   return (
     <>
       {/* Source Role Label */}
@@ -82,7 +96,7 @@ export const EdgeEndLabels = ({
       )}
 
       {/* Source Multiplicity Label */}
-      {data?.sourceMultiplicity && (
+      {sourceMultiplicityDisplay && (
         <text
           x={sourceLabels.multiplicityX}
           y={sourceLabels.multiplicityY}
@@ -93,7 +107,7 @@ export const EdgeEndLabels = ({
             userSelect: "none",
           }}
         >
-          {data.sourceMultiplicity}
+          {sourceMultiplicityDisplay}
         </text>
       )}
 
@@ -114,7 +128,7 @@ export const EdgeEndLabels = ({
       )}
 
       {/* Target Multiplicity Label */}
-      {data?.targetMultiplicity && (
+      {targetMultiplicityDisplay && (
         <text
           x={targetLabels.multiplicityX}
           y={targetLabels.multiplicityY}
@@ -125,7 +139,7 @@ export const EdgeEndLabels = ({
             userSelect: "none",
           }}
         >
-          {data.targetMultiplicity}
+          {targetMultiplicityDisplay}
         </text>
       )}
     </>

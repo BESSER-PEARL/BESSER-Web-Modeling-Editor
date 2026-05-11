@@ -500,7 +500,6 @@ interface MethodRowProps {
 
 const MethodRow: React.FC<MethodRowProps> = ({
   row,
-  classNames,
   stateMachines,
   quantumCircuits,
   onPatch,
@@ -509,17 +508,14 @@ const MethodRow: React.FC<MethodRowProps> = ({
   onMoveDown,
 }) => {
   const visibility = row.visibility ?? "public"
-  const returnType = row.returnType ?? row.attributeType ?? "any"
-  const isCustomReturn = !isPrimitiveType(returnType)
-  const [customReturnDraft, setCustomReturnDraft] = useState(
-    isCustomReturn ? returnType : ""
-  )
   const implementationType: ClassifierMethodImplementationType =
     row.implementationType ?? "none"
   const parameters = row.parameters ?? []
-  // SA-UX-FIX B3: collapse the parameters block + implementation-type
-  // section behind a per-row settings toggle so the inline row stays
-  // compact (visibility + name + return type only).
+  // Collapse parameters + implementation type + code editor behind a
+  // per-row settings toggle so the inline row stays compact (visibility
+  // + name only — return type dropdown removed per user 2025-05; v3
+  // didn't expose it, return type rides on the underlying attributeType
+  // field defaulted to "any" and used only for round-trip).
   const [showSettings, setShowSettings] = useState(
     parameters.length > 0 ||
       implementationType !== "none" ||
@@ -527,16 +523,6 @@ const MethodRow: React.FC<MethodRowProps> = ({
       !!row.stateMachineId ||
       !!row.quantumCircuitId
   )
-
-  const handleReturnSelect = (value: string) => {
-    if (value === CUSTOM_TYPE_SENTINEL) {
-      const t = customReturnDraft || returnType
-      onPatch({ returnType: t, attributeType: t })
-      return
-    }
-    const t = normalizeType(value)
-    onPatch({ returnType: t, attributeType: t })
-  }
 
   const patchParameters = (next: ClassifierMethodParameter[]) => {
     onPatch({ parameters: next })
@@ -603,52 +589,9 @@ const MethodRow: React.FC<MethodRowProps> = ({
         </Tooltip>
       </Stack>
 
-      {/* Return-type dropdown — same options as attribute type.
-          SA-FINAL-3 #6: type column width 110 → 80 (v3 width). */}
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <Typography variant="caption" sx={{ minWidth: 70 }}>
-          returns
-        </Typography>
-        <Select
-          size="small"
-          value={isCustomReturn ? CUSTOM_TYPE_SENTINEL : returnType}
-          onChange={(e) => handleReturnSelect(String(e.target.value))}
-          sx={{ minWidth: 80 }}
-        >
-          {PRIMITIVE_TYPES.map((p) => (
-            <MenuItem key={p.value} value={p.value}>
-              {p.label}
-            </MenuItem>
-          ))}
-          {classNames.length > 0 && [
-            <MenuItem key="__rdivider__" disabled>
-              ── classes ──
-            </MenuItem>,
-            ...classNames.map((cn) => (
-              <MenuItem key={`rclass-${cn}`} value={cn}>
-                {cn}
-              </MenuItem>
-            )),
-          ]}
-          <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
-        </Select>
-        {isCustomReturn && (
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            placeholder="custom return type"
-            value={customReturnDraft || returnType}
-            onChange={(e) => setCustomReturnDraft(e.target.value)}
-            onBlur={() => {
-              if (customReturnDraft.trim()) {
-                const t = normalizeType(customReturnDraft.trim())
-                onPatch({ returnType: t, attributeType: t })
-              }
-            }}
-            sx={{ flex: 1 }}
-          />
-        )}
-      </Stack>
+      {/* Return-type dropdown intentionally removed (v3 parity). Return
+          type rides on the underlying `attributeType` field, defaulted
+          to "any". */}
 
       {/* SA-UX-FIX B3: parameters + implementation type + code editor are
           collapsed behind the per-row settings toggle so the row stays
