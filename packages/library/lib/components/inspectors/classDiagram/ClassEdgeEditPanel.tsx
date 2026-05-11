@@ -19,7 +19,7 @@ import { erCardinalityToUML } from "@/utils/multiplicity"
 import { InspectorSectionHeader } from "../_shared"
 
 /**
- * SA-2.1 ClassEdgeEditPanel — single inspector body bound to all nine
+ * ClassEdgeEditPanel — single inspector body bound to all nine
  * v4 ClassDiagram edge types.
  *
  * Source-of-truth port: `packages/editor/.../uml-class-association-update.tsx`.
@@ -32,7 +32,7 @@ import { InspectorSectionHeader } from "../_shared"
  *   - association-type Select with the v3 7-entry dropdown (Bi /
  *     Uni / Aggregation / Composition / Inheritance / Realization /
  *     Dependency). v3's source comments out four of these; the new
- *     library exposes all seven plus the SA-2.1-restored OCL link +
+ *     library exposes all seven plus the OCL link +
  *     LinkRel for completeness when authoring those types.
  *   - per-end multiplicity textfield with v3 placeholder `'1..1'`,
  *     swapping to `'(1,1) or 1..1'` when `classNotation === 'ER'`.
@@ -46,7 +46,7 @@ import { InspectorSectionHeader } from "../_shared"
  *   ClassDependency, ClassOCLLink, ClassLinkRel.
  */
 
-// SA-UX-FIX B4: `ClassOCLLink` and `ClassLinkRel` are no longer manual
+// `ClassOCLLink` and `ClassLinkRel` are no longer manual
 // picks — they're auto-detected by `useConnect` based on the endpoint
 // node types. The user can't change a regular association into one of
 // them, and a constraint-attached link can't accidentally be turned
@@ -172,7 +172,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         />
       )}
 
-      {/* SA-UX-FIX B4: hide the type-picker for auto-detected types
+      {/* Hide the type-picker for auto-detected types
           (ClassOCLLink, ClassLinkRel). For regular associations the
           user can still choose between the seven canonical kinds. */}
       {edge.type !== "ClassOCLLink" && edge.type !== "ClassLinkRel" && (
@@ -192,7 +192,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       {!isInheritance && (
         <>
           <DividerLine width="100%" />
-          {/* SA-FINAL-3 #10: shared section header; #6: caption col 80 → 70. */}
+          {/* Shared section header; #6: caption col 80 → 70. */}
           <InspectorSectionHeader>Source — {sourceName}</InspectorSectionHeader>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 70 }}>

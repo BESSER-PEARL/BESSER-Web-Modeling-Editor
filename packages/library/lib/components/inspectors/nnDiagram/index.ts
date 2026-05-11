@@ -1,11 +1,11 @@
 /**
- * SA-5 NNDiagram inspector registrations.
+ * NNDiagram inspector registrations.
  *
  * Imported as a side-effect from `lib/components/inspectors/index.ts`.
  * Registers the panel-editor bodies against the central inspector
- * registry from SA-1 (`registry.ts`).
+ * registry (`registry.ts`).
  *
- * Per the SA-5 brief: ONE generic `NNComponentEditPanel` adapts to any
+ * Per the brief: ONE generic `NNComponentEditPanel` adapts to any
  * layer kind by reading the per-kind field schema from
  * `nnAttributeWidgetConfig`. Configuration / TensorOp / Datasets all
  * resolve their fields the same way and share the generic body.

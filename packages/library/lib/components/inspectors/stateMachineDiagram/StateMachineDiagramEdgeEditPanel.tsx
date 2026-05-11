@@ -17,21 +17,21 @@ import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * SA-3 inspector body for `StateTransition` edges. Editable fields:
+ * Inspector body for `StateTransition` edges. Editable fields:
  *
  *  - `name`
  *  - `guard` (optional boolean expression rendered as `[guard]` next to
  *    the label on the canvas — see `StateMachineDiagramEdge.tsx`).
  *  - `params` — ordered string-keyed dict mirroring the v3 shape at
  *    `packages/editor/.../uml-state-transition.ts:14`.
- *  - SA-3 brief additions: `code` (action body) and `eventName`
+ *  - brief additions: `code` (action body) and `eventName`
  *    (explicit trigger).
  *
- * SA-FIX-State (PC-5 #1): flip + color editor surface via
- * `EdgeStyleEditor` + `SwapHorizIcon`, mirroring the SA-2.1 class-edge
- * and SA-2.2 #26 agent-edge approach.
+ * Flip + color editor surface via
+ * `EdgeStyleEditor` + `SwapHorizIcon`, mirroring the class-edge
+ * and agent-edge approach.
  *
- * SA-FIX-State (PC-5 #2): the `code` field uses CodeMirror with Python
+ * The `code` field uses CodeMirror with Python
  * syntax highlighting (matches AgentDiagramEdgeEditPanel).
  */
 type EdgeData = CustomEdgeProps & {
@@ -72,7 +72,7 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     update({ [key]: value } as Partial<EdgeData>)
   }
 
-  // SA-FIX-State PC-5 #1: flip swaps source/target/handle pairs on the
+  // Flip swaps source/target/handle pairs on the
   // edge, mirroring `ClassEdgeEditPanel.handleSwap`.
   const handleSwap = () => {
     setEdges((all) =>
@@ -109,7 +109,7 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      {/* SA-FIX-State PC-5 #1: color editor + flip action */}
+      {/* Color editor + flip action */}
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
@@ -150,7 +150,7 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         onChange={(e) => update({ eventName: e.target.value })}
       />
 
-      {/* SA-FIX-State PC-5 #2: CodeMirror Python editor for `code`. */}
+      {/* CodeMirror Python editor for `code`. */}
       <Stack spacing={0.5}>
         <InspectorSectionHeader>code</InspectorSectionHeader>
         <Box

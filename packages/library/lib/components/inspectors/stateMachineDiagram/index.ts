@@ -1,9 +1,9 @@
 /**
- * SA-3 StateMachineDiagram inspector registrations.
+ * StateMachineDiagram inspector registrations.
  *
  * Imported as a side-effect from `lib/components/inspectors/index.ts`,
  * which in turn is imported from `App.tsx`. Registers the panel-editor
- * bodies against the central inspector registry from SA-1
+ * bodies against the central inspector registry
  * (`registry.ts`); both `PropertiesPanel` and `PopoverManager` resolve
  * their bodies from that registry.
  *
@@ -27,12 +27,12 @@ registerInspector("StateFallbackBody", "edit", StateBodyEditPanel)
 registerInspector("StateActionNode", "edit", StateActionNodeEditPanel)
 registerInspector("StateObjectNode", "edit", StateObjectNodeEditPanel)
 registerInspector("StateCodeBlock", "edit", StateCodeBlockEditPanel)
-// SA-FIX-State PC-6 #2: Initial / Final / Fork / ForkHorizontal are
+// Initial / Final / Fork / ForkHorizontal are
 // non-updatable in v3; `StateLabelEditPanel` short-circuits to NULL
 // for those types so the inspector renders the empty state.
 registerInspector("StateInitialNode", "edit", StateLabelEditPanel)
 registerInspector("StateFinalNode", "edit", StateLabelEditPanel)
-// SA-FIX-State PC-6 #3: dedicated decisions editor for merge nodes.
+// Dedicated decisions editor for merge nodes.
 registerInspector("StateMergeNode", "edit", StateMergeNodeEditPanel)
 registerInspector("StateForkNode", "edit", StateLabelEditPanel)
 registerInspector("StateForkNodeHorizontal", "edit", StateLabelEditPanel)

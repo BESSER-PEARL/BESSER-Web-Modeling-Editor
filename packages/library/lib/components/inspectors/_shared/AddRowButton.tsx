@@ -8,7 +8,7 @@ interface AddRowButtonProps extends Omit<ButtonProps, "onClick" | "children"> {
 }
 
 /**
- * SA-FINAL-3 #11 — uniform `+ add` affordance used by every inspector
+ * Uniform `+ add` affordance used by every inspector
  * panel that needs to grow a list.
  *
  * Replaces the inconsistent mix of `IconButton`, free-form text link,

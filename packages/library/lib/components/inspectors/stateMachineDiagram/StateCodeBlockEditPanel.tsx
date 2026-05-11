@@ -10,11 +10,11 @@ import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader } from "../_shared"
 
 /**
- * SA-3 inspector body for `StateCodeBlock`. The body is a multi-line
+ * Inspector body for `StateCodeBlock`. The body is a multi-line
  * code editor; v3 limited the language to Python but the inline
  * `language` field is exposed here for future BAL support.
  *
- * SA-FIX-State (PC-5 #2): the `code` field uses CodeMirror with Python
+ * The `code` field uses CodeMirror with Python
  * syntax highlighting instead of plain MUI multiline.
  */
 const LANGUAGES = [

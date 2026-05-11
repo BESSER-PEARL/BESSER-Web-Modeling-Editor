@@ -11,7 +11,7 @@ import { python } from "@codemirror/lang-python"
 import { Typography } from "@/components/ui"
 
 /**
- * SA-2.2 shared sub-component used by both `AgentStateEditPanel` (in
+ * Shared sub-component used by both `AgentStateEditPanel` (in
  * the body-action editor) and `AgentRagElementEditPanel` so the v3
  * RAG / DB-action wire fields surface consistently in both places.
  *
@@ -101,7 +101,7 @@ export const RagDbFields: React.FC<RagDbFieldsProps> = ({
               </Select>
             </Stack>
           ) : (
-            // PC-7 #3: when no AgentRagElement exists in the diagram,
+            // When no AgentRagElement exists in the diagram,
             // present a disabled dropdown plus a helper line nudging the
             // user to drop one onto the canvas first. This replaces the
             // prior free-text fallback (which made it possible to write

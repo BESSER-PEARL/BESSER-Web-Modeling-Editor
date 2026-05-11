@@ -7,7 +7,7 @@ import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
- * SA-HIDE-NOISE: Inspector body for the free-form Comment sticky-note
+ * Inspector body for the free-form Comment sticky-note
  * node. Single multiline TextField bound to `data.name` (parity with the
  * v3 `comments-update.tsx` editor, which also bound a textarea to
  * `element.name`). Exposes the standard `NodeStyleEditor` so authors

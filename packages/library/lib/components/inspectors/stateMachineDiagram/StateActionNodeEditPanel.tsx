@@ -10,7 +10,7 @@ import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader } from "../_shared"
 
 /**
- * SA-3 inspector body for `StateActionNode`. Editable: `name` plus the
+ * Inspector body for `StateActionNode`. Editable: `name` plus the
  * (optional) `code` body. Kept deliberately small — the v3 update panel
  * was a single-textfield rename.
  */

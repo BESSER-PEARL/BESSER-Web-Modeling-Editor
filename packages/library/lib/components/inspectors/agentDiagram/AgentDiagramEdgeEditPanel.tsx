@@ -21,12 +21,12 @@ import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * SA-4 / SA-2.2 inspector body for the `AgentStateTransition` edge.
+ * Inspector body for the `AgentStateTransition` edge.
  *
  * Source-of-truth port:
  * `packages/editor/.../agent-state-transition-update.tsx`.
  *
- * SA-2.2 deltas (audit recommendations 23–26):
+ * Deltas (audit recommendations 23–26):
  *   - #23: when `predefinedType === 'when_intent_matched'`, the
  *     intent-name picker is a Select sourced from sibling
  *     `AgentIntent` nodes (was free TextField).
@@ -35,7 +35,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  *   - #25: the custom-condition editor uses CodeMirror with Python
  *     syntax highlighting.
  *   - #26: flip + color editing surface via `EdgeStyleEditor` +
- *     `SwapHorizIcon`, mirroring SA-2.1's class-edge approach.
+ *     `SwapHorizIcon`, mirroring class-edge approach.
  *
  * The edge data shape mirrors `docs/source/migrations/uml-v4-shape.md`'s
  * canonical `AgentStateTransitionData`. The migrator collapses the 5
@@ -123,7 +123,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   const custom = data.custom ?? { event: "None", condition: [] }
   const params = data.params ?? {}
 
-  // SA-2.2 #23: source intent-name options from sibling AgentIntent
+  // Source intent-name options from sibling AgentIntent
   // nodes. v3 read these from `state.elements`; v4 reads them off the
   // store's `nodes` array.
   const intentNames = React.useMemo(
@@ -154,8 +154,8 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     update({ [key]: value } as Partial<EdgeData>)
   }
 
-  // SA-2.2 #26: flip swaps source/target/handle pairs on the edge,
-  // mirroring SA-2.1's `ClassEdgeEditPanel.handleSwap`.
+  // Flip swaps source/target/handle pairs on the edge,
+  // mirroring `ClassEdgeEditPanel.handleSwap`.
   const handleSwap = () => {
     setEdges((all) =>
       all.map((e) => {
@@ -264,7 +264,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      {/* SA-2.2 #26: color editor + flip action */}
+      {/* Color editor + flip action */}
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
@@ -301,7 +301,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
       {mode === "predefined" ? (
         <>
           <Stack direction="row" alignItems="center" spacing={0.5}>
-            {/* SA-FINAL-3 #6: caption col 90 → 70 for sibling consistency. */}
+            {/* Caption col 90 → 70 for sibling consistency. */}
             <Typography variant="caption" sx={{ minWidth: 70 }}>
               predefinedType
             </Typography>
@@ -321,7 +321,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
             </Select>
           </Stack>
 
-          {/* SA-2.2 #23 — intent-name dropdown sourced from sibling
+          {/* Intent-name dropdown sourced from sibling
               AgentIntent nodes; falls back to a free TextField when no
               intents exist (pre-authoring scenario). */}
           {predefined.predefinedType === "when_intent_matched" ? (
@@ -360,7 +360,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
             )
           ) : null}
 
-          {/* SA-2.2 #24 — fileType dropdown (PDF / TXT / JSON). */}
+          {/* FileType dropdown (PDF / TXT / JSON). */}
           {predefined.predefinedType === "when_file_received" ? (
             <Stack direction="row" alignItems="center" spacing={0.5}>
               <Typography variant="caption" sx={{ minWidth: 70 }}>
@@ -457,7 +457,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
               spacing={0.5}
               sx={{ padding: "4px 0" }}
             >
-              {/* SA-2.2 #25 — CodeMirror Python editor for custom
+              {/* CodeMirror Python editor for custom
                   conditions, mirroring v3's `react-codemirror2` Python
                   mode at `agent-state-transition-update.tsx:329-348`. */}
               <Box

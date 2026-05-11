@@ -10,7 +10,7 @@ import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader } from "../_shared"
 
 /**
- * SA-3 inspector body for `StateBody` and `StateFallbackBody` rows.
+ * Inspector body for `StateBody` and `StateFallbackBody` rows.
  *
  * Editable fields:
  * - `name`
@@ -20,7 +20,7 @@ import { InspectorSectionHeader } from "../_shared"
  *   inline on the `name` (e.g. `"entry / setup()"`).
  * - colors via the shared `NodeStyleEditor`.
  *
- * SA-FIX-State (PC-5 #2): the `code` field uses CodeMirror with Python
+ * The `code` field uses CodeMirror with Python
  * syntax highlighting (matches AgentStateBodyEditPanel).
  */
 const BODY_KINDS = [

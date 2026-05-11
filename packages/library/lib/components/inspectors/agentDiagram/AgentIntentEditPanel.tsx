@@ -18,15 +18,15 @@ import { generateUUID } from "@/utils"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * SA-FIX-INTENT-INLINE — inspector that edits the parent `AgentIntent`'s
+ * Inspector that edits the parent `AgentIntent`'s
  * inline arrays (`training_phrases[]` / `entity_slots[]`) plus the
  * single-string `intent_description`.
  *
- * v3 originally surfaced every intent field on the parent form. SA-4
+ * v3 originally surfaced every intent field on the parent form.
  * split each child onto its own popover/node; users reported they could
- * not find description / training phrases from the parent. SA-UX-FIX-2
+ * not find description / training phrases from the parent.
  * restored the one-stop form by walking the `parentId` chain over
- * separate React-Flow child nodes. SA-FIX-INTENT-INLINE folds those
+ * separate React-Flow child nodes. folds those
  * children back onto the parent's `data` arrays so the inspector is now
  * a straight read/write over the parent node — no more child-node
  * traversal, no more `extent`/`draggable` housekeeping.

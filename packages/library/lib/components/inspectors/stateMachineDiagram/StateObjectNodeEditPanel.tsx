@@ -8,7 +8,7 @@ import { PopoverProps } from "@/components/popovers/types"
 import { diagramBridge } from "@/services/diagramBridge"
 
 /**
- * SA-3 inspector body for `StateObjectNode`. Editable fields:
+ * Inspector body for `StateObjectNode`. Editable fields:
  *
  * - `name` (instance name, e.g. `myInstance`)
  * - `classId` — class-picker driven by

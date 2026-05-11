@@ -33,7 +33,7 @@ import {
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * SA-FIX-USER-COMPLETE inspector body for `UserModelName`. Full v3 port.
+ * Inspector body for `UserModelName`. Full v3 port.
  *
  * v3 source: `packages/editor/.../uml-object-name/uml-object-name-update.tsx`
  * (the v3 fork registers `UMLObjectNameUpdate` for both ObjectName and
@@ -47,7 +47,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  *    picker presents that list. v3 routed the user-side dropdown
  *    through the same diagramBridge call, but the v3 fork pre-loaded
  *    the user-meta-model into the bridge for that diagram type.
- *    SA-FIX-USER-COMPLETE makes the source explicit by reading the JSON
+ *    Makes the source explicit by reading the JSON
  *    directly here.
  *  - Selecting a meta-class auto-populates the row's `attributes` from
  *    the meta-model class definition (mirrors v3 `onClassChange` —
@@ -226,7 +226,7 @@ const AttrRow: React.FC<AttrRowProps> = ({
             onChange={(e) =>
               onPatch({ attributeType: normalizeType(String(e.target.value)) })
             }
-            // SA-FINAL-3 #6: type column width 110 → 80 (v3 width).
+            // Type column width 110 → 80 (v3 width).
             sx={{ minWidth: 80 }}
           >
             {PRIMITIVE_TYPES.map((p) => (
@@ -257,7 +257,7 @@ const AttrRow: React.FC<AttrRowProps> = ({
           </Select>
         )}
 
-        {/* SA-FINAL U3: per-row text-color picker — mirrors v3
+        {/* Per-row text-color picker — mirrors v3
             `uml-user-model-attribute-update.tsx:233-238` ColorButton +
             StylePane workflow. Uses a native color input as a
             lightweight stand-in for the v3 popover; the swatch reflects
@@ -486,7 +486,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
       />
       <DividerLine width="100%" />
 
-      {/* SA-FIX-USER-ICON: per-node `view` toggle. v3 surfaced this as a
+      {/* Per-node `view` toggle. v3 surfaced this as a
           global setting; v4 owns it on the node so different cards on
           the same diagram can pick independently. Defaults to `"icon"`
           (matches the v3 preferred preview). */}
@@ -552,7 +552,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         </Select>
       </Stack>
 
-      {/* SA-FINAL-3 #7 — description collapsed behind a Metadata
+      {/* Description collapsed behind a Metadata
           Accordion so the panel doesn't burn vertical real estate when
           the field is empty (matches v3 `StylePane` placement). */}
       <Accordion

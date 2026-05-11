@@ -29,7 +29,7 @@ import { RagDbFields } from "./RagDbFields"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * SA-FIX-Agent — full AgentState body editor.
+ * Full AgentState body editor.
  *
  * Source-of-truth port: `packages/editor/src/main/packages/
  * agent-state-diagram/agent-state/agent-state-update.tsx` (~960 LoC).
@@ -41,7 +41,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  *   2. Agent Fallback Action — same radio + editor pattern for the
  *      fallback bodies.
  *
- * SA-FIX-Agent (delta from SA-2.2): bodies are now stored on the
+ * (delta): bodies are now stored on the
  * parent's `data.bodies` array (inline, like a Class node's
  * attributes) rather than as separate React-Flow children. Switching
  * modes deletes existing rows of the wrong reply type within the
@@ -50,7 +50,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  * onChange behaviour).
  *
  * The RAG dropdown is sourced from sibling `AgentRagElement` nodes per
- * the v3 source. PC-7 #3: when no AgentRagElement is present the field
+ * the v3 source. when no AgentRagElement is present the field
  * is disabled with an inline "Create an AgentRagElement from the
  * palette first" helper rather than falling back to a free-text input.
  */
@@ -443,7 +443,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       {/*
        * Match v3 fork: AgentState inspector exposed only name + italic /
-       * underline / bodies. The stereotype selector was a SA-4 addition
+       * underline / bodies. The stereotype selector was a addition
        * that the BESSER metamodel doesn't use, so it's removed from the
        * inspector. The `stereotype` field still exists on the node data
        * for round-trip preservation but is not editable here.

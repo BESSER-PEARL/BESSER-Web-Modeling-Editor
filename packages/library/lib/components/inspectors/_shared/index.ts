@@ -1,5 +1,5 @@
 /**
- * SA-FINAL-3 inspectors — shared primitives.
+ * Inspectors — shared primitives.
  *
  * `InspectorSectionHeader` (#10) and `AddRowButton` (#11) collapse the
  * drift between inspector bodies that previously rolled their own

@@ -12,7 +12,7 @@ import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
- * SA-5 inspector for `NNReference`. Edits the visible label + the
+ * Inspector for `NNReference`. Edits the visible label + the
  * `referenceTarget` id (chosen from layers in the same NNContainer
  * scope; falls back to a free-text input for cross-container
  * references).
@@ -71,7 +71,7 @@ export const NNReferenceEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         onChange={(e) => update({ name: e.target.value })}
       />
       {/*
-        SA-FINAL-3 #2: single `Autocomplete` (freeSolo) replaces the
+        Single `Autocomplete` (freeSolo) replaces the
         previous Select + free-text override pair, which both edited
         the same `referenceTarget` value and made the inspector
         feel duplicated. The dropdown lists same-container Layer

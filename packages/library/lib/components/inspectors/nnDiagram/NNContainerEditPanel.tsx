@@ -17,7 +17,7 @@ import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader } from "../_shared"
 
 /**
- * SA-5 inspector for `NNContainer`. Edits the model name + the
+ * Inspector for `NNContainer`. Edits the model name + the
  * optional entry-layer reference (which child layer is the input
  * side, if v3 carried that field). The dropdown lists this
  * container's children resolved from the React-Flow node list via
@@ -72,7 +72,7 @@ export const NNContainerEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
       />
-      {/* SA-FINAL-3 #7 — description collapsed behind a Metadata
+      {/* Description collapsed behind a Metadata
           Accordion when empty. */}
       <Accordion
         defaultExpanded={!!data.description}

@@ -10,7 +10,7 @@ import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
- * SA-FIX-AGENT-OCL inspector for `AgentRagElement`.
+ * Inspector for `AgentRagElement`.
  *
  * The standalone RAG cylinder is now a name-only element: the
  * DB/RAG selection fields (`ragDatabaseName`, `dbCustomName`,

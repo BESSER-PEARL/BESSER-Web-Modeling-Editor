@@ -39,7 +39,7 @@ const DATETIME_TYPES = new Set(["datetime"])
 const TIME_TYPES = new Set(["time"])
 
 /**
- * SA-FINAL-3 #1 — restore per-attribute-type value widgets in the
+ * Restore per-attribute-type value widgets in the
  * ObjectDiagram inspector. Mirrors the v3 source-of-truth at
  * `packages/editor/src/main/packages/uml-object-diagram/uml-object-attribute/uml-object-attribute-update.tsx`:
  *
@@ -218,13 +218,13 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
  * the per-instance shape:
  *  - top-level `classId` selector (+ classes from sibling ClassDiagram via
  *    `diagramBridge`),
- *  - per-attribute inline `name = value` text widget (SA-FIX-OBJECT-DEEP),
+ *  - per-attribute inline `name = value` text widget,
  *  - no Methods section — objects are instances, not types
- *    (SA-FIX-OBJECT-DEEP),
+ *    ,
  *  - no visibility / id-flag controls (object instances inherit those
  *    from their class).
  *
- * SA-2.1: auto-populates attributes from the linked class on `classId`
+ * Auto-populates attributes from the linked class on `classId`
  * change (mirrors v3 `uml-object-name-update.tsx:107-128`); the
  * attribute type is auto-inherited and shown read-only.
  */
@@ -246,7 +246,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }, [nodes])
 
   /**
-   * SA-FINAL-3 #1: build a `Map<enumName, literals[]>` from the sibling
+   * Build a `Map<enumName, literals[]>` from the sibling
    * ClassDiagram so the type-aware row can render a `Select` for any
    * enum-typed attribute. Mirrors the v3 `getEnumerationValues` helper
    * at `packages/editor/.../uml-object-attribute-update.tsx`.
@@ -328,7 +328,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   /**
-   * SA-2.1: auto-populate attribute rows when the user picks a new
+   * Auto-populate attribute rows when the user picks a new
    * class — mirrors v3 `uml-object-name-update.tsx:107-128`. Existing
    * rows are dropped, then one new row is created per attribute on
    * the chosen class (including inherited attributes via
@@ -419,7 +419,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const addAttribute = (rawName: string) => {
     const trimmed = rawName.trim()
     if (!trimmed) return
-    // PC-4 Gap 3: object instances don't carry visibility semantics, so
+    // Object instances don't carry visibility semantics, so
     // omit `visibility` here. The canvas formatter `formatObjectMember`
     // also strips it, but skipping the field at construction keeps the
     // BESSER round-trip output clean.
@@ -469,7 +469,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <DividerLine width="100%" />
 
       {/* Linked class selector (cross-diagram bridge).
-          PC-4 Gap 2: mirror v3 `getClassDisplayName` and append the
+          Mirror v3 `getClassDisplayName` and append the
           inheritance chain (`extends Parent, Other`) so similarly-named
           subclasses are distinguishable. */}
       <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -520,7 +520,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           onDelete={() => deleteAttribute(row.id)}
         />
       ))}
-      {/* SA-FINAL O3: hide the free-form "Add attribute" input when
+      {/* Hide the free-form "Add attribute" input when
           this object is linked to a class — its attributes are
           auto-populated from the linked class and editing them ad-hoc
           would diverge from the class definition. The picker is only
@@ -542,7 +542,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           }}
         />
       )}
-      {/* SA-FIX-OBJECT-DEEP: no Methods section — objects are
+      {/* No Methods section — objects are
           instances, not types, so UML object diagrams don't show
           methods. */}
     </Box>

@@ -27,12 +27,12 @@ import {
 } from "@/nodes/nnDiagram/nnValidationDefaults"
 
 /**
- * SA-5 / SA-2.2 generic NN inspector.
+ * Generic NN inspector.
  *
- * SA-5 baseline: drives 17 layer-kind panels from a single body that
+ * Baseline: drives 17 layer-kind panels from a single body that
  * reads its field schema from `nnAttributeWidgetConfig`.
  *
- * SA-2.2 deltas (audit recommendations 29–33):
+ * Deltas (audit recommendations 29–33):
  *   - #29: per-layer conditional optional-attribute filtering for
  *     TensorOp (by `tns_type`), Pooling (by `pooling_type`), and
  *     Datasets (by `input_format`). Source-of-truth port of v3's
@@ -52,7 +52,7 @@ import {
  *     placeholders re-resolve when the user changes the layer's
  *     `dimension`.
  *
- * Open question #2 (DimensionAttribute slug collision) — the panel
+ * (DimensionAttribute slug collision) — the panel
  * stores the value under the qualified slug (`pooling.dimension` /
  * `batch_normalization.dimension`) when the slug appears in
  * `COLLIDING_SLUGS`. Reads tolerate both forms for backward-compat.
@@ -62,7 +62,7 @@ import {
 /* Conditional optional-attribute filtering                                    */
 /* -------------------------------------------------------------------------- */
 
-/** SA-2.2 #29 — TensorOp optional fields filtered by `tns_type`. */
+/** TensorOp optional fields filtered by `tns_type`. */
 function filterTensorOpOptionals(
   optionalSlugs: string[],
   tnsType: string
@@ -83,7 +83,7 @@ function filterTensorOpOptionals(
   }
 }
 
-/** SA-2.2 #29 — Pooling optional fields filtered by `pooling_type`. */
+/** Pooling optional fields filtered by `pooling_type`. */
 function filterPoolingOptionals(
   optionalSlugs: string[],
   poolingType: string
@@ -119,7 +119,7 @@ function filterPoolingOptionals(
   return optionalSlugs
 }
 
-/** SA-2.2 #29 — Dataset optional fields filtered by `input_format`. */
+/** Dataset optional fields filtered by `input_format`. */
 function filterDatasetOptionals(
   optionalSlugs: string[],
   inputFormat: string
@@ -277,7 +277,7 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
   const mandatoryFields = schema.filter((f) => f.mandatory && f.slug !== "name")
   let optionalFields = schema.filter((f) => !f.mandatory && f.slug !== "name")
 
-  // SA-2.2 #29 — gate optional-field visibility on a per-layer
+  // Gate optional-field visibility on a per-layer
   // discriminator. Read the discriminator before filtering so the
   // panel responds live as the user changes it.
   if (layerKind === "TensorOp") {
@@ -427,7 +427,7 @@ const NNAttributeRow: React.FC<NNAttributeRowProps> = ({
   enabled,
   onEnabledChange,
 }) => {
-  // SA-2.2 #33 — list-shape placeholder + warning.
+  // List-shape placeholder + warning.
   const expectation = getListExpectation(
     layerKind,
     field.slug,

@@ -6,9 +6,9 @@
  * registry; both `PropertiesPanel` and `PopoverManager` resolve their
  * bodies from that registry.
  *
- * SA-FIX-Agent removed `AgentStateBodyEditPanel` — body sections edit
+ * Removed `AgentStateBodyEditPanel` — body sections edit
  * from `AgentStateEditPanel` since they live inline on
- * `AgentState.data.bodies`. SA-FIX-INTENT-INLINE removed
+ * `AgentState.data.bodies`. removed
  * `AgentIntentBody` / `AgentIntentDescription` /
  * `AgentIntentObjectComponent` for the same reason — training phrases /
  * entity slots / description now live inline on `AgentIntent.data`.

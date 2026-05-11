@@ -1,10 +1,10 @@
 /**
- * SA-2 / SA-2.1 ObjectDiagram inspector registrations.
+ * ObjectDiagram inspector registrations.
  *
  * Imported as a side-effect from `lib/components/inspectors/index.ts`.
  *
- * SA-2: `ObjectEditPanel` for `objectName` nodes.
- * SA-2.1: `ObjectLinkEditPanel` for the `ObjectLink` edge.
+ * `ObjectEditPanel` for `objectName` nodes.
+ * `ObjectLinkEditPanel` for the `ObjectLink` edge.
  */
 import { registerInspector } from "../registry"
 import { ObjectLinkEditPanel } from "./ObjectLinkEditPanel"

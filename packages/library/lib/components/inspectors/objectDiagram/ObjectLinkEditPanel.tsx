@@ -21,7 +21,7 @@ import {
 import { ObjectNodeProps } from "@/types"
 
 /**
- * SA-2.1 ObjectLinkEditPanel — single inspector body for the v4
+ * ObjectLinkEditPanel — single inspector body for the v4
  * `ObjectLink` edge.
  *
  * Source-of-truth port: `packages/editor/.../uml-object-link-update.tsx`.
@@ -153,7 +153,7 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
 
       <Stack direction="row" alignItems="center" spacing={0.5}>
-        {/* SA-FINAL-3 #6: caption col 80 → 70 for sibling consistency. */}
+        {/* Caption col 80 → 70 for sibling consistency. */}
         <Typography variant="caption" sx={{ minWidth: 70 }}>
           association
         </Typography>

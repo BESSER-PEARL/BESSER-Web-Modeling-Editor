@@ -16,7 +16,7 @@ import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader } from "../_shared"
 
 /**
- * SA-FIX-State (PC-6 #3) — inline decisions editor for `StateMergeNode`.
+ * Inline decisions editor for `StateMergeNode`.
  *
  * v3 listed each outgoing transition with an editable name plus an
  * arrow + target dropdown so users could re-route decision branches

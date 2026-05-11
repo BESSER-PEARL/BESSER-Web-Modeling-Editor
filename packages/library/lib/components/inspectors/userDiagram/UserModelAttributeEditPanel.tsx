@@ -15,7 +15,7 @@ import { normalizeType } from "@/utils/typeNormalization"
 import { getUserMetaModelV4 } from "@/services/userMetaModel"
 
 /**
- * SA-FIX-USER-COMPLETE inspector body for stand-alone `UserModelAttribute`
+ * Inspector body for stand-alone `UserModelAttribute`
  * nodes (rare; the migrator collapses attributes onto the parent
  * `UserModelName.attributes` array). v3 source:
  * `packages/editor/.../user-modeling/uml-user-model-attribute/uml-user-model-attribute-update.tsx`.

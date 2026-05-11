@@ -4,7 +4,7 @@ import { Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
- * SA-4 inspector body for `AgentStateTransitionInit`. The init edge is a
+ * Inspector body for `AgentStateTransitionInit`. The init edge is a
  * pure marker — no editable fields. Render a one-line note so the
  * properties panel doesn't appear empty when the user selects it.
  */

@@ -19,20 +19,20 @@
 import { registerInspector } from "./registry"
 import { ClassEditPanel } from "./classDiagram"
 import { ObjectEditPanel } from "./objectDiagram"
-// SA-3: side-effect import that registers the StateMachineDiagram
+// Side-effect import that registers the StateMachineDiagram
 // panel-editor bodies. Kept as a side-effect import (rather than a
 // per-call `registerInspector` here) so the slot ↔ body wiring lives
 // next to the bodies themselves.
 import "./stateMachineDiagram"
-// SA-4: side-effect imports that register the AgentDiagram + UserDiagram
+// Side-effect imports that register the AgentDiagram + UserDiagram
 // panel-editor bodies.
 import "./agentDiagram"
 import "./userDiagram"
-// SA-5: side-effect import that registers the NNDiagram panel-editor
+// Side-effect import that registers the NNDiagram panel-editor
 // bodies. The generic `NNComponentEditPanel` is bound to all 17
 // layer-style kinds; `NNContainer` / `NNReference` get dedicated panels.
 import "./nnDiagram"
-// SA-HIDE-NOISE: shared / cross-diagram inspectors (currently the
+// Shared / cross-diagram inspectors (currently the
 // free-form sticky-note `comment` node ported from v3 `common/comments`).
 import "./common"
 

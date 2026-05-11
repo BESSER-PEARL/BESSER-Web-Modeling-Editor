@@ -1,13 +1,13 @@
 /**
- * SA-2 / SA-2.1 ClassDiagram inspector registrations.
+ * ClassDiagram inspector registrations.
  *
  * Imported as a side-effect from `lib/components/inspectors/index.ts`.
  * Registers panel-editor bodies against the central inspector registry
- * (see SA-1 `registry.ts`); both `PropertiesPanel` and `PopoverManager`
+ * (`registry.ts`); both `PropertiesPanel` and `PopoverManager`
  * resolve their bodies from that registry.
  *
- * SA-2: `ClassEditPanel` for `class` nodes.
- * SA-2.1: `ClassEdgeEditPanel` for the nine ClassDiagram edge types.
+ * `ClassEditPanel` for `class` nodes.
+ * `ClassEdgeEditPanel` for the nine ClassDiagram edge types.
  */
 import { registerInspector } from "../registry"
 import { ClassEdgeEditPanel } from "./ClassEdgeEditPanel"
@@ -21,7 +21,7 @@ const CLASS_EDGE_TYPES = [
   "ClassUnidirectional",
   "ClassBidirectional",
   "ClassDependency",
-  // SA-2.1: BESSER-specific edge types restored alongside the dropped
+  // BESSER-specific edge types restored alongside the dropped
   // v3 entries in `lib/edges/types.tsx` and `versionConverter.ts`.
   "ClassOCLLink",
   "ClassLinkRel",
@@ -31,7 +31,7 @@ for (const type of CLASS_EDGE_TYPES) {
   registerInspector(type, "edit", ClassEdgeEditPanel)
 }
 
-// SA-UX-FIX B1: free-standing OCL constraint node — separate inspector
+// Free-standing OCL constraint node — separate inspector
 // body (minimal: name, kind, expression, description). Owned constraints
 // are still edited via the OCL section inside `ClassEditPanel`.
 registerInspector("ClassOCLConstraint", "edit", ClassOCLConstraintEditPanel)

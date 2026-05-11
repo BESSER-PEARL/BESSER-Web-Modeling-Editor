@@ -38,7 +38,7 @@ import { diagramBridge } from "@/services/diagramBridge"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * SA-FINAL-3 #3 — tiny up/down arrow glyphs used by the row reorder
+ * Tiny up/down arrow glyphs used by the row reorder
  * gutter. Inline SVG (matches the rest of `@/components/Icon`) so we
  * don't need a new icon-pack dependency.
  */
@@ -71,7 +71,7 @@ const ArrowDownSvg: React.FC<{ width?: number; height?: number }> = ({
 )
 
 /**
- * SA-FINAL-3 #3 — left-gutter reorder controls for the attribute /
+ * Left-gutter reorder controls for the attribute /
  * method rows. Mirrors v3 `uml-classifier-update.tsx:64-91, 254-274`.
  * Up-button hides on the first row, down-button hides on the last row.
  */
@@ -126,7 +126,7 @@ const ReorderGutter: React.FC<ReorderGutterProps> = ({
 )
 
 /**
- * SA-2.1 helper: collect sibling Enumerations from the bridge data so the
+ * Helper: collect sibling Enumerations from the bridge data so the
  * attribute-type picker can offer them. Mirrors v3
  * `uml-classifier-update.tsx:200-202`.
  */
@@ -145,7 +145,7 @@ const collectEnumerationNames = (): string[] => {
 }
 
 /**
- * SA-2.1 sanitiser for identifier-like fields. Mirrors v3
+ * Sanitiser for identifier-like fields. Mirrors v3
  * `uml-classifier-update.tsx:475` (class name) and the attribute-name
  * sanitiser already used elsewhere in this panel.
  */
@@ -171,7 +171,7 @@ const PRIMITIVE_TYPES: { value: string; label: string }[] = [
   { value: "any", label: "any" },
 ]
 
-// SA-UX-FIX B7: visibility dropdown shows only the canonical UML symbols
+// Visibility dropdown shows only the canonical UML symbols
 // (`+ / - / # / ~`). The full word (`public`, etc.) is still the stored
 // value — only the display label is the symbol.
 const VISIBILITIES: { value: ClassifierVisibility; label: string }[] = [
@@ -223,15 +223,15 @@ const isPrimitiveType = (t: string | undefined): boolean =>
 interface AttributeRowProps {
   row: ClassNodeElement
   classNames: string[]
-  /** SA-2.1: enumeration names from sibling Enumerations. */
+  /** Enumeration names from sibling Enumerations. */
   enumerationNames: string[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
-  /** SA-FINAL-3 #3 reorder gutter callbacks; undefined hides the button. */
+  /** Reorder gutter callbacks; undefined hides the button. */
   onMoveUp?: () => void
   onMoveDown?: () => void
   /**
-   * SA-FIX-CRITICAL-2 #2: when the parent class is an Enumeration the
+   * When the parent class is an Enumeration the
    * row is a literal — hide the visibility dropdown and the type
    * dropdown columns. Just the name + delete remain.
    */
@@ -254,7 +254,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   const [customTypeDraft, setCustomTypeDraft] = useState(
     isCustom ? attributeType : ""
   )
-  // SA-UX-FIX B3: collapse the four flag checkboxes (`isId`,
+  // Collapse the four flag checkboxes (`isId`,
   // `isExternalId`, `isOptional`, `isDerived`) and the default-value
   // input behind a per-row settings toggle so the inline row is just
   // visibility + name + type + delete.
@@ -291,12 +291,12 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
-        {/* SA-FINAL-3 #3 reorder gutter (mirrors v3
+        {/* Reorder gutter (mirrors v3
             `uml-classifier-update.tsx:64-91`). */}
         <ReorderGutter onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
-        {/* SA-FIX-CRITICAL-2 #2: hide visibility dropdown for Enumeration
+        {/* Hide visibility dropdown for Enumeration
             literals — they're just names, no UML access modifier.
-            SA-FINAL-3 #6: visibility column width 70 → 44 (v3 width). */}
+            Visibility column width 70 → 44 (v3 width). */}
         {!isEnumerationParent && (
           <Select
             size="small"
@@ -325,9 +325,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             })
           }
         />
-        {/* SA-FIX-CRITICAL-2 #2: hide type dropdown for Enumeration
+        {/* Hide type dropdown for Enumeration
             literals — they don't carry an attribute type.
-            SA-FINAL-3 #6: type column width 110 → 80 (v3 width). */}
+            Type column width 110 → 80 (v3 width). */}
         {!isEnumerationParent && (
           <Select
             size="small"
@@ -395,10 +395,10 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         />
       )}
 
-      {/* SA-UX-FIX B3: flags + default value collapse behind the
+      {/* Flags + default value collapse behind the
           per-row settings (gear) toggle. v3 had the same affordance —
           see `uml-classifier-attribute-update.tsx`.
-          SA-FIX-CRITICAL-2 #2: Enumeration literals carry no flags or
+          Enumeration literals carry no flags or
           default value, so the gear icon is hidden and the panel must
           not render even if `showSettings` is initially true (legacy
           fixtures may have stamped flags on enum literals). */}
@@ -458,7 +458,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             />
           </Stack>
 
-          {/* SA-UX-FIX B6: default value is always a plain string text
+          {/* Default value is always a plain string text
               input — class attribute types aren't enforced at this
               layer, so type-aware widgets are wrong here. (Object
               diagram values keep their type-aware widget — see
@@ -493,7 +493,7 @@ interface MethodRowProps {
   quantumCircuits: { id: string; name: string }[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
-  /** SA-FINAL-3 #3 reorder gutter callbacks; undefined hides the button. */
+  /** Reorder gutter callbacks; undefined hides the button. */
   onMoveUp?: () => void
   onMoveDown?: () => void
 }
@@ -539,7 +539,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
-        {/* SA-FINAL-3 #3 reorder gutter. */}
+        {/* Reorder gutter. */}
         <ReorderGutter onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
         <Select
           size="small"
@@ -561,7 +561,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
           fullWidth
           placeholder="method name"
           value={row.name}
-          // SA-FIX-CLASS-FUND #3: method names are committed as Python
+          // Method names are committed as Python
           // identifiers (no spaces, no punctuation other than `_`).
           // Mirrors the attribute-name sanitiser at the row above and
           // v3 `uml-classifier-update.tsx:475`.
@@ -593,7 +593,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
           type rides on the underlying `attributeType` field, defaulted
           to "any". */}
 
-      {/* SA-UX-FIX B3: parameters + implementation type + code editor are
+      {/* Parameters + implementation type + code editor are
           collapsed behind the per-row settings toggle so the row stays
           compact when the user is just naming methods. */}
       {showSettings && (
@@ -760,7 +760,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
           }}
         >
           {/*
-           * SA-2.1 CodeMirror port — replaces the plain MUI multiline
+           * CodeMirror port — replaces the plain MUI multiline
            * TextField for `code` / `bal` implementation types so the v3
            * Python-syntax-highlighting + tab-indent UX is preserved.
            * Source-of-truth: `uml-classifier-update.tsx` code editor.
@@ -830,7 +830,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }
   }, [nodes])
 
-  // SA-2.1: enumeration list for the attribute-type picker (P12).
+  // Enumeration list for the attribute-type picker (P12).
   const enumerationNames = useMemo(() => collectEnumerationNames(), [nodes])
 
   const stateMachineDiagrams = diagramBridge.getStateMachineDiagrams()
@@ -842,7 +842,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   /* ----- Top-level node update helpers ----------------------------------- */
 
   const handleDataFieldUpdate = (key: string, value: string) => {
-    // SA-2.1 (P10): class `name` field must be sanitised on commit, mirroring
+    // Class `name` field must be sanitised on commit, mirroring
     // v3 `uml-classifier-update.tsx:475`. Other fields (style colors, etc.)
     // pass through unchanged.
     const sanitised = key === "name" ? safeIdentifier(value) : value
@@ -881,7 +881,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     )
   }
 
-  // SA-FIX-CLASS-FUND #10: when no name is provided, generate
+  // When no name is provided, generate
   // `attribute1`, `attribute2`, … by scanning existing attribute names
   // for the highest `attribute<N>` (or `method<N>`) suffix. Mirrors the
   // v3 add-row affordance (auto-named on click).
@@ -902,7 +902,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   /**
-   * SA-FINAL-3 #3 — swap two attribute rows in place. Mirrors v3's
+   * Swap two attribute rows in place. Mirrors v3's
    * `ReorderControls` action at `uml-classifier-update.tsx:64-91`.
    */
   const moveAttribute = (attrId: string, direction: "up" | "down") => {
@@ -977,7 +977,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   /**
-   * SA-FINAL-3 #3 — swap two method rows in place. Mirrors v3's
+   * Swap two method rows in place. Mirrors v3's
    * `ReorderControls` action at `uml-classifier-update.tsx:254-274`.
    */
   const moveMethod = (methodId: string, direction: "up" | "down") => {
@@ -995,7 +995,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   const addMethod = (rawName: string) => {
-    // SA-FIX-CLASS-FUND #3 + #10: sanitise to Python identifier and
+    // Sanitise to Python identifier and
     // fall back to `method1`, `method2`, … when the input is empty.
     const sanitised = rawName.trim().replace(/[^a-zA-Z0-9_]/g, "")
     const data = (nodes.find((n) => n.id === elementId)?.data ??
@@ -1072,7 +1072,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
       <DividerLine width="100%" />
 
-      {/* SA-FINAL C4 + SA-FINAL-3 #7: Metadata fields (description /
+      {/* Metadata fields (description /
           uri / icon) — mirror v3 `uml-classifier-update.tsx` `StylePane`.
           Stored on `data.description`, `data.uri`, `data.icon`;
           round-tripped by `convertV4ToV3Class`. Collapsed behind an
@@ -1138,7 +1138,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <InspectorSectionHeader>Attributes</InspectorSectionHeader>
-        {/* SA-FINAL-3 #5 + #11 — single `+ add attribute` text-link
+        {/* Single `+ add attribute` text-link
             replaces the previous IconButton-with-glyph + duplicate
             inline `+ Add attribute (Enter)` textfield combo. The
             inline textfield is kept below for keyboard add. */}
@@ -1163,7 +1163,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               ? () => moveAttribute(row.id, "down")
               : undefined
           }
-          /* SA-FIX-CRITICAL-2 #2: hide visibility + type columns for
+          /* Hide visibility + type columns for
              Enumeration literals. */
           isEnumerationParent={nodeData.stereotype === "Enumeration"}
         />
@@ -1186,7 +1186,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <DividerLine width="100%" />
 
-      {/* SA-2.1 (P11): v3 hid the Methods section for Enumeration stereotype
+      {/* V3 hid the Methods section for Enumeration stereotype
           (see `uml-classifier-update.tsx:344`). v4 mirrors that hide rule. */}
       {nodeData.stereotype !== "Enumeration" && (
         <>
@@ -1196,7 +1196,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             justifyContent="space-between"
           >
             <InspectorSectionHeader>Methods</InspectorSectionHeader>
-            {/* SA-FINAL-3 #5 + #11 — unified `+ add method` text-link. */}
+            {/* Unified `+ add method` text-link. */}
             <AddRowButton
               label="add method"
               onClick={() => addMethod("")}
