@@ -10,6 +10,8 @@ import { SVGComponentProps } from "@/types/SVG"
 import { AssessmentSelectableElement } from "@/components/AssessmentSelectableElement"
 import { StyledRect } from "../../StyledElements"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { formatDisplayName } from "@/utils/classifierMemberDisplay"
+import { useClassNotation } from "@/store/settingsStore"
 
 export interface MinSize {
   minWidth: number
@@ -34,6 +36,16 @@ export const ClassSVG = ({
   const showStereotype = !!stereotype
   // PC-1 fix (SA-FIX-Class): Enumeration must NOT draw a methods compartment.
   const isEnumeration = stereotype === ClassType.Enumeration
+  // ER (Chen) mode hides the methods compartment for entity-capable
+  // classifiers — plain Class and Abstract. Interfaces define operations
+  // (their whole purpose) and Enumerations are already handled above, so
+  // both are excluded from this rule. Mirrors v3
+  // `uml-classifier-component.tsx` ER_CAPABLE_CLASSIFIER_TYPES.
+  const classNotation = useClassNotation()
+  const isERHidesMethods =
+    classNotation === "ER" &&
+    stereotype !== ClassType.Interface &&
+    stereotype !== ClassType.Enumeration
   const headerHeight = showStereotype
     ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
     : LAYOUT.DEFAULT_HEADER_HEIGHT
@@ -46,10 +58,48 @@ export const ClassSVG = ({
 
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
 
+  // Format a row's display name using the canonical UML formatter when the
+  // row carries structured BESSER fields (`attributeType`, `visibility`, …).
+  // This is what makes the palette sidebar preview render rows like
+  // `+ name: str` (matching v3) instead of just the raw `name`. The canvas
+  // node renderer (`nodes/classDiagram/Class.tsx`) pre-formats rows before
+  // they hit this SVG; `formatDisplayName` is idempotent (its strip-prefix
+  // / strip-suffix logic detects and removes legacy formatting), so the
+  // canvas flow stays correct even when this re-formats already-formatted
+  // rows. Enumeration literals are force-formatted (bare name) regardless
+  // of structured fields.
+  const isEnumerationStereotype = stereotype === ClassType.Enumeration
+  const formatRowName = (row: ClassNodeElement): ClassNodeElement => {
+    const hasStructuredFields =
+      row.attributeType !== undefined ||
+      row.visibility !== undefined ||
+      row.isOptional !== undefined ||
+      row.isDerived !== undefined ||
+      row.isId !== undefined ||
+      row.isExternalId !== undefined ||
+      row.defaultValue !== undefined
+    if (!hasStructuredFields && !isEnumerationStereotype) return row
+    const formatted = formatDisplayName(
+      {
+        name: row.name,
+        attributeType: row.attributeType,
+        visibility: row.visibility,
+        isOptional: row.isOptional,
+        isDerived: row.isDerived,
+        isId: row.isId,
+        isExternalId: row.isExternalId,
+        defaultValue: row.defaultValue,
+      },
+      classNotation,
+      stereotype ?? undefined
+    )
+    return { ...row, name: formatted }
+  }
+
   const processElements = (elements: ClassNodeElement[]) =>
     elements.map((el) => {
       const score = assessments[el.id]?.score
-      return { ...el, score }
+      return { ...formatRowName(el), score }
     })
 
   const processedAttributes = processElements(attributes)
@@ -117,8 +167,12 @@ export const ClassSVG = ({
         )}
 
         {/* Methods Section — PC-1 fix (SA-FIX-Class): skip for Enumeration;
-            fix offsetFromTop to use attributeHeight (was methodHeight). */}
-        {!isEnumeration && methods.length >= 0 && (
+            fix offsetFromTop to use attributeHeight (was methodHeight).
+            ER mode also hides the methods compartment for entity-capable
+            classifiers (Class / Abstract) — ER notation has no concept of
+            operations on entities. Mirrors v3 `uml-classifier-component.tsx`
+            ER branch. */}
+        {!isEnumeration && !isERHidesMethods && methods.length >= 0 && (
           <>
             <SeparationLine
               y={headerHeight + attributes.length * attributeHeight}

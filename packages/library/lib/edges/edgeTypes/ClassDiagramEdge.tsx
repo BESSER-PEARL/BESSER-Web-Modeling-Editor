@@ -101,7 +101,6 @@ export const ClassDiagramEdge = ({
   })
 
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
-  const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
   // SA-FIX-Editor PC-11.4: wire `showAssociationNames` to the rendered
   // edge. v3 stored the user-typed association name on `data.name`
@@ -111,10 +110,35 @@ export const ClassDiagramEdge = ({
   const showAssociationNames = useSettingsStore(
     (s) => s.showAssociationNames
   )
+  const classNotation = useSettingsStore((s) => s.classNotation)
   const associationName =
     typeof (data as { name?: unknown })?.name === "string"
       ? ((data as { name?: string }).name ?? "")
       : ""
+
+  // ER (Chen) mode: for the four "plain" binary associations replace the
+  // UML arrow/rhombus end markers with a named diamond drawn at the
+  // midpoint of the path. Inheritance, realization, OCL link, dependency,
+  // and link relationships keep their UML rendering. Mirrors v3
+  // `uml-association-component.tsx` ER_DIAMOND_RELATIONSHIP_TYPES.
+  const ER_DIAMOND_TYPES: ReadonlyArray<string> = [
+    "ClassBidirectional",
+    "ClassUnidirectional",
+    "ClassAggregation",
+    "ClassComposition",
+  ]
+  const showsERDiamond =
+    classNotation === "ER" && ER_DIAMOND_TYPES.includes(type as string)
+  const effectiveMarkerStart = showsERDiamond ? undefined : markerStart
+  const effectiveMarkerEnd = showsERDiamond ? undefined : markerEnd
+  const markerKey = `${id}-${effectiveMarkerStart ?? "none"}-${
+    effectiveMarkerEnd ?? "none"
+  }-${showsERDiamond ? "er" : "uml"}`
+  const erDiamondFill =
+    (data as { strokeColor?: string } | undefined)?.strokeColor &&
+    typeof (data as { fillColor?: string } | undefined)?.fillColor === "string"
+      ? ((data as { fillColor?: string }).fillColor as string)
+      : "var(--besser-background, #ffffff)"
 
   return (
     <AssessmentSelectableWrapper elementId={id} asElement="g">
@@ -137,12 +161,15 @@ export const ClassDiagramEdge = ({
             }}
           />
 
-          {/* Inline markers for export compatibility (survives ungrouping) */}
+          {/* Inline markers for export compatibility (survives ungrouping).
+              In ER mode for ER-capable association types, the inline
+              markers are suppressed in favour of the midpoint diamond
+              rendered below. */}
           {!isReconnectingRef.current && (
             <EdgeInlineMarkers
               pathD={currentPath}
-              markerEnd={markerEnd}
-              markerStart={markerStart}
+              markerEnd={effectiveMarkerEnd}
+              markerStart={effectiveMarkerStart}
               strokeColor={strokeColor}
             />
           )}
@@ -201,10 +228,49 @@ export const ClassDiagramEdge = ({
           textColor={textColor}
         />
 
+        {/* ER (Chen) diamond at the path midpoint, replacing the UML
+            arrow/rhombus markers for the four binary association types.
+            The diamond carries the association name centred inside (so
+            we suppress the separate UML mid-edge name label below to
+            avoid duplication). Mirrors v3 `uml-association-component.tsx`
+            ER branch. */}
+        {showsERDiamond && (
+          <g
+            transform={`translate(${edgeData.pathMiddlePosition.x} ${edgeData.pathMiddlePosition.y})`}
+            pointerEvents="none"
+            data-testid="er-relationship-diamond"
+          >
+            <polygon
+              points="-30,0 0,-15 30,0 0,15"
+              fill={erDiamondFill}
+              stroke={strokeColor}
+              strokeWidth={1}
+            />
+            {associationName && (
+              <text
+                x={0}
+                y={0}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                style={{
+                  fontSize: "11px",
+                  fill: textColor,
+                  userSelect: "none",
+                  pointerEvents: "none",
+                }}
+              >
+                {associationName}
+              </text>
+            )}
+          </g>
+        )}
+
         {/* SA-FIX-Editor PC-11.4: live association-name label, gated on
             the `showAssociationNames` setting. Mirrors the v3 mid-edge
-            label position; centre-anchored above the midpoint. */}
-        {showAssociationNames && associationName && (
+            label position; centre-anchored above the midpoint. In ER
+            mode the name is rendered inside the diamond, so suppress
+            this label for ER-capable association types. */}
+        {showAssociationNames && associationName && !showsERDiamond && (
           <text
             x={edgeData.pathMiddlePosition.x}
             y={edgeData.pathMiddlePosition.y - 8}

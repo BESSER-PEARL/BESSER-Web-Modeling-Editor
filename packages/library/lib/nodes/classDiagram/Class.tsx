@@ -132,9 +132,16 @@ export function Class({
 
   // Calculate minimum dimensions. PC-1 fix (SA-FIX-Class): Enumeration
   // hides the methods compartment entirely; height drops the methods
-  // contribution to match.
+  // contribution to match. ER mode also hides methods for entity-capable
+  // classifiers (Class / Abstract) — must drop the height contribution
+  // too so the node doesn't reserve empty space below the attributes.
   const isEnumerationVariant = stereotype === "Enumeration"
-  const effectiveMethodCount = isEnumerationVariant ? 0 : methods.length
+  const isERHidesMethodsVariant =
+    classNotation === "ER" &&
+    stereotype !== "Interface" &&
+    stereotype !== "Enumeration"
+  const effectiveMethodCount =
+    isEnumerationVariant || isERHidesMethodsVariant ? 0 : methods.length
   const minHeight = useMemo(
     () =>
       calculateMinHeight(
@@ -212,14 +219,19 @@ export function Class({
         handleStyle={{ width: 8, height: 8 }}
       />
       <div ref={classSvgWrapperRef}>
+        {/* Pass the *raw* attribute/method rows (not the pre-formatted
+            display copies). ClassSVG reads the live `classNotation` from
+            the settings store and runs `formatDisplayName` once on the
+            raw rows — feeding it already-formatted names produces double
+            visibility prefixes and double `?` markers because the strip
+            logic doesn't reverse the inline `optional`/`derived` flags.
+            `displayAttributes`/`displayMethods` above are kept for the
+            width calculation (a single canonical-form measure is what
+            we want there). */}
         <ClassSVG
           width={finalWidth}
           height={minHeight}
-          data={{
-            ...data,
-            attributes: displayAttributes,
-            methods: displayMethods,
-          }}
+          data={data}
           id={id}
           showAssessmentResults={!isDiagramModifiable}
         />

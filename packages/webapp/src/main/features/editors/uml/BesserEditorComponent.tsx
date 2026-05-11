@@ -1,9 +1,11 @@
 import { BesserEditor, UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
+import { useStore } from 'react-redux';
 
 import { BesserEditorContext } from './besser-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { isUMLModel } from '../../../shared/types/project';
+import { isUMLModel, SupportedDiagramType } from '../../../shared/types/project';
+import type { RootState } from '../../../app/store/store';
 import {
   updateDiagramModelThunk,
   selectActiveDiagram,
@@ -14,6 +16,23 @@ import {
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
 
+/**
+ * Identifies the (project, diagram type, diagram index) tuple that the
+ * currently-mounted editor instance is bound to. Captured once at setup
+ * time and frozen for the editor's lifetime. Both the debounced save and
+ * the flush-on-cleanup path consult this against live Redux state before
+ * dispatching `updateDiagramModelThunk` — if the user has navigated to a
+ * different project (e.g. File > New Project) between scheduling and
+ * firing, the save targets the wrong project's diagram slot, which is
+ * how the StateMachine-then-new-project content-bleed regression
+ * manifested. Mismatched flushes are dropped instead.
+ */
+type EditorBinding = {
+  projectId: string | null;
+  diagramType: SupportedDiagramType;
+  diagramIndex: number;
+};
+
 export const BesserEditorComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<BesserEditor | null>(null);
@@ -21,7 +40,9 @@ export const BesserEditorComponent: React.FC = () => {
   const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setupRunRef = useRef(0);
   const lastHandledRevisionRef = useRef(0);
+  const editorBindingRef = useRef<EditorBinding | null>(null);
   const dispatch = useAppDispatch();
+  const store = useStore<RootState>();
   const reduxDiagram = useAppSelector(selectActiveDiagram);
   const options = useAppSelector(selectEditorOptions);
   const editorRevision = useAppSelector(selectEditorRevision);
@@ -51,16 +72,39 @@ export const BesserEditorComponent: React.FC = () => {
     });
   }, []);
 
+  // Returns true if the editor's captured binding still matches live
+  // Redux state. Used to gate save dispatches so a stale save from the
+  // previous diagram/project can't bleed into the freshly-loaded one.
+  const bindingMatchesCurrentState = useCallback((): boolean => {
+    const binding = editorBindingRef.current;
+    if (!binding) return false;
+    const { workspace } = store.getState();
+    return (
+      binding.projectId === (workspace.project?.id ?? null) &&
+      binding.diagramType === workspace.activeDiagramType &&
+      binding.diagramIndex === workspace.activeDiagramIndex
+    );
+  }, [store]);
+
   // SA-FINAL-3 Task 2: flush any pending debounced save synchronously.
   // Mirrors GraphicalUIEditor's flush-on-cleanup pattern so a rapid tab
   // switch within the 300 ms debounce window doesn't drop the user's
   // last keystroke.
+  //
+  // SA-FIX content-bleed-on-new-project: only flush when the captured
+  // binding still matches live state. When `createProjectThunk` (or any
+  // other thunk that swaps the active project/diagram) runs while a
+  // debounced save is pending, the global Redux state has already moved
+  // on by the time we get here — dispatching `updateDiagramModelThunk`
+  // unguarded would write the old editor's model into the *new*
+  // project's diagram slot, leaving the canvas displaying stale content.
   const flushPendingSave = useCallback(() => {
     if (!debouncedSaveRef.current) return;
     clearTimeout(debouncedSaveRef.current);
     debouncedSaveRef.current = null;
     const editor = editorRef.current;
     if (!editor) return;
+    if (!bindingMatchesCurrentState()) return;
     try {
       // editor.model is a synchronous getter on the current state — by
       // dispatching the thunk inline (no await), we hand the latest model
@@ -69,7 +113,7 @@ export const BesserEditorComponent: React.FC = () => {
     } catch (error) {
       console.warn('Failed to flush pending UML save on cleanup:', error);
     }
-  }, [dispatch]);
+  }, [dispatch, bindingMatchesCurrentState]);
 
   // Cleanup function
   const cleanupEditor = useCallback(async () => {
@@ -78,6 +122,7 @@ export const BesserEditorComponent: React.FC = () => {
     flushPendingSave();
     const editor = editorRef.current;
     editorRef.current = null;
+    editorBindingRef.current = null;
     if (!editor) return;
     // Unsubscribe from model changes before destroying
     if (modelSubscriptionRef.current !== null) {
@@ -130,6 +175,18 @@ export const BesserEditorComponent: React.FC = () => {
       const currentOptions = optionsRef.current;
       const currentDiagram = reduxDiagramRef.current;
 
+      // Capture the (project, diagram type, diagram index) identity that
+      // this editor instance is bound to. Used by `flushPendingSave` and
+      // the debounced subscriber to refuse writes when the user has
+      // navigated to a different project/diagram between when the save
+      // was scheduled and when it would have fired.
+      const setupState = store.getState().workspace;
+      editorBindingRef.current = {
+        projectId: setupState.project?.id ?? null,
+        diagramType: setupState.activeDiagramType,
+        diagramIndex: setupState.activeDiagramIndex,
+      };
+
       const nextEditor = new BesserEditor(containerRef.current, currentOptions);
       editorRef.current = nextEditor;
       await nextEditor.nextRender;
@@ -173,6 +230,13 @@ export const BesserEditorComponent: React.FC = () => {
         }
         if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
         debouncedSaveRef.current = setTimeout(() => {
+          debouncedSaveRef.current = null;
+          // Guard against the project being swapped (e.g. via
+          // `createProjectThunk` / `loadProjectThunk`) between the
+          // model change and the debounce firing. Without this check
+          // the dispatched thunk reads live Redux state and writes the
+          // stale model into the *new* project's matching slot.
+          if (!bindingMatchesCurrentState()) return;
           dispatch(updateDiagramModelThunk({ model }));
         }, 300);
       });
@@ -181,7 +245,15 @@ export const BesserEditorComponent: React.FC = () => {
     };
 
     setupEditor().catch(notifyError('Editor setup'));
-  }, [editorRevision, cleanupEditor, destroyEditorDeferred, dispatch, setEditor]);
+  }, [
+    editorRevision,
+    cleanupEditor,
+    destroyEditorDeferred,
+    dispatch,
+    setEditor,
+    store,
+    bindingMatchesCurrentState,
+  ]);
 
   return (
     <div

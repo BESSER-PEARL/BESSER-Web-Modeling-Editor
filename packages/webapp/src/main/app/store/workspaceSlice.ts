@@ -190,6 +190,24 @@ export const createProjectThunk = createAsyncThunk(
     ProjectStorageRepository.withoutNotify(() => {
       project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives);
     });
+
+    // SA-FIX content-bleed-on-new-project: explicitly clear the singleton
+    // `diagramBridge` cache (including its localStorage backup) before
+    // priming it for the new project. Without this, the bridge keeps the
+    // *previous* project's ClassDiagram data — which surfaces as stale
+    // class options in ObjectDiagram/UserDiagram palettes and reference
+    // lookups inside the brand-new project. We then mirror
+    // `loadProjectThunk`'s setup call so a brand-new project's first
+    // active diagram has the correct (here: empty) bridge state.
+    try {
+      const { diagramBridge } = await import('@besser/wme');
+      diagramBridge.clearDiagramData();
+    } catch {
+      /* bridge not available */
+    }
+    const activeDiagram = getActiveDiagram(project, project.currentDiagramType);
+    await setupBridgeForActiveDiagram(project, activeDiagram ?? null, project.currentDiagramType);
+
     return project;
   },
 );
