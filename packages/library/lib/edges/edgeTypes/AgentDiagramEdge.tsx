@@ -20,9 +20,9 @@ import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { registerEdgeTypes } from "../types"
 
 /**
- * SA-4 `AgentStateTransition` edge — most complex edge in the migration.
+ * `AgentStateTransition` edge — most complex edge in the migration.
  *
- * Edge `data` shape (canonical, per the SA-4 brief and
+ * Edge `data` shape (canonical, per the brief and
  * `docs/source/migrations/uml-v4-shape.md`):
  *
  * ```ts
@@ -45,7 +45,7 @@ import { registerEdgeTypes } from "../types"
  *   name?: string;
  *   points: IPoint[];
  *
- *   // Legacy preservation (per the SA-4 brief): the v3 deserializer at
+ *   // Legacy preservation (per the brief): the v3 deserializer at
  *   // `agent-state-transition.ts` accepted at least 5 historical shapes;
  *   // the migrator collapses to the canonical shape above but keeps a
  *   // `legacy` bag and `legacyShape` discriminator for round-trip.

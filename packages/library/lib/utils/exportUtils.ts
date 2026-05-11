@@ -19,7 +19,7 @@ const svgFontStyles = `
 type SvgExportMode = "web" | "compat" | "standalone"
 
 /**
- * SA-FINAL-3 Tier 2 #8: theme-portable SVG export. The "web" mode keeps the
+ * Theme-portable SVG export. The "web" mode keeps the
  * raw `var(--besser-*)` references — which is fine for in-browser preview /
  * clipboard, but produces a broken file when downloaded and opened outside
  * a `<html>` host that defines those vars. "standalone" snapshots the
@@ -119,7 +119,7 @@ export const getSVG = (
   const width = clip.width
   const height = clip.height
 
-  // SA-FINAL-3 Tier 2 #8: default downloaded SVGs to "standalone" so the
+  // Default downloaded SVGs to "standalone" so the
   // file is portable when opened outside the host page. Hosts that need the
   // raw CSS-var output for in-browser preview / clipboard can still pass
   // `svgMode: "web"` explicitly.

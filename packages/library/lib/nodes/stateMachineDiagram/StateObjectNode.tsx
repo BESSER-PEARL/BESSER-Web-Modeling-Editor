@@ -14,7 +14,7 @@ import { getCustomColorsFromData } from "@/utils/layoutUtils"
  * `uml-state-object-node-component.tsx`.
  *
  * Spec open question 4 resolution: this node carries a `classId` link to
- * a sibling ClassDiagram (matches `ObjectName.classId` from SA-2). The
+ * a sibling ClassDiagram (matches `ObjectName.classId`). The
  * inspector renders a class-picker driven by
  * `diagramBridge.getAvailableClasses()`; the canvas shows just the
  * instance name in bold (matching the v3 multiline visual).

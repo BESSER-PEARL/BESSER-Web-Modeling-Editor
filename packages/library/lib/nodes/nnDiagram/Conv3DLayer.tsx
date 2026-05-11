@@ -1,4 +1,4 @@
 import { makeNNLayerComponent } from "./_NNLayerBase"
 
-/** SA-5 `Conv3DLayer`. See `_NNLayerBase.tsx` for shared rendering. */
+/** `Conv3DLayer`. See `_NNLayerBase.tsx` for shared rendering. */
 export const Conv3DLayer = makeNNLayerComponent("Conv3DLayer", "Conv3D", "#FFF8E1")

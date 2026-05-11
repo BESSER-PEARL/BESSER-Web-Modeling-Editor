@@ -44,7 +44,7 @@ export function StateFinalNode({
         HandleId.LeftTop,
       ]}
     >
-      {/* SA-FINAL S3: marker nodes have no editable body — hide the
+      {/* Marker nodes have no editable body — hide the
           pencil so the toolbar only exposes Delete. */}
       <NodeToolbar elementId={id} showEdit={false} />
       <div ref={wrapperRef}>

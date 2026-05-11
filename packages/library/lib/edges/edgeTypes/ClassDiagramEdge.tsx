@@ -102,7 +102,7 @@ export const ClassDiagramEdge = ({
 
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
 
-  // SA-FIX-Editor PC-11.4: wire `showAssociationNames` to the rendered
+  // Wire `showAssociationNames` to the rendered
   // edge. v3 stored the user-typed association name on `data.name`
   // (matches `ClassEdgeEditPanel`); when the global setting is on we
   // render that name centred on the path. Inheritance / realization edges
@@ -265,7 +265,7 @@ export const ClassDiagramEdge = ({
           </g>
         )}
 
-        {/* SA-FIX-Editor PC-11.4: live association-name label, gated on
+        {/* Live association-name label, gated on
             the `showAssociationNames` setting. Mirrors the v3 mid-edge
             label position; centre-anchored above the midpoint. In ER
             mode the name is rendered inside the diamond, so suppress

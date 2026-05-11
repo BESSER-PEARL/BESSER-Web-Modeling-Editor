@@ -83,11 +83,11 @@ export type ClassNodeElement = {
 export type ClassNodeProps = {
   methods: ClassNodeElement[]
   attributes: ClassNodeElement[]
-  /** Freeform stereotype (PC-1 fix: SA-FIX-Class). Was `ClassType` enum. */
+  /** Freeform stereotype. Was `ClassType` enum. */
   stereotype?: string
-  /** Independent italic flag (PC-1 fix). */
+  /** Independent italic flag. */
   italic?: boolean
-  /** Independent underline flag (PC-1 fix). */
+  /** Independent underline flag. */
   underline?: boolean
   /** Free-text description (v3 `StylePane.showDescription`). */
   description?: string
@@ -107,7 +107,7 @@ export type ClassNodeProps = {
  * BESSER ClassDiagram OCL constraint, attached as a row on the parent
  * class. Spec recommendation (`docs/source/migrations/uml-v4-shape.md`
  * "Mapping rules (ClassDiagram)" §): collapse free-standing
- * v3 `ClassOCLConstraint` elements onto their owner class. SA-2 picks
+ * v3 `ClassOCLConstraint` elements onto their owner class. picks
  * the collapse-onto-owner option per the open-question note in the spec.
  */
 export type ClassOCLConstraint = {
@@ -121,7 +121,7 @@ export type ClassOCLConstraint = {
 }
 
 /**
- * SA-UX-FIX (B1): Node data for a free-standing OCL constraint rendered as
+ * Node data for a free-standing OCL constraint rendered as
  * a sticky-note style box (yellow, dog-eared corner) — distinct from a
  * regular Class node. Used when v3 emits a `ClassOCLConstraint` element
  * with no owner class. Owned constraints continue to collapse onto the
@@ -137,7 +137,7 @@ export type ClassOCLConstraintNodeProps = {
 } & DefaultNodeProps
 
 /**
- * SA-HIDE-NOISE: Free-form sticky-note Comment node, ported from v3
+ * Free-form sticky-note Comment node, ported from v3
  * (`packages/editor/src/main/packages/common/comments/`). The body text
  * is stored on `data.name` for parity with the v3 element, which used
  * the `UMLElement.name` field as the comment body (the v3 inspector
@@ -173,7 +173,7 @@ export type ObjectNodeProps = {
   /** Inline icon SVG body for icon-view rendering. */
   icon?: string
   /**
-   * Optional stereotype band shown above the underlined name (PC-4
+   * Optional stereotype band shown above the underlined name (
    * Gap 1). v3 ObjectName extended UMLClassifier with a free-form
    * `string | null` stereotype; we mirror that here so migrated
    * fixtures keep their `«…»` label.
@@ -364,17 +364,17 @@ export type StateCodeBlockProps = DefaultNodeProps & {
 export type StateMarkerNodeProps = DefaultNodeProps
 
 /* -------------------------------------------------------------------------- */
-/* AgentDiagram (BESSER) — SA-4                                                */
+/* AgentDiagram (BESSER)                                                */
 /* -------------------------------------------------------------------------- */
 
 /**
- * SA-FIX-Agent inline-body row attached to `AgentState.data.bodies`.
+ * Inline-body row attached to `AgentState.data.bodies`.
  *
  * v3's `AgentState` rendered its body sections inline (entry / do /
  * exit / on-transition / fallback) like a Class node renders attribute
- * / method rows. SA-4 originally split each body into a separate
+ * / method rows. originally split each body into a separate
  * `AgentStateBody` / `AgentStateFallbackBody` node connected via
- * `parentId`; SA-FIX-Agent undoes that split and folds the bodies onto
+ * `parentId`; undoes that split and folds the bodies onto
  * the parent's `data.bodies` array.
  *
  * Each row carries the v3 `AgentStateMember` reply-type-driven extras
@@ -409,7 +409,7 @@ export type AgentStateBodyRow = {
  * `agent-state-diagram/agent-state/agent-state.ts` (`replyType` defaults
  * to `'text'` on `AgentStateMember`).
  *
- * SA-FIX-Agent: bodies render inline on the parent (table-style rows,
+ * Bodies render inline on the parent (table-style rows,
  * like a Class node's attributes). Each `bodies[i]` carries the v3
  * element id so the migrator emits them back as top-level v3 child
  * elements with their original ids.
@@ -422,7 +422,7 @@ export type AgentStateNodeProps = StateNodeProps & {
   replyType?: string
   /**
    * Main-section inline body rows. Folded from v3's child `AgentStateBody`
-   * elements per SA-FIX-Agent. Fallback rows live in `fallbackBodies`
+   * elements. Fallback rows live in `fallbackBodies`
    * below — kept as a separate array (replacing the prior `kind: 'fallback'`
    * discriminator) so the body row shape stays clean.
    */
@@ -435,7 +435,7 @@ export type AgentStateNodeProps = StateNodeProps & {
 }
 
 /**
- * SA-FIX-INTENT-INLINE training-phrase row attached to
+ * Training-phrase row attached to
  * `AgentIntent.data.training_phrases`. Mirrors the v3 `AgentIntentBody`
  * element shape — one user utterance per row. Folded inline like
  * `ClassNodeElement` rows so the editor renders them as SVG rows on the
@@ -449,7 +449,7 @@ export type AgentIntentTrainingPhrase = {
 }
 
 /**
- * SA-FIX-INTENT-INLINE entity-slot row attached to
+ * Entity-slot row attached to
  * `AgentIntent.data.entity_slots`. Mirrors v3 `AgentIntentObjectComponent`:
  * a (name, entity, slot, value) tuple.
  */
@@ -467,7 +467,7 @@ export type AgentIntentEntitySlot = {
 }
 
 /**
- * `AgentIntent` parent node. SA-FIX-INTENT-INLINE folds the v3
+ * `AgentIntent` parent node. folds the v3
  * `AgentIntentBody` / `AgentIntentDescription` / `AgentIntentObjectComponent`
  * children into inline data arrays on this node: `training_phrases[]`,
  * `entity_slots[]`, and the existing `intent_description` string. The
@@ -490,7 +490,7 @@ export type AgentIntentNodeProps = DefaultNodeProps & {
 /**
  * Legacy `AgentIntentBody` shape — one training utterance row. Kept as
  * a typed alias so older fixtures and the v3 → v4 inverse converter can
- * still reference it; SA-FIX-INTENT-INLINE folds this row onto the
+ * still reference it; folds this row onto the
  * parent intent's `data.training_phrases` on import so React Flow no
  * longer sees a separate node for it.
  */
@@ -498,14 +498,14 @@ export type AgentIntentBodyNodeProps = DefaultNodeProps
 
 /**
  * Legacy `AgentIntentDescription` shape — single description block under
- * the intent header. SA-FIX-INTENT-INLINE folds the value onto the
+ * the intent header. folds the value onto the
  * parent intent's `data.intent_description` on import.
  */
 export type AgentIntentDescriptionNodeProps = DefaultNodeProps
 
 /**
  * Legacy `AgentIntentObjectComponent` shape — entity / slot mapping
- * row. SA-FIX-INTENT-INLINE folds the row onto the parent intent's
+ * row. folds the row onto the parent intent's
  * `data.entity_slots` on import.
  */
 export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
@@ -520,7 +520,7 @@ export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
 /**
  * `AgentRagElement` — standalone RAG database element (cylinder visual).
  *
- * SA-FIX-AGENT-OCL: the DB-mode fields (`ragDatabaseName`,
+ * The DB-mode fields (`ragDatabaseName`,
  * `dbCustomName`, `dbSelectionType`, `dbQueryMode`, `dbOperation`,
  * `dbSqlQuery`) were removed from this prop type. Those settings belong
  * to the AgentState `db_reply` reply mode (see `AgentStateEditPanel`),
@@ -536,12 +536,12 @@ export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
 export type AgentRagElementNodeProps = DefaultNodeProps
 
 /* -------------------------------------------------------------------------- */
-/* UserDiagram (BESSER) — SA-4                                                 */
+/* UserDiagram (BESSER)                                                 */
 /* -------------------------------------------------------------------------- */
 
 /**
  * `UserModelAttribute` — per-instance attribute row on a `UserModelName`.
- * Mirrors `ObjectNodeAttribute` (SA-2) plus the v3-only fields:
+ * Mirrors `ObjectNodeAttribute` plus the v3-only fields:
  *
  * - `attributeOperator` — comparator (`<` / `<=` / `==` / `>=` / `>`).
  *   Defaults to `'=='`.
@@ -572,7 +572,7 @@ export type UserModelNameNodeProps = DefaultNodeProps & {
   /** Inline icon SVG body for icon-view rendering. */
   icon?: string
   /**
-   * SA-FIX-USER-ICON: per-node render mode. `"icon"` (default) renders
+   * Per-node render mode. `"icon"` (default) renders
    * the person/class icon — matching the v3 fork's preferred preview
    * of a UserDiagram node. `"attributes"` shows the underlined header
    * + attribute table (v3 "normal view"). When unset the consumer
@@ -604,11 +604,11 @@ export type UserModelIconNodeProps = DefaultNodeProps & {
 }
 
 /* -------------------------------------------------------------------------- */
-/* NNDiagram (BESSER) — SA-5                                                   */
+/* NNDiagram (BESSER)                                                   */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Generic data shape for a v4 NN layer node. SA-5 collapses the v3
+ * Generic data shape for a v4 NN layer node. collapses the v3
  * "every attribute is its own UMLElement" layout into a flat
  * `attributes: Record<string, unknown>` per
  * `docs/source/migrations/uml-v4-shape.md` (NNDiagram §). Keys follow

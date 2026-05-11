@@ -12,7 +12,7 @@ import { StateMarkerNodeProps } from "@/types"
  * fork hid corner / mid handles so transitions only attach to the four
  * cardinal sides — same here.
  *
- * SA-UX-FIX-2 (B2): the v3 visual was a SOLID BLACK disc. The shared
+ * The v3 visual was a SOLID BLACK disc. The shared
  * `getCustomColorsFromData` helper falls back to `var(--besser-background)`
  * (white in the default theme), so using it here painted the marker
  * white — invisible against the canvas. Read `data.fillColor` directly
@@ -49,7 +49,7 @@ export function StateInitialNode({
         HandleId.LeftTop,
       ]}
     >
-      {/* SA-FINAL S3: marker nodes have no editable body — hide the
+      {/* Marker nodes have no editable body — hide the
           pencil so the toolbar only exposes Delete. Mirrors v3
           metamodel `updatable: false`. */}
       <NodeToolbar elementId={id} showEdit={false} />

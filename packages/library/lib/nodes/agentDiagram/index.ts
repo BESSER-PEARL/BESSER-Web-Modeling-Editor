@@ -5,11 +5,11 @@
  * extends the central `_nodeTypeRegistry` in `nodes/types.ts` with the
  * BESSER agent-diagram node types per `docs/source/migrations/uml-v4-shape.md`.
  *
- * SA-FIX-Agent removed the standalone `AgentStateBody` /
+ * Removed the standalone `AgentStateBody` /
  * `AgentStateFallbackBody` types — body rows live inline on the parent
  * AgentState's `data.bodies` array.
  *
- * SA-FIX-INTENT-INLINE removed the standalone `AgentIntentBody` /
+ * Removed the standalone `AgentIntentBody` /
  * `AgentIntentDescription` / `AgentIntentObjectComponent` types — training
  * phrases / description / entity slots live inline on the parent
  * AgentIntent's `data` arrays and are rendered by `AgentIntent.tsx`

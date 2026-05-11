@@ -1,5 +1,5 @@
 /**
- * SA-FIX-ENUM-NO-CONNECT: Predicate over the minimal node shape we
+ * Predicate over the minimal node shape we
  * care about (`type` + `data.stereotype`). Lives in
  * `bpmnConstraints.ts` alongside `canDropIntoParent` because both are
  * zero-dependency boolean rules consumed by event handlers — keeping
@@ -13,7 +13,7 @@ export interface MinimalNodeForConnect {
 }
 
 /**
- * SA-FIX-ENUM-NO-CONNECT: Returns `true` when the node represents a v3
+ * Returns `true` when the node represents a v3
  * Enumeration class (`type === 'class'` and `data.stereotype ===
  * 'Enumeration'`). v3 enumerations are referenced by *type* from
  * class attributes and must never participate in an edge.
@@ -27,8 +27,8 @@ export const isEnumerationClassNode = (
 }
 
 /**
- * SA-FIX-ENUM-NO-CONNECT: Reject any connection where either endpoint
- * resolves to an Enumeration class node. Mirrors SA-FIX-NN-DROPS's
+ * Reject any connection where either endpoint
+ * resolves to an Enumeration class node. Mirrors 's
  * `canDropIntoParent` predicate style — a single boolean rule consumed
  * by event handlers.
  */
@@ -52,7 +52,7 @@ export const canConnectEndpoints = (
  * excluded — datasets and configuration bind to the container via
  * NNAssociation edges, not by nesting.
  *
- * SA-FIX-NN-DROPS: keep this set in sync with the NN palette in
+ * Keep this set in sync with the NN palette in
  * `lib/constants.ts` (`UMLDiagramType.NNDiagram`). NNReference is
  * allowed inside as well so a forward-reference can sit next to the
  * layers it points at.
@@ -83,7 +83,7 @@ export const canDropIntoParent = (
   childType: string,
   parentType: string
 ): boolean => {
-  // SA-FIX-NN-DROPS: NNContainer accepts the layer kinds (and only
+  // NNContainer accepts the layer kinds (and only
   // those). The drop-handler in `DraggableGhost.tsx` /
   // `useNodeDragStop.ts` consults this to set `parentId` on the new
   // node — without this rule layer drops land at the canvas root.
@@ -91,9 +91,9 @@ export const canDropIntoParent = (
     return NN_LAYER_KINDS_IN_CONTAINER.has(childType)
   }
 
-  // SA-FIX-NN-DROPS: State machine `State` parents the three legacy
+  // State machine `State` parents the three legacy
   // body shapes (entry/exit body, fallback body, code block). Mirrors
-  // SA-3's rendering contract — bodies use `parentId = state.id`.
+  // rendering contract — bodies use `parentId = state.id`.
   if (parentType === "State") {
     return (
       childType === "StateBody" ||
@@ -102,9 +102,9 @@ export const canDropIntoParent = (
     )
   }
 
-  // SA-FIX-NN-DROPS: AgentDiagram intent parents its body / description
+  // AgentDiagram intent parents its body / description
   // / object-component children. AgentState is intentionally absent —
-  // SA-FIX-Agent inlined those bodies onto `AgentState.data.bodies`.
+  // Inlined those bodies onto `AgentState.data.bodies`.
   if (parentType === "AgentIntent") {
     return (
       childType === "AgentIntentBody" ||
@@ -113,7 +113,7 @@ export const canDropIntoParent = (
     )
   }
 
-  // SA-FINAL-3 Tier 5 #19: AgentState is no longer advertised by
+  // AgentState is no longer advertised by
   // `isParentNodeType` (its bodies are inlined on `data.bodies`), so we
   // shouldn't reach this branch from the drop handler. We keep the guard
   // defensively so any other call site that still passes "AgentState"

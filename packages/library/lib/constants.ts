@@ -57,7 +57,7 @@ import {
   StateFinalNodeSVG,
   StateCodeBlockSVG,
 } from "@/components/svgs/nodes/stateMachineDiagram"
-// SA-4 / SA-FIX-AGENT-OCL: AgentDiagram + UserDiagram palette previews.
+// AgentDiagram + UserDiagram palette previews.
 // `AgentIntentObjectComponent` was removed from the palette — it is a
 // child-of-AgentIntent slot row, not a top-level draggable. Its SVG
 // remains importable from `@/components/svgs/nodes/agentDiagram` for
@@ -71,8 +71,8 @@ import {
   UserModelStaticPreviewSVG,
   getUserModelNamePaletteEntries,
 } from "@/components/svgs/nodes/userDiagram"
-// SA-5: NNDiagram palette previews. Inlined alongside the other BESSER
-// SVGs per SA-3's pattern (avoids the TDZ cycle that direct
+// NNDiagram palette previews. Inlined alongside the other BESSER
+// SVGs per pattern (avoids the TDZ cycle that direct
 // `registerPaletteEntry` side-effects would trigger).
 import {
   Conv1DLayerSVG,
@@ -364,7 +364,7 @@ export type DropElementConfig = {
   readonly svg: React.FC<any>
   readonly marginTop?: number
   /**
-   * SA-FIX-NN-DROPS: optional palette section header rendered ABOVE
+   * Optional palette section header rendered ABOVE
    * this entry. Used by `Sidebar.tsx` to group large palettes (e.g.
    * NNDiagram) into v3 visual sections. When set on the first entry
    * of a group, the sidebar prepends a divider + label before
@@ -380,7 +380,7 @@ export type DropElementConfig = {
  */
 const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>> = ({
   [UMLDiagramType.ClassDiagram]: [
-    // SA-UX-FIX B5: Interface and Package are temporarily hidden from
+    // Interface and Package are temporarily hidden from
     // the palette — the round-trip / generator surface for them is not
     // wired yet on the v4 path. Their node code stays in the tree
     // (Package.tsx, Interface stereotype) so re-enabling is a one-line
@@ -465,7 +465,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       },
       svg: ClassSVG,
     },
-    // SA-FIX-CLASS-FUND #4: Enumeration literals start as `Enum_1`,
+    // Enumeration literals start as `Enum_1`,
     // `Enum_2`, `Enum_3` — valid Python identifiers. Previous
     // "Case 1" / "Case 2" defaults included whitespace which the
     // round-trip / generator layer rejects.
@@ -485,8 +485,8 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       },
       svg: ClassSVG,
     },
-    // SA-FIX-CLASS-FUND #1: ClassOCLConstraint palette entry. The node
-    // code + inspector were added earlier (SA-UX-FIX B1) but the palette
+    // ClassOCLConstraint palette entry. The node
+    // code + inspector were added earlier but the palette
     // was missing — so the constraint could not be dragged from the
     // sidebar. Sticky-note shape preview matches the canvas rendering
     // at `lib/nodes/classDiagram/ClassOCLConstraint.tsx`.
@@ -833,7 +833,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: BPMNDataStoreNodeSVG,
     },
     {
-      // SA-FINAL-3 Tier 6 #21: match the canvas's `minWidth=200, minHeight=120`
+      // Match the canvas's `minWidth=200, minHeight=120`
       // so the dropped pool no longer balloons immediately after drop.
       type: "bpmnPool",
       width: 200,
@@ -842,7 +842,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: BPMNPoolNodeSVG,
     },
   ],
-  // SA-3: BESSER StateMachineDiagram palette. Mirrors the v3 fork's
+  // BESSER StateMachineDiagram palette. Mirrors the v3 fork's
   // `packages/editor/.../uml-state-diagram/state-preview.ts`. Body /
   // fallback-body are not draggable items — they are added inside an
   // existing State container, matching v3 behaviour.
@@ -885,8 +885,8 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: StateCodeBlockSVG,
     },
   ],
-  // SA-4: BESSER AgentDiagram palette. Inlined directly here per
-  // SA-3's pattern (avoids the TDZ cycle `nodes/index → constants →
+  // BESSER AgentDiagram palette. Inlined directly here per
+  // pattern (avoids the TDZ cycle `nodes/index → constants →
   // @/components → @/utils/nodeUtils → @/nodes`). The non-droppable
   // body / fallback / intent body / description child nodes are NOT
   // included — they're inserted automatically inside the parent
@@ -924,14 +924,14 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "Intent", intent_description: "" },
       svg: AgentIntentSVG,
     },
-    // SA-FIX-AGENT-OCL: `AgentIntentObjectComponent` removed from the
+    // `AgentIntentObjectComponent` removed from the
     // palette — it's a child-of-AgentIntent slot row (added via the
     // intent inspector), not a top-level draggable.
     {
       type: "AgentRagElement" as never,
       width: 160,
       height: 120,
-      // SA-FIX-AGENT-OCL: defaultData stripped to just `name`. The
+      // DefaultData stripped to just `name`. The
       // standalone RAG palette element no longer carries DB-mode
       // fields (`ragDatabaseName`, `dbCustomName`, `dbSelectionType`,
       // `dbQueryMode`) — those belong to the AgentState `db_reply`
@@ -951,7 +951,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: StateInitialNodeSVG,
     },
   ],
-  // SA-4 / SA-FIX-User: BESSER UserDiagram palette. v3 generated one
+  // BESSER UserDiagram palette. v3 generated one
   // drag-source per meta-model class via `composeUserModelPreview`
   // walking `getAvailableClasses()`. We replicate that here at module
   // load by reading the user meta-model JSON and producing N entries —
@@ -960,14 +960,14 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
   // the dropped node lands fully wired to the meta-model. The
   // `UserModelIcon` entry stays as a static second drag-source.
   [UMLDiagramType.UserDiagram]: [
-    // SA-FINAL U2: align dropped node's `defaultData.name` with the
+    // Align dropped node's `defaultData.name` with the
     // preview SVG's header label. The preview uses
     // `${className[0].toLowerCase()}${className.slice(1)}_1` (e.g.
     // `personal_Information_1`) — keep parity so the dropped node
     // visually matches the palette card the user clicked.
     ...getUserModelNamePaletteEntries().map((entry) => ({
       type: "UserModelName" as never,
-      // SA-FIX-USER-ICON: dropped node defaults to the icon view, so
+      // Dropped node defaults to the icon view, so
       // only reserve room for the header (~40) and the glyph slot
       // (~60) — drop the attributes-driven height that was used for
       // the old class-style preview.
@@ -982,7 +982,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
           attributeType: a.attributeType,
           attributeOperator: "==",
         })),
-        // SA-FIX-USER-ICON: dropped nodes default to icon view (matches
+        // Dropped nodes default to icon view (matches
         // the v3 fork's preferred UserDiagram preview). The inspector
         // exposes a toggle to opt into the attributes view.
         view: "icon" as const,
@@ -997,7 +997,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
         name: "Alice",
         className: "User",
         attributes: [],
-        // SA-FIX-USER-ICON: static fallback drag-source also defaults
+        // Static fallback drag-source also defaults
         // to icon view.
         view: "icon" as const,
       },
@@ -1007,14 +1007,14 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // dropped — every UserModelName already renders in icon view by
     // default, so the dedicated icon-only drag-source was redundant.
   ],
-  // SA-5: BESSER NNDiagram palette. One palette item per top-level
+  // BESSER NNDiagram palette. One palette item per top-level
   // draggable: NNContainer, the 13 layer kinds, TrainingDataset,
   // TestDataset, TensorOp, Configuration, NNReference. Inlined here per
-  // SA-3's pattern. Default `attributes` is `{}` — the inline editor
+  // pattern. Default `attributes` is `{}` — the inline editor
   // populates slots on first edit; the round-trip migrator preserves
   // any keys the user adds.
   [UMLDiagramType.NNDiagram]: [
-    // SA-FIX-NN-DROPS: v3 visual section order — Structure → Layers →
+    // V3 visual section order — Structure → Layers →
     // TensorOps → Configuration → Datasets. Section labels mirror v3
     // `editor/src/main/packages/nn-diagram/nn-preview.ts`. NNReference
     // is reordered next to NNContainer so both Structure entries sit
@@ -1035,7 +1035,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "ref" },
       svg: NNReferenceSVG,
     },
-    // SA-UX-FIX-2 (B4): Heights bumped from 60 → 140 so the v3 80×80
+    // Heights bumped from 60 → 140 so the v3 80×80
     // layer-kind icon (restored in `_NNLayerBase.tsx`) has room above
     // the stereotype/name header.
     {
@@ -1067,7 +1067,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: {
         name: "Pooling",
         // Disambiguated dimension slug: see open question #2.
-        // SA-FIX-NN-ATTRS: seed the `pooling_type` mandatory slug so
+        // Seed the `pooling_type` mandatory slug so
         // a freshly dropped node reads the v3 default `max` before the
         // inspector's auto-fill effect runs.
         attributes: {
@@ -1140,7 +1140,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: {
         name: "BatchNorm",
         // Disambiguated dimension slug: see open question #2.
-        // SA-FIX-NN-ATTRS: v3 default = '2D' (mirrors the conv2d
+        // V3 default = '2D' (mirrors the conv2d
         // baseline). The widget's auto-fill effect honours this seed.
         attributes: { "batch_normalization.dimension": "2D" },
       },
@@ -1273,11 +1273,11 @@ export const dropElementConfigs: Readonly<
 }) as Readonly<Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>>
 
 /**
- * SA-HIDE-NOISE: lightweight palette preview for the free-form Comment
+ * Lightweight palette preview for the free-form Comment
  * sticky-note. Mirrors the silhouette rendered by `lib/nodes/common/
  * Comment.tsx` so the drag-ghost matches the dropped node. Inlined here
  * (rather than as a new `components/svgs/...` file) to keep the diff
- * scoped to `constants.ts` per the SA-HIDE-NOISE file allowlist.
+ * scoped to `constants.ts` per the file allowlist.
  */
 const CommentPaletteSVG: React.FC<{
   width: number
@@ -1334,12 +1334,12 @@ const CommentPaletteSVG: React.FC<{
 }
 
 /**
- * SA-HIDE-NOISE: free-form sticky-note Comment palette entry. Replaces
+ * Free-form sticky-note Comment palette entry. Replaces
  * the previously always-on `ColorDescriptionConfig` block in the
  * `Sidebar` so designers can drop comment notes into any diagram. The
  * ColorDescription node renderer + inspector code remain in the tree
  * (re-enable is a one-line change in `Sidebar.tsx`) — only the palette
- * surface is hidden, per the SA-HIDE-NOISE brief.
+ * surface is hidden, per the brief.
  */
 export const CommentConfig: DropElementConfig = Object.freeze({
   type: "comment",

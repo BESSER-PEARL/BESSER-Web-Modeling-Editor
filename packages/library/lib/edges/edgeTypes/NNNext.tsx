@@ -20,7 +20,7 @@ import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { registerEdgeTypes } from "../types"
 
 /**
- * SA-5 `NNNext` edge — sequential flow between layers in the same
+ * `NNNext` edge — sequential flow between layers in the same
  * NNContainer (e.g. Conv2D → Pooling → Linear). Unidirectional with a
  * filled-arrow head. v3 source:
  * `packages/editor/src/main/packages/nn-diagram/nn-unidirectional/`.
@@ -30,7 +30,7 @@ import { registerEdgeTypes } from "../types"
  * { name?: string; points: IPoint[] }
  * ```
  * Per `docs/source/migrations/uml-v4-shape.md` (NNDiagram §) and the
- * SA-6.1 backend processor, no extra discriminators ride on this edge.
+ * Backend processor, no extra discriminators ride on this edge.
  */
 export const NNNext = ({
   id,

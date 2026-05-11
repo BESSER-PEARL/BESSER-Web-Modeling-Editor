@@ -1,6 +1,6 @@
 import { makeNNLayerComponent } from "./_NNLayerBase"
 
-/** SA-5 `LayerNormalizationLayer`. */
+/** `LayerNormalizationLayer`. */
 export const LayerNormalizationLayer = makeNNLayerComponent(
   "LayerNormalizationLayer",
   "LayerNorm",

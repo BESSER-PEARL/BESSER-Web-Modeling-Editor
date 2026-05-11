@@ -76,14 +76,14 @@ export function ClassOCLConstraintNode({
   const maxLines = Math.max(1, Math.floor(contentHeight / 14))
   const lines = wrapText(data.expression || "", charsPerLine, maxLines)
 
-  // SA-FINAL-3 Tier 2 #6: theme-portable sticky-note palette. Vars defined
+  // Theme-portable sticky-note palette. Vars defined
   // in themings.json switch the OCL/Comment note to a muted amber in dark
   // mode while keeping the v3 Post-it yellow in light mode.
   const fillColor = data.fillColor || "var(--besser-sticky-fill, #fff8c4)"
   const strokeColor = data.strokeColor || "var(--besser-sticky-stroke, #bda21f)"
   const textColor = data.textColor || "var(--besser-sticky-text, #3a2e00)"
 
-  // SA-FINAL-3 Tier 7 #25: surface `data.description` as a hover tooltip so
+  // Surface `data.description` as a hover tooltip so
   // the long-form description is reachable on the canvas without opening the
   // inspector. Only mount the Tooltip when there's something to show.
   const description = (data.description ?? "").trim()

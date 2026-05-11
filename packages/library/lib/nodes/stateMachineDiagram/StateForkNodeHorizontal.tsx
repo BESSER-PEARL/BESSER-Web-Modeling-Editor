@@ -11,7 +11,7 @@ import { StateMarkerNodeProps } from "@/types"
  * Horizontal fork bar. Default size 60×20 (fixed height, resizable width)
  * — matches v3 `UMLStateForkNodeHorizontal.defaultWidth/Height`.
  *
- * SA-FIX-State (PC-6 #1): mirrors the SA-UX-FIX-2 fix applied to
+ * Mirrors the fix applied to
  * `StateInitialNode`. Read `data.fillColor` directly with a hard
  * `#000000` default instead of going through `getCustomColorsFromData`
  * (which falls back to a white-on-white background).
@@ -44,7 +44,7 @@ export function StateForkNodeHorizontal({
       ]}
       className="horizontally-not-resizable"
     >
-      {/* SA-FINAL S3: marker nodes have no editable body — hide the
+      {/* Marker nodes have no editable body — hide the
           pencil so the toolbar only exposes Delete. */}
       <NodeToolbar elementId={id} showEdit={false} />
       <NodeResizer

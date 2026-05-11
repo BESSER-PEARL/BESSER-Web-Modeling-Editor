@@ -17,7 +17,7 @@ import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 
 /**
- * SA-UX-FIX B4: edge-type predicate. When the user drops a connection
+ * Edge-type predicate. When the user drops a connection
  * between an OCL constraint node and any other node, auto-pick
  * `ClassOCLLink` (only meaningful for that endpoint pair). Otherwise
  * fall back to the diagram default. Mirrors v3's
@@ -36,7 +36,7 @@ const resolveClassEdgeType = (
   // Only flip to ClassOCLLink when exactly one endpoint is OCL and the
   // other endpoint is a class. OCL→OCL and OCL→non-class connections
   // would otherwise silently flip and produce semantically meaningless
-  // links (SA-DEEP-COMMENTS-CONSTRAINTS finding #3).
+  // links (finding #3).
   if (sourceIsOcl !== targetIsOcl) {
     const otherType = sourceIsOcl ? targetType : sourceType
     if (isClassEnd(otherType)) return "ClassOCLLink"
@@ -45,7 +45,7 @@ const resolveClassEdgeType = (
 }
 
 /**
- * SA-FIX-ENUM-NO-CONNECT: thin React Flow adapter over the pure
+ * Thin React Flow adapter over the pure
  * `canConnectEndpoints` predicate (in `@/utils/bpmnConstraints`).
  * Keeping the rule in a zero-dependency file lets the regression test
  * import it without dragging React Flow / zustand into the test
@@ -130,14 +130,14 @@ export const useConnect = () => {
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      // SA-FIX-ENUM-NO-CONNECT: Defensive guard — even though React
+      // Defensive guard — even though React
       // Flow runs `isValidConnection` first, callers may invoke
       // `onConnect` directly (programmatic edge creation). Reject any
       // connection touching an Enumeration class node.
       if (!isConnectionAllowed(nodes, connection.source, connection.target)) {
         return
       }
-      // SA-UX-FIX B4: ClassDiagram-only auto-detect: if either endpoint
+      // ClassDiagram-only auto-detect: if either endpoint
       // is an OCL constraint node, force `ClassOCLLink`; otherwise use
       // the diagram default edge type.
       const sourceType = nodes.find((n) => n.id === connection.source)?.type
@@ -223,7 +223,7 @@ export const useConnect = () => {
             return
           }
 
-          // SA-FIX-ENUM-NO-CONNECT: refuse to reroute an existing edge
+          // Refuse to reroute an existing edge
           // onto / off of an Enumeration class node.
           if (!isConnectionAllowed(nodes, newEdge.source, newEdge.target)) {
             startEdge.current = null
@@ -248,7 +248,7 @@ export const useConnect = () => {
             return
           }
 
-          // SA-FIX-ENUM-NO-CONNECT: refuse to create a new edge whose
+          // Refuse to create a new edge whose
           // source or target is an Enumeration class node.
           if (!isConnectionAllowed(nodes, sourceNodeId, nodeOnTop.id)) {
             startEdge.current = null
@@ -256,7 +256,7 @@ export const useConnect = () => {
             return
           }
 
-          // SA-UX-FIX B4: same auto-detect logic as `onConnect`.
+          // Same auto-detect logic as `onConnect`.
           const sourceTypeOnEnd = nodes.find((n) => n.id === sourceNodeId)?.type
           const targetTypeOnEnd = nodeOnTop.type
           const resolvedTypeOnEnd =
@@ -301,7 +301,7 @@ export const useConnect = () => {
   }, [setEdges])
 
   /**
-   * SA-FIX-ENUM-NO-CONNECT: React Flow consults this *before* firing
+   * React Flow consults this *before* firing
    * `onConnect`. Returning `false` aborts the drag so the user gets the
    * "invalid" cursor. Enumeration class nodes never participate in
    * edges — they're referenced by attribute type instead.

@@ -19,7 +19,7 @@ import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { registerEdgeTypes } from "../types"
 
 /**
- * SA-4 `AgentStateTransitionInit` edge — initial-state marker. v3 source:
+ * `AgentStateTransitionInit` edge — initial-state marker. v3 source:
  * `agent-state-diagram/agent-state-transition-init/`. The edge has no
  * source element (or a synthetic source) and points at the initial
  * state. Edge `data: { initial: true }` (plus `points`).

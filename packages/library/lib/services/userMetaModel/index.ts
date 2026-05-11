@@ -1,5 +1,5 @@
 /**
- * SA-FIX-User: helpers for the BESSER user-meta-model JSON.
+ * Helpers for the BESSER user-meta-model JSON.
  *
  * The shipped `usermetamodel.json` is a v3-shape ClassDiagram
  * (`elements` / `relationships` records). The runtime consumers in v4
@@ -102,7 +102,7 @@ export function getUserMetaModelClasses(): UserMetaModelClass[] {
  * are passthrough'd best-effort (the bridge only walks `source` /
  * `target` / `type`, so we copy those scalars verbatim).
  *
- * SA-FIX-User Fix #4: closes the bridge-shape mismatch in
+ * Fix #4: closes the bridge-shape mismatch in
  * `UserModelNameEditPanel.lookupEnumerationLiterals` — that consumer
  * walks `data.nodes` and reads `node.data.attributes`, which only works
  * once the JSON has been converted to v4 first.

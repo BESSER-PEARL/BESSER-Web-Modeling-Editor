@@ -8,7 +8,7 @@
  * `getAvailableAssociations`, `getClassHierarchy`) preserved verbatim in
  * shape — internals walk the v4 arrays.
  */
-// SA-FIX-Editor PC-12.7: route non-fatal warnings through the editor's
+// Route non-fatal warnings through the editor's
 // pub/sub so consumers attached via `subscribeToBesserErrors` see them.
 // The console.warn/error fall-backs below stay for dev-tools visibility.
 import { emitBesserError } from "@/services/errors"

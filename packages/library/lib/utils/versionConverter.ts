@@ -208,7 +208,7 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     Package: "package",
     ClassAttribute: "classAttribute",
     ClassMethod: "classMethod",
-    // SA-UX-FIX B1: free-standing OCL constraint nodes (when the v3
+    // Free-standing OCL constraint nodes (when the v3
     // element has no owner class) are emitted as a dedicated v4 node
     // type rendered with a sticky-note shape — distinct from a regular
     // class. Owned constraints are collapsed onto the parent's
@@ -294,15 +294,15 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     // Special nodes
     ColorDescription: "colorDescription",
     TitleAndDescription: "titleAndDesctiption", // Note the typo in V4: "desctiption"
-    // SA-HIDE-NOISE: free-form sticky-note Comment ported from v3
+    // Free-form sticky-note Comment ported from v3
     // `common/comments`. v3 stored the body text on `UMLElement.name`,
     // so the data conversion is a pass-through (baseData carries
     // `name`). The v4 → v3 inverse map is in `invertNodeType`.
     Comments: "comment",
 
-    // SA-3: StateMachineDiagram — node types are PascalCase identical to
+    // StateMachineDiagram — node types are PascalCase identical to
     // v3 element-type strings, so the migrator passes them through. Per
-    // the SA-3 brief, body / fallback-body / code-block are kept as
+    // the brief, body / fallback-body / code-block are kept as
     // separate React-Flow nodes (using `parentId` for the State
     // hierarchy) rather than collapsed onto the parent state's data.
     State: "State",
@@ -317,9 +317,9 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     StateForkNode: "StateForkNode",
     StateForkNodeHorizontal: "StateForkNodeHorizontal",
 
-    // SA-4: AgentDiagram — same PascalCase passthrough as
+    // AgentDiagram — same PascalCase passthrough as
     // StateMachineDiagram. AgentState bodies / intents bodies stay as
-    // separate React-Flow children via `parentId`, mirroring SA-3.
+    // separate React-Flow children via `parentId`,
     AgentState: "AgentState",
     AgentStateBody: "AgentStateBody",
     AgentStateFallbackBody: "AgentStateFallbackBody",
@@ -329,7 +329,7 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     AgentIntentObjectComponent: "AgentIntentObjectComponent",
     AgentRagElement: "AgentRagElement",
 
-    // SA-4: UserDiagram — collapsed shape for `UserModelName`
+    // UserDiagram — collapsed shape for `UserModelName`
     // (attributes folded onto `data.attributes`). `UserModelAttribute`
     // and `UserModelIcon` exist as standalone node types only when v3
     // fixtures keep them unowned — the migrator's `convertV3ToV4`
@@ -338,7 +338,7 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     UserModelAttribute: "UserModelAttribute",
     UserModelIcon: "UserModelIcon",
 
-    // SA-5: NNDiagram — PascalCase passthrough for the 18 top-level
+    // NNDiagram — PascalCase passthrough for the 18 top-level
     // node types. Per-attribute child elements (e.g.
     // `KernelDimAttributeConv2D`) are NOT in this map; they're
     // intercepted by the attribute-collapse filter and emitted onto
@@ -385,7 +385,7 @@ export function convertV3EdgeTypeToV4(
     ClassDependency: "ClassDependency",
     ClassAggregation: "ClassAggregation",
     ClassComposition: "ClassComposition",
-    // SA-2.1: BESSER-specific class edge types. v3 fork has no
+    // BESSER-specific class edge types. v3 fork has no
     // dedicated renderer for either (both extend UMLAssociation), so
     // they passthrough verbatim — the v4 lib treats them as a
     // ClassDiagramEdge with appropriate stroke / marker styling
@@ -437,20 +437,20 @@ export function convertV3EdgeTypeToV4(
     // Flowchart
     FlowchartFlowline: "FlowChartFlowline",
 
-    // SA-3: StateMachineDiagram transition. Single edge type, passed
+    // StateMachineDiagram transition. Single edge type, passed
     // through verbatim — `params` / `guard` / etc. live on the edge
     // data (see `StateMachineDiagramEdge.tsx`).
     StateTransition: "StateTransition",
 
-    // SA-4: AgentDiagram — two edge types. The transition data shape is
+    // AgentDiagram — two edge types. The transition data shape is
     // collapsed by `liftAgentTransitionDataToV4` below.
     AgentStateTransition: "AgentStateTransition",
     AgentStateTransitionInit: "AgentStateTransitionInit",
 
-    // SA-4: UserDiagram — single link edge.
+    // UserDiagram — single link edge.
     UserModelLink: "UserModelLink",
 
-    // SA-5: NNDiagram — three edge kinds passed through verbatim.
+    // NNDiagram — three edge kinds passed through verbatim.
     NNNext: "NNNext",
     NNComposition: "NNComposition",
     NNAssociation: "NNAssociation",
@@ -499,7 +499,7 @@ function calculateRelativePosition(
  */
 
 /**
- * SA-2.2 #38: extract a `UserModelAttribute` comparator from the row's
+ * Extract a `UserModelAttribute` comparator from the row's
  * `name` (the v3 wire form `"age >= 18"` embeds it instead of the
  * separate field). Returns `undefined` when the name does not contain
  * a recognised comparator. Mirrors v3's `extractComparatorFromName` at
@@ -531,7 +531,7 @@ function extractClassifierMember(
     isId?: boolean
     isExternalId?: boolean
     defaultValue?: unknown
-    // SA-FINAL C2: v3 ClassMethod elements that round-tripped from v4
+    // V3 ClassMethod elements that round-tripped from v4
     // carry the structured method signature alongside the legacy name.
     parameters?: {
       id: string
@@ -581,7 +581,7 @@ function extractClassifierMember(
       ...(childElement.defaultValue !== undefined && {
         defaultValue: childElement.defaultValue,
       }),
-      // SA-FINAL C2: lift method-signature fields back into the v4 row
+      // Lift method-signature fields back into the v4 row
       // shape. Mirrors `childRowToV3` so Class/Object methods round-trip
       // their `parameters[]` and `returnType` losslessly.
       ...(Array.isArray(childElement.parameters) &&
@@ -629,7 +629,7 @@ function extractClassifierMember(
  * `ClassOCLConstraint` row on the owner class.
  *
  * Spec (`uml-v4-shape.md`, ClassDiagram §) recommends collapsing OCL
- * constraints onto their owner class; SA-2 picks that option to minimise
+ * constraints onto their owner class; picks that option to minimise
  * round-trip size. The v3 element's `name` becomes the constraint name
  * and its `expression` field (or `description` for older fixtures) the
  * OCL expression body.
@@ -651,17 +651,17 @@ function extractOCLConstraint(
 }
 
 /**
- * SA-5: collapse all v3 attribute child elements owned by a layer into
+ * Collapse all v3 attribute child elements owned by a layer into
  * a flat `Record<string, unknown>` keyed by the v4 slug. Booleans
  * (`'true'` / `'false'`) are normalized to JS booleans per the brief;
  * everything else (numeric strings, free-text, list literals like
  * `'[3, 3]'`) is preserved as a string so the Python codegen can keep
  * its current `int(...)` / `float(...)` parsing behaviour.
  *
- * Open question #2 disambiguation: when the v3 element type's mapped
+ * disambiguation: when the v3 element type's mapped
  * slug appears in `COLLIDING_SLUGS`, the result key is qualified with
  * the layer-kind prefix (e.g. `pooling.dimension`). Backend
- * (`nn_diagram_processor.py`, SA-6.1) already does the same.
+ * (`nn_diagram_processor.py`) already does the same.
  */
 function collapseV3LayerAttributes(
   layerId: string,
@@ -724,7 +724,7 @@ function convertV3NodeDataToV4(
         }
       })
 
-      // Determine stereotype. PC-1 fix (SA-FIX-Class): freeform v3
+      // Determine stereotype. freeform v3
       // `stereotype` strings survive too.
       let stereotype: string | undefined
       if (element.type === "AbstractClass") {
@@ -740,7 +740,7 @@ function convertV3NodeDataToV4(
         if (freeform) stereotype = freeform
       }
 
-      // PC-1/PC-2/PC-11 fix (SA-FIX-Class): preserve italic / underline /
+      // Preserve italic / underline /
       // description / uri / icon on the v4 node data.
       const ce = element as V3UMLElement & {
         italic?: boolean
@@ -766,7 +766,7 @@ function convertV3NodeDataToV4(
     }
 
     case "ClassOCLConstraint": {
-      // SA-UX-FIX B1: Free-standing OCL constraint (no owner class).
+      // Free-standing OCL constraint (no owner class).
       // Owned constraints are filtered out in `convertV3ToV4` and
       // collapsed onto their owner's `data.oclConstraints` instead.
       const e = element as V3UMLElement & {
@@ -809,7 +809,7 @@ function convertV3NodeDataToV4(
             }
             attributes.push(member)
           } else if (childElement.type === "ObjectMethod") {
-            // SA-FIX-OBJECT-DEEP: v3 ObjectMethod was a mistake —
+            // V3 ObjectMethod was a mistake —
             // UML object diagrams don't render methods because objects
             // are instances, not types. Drop the row on import (don't
             // surface it on the v4 node) and log a warning so legacy
@@ -832,7 +832,7 @@ function convertV3NodeDataToV4(
         ...((element as { className?: string }).className && {
           className: (element as { className?: string }).className,
         }),
-        // PC-4 Gap 1: v3 ObjectName inherits `stereotype: string | null`
+        // V3 ObjectName inherits `stereotype: string | null`
         // from UMLClassifier. Lift it onto the v4 node so the SVG can
         // render the `«…»` band.
         ...((element as { stereotype?: string | null }).stereotype !== undefined &&
@@ -998,7 +998,7 @@ function convertV3NodeDataToV4(
     }
 
     /* ---------------------------------------------------------------- */
-    /* SA-3: StateMachineDiagram                                          */
+    /* StateMachineDiagram                                          */
     /* ---------------------------------------------------------------- */
 
     case "State": {
@@ -1076,15 +1076,15 @@ function convertV3NodeDataToV4(
     }
 
     /* ---------------------------------------------------------------- */
-    /* SA-4: AgentDiagram                                                 */
+    /* AgentDiagram                                                 */
     /* ---------------------------------------------------------------- */
 
     case "AgentState": {
       // v3 `AgentState` extends `IUMLState` with an additional
       // `replyType: string` (default `'text'`). Pass through `stereotype`
-      // / `italic` / `underline` like SA-3's `State`.
+      // / `italic` / `underline` like `State`.
       //
-      // SA-FIX-Agent: walk the v3 element table and fold every
+      // Walk the v3 element table and fold every
       // `AgentStateBody` / `AgentStateFallbackBody` whose `owner` is
       // this state into the parent's `data.bodies` array. v3 stored a
       // `bodies: string[]` and `fallbackBodies: string[]` on the parent
@@ -1220,7 +1220,7 @@ function convertV3NodeDataToV4(
     }
 
     case "AgentRagElement": {
-      // Open question #5: preserve BOTH `dbCustomName` and
+      // preserve BOTH `dbCustomName` and
       // `ragDatabaseName` verbatim. Display in the editor resolves
       // `dbCustomName ?? ragDatabaseName`; the BAF generator picks
       // based on `dbSelectionType`.
@@ -1250,7 +1250,7 @@ function convertV3NodeDataToV4(
     }
 
     /* ---------------------------------------------------------------- */
-    /* SA-4: UserDiagram                                                  */
+    /* UserDiagram                                                  */
     /* ---------------------------------------------------------------- */
 
     case "UserModelName": {
@@ -1280,7 +1280,7 @@ function convertV3NodeDataToV4(
             attributeId?: string
             value?: unknown
           }
-          // SA-2.2 #38: synthesize `attributeOperator` from the name
+          // Synthesize `attributeOperator` from the name
           // when the v3 fixture only embeds the comparator in the row's
           // `name` (`"age >= 18"` rather than as a separate field).
           // Mirrors v3's `extractComparatorFromName` at
@@ -1331,7 +1331,7 @@ function convertV3NodeDataToV4(
           if (iconChild?.icon) return { icon: iconChild.icon }
           return {}
         })(),
-        // SA-FIX-USER-ICON: per-node render mode. v3 fixtures never
+        // Per-node render mode. v3 fixtures never
         // carry an explicit `view`, so default migrated UserModelName
         // nodes to `"icon"` to match the v3 fork's preferred preview.
         // A v4 fixture that already stamps `view: "attributes"` is
@@ -1348,7 +1348,7 @@ function convertV3NodeDataToV4(
         defaultValue?: unknown
         attributeOperator?: "<" | "<=" | "==" | ">=" | ">"
       }
-      // SA-2.2 #38 (also applies to unowned rows): synthesize the
+      // (also applies to unowned rows): synthesize the
       // comparator from `name` when not stored explicitly.
       const synthesized =
         e.attributeOperator ?? extractAttributeOperatorFromName(element.name)
@@ -1375,7 +1375,7 @@ function convertV3NodeDataToV4(
     }
 
     /* ---------------------------------------------------------------- */
-    /* SA-5: NNDiagram                                                    */
+    /* NNDiagram                                                    */
     /* ---------------------------------------------------------------- */
 
     case "Conv1DLayer":
@@ -1397,7 +1397,7 @@ function convertV3NodeDataToV4(
     case "TestDataset": {
       // Walk the v3 element table for every child whose `owner === layerId`
       // and whose `type` maps to a v4 attribute slug; aggregate into a
-      // flat `attributes` dict. Open question #2: slugs that collide
+      // flat `attributes` dict. slugs that collide
       // across layer kinds (`dimension` on Pooling vs BatchNorm) are
       // emitted in qualified form (`pooling.dimension` /
       // `batch_normalization.dimension`).
@@ -1454,7 +1454,7 @@ function convertV3NodeDataToV4(
     }
 
     case "NNReference": {
-      // SA-FIX-NN-ATTRS: v3's `NNReference` carries the referenced NN
+      // V3's `NNReference` carries the referenced NN
       // on the legacy `referencedNN` slot (see
       // `packages/editor/.../nn-reference.ts`). The previous migrator
       // only knew about `referenceTarget` / `target` / `referencedId`
@@ -1560,7 +1560,7 @@ function convertV3ElementToV4Node(
 }
 
 /**
- * SA-4 AgentStateTransition data lifter.
+ * AgentStateTransition data lifter.
  *
  * Collapses the 5 legacy v3 transition shapes into the canonical v4
  * `AgentStateTransitionData` (per `docs/source/migrations/uml-v4-shape.md`
@@ -1573,7 +1573,7 @@ function convertV3ElementToV4Node(
  *   4. Legacy flat custom: `{condition: 'custom_transition', customEvent, customConditions}`
  *   5. Legacy nested: `{conditionValue: { events, conditions }}`
  *
- * Detection priority cascade (per the SA-4 brief):
+ * Detection priority cascade (per the brief):
  *   - `transitionType === 'custom'` → custom
  *   - `condition === 'custom_transition'` → custom
  *   - non-empty `custom.event` || `custom.condition` → custom
@@ -1854,12 +1854,12 @@ function convertV3RelationshipToV4Edge(
     }))
   }
 
-  // SA-3: StateTransition carries params / guard / code / eventName
+  // StateTransition carries params / guard / code / eventName
   // alongside the generic edge data. Pull those through verbatim — the
   // v3 deserializer at
   // `packages/editor/.../uml-state-transition.ts:14` treats `params` as
   // `string | string[] | { [id]: string }`; v4 normalises to dict.
-  // SA-2.1: ObjectLink carries `associationId` at the v3 relationship
+  // ObjectLink carries `associationId` at the v3 relationship
   // root level (see `packages/editor/.../uml-object-link.ts:9`). Pull
   // it through to the v4 edge `data` so the bridge-driven picker in
   // `ObjectLinkEditPanel` can author and round-trip the link to a
@@ -1893,7 +1893,7 @@ function convertV3RelationshipToV4Edge(
     targetHandle: convertV3HandleToV4(relationship.target.direction || ""),
     data: {
       label: relationship.name || "",
-      // SA-3: hoist `name` so the StateMachineDiagramEdge label-formatter
+      // Hoist `name` so the StateMachineDiagramEdge label-formatter
       // (`name [guard]`) can read a single field; keeps parity with v3.
       ...(relationship.name && { name: relationship.name }),
       sourceMultiplicity: relationship.source.multiplicity || "",
@@ -1904,20 +1904,20 @@ function convertV3RelationshipToV4Edge(
       messages: convertV3MessagesToV4(relationship.messages),
       // Preserve flowType for BPMN edges
       ...(relationship.flowType && { flowType: relationship.flowType }),
-      // SA-3: StateTransition-specific data.
+      // StateTransition-specific data.
       ...(Object.keys(normalizedParams).length > 0 && {
         params: normalizedParams,
       }),
       ...(r.guard && { guard: r.guard }),
       ...(r.code && { code: r.code }),
       ...(r.eventName && { eventName: r.eventName }),
-      // SA-2.1: ObjectLink-only field. Living on the same generic edge
+      // ObjectLink-only field. Living on the same generic edge
       // data shape is fine because the v3 source-of-truth puts it at
       // the relationship root, alongside `name` / `path`. Other edge
       // types simply don't carry it.
       ...(r.associationId && { associationId: r.associationId }),
 
-      // SA-4: AgentStateTransition canonical data — collapsed from the
+      // AgentStateTransition canonical data — collapsed from the
       // five legacy v3 shapes (see `liftAgentTransitionDataToV4` and
       // `uml-v4-shape.md` "Legacy AgentStateTransition shapes" §). The
       // lifter is a no-op (returns `{}`) for any other edge type.
@@ -1996,7 +1996,7 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
           return false
         }
       }
-      // SA-4: UserModelAttribute / UserModelIcon — collapse onto the
+      // UserModelAttribute / UserModelIcon — collapse onto the
       // owner UserModelName when an owner exists. Standalone (unowned)
       // nodes survive for legacy round-trip.
       if (
@@ -2007,7 +2007,7 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
       ) {
         return false
       }
-      // SA-FIX-Agent: AgentStateBody / AgentStateFallbackBody — collapse
+      // AgentStateBody / AgentStateFallbackBody — collapse
       // onto the owner AgentState's `data.bodies` array. v3 carried
       // each body row as its own element connected via `owner`; v4
       // renders them inline on the parent like Class attribute rows.
@@ -2022,7 +2022,7 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
       ) {
         return false
       }
-      // SA-5: NN attribute child elements collapse onto their owner
+      // NN attribute child elements collapse onto their owner
       // layer's `data.attributes`. The slug map declares them
       // exhaustively. Section helpers (`NNSectionTitle`,
       // `NNSectionSeparator`) are sidebar-only — drop them entirely
@@ -2164,9 +2164,9 @@ export function migrateObjectDiagramV3ToV4(
 }
 
 /**
- * SA-3 StateMachineDiagram v3 → v4 migrator.
+ * StateMachineDiagram v3 → v4 migrator.
  *
- * Wraps `convertV3ToV4` with the per-diagram type guard. Per the SA-3
+ * Wraps `convertV3ToV4` with the per-diagram type guard. Per the
  * brief, this migrator does **not** collapse `StateBody` /
  * `StateFallbackBody` onto the parent state — those remain separate
  * React-Flow child nodes whose `parentId` points at the containing
@@ -2190,15 +2190,15 @@ export function migrateStateMachineDiagramV3ToV4(
 }
 
 /**
- * SA-4 AgentDiagram v3 → v4 migrator. See
+ * AgentDiagram v3 → v4 migrator. See
  * `migrateClassDiagramV3ToV4` for the shared shape rules; AgentDiagram
  * additionally:
  *  - Folds `AgentStateBody` / `AgentStateFallbackBody` onto the parent
- *    AgentState's `data.bodies[]` (SA-FIX-Agent).
+ *    AgentState's `data.bodies[]`.
  *  - Folds `AgentIntentBody` / `AgentIntentDescription` /
  *    `AgentIntentObjectComponent` onto the parent AgentIntent's
  *    `data.training_phrases[]` / `data.intent_description` /
- *    `data.entity_slots[]` inline arrays (SA-FIX-INTENT-INLINE). The
+ *    `data.entity_slots[]` inline arrays. The
  *    fold happens via `normalizeV4Model` so legacy v4 fixtures and
  *    locally-stored projects converge on the inline shape too.
  *  - Collapses the 5 legacy `AgentStateTransition` shapes onto the
@@ -2218,13 +2218,13 @@ export function migrateAgentDiagramV3ToV4(
       `migrateAgentDiagramV3ToV4: expected AgentDiagram, got ${v4.type}`
     )
   }
-  // SA-FIX-INTENT-INLINE: fold legacy intent children onto inline arrays
+  // Fold legacy intent children onto inline arrays
   // so callers always see the canonical v4 shape.
   return normalizeV4Model(v4)
 }
 
 /**
- * SA-4 UserDiagram v3 → v4 migrator. Wraps `convertV3ToV4` with the
+ * UserDiagram v3 → v4 migrator. Wraps `convertV3ToV4` with the
  * type guard. The user-modelling diagram collapses
  * `UserModelAttribute` / `UserModelIcon` children onto their owner
  * `UserModelName` (per `uml-v4-shape.md` UserDiagram §); the migrator's
@@ -2275,7 +2275,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
   for (const node of v4.nodes) {
     if (node.type === "class") {
       const data = node.data as ClassNodeProps
-      // PC-1/PC-2/PC-11 fix (SA-FIX-Class): preserve freeform stereotype
+      // Preserve freeform stereotype
       // + italic / underline / description / uri / icon on v3 emit.
       const isPredefinedStereotype =
         data.stereotype === ClassType.Abstract ||
@@ -2359,7 +2359,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
           height: node.height,
         },
         attributes: data.attributes.map((a) => a.id),
-        // SA-FIX-OBJECT-DEEP: object instances don't carry methods —
+        // Object instances don't carry methods —
         // emit an empty `methods` array on the v3 element so the wire
         // shape stays compatible with consumers that read the field.
         methods: [],
@@ -2368,7 +2368,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         ...(data.textColor && { textColor: data.textColor }),
         ...(data.classId && { classId: data.classId }),
         ...(data.className && { className: data.className }),
-        // PC-4 Gap 1: re-emit stereotype on the v3 element so the round
+        // Re-emit stereotype on the v3 element so the round
         // trip preserves the `«…»` band.
         ...(data.stereotype !== undefined &&
           data.stereotype !== null && { stereotype: data.stereotype }),
@@ -2390,7 +2390,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         }
         elements[attr.id] = child
       }
-      // SA-FIX-OBJECT-DEEP: no ObjectMethod rows to emit — object
+      // No ObjectMethod rows to emit — object
       // instances don't carry methods.
       // Re-emit ObjectIcon as a separate child element when present.
       if (data.icon) {
@@ -2405,7 +2405,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         } as V3UMLElement & { icon?: string }
       }
     } else if (node.type === "ClassOCLConstraint") {
-      // SA-UX-FIX B1: free-standing OCL constraint node — round-trip
+      // Free-standing OCL constraint node — round-trip
       // back to a v3 `ClassOCLConstraint` element with the OCL body
       // stored in the v3-canonical `constraint` field.
       const data = node.data as {
@@ -2437,7 +2437,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
       }
     } else {
       // Other node types (e.g. Package): pass through with v3 type
-      // recovery via the inverse type map. SA-2 only owns Class /
+      // recovery via the inverse type map. only owns Class /
       // Object diagrams — anything else falls through to a best-effort
       // shape that other SAs can refine.
       elements[node.id] = {
@@ -2493,7 +2493,7 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
       ...(typeof data.flowType === "string" && {
         flowType: data.flowType as string,
       }),
-      // SA-2.1: ObjectLink → v3 root-level `associationId`. Other edge
+      // ObjectLink → v3 root-level `associationId`. Other edge
       // types never set this field, so the spread is a no-op for them.
       ...(typeof data.associationId === "string" &&
         data.associationId && {
@@ -2546,7 +2546,7 @@ function childRowToV3(
     isId?: boolean
     isExternalId?: boolean
     defaultValue?: unknown
-    // SA-FINAL C2: ClassMethod-only fields. v3 v3 method elements
+    // ClassMethod-only fields. v3 v3 method elements
     // historically baked params + return type into the `name` string
     // ("foo(a: int): str"). The v4 row stores them as structured
     // `parameters[]` + `returnType`. Persist both back to v3 so a
@@ -2575,7 +2575,7 @@ function childRowToV3(
   if (row.isId !== undefined) out.isId = row.isId
   if (row.isExternalId !== undefined) out.isExternalId = row.isExternalId
   if (row.defaultValue !== undefined) out.defaultValue = row.defaultValue
-  // SA-FINAL C2: only emit on method rows. Attribute rows never set
+  // Only emit on method rows. Attribute rows never set
   // these in v4 (they're documented "ignored on attribute rows").
   if (type === "ClassMethod" || type === "ObjectMethod") {
     if (Array.isArray(row.parameters) && row.parameters.length > 0) {
@@ -2596,10 +2596,10 @@ const invertNodeType = (v4Type: string): string => {
     class: "Class",
     package: "Package",
     objectName: "ObjectName",
-    // SA-HIDE-NOISE: free-form sticky-note Comment. v3 element type is
+    // Free-form sticky-note Comment. v3 element type is
     // `Comments` (plural — see `packages/editor/.../common/comments/`).
     comment: "Comments",
-    // SA-3: StateMachine node-type strings are PascalCase identical to
+    // StateMachine node-type strings are PascalCase identical to
     // v3 element types — falling through is correct, but listed here
     // for grep-ability.
     State: "State",
@@ -2614,7 +2614,7 @@ const invertNodeType = (v4Type: string): string => {
     StateForkNode: "StateForkNode",
     StateForkNodeHorizontal: "StateForkNodeHorizontal",
 
-    // SA-4: AgentDiagram + UserDiagram — passthrough.
+    // AgentDiagram + UserDiagram — passthrough.
     AgentState: "AgentState",
     AgentStateBody: "AgentStateBody",
     AgentStateFallbackBody: "AgentStateFallbackBody",
@@ -2627,7 +2627,7 @@ const invertNodeType = (v4Type: string): string => {
     UserModelAttribute: "UserModelAttribute",
     UserModelIcon: "UserModelIcon",
 
-    // SA-5: NNDiagram passthrough for the inverse migrator.
+    // NNDiagram passthrough for the inverse migrator.
     Conv1DLayer: "Conv1DLayer",
     Conv2DLayer: "Conv2DLayer",
     Conv3DLayer: "Conv3DLayer",
@@ -2652,7 +2652,7 @@ const invertNodeType = (v4Type: string): string => {
 }
 
 /**
- * SA-3 inverse migrator: v4 StateMachineDiagram → v3 `UMLModel`.
+ * Inverse migrator: v4 StateMachineDiagram → v3 `UMLModel`.
  *
  * Mirrors `convertV4ToV3Class` but for the StateMachine universe. The
  * only structural rewrite is the body/fallback-body mapping: in v4 they
@@ -2665,7 +2665,7 @@ const invertNodeType = (v4Type: string): string => {
  *  - `params` dict is emitted in its richest form (object) — the v3
  *    deserializer accepts string / array / object, so this is the
  *    cleanest form for round-tripping,
- *  - `code` and `eventName` (BESSER additions per the SA-3 brief) are
+ *  - `code` and `eventName` (BESSER additions per the brief) are
  *    preserved on the relationship element.
  */
 export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
@@ -2860,7 +2860,7 @@ const invertHandle = (h: string | undefined): string => {
 }
 
 /* -------------------------------------------------------------------------- */
-/* SA-4: AgentDiagram + UserDiagram reverse migrators                          */
+/* AgentDiagram + UserDiagram reverse migrators                          */
 /* -------------------------------------------------------------------------- */
 
 type AgentTransitionV4 = {
@@ -2881,7 +2881,7 @@ type AgentTransitionV4 = {
 }
 
 /**
- * SA-4 inverse migrator: v4 AgentDiagram → v3 `UMLModel`.
+ * Inverse migrator: v4 AgentDiagram → v3 `UMLModel`.
  *
  * Re-emits the canonical v3 wire shape (matching the most common writer
  * pattern — shapes #1 and #2 from the spec). The round-trip is
@@ -2925,7 +2925,7 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
 
     switch (nt) {
       case "AgentState": {
-        // SA-FIX-Agent: re-expand the inline `data.bodies` array back
+        // Re-expand the inline `data.bodies` array back
         // into top-level v3 elements (`AgentStateBody` /
         // `AgentStateFallbackBody`) with the original ids preserved.
         // The parent state also re-emits the v3 `bodies: string[]` /
@@ -3013,14 +3013,14 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
             value?: string
           }>
         }
-        // SA-FIX-INTENT-INLINE: re-expand the inline arrays back into
+        // Re-expand the inline arrays back into
         // top-level v3 elements. `training_phrases` → `AgentIntentBody`;
         // `entity_slots` → `AgentIntentObjectComponent`. Original row
         // ids are preserved so the v4 → v3 → v4 cycle keeps stable ids.
         //
         // v3 has no `AgentIntentDescription` element type; the parent's
         // `intent_description` carries the description on the v3 wire.
-        // SA-2.2 #28: prefer the v4 parent's value, but fall back to a
+        // Prefer the v4 parent's value, but fall back to a
         // legacy `AgentIntentDescription` child if older code left one
         // behind (during partial migrations).
         let intentDescription = data.intent_description as string | undefined
@@ -3070,7 +3070,7 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         break
       }
       case "AgentIntentBody": {
-        // SA-FIX-INTENT-INLINE: any surviving free-standing
+        // Any surviving free-standing
         // `AgentIntentBody` (no parent intent) emits as-is for legacy
         // round-trip. The normaliser folds the owned ones onto the
         // parent's `training_phrases` so this case is rarely hit.
@@ -3079,11 +3079,11 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
       }
       case "AgentIntentDescription":
       case "AgentIntentObjectComponent": {
-        // SA-2.2 #28: skip these EXTRA-in-v4 child types on export. v3
+        // Skip these EXTRA-in-v4 child types on export. v3
         // doesn't recognise `AgentIntentDescription` (it's absent from
         // the v3 `AgentElementType` registry); description content is
         // preserved on the parent intent's `intent_description` (rolled
-        // up in the `AgentIntent` case above). SA-FIX-INTENT-INLINE:
+        // up in the `AgentIntent` case above).
         // `AgentIntentObjectComponent` rows are now re-emitted from the
         // parent's `entity_slots` array (rolled up in the `AgentIntent`
         // case above), so any free-standing `AgentIntentObjectComponent`
@@ -3095,7 +3095,7 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
       }
       case "AgentRagElement": {
         const data = node.data as Record<string, unknown>
-        // Open question #5: emit BOTH `ragDatabaseName` and
+        // emit BOTH `ragDatabaseName` and
         // `dbCustomName` verbatim.
         elements[node.id] = {
           ...baseV3,
@@ -3201,7 +3201,7 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
 }
 
 /**
- * SA-4 inverse migrator: v4 UserDiagram → v3 `UMLModel`. Re-expands
+ * Inverse migrator: v4 UserDiagram → v3 `UMLModel`. Re-expands
  * the collapsed `UserModelAttribute` / `UserModelIcon` rows back into
  * top-level `elements` keyed by id and pointing at the owner via
  * `owner`.
@@ -3260,7 +3260,7 @@ export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
         ...(data.classId && { classId: data.classId }),
         ...(data.className && { className: data.className }),
         ...(data.description && { description: data.description }),
-        // SA-FIX-USER-ICON: preserve per-node view on v3 emit so a
+        // Preserve per-node view on v3 emit so a
         // v4 → v3 → v4 round-trip preserves the user's explicit choice
         // (the v3 → v4 migrator defaults `view` to `"icon"` when absent,
         // so a missing field on v3 also round-trips cleanly).
@@ -3378,11 +3378,11 @@ export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
 }
 
 /* -------------------------------------------------------------------------- */
-/* SA-5: NNDiagram migrator                                                    */
+/* NNDiagram migrator                                                    */
 /* -------------------------------------------------------------------------- */
 
 /**
- * SA-5 NNDiagram v3 → v4 migrator. Wraps `convertV3ToV4` with a type
+ * NNDiagram v3 → v4 migrator. Wraps `convertV3ToV4` with a type
  * guard. Big-picture changes vs. v3 (per `uml-v4-shape.md` NNDiagram §):
  *
  *  - Per-attribute UMLElements (e.g. `KernelDimAttributeConv2D`) collapse
@@ -3395,9 +3395,9 @@ export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
  *  - Section helpers (`NNSectionTitle`, `NNSectionSeparator`) are dropped
  *    by the migrator.
  *
- * Open question #2: slugs that collide across layer kinds (`dimension`
+ * slugs that collide across layer kinds (`dimension`
  * on Pooling vs BatchNormalization) emit in qualified form
- * (`pooling.dimension` / `batch_normalization.dimension`). SA-6.1's
+ * (`pooling.dimension` / `batch_normalization.dimension`). 's
  * backend processor uses the same convention.
  */
 export function migrateNNDiagramV3ToV4(
@@ -3434,7 +3434,7 @@ const NN_LAYER_KINDS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * SA-5 inverse migrator: v4 NNDiagram → v3 `UMLModel`. Re-expands the
+ * Inverse migrator: v4 NNDiagram → v3 `UMLModel`. Re-expands the
  * collapsed `data.attributes` dict back into per-attribute child
  * elements pointing at the layer via `owner`. The reconstructed v3
  * attribute element-type string is recovered from the (layerKind,
@@ -3536,7 +3536,7 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
         ...(data.description && { description: data.description }),
       } as V3UMLElement & { entryLayerId?: string; description?: string }
     } else if (nt === "NNReference") {
-      // SA-FIX-NN-ATTRS: emit both the v4 `referenceTarget` and the v3
+      // Emit both the v4 `referenceTarget` and the v3
       // legacy `referencedNN` field so a round-trip through the v3
       // editor (which still reads `referencedNN`) preserves the
       // reference target.
@@ -3599,9 +3599,9 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
 }
 
 /**
- * SA-FIX-CRITICAL-2 #1: normalise a v4 model on load.
+ * Normalise a v4 model on load.
  *
- * Per SA-FIX-Agent's inline-body design, `AgentStateBody` /
+ * Per inline-body design, `AgentStateBody` /
  * `AgentStateFallbackBody` MUST live on the parent AgentState's
  * `data.bodies` array — they must NEVER appear as separate top-level
  * React-Flow nodes. The v3→v4 migrator already folds them, but legacy
@@ -3619,7 +3619,7 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
  */
 export function normalizeAgentBodies(model: UMLModel): UMLModel {
   if (model.type !== "AgentDiagram") return model
-  // SA-FIX-Agent removed `AgentStateBody` / `AgentStateFallbackBody`
+  // Removed `AgentStateBody` / `AgentStateFallbackBody`
   // from the canonical `DiagramNodeType` registry, so we compare against
   // the raw string form to detect legacy floating nodes.
   const isBodyType = (t: string): boolean =>
@@ -3741,12 +3741,12 @@ export function normalizeAgentBodies(model: UMLModel): UMLModel {
 }
 
 /**
- * SA-FIX-INTENT-INLINE: fold legacy `AgentIntentBody` /
+ * Fold legacy `AgentIntentBody` /
  * `AgentIntentDescription` / `AgentIntentObjectComponent` child nodes
  * onto their parent `AgentIntent.data.{training_phrases, intent_description,
  * entity_slots}`, then remove the children from the node list.
  *
- * v3 (and SA-4) rendered each row as a separate React-Flow node anchored
+ * v3 (and) rendered each row as a separate React-Flow node anchored
  * via `parentId`. The user requested the rows live inline on the parent
  * intent SVG, matching how `Class` renders attribute rows and
  * `AgentState` renders body rows. This normaliser runs on every model
@@ -3896,7 +3896,7 @@ function normalizeAgentIntentChildren(model: UMLModel): UMLModel {
 }
 
 /**
- * SA-FIX-AGENT-OCL: normalise OCL constraint node types. Templates
+ * Normalise OCL constraint node types. Templates
  * (Library_OCL.json, team_player_ocl.json) ship the canvas-level OCL
  * constraint with a lowercase `type: "classoclconstraint"` instead of
  * the canonical `type: "ClassOCLConstraint"` registered in the v4 node
@@ -3946,7 +3946,7 @@ function normalizeOCLConstraintNodes(model: UMLModel): UMLModel {
 }
 
 /**
- * SA-FIX-AGENT-OCL: unconditional v4 normalization pass.
+ * Unconditional v4 normalization pass.
  *
  * Runs on EVERY model load — including `version: "4.0.0"` templates and
  * locally stored projects that bypass the v3→v4 migrator. Each sub-pass
@@ -4023,7 +4023,7 @@ function normalizeAgentBodyKindToArrays(model: UMLModel): UMLModel {
  */
 export function importDiagram(data: any | V3UMLModel): UMLModel {
   if (isV4Format(data)) {
-    // SA-FIX-CRITICAL-2 #1 / SA-FIX-AGENT-OCL: normalise v4 input on load.
+    // Normalise v4 input on load.
     // Templates that ship `version: "4.0.0"` but the legacy
     // separate-child-nodes shape (orphan AgentStateBody, missing
     // extent/draggable on intent children, lowercase OCL types) are
@@ -4032,7 +4032,7 @@ export function importDiagram(data: any | V3UMLModel): UMLModel {
   }
 
   if (isV3Format(data)) {
-    // SA-FIX-AGENT-OCL: run the v4 normalizer over the migrator's
+    // Run the v4 normalizer over the migrator's
     // output as well — the v3→v4 fold logic can still leave orphans
     // and the resulting v4 model should be canonicalised before
     // reaching the editor.

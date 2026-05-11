@@ -191,7 +191,7 @@ export const CommonEdgeElements = ({
   type: string
 }) => {
   const nodeScore = assessments[id]?.score
-  // SA-FIX-Editor PC-11.1: same rationale as the node toolbar — when the
+  // Same rationale as the node toolbar — when the
   // properties panel is the active inspector surface, the floating pencil
   // on edges is redundant and reads as duplicate UI.
   const usePropertiesPanel = useUsePropertiesPanel()

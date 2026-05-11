@@ -1,4 +1,4 @@
 import { makeNNLayerComponent } from "./_NNLayerBase"
 
-/** SA-5 `GRULayer`. */
+/** `GRULayer`. */
 export const GRULayer = makeNNLayerComponent("GRULayer", "GRU", "#E8EAF6")

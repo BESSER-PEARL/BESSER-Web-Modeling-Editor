@@ -154,7 +154,7 @@ function App({ onReactFlowInit }: AppProps) {
         nodesDraggable={isDiagramModifiable}
         panOnScroll={!scrollLock || scrollEnabled}
         zoomOnScroll={!scrollLock || scrollEnabled}
-        // SA-FINAL-3 Tier 1 #2: default to selection-on-drag (left button)
+        // Default to selection-on-drag (left button)
         // and pan with middle/right button — matches v3 mouse-eventlistener
         // behavior. Without this, marquee-select requires holding Shift.
         selectionOnDrag
@@ -167,7 +167,7 @@ function App({ onReactFlowInit }: AppProps) {
         <AlignmentGuides />
         <AssessmentSelectionDebug />
       </ReactFlow>
-      {/* SA-FIX-Editor PC-11.2: drop the `mode === Modelling` gate so the
+      {/* Drop the `mode === Modelling` gate so the
           properties panel mounts in Assessment mode too. The panel itself
           decides what to render per-mode (edit / feedbackGive /
           feedbackSee) via the inspector registry. PopoverManager already

@@ -1,5 +1,5 @@
 /**
- * SA-5 NN attribute widget configuration. Single source of truth for
+ * NN attribute widget configuration. Single source of truth for
  * both the inline panel editor (`NNComponentEditPanel`) and the v3 ↔ v4
  * version converter (`migrateNNDiagramV3ToV4`). Ported verbatim from
  * `packages/editor/src/main/packages/nn-diagram/nn-attribute-widget-config.ts`
@@ -11,12 +11,12 @@
  * panel can render a stable ordered field list per layer kind without
  * round-tripping through the v3 element registry.
  *
- * Open question #2 (DimensionAttribute slug collision) — the slug
+ * (DimensionAttribute slug collision) — the slug
  * `dimension` is shared between `DimensionAttributePooling` and
- * `DimensionAttributeBatchNormalization`. SA-5 disambiguates at the
+ * `DimensionAttributeBatchNormalization`. disambiguates at the
  * boundary: the migrator (and the inspector) keys on
  * `<layer_kind>.<slug>` for these collision-prone slugs and falls back
- * to the plain slug for everything else. SA-6 already shipped the
+ * to the plain slug for everything else. already shipped the
  * matching backend disambiguation — this module mirrors that contract.
  */
 
@@ -58,7 +58,7 @@ export const TNS_TYPE_OPTIONS = [
 ] as const
 export const TASK_TYPE_OPTIONS = ["binary", "multi_class", "regression"] as const
 export const INPUT_FORMAT_OPTIONS = ["csv", "images"] as const
-// SA-2.2 #32: include the v3 `global_*` pooling types so legacy
+// Include the v3 `global_*` pooling types so legacy
 // fixtures (`pooling_type = 'global_average' | 'global_max'`) round
 // trip without silent value reset. Mirrors the optional-attribute
 // filter at `nn-component-update.tsx:649-669` which references both
@@ -78,7 +78,7 @@ export const BATCHNORM_DIMENSION_OPTIONS = ["1D", "2D", "3D"] as const
  * Slugs that collide across layer kinds. Lookup goes through the
  * `pooling.dimension` / `batch_normalization.dimension` namespaced form;
  * the migrator emits the qualified slug on output and reads either form
- * on input. Mirrors SA-6's backend disambiguation.
+ * on input. Mirrors backend disambiguation.
  */
 export const COLLIDING_SLUGS: ReadonlySet<string> = new Set(["dimension"])
 
@@ -281,7 +281,7 @@ const POOLING_FIELDS: AttributeWidgetConfig[] = [
   },
 ]
 
-/** SA-FIX-NN-ATTRS: RNN-family `actv_func` defaults to `tanh` in v3
+/** RNN-family `actv_func` defaults to `tanh` in v3
  * (mirrors PyTorch's `RNN`/`LSTM`/`GRU` activation default), distinct
  * from the convolutional `relu` baseline. Inlined here rather than
  * sharing `ACTV_FUNC_FIELD` so the recurrent panel renders the v3
@@ -297,7 +297,7 @@ const RECURRENT_ACTV_FUNC_FIELD: AttributeWidgetConfig = {
 const RECURRENT_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
   { slug: "hidden_size", widget: "text", label: "hidden_size", mandatory: true },
-  // SA-FIX-NN-ATTRS: v3 default = 'full' (not 'last').
+  // V3 default = 'full' (not 'last').
   {
     slug: "return_type",
     widget: "dropdown",
@@ -314,7 +314,7 @@ const RECURRENT_FIELDS: AttributeWidgetConfig[] = [
     label: "bidirectional",
   },
   { slug: "dropout", widget: "text", label: "dropout" },
-  // SA-FIX-NN-ATTRS: v3 default = 'true' (PyTorch-style channel-first
+  // V3 default = 'true' (PyTorch-style channel-first
   // tensors with the batch dimension leading).
   {
     slug: "batch_first",
@@ -400,7 +400,7 @@ const BATCH_NORM_FIELDS: AttributeWidgetConfig[] = [
   },
   // Collision-aware: stored as `batch_normalization.dimension` on a
   // BatchNormalization node.
-  // SA-FIX-NN-ATTRS: v3 default = '2D' (mirrors the convolutional
+  // V3 default = '2D' (mirrors the convolutional
   // baseline so `BatchNorm2d` lands where users expect).
   {
     slug: "dimension",
@@ -415,7 +415,7 @@ const BATCH_NORM_FIELDS: AttributeWidgetConfig[] = [
   INPUT_REUSED_FIELD,
 ]
 
-// SA-FIX-NN-ATTRS: v3 TensorOp shipped defaults per `tns_type` branch
+// V3 TensorOp shipped defaults per `tns_type` branch
 // (e.g. `reshape_dim = '[-1]'`, `transpose_dim = '[0, 1]'`,
 // `permute_dim = '[0, 1, 2]'`, `concatenate_dim = '0'`,
 // `layers_of_tensors = '[]'`). Surfacing them as `defaultValue` here
@@ -464,7 +464,7 @@ const TENSOR_OP_FIELDS: AttributeWidgetConfig[] = [
   INPUT_REUSED_FIELD,
 ]
 
-// SA-FIX-NN-ATTRS: v3 Configuration shipped string defaults for every
+// V3 Configuration shipped string defaults for every
 // mandatory training field. Surface them on the schema so the
 // auto-fill effect seeds the node on drop. `weight_decay` /
 // `momentum` defaults live in NN_ATTRIBUTE_DEFAULTS already.
@@ -504,7 +504,7 @@ const CONFIGURATION_FIELDS: AttributeWidgetConfig[] = [
 
 const DATASET_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
-  // SA-FIX-NN-ATTRS: v3 default = 'path/to/data'. Mandatory in v3, so
+  // V3 default = 'path/to/data'. Mandatory in v3, so
   // surface the placeholder default for parity with the v3 auto-fill.
   {
     slug: "path_data",

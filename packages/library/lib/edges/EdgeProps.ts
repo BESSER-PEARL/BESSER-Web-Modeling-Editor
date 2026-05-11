@@ -19,7 +19,7 @@ export type CustomEdgeProps = {
   strokeColor?: string
   textColor?: string
   /**
-   * SA-2.1: ObjectLink-only field. Pins the link to a specific
+   * ObjectLink-only field. Pins the link to a specific
    * ClassDiagram association so generators can resolve which
    * association the v3 relationship corresponds to. Other edge types
    * never set this.

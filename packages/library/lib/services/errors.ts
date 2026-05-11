@@ -1,5 +1,5 @@
 /**
- * SA-FIX-Editor PC-12.7: tiny pub/sub for non-fatal warnings emitted
+ * Tiny pub/sub for non-fatal warnings emitted
  * from inside the library. Kept in its own module (not in
  * `besser-editor.tsx`) so non-React modules like
  * `services/diagramBridge.ts` can publish without pulling React into

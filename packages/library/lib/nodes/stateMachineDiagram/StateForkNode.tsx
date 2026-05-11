@@ -13,7 +13,7 @@ import { StateMarkerNodeProps } from "@/types"
  * `packages/editor/.../uml-state-fork-node.ts`. The bar itself is just
  * a filled rectangle.
  *
- * SA-FIX-State (PC-6 #1): mirrors the SA-UX-FIX-2 fix applied to
+ * Mirrors the fix applied to
  * `StateInitialNode`. The shared `getCustomColorsFromData` helper falls
  * back to `var(--besser-background)` (white in the default theme),
  * which painted the fork bar invisible against the canvas. Read
@@ -48,7 +48,7 @@ export function StateForkNode({
       ]}
       className="vertically-not-resizable"
     >
-      {/* SA-FINAL S3: marker nodes have no editable body — hide the
+      {/* Marker nodes have no editable body — hide the
           pencil so the toolbar only exposes Delete. */}
       <NodeToolbar elementId={id} showEdit={false} />
       <NodeResizer

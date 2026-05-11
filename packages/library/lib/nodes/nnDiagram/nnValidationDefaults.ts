@@ -1,5 +1,5 @@
 /**
- * SA-5 NN attribute validation defaults & list-shape helpers. Ported
+ * NN attribute validation defaults & list-shape helpers. Ported
  * from `packages/editor/.../nn-validation-defaults.ts`. Pure, no React,
  * no Redux. The migrator and the inline editor both consume these.
  */
@@ -28,7 +28,7 @@ export const NN_ATTRIBUTE_DEFAULTS: Readonly<Record<string, string>> =
     learning_rate: "0.001",
     weight_decay: "0.0",
     momentum: "0",
-    // SA-FIX-NN-ATTRS: v3-parity defaults for Configuration / Dataset /
+    // V3-parity defaults for Configuration / Dataset /
     // TensorOp slugs that were missing from the v4 fallback table.
     optimizer: "adam",
     loss_function: "crossentropy",

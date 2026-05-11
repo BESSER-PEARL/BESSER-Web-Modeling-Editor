@@ -24,7 +24,7 @@ import { useClassNotation } from "@/store/settingsStore"
  * to the inspector. Stock diagrams that only set `{id, name}` get the raw
  * `name` back unchanged.
  *
- * SA-FIX-CRITICAL-2 #2: when the parent class' `stereotype` is
+ * When the parent class' `stereotype` is
  * `'Enumeration'`, the row is an enumeration literal — `formatDisplayName`
  * drops visibility / type / flag markers and returns just the bare name.
  * We force-format Enumeration rows even when the row has no structured
@@ -130,7 +130,7 @@ export function Class({
     return result
   }, [maxTextWidth, padding])
 
-  // Calculate minimum dimensions. PC-1 fix (SA-FIX-Class): Enumeration
+  // Calculate minimum dimensions. Enumeration
   // hides the methods compartment entirely; height drops the methods
   // contribution to match. ER mode also hides methods for entity-capable
   // classifiers (Class / Abstract) — must drop the height contribution

@@ -15,10 +15,10 @@ import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-FIX-INTENT-INLINE: `AgentIntent` renders description / training
+ * `AgentIntent` renders description / training
  * phrases / entity slots as inline SVG rows on the parent rectangle —
  * mirroring how `AgentState` renders `data.bodies[]` and how `Class`
- * renders `data.attributes[]`. The previous version (SA-4) split each
+ * renders `data.attributes[]`. The previous version split each
  * row into a separate React-Flow child node anchored via `parentId`;
  * the user requested folding these onto the parent so the editor
  * surfaces a single, inspectable intent shape.

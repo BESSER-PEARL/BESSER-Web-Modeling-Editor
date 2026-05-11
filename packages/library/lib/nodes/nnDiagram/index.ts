@@ -1,5 +1,5 @@
 /**
- * SA-5 NNDiagram node-type registrations.
+ * NNDiagram node-type registrations.
  *
  * Importing this barrel as a side-effect (from `lib/nodes/index.ts`)
  * extends the central `_nodeTypeRegistry` in `nodes/types.ts` with the
@@ -7,12 +7,12 @@
  * `docs/source/migrations/uml-v4-shape.md` (NNDiagram §). The biggest
  * architectural change vs. v3: per-attribute UMLElements collapse onto
  * `node.data.attributes: Record<string, unknown>`. Backend already
- * collapsed these in SA-6.1's `nn_diagram_processor.py`; this is the
+ * collapsed these in `nn_diagram_processor.py`; this is the
  * matching frontend shape.
  *
  * Parent/child contract:
  *  - Layer nodes use `parentId = NNContainer.id` to nest inside a
- *    container, mirroring SA-3's State/StateBody pattern.
+ *    container, mirroring State/StateBody pattern.
  *  - `TrainingDataset` / `TestDataset` / `Configuration` / `TensorOp` /
  *    `NNReference` are top-level nodes (no parentId by default).
  */

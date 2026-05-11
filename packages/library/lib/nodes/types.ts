@@ -72,12 +72,12 @@ import {
 const defaultNodeTypes = {
   package: Package,
   class: Class,
-  // SA-UX-FIX B1: free-standing OCL constraint as a sticky-note shape.
+  // Free-standing OCL constraint as a sticky-note shape.
   ClassOCLConstraint: ClassOCLConstraintNode,
   objectName: ObjectName,
   communicationObjectName: CommunicationObjectName,
   colorDescription: ColorDescription,
-  // SA-HIDE-NOISE: free-form sticky-note Comment node, ported from
+  // Free-form sticky-note Comment node, ported from
   // v3 `common/comments`. Available across all diagram types so
   // designers can annotate any model.
   comment: Comment,

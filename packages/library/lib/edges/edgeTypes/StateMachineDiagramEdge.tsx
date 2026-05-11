@@ -20,7 +20,7 @@ import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { registerEdgeTypes } from "../types"
 
 /**
- * SA-3 StateMachineDiagram transition edge. Single-headed arrow with a
+ * StateMachineDiagram transition edge. Single-headed arrow with a
  * label at the path midpoint. Shape-of-`data` (per
  * `docs/source/migrations/uml-v4-shape.md`, StateMachineDiagram §):
  *
@@ -30,13 +30,13 @@ import { registerEdgeTypes } from "../types"
  *   guard?: string;       // optional guard expression (renders as [...])
  *   params: { [key: string]: string };
  *   points: IPoint[];
- *   // BESSER addition (per the SA-3 brief):
+ *   // BESSER addition (per the brief):
  *   code?: string;        // action code attached to the transition
  *   eventName?: string;   // explicit event-driven trigger
  * }
  * ```
  *
- * Note (decision): the SA-3 brief also specifies `code` and `eventName`
+ * Note (decision): the brief also specifies `code` and `eventName`
  * fields on the edge `data`. The spec at `uml-v4-shape.md` does not list
  * those, but it's the same pattern v3's editor used internally
  * (`packages/editor/.../uml-state-transition.ts:14`'s `params` dict was
@@ -124,7 +124,7 @@ export const StateMachineDiagramEdge = ({
   // `params` is a dict / array stored on the relationship root and
   // each value is wrapped in its own bracket pair. `code` is reserved
   // for the inspector — it's not part of the canvas label.
-  // SA-FINAL S2: include `params` entries before the guard.
+  // Include `params` entries before the guard.
   const dataAny = (data ?? {}) as {
     name?: string
     guard?: string

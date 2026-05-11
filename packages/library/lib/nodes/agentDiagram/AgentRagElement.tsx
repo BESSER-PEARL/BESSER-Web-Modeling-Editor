@@ -9,10 +9,10 @@ import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-4 `AgentRagElement`. Cylinder-shaped database element. Mirrors v3
+ * `AgentRagElement`. Cylinder-shaped database element. Mirrors v3
  * source at `agent-state-diagram/agent-rag-element/agent-rag-element-component.tsx`.
  *
- * SA-FIX-AGENT-OCL: the standalone RAG element is now name-only — the
+ * The standalone RAG element is now name-only — the
  * DB-mode fields (`ragDatabaseName`, `dbCustomName`, `dbSelectionType`,
  * `dbQueryMode`, `dbOperation`, `dbSqlQuery`) were removed from this
  * node's typed shape. Those settings belong to the AgentState
@@ -33,7 +33,7 @@ export function AgentRagElement({
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
   const { name } = data
 
-  // SA-FIX-AGENT-OCL: surface only the node `name`. DB-mode display
+  // Surface only the node `name`. DB-mode display
   // (dbCustomName/ragDatabaseName fallback) was removed — those fields
   // are no longer carried on the standalone RAG cylinder.
   const display = name

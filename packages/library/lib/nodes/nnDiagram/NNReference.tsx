@@ -9,7 +9,7 @@ import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-5 `NNReference`. v3 source:
+ * `NNReference`. v3 source:
  * `packages/editor/src/main/packages/nn-diagram/nn-reference/`. A
  * compact single-line node holding a reference to another layer (in
  * the same container) or a sibling container. The reference target is

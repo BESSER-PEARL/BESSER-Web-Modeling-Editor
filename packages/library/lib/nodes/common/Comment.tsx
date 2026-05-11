@@ -7,7 +7,7 @@ import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 
 /**
- * SA-HIDE-NOISE: Comment sticky-note node ported from v3
+ * Comment sticky-note node ported from v3
  * (`packages/editor/src/main/packages/common/comments/comments-component.tsx`).
  *
  * v3 rendered a rounded-rectangle speech-bubble shape with a small
@@ -22,7 +22,7 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
  * fillColor / strokeColor / textColor).
  *
  * The node intentionally does NOT expose connection handles — comments
- * are untethered notes (per the SA-HIDE-NOISE brief: "comments float
+ * are untethered notes (per the brief: "comments float
  * as untethered sticky notes; binding to elements can be added later").
  */
 const MIN_WIDTH = 120
@@ -85,7 +85,7 @@ export function Comment({
   const w = Math.max(width ?? 0, MIN_WIDTH)
   const h = Math.max(height ?? 0, MIN_HEIGHT)
 
-  // SA-FINAL-3 Tier 2 #6: theme-portable sticky-note palette. See ClassOCLConstraint.
+  // Theme-portable sticky-note palette. See ClassOCLConstraint.
   const fillColor = data.fillColor || "var(--besser-sticky-fill, #fff8c4)"
   const strokeColor = data.strokeColor || "var(--besser-sticky-stroke, #bda21f)"
   const textColor = data.textColor || "var(--besser-sticky-text, #3a2e00)"
@@ -97,7 +97,7 @@ export function Comment({
   const maxLines = Math.max(1, Math.floor(innerHeight / 14))
   const lines = wrapText(data.name || "", charsPerLine, maxLines)
 
-  // SA-FINAL-3 Tier 7 #26: make Comment handles visible so the user can
+  // Make Comment handles visible so the user can
   // anchor a CommentLink dependency arrow to any element. Full CommentLink
   // inspector port is TODO — for now the placeholder edge type is registered
   // in `edges/edgeTypes/index.ts` and uses the dashed dependency style.

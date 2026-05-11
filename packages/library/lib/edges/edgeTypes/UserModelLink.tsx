@@ -1,6 +1,6 @@
 /**
- * SA-4 `UserModelLink` edge — re-export of SA-2's `ObjectDiagramEdge`
- * registered under a dedicated edge type. Per the SA-4 brief, the user
+ * `UserModelLink` edge — re-export of `ObjectDiagramEdge`
+ * registered under a dedicated edge type. Per the brief, the user
  * model is a special case of object diagram with semantic constraints,
  * so the edge visual is identical to `ObjectLink` — the difference is
  * purely the type discriminator the backend OCL validator uses.

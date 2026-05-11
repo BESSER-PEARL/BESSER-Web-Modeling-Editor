@@ -18,7 +18,7 @@ import { formatObjectMember } from "@/utils/classifierMemberDisplay"
 
 /**
  * Object-diagram rows render as `attribute = value` (no visibility, no
- * type, no `{id}` markers — PC-4 Gap 3). v3 stripped these via
+ * type, no `{id}` markers). v3 stripped these via
  * `UMLObjectAttribute.displayName` (`uml-object-attribute.ts:23-25`); we
  * route through `formatObjectMember` so the canvas label is consistent
  * even when the inspector stores `visibility` / `attributeType` on the
@@ -55,7 +55,7 @@ export function ObjectName({
 
   const objectSvgWrapperRef = useRef<HTMLDivElement | null>(null)
 
-  // PC-4 Gap 1: ObjectName carries an optional stereotype band; widen
+  // ObjectName carries an optional stereotype band; widen
   // the header height to make room for the `«…»` line when set.
   const hasStereotype = !!stereotype
   const headerHeight = hasStereotype
@@ -66,9 +66,9 @@ export function ObjectName({
   const padding = LAYOUT.DEFAULT_PADDING
   const font = LAYOUT.DEFAULT_FONT
 
-  // Calculate the widest text accurately. PC-4 Gap 1: include the
+  // Calculate the widest text accurately. include the
   // `«stereotype»` line in the width budget when set so a long
-  // stereotype label doesn't get clipped. SA-FIX-OBJECT-DEEP: object
+  // stereotype label doesn't get clipped. object
   // instances don't carry methods (UML object diagrams show data
   // values, not types — methods are owned by the class), so the width
   // budget excludes any method row.
@@ -95,7 +95,7 @@ export function ObjectName({
     return result
   }, [maxTextWidth, padding])
 
-  // Calculate minimum dimensions. SA-FIX-OBJECT-DEEP: pass `0` for the
+  // Calculate minimum dimensions. pass `0` for the
   // method row count — objects render no method section.
   const minHeight = useMemo(
     () =>

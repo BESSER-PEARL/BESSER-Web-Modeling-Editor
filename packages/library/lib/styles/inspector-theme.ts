@@ -1,7 +1,7 @@
 import { createTheme, type Theme } from "@mui/material/styles"
 
 /**
- * SA-PANEL-STYLE: MUI theme override that harmonises the inspector look
+ * MUI theme override that harmonises the inspector look
  * with the webapp's Tailwind/Radix design tokens (`packages/webapp/src/
  * components/ui/`).
  *
@@ -26,14 +26,14 @@ import { createTheme, type Theme } from "@mui/material/styles"
  * — only the inspector panel needs the Tailwind-aligned styling.
  */
 export const inspectorTheme: Theme = createTheme({
-  // SA-PANEL-STYLE: align border radius with Tailwind `rounded-md` (6px,
+  // Align border radius with Tailwind `rounded-md` (6px,
   // i.e. `--radius - 2px` from the webapp's `:root` where `--radius =
   // 0.85rem ≈ 13.6px`; we use the more conservative shadcn convention).
   shape: {
     borderRadius: 6,
   },
   typography: {
-    // SA-PANEL-STYLE: switch to the webapp's preferred sans stack so the
+    // Switch to the webapp's preferred sans stack so the
     // panel inherits the same letterforms Tailwind uses everywhere else.
     fontFamily:
       'var(--font-geist-sans, "Sora"), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',

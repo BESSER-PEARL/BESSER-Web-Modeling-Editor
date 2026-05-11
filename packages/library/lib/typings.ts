@@ -86,7 +86,7 @@ export enum BesserView {
  * - "standalone": resolve CSS variables to their current computed values and
  *   inline an `<style>` block at the top of the `<svg>` so the file is
  *   self-contained when downloaded (also adds an XML prolog). Default for
- *   downloaded exports — see SA-FINAL-3 Tier 2 #8.
+ *   downloaded exports —.
  */
 export type SvgExportMode = "web" | "compat" | "standalone"
 

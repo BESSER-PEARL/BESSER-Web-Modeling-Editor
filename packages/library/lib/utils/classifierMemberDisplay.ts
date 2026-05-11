@@ -89,7 +89,7 @@ export const parseLegacyNameFormat = (
 /**
  * Format an Object-diagram attribute row for canvas rendering.
  *
- * Object instances don't carry visibility semantics (PC-4 Gap 3), so we
+ * Object instances don't carry visibility semantics, so we
  * render `name = value` (or just `name` when no value is present) with no
  * `+/-/#/~` symbol and no `{id}` markers. Mirrors v3
  * `UMLObjectAttribute.displayName` (`uml-object-attribute.ts:23-25`).
@@ -112,7 +112,7 @@ export const formatObjectMember = (
  *   `{id, external id}` suffix. Identifying attributes are marked with
  *   an underline at render time.
  *
- * SA-FIX-CRITICAL-2 #2: when the parent class' `stereotype` is
+ * When the parent class' `stereotype` is
  * `'Enumeration'`, attribute rows are enumeration *literals* — emit just
  * the bare name, no visibility prefix, no `: <Type>` suffix, no flag
  * markers. Mirrors v3 `uml-classifier-component.tsx` which branched on
@@ -131,7 +131,7 @@ export const formatDisplayName = (
       ? ` = ${member.defaultValue}`
       : ""
 
-  // SA-FIX-CLASS-FUND #8: defensively strip a leading visibility symbol
+  // Defensively strip a leading visibility symbol
   // and a trailing `: <type>` from the *raw* name when the structured
   // `attributeType` is also present. Legacy palette defaults shipped a
   // pre-formatted "+ attribute: Type" string in `name`; without this
@@ -156,7 +156,7 @@ export const formatDisplayName = (
     bareName = bareName.replace(/\s*:\s*[^:]+$/, "")
   }
 
-  // SA-FIX-CRITICAL-2 #2: Enumeration literals are bare names — no
+  // Enumeration literals are bare names — no
   // visibility, no `: Type`, no flag markers, no default value. Return
   // early before any UML/ER decoration logic runs.
   if (stereotype === "Enumeration") {
@@ -171,7 +171,7 @@ export const formatDisplayName = (
   }
 
   // UML mode (default).
-  // SA-FIX-CLASS-FUND #6: id / externalId / derived / optional markers
+  // Id / externalId / derived / optional markers
   // are appended unconditionally when their flags are set. Previously
   // a legacy-format `name` ("+ x: Type") fell through a fast-path that
   // skipped the markers entirely — see history. The fast-path is gone:

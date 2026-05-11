@@ -11,12 +11,12 @@ import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-FIX-Agent: `AgentState` renders body sections inline.
+ * `AgentState` renders body sections inline.
  *
  * v3 source (`agent-state-diagram/agent-state/agent-state-component.tsx`)
  * drew the body rows directly inside the parent `<g>`, like a Class
- * node draws attribute / method rows. SA-4 originally split bodies into
- * separate React-Flow children connected via `parentId`; SA-FIX-Agent
+ * node draws attribute / method rows. originally split bodies into
+ * separate React-Flow children connected via `parentId`;
  * undoes that split — bodies live on `data.bodies` and render as inline
  * rows here.
  *

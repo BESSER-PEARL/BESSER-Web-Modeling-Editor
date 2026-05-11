@@ -89,7 +89,7 @@ export const resizeAllParents = (node: Node, allNodes: Node[]) => {
       parent.height = currentNode.position.y + currentNode.height!
     }
 
-    // SA-FINAL-3 Tier 5 #18: shrink the parent to the tight bounds of its
+    // Shrink the parent to the tight bounds of its
     // remaining children once the grow-branch above has fired. v3's
     // `UMLContainer.render` recomputed bounds from the child set every
     // pass; the previous implementation only grew, so once a child was
@@ -214,14 +214,14 @@ const NODE_LABEL_CAPABILITIES = {
   // Class diagram
   package: { wrapsName: true, rendersNameLabel: true },
   class: { wrapsName: false, rendersNameLabel: true },
-  // SA-UX-FIX B1: free-standing OCL constraint draws its own header
+  // Free-standing OCL constraint draws its own header
   // text and wraps the body — neither the rename popover nor the
   // global label workflow is appropriate here.
   ClassOCLConstraint: { wrapsName: false, rendersNameLabel: false },
   objectName: { wrapsName: false, rendersNameLabel: true },
   communicationObjectName: { wrapsName: false, rendersNameLabel: true },
   colorDescription: { wrapsName: true, rendersNameLabel: true },
-  // SA-HIDE-NOISE: free-form sticky-note Comment ported from v3
+  // Free-form sticky-note Comment ported from v3
   // `common/comments`. The body text wraps inside the note and the
   // node renders its own label, so the global rename popover is
   // unused here (the inspector edits via a multiline TextField).
@@ -331,7 +331,7 @@ export const isParentNodeType = (nodeType?: string) => {
     nodeType === DiagramNodeTypeRecord.bpmnSubprocess ||
     nodeType === DiagramNodeTypeRecord.bpmnTransaction ||
     nodeType === DiagramNodeTypeRecord.bpmnCallActivity ||
-    // SA-FIX-NN-DROPS: BESSER-registered parent shapes (NN, State,
+    // BESSER-registered parent shapes (NN, State,
     // Agent diagrams) live outside the default node-type registry —
     // they're added at runtime via `registerNodeTypes`. Compare by
     // string literal so the union type does not need to be widened.
@@ -340,7 +340,7 @@ export const isParentNodeType = (nodeType?: string) => {
     // children land at the canvas root with no `parentId`.
     nodeType === "NNContainer" ||
     nodeType === "State" ||
-    // SA-FINAL-3 Tier 5 #19: AgentState bodies are inlined on
+    // AgentState bodies are inlined on
     // `AgentState.data.bodies`, not nested children. Listing AgentState as
     // a parent here advertised a drop target the `canDropIntoParent`
     // predicate then rejected — the hover halo lit up but nothing landed.

@@ -2,7 +2,7 @@ import { NNNext } from "./NNNext"
 import { registerEdgeTypes } from "../types"
 
 /**
- * SA-5 `NNComposition` edge — diamond on the source (NNContainer)
+ * `NNComposition` edge — diamond on the source (NNContainer)
  * side, indicating ownership of the layer. Visual differs from
  * `NNNext` only in the marker, which is sourced from
  * `getEdgeMarkerStyles('NNComposition')` (`url(#black-rhombus)` on

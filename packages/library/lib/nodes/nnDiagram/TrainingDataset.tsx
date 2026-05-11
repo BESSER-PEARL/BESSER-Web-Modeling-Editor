@@ -1,6 +1,6 @@
 import { makeNNLayerComponent } from "./_NNLayerBase"
 
-/** SA-5 `TrainingDataset`. */
+/** `TrainingDataset`. */
 export const TrainingDataset = makeNNLayerComponent(
   "TrainingDataset",
   "TrainingDataset",

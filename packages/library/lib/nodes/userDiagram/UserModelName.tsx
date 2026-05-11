@@ -20,7 +20,7 @@ import {
 } from "@/types"
 
 /**
- * SA-FIX-USER-COMPLETE `UserModelName`. Full v3-parity rewrite.
+ * `UserModelName`. Full v3-parity rewrite.
  *
  * v3 source: `packages/editor/src/main/packages/user-modeling/uml-user-model-name/uml-user-model-name.ts`
  *
@@ -60,7 +60,7 @@ export function UserModelName({
   data,
 }: NodeProps<Node<UserModelNameNodeProps>>) {
   const { attributes, name, className } = data
-  // SA-FIX-USER-ICON: per-node `view` — default to `"icon"` (v3 preferred
+  // Per-node `view` — default to `"icon"` (v3 preferred
   // preview). The class-style attribute table is opt-in via the inspector.
   const view = data.view ?? "icon"
   const displayAttributes = useMemo(
@@ -103,7 +103,7 @@ export function UserModelName({
 
   const minHeight = useMemo(
     () => {
-      // SA-FIX-USER-ICON: icon view collapses the row stack to a single
+      // Icon view collapses the row stack to a single
       // glyph slot. Reserve roughly the same footprint v3 reserved
       // (`renderIconView` defaulted to a 50×50 glyph below a 40-px
       // header — see `uml-user-model-name.ts:196-209`).
@@ -185,7 +185,7 @@ export function UserModelName({
             strokeColor: data.strokeColor,
             textColor: data.textColor,
             attributes: displayAttributes,
-            // SA-FIX-USER-ICON: forward the per-node view so the SVG
+            // Forward the per-node view so the SVG
             // renders the icon glyph by default.
             view,
           }}

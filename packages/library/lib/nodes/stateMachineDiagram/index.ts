@@ -1,5 +1,5 @@
 /**
- * SA-3 StateMachineDiagram node-type registrations.
+ * StateMachineDiagram node-type registrations.
  *
  * Importing this barrel as a side-effect (from `lib/nodes/index.ts`)
  * extends the central `_nodeTypeRegistry` in `nodes/types.ts` with the

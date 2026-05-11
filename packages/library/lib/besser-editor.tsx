@@ -43,7 +43,7 @@ import {
   type BesserError,
 } from "@/services/errors"
 
-// SA-FIX-Editor PC-12.7: re-export the warning channel from the editor
+// Re-export the warning channel from the editor
 // barrel so external consumers can `import { BesserError, emitBesserError }`
 // from `@besser/wme` without reaching into `services/errors`.
 export { emitBesserError, type BesserError }
@@ -59,7 +59,7 @@ export class BesserEditor {
   private readonly assessmentSelectionStore: StoreApi<AssessmentSelectionStore>
   private readonly alignmentGuidesStore: StoreApi<AlignmentGuidesStore>
   private subscribers: Besser.Subscribers = {}
-  // SA-7a: `ready` resolves once React Flow has initialised (i.e. once
+  // `ready` resolves once React Flow has initialised (i.e. once
   // `setReactFlowInstance` has been invoked by `<AppWithProvider
   // onReactFlowInit={...} />`). It replaces the v3 `nextRender` getter
   // — a Promise-shaped readiness signal v2 webapp call sites await
@@ -71,7 +71,7 @@ export class BesserEditor {
       throw new Error("Element is required to initialize BesserEditor")
     }
 
-    // SA-7a: prepare the `ready` promise before render. `setReactFlowInstance`
+    // Prepare the `ready` promise before render. `setReactFlowInstance`
     // resolves it once `<AppWithProvider />` mounts and React Flow signals
     // its `onReactFlowInit` hook.
     this.readyPromise = new Promise<void>((resolve) => {
@@ -180,7 +180,7 @@ export class BesserEditor {
 
   private setReactFlowInstance(instance: ReactFlowInstance) {
     this.reactFlowInstance = instance
-    // SA-7a: resolve the `ready` promise so v2 webapp call sites awaiting
+    // Resolve the `ready` promise so v2 webapp call sites awaiting
     // `editor.ready` (or its `nextRender` alias) unblock the moment
     // React Flow has produced its instance.
     this.resolveReady?.()
@@ -248,7 +248,7 @@ export class BesserEditor {
   /**
    * renders a model as a svg and returns it. Therefore the svg is temporarily added to the dom and removed after it has been rendered.
    *
-   * SA-FIX-Editor PC-12.10: the third positional `theme` parameter has
+   * The third positional `theme` parameter has
    * been dropped — the BESSER theme is applied via CSS variables on the
    * embedding document (`--besser-*`), so a per-call style override has
    * no path to actually flow into the rendered SVG. Passing one was a
@@ -484,7 +484,7 @@ export class BesserEditor {
   }
 
   set model(model: Besser.UMLModel) {
-    // SA-FIX-AGENT-OCL: run the v4 normalizer on EVERY model set so
+    // Run the v4 normalizer on EVERY model set so
     // template / project JSON that ships the wrong v4 shape (orphan
     // AgentStateBody, missing extent/draggable on AgentIntent children,
     // lowercase `classoclconstraint` types) is canonicalised before the
@@ -494,7 +494,7 @@ export class BesserEditor {
     const normalized = normalizeV4Model(model)
     const { nodes, edges, assessments, interactive } = normalized
 
-    // SA-FIX-Editor PC-12.9: replacing the model wholesale should also
+    // Replacing the model wholesale should also
     // discard accumulated undo history — a user shouldn't be able to
     // "undo" past a programmatic model swap into the previous diagram's
     // state. v3 webapp call sites achieved this via the
@@ -512,7 +512,7 @@ export class BesserEditor {
   }
 
   /**
-   * SA-FIX-Editor PC-12.5: replace the canvas selection. Mirrors the v3
+   * Replace the canvas selection. Mirrors the v3
    * `editor.select(ids)` API. Filters to known node/edge ids so callers
    * can pass a stale id set without surprising behaviour.
    */
@@ -527,7 +527,7 @@ export class BesserEditor {
   }
 
   /**
-   * SA-FIX-Editor PC-12.6: subscribe to canvas selection changes.
+   * Subscribe to canvas selection changes.
    * Coalesces consecutive selection mutations within the same tick into
    * a single callback (`queueMicrotask` debounces to one tick). Returns
    * a numeric subscriber id compatible with `unsubscribe(id)`, matching
@@ -552,9 +552,9 @@ export class BesserEditor {
   }
 
   /**
-   * SA-FIX-Editor PC-12.7: subscribe to non-fatal warnings emitted from
+   * Subscribe to non-fatal warnings emitted from
    * inside the library. Replaces the v3 `subscribeToApollonErrors` after
-   * SA-DEBRAND. Returns a numeric id usable with `unsubscribe(id)`.
+   * Returns a numeric id usable with `unsubscribe(id)`.
    */
   public subscribeToBesserErrors(
     callback: (err: BesserError) => void
@@ -567,7 +567,7 @@ export class BesserEditor {
 
   /**
    * @deprecated Use `subscribeToBesserErrors` instead. Alias retained
-   * so v3 webapp call sites keep type-checking during the SA-DEBRAND
+   * so v3 webapp call sites keep type-checking during the
    * transition.
    */
   public subscribeToApollonErrors(
@@ -577,7 +577,7 @@ export class BesserEditor {
   }
 
   /**
-   * SA-FIX-Editor PC-12.7: publish a non-fatal warning. Library callers
+   * Publish a non-fatal warning. Library callers
    * use this when they reject a malformed model or fall back to a
    * default. Subscribers attached via `subscribeToBesserErrors` receive
    * the payload.
@@ -589,7 +589,7 @@ export class BesserEditor {
   }
 
   /**
-   * SA-FIX-Editor PC-12.8: external undo. Proxies the Yjs `UndoManager`
+   * External undo. Proxies the Yjs `UndoManager`
    * already wired in `diagramStore`. No-op when collaboration is on
    * (the manager isn't initialised in that path) or the stack is empty.
    */
@@ -598,7 +598,7 @@ export class BesserEditor {
   }
 
   /**
-   * SA-FIX-Editor PC-12.8: external redo. See `undo()` above.
+   * External redo. See `undo` above.
    */
   public redo(): void {
     this.diagramStore.getState().redo()

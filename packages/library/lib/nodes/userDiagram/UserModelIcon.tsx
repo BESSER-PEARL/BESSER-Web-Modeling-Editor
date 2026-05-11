@@ -6,7 +6,7 @@ import { UserModelIconNodeProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-4 `UserModelIcon`. Small visual marker attached to a
+ * `UserModelIcon`. Small visual marker attached to a
  * `UserModelName`. v3 source: `user-modeling/uml-user-model-icon/`. The
  * icon itself is stored as inline SVG body (or a data URL) on
  * `data.icon`; this component renders it inside a `foreignObject` so

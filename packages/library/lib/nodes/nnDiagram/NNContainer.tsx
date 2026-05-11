@@ -10,7 +10,7 @@ import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-5 `NNContainer` — parent node for a sequential layer stack. v3
+ * `NNContainer` — parent node for a sequential layer stack. v3
  * source: `packages/editor/src/main/packages/nn-diagram/nn-container/`.
  * Children attach via React Flow `parentId = container.id`. The
  * container's `data` carries the model name and (optionally) an

@@ -186,7 +186,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     case "ClassUnidirectional":
     case "FlowChartFlowline":
     case "ReachabilityGraphArc":
-    // SA-FINAL S1: StateTransition / AgentStateTransition — directed
+    // StateTransition / AgentStateTransition — directed
     // arrow marker. v3 metamodel rendered both with the standard
     // arrow-end marker (`uml-state-transition.tsx` /
     // `agent-state-transition.tsx`); prior to this case they fell
@@ -201,7 +201,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         offset: 0,
       }
     case "ClassAggregation":
-      // PC-3 fix (SA-FIX-Class): diamond on the source (whole) end.
+      // Diamond on the source (whole) end.
       return {
         markerPadding: EDGES.MARKER_PADDING,
         markerStart: "url(#white-rhombus)",
@@ -209,7 +209,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         offset: 0,
       }
     case "ClassComposition":
-      // PC-3 fix (SA-FIX-Class): diamond on the source (whole) end.
+      // Diamond on the source (whole) end.
       return {
         markerPadding: EDGES.MARKER_PADDING,
         markerStart: "url(#black-rhombus)",
@@ -233,7 +233,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     case "ComponentDependency":
     case "ClassDependency":
     case "DeploymentDependency":
-    // SA-FINAL-3 Tier 7 #26: CommentLink placeholder — render the
+    // CommentLink placeholder — render the
     // dashed-dependency style so comment-to-element anchors look like
     // their v3 counterpart. TODO: full inspector port (label, kind, etc).
     case "CommentLink":
@@ -250,7 +250,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         strokeDashArray: "10",
         offset: 0,
       }
-    // PC-3 fix (SA-FIX-Class): ClassOCLLink — dashed line, open arrow.
+    // ClassOCLLink — dashed line, open arrow.
     case "ClassOCLLink":
       return {
         markerPadding: EDGES.MARKER_PADDING,
@@ -370,7 +370,7 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         strokeDashArray: "0",
         offset: 0,
       }
-    // SA-5: BESSER NNDiagram edges. `NNNext` is a unidirectional flow
+    // BESSER NNDiagram edges. `NNNext` is a unidirectional flow
     // arrow; `NNComposition` puts a black diamond on the source side
     // (the NNContainer); `NNAssociation` is a plain line (Dataset ↔
     // NNContainer).
@@ -814,7 +814,7 @@ export const getDefaultEdgeType = (
   diagramType: UMLDiagramType
 ): DiagramEdgeType => {
   switch (diagramType) {
-    // SA-FIX-CLASS-FUND #2: BESSER ClassDiagram defaults to a
+    // BESSER ClassDiagram defaults to a
     // bidirectional association. v3 truth — the palette's "drop a line"
     // affordance creates a plain bidirectional edge, not a
     // unidirectional one. (Inheritance / aggregation / composition stay

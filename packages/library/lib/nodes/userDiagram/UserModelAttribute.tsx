@@ -7,7 +7,7 @@ import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
- * SA-4 `UserModelAttribute`. Stand-alone attribute row when v3 fixtures
+ * `UserModelAttribute`. Stand-alone attribute row when v3 fixtures
  * stored attributes as separate elements (rare; the migrator collapses
  * them onto the owner `UserModelName.attributes` array).
  *

@@ -26,14 +26,14 @@ const defaultEdgeTypes = {
   ClassBidirectional: ClassDiagramEdge,
   ClassUnidirectional: ClassDiagramEdge,
   ClassDependency: ClassDiagramEdge,
-  // SA-2.1: ClassOCLLink + ClassLinkRel — both v3 had no dedicated
+  // ClassOCLLink + ClassLinkRel — both v3 had no dedicated
   // renderer (they extended UMLAssociation), so we wire them through
   // ClassDiagramEdge. ClassOCLLink draws as a dashed dependency-style
   // arrow (open arrow + dotted stroke) per the v3 component visual;
   // ClassLinkRel draws as a plain solid line.
   ClassOCLLink: ClassDiagramEdge,
   ClassLinkRel: ClassDiagramEdge,
-  // SA-FINAL-3 Tier 7 #26: CommentLink placeholder. v3 supported a dashed
+  // CommentLink placeholder. v3 supported a dashed
   // dependency-style arrow from a Comment to any element; the full
   // inspector port is TODO, but exposing the type here lets users at
   // least anchor a link from the now-visible Comment handles. The visual
@@ -112,12 +112,12 @@ export const edgeConfig = {
   ClassBidirectional: { allowMidpointDragging: true },
   ClassUnidirectional: { allowMidpointDragging: true },
   ClassDependency: { allowMidpointDragging: true },
-  // SA-2.1: ClassOCLLink uses a dashed dependency-style stroke (matches
+  // ClassOCLLink uses a dashed dependency-style stroke (matches
   // v3 OCL link visual). ClassLinkRel is a plain solid association
   // line (no markers, no roles).
   ClassOCLLink: { allowMidpointDragging: true },
   ClassLinkRel: { allowMidpointDragging: true },
-  // SA-FINAL-3 Tier 7 #26: placeholder Comment→element dashed link.
+  // Placeholder Comment→element dashed link.
   CommentLink: { allowMidpointDragging: true },
 
   // Activity edges - allow midpoint dragging
@@ -200,13 +200,13 @@ export const edgeConfig = {
     allowMidpointDragging: true,
   },
 
-  // SA-3: StateMachineDiagram transition.
+  // StateMachineDiagram transition.
   StateTransition: {
     allowMidpointDragging: true,
     showRelationshipLabels: true,
   },
 
-  // SA-4: AgentDiagram transitions.
+  // AgentDiagram transitions.
   AgentStateTransition: {
     allowMidpointDragging: true,
     showRelationshipLabels: true,
@@ -216,10 +216,10 @@ export const edgeConfig = {
     showRelationshipLabels: false,
   },
 
-  // SA-4: UserDiagram link — same handling as ObjectLink (which it aliases).
+  // UserDiagram link — same handling as ObjectLink (which it aliases).
   UserModelLink: { allowMidpointDragging: true },
 
-  // SA-5: NNDiagram edges. All allow midpoint dragging; relationship
+  // NNDiagram edges. All allow midpoint dragging; relationship
   // labels are off by default (NN edges carry no label in v3).
   NNNext: { allowMidpointDragging: true, showRelationshipLabels: false },
   NNComposition: { allowMidpointDragging: true, showRelationshipLabels: false },

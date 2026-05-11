@@ -1,17 +1,17 @@
 /**
- * SA-5 shared layer-card renderer. Every NN layer kind is a labelled
+ * Shared layer-card renderer. Every NN layer kind is a labelled
  * rounded rectangle with the layer kind sub-text under the user-editable
  * `name`. The 18 individual node components delegate here so the visual
  * is consistent across layer types while the inspector panel pulls
  * per-kind metadata from `nnAttributeWidgetConfig`.
  *
- * SA-UX-FIX-2 (B4): the v3 NN layer card displayed a kind-specific PNG
- * icon (Conv1D / Conv2D / RNN / LSTM / …) above the name. SA-2.2 retired
+ * The v3 NN layer card displayed a kind-specific PNG
+ * icon (Conv1D / Conv2D / RNN / LSTM / …) above the name. retired
  * those icons in favour of stereotype-only cards. Per the user, restore
  * them. The icon is rendered as an `<image>` element pulling from
  * `/images/nn-layers/{kind}.png` (the same asset folder webapp v3 used).
  *
- * SA-FIX-NN (PC-10): on first mount, dedupe the auto-assigned `name`
+ * On first mount, dedupe the auto-assigned `name`
  * against existing sibling layers of the same kind in the same diagram.
  * Mirrors v3 `createMandatoryAttributes()` counter loop at
  * `nn-component-update.tsx:561-585`. Two freshly-dropped Conv2D cards
@@ -59,7 +59,7 @@ const NN_LAYER_ICON_FILES: Record<string, string> = {
 const NN_LAYER_ICON_BASE = "/images/nn-layers/"
 
 /**
- * SA-FIX-NN (PC-10): pure helper — given a desired base name, the layer
+ * Pure helper — given a desired base name, the layer
  * `nodeType`, and the current set of nodes (any shape with `id`,
  * `type`, `data.name`), return the first uncollided variant. v3 did this
  * inside `createMandatoryAttributes` (`nn-component-update.tsx:561-585`)
@@ -122,7 +122,7 @@ export function NNLayerBase({
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
 
-  // SA-FIX-NN (PC-10): dedupe auto-name against existing sibling layers
+  // Dedupe auto-name against existing sibling layers
   // of the same kind. Runs once per node id; the store check inside the
   // effect guarantees we only rename when there is an actual collision.
   const setNodes = useDiagramStore(

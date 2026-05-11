@@ -2,7 +2,7 @@ import { NNNext } from "./NNNext"
 import { registerEdgeTypes } from "../types"
 
 /**
- * SA-5 `NNAssociation` edge — plain undirected line connecting a
+ * `NNAssociation` edge — plain undirected line connecting a
  * Dataset (`TrainingDataset` / `TestDataset`) to an `NNContainer`.
  * Shares the renderer with `NNNext`; the marker styles
  * (`getEdgeMarkerStyles('NNAssociation')`) explicitly omit any

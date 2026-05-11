@@ -22,11 +22,11 @@ import {
 import { log } from "../logger"
 
 /**
- * SA-FIX-CRITICAL-2 #1: runtime guard.
+ * Runtime guard.
  *
  * AgentStateBody / AgentStateFallbackBody must NEVER live as separate
  * top-level nodes — bodies are folded onto the parent AgentState's
- * `data.bodies` array (see SA-FIX-Agent inline-body design). If a
+ * `data.bodies` array (inline-body design). If a
  * caller (palette drop, paste, plugin, etc.) tries to add such a node
  * at the top level, drop it and warn. The inspector's "+ Add body"
  * affordance is the only supported path to create a body row.
@@ -50,7 +50,7 @@ const dropFloatingAgentBodies = <T extends { type?: string; parentId?: string }>
     log.warn(
       `diagramStore: dropped ${dropped} floating AgentStateBody/` +
         `AgentStateFallbackBody node(s). Bodies must live on the parent ` +
-        `AgentState's data.bodies array (SA-FIX-Agent inline-body design).`
+        `AgentState's data.bodies array (inline-body design).`
     )
   }
   return kept
@@ -291,7 +291,7 @@ export const createDiagramStore = (
         },
 
         addNode: (node) => {
-          // SA-FIX-CRITICAL-2 #1: guard against floating Agent bodies
+          // Guard against floating Agent bodies
           // entering the store as separate top-level nodes.
           if (isFloatingAgentBody(node)) {
             log.warn(
@@ -316,7 +316,7 @@ export const createDiagramStore = (
         setNodes: (payload) => {
           const rawNodes =
             typeof payload === "function" ? payload(get().nodes) : payload
-          // SA-FIX-CRITICAL-2 #1: scrub floating Agent body nodes.
+          // Scrub floating Agent body nodes.
           const nodes = dropFloatingAgentBodies(rawNodes)
 
           if (deepEqual(get().nodes, nodes)) {
@@ -377,7 +377,7 @@ export const createDiagramStore = (
         },
 
         setNodesAndEdges: (rawNodes, edges) => {
-          // SA-FIX-CRITICAL-2 #1: scrub floating Agent body nodes before
+          // Scrub floating Agent body nodes before
           // they reach the Yjs map / store.
           const nodes = dropFloatingAgentBodies(rawNodes)
           ydoc.transact(() => {
