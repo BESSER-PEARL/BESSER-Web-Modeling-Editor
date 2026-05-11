@@ -35,7 +35,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
 /**
  * Inspector body for `UserModelName`. Full v3 port.
  *
- * v3 source: `packages/editor/.../uml-object-name/uml-object-name-update.tsx`
+ * v3 source: `v3 source: uml-object-name/uml-object-name-update.tsx`
  * (the v3 fork registers `UMLObjectNameUpdate` for both ObjectName and
  * UserModelName, with the user-side branch swapping the attribute
  * sub-component for `UMLUserModelAttributeUpdate`).

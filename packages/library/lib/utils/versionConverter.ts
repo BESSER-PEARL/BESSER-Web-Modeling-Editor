@@ -511,7 +511,7 @@ function calculateRelativePosition(
  * `name` (the v3 wire form `"age >= 18"` embeds it instead of the
  * separate field). Returns `undefined` when the name does not contain
  * a recognised comparator. Mirrors v3's `extractComparatorFromName` at
- * `packages/editor/.../uml-user-model-attribute.ts:27-33` — but
+ * `v3 source: uml-user-model-attribute.ts:27-33` — but
  * returns `undefined` instead of the v3 `'=='` default so the caller
  * can decide whether to fall back.
  */
@@ -1498,7 +1498,7 @@ function convertV3NodeDataToV4(
     case "NNReference": {
       // V3's `NNReference` carries the referenced NN on the legacy
       // `referencedNN` slot which holds the container NAME (see
-      // `packages/editor/.../nn-reference.ts`). v4 stores the
+      // `v3 source: nn-reference.ts`). v4 stores the
       // container ID. Convert by looking the container up by name in
       // the element table. When the name resolves we emit a stable
       // id; when it doesn't (orphaned reference) we fall back to the
@@ -1908,13 +1908,13 @@ function convertV3RelationshipToV4Edge(
   // `guard` is an optional boolean expression). v4 keeps `params` as a
   // string for parity with the v3 spec; legacy fixtures may also ship
   // an array or `{[id]: string}` dict (older deserializer at
-  // `packages/editor/.../uml-state-transition.ts:14`) which we coerce
+  // `v3 source: uml-state-transition.ts:14`) which we coerce
   // back to a single string. The migrator does NOT carry over
   // `code` / `eventName` — those were schema-creep in earlier ports
   // and have no v3 source.
   //
   // ObjectLink carries `associationId` at the v3 relationship root
-  // level (see `packages/editor/.../uml-object-link.ts:9`). Pull it
+  // level (see `v3 source: uml-object-link.ts:9`). Pull it
   // through to the v4 edge `data` so the bridge-driven picker in
   // `ObjectLinkEditPanel` can author and round-trip the link to a
   // ClassDiagram association id.
@@ -2658,7 +2658,7 @@ const invertNodeType = (v4Type: string): string => {
     package: "Package",
     objectName: "ObjectName",
     // Free-form sticky-note Comment. v3 element type is
-    // `Comments` (plural — see `packages/editor/.../common/comments/`).
+    // `Comments` (plural — see `v3 source: common/comments/`).
     comment: "Comments",
     // StateMachine node-type strings are PascalCase identical to
     // v3 element types — falling through is correct, but listed here

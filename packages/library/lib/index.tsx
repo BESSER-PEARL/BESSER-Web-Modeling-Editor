@@ -6,43 +6,6 @@ export * from "./utils"
 export { log, setLogLevel, setLogger } from "./logger"
 export type { LogLevel } from "./logger"
 
-// Re-export the renamed `BesserEditor` class under its legacy
-// name `ApollonEditor` so existing webapp call sites keep type-checking
-// during the transition. Remove once every webapp consumer has migrated.
-import { BesserEditor } from "./besser-editor"
-/** @deprecated Use BesserEditor instead. */
-export { BesserEditor as ApollonEditor }
-
-// Legacy aliases for renamed type names. Webapp imports of
-// `ApollonOptions`, `ApollonMode`, `ApollonView`, `ApollonNode`,
-// `ApollonEdge` keep resolving here while call sites are updated.
-import {
-  BesserOptions,
-  BesserMode,
-  BesserView,
-  BesserNode,
-  BesserEdge,
-} from "./typings"
-/** @deprecated Use BesserOptions instead. */
-export type ApollonOptions = BesserOptions
-/** @deprecated Use BesserMode instead. */
-export const ApollonMode = BesserMode
-/** @deprecated Use BesserMode instead. */
-export type ApollonMode = BesserMode
-/** @deprecated Use BesserView instead. */
-export const ApollonView = BesserView
-/** @deprecated Use BesserView instead. */
-export type ApollonView = BesserView
-/** @deprecated Use BesserNode instead. */
-export type ApollonNode = BesserNode
-/** @deprecated Use BesserEdge instead. */
-export type ApollonEdge = BesserEdge
-
-// Re-export the OLD-ONLY symbols the legacy webapp depends on so that
-// flipping the `@besser/wme` alias in the webapp can be done without
-// touching call sites. See `docs/source/migrations/api-surface-diff.md`
-// for the full inventory; the additions below close the diff identified
-
 // diagramBridge singleton + types (4 webapp call sites: DiagramTabs.tsx,
 // BesserEditorComponent.tsx, workspaceSlice.ts, useImportDiagram.ts).
 export { diagramBridge, DiagramBridgeService } from "./services/diagramBridge"

@@ -22,7 +22,7 @@ import { InspectorSectionHeader } from "../_shared"
  * ClassEdgeEditPanel — single inspector body bound to all nine
  * v4 ClassDiagram edge types.
  *
- * Source-of-truth port: `packages/editor/.../uml-class-association-update.tsx`.
+ * Source-of-truth port: `v3 source: uml-class-association-update.tsx`.
  *
  * Fields:
  *

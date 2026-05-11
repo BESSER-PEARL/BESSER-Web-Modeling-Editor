@@ -15,10 +15,11 @@ Redux patterns, and build tooling. Changes that cross package boundaries
 The Three Packages
 ------------------
 
-* **Editor engine** (``packages/editor``): The reusable modeling kernel,
-  exported as ``@besser/wme`` on npm. It provides the ``ApollonEditor`` class,
-  diagram type registries, and Redux stores. External applications embed this
-  package without needing the web application.
+* **Editor library** (``packages/library``): The reusable modeling kernel,
+  exported as ``@besser/wme`` on npm. Built on React Flow + Zustand, it provides
+  the ``BesserEditor`` class, per-diagram node / edge / inspector registries,
+  and Zustand stores. External applications embed this package without needing
+  the web application.
 
 * **Web application** (``packages/webapp``): A React SPA built with Vite,
   Radix UI, and Tailwind CSS. It wraps the editor with project management,

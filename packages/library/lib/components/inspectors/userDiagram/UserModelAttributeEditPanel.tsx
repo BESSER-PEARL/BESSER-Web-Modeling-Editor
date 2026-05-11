@@ -18,7 +18,7 @@ import { getUserMetaModelV4 } from "@/services/userMetaModel"
  * Inspector body for stand-alone `UserModelAttribute`
  * nodes (rare; the migrator collapses attributes onto the parent
  * `UserModelName.attributes` array). v3 source:
- * `packages/editor/.../user-modeling/uml-user-model-attribute/uml-user-model-attribute-update.tsx`.
+ * `v3 source: user-modeling/uml-user-model-attribute/uml-user-model-attribute-update.tsx`.
  *
  * Provides a type-aware value widget and an integer-gated comparator
  * dropdown — matching v3's behaviour for owned rows but on a stand-alone

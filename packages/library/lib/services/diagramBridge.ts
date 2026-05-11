@@ -3,7 +3,7 @@
  * rewritten to walk `{nodes, edges}` arrays instead of `{elements,
  * relationships}` dicts.
  *
- * Ported from `packages/editor/src/main/services/diagram-bridge/diagram-bridge-service.ts`.
+ * Ported from `v3 services: diagram-bridge/diagram-bridge-service.ts`.
  * Singleton + readers (`getAvailableClasses`, `getRelatedClasses`,
  * `getAvailableAssociations`, `getClassHierarchy`) preserved verbatim in
  * shape — internals walk the v4 arrays.

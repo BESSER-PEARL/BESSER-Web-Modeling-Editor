@@ -32,8 +32,8 @@ Directory tour
    Root component that wires routing, modals, the application bar, sidebar
    layout, project settings, and the editor containers.
 
-``features/editors/uml/ApollonEditorComponent.tsx``
-   React wrapper around ``ApollonEditor``. Handles local editing with
+``features/editors/uml/BesserEditorComponent.tsx``
+   React wrapper around ``BesserEditor``. Handles local editing with
    autosave and palette integration.
 
 ``app/store``

@@ -47,10 +47,10 @@ packages via npm workspaces.
 Package-specific scripts
 ------------------------
 
-Editor (``packages/editor``)
-   * ``npm run lint`` – ESLint for the editor package.
+Library (``packages/library``)
+   * ``npm run lint`` – ESLint for the library package.
    * ``npm run lint:ts`` / ``lint:css`` – TypeScript and styled-components linting.
-   * ``npm run prettier:*`` – Formatting helpers scoped to the editor source.
+   * ``npm run prettier:*`` – Formatting helpers scoped to the library source.
 
 Webapp (``packages/webapp``)
    * ``npm run start`` – Vite dev server.

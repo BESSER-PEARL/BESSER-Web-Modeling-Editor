@@ -552,8 +552,7 @@ export class BesserEditor {
   }
 
   /**
-   * Subscribe to non-fatal warnings emitted from
-   * inside the library. Replaces the v3 `subscribeToApollonErrors` after
+   * Subscribe to non-fatal warnings emitted from inside the library.
    * Returns a numeric id usable with `unsubscribe(id)`.
    */
   public subscribeToBesserErrors(
@@ -563,17 +562,6 @@ export class BesserEditor {
     const unsubscribeCallback = addBesserErrorListener(callback)
     this.subscribers[subscriberId] = unsubscribeCallback
     return subscriberId
-  }
-
-  /**
-   * @deprecated Use `subscribeToBesserErrors` instead. Alias retained
-   * so v3 webapp call sites keep type-checking during the
-   * transition.
-   */
-  public subscribeToApollonErrors(
-    callback: (err: BesserError) => void
-  ): number {
-    return this.subscribeToBesserErrors(callback)
   }
 
   /**

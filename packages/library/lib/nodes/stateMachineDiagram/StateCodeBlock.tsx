@@ -12,7 +12,7 @@ const preserveTabs = (str: string): string => str.replace(/\t/g, "    ")
 
 /**
  * Resizable code panel. v3 source:
- * `packages/editor/.../uml-state-code-block-component.tsx`. Header bar
+ * `v3 source: uml-state-code-block-component.tsx`. Header bar
  * shows the language label; body is a `foreignObject` of plain `<div>`s
  * preserving tab whitespace so multi-line Python pastes don't reflow.
  *

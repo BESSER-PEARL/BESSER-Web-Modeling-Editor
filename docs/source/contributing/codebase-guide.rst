@@ -5,55 +5,71 @@ This guide explains the internal structure of each package so you know where
 to find things and where your changes should go.
 
 
-Editor Package (``packages/editor``)
--------------------------------------
+Library Package (``packages/library``)
+--------------------------------------
 
-The editor is the core modeling engine. It is framework-independent (pure
-TypeScript + React) and published as ``@besser/wme`` on npm. The webapp embeds
-it, but external applications can use it directly.
+The editor library is the core modeling engine. Built on React Flow + Zustand,
+it is published as ``@besser/wme`` on npm. The webapp embeds it, but external
+applications can use it directly.
 
 .. code-block:: text
 
-   packages/editor/src/main/
-   ├── apollon-editor.ts        # Public API (ApollonEditor class)
-   ├── index.ts                 # npm entry point — re-exports public types
-   ├── packages/                # Diagram type implementations (one folder each)
-   │   ├── uml-class-diagram/   #   Class, AbstractClass, Interface, Enumeration, OCL
-   │   ├── uml-object-diagram/  #   Object instances, links
-   │   ├── uml-state-diagram/   #   States, transitions, initial/final nodes
-   │   ├── agent-state-diagram/ #   Agent states, intents, transitions
-   │   ├── common/              #   Shared element logic
-   │   ├── diagram-type.ts      #   Registry of all diagram types
-   │   ├── uml-element-type.ts  #   Registry of all element types
-   │   ├── uml-relationship-type.ts
-   │   ├── components.ts        #   Maps element types → React renderers
-   │   ├── uml-elements.ts      #   Maps element types → model classes
-   │   ├── compose-preview.ts   #   Maps diagram types → palette previews
-   │   └── popups.ts            #   Maps element types → property popups
-   ├── components/              # UI: sidebar, canvas, keyboard listeners, update pane
-   ├── scenes/                  # Top-level React trees (Application, Svg export)
+   packages/library/lib/
+   ├── besser-editor.tsx        # Public API (BesserEditor class)
+   ├── index.tsx                # npm entry point — re-exports public types
+   ├── nodes/                   # React Flow node components per diagram
+   │   ├── classDiagram/        #   Class, AbstractClass, Interface, Enumeration, OCL
+   │   ├── objectDiagram/       #   Object instances, links
+   │   ├── stateMachineDiagram/ #   States, transitions, initial/final nodes
+   │   ├── agentDiagram/        #   Agent states, intents, transitions
+   │   ├── nnDiagram/           #   NN container, layers, references
+   │   ├── userDiagram/         #   User-modelling nodes
+   │   └── common/              #   Shared node wrappers / handles
+   ├── edges/                   # React Flow edge renderers and connection logic
+   │   ├── edgeTypes/           #   ClassDiagramEdge, StateMachineDiagramEdge, …
+   │   ├── EdgeProps.ts         #   Shared edge data types
+   │   └── Connection.ts        #   Routing helpers
+   ├── components/
+   │   ├── inspectors/          # Property panels per diagram type
+   │   ├── popovers/            # PopoverManager + per-edge popovers
+   │   ├── svgs/                # Palette preview SVGs
+   │   ├── toolbars/            # Node / canvas toolbars
+   │   └── ui/                  # Shared inputs, dividers, dropdowns
+   ├── store/                   # Zustand stores
+   │   ├── diagramStore.ts      #   Nodes / edges / selection (Yjs-backed)
+   │   ├── metadataStore.ts     #   Diagram name, type, mode, view
+   │   ├── popoverStore.ts      #   Active popover / inspector state
+   │   ├── assessmentSelectionStore.ts
+   │   ├── alignmentGuidesStore.ts
+   │   └── context.tsx          #   React context providers + hooks
    ├── services/                # Domain logic (NO UI)
-   │   ├── diagram-bridge/      #   Cross-diagram data sharing
-   │   ├── uml-element/         #   Element CRUD, selection, movement
-   │   ├── uml-relationship/    #   Relationship CRUD
-   │   ├── patcher/             #   JSON Patch for collaboration
-   │   ├── layouter/            #   Auto-layout algorithms
-   │   ├── undo/                #   Undo/redo stack
-   │   └── editor/              #   Editor lifecycle management
-   ├── i18n/                    # Translation files (en.json, de.json, ...)
-   └── utils/                   # Pure utility functions
+   │   ├── diagramBridge.ts     #   Cross-diagram data sharing
+   │   ├── settingsService.ts   #   Application settings
+   │   ├── errors.ts            #   BesserError broadcast channel
+   │   └── userMetaModel/       #   User-Diagram reference metamodel
+   ├── sync/                    # Yjs collaboration adapter
+   ├── types/                   # DiagramType + per-node data shapes
+   ├── utils/                   # Pure utility functions
+   │   ├── versionConverter.ts  #   v3 → v4 migrator
+   │   ├── helpers.ts           #   React Flow / B-UML adapters
+   │   ├── classifierMemberDisplay.ts
+   │   ├── multiplicity.ts
+   │   ├── typeNormalization.ts
+   │   └── layoutUtils.ts
+   ├── hooks/                   # React hooks (useConnect, useEdges, …)
+   ├── App.tsx                  # Top-level React Flow root
+   └── constants.ts             # Layout constants, palette sizes, grid snap
 
 **Key patterns:**
 
-- Each diagram type folder contains: element model class, React component,
-  palette preview, and optionally a popup and relationship types.
-- The ``components.ts``, ``uml-elements.ts``, ``compose-preview.ts``, and
-  ``popups.ts`` files are registries — when you add a new element, you must
-  register it in all four.
-- Services use Redux for state management. The store is composed in
-  ``components/store/``.
-- The public API (``apollon-editor.ts``) is the ONLY stable interface.
-  Internal modules can change without notice.
+- Each diagram folder contains the node components plus an ``index.ts`` that
+  registers them under their v4 ``node.type`` strings. Edge renderers live in
+  ``edges/edgeTypes/``. Inspector panels live in
+  ``components/inspectors/<diagramType>/``.
+- The library uses Zustand for state management, not Redux. Stores are created
+  in ``store/`` and consumed via the context hooks in ``store/context.tsx``.
+- The public API (``besser-editor.tsx`` + ``index.tsx``) is the ONLY stable
+  interface. Internal modules can change without notice.
 
 
 Web Application (``packages/webapp``)
@@ -85,7 +101,7 @@ collaboration.
    │   └── hooks/                  #   App-level React hooks
    ├── features/                   # Feature modules (one folder per feature)
    │   ├── editors/                #   Editor wrappers
-   │   │   └── uml/ApollonEditorComponent.tsx  # Main editor wrapper
+   │   │   └── uml/BesserEditorComponent.tsx  # Main editor wrapper
    │   ├── project/                #   Project hub, creation, templates
    │   ├── generation/             #   Code generation dialogs and logic
    │   ├── deploy/                 #   Render deployment

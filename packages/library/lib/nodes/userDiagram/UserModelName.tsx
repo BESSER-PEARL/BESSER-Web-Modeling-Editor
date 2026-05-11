@@ -22,7 +22,7 @@ import {
 /**
  * `UserModelName`. Full v3-parity rewrite.
  *
- * v3 source: `packages/editor/src/main/packages/user-modeling/uml-user-model-name/uml-user-model-name.ts`
+ * v3 source: `v3 source: user-modeling/uml-user-model-name/uml-user-model-name.ts`
  *
  * Visual contract (matches v3 `UMLUserModelName.render` + the way
  * `composeUserModelPreview` emits one card per meta-model class):

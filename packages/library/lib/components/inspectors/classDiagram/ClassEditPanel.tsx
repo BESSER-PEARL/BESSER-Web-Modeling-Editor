@@ -154,7 +154,7 @@ const safeIdentifier = (raw: string): string =>
 
 /**
  * Primitive type catalogue, mirrored verbatim from the v3 fork
- * (`packages/editor/.../uml-classifier-attribute-update.tsx`). Anything
+ * (`v3 source: uml-classifier-attribute-update.tsx`). Anything
  * outside this list is committed as a "custom" type after running
  * through `normalizeType()` so aliases (`String` → `str`) collapse
  * before reaching the round-trip layer.

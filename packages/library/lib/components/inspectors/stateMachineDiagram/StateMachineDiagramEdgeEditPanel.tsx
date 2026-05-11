@@ -18,7 +18,7 @@ import { PopoverProps } from "@/components/popovers/types"
  *
  *  - `name` (transition function name)
  *  - `params` — single string (e.g. "{60}"), as stored on the v3
- *    relationship at `packages/editor/.../uml-state-transition.ts`.
+ *    relationship at `v3 source: uml-state-transition.ts`.
  *
  * v3 did NOT carry guard / eventName / code / structured params on the
  * transition; those were SA-3 additions. Removed to match the BESSER

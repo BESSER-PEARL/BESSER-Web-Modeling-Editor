@@ -1,5 +1,5 @@
 import 'global-jsdom/register';
-import { ApollonEditor, SVG, UMLModel } from '@besser/wme';
+import { BesserEditor, SVG, UMLModel } from '@besser/wme';
 
 export class ConversionService {
   convertToSvg = async (model: UMLModel): Promise<SVG> => {
@@ -13,7 +13,7 @@ export class ConversionService {
       height: 10,
     });
     const container = document.querySelector('div')!;
-    const editor = new ApollonEditor(container, {});
+    const editor = new BesserEditor(container, {});
     await editor.nextRender;
     editor.model = model;
     await editor.nextRender;

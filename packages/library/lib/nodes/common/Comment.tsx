@@ -8,7 +8,7 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 
 /**
  * Comment sticky-note node ported from v3
- * (`packages/editor/src/main/packages/common/comments/comments-component.tsx`).
+ * (`v3 source: common/comments/comments-component.tsx`).
  *
  * v3 rendered a rounded-rectangle speech-bubble shape with a small
  * downward pointer. We keep that silhouette so existing fixtures look

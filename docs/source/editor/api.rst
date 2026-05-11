@@ -1,7 +1,7 @@
-ApollonEditor API
-=================
+BesserEditor API
+================
 
-The ``ApollonEditor`` class is the primary entry point exported by
+The ``BesserEditor`` class is the primary entry point exported by
 ``@besser/wme``. Instantiate it with a DOM container and a set of options, then
 use the provided methods and subscriptions to tailor the editor to your
 application.
@@ -11,20 +11,20 @@ Initialisation
 
 .. code-block:: typescript
 
-   import { ApollonEditor, UMLDiagramType, ApollonMode, Locale } from '@besser/wme';
+   import { BesserEditor, UMLDiagramType, BesserMode, Locale } from '@besser/wme';
 
-   const editor = new ApollonEditor(containerElement, {
+   const editor = new BesserEditor(containerElement, {
      type: UMLDiagramType.ClassDiagram,
-     mode: ApollonMode.Modelling,
+     mode: BesserMode.Modelling,
      readonly: false,
      enablePopups: true,
      locale: Locale.en,
    });
 
-   await editor.nextRender;
+   await editor.ready;
 
-Call ``await editor.nextRender`` before accessing the internal Redux store or
-subscribing to events; it resolves after the first React render cycle finishes.
+Call ``await editor.ready`` before accessing the internal stores or subscribing
+to events; it resolves after React Flow finishes its first init pass.
 
 Constructor options
 -------------------
@@ -33,7 +33,7 @@ Constructor options
    Initial diagram palette to display. Required when the model does not define a
    ``type``.
 
-``mode`` (``ApollonMode``)
+``mode`` (``BesserMode``)
    Determines toolbar behaviour. ``Modelling`` unlocks editing, ``Exporting``
    exposes export views, ``Assessment`` limits interactions to assessment tools.
 
@@ -52,11 +52,12 @@ Constructor options
    Activates colour-aware palette entries and the optional colour legend.
 
 ``locale`` (``Locale`` enum)
-   Localises UI strings using ``src/main/i18n`` resources. Defaults to English.
+   Localises UI strings using ``packages/library/lib/i18n`` resources. Defaults
+   to English.
 
 ``theme`` (partial ``Styles``)
    Overrides the default theming tokens. Accepts the ``Styles`` structure from
-   ``components/theme/styles``.
+   the library's theme module.
 
 ``scale`` (number)
    Sets the initial zoom value. Equivalent to the Zoom slider in the UI.
@@ -86,10 +87,10 @@ Model management
 Subscriptions
 -------------
 
-All subscription methods return a numeric ID; pass the same ID to the matching
-``unsubscribe`` call.
+All subscription methods return a numeric ID; pass the same ID to ``unsubscribe``
+to remove the listener.
 
-``subscribeToModelChange`` / ``unsubscribeFromModelChange``
+``subscribeToModelChange``
    Fires after debouncing when the model changes. Use it to autosave diagrams.
 
 ``subscribeToModelDiscreteChange``
@@ -98,17 +99,16 @@ All subscription methods return a numeric ID; pass the same ID to the matching
 
 ``subscribeToModelChangePatches`` / ``subscribeToAllModelChangePatches`` / ``subscribeToModelContinuousChangePatches``
    Emit JSON Patch objects describing changes. ``All`` delivers both continuous
-   and discrete patches; ``Continuous`` surfaces high frequency updates during a
-   drag; ``ModelChange`` limits to discrete updates. Use
-   ``unsubscribeFromModelChangePatches`` to remove any of them.
+   and discrete patches; ``Continuous`` surfaces high-frequency updates during a
+   drag; ``ModelChange`` limits to discrete updates.
 
-``subscribeToSelectionChange`` / ``unsubscribeFromSelectionChange``
+``subscribeToSelectionChange``
    Track element and relationship selection.
 
-``subscribeToAssessmentChange`` / ``unsubscribeFromAssessmentChange``
+``subscribeToAssessmentChange``
    Observe the set of assessment annotations in the model.
 
-``subscribeToApollonErrors`` / ``unsubscribeToApollonErrors``
+``subscribeToBesserErrors``
    Listen for unexpected runtime errors. The editor attempts to recover to the
    latest known state, but the callback lets you escalate the failure.
 
@@ -131,7 +131,7 @@ Exports
 ``exportAsSVG(options?)``
    Renders the in-memory model to an SVG string and associated bounding box.
 
-``ApollonEditor.exportModelAsSvg(model, options?, theme?)``
+``BesserEditor.exportModelAsSvg(model, options?, theme?)``
    Static helper to export a ``UMLModel`` without instantiating the editor UI.
 
 ``getScaleFactor()``
@@ -144,6 +144,6 @@ Lifecycle
    Unmounts React components and releases resources tied to the container.
    Always call ``destroy`` when discarding the editor instance.
 
-``nextRender`` (promise)
-   Resolves after the editor finishes its current render pass. Await it before
+``ready`` (promise)
+   Resolves after React Flow finishes its first init pass. Await it before
    calling any subscription APIs from freshly created instances.

@@ -15,7 +15,7 @@ import { Typography } from "@/components/ui"
  * the body-action editor) and `AgentRagElementEditPanel` so the v3
  * RAG / DB-action wire fields surface consistently in both places.
  *
- * Source-of-truth port: `packages/editor/.../agent-state-update.tsx`
+ * Source-of-truth port: `v3 source: agent-state-update.tsx`
  * `renderDbReplyEditor` (lines ~809-943) plus the RAG dropdown at
  * lines ~499-526.
  *

@@ -4,7 +4,7 @@ First — **thank you** for your interest in contributing to the BESSER Web
 Modeling Editor (WME)! ❤️
 
 This repository hosts the WME frontend (webapp + standalone server) and the
-core diagramming engine (`packages/editor`, published as `@besser/wme`). The
+core diagramming engine (`packages/library`, published as `@besser/wme`). The
 BESSER backend (metamodels, generators, editor backend) lives in
 [BESSER-PEARL/BESSER](https://github.com/BESSER-PEARL/BESSER), and this repo
 is also vendored into the backend as a git submodule at
@@ -85,8 +85,8 @@ include:
   suggesting workarounds.
 - **Feedback** — sharing how you use the editor, what is missing, what is
   confusing. Open an issue or discussion.
-- **Translations** — adding or improving locale files in
-  `packages/editor/src/main/i18n/`.
+- **Translations** — adding or improving locale strings in
+  `packages/library/lib/` and `packages/webapp/src/main/i18n/`.
 
 If you are looking for a starting point, browse issues labeled
 [`good first issue`](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/labels/good%20first%20issue)
@@ -210,7 +210,7 @@ This is an **npm workspaces monorepo** with three packages:
 | Package            | Status     | Purpose                                                        |
 | ------------------ | ---------- | -------------------------------------------------------------- |
 | `packages/webapp`  | **Active** | Main React SPA (Vite + React 18 + Tailwind + Radix UI)         |
-| `packages/editor`  | **Active** | Core diagramming engine, published as `@besser/wme` on npm     |
+| `packages/library` | **Active** | Core diagramming engine (React Flow + Zustand), published as `@besser/wme` on npm |
 | `packages/server`  | **Active** | Express server for standalone hosting (serves built `webapp`)  |
 
 Almost all feature work happens in **`webapp`** and **`editor`**.
@@ -220,10 +220,13 @@ Almost all feature work happens in **`webapp`** and **`editor`**.
 | `packages/webapp/src/main/app/`                    | Shell, routing, Redux store                                            |
 | `packages/webapp/src/main/features/`               | Feature modules (editors, generation, deploy, github, import, …)       |
 | `packages/webapp/src/main/shared/`                 | Cross-feature code (API client, components, hooks, services)           |
-| `packages/editor/src/main/apollon-editor.ts`        | Public API of the diagramming engine (`ApollonEditor` class)           |
-| `packages/editor/src/main/packages/`                | Diagram-specific implementations (UML, BPMN, flowchart, …)             |
-| `packages/editor/src/main/services/`                | Domain logic (CRUD, undo, layout, collaboration)                       |
-| `packages/editor/src/main/i18n/`                    | Translations                                                           |
+| `packages/library/lib/besser-editor.tsx`            | Public API of the diagramming engine (`BesserEditor` class)            |
+| `packages/library/lib/nodes/`                       | Per-diagram React Flow node components (Class, Object, State, Agent, NN, …) |
+| `packages/library/lib/edges/edgeTypes/`             | React Flow edge renderers per diagram type                              |
+| `packages/library/lib/components/inspectors/`       | Property panels per diagram type                                       |
+| `packages/library/lib/store/`                       | Zustand stores (diagram, metadata, popover, alignment guides)          |
+| `packages/library/lib/services/`                    | Domain logic (diagram bridge, settings, errors, user metamodel)        |
+| `packages/library/lib/utils/versionConverter.ts`    | v3 → v4 wire-shape migrator                                            |
 | `docs/`                                             | Sphinx docs published under the BESSER Read the Docs site              |
 
 For deeper architecture notes, see
@@ -292,31 +295,40 @@ models / endpoint) and `shared/api/`** in lock-step.
 
 ### Adding a new diagram element
 
-Register the element in 4 files inside
-`packages/editor/src/main/packages/`:
+Create the React Flow node component under
+`packages/library/lib/nodes/<diagramType>/<YourNode>.tsx` and register it in
+that folder's `index.ts`. Then:
 
-1. **`components.ts`** — `UMLElementType.YourElement` → React render
-   component
-2. **`uml-elements.ts`** — `UMLElementType.YourElement` → model class
-3. **`compose-preview.ts`** — palette preview
-4. **`popups.ts`** — property popup component
+1. **Add the data shape** to `packages/library/lib/types/nodes/NodeProps.ts`
+   (`YourNodeProps` extending `DefaultNodeProps`).
+2. **Add an inspector panel** in
+   `packages/library/lib/components/inspectors/<diagramType>/<YourNode>EditPanel.tsx`
+   and register it in the inspector `index.ts`.
+3. **Add a palette preview** in
+   `packages/library/lib/components/svgs/nodes/<diagramType>/<YourDiagram>SVGs.tsx`.
+4. **Route the popover** in
+   `packages/library/lib/components/popovers/PopoverManager.tsx`.
 
-Then create the implementation in the appropriate diagram package
-directory (e.g., `packages/uml-class-diagram/your-element/`) with:
-
-- A model class extending `UMLElement` or `UMLRelationship`
-- A React component
-- An update function for property changes
+If you are adding an edge instead, mirror the steps under
+`packages/library/lib/edges/edgeTypes/` and the matching inspector panel.
 
 ### Adding a new diagram type
 
-1. Add an entry to `diagram-type.ts` (`UMLDiagramType` object).
-2. Create a package directory under
-   `packages/editor/src/main/packages/`.
-3. Register all elements in the four registry files.
-4. Add editor support in `packages/webapp/src/main/features/editors/`.
-5. Add the diagram type to the BESSER backend's supported types if it
-   needs generation/validation.
+1. Add an entry to `packages/library/lib/types/DiagramType.ts`
+   (`UMLDiagramType` enum).
+2. Create the diagram folder under
+   `packages/library/lib/nodes/<yourDiagram>/` and add per-node components plus
+   an `index.ts`.
+3. Add matching edges under
+   `packages/library/lib/edges/edgeTypes/` if you introduce new relationship kinds.
+4. Add inspector panels under
+   `packages/library/lib/components/inspectors/<yourDiagram>/`.
+5. Register palette previews + routing as described in "Adding a new diagram element".
+6. Add a `case` to `packages/library/lib/utils/versionConverter.ts` if legacy
+   fixtures need to be lifted to v4.
+7. Add editor support in `packages/webapp/src/main/features/editors/`.
+8. Add the diagram type to the BESSER backend's supported types if it needs
+   generation / validation.
 
 A full walk-through is in
 [`docs/source/contributing/new-diagram-guide/`](docs/source/contributing/new-diagram-guide/).

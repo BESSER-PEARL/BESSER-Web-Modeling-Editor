@@ -11,7 +11,7 @@ import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
  * `NNReference`. v3 source:
- * `packages/editor/src/main/packages/nn-diagram/nn-reference/`. A
+ * `v3 source: nn-diagram/nn-reference/`. A
  * compact single-line node holding a reference to another layer (in
  * the same container) or a sibling container. The reference target is
  * stored on `data.referenceTarget` and edited via the inspector

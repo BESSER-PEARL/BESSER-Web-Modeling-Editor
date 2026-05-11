@@ -138,7 +138,7 @@ export type ClassOCLConstraintNodeProps = {
 
 /**
  * Free-form sticky-note Comment node, ported from v3
- * (`packages/editor/src/main/packages/common/comments/`). The body text
+ * (`v3 source: common/comments/`). The body text
  * is stored on `data.name` for parity with the v3 element, which used
  * the `UMLElement.name` field as the comment body (the v3 inspector
  * was a textarea bound to `name`). Kept as a separate prop type so the

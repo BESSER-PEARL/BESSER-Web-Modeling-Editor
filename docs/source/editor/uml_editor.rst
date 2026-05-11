@@ -1,28 +1,28 @@
 UML Editor
 ==========
 
-The ``packages/editor`` workspace exports the reusable UML modelling engine as
-``@besser/wme``. It is a React + Redux application that renders diagrams inside
-an arbitrary DOM container while exposing a programmatic API for consumers to
-load models, listen for changes, and react to collaboration events.
+The ``packages/library`` workspace exports the reusable UML modelling engine as
+``@besser/wme``. It is a React + Zustand + React Flow application that renders
+diagrams inside an arbitrary DOM container while exposing a programmatic API for
+consumers to load models, listen for changes, and react to collaboration events.
 
 Quick start
 -----------
 
 .. code-block:: typescript
 
-   import { ApollonEditor, UMLDiagramType, ApollonMode } from '@besser/wme';
+   import { BesserEditor, UMLDiagramType, BesserMode } from '@besser/wme';
 
    const container = document.getElementById('diagram-root')!;
 
-   const editor = new ApollonEditor(container, {
+   const editor = new BesserEditor(container, {
      type: UMLDiagramType.ClassDiagram,
-     mode: ApollonMode.Modelling,
+     mode: BesserMode.Modelling,
      readonly: false,
      enablePopups: true,
    });
 
-   await editor.nextRender;  // Wait until the internal store is ready
+   await editor.ready;  // Wait until React Flow finishes initialising
 
    editor.subscribeToModelChange((model) => {
      console.log('Model updated', model);
@@ -34,21 +34,35 @@ Quick start
 Architecture overview
 ---------------------
 
-* **Scenes** (`src/main/scenes`) house the top-level React trees. ``Application``
-  renders the canvas, sidebar, popups, and theming providers. ``Svg`` is used
-  for background exports.
-* **Components** (`src/main/components`) encapsulate UI elements such as the
-  sidebar palette, draggable layers, keyboard/mouse listeners, and update pane.
-* **Packages** (`src/main/packages`) group diagram-specific logic: models,
-  React renderers, popups, previews, and relationship definitions per diagram
-  type.
-* **Services** (`src/main/services`) keep domain logic out of UI components:
-  reducers/repositories for UML elements, the ``diagramBridge`` data service,
-  the patcher that powers collaboration, settings, and layouters.
-* **Redux store** is composed in ``components/store``. ``ModelState`` provides
-  transformation helpers between TypeScript models and Redux state.
+* **Library entry point** (``packages/library/lib/besser-editor.tsx``) constructs
+  the ``BesserEditor`` class. The constructor wires up the React Flow root, the
+  Zustand stores, and the Yjs document used for collaboration.
+* **Nodes** (``packages/library/lib/nodes/<diagramType>/``) house the per-diagram
+  React Flow node components — one folder per diagram (``classDiagram``,
+  ``objectDiagram``, ``stateMachineDiagram``, …). The folder's ``index.ts``
+  registers each node component under its v4 ``node.type`` string.
+* **Edges** (``packages/library/lib/edges/edgeTypes/``) define the edge renderers
+  (``ClassDiagramEdge``, ``StateMachineDiagramEdge``, ``AgentDiagramEdge``, …)
+  and the shared connection / handle logic.
+* **Inspectors** (``packages/library/lib/components/inspectors/<diagramType>/``)
+  are the property panels surfaced when a node or edge is selected. Each diagram
+  folder has an ``index.ts`` that maps node/edge types to inspector components.
+* **Popovers** (``packages/library/lib/components/popovers/``) route inspector
+  panels through ``PopoverManager.tsx`` — both the popover and the side panel
+  modes.
+* **Stores** (``packages/library/lib/store/``) are the canonical Zustand stores
+  for diagram state (``diagramStore``), session metadata (``metadataStore``),
+  popover state (``popoverStore``), assessment selection, and alignment guides.
+* **Utils** (``packages/library/lib/utils/``) host the v3→v4 ``versionConverter``,
+  the React Flow / B-UML adapters (``helpers.ts``), the layout helpers, and the
+  shared display utilities (``classifierMemberDisplay``, ``multiplicity``,
+  ``typeNormalization``).
+* **Services** (``packages/library/lib/services/``) keep domain logic out of UI
+  components: ``diagramBridge`` for cross-diagram data, ``settingsService`` for
+  application settings, ``errors`` for the broadcast error channel, and
+  ``userMetaModel`` for the bundled User-Diagram reference metamodel.
 
 Consumers interact only with the public API exported from
-``src/main/index.ts``. Internal modules may change without notice, so prefer
-the documented API surface unless you are contributing to the engine itself.
-
+``packages/library/lib/index.tsx``. Internal modules may change without notice,
+so prefer the documented API surface unless you are contributing to the engine
+itself.

@@ -17,10 +17,10 @@ This is an npm workspaces monorepo with 3 packages:
 | Package | Status | Purpose |
 |---------|--------|---------|
 | `packages/webapp` | **Active** | Main React SPA (Vite + React 18 + Tailwind + Radix UI) |
-| `packages/editor` | **Active** | Core diagramming engine, published as `@besser/wme` on npm |
+| `packages/library` | **Active** | Core diagramming engine (React Flow + Zustand), published as `@besser/wme` on npm |
 | `packages/server` | **Active** | Express server for standalone hosting (serves built webapp) |
 
-Almost all feature work happens in `webapp` and `editor`.
+Almost all feature work happens in `webapp` and `library`.
 
 ## Essential Commands
 
@@ -56,11 +56,13 @@ npm run start:server       # Express on http://localhost:8080
 ## Architecture Overview
 
 ### Tech Stack
-- **Build**: Vite 7 (webapp), Webpack (server, editor)
+- **Build**: Vite 7 (webapp + library), Webpack (server)
 - **Framework**: React 18.2 + React Router 6
-- **State**: Redux Toolkit (single `workspaceSlice` + `errorManagementSlice`)
+- **Diagram engine**: React Flow (`@xyflow/react`) + Zustand (library package)
+- **Webapp state**: Redux Toolkit (single `workspaceSlice` + `errorManagementSlice`)
 - **UI**: Radix UI primitives + Tailwind CSS (class-based dark mode)
 - **Editors**: BesserEditor (UML, from `@besser/wme`), GrapesJS (GUI no-code), custom (quantum circuits)
+- **Collaboration**: Yjs (CRDT-backed shared documents, integrated in the library)
 - **Testing**: Vitest + jsdom (unit), Playwright (E2E)
 - **TypeScript**: 5.6, strict mode, ES2021 target
 
@@ -94,29 +96,59 @@ packages/webapp/src/main/
 └── templates/                  # Starter project templates
 ```
 
-### Editor Package (packages/editor)
+### Library Package (packages/library)
 
-The diagramming engine, published as `@besser/wme`. Contains:
+The diagramming engine, built on React Flow + Zustand and published as
+`@besser/wme`. Contains:
 
 ```
-packages/editor/src/main/
-├── apollon-editor.ts           # Public API (ApollonEditor class)
-├── packages/                   # Diagram-specific implementations
-│   ├── uml-class-diagram/      # Class diagram elements
-│   ├── uml-object-diagram/     # Object diagram elements
-│   ├── uml-state-diagram/      # State machine elements
-│   ├── agent-state-diagram/    # Agent diagram elements
-│   ├── flowchart/              # Flowchart elements
-│   ├── bpmn/                   # BPMN elements
-│   ├── common/                 # Shared element types
-│   ├── components.ts           # Element type → React component registry
-│   ├── uml-elements.ts         # Element type → model class registry
-│   ├── compose-preview.ts      # Element type → palette preview registry
-│   ├── popups.ts               # Element type → property popup registry
-│   └── diagram-type.ts         # Supported diagram types enum
-├── services/                   # Domain logic (CRUD, undo, layout, collaboration)
-├── components/                 # Canvas, sidebar, event listeners
-└── i18n/                       # Translations (en)
+packages/library/lib/
+├── besser-editor.tsx           # Public API (BesserEditor class)
+├── index.tsx                   # npm entry point — re-exports public types
+├── App.tsx                     # Top-level React Flow root
+├── nodes/                      # React Flow node components per diagram
+│   ├── classDiagram/           #   Class, AbstractClass, Interface, Enumeration, OCL
+│   ├── objectDiagram/          #   Object instances, links
+│   ├── stateMachineDiagram/    #   States, transitions, initial/final/fork/merge
+│   ├── agentDiagram/           #   Agent states, intents, RAG, transitions
+│   ├── nnDiagram/              #   NN container, layers, references
+│   ├── userDiagram/            #   User-modelling nodes
+│   ├── bpmn/                   #   BPMN tasks, events, gateways
+│   ├── flowchart/              #   Flowchart shapes
+│   └── common/                 #   Shared node wrappers / handles
+├── edges/                      # React Flow edge renderers
+│   ├── edgeTypes/              #   ClassDiagramEdge, StateMachineDiagramEdge, …
+│   ├── EdgeProps.ts            #   Shared edge data types
+│   └── Connection.ts           #   Routing helpers
+├── components/
+│   ├── inspectors/             # Property panels per diagram type
+│   ├── popovers/               # PopoverManager + per-edge popovers
+│   ├── svgs/                   # Palette preview SVGs
+│   ├── toolbars/               # Node / canvas toolbars
+│   └── ui/                     # Shared inputs, dividers, dropdowns
+├── store/                      # Zustand stores
+│   ├── diagramStore.ts         #   Nodes / edges / selection (Yjs-backed)
+│   ├── metadataStore.ts        #   Diagram name, type, mode, view
+│   ├── popoverStore.ts         #   Active popover / inspector state
+│   ├── assessmentSelectionStore.ts
+│   ├── alignmentGuidesStore.ts
+│   └── context.tsx             #   React context providers + hooks
+├── services/                   # Domain logic (NO UI)
+│   ├── diagramBridge.ts        #   Cross-diagram data sharing
+│   ├── settingsService.ts      #   Application display settings
+│   ├── errors.ts               #   BesserError broadcast channel
+│   └── userMetaModel/          #   User-Diagram reference metamodel
+├── sync/                       # Yjs collaboration adapter (YjsSyncClass)
+├── types/                      # DiagramType + per-node data shapes
+├── utils/                      # Pure utility functions
+│   ├── versionConverter.ts     #   v3 → v4 migrator
+│   ├── helpers.ts              #   React Flow / B-UML adapters
+│   ├── classifierMemberDisplay.ts
+│   ├── multiplicity.ts
+│   ├── typeNormalization.ts
+│   └── layoutUtils.ts
+├── hooks/                      # React hooks (useConnect, useEdges, …)
+└── constants.ts                # Layout constants, palette sizes, grid snap
 ```
 
 ## Key Patterns
@@ -134,7 +166,7 @@ All project/diagram state lives in a single `workspaceSlice`. Key patterns:
 ### Path Aliases (webapp)
 Configured in `tsconfig.json` and `vite.config.ts`:
 - `@/` → `src/`
-- `@besser/wme` → `../editor/src/main/index.ts` (local dev, npm in production)
+- `@besser/wme` → `../library/lib/index.tsx` (local dev, npm in production)
 - `shared` → `../shared/src/index.ts`
 - `webapp/*` → `./*`
 
@@ -160,37 +192,38 @@ All prefixed with `besser_`:
 > **Deprecated (v7.3.0):** `besser_systemConfig` was removed as a top-level localStorage key. Agent runtime config (platform, intent-recognition technology, LLM provider/model) now lives on the agent diagram itself (`AgentDiagram.config`) — single source of truth. The v3 storage migration deletes the legacy key on next launch.
 
 ### Global Display Settings (settingsService)
-`packages/editor/src/main/services/settings/settings-service.ts` holds display preferences in localStorage under `besser-standalone-settings`. Rendering components read these **synchronously at render time** (e.g. `settingsService.shouldShowAssociationNames()`), they don't subscribe. For a toggle to actually repaint the canvas live, extend the existing `settingsService.onSettingsChange` listener in `packages/editor/src/main/scenes/application.tsx` and mirror the new field into component state — the `setState` call is what forces the subtree to re-render. Rendering components keep reading from `settingsService` directly (no props drilling needed). Don't bump `editorRevision` for view-only toggles — that clears undo history.
+`packages/library/lib/services/settingsService.ts` holds display preferences in localStorage under `besser-standalone-settings`. Rendering components read these **synchronously at render time** (e.g. `settingsService.shouldShowAssociationNames()`), they don't subscribe. For a toggle to actually repaint the canvas live, mirror the relevant field into Zustand state via `settingsService.onSettingsChange` — the `setState` call is what forces the subtree to re-render. Don't bump `editorRevision` for view-only toggles — that clears undo history.
 
-### Custom SVG Rendering
-The editor uses custom SVG elements, **not** React-Flow or Apollon Canvas. Theme-aware wrappers live in `packages/editor/src/main/components/theme/themedComponents` (`ThemedRect`, `ThemedPath`, `ThemedPolyline`) — they pull fill/stroke from styled-components theme. Raw SVG primitives (`<polygon>`, `<rect>`, `<ellipse>`) **bypass the theme**, so always provide a fallback when using them with an optional `element.strokeColor`/`element.fillColor`:
+### Node and Edge Rendering
+The library renders diagrams via React Flow: every node has a custom component under `packages/library/lib/nodes/<diagramType>/` and every edge has a renderer under `packages/library/lib/edges/edgeTypes/`. Node components use plain SVG inside a `<DefaultNodeWrapper>` (which owns the selection / drag handles). Theme-aware colours flow through CSS variables (`--besser-background`, `--besser-primary-contrast`, `--besser-gray`, …) — raw SVG primitives bypass the theme, so always provide a fallback when reading `data.strokeColor` / `data.fillColor`:
 ```tsx
-stroke={element.strokeColor || 'currentColor'}
-fill={element.fillColor || 'white'}
+stroke={data.strokeColor || 'var(--besser-primary-contrast, #000)'}
+fill={data.fillColor || 'white'}
 ```
-The `Text` component at `packages/editor/src/main/components/controls/text/text.tsx` forwards unknown props to the underlying `<text>`, so SVG presentation attributes like `textDecoration="underline"` work directly.
 
 ## Adding a New Diagram Element
 
-To add a new element type to the editor, register it in 4 files inside `packages/editor/src/main/packages/`:
+To add a new node type, create the React Flow node component under
+`packages/library/lib/nodes/<diagramType>/<YourNode>.tsx` and register it in
+that folder's `index.ts`. Then:
 
-1. **`components.ts`** - Map `UMLElementType.YourElement` → React render component
-2. **`uml-elements.ts`** - Map `UMLElementType.YourElement` → model class
-3. **`compose-preview.ts`** - Map to palette preview (what appears in sidebar)
-4. **`popups.ts`** - Map to property popup component (edit panel)
+1. **Add the data shape** to `packages/library/lib/types/nodes/NodeProps.ts` (`YourNodeProps` extending `DefaultNodeProps`).
+2. **Add an inspector panel** in `packages/library/lib/components/inspectors/<diagramType>/<YourNode>EditPanel.tsx` and register it in the inspector `index.ts`.
+3. **Add a palette preview** in `packages/library/lib/components/svgs/nodes/<diagramType>/<YourDiagram>SVGs.tsx`.
+4. **Route the popover** in `packages/library/lib/components/popovers/PopoverManager.tsx`.
 
-Then create the element implementation in the appropriate diagram package directory (e.g., `packages/uml-class-diagram/your-element/`), containing:
-- Model class (extends `UMLElement` or `UMLRelationship`)
-- React component
-- Update function (for property changes)
+If the new node is an edge, mirror the steps under `packages/library/lib/edges/edgeTypes/` and `packages/library/lib/components/inspectors/<diagramType>/<YourEdge>EditPanel.tsx`.
 
 ## Adding a New Diagram Type
 
-1. Add entry to `diagram-type.ts` (`UMLDiagramType` object)
-2. Create package directory under `packages/editor/src/main/packages/`
-3. Register all elements in the 4 registry files
-4. Add editor support in `packages/webapp/src/main/features/editors/`
-5. Add diagram type to backend's supported types if it needs generation/validation
+1. Add an entry to `packages/library/lib/types/DiagramType.ts` (`UMLDiagramType` enum).
+2. Create the diagram folder under `packages/library/lib/nodes/<yourDiagram>/` and add the per-node components plus an `index.ts`.
+3. Create matching edges under `packages/library/lib/edges/edgeTypes/` if you introduce new relationship kinds.
+4. Add inspector panels under `packages/library/lib/components/inspectors/<yourDiagram>/`.
+5. Register palette previews + routing as described in "Adding a New Diagram Element".
+6. Add a `case` to `packages/library/lib/utils/versionConverter.ts` if legacy fixtures need to be lifted to v4.
+7. Add editor support in `packages/webapp/src/main/features/editors/`.
+8. Add the diagram type to the backend's supported types if it needs generation / validation.
 
 ## Supported Diagram Types
 

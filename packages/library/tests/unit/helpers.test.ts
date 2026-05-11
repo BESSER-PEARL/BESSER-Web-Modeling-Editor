@@ -6,8 +6,8 @@ import {
 } from "@/utils/helpers"
 import type {
   UMLModel,
-  ApollonNode,
-  ApollonEdge,
+  BesserNode,
+  BesserEdge,
   DiagramEdgeType,
 } from "@/typings"
 import type { DiagramNodeType } from "@/nodes/types"
@@ -29,14 +29,14 @@ function makeModel(overrides: Partial<UMLModel> = {}): UMLModel {
   } as UMLModel
 }
 
-function makeNode(overrides: Partial<ApollonNode>): ApollonNode {
-  return overrides as unknown as ApollonNode
+function makeNode(overrides: Partial<BesserNode>): BesserNode {
+  return overrides as unknown as BesserNode
 }
 
 function makeEdge(
-  overrides: Partial<ApollonEdge> & { type: string }
-): ApollonEdge {
-  return overrides as unknown as ApollonEdge
+  overrides: Partial<BesserEdge> & { type: string }
+): BesserEdge {
+  return overrides as unknown as BesserEdge
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ describe("getAssessmentNameForArtemis", () => {
           source: "s",
           target: "t",
           type: "ClassInheritance",
-          data: {} as ApollonEdge["data"],
+          data: {} as BesserEdge["data"],
         }),
       ],
     })
@@ -165,7 +165,7 @@ describe("getAssessmentNameForArtemis", () => {
           source: "missing-s",
           target: "missing-t",
           type: "ClassBidirectional",
-          data: {} as ApollonEdge["data"],
+          data: {} as BesserEdge["data"],
         }),
       ],
     })
@@ -193,7 +193,7 @@ describe("getEdgeAssessmentDataById", () => {
           source: "s",
           target: "t",
           type: "ClassDependency",
-          data: {} as ApollonEdge["data"],
+          data: {} as BesserEdge["data"],
         }),
       ],
       assessments: {
@@ -236,7 +236,7 @@ describe("getEdgeAssessmentDataById", () => {
           source: "s",
           target: "t",
           type: "ClassDependency",
-          data: {} as ApollonEdge["data"],
+          data: {} as BesserEdge["data"],
         }),
       ],
     })
@@ -255,7 +255,7 @@ describe("getEdgeAssessmentDataById", () => {
           source: "s",
           target: "t",
           type: "ClassDependency",
-          data: {} as ApollonEdge["data"],
+          data: {} as BesserEdge["data"],
         }),
       ],
       assessments: {
@@ -430,7 +430,7 @@ describe("getEdgeTypeSymbol (indirect)", () => {
             source: "s",
             target: "t",
             type: edgeType as DiagramEdgeType,
-            data: {} as ApollonEdge["data"],
+            data: {} as BesserEdge["data"],
           }),
         ],
       })
@@ -451,7 +451,7 @@ describe("getEdgeTypeSymbol (indirect)", () => {
           source: "s",
           target: "t",
           type: "SomethingUnknown",
-          data: {} as ApollonEdge["data"],
+          data: {} as BesserEdge["data"],
         }),
       ],
     })

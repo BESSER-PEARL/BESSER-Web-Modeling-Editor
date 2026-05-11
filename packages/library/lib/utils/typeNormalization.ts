@@ -1,6 +1,6 @@
 /**
  * Pure type-normalization helpers extracted from
- * `packages/editor/src/main/packages/common/uml-classifier/uml-classifier-member.ts`.
+ * `v3 source: common/uml-classifier/uml-classifier-member.ts`.
  *
  * No React, no Redux. Used by:
  * - the new lib's properties panel and inline class-row editor on commit,

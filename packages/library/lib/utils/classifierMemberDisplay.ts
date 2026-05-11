@@ -2,7 +2,7 @@
  * Display-name helpers for class/object/agent attribute and method rows.
  *
  * Extracted from
- * `packages/editor/src/main/packages/common/uml-classifier/uml-classifier-member.ts`
+ * `v3 source: common/uml-classifier/uml-classifier-member.ts`
  * (`parseLegacyNameFormat`, `displayName`/`displayNameER`).
  *
  * Pure functions, no React, no Redux. Used by the inline class-row

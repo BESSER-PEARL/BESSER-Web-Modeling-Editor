@@ -1,6 +1,6 @@
 /**
  * NN attribute validation defaults & list-shape helpers. Ported
- * from `packages/editor/.../nn-validation-defaults.ts`. Pure, no React,
+ * from `v3 source: nn-validation-defaults.ts`. Pure, no React,
  * no Redux. The migrator and the inline editor both consume these.
  */
 

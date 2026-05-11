@@ -112,7 +112,7 @@ describe("ObjectDiagram v3 → v4 round-trip", () => {
   it("SA-2.1: round-trips ObjectLink.associationId end-to-end", () => {
     // Hand-authored v3 fixture: an ObjectLink with `associationId` set
     // at the relationship root (mirrors v3
-    // `packages/editor/.../uml-object-link.ts:9`). Without P2 the field
+    // `v3 source: uml-object-link.ts:9`). Without P2 the field
     // would be silently dropped on import.
     const v3Fixture = {
       version: "3.0.0",

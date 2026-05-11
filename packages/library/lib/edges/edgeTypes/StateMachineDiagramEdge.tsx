@@ -39,7 +39,7 @@ import { registerEdgeTypes } from "../types"
  * Note (decision): the brief also specifies `code` and `eventName`
  * fields on the edge `data`. The spec at `uml-v4-shape.md` does not list
  * those, but it's the same pattern v3's editor used internally
- * (`packages/editor/.../uml-state-transition.ts:14`'s `params` dict was
+ * (`v3 source: uml-state-transition.ts:14`'s `params` dict was
  * the legacy carrier). Both are passed through verbatim — the inspector
  * exposes them; the round-trip preserves them.
  */
@@ -120,7 +120,7 @@ export const StateMachineDiagramEdge = ({
 
   // Compose the visible edge label: `name [params...] [guard]` mirrors
   // v3 state-transition notation
-  // (`packages/editor/.../uml-state-transition.ts:38-65`), where
+  // (`v3 source: uml-state-transition.ts:38-65`), where
   // `params` is a dict / array stored on the relationship root and
   // each value is wrapped in its own bracket pair. `code` is reserved
   // for the inspector — it's not part of the canvas label.

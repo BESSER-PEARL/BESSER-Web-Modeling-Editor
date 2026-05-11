@@ -2,7 +2,7 @@
  * NN attribute widget configuration. Single source of truth for
  * both the inline panel editor (`NNComponentEditPanel`) and the v3 ↔ v4
  * version converter (`migrateNNDiagramV3ToV4`). Ported verbatim from
- * `packages/editor/src/main/packages/nn-diagram/nn-attribute-widget-config.ts`
+ * `v3 source: nn-diagram/nn-attribute-widget-config.ts`
  * but rewritten to be data-only (no React, no Redux) and to key on the
  * **v4 attribute slug** (snake_case, layer suffix stripped) instead of
  * the v3 element-type string.

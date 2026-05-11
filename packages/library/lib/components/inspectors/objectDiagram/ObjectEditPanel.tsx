@@ -41,7 +41,7 @@ const TIME_TYPES = new Set(["time"])
 /**
  * Restore per-attribute-type value widgets in the
  * ObjectDiagram inspector. Mirrors the v3 source-of-truth at
- * `packages/editor/src/main/packages/uml-object-diagram/uml-object-attribute/uml-object-attribute-update.tsx`:
+ * `v3 source: uml-object-diagram/uml-object-attribute/uml-object-attribute-update.tsx`:
  *
  *  - `bool` / `boolean` → MUI `Switch` (committing the canonical
  *    `"True"` / `"False"` string values so the BESSER round-trip is
@@ -249,7 +249,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
    * Build a `Map<enumName, literals[]>` from the sibling
    * ClassDiagram so the type-aware row can render a `Select` for any
    * enum-typed attribute. Mirrors the v3 `getEnumerationValues` helper
-   * at `packages/editor/.../uml-object-attribute-update.tsx`.
+   * at `v3 source: uml-object-attribute-update.tsx`.
    */
   const enumLiterals = useMemo<Map<string, string[]>>(() => {
     const m = new Map<string, string[]>()

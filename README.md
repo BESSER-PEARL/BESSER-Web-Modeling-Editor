@@ -12,7 +12,7 @@ You can use this editor:
 
 This repository is a monorepo:
 
-- `packages/editor`: core diagramming engine, published as the [@besser/wme](https://www.npmjs.com/package/@besser/wme)
+- `packages/library`: core diagramming engine (React Flow + Zustand), published as the [@besser/wme](https://www.npmjs.com/package/@besser/wme)
   npm package.
 - `packages/webapp`: React web application (deployed at [editor.besser-pearl.org](https://editor.besser-pearl.org)). Uses Vite, Radix UI + Tailwind, and Vitest + Playwright.
 - `packages/server`: Node/Express server for standalone hosting and APIs.
@@ -59,7 +59,7 @@ of available templates.
 
 ## Under the Hood: Diagram Engine as an npm Package
 
-The core diagramming engine lives in `packages/editor` and is published as [@besser/wme](https://www.npmjs.com/package/@besser/wme).
+The core diagramming engine lives in `packages/library` and is published as [@besser/wme](https://www.npmjs.com/package/@besser/wme).
 The web application (`packages/webapp`) and standalone server (`packages/server`) consume this package.
 
 This separation allows the application to focus on delivering additional capabilities such as:

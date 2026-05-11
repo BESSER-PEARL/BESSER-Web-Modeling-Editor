@@ -5,7 +5,7 @@ import { Typography as MUITypography, TypographyProps } from "@mui/material"
  * Uniform section header used by every inspector body.
  *
  * Mirrors the v3 `SectionHeader` styled-component at
- * `packages/editor/src/main/packages/common/uml-classifier/uml-classifier-update.tsx:56-62`:
+ * `v3 source: common/uml-classifier/uml-classifier-update.tsx:56-62`:
  *
  *   - 11px font size
  *   - uppercase

@@ -24,7 +24,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  * Inspector body for the `AgentStateTransition` edge.
  *
  * Source-of-truth port:
- * `packages/editor/.../agent-state-transition-update.tsx`.
+ * `v3 source: agent-state-transition-update.tsx`.
  *
  * Deltas (audit recommendations 23–26):
  *   - #23: when `predefinedType === 'when_intent_matched'`, the

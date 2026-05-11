@@ -31,7 +31,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
 /**
  * Full AgentState body editor.
  *
- * Source-of-truth port: `packages/editor/src/main/packages/
+ * Source-of-truth port: `v3 source: 
  * agent-state-diagram/agent-state/agent-state-update.tsx` (~960 LoC).
  *
  * Mirrors v3's two-section layout:

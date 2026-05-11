@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest"
 import {
   parseDiagramType,
-  mapFromReactFlowNodeToApollonNode,
-  mapFromReactFlowEdgeToApollonEdge,
+  mapFromReactFlowNodeToBesserNode,
+  mapFromReactFlowEdgeToBesserEdge,
 } from "@/utils/diagramTypeUtils"
 import { UMLDiagramType } from "@/types/DiagramType"
 import type { Node, Edge } from "@xyflow/react"
@@ -48,10 +48,10 @@ describe("parseDiagramType", () => {
 })
 
 // ---------------------------------------------------------------------------
-// mapFromReactFlowNodeToApollonNode
+// mapFromReactFlowNodeToBesserNode
 // ---------------------------------------------------------------------------
 
-describe("mapFromReactFlowNodeToApollonNode", () => {
+describe("mapFromReactFlowNodeToBesserNode", () => {
   it("maps basic node fields correctly", () => {
     const node: Node = {
       id: "n1",
@@ -62,7 +62,7 @@ describe("mapFromReactFlowNodeToApollonNode", () => {
       height: 150,
       measured: { width: 180, height: 140 },
     } as Node
-    const result = mapFromReactFlowNodeToApollonNode(node)
+    const result = mapFromReactFlowNodeToBesserNode(node)
     expect(result.id).toBe("n1")
     expect(result.position).toEqual({ x: 10, y: 20 })
     expect(result.width).toBe(200)
@@ -79,7 +79,7 @@ describe("mapFromReactFlowNodeToApollonNode", () => {
       data: {},
       type: "class",
     } as Node
-    const result = mapFromReactFlowNodeToApollonNode(node)
+    const result = mapFromReactFlowNodeToBesserNode(node)
     expect(result.width).toBe(0)
     expect(result.height).toBe(0)
   })
@@ -91,7 +91,7 @@ describe("mapFromReactFlowNodeToApollonNode", () => {
       data: {},
       type: "class",
     } as Node
-    const result = mapFromReactFlowNodeToApollonNode(node)
+    const result = mapFromReactFlowNodeToBesserNode(node)
     expect(result.measured).toEqual({ width: 0, height: 0 })
   })
 
@@ -103,7 +103,7 @@ describe("mapFromReactFlowNodeToApollonNode", () => {
       type: "class",
       parentId: "p",
     } as Node
-    const result = mapFromReactFlowNodeToApollonNode(node)
+    const result = mapFromReactFlowNodeToBesserNode(node)
     expect(result.parentId).toBe("p")
   })
 
@@ -114,16 +114,16 @@ describe("mapFromReactFlowNodeToApollonNode", () => {
       data: {},
       type: "class",
     } as Node
-    const result = mapFromReactFlowNodeToApollonNode(node)
+    const result = mapFromReactFlowNodeToBesserNode(node)
     expect(result.parentId).toBeUndefined()
   })
 })
 
 // ---------------------------------------------------------------------------
-// mapFromReactFlowEdgeToApollonEdge
+// mapFromReactFlowEdgeToBesserEdge
 // ---------------------------------------------------------------------------
 
-describe("mapFromReactFlowEdgeToApollonEdge", () => {
+describe("mapFromReactFlowEdgeToBesserEdge", () => {
   it("maps basic edge fields correctly", () => {
     const edge: Edge = {
       id: "e1",
@@ -139,7 +139,7 @@ describe("mapFromReactFlowEdgeToApollonEdge", () => {
         ],
       },
     } as unknown as Edge
-    const result = mapFromReactFlowEdgeToApollonEdge(edge)
+    const result = mapFromReactFlowEdgeToBesserEdge(edge)
     expect(result.id).toBe("e1")
     expect(result.source).toBe("s")
     expect(result.target).toBe("t")
@@ -160,7 +160,7 @@ describe("mapFromReactFlowEdgeToApollonEdge", () => {
       type: "ClassDependency",
       data: {},
     } as unknown as Edge
-    const result = mapFromReactFlowEdgeToApollonEdge(edge)
+    const result = mapFromReactFlowEdgeToBesserEdge(edge)
     expect(result.sourceHandle).toBe("")
     expect(result.targetHandle).toBe("")
   })
@@ -173,7 +173,7 @@ describe("mapFromReactFlowEdgeToApollonEdge", () => {
       type: "ClassDependency",
       data: {},
     } as unknown as Edge
-    const result = mapFromReactFlowEdgeToApollonEdge(edge)
+    const result = mapFromReactFlowEdgeToBesserEdge(edge)
     expect(result.data.points).toEqual([])
   })
 
@@ -185,7 +185,7 @@ describe("mapFromReactFlowEdgeToApollonEdge", () => {
       type: "ClassDependency",
       data: { points: "not-an-array" },
     } as unknown as Edge
-    const result = mapFromReactFlowEdgeToApollonEdge(edge)
+    const result = mapFromReactFlowEdgeToBesserEdge(edge)
     expect(result.data.points).toEqual([])
   })
 
@@ -197,7 +197,7 @@ describe("mapFromReactFlowEdgeToApollonEdge", () => {
       type: "ClassDependency",
       data: { points: [], custom: "value" },
     } as unknown as Edge
-    const result = mapFromReactFlowEdgeToApollonEdge(edge)
+    const result = mapFromReactFlowEdgeToBesserEdge(edge)
     expect(result.data.custom).toBe("value")
   })
 })

@@ -134,7 +134,7 @@ describe("UserDiagram v3 → v4 round-trip", () => {
  * the row's `name` (`"age >= 18"`) instead of providing the explicit
  * `attributeOperator` field, the migrator must synthesize it. Mirrors
  * v3's `extractComparatorFromName` at
- * `packages/editor/.../uml-user-model-attribute.ts:27-33`.
+ * `v3 source: uml-user-model-attribute.ts:27-33`.
  */
 describe("UserModelAttribute attributeOperator synthesis from name", () => {
   it("synthesizes attributeOperator from embedded comparator in name", () => {

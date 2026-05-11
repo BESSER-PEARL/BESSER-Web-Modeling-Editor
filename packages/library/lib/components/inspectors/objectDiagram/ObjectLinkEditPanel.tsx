@@ -24,7 +24,7 @@ import { ObjectNodeProps } from "@/types"
  * ObjectLinkEditPanel — single inspector body for the v4
  * `ObjectLink` edge.
  *
- * Source-of-truth port: `packages/editor/.../uml-object-link-update.tsx`.
+ * Source-of-truth port: `v3 source: uml-object-link-update.tsx`.
  *
  * Fields:
  *

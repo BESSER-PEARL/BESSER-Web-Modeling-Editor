@@ -10,7 +10,7 @@ import { StateMarkerNodeProps } from "@/types"
 /**
  * Vertical fork bar. Default size 20×60 (fixed width, resizable height)
  * — matches v3 `UMLStateForkNode.defaultWidth/Height` at
- * `packages/editor/.../uml-state-fork-node.ts`. The bar itself is just
+ * `v3 source: uml-state-fork-node.ts`. The bar itself is just
  * a filled rectangle.
  *
  * Mirrors the fix applied to

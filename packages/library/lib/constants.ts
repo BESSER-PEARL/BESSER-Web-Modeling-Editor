@@ -856,7 +856,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     },
   ],
   // BESSER StateMachineDiagram palette. Mirrors the v3 fork's
-  // `packages/editor/.../uml-state-diagram/state-preview.ts`. Body /
+  // `v3 source: uml-state-diagram/state-preview.ts`. Body /
   // fallback-body are not draggable items — they are added inside an
   // existing State container, matching v3 behaviour.
   [UMLDiagramType.StateMachineDiagram]: [

@@ -6,7 +6,7 @@
  * single-line preview placeholder for the expression body.
  *
  * Source-of-truth port:
- *   `packages/editor/.../uml-class-ocl/uml-class-ocl-constraint-component.tsx`
+ *   `v3 source: uml-class-ocl/uml-class-ocl-constraint-component.tsx`
  */
 import { SVGAttributes } from "react"
 import { ClassOCLConstraintNodeProps } from "@/types"

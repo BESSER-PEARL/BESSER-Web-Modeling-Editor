@@ -53,7 +53,3 @@ export const mapFromReactFlowEdgeToBesserEdge = (edge: Edge): BesserEdge => {
   }
 }
 
-/** @deprecated Use mapFromReactFlowNodeToBesserNode instead. */
-export const mapFromReactFlowNodeToApollonNode = mapFromReactFlowNodeToBesserNode
-/** @deprecated Use mapFromReactFlowEdgeToBesserEdge instead. */
-export const mapFromReactFlowEdgeToApollonEdge = mapFromReactFlowEdgeToBesserEdge

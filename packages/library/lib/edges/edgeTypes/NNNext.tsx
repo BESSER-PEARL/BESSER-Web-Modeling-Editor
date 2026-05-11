@@ -23,7 +23,7 @@ import { registerEdgeTypes } from "../types"
  * `NNNext` edge — sequential flow between layers in the same
  * NNContainer (e.g. Conv2D → Pooling → Linear). Unidirectional with a
  * filled-arrow head. v3 source:
- * `packages/editor/src/main/packages/nn-diagram/nn-unidirectional/`.
+ * `v3 source: nn-diagram/nn-unidirectional/`.
  *
  * Edge `data` is intentionally minimal:
  * ```ts

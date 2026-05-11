@@ -9,18 +9,17 @@ implementations.
 Location
 --------
 
-``packages/editor/src/main/services/diagram-bridge/diagram-bridge-service.ts``
-exports:
+``packages/library/lib/services/diagramBridge.ts`` exports:
 
 * The ``DiagramBridgeService`` class (implementation).
-* The singleton ``diagramBridge`` instance used across the editor and webapp.
+* The singleton ``diagramBridge`` instance used across the library and webapp.
 * Type definitions (``IClassDiagramData``, ``IClassInfo``, ``IAssociationInfo``).
 
 Data flow
 ---------
 
 1. When a class diagram becomes the active diagram, the webapp (see
-   ``packages/webapp/src/main/store/project/projectSlice.ts``) pushes the
+   ``packages/webapp/src/main/app/store/workspaceSlice.ts``) pushes the
    current model into ``diagramBridge.setClassDiagramData``.
 2. Consumers (object diagrams, agent diagrams, validation routines) query the
    bridge for classes, attributes, associations, or related classes whenever
