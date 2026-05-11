@@ -1,4 +1,4 @@
-import { BesserEditor, UMLModel, diagramBridge } from '@besser/wme';
+import { BesserEditor, UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 
 import { BesserEditorContext } from './besser-editor-context';
@@ -51,13 +51,31 @@ export const BesserEditorComponent: React.FC = () => {
     });
   }, []);
 
+  // SA-FINAL-3 Task 2: flush any pending debounced save synchronously.
+  // Mirrors GraphicalUIEditor's flush-on-cleanup pattern so a rapid tab
+  // switch within the 300 ms debounce window doesn't drop the user's
+  // last keystroke.
+  const flushPendingSave = useCallback(() => {
+    if (!debouncedSaveRef.current) return;
+    clearTimeout(debouncedSaveRef.current);
+    debouncedSaveRef.current = null;
+    const editor = editorRef.current;
+    if (!editor) return;
+    try {
+      // editor.model is a synchronous getter on the current state — by
+      // dispatching the thunk inline (no await), we hand the latest model
+      // to Redux before destroy() rips the editor down.
+      dispatch(updateDiagramModelThunk({ model: editor.model }));
+    } catch (error) {
+      console.warn('Failed to flush pending UML save on cleanup:', error);
+    }
+  }, [dispatch]);
+
   // Cleanup function
   const cleanupEditor = useCallback(async () => {
-    // Clear any pending debounced save
-    if (debouncedSaveRef.current) {
-      clearTimeout(debouncedSaveRef.current);
-      debouncedSaveRef.current = null;
-    }
+    // Flush any pending debounced save before tearing the editor down.
+    // Without this, a keystroke within the last 300 ms of editing is lost.
+    flushPendingSave();
     const editor = editorRef.current;
     editorRef.current = null;
     if (!editor) return;
@@ -67,7 +85,7 @@ export const BesserEditorComponent: React.FC = () => {
       modelSubscriptionRef.current = null;
     }
     await destroyEditorDeferred(editor);
-  }, [destroyEditorDeferred]);
+  }, [destroyEditorDeferred, flushPendingSave]);
 
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
@@ -125,8 +143,34 @@ export const BesserEditorComponent: React.FC = () => {
         nextEditor.model = currentDiagram.model;
       }
 
-      // Subscribe to model changes (debounced to avoid excessive localStorage writes on every keystroke)
+      // Seed the cross-diagram bridge from the freshly-loaded ClassDiagram
+      // so the very first paint (before any user edits) has live data.
+      if (currentOptions.type === UMLDiagramType.ClassDiagram && isUMLModel(nextEditor.model)) {
+        try {
+          diagramBridge.setClassDiagramData(nextEditor.model);
+        } catch {
+          /* bridge not available */
+        }
+      }
+
+      // Subscribe to model changes.
+      // - Redux persistence is debounced (300 ms) to avoid excessive
+      //   localStorage writes on every keystroke.
+      // - The cross-diagram bridge (consumed by ObjectDiagram/UserDiagram
+      //   palettes) is updated SYNCHRONOUSLY on every model commit so it
+      //   never lags the live ClassDiagram editor. SA-FINAL-3 Task 1 fix
+      //   for PC-A5: previously the bridge was fed from a debounced
+      //   Redux selector in DiagramTabs.tsx, which trailed the editor by
+      //   one 300 ms window.
+      const isClassDiagram = currentOptions.type === UMLDiagramType.ClassDiagram;
       modelSubscriptionRef.current = nextEditor.subscribeToModelChange((model: UMLModel) => {
+        if (isClassDiagram) {
+          try {
+            diagramBridge.setClassDiagramData(model);
+          } catch {
+            /* bridge not available */
+          }
+        }
         if (debouncedSaveRef.current) clearTimeout(debouncedSaveRef.current);
         debouncedSaveRef.current = setTimeout(() => {
           dispatch(updateDiagramModelThunk({ model }));

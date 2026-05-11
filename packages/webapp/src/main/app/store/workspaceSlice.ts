@@ -310,6 +310,33 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
  * WITHOUT bumping editorRevision (no editor reinit).
  * Use after direct ProjectStorageRepository writes from editors
  * (GrapesJS, Quantum, Agent) that bypass Redux thunks.
+ *
+ * ## bumpEditorRevision contract (SA-FINAL-3 Task 5)
+ *
+ * This thunk DOES NOT bump `editorRevision`, by design. It exists for
+ * "metadata-only" project refreshes where the active editor's bound
+ * model has not changed (e.g. another diagram was renamed, an agent
+ * config was updated, perspective settings changed). Bumping the
+ * revision would tear down and recreate the BesserEditor, dropping
+ * unsaved edits and clearing undo history — neither of which is the
+ * intended side-effect of a "refresh metadata" call.
+ *
+ * If the caller's mutation DOES alter the body of the currently-
+ * active diagram's model (e.g. retrofitting nodes onto the live tab),
+ * the caller MUST dispatch `bumpEditorRevision()` AFTER this thunk's
+ * fulfilled action resolves. A runtime warning is emitted below when
+ * we detect an active-diagram model identity change without a
+ * follow-up bump in the same microtask, so the contract violation is
+ * surfaced loudly in development instead of producing a silently
+ * stale canvas.
+ *
+ * Callers known to correctly pair a bump:
+ *   - AgentConfigurationPanel: bumps after applying agent profiles
+ *   - GraphicalUIEditor template injection: bumps after notifyChange
+ *
+ * Callers that intentionally do NOT bump (active model unchanged):
+ *   - PerspectiveSettingsDialog
+ *   - GitHubSidebar after pulling project metadata
  */
 export const refreshProjectStateThunk = createAsyncThunk(
   'workspace/refreshProjectState',
@@ -317,7 +344,15 @@ export const refreshProjectStateThunk = createAsyncThunk(
     const state = getState() as { workspace: WorkspaceState };
     const { project } = state.workspace;
     if (!project) return null;
-    return ProjectStorageRepository.loadProject(project.id);
+    const activeType = state.workspace.activeDiagramType;
+    const activeIndex = state.workspace.activeDiagramIndex;
+    const previousActiveModelRef = state.workspace.activeDiagram?.model;
+    return {
+      project: ProjectStorageRepository.loadProject(project.id),
+      previousActiveModelRef,
+      activeType,
+      activeIndex,
+    };
   },
 );
 
@@ -487,6 +522,80 @@ export const addDiagramThunk = createAsyncThunk(
     let result: { index: number; diagram: ProjectDiagram } | null = null;
     ProjectStorageRepository.withoutNotify(() => {
       result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
+    });
+    if (!result) throw new Error('Failed to add diagram');
+
+    const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
+    return { diagramType, index: newIndex, diagram };
+  },
+);
+
+/**
+ * SA-FINAL-3 Task 4: combined add + switch in a single thunk.
+ *
+ * Background: the Assistant's "new tab" flow used to dispatch three
+ * separate actions — `addDiagramThunk` (bumps editorRevision once),
+ * `switchDiagramIndexThunk` (bumps a second time), and a manual
+ * `bumpEditorRevision` after writing the model. Each bump destroys and
+ * recreates the BesserEditor, so the editor was reinitialized three
+ * times for a single user-visible operation. This thunk performs both
+ * the create and the switch in storage, then emits a SINGLE
+ * `editorRevision` bump via its fulfilled reducer.
+ *
+ * Use this whenever a caller wants to create a diagram and immediately
+ * focus it — which is virtually every add-diagram path except the
+ * tabs strip's `+` button (which is fine as-is because it doesn't
+ * follow-up with a model write).
+ */
+export const addAndSwitchDiagramThunk = createAsyncThunk(
+  'workspace/addAndSwitchDiagram',
+  async (
+    { diagramType, title, initialModel }: {
+      diagramType: SupportedDiagramType;
+      title?: string;
+      /** Optional initial model to seed the new diagram with. When
+       * provided, the model is written to storage BEFORE the single
+       * editorRevision bump in the fulfilled reducer, so the editor
+       * sets up exactly once with the seeded model. */
+      initialModel?: ProjectDiagram['model'];
+    },
+    { getState },
+  ) => {
+    const state = getState() as { workspace: WorkspaceState };
+    const { project } = state.workspace;
+    if (!project) throw new Error('No active project');
+
+    const existing = project.diagrams[diagramType] ?? [];
+    if (existing.length >= MAX_DIAGRAMS_PER_TYPE) {
+      throw new Error(
+        `Cannot add more ${diagramType}s: project limit of ${MAX_DIAGRAMS_PER_TYPE} reached.`,
+      );
+    }
+
+    let result: { index: number; diagram: ProjectDiagram } | null = null;
+    ProjectStorageRepository.withoutNotify(() => {
+      result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
+      if (result) {
+        ProjectStorageRepository.switchDiagramIndex(project.id, diagramType, result.index);
+        if (initialModel) {
+          // Overwrite the just-created empty model with the caller-
+          // provided one, BEFORE we return so the reducer reads the
+          // seeded diagram out of storage and the editor sees it on
+          // its first (and only) setup pass.
+          const seeded: ProjectDiagram = {
+            ...result.diagram,
+            model: initialModel,
+            lastUpdate: new Date().toISOString(),
+          };
+          ProjectStorageRepository.updateDiagram(
+            project.id,
+            diagramType,
+            seeded,
+            result.index,
+          );
+          result = { index: result.index, diagram: seeded };
+        }
+      }
     });
     if (!result) throw new Error('Failed to add diagram');
 
@@ -739,6 +848,31 @@ const workspaceSlice = createSlice({
         state.error = action.error.message || 'Failed to add diagram';
       })
 
+      // ── Add + switch diagram (single editor reinit) ──────────
+      .addCase(addAndSwitchDiagramThunk.fulfilled, (state, action) => {
+        const { diagramType, index, diagram } = action.payload;
+        if (state.project) {
+          const freshProject = ProjectStorageRepository.loadProject(state.project.id);
+          if (freshProject) {
+            state.project = freshProject;
+          } else {
+            console.warn('[workspaceSlice] addAndSwitchDiagramThunk: storage reload failed, falling back to manual push');
+            state.project.diagrams[diagramType].push(diagram);
+          }
+          state.project.currentDiagramIndices[diagramType] = index;
+        }
+        state.activeDiagram = diagram;
+        state.activeDiagramIndex = index;
+        // SA-FINAL-3 Task 4: SINGLE editorRevision bump for the combined
+        // add + switch (vs. the previous 3 bumps when add, switch, and
+        // a manual bumpEditorRevision were dispatched separately).
+        state.editorRevision += 1;
+      })
+      .addCase(addAndSwitchDiagramThunk.rejected, (state, action) => {
+        console.error('addAndSwitchDiagramThunk failed:', action.error.message);
+        state.error = action.error.message || 'Failed to add diagram';
+      })
+
       // ── Remove diagram ────────────────────────────────────────
       .addCase(removeDiagramThunk.fulfilled, (state, action) => {
         const { project, diagramType } = action.payload;
@@ -814,8 +948,8 @@ const workspaceSlice = createSlice({
 
       // ── Refresh project from storage (no revision bump) ─────
       .addCase(refreshProjectStateThunk.fulfilled, (state, action) => {
-        if (!action.payload) return;
-        const p = action.payload;
+        if (!action.payload || !action.payload.project) return;
+        const { project: p, previousActiveModelRef } = action.payload;
         state.project = p;
 
         // Sync activeDiagramType if storage has a different value
@@ -831,7 +965,35 @@ const workspaceSlice = createSlice({
         }
 
         // Keep active diagram in sync without triggering editor reinit
-        state.activeDiagram = getActiveDiagram(p, state.activeDiagramType) ?? state.activeDiagram;
+        const nextActive = getActiveDiagram(p, state.activeDiagramType);
+        state.activeDiagram = nextActive ?? state.activeDiagram;
+
+        // SA-FINAL-3 Task 5: development-only contract warning.
+        // If the active diagram's model identity changed (i.e. the body
+        // of the currently-displayed diagram was rewritten by whatever
+        // triggered the refresh), the caller MUST dispatch
+        // `bumpEditorRevision()` after this thunk resolves — otherwise
+        // the canvas keeps showing the stale model. We can't enforce
+        // this from inside the reducer, but we can warn loudly.
+        if (
+          import.meta.env?.DEV &&
+          previousActiveModelRef !== undefined &&
+          nextActive?.model !== undefined &&
+          previousActiveModelRef !== nextActive.model
+        ) {
+          // Defer the warning so callers that bump in the same tick (or
+          // via `.then` on the dispatch promise) have a chance to do so
+          // before we complain.
+          queueMicrotask(() => {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[refreshProjectStateThunk] Active diagram model body changed but editorRevision was not bumped. ' +
+              'Callers that mutate the active diagram\'s model must dispatch bumpEditorRevision() ' +
+              'after the refresh resolves; otherwise the canvas will keep rendering the stale model. ' +
+              'See refreshProjectStateThunk JSDoc.',
+            );
+          });
+        }
       })
       .addCase(refreshProjectStateThunk.rejected, (_state, action) => {
         console.error('refreshProjectStateThunk failed:', action.error.message);

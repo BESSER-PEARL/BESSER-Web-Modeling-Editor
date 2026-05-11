@@ -1,12 +1,45 @@
 import { useCallback } from 'react';
+import { toast } from 'react-toastify';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
-import { ProjectDiagram, isUMLModel, toSupportedDiagramType, MAX_DIAGRAMS_PER_TYPE } from '../../shared/types/project';
+import {
+  ProjectDiagram,
+  isUMLModel,
+  isV3UMLModel,
+  toSupportedDiagramType,
+  MAX_DIAGRAMS_PER_TYPE,
+} from '../../shared/types/project';
+import { migrateUMLModelV3ToV4 } from '../../shared/services/storage/migrate-uml-v3-to-v4';
 import { bumpEditorRevision, loadProjectThunk } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { useNavigate } from 'react-router-dom';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { useBumlToDiagram, isBumlFile, isJsonFile } from './useBumlToDiagram';
+
+/**
+ * SA-FINAL-3 Task 6: detect v3-shape `{elements, relationships}` UMLModels
+ * inside an imported `ProjectDiagram`, migrate them to v4 `{nodes, edges}`,
+ * and surface a user-facing toast so the user knows the file was migrated.
+ *
+ * Returns the (possibly-migrated) diagram. Throws if the v3 detector fired
+ * but the migrator threw — callers should let that bubble up so the import
+ * is rejected with a clear error instead of silently corrupting data.
+ *
+ * Exported for unit-testing the v3 acceptance branch in isolation.
+ */
+export const maybeMigrateImportedDiagram = (diagram: ProjectDiagram): ProjectDiagram => {
+  const model = diagram?.model;
+  if (!model || !isV3UMLModel(model)) return diagram;
+
+  // The wrapping ProjectDiagram doesn't carry a SupportedDiagramType tag —
+  // migrateUMLModelV3ToV4 falls back to (model as any).type which v3
+  // models always carry.
+  const migratedModel = migrateUMLModelV3ToV4(model);
+  toast.info('Diagram migrated from v3 schema to v4 on import.', {
+    autoClose: 4000,
+  });
+  return { ...diagram, model: migratedModel };
+};
 
 export const useImportDiagram = () => {
   const dispatch = useAppDispatch();
@@ -35,6 +68,14 @@ export const useImportDiagram = () => {
       } else {
         throw new Error('Unsupported file type. Please select a .json or .py file.');
       }
+
+      // SA-FINAL-3 Task 6: accept legacy v3 single-file exports by
+      // migrating them through the v3 → v4 shape converter before
+      // validation. Without this, v3 JSON exports (elements/relationships
+      // shape) are rejected with "Invalid diagram: missing model or
+      // type information" because isUMLModel checks for the v4
+      // nodes/edges arrays.
+      diagram = maybeMigrateImportedDiagram(diagram);
 
       // Ensure the diagram has a valid model with type
       if (!isUMLModel(diagram.model)) {
@@ -86,7 +127,10 @@ export const useImportDiagramToProject = () => {
       } else {
         throw new Error('Unsupported file type. Please select a .json or .py file.');
       }
-      
+
+      // SA-FINAL-3 Task 6: migrate v3-shape uploads before validation.
+      diagram = maybeMigrateImportedDiagram(diagram);
+
       // Validate that it's a valid diagram
       if (!isUMLModel(diagram.model)) {
         throw new Error('Invalid diagram format: missing model or type');

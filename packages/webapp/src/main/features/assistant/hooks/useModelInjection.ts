@@ -18,6 +18,7 @@ import {
   updateDiagramModelThunk,
   switchDiagramIndexThunk,
   addDiagramThunk,
+  addAndSwitchDiagramThunk,
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
@@ -205,30 +206,40 @@ export function useModelInjection({
       let applied = false;
 
       // New tab: create it, convert systemSpec -> model, write to Redux directly.
+      //
+      // SA-FINAL-3 Task 4: this path previously dispatched THREE editor-
+      // reinit-triggering actions for a single user-visible operation —
+      // `addDiagramThunk` (bump #1), `switchDiagramIndexThunk` (bump #2),
+      // and a manual `bumpEditorRevision()` after the model write
+      // (bump #3). Each bump destroys + recreates the BesserEditor.
+      //
+      // Strategy:
+      //  1. Convert the systemSpec to its UMLModel up-front (pure, no
+      //     dispatch).
+      //  2. Pass the seeded model through `addAndSwitchDiagramThunk`'s
+      //     `initialModel` — the thunk writes both the new diagram and
+      //     its initial model into storage BEFORE its reducer bumps
+      //     editorRevision once. The editor then sets up exactly once
+      //     with the seeded model in place.
+      //
+      // Net: one editor reinit per "new tab" assistant injection.
       if ((command as any).createNewTab) {
         try {
-          const tabResult = await dispatch(
-            addDiagramThunk({
-              diagramType: targetDiagramType as SupportedDiagramType,
-            }),
-          ).unwrap();
-          if (tabResult?.index !== undefined) {
-            await dispatch(
-              switchDiagramIndexThunk({
-                diagramType: targetDiagramType as SupportedDiagramType,
-                index: tabResult.index,
-              }),
-            ).unwrap();
-          }
+          let newModelForTab: any = null;
           if (command.systemSpec && typeof command.systemSpec === 'object') {
             const { ConverterFactory } = await import('../services/converters');
             const converter = ConverterFactory.getConverter(targetDiagramType as any);
-            const convertedModel = converter.convertCompleteSystem(command.systemSpec);
-            await dispatch(updateDiagramModelThunk({ model: convertedModel }));
+            newModelForTab = converter.convertCompleteSystem(command.systemSpec);
           } else if (command.model) {
-            await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+            newModelForTab = command.model;
           }
-          dispatch(bumpEditorRevision());
+
+          await dispatch(
+            addAndSwitchDiagramThunk({
+              diagramType: targetDiagramType as SupportedDiagramType,
+              initialModel: newModelForTab ?? undefined,
+            }),
+          ).unwrap();
           applied = true;
         } catch (tabError) {
           console.error('[useModelInjection] New tab creation/injection failed:', tabError);

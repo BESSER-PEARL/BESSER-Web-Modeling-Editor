@@ -6,7 +6,7 @@ import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../shared/types/project';
+import { isUMLModel, toSupportedDiagramType } from '../../shared/types/project';
 import { loadProjectThunk } from '../../app/store/workspaceSlice';
 
 // Hook to import diagram from image file and API key
@@ -50,6 +50,17 @@ export const useImportDiagramPictureFromImage = () => {
       const data = await response.json();
       if (!data || !data.model || !data.model.type) {
         throw new Error('Invalid diagram returned from backend');
+      }
+
+      // SA-FINAL-3 Task 7: enforce v4 shape on the backend's response.
+      // The image-to-model endpoint returns v4 (`version: "4.0.0"` with
+      // nodes/edges arrays), but a partial / malformed LLM response
+      // could land here and silently corrupt the active project. Reject
+      // upfront so the user sees a toast instead of an empty canvas.
+      if (!isUMLModel(data.model)) {
+        const msg = 'Imported model is not a valid v4 UMLModel (missing nodes/edges arrays).';
+        toast.error(msg);
+        throw new Error(msg);
       }
 
       const currentProject = ProjectStorageRepository.getCurrentProject();

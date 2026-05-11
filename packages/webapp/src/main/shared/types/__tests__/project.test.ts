@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UMLDiagramType, type UMLModel } from '@besser/wme';
 import {
   ALL_DIAGRAM_TYPES,
@@ -14,6 +14,7 @@ import {
   findHiddenReferencedPerspectives,
   isPerspectiveVisible,
   isProject,
+  migrateProjectToV5,
 } from '../project';
 import { PERSPECTIVES, isPresetActive, perspectivesFromDiagramList } from '../../perspectives';
 
@@ -328,5 +329,103 @@ describe('SA-FIX-User retrofitEmptyUserDiagrams', () => {
     const nodes = (migrated.diagrams.UserDiagram[0].model as UMLModel).nodes as any[];
     expect(nodes).toHaveLength(1);
     expect(nodes[0].data.name).toBe('Custom');
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* SA-FINAL-3 Task 3: migrateProjectToV5 atomic schemaVersion                  */
+/* -------------------------------------------------------------------------- */
+
+describe('migrateProjectToV5 atomicity', () => {
+  // Synthetic v3 UMLModel — the migrator dispatches on the type field,
+  // and the wme migrators we DON'T mock will read elements/relationships.
+  const v3Model = (type: string) => ({
+    type,
+    version: '3.0.0',
+    elements: {},
+    relationships: {},
+  });
+
+  const v4Project = (): BesserProject => {
+    // Start from a default project then knock schemaVersion back to 4
+    // and replace one diagram's model with a v3 shape so the migrator
+    // has something to process.
+    const project = createDefaultProject('LegacyV4', '', 'me');
+    project.schemaVersion = 4;
+    return project;
+  };
+
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it('bumps schemaVersion to 5 when every diagram migrates cleanly', () => {
+    const project = v4Project();
+    // Replace the v4 ClassDiagram model with a synthetic v3 shape so the
+    // migrator actually runs. The real wme migrator emits a v4 model.
+    project.diagrams.ClassDiagram[0].model = v3Model('ClassDiagram') as any;
+
+    const result = migrateProjectToV5(project);
+    expect(result.schemaVersion).toBe(5);
+    // The model body should have been replaced (no more elements key).
+    const migratedModel = result.diagrams.ClassDiagram[0].model as any;
+    expect(migratedModel.elements).toBeUndefined();
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op on already-v5 projects (idempotent)', () => {
+    const project = createDefaultProject('AlreadyV5', '', 'me');
+    expect(project.schemaVersion).toBe(5);
+    const before = project.diagrams.ClassDiagram[0].model;
+
+    const result = migrateProjectToV5(project);
+    expect(result.schemaVersion).toBe(5);
+    // Model reference unchanged.
+    expect(result.diagrams.ClassDiagram[0].model).toBe(before);
+  });
+
+  it('leaves schemaVersion at 4 when ANY diagram migration throws', () => {
+    const project = v4Project();
+    // Two v3 diagrams; one is well-formed, one will throw because its
+    // type field is an unknown diagram kind that the migrator rejects.
+    project.diagrams.ClassDiagram[0].model = v3Model('ClassDiagram') as any;
+    project.diagrams.ObjectDiagram[0].model = v3Model('NotARealDiagramType') as any;
+
+    const result = migrateProjectToV5(project);
+    // Partial migration must NOT bump the version — the next launch
+    // retries the broken diagram. This is the SA-FINAL-3 Task 3 fix.
+    expect(result.schemaVersion).toBe(4);
+    // The good diagram still got migrated in-place (best effort).
+    const classModel = result.diagrams.ClassDiagram[0].model as any;
+    expect(classModel.elements).toBeUndefined();
+    // The bad diagram kept its v3 shape so the next load can retry.
+    const objectModel = result.diagrams.ObjectDiagram[0].model as any;
+    expect(objectModel.elements).toBeDefined();
+    // Warning surfaced with the failing diagram's title.
+    expect(warnSpy).toHaveBeenCalled();
+    const warnMessage = warnSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('\n');
+    expect(warnMessage).toContain('Object Diagram');
+  });
+
+  it('skips GUI and Quantum diagrams (their models are not UMLModels)', () => {
+    const project = v4Project();
+    // Leave GUI/quantum models as their natural shape; they should not
+    // trigger any migration attempts.
+    const guiBefore = project.diagrams.GUINoCodeDiagram[0].model;
+    const quantumBefore = project.diagrams.QuantumCircuitDiagram[0].model;
+
+    const result = migrateProjectToV5(project);
+    expect(result.diagrams.GUINoCodeDiagram[0].model).toBe(guiBefore);
+    expect(result.diagrams.QuantumCircuitDiagram[0].model).toBe(quantumBefore);
+    expect(result.schemaVersion).toBe(5);
   });
 });

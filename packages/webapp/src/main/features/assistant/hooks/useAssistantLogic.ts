@@ -24,7 +24,7 @@ import { AssistantClient, type AssistantActionPayload } from '../services';
 import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram, addDiagramThunk, switchDiagramIndexThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
+import { updateDiagramModelThunk, selectActiveDiagram, addAndSwitchDiagramThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
 import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
 import {
   UMLModelingService,
@@ -415,19 +415,16 @@ export function useAssistantLogic({
       try {
         await injection.ensureTargetDiagramReady(diagramType);
 
+        // SA-FINAL-3 Task 4: use the combined add+switch thunk so the
+        // BesserEditor is reinitialized exactly once for a single
+        // user-visible create-tab action (previously add + switch
+        // produced two reinits in a tight render window).
         const title = typeof payload.title === 'string' ? payload.title : undefined;
-        const result = await dispatch(addDiagramThunk({
+        await dispatch(addAndSwitchDiagramThunk({
           diagramType: diagramType as SupportedDiagramType,
           title,
         })).unwrap();
-
-        if (result?.index !== undefined) {
-          await dispatch(switchDiagramIndexThunk({
-            diagramType: diagramType as SupportedDiagramType,
-            index: result.index,
-          })).unwrap();
-          await waitForSwitchRender();
-        }
+        await waitForSwitchRender();
       } catch (error) {
         console.error('[useAssistantLogic] Failed to create diagram tab:', error);
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';

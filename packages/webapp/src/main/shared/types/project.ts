@@ -629,11 +629,19 @@ const retrofitEmptyUserDiagrams = (project: BesserProject): void => {
  * shape migrator from `@besser/wme`. GUI / quantum diagrams are skipped
  * because their models are not UMLModels.
  *
- * On migration failure, log and keep the v3 model in place so users don't
- * lose data. The next launch will retry the migration.
+ * Atomicity (SA-FINAL-3 Task 3 fix): `schemaVersion` is only stamped to 5
+ * when EVERY diagram migration succeeds. If any diagram throws, the v3
+ * model is left in place AND `schemaVersion` is left unchanged so the
+ * next load retries — honouring the previous "next launch will retry"
+ * promise that the unconditional bump was silently breaking.
+ *
+ * Failing diagrams are surfaced via `console.warn` with the title and
+ * error so operators can spot the bad data in the browser console.
  */
 export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
   if (project.schemaVersion >= 5) return project;
+
+  let allSucceeded = true;
 
   for (const type of ALL_DIAGRAM_TYPES) {
     if (type === 'GUINoCodeDiagram' || type === 'QuantumCircuitDiagram') continue;
@@ -643,14 +651,21 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
         try {
           d.model = migrateUMLModelV3ToV4(d.model, type);
         } catch (err) {
-          // Keep v3 model in place on failure; will retry next launch
+          // Keep v3 model in place on failure.
+          allSucceeded = false;
           // eslint-disable-next-line no-console
-          console.error('[migrateProjectToV5] Failed to migrate diagram', d.id, type, err);
+          console.warn(
+            `[migrateProjectToV5] Failed to migrate diagram "${d.title}" (${type}, id=${d.id}); schemaVersion will not be bumped so the next load retries.`,
+            err,
+          );
         }
       }
     }
   }
-  project.schemaVersion = 5;
+
+  if (allSucceeded) {
+    project.schemaVersion = 5;
+  }
   return project;
 };
 
