@@ -104,28 +104,29 @@ function App({ onReactFlowInit }: AppProps) {
     [onReactFlowInit]
   )
 
-  // Auto fit-view whenever the diagram id changes (template / project load).
-  // The `onInit` fitView only fires on first mount; loading a stored model
-  // afterwards repopulates `nodes` but leaves the viewport at its previous
-  // position — which is empty for newly-opened templates, so the user
-  // landed on a blank pane and had to pan to find the content. Re-fit on
-  // every diagram swap so the canvas always frames the loaded nodes.
+  // Auto fit-view once per diagram: when the model finishes loading and
+  // `nodes` first transitions from empty to non-empty for the current
+  // diagram id, frame the loaded content. Without this the viewport sits
+  // at the React-Flow default (0,0) position and the user lands on a
+  // blank pane when opening a template / project.
+  const fittedDiagramIdRef = useRef<string | undefined>(undefined)
   useEffect(() => {
+    if (fittedDiagramIdRef.current === diagramId) return
+    if (nodes.length === 0) return
     const instance = reactFlowInstanceRef.current
     if (!instance) return
-    if (nodes.length === 0) return
-    // Wait a tick so React Flow has the latest node measurements before
-    // computing the bounds.
+    fittedDiagramIdRef.current = diagramId
+    // Defer one frame so React Flow has measured the new nodes before
+    // computing bounds.
     const t = setTimeout(() => {
       try {
-        instance.fitView({ maxZoom: 1.0, minZoom: 0.4, duration: 0 })
+        instance.fitView({ maxZoom: 1.0, minZoom: 0.4, duration: 0, padding: 0.15 })
       } catch {
         /* fitView can throw if the instance was torn down mid-flight */
       }
-    }, 50)
+    }, 60)
     return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diagramId])
+  }, [diagramId, nodes.length])
 
   return (
     <div
