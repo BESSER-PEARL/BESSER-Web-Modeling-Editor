@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormField } from '@/components/ui/form-field';
-import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig } from '../hooks/useGenerateCode';
+import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig, SupabaseConfig } from '../hooks/useGenerateCode';
 import type { ConfigDialog } from '../generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../shared/constants/constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../shared/services/storage/local-storage-types';
@@ -57,6 +57,9 @@ interface GeneratorConfigDialogsProps {
   // ── SQL ──────────────────────────────────────────────────────────────────
   sqlDialect: SQLConfig['dialect'];
 
+  // ── Supabase ─────────────────────────────────────────────────────────────
+  supabaseUserRoot: string;
+
   // ── SQLAlchemy ───────────────────────────────────────────────────────────
   sqlAlchemyDbms: SQLAlchemyConfig['dbms'];
 
@@ -96,6 +99,7 @@ interface GeneratorConfigDialogsProps {
   onDjangoAppNameChange: (value: string) => void;
   onUseDockerChange: (value: boolean) => void;
   onSqlDialectChange: (value: SQLConfig['dialect']) => void;
+  onSupabaseUserRootChange: (value: string) => void;
   onSqlAlchemyDbmsChange: (value: SQLAlchemyConfig['dbms']) => void;
   onJsonSchemaModeChange: (value: JSONSchemaConfig['mode']) => void;
   onSourceLanguageChange: (value: string) => void;
@@ -117,6 +121,7 @@ interface GeneratorConfigDialogsProps {
   onDjangoGenerate: () => void;
   onDjangoDeploy: () => void;
   onSqlGenerate: () => void;
+  onSupabaseGenerate: () => void;
   onSqlAlchemyGenerate: () => void;
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
@@ -136,6 +141,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   djangoAppName,
   useDocker,
   sqlDialect,
+  supabaseUserRoot,
   sqlAlchemyDbms,
   jsonSchemaMode,
   sourceLanguage,
@@ -155,6 +161,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onDjangoAppNameChange,
   onUseDockerChange,
   onSqlDialectChange,
+  onSupabaseUserRootChange,
   onSqlAlchemyDbmsChange,
   onJsonSchemaModeChange,
   onSourceLanguageChange,
@@ -170,6 +177,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onDjangoGenerate,
   onDjangoDeploy,
   onSqlGenerate,
+  onSupabaseGenerate,
   onSqlAlchemyGenerate,
   onJsonSchemaGenerate,
   onAgentGenerate,
@@ -326,6 +334,37 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               Cancel
             </Button>
             <Button onClick={onSqlGenerate}>Generate</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={configDialog === 'supabase'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supabase Configuration</DialogTitle>
+            <DialogDescription>
+              Generates Postgres DDL with UUID PKs, <code>auth.users</code> mirroring, and Row Level Security.
+              Specify which class in your diagram maps to <code>auth.users</code>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="supabase-user-root">User-root class name</Label>
+            <Input
+              id="supabase-user-root"
+              value={supabaseUserRoot}
+              onChange={(event) => onSupabaseUserRootChange(event.target.value)}
+              placeholder="User"
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank to skip auth integration (no <code>auth.users</code> mirror, no RLS).
+              Default: <code>User</code>.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+              Cancel
+            </Button>
+            <Button onClick={onSupabaseGenerate}>Generate</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

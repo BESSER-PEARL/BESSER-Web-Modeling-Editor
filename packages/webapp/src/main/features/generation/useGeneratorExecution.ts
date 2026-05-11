@@ -27,6 +27,7 @@ import {
   useGenerateCode,
   DjangoConfig,
   SQLConfig,
+  SupabaseConfig,
   SQLAlchemyConfig,
   JSONSchemaConfig,
   AgentConfig,
@@ -359,6 +360,10 @@ export interface GeneratorConfigState {
   // ── SQL ──────────────────────────────────────────────────────────────────
   sqlDialect: SQLConfig['dialect'];
 
+  // ── Supabase ─────────────────────────────────────────────────────────────
+  /** Class name that maps to auth.users (default: "User"). Empty = no auth. */
+  supabaseUserRoot: string;
+
   // ── SQLAlchemy ───────────────────────────────────────────────────────────
   sqlAlchemyDbms: SQLAlchemyConfig['dbms'];
 
@@ -398,6 +403,7 @@ export interface GeneratorConfigState {
   onDjangoAppNameChange: (v: string) => void;
   onUseDockerChange: (v: boolean) => void;
   onSqlDialectChange: (v: SQLConfig['dialect']) => void;
+  onSupabaseUserRootChange: (v: string) => void;
   onSqlAlchemyDbmsChange: (v: SQLAlchemyConfig['dbms']) => void;
   onJsonSchemaModeChange: (v: JSONSchemaConfig['mode']) => void;
   onSourceLanguageChange: (v: string) => void;
@@ -419,6 +425,7 @@ export interface GeneratorConfigState {
   onDjangoGenerate: () => void;
   onDjangoDeploy: () => void;
   onSqlGenerate: () => void;
+  onSupabaseGenerate: () => void;
   onSqlAlchemyGenerate: () => void;
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
@@ -477,6 +484,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [djangoAppName, setDjangoAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
   const [sqlDialect, setSqlDialect] = useState<SQLConfig['dialect']>('sqlite');
+  const [supabaseUserRoot, setSupabaseUserRoot] = useState<string>('User');
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<SQLAlchemyConfig['dbms']>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<JSONSchemaConfig['mode']>('regular');
   const [sourceLanguage, setSourceLanguage] = useState('none');
@@ -717,6 +725,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           case 'sql':
             result = await generateCode(editor, 'sql', activeDiagramTitle, config as SQLConfig);
             break;
+          case 'supabase':
+            result = await generateCode(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
+            break;
           case 'sqlalchemy':
             result = await generateCode(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
             break;
@@ -879,6 +890,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     setConfigDialog('none');
   }, [sqlDialect, executeGenerator]);
 
+  const handleSupabaseGenerate = useCallback(async () => {
+    await executeGenerator('supabase', { user_root: supabaseUserRoot.trim() } as SupabaseConfig);
+    setConfigDialog('none');
+  }, [supabaseUserRoot, executeGenerator]);
+
   const handleSqlAlchemyGenerate = useCallback(async () => {
     await executeGenerator('sqlalchemy', { dbms: sqlAlchemyDbms } as SQLAlchemyConfig);
     setConfigDialog('none');
@@ -1034,6 +1050,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     djangoAppName,
     useDocker,
     sqlDialect,
+    supabaseUserRoot,
     sqlAlchemyDbms,
     jsonSchemaMode,
     sourceLanguage,
@@ -1054,6 +1071,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
     onSqlDialectChange: setSqlDialect,
+    onSupabaseUserRootChange: setSupabaseUserRoot,
     onSqlAlchemyDbmsChange: setSqlAlchemyDbms,
     onJsonSchemaModeChange: setJsonSchemaMode,
     onSourceLanguageChange: setSourceLanguage,
@@ -1068,6 +1086,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError('Django generation')); },
     onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError('Django deployment')); },
     onSqlGenerate: () => { handleSqlGenerate().catch(notifyError('SQL generation')); },
+    onSupabaseGenerate: () => { handleSupabaseGenerate().catch(notifyError('Supabase generation')); },
     onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(notifyError('SQLAlchemy generation')); },
     onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(notifyError('JSON Schema generation')); },
     onAgentGenerate: () => { handleAgentGenerate().catch(notifyError('Agent generation')); },
