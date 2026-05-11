@@ -16,6 +16,7 @@ import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
 import { SwapHorizIcon } from "@/components/Icon"
 import { erCardinalityToUML } from "@/utils/multiplicity"
+import { InspectorSectionHeader } from "../_shared"
 
 /**
  * SA-2.1 ClassEdgeEditPanel — single inspector body bound to all nine
@@ -191,11 +192,10 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       {!isInheritance && (
         <>
           <DividerLine width="100%" />
-          <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-            Source — {sourceName}
-          </Typography>
+          {/* SA-FINAL-3 #10: shared section header; #6: caption col 80 → 70. */}
+          <InspectorSectionHeader>Source — {sourceName}</InspectorSectionHeader>
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="caption" sx={{ minWidth: 80 }}>
+            <Typography variant="caption" sx={{ minWidth: 70 }}>
               multiplicity
             </Typography>
             <MuiTextField
@@ -216,7 +216,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             />
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="caption" sx={{ minWidth: 80 }}>
+            <Typography variant="caption" sx={{ minWidth: 70 }}>
               role
             </Typography>
             <MuiTextField
@@ -229,11 +229,9 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           </Stack>
 
           <DividerLine width="100%" />
-          <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-            Target — {targetName}
-          </Typography>
+          <InspectorSectionHeader>Target — {targetName}</InspectorSectionHeader>
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="caption" sx={{ minWidth: 80 }}>
+            <Typography variant="caption" sx={{ minWidth: 70 }}>
               multiplicity
             </Typography>
             <MuiTextField
@@ -253,7 +251,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             />
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="caption" sx={{ minWidth: 80 }}>
+            <Typography variant="caption" sx={{ minWidth: 70 }}>
               role
             </Typography>
             <MuiTextField

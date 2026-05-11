@@ -7,6 +7,7 @@ import { useDiagramStore } from "@/store/context"
 import { StateCodeBlockProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { InspectorSectionHeader } from "../_shared"
 
 /**
  * SA-3 inspector body for `StateCodeBlock`. The body is a multi-line
@@ -74,7 +75,7 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
       </Stack>
 
       <Stack spacing={0.5}>
-        <Typography variant="caption">code</Typography>
+        <InspectorSectionHeader>code</InspectorSectionHeader>
         <Box
           sx={{
             border: "1px solid var(--besser-gray, #ccc)",

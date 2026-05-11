@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   IconButton,
   Stack,
   TextField as MuiTextField,
@@ -12,6 +11,7 @@ import { AgentIntentNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { DeleteIcon } from "@/components/Icon"
+import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
  * SA-UX-FIX-2 (B1) — consolidated parent-intent inspector.
@@ -169,7 +169,7 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
 
       <DividerLine width="100%" />
-      <Typography variant="caption">description</Typography>
+      <InspectorSectionHeader>description</InspectorSectionHeader>
       <MuiTextField
         size="small"
         variant="outlined"
@@ -187,14 +187,8 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         alignItems="center"
         justifyContent="space-between"
       >
-        <Typography variant="caption">training phrases</Typography>
-        <Button
-          size="small"
-          variant="text"
-          onClick={addPhrase}
-        >
-          + add
-        </Button>
+        <InspectorSectionHeader>training phrases</InspectorSectionHeader>
+        <AddRowButton onClick={addPhrase} />
       </Stack>
       {trainingPhrases.length === 0 ? (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
@@ -228,14 +222,8 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         alignItems="center"
         justifyContent="space-between"
       >
-        <Typography variant="caption">entity slots</Typography>
-        <Button
-          size="small"
-          variant="text"
-          onClick={addObjectComponent}
-        >
-          + add
-        </Button>
+        <InspectorSectionHeader>entity slots</InspectorSectionHeader>
+        <AddRowButton onClick={addObjectComponent} />
       </Stack>
       {objectComponents.length === 0 ? (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>

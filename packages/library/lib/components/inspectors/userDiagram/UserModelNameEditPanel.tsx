@@ -1,4 +1,7 @@
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   IconButton,
   MenuItem,
@@ -25,6 +28,7 @@ import {
   getUserMetaModelV4,
   type UserMetaModelClass,
 } from "@/services/userMetaModel"
+import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
  * SA-FIX-USER-COMPLETE inspector body for `UserModelName`. Full v3 port.
@@ -220,7 +224,8 @@ const AttrRow: React.FC<AttrRowProps> = ({
             onChange={(e) =>
               onPatch({ attributeType: normalizeType(String(e.target.value)) })
             }
-            sx={{ minWidth: 110 }}
+            // SA-FINAL-3 #6: type column width 110 → 80 (v3 width).
+            sx={{ minWidth: 80 }}
           >
             {PRIMITIVE_TYPES.map((p) => (
               <MenuItem key={p.value} value={p.value}>
@@ -512,16 +517,43 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         </Select>
       </Stack>
 
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        multiline
-        minRows={2}
-        label="description"
-        value={data.description ?? ""}
-        onChange={(e) => update({ description: e.target.value })}
-      />
+      {/* SA-FINAL-3 #7 — description collapsed behind a Metadata
+          Accordion so the panel doesn't burn vertical real estate when
+          the field is empty (matches v3 `StylePane` placement). */}
+      <Accordion
+        defaultExpanded={!!data.description}
+        disableGutters
+        elevation={0}
+        sx={{
+          background: "transparent",
+          "&:before": { display: "none" },
+          border: "1px solid var(--besser-gray, #e9ecef)",
+          borderRadius: 1,
+        }}
+      >
+        <AccordionSummary
+          sx={{
+            minHeight: 32,
+            "& .MuiAccordionSummary-content": { margin: "4px 0" },
+          }}
+        >
+          <InspectorSectionHeader>Metadata</InspectorSectionHeader>
+        </AccordionSummary>
+        <AccordionDetails
+          sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0 }}
+        >
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            multiline
+            minRows={2}
+            label="description"
+            value={data.description ?? ""}
+            onChange={(e) => update({ description: e.target.value })}
+          />
+        </AccordionDetails>
+      </Accordion>
 
       <DividerLine width="100%" />
       <Stack
@@ -529,14 +561,8 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         alignItems="center"
         justifyContent="space-between"
       >
-        <Typography variant="caption">attributes</Typography>
-        <Typography
-          variant="caption"
-          sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
-          onClick={addAttribute}
-        >
-          + add
-        </Typography>
+        <InspectorSectionHeader>attributes</InspectorSectionHeader>
+        <AddRowButton onClick={addAttribute} />
       </Stack>
       {data.attributes.map((row, idx) => (
         <AttrRow

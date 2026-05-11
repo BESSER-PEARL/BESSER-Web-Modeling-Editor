@@ -1,4 +1,7 @@
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Checkbox,
   FormControlLabel,
@@ -32,6 +35,95 @@ import {
 } from "@/utils/typeNormalization"
 import { generateUUID } from "@/utils"
 import { diagramBridge } from "@/services/diagramBridge"
+import { InspectorSectionHeader, AddRowButton } from "../_shared"
+
+/**
+ * SA-FINAL-3 #3 — tiny up/down arrow glyphs used by the row reorder
+ * gutter. Inline SVG (matches the rest of `@/components/Icon`) so we
+ * don't need a new icon-pack dependency.
+ */
+const ArrowUpSvg: React.FC<{ width?: number; height?: number }> = ({
+  width = 14,
+  height = 14,
+}) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 -960 960 960"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M440-160v-487L216-423l-56-57 320-320 320 320-56 57-224-224v487h-80Z" />
+  </svg>
+)
+
+const ArrowDownSvg: React.FC<{ width?: number; height?: number }> = ({
+  width = 14,
+  height = 14,
+}) => (
+  <svg
+    width={width}
+    height={height}
+    viewBox="0 -960 960 960"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M480-160 160-480l56-57 224 224v-487h80v487l224-224 56 57-320 320Z" />
+  </svg>
+)
+
+/**
+ * SA-FINAL-3 #3 — left-gutter reorder controls for the attribute /
+ * method rows. Mirrors v3 `uml-classifier-update.tsx:64-91, 254-274`.
+ * Up-button hides on the first row, down-button hides on the last row.
+ */
+interface ReorderGutterProps {
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+}
+
+const ReorderGutter: React.FC<ReorderGutterProps> = ({
+  onMoveUp,
+  onMoveDown,
+}) => (
+  <Stack
+    direction="column"
+    spacing={0}
+    sx={{
+      width: 18,
+      flexShrink: 0,
+      alignSelf: "stretch",
+      justifyContent: "center",
+    }}
+  >
+    {onMoveUp ? (
+      <Tooltip title="Move row up">
+        <IconButton
+          size="small"
+          onClick={onMoveUp}
+          sx={{ padding: "1px" }}
+          aria-label="Move row up"
+        >
+          <ArrowUpSvg />
+        </IconButton>
+      </Tooltip>
+    ) : (
+      <Box sx={{ height: 18 }} />
+    )}
+    {onMoveDown ? (
+      <Tooltip title="Move row down">
+        <IconButton
+          size="small"
+          onClick={onMoveDown}
+          sx={{ padding: "1px" }}
+          aria-label="Move row down"
+        >
+          <ArrowDownSvg />
+        </IconButton>
+      </Tooltip>
+    ) : (
+      <Box sx={{ height: 18 }} />
+    )}
+  </Stack>
+)
 
 /**
  * SA-2.1 helper: collect sibling Enumerations from the bridge data so the
@@ -135,6 +227,9 @@ interface AttributeRowProps {
   enumerationNames: string[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
+  /** SA-FINAL-3 #3 reorder gutter callbacks; undefined hides the button. */
+  onMoveUp?: () => void
+  onMoveDown?: () => void
   /**
    * SA-FIX-CRITICAL-2 #2: when the parent class is an Enumeration the
    * row is a literal — hide the visibility dropdown and the type
@@ -149,6 +244,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   enumerationNames,
   onPatch,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   isEnumerationParent = false,
 }) => {
   const visibility = row.visibility ?? "public"
@@ -194,8 +291,12 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
+        {/* SA-FINAL-3 #3 reorder gutter (mirrors v3
+            `uml-classifier-update.tsx:64-91`). */}
+        <ReorderGutter onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
         {/* SA-FIX-CRITICAL-2 #2: hide visibility dropdown for Enumeration
-            literals — they're just names, no UML access modifier. */}
+            literals — they're just names, no UML access modifier.
+            SA-FINAL-3 #6: visibility column width 70 → 44 (v3 width). */}
         {!isEnumerationParent && (
           <Select
             size="small"
@@ -203,7 +304,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             onChange={(e) =>
               onPatch({ visibility: e.target.value as ClassifierVisibility })
             }
-            sx={{ minWidth: 70 }}
+            sx={{ minWidth: 44 }}
           >
             {VISIBILITIES.map((v) => (
               <MenuItem key={v.value} value={v.value}>
@@ -225,13 +326,14 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           }
         />
         {/* SA-FIX-CRITICAL-2 #2: hide type dropdown for Enumeration
-            literals — they don't carry an attribute type. */}
+            literals — they don't carry an attribute type.
+            SA-FINAL-3 #6: type column width 110 → 80 (v3 width). */}
         {!isEnumerationParent && (
           <Select
             size="small"
             value={isCustom ? CUSTOM_TYPE_SENTINEL : attributeType}
             onChange={(e) => handleTypeSelect(String(e.target.value))}
-            sx={{ minWidth: 110 }}
+            sx={{ minWidth: 80 }}
           >
             {PRIMITIVE_TYPES.map((p) => (
               <MenuItem key={p.value} value={p.value}>
@@ -391,6 +493,9 @@ interface MethodRowProps {
   quantumCircuits: { id: string; name: string }[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
+  /** SA-FINAL-3 #3 reorder gutter callbacks; undefined hides the button. */
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }
 
 const MethodRow: React.FC<MethodRowProps> = ({
@@ -400,6 +505,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
   quantumCircuits,
   onPatch,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }) => {
   const visibility = row.visibility ?? "public"
   const returnType = row.returnType ?? row.attributeType ?? "any"
@@ -446,13 +553,15 @@ const MethodRow: React.FC<MethodRowProps> = ({
       }}
     >
       <Stack direction="row" spacing={0.5} alignItems="center">
+        {/* SA-FINAL-3 #3 reorder gutter. */}
+        <ReorderGutter onMoveUp={onMoveUp} onMoveDown={onMoveDown} />
         <Select
           size="small"
           value={visibility}
           onChange={(e) =>
             onPatch({ visibility: e.target.value as ClassifierVisibility })
           }
-          sx={{ minWidth: 70 }}
+          sx={{ minWidth: 44 }}
         >
           {VISIBILITIES.map((v) => (
             <MenuItem key={v.value} value={v.value}>
@@ -494,7 +603,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
         </Tooltip>
       </Stack>
 
-      {/* Return-type dropdown — same options as attribute type. */}
+      {/* Return-type dropdown — same options as attribute type.
+          SA-FINAL-3 #6: type column width 110 → 80 (v3 width). */}
       <Stack direction="row" spacing={0.5} alignItems="center">
         <Typography variant="caption" sx={{ minWidth: 70 }}>
           returns
@@ -503,7 +613,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
           size="small"
           value={isCustomReturn ? CUSTOM_TYPE_SENTINEL : returnType}
           onChange={(e) => handleReturnSelect(String(e.target.value))}
-          sx={{ minWidth: 110 }}
+          sx={{ minWidth: 80 }}
         >
           {PRIMITIVE_TYPES.map((p) => (
             <MenuItem key={p.value} value={p.value}>
@@ -848,6 +958,24 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     return `${base}${max + 1}`
   }
 
+  /**
+   * SA-FINAL-3 #3 — swap two attribute rows in place. Mirrors v3's
+   * `ReorderControls` action at `uml-classifier-update.tsx:64-91`.
+   */
+  const moveAttribute = (attrId: string, direction: "up" | "down") => {
+    updateNode((d) => {
+      const idx = d.attributes.findIndex((a) => a.id === attrId)
+      if (idx < 0) return d
+      const swap = direction === "up" ? idx - 1 : idx + 1
+      if (swap < 0 || swap >= d.attributes.length) return d
+      const next = [...d.attributes]
+      const tmp = next[idx]
+      next[idx] = next[swap]
+      next[swap] = tmp
+      return { ...d, attributes: next }
+    })
+  }
+
   const addAttribute = (rawName: string) => {
     const sanitised = rawName.trim().replace(/[^a-zA-Z0-9_]/g, "")
     const data = (nodes.find((n) => n.id === elementId)?.data ??
@@ -903,6 +1031,24 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         }
       })
     )
+  }
+
+  /**
+   * SA-FINAL-3 #3 — swap two method rows in place. Mirrors v3's
+   * `ReorderControls` action at `uml-classifier-update.tsx:254-274`.
+   */
+  const moveMethod = (methodId: string, direction: "up" | "down") => {
+    updateNode((d) => {
+      const idx = d.methods.findIndex((m) => m.id === methodId)
+      if (idx < 0) return d
+      const swap = direction === "up" ? idx - 1 : idx + 1
+      if (swap < 0 || swap >= d.methods.length) return d
+      const next = [...d.methods]
+      const tmp = next[idx]
+      next[idx] = next[swap]
+      next[swap] = tmp
+      return { ...d, methods: next }
+    })
   }
 
   const addMethod = (rawName: string) => {
@@ -983,51 +1129,82 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
       <DividerLine width="100%" />
 
-      {/* SA-FINAL C4: Metadata fields (description / uri / icon) — mirror v3
-          `uml-classifier-update.tsx` `StylePane`. Stored on `data.description`,
-          `data.uri`, `data.icon`; round-tripped by `convertV4ToV3Class`. */}
-      <Typography variant="h6">Metadata</Typography>
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        multiline
-        minRows={2}
-        placeholder="description"
-        value={nodeData.description ?? ""}
-        onChange={(e) =>
-          updateNode((d) => ({ ...d, description: e.target.value }))
+      {/* SA-FINAL C4 + SA-FINAL-3 #7: Metadata fields (description /
+          uri / icon) — mirror v3 `uml-classifier-update.tsx` `StylePane`.
+          Stored on `data.description`, `data.uri`, `data.icon`;
+          round-tripped by `convertV4ToV3Class`. Collapsed behind an
+          Accordion when all three are empty so the panel doesn't burn
+          ~120 px of vertical space on fields most authors leave blank. */}
+      <Accordion
+        defaultExpanded={
+          !!nodeData.description || !!nodeData.uri || !!nodeData.icon
         }
-      />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        placeholder="uri (e.g. https://example.com/MyClass)"
-        value={nodeData.uri ?? ""}
-        onChange={(e) => updateNode((d) => ({ ...d, uri: e.target.value }))}
-      />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        placeholder="icon (svg body or url)"
-        value={nodeData.icon ?? ""}
-        onChange={(e) => updateNode((d) => ({ ...d, icon: e.target.value }))}
-      />
+        disableGutters
+        elevation={0}
+        sx={{
+          background: "transparent",
+          "&:before": { display: "none" },
+          border: "1px solid var(--besser-gray, #e9ecef)",
+          borderRadius: 1,
+        }}
+      >
+        <AccordionSummary
+          sx={{
+            minHeight: 32,
+            "& .MuiAccordionSummary-content": { margin: "4px 0" },
+          }}
+        >
+          <InspectorSectionHeader>Metadata</InspectorSectionHeader>
+        </AccordionSummary>
+        <AccordionDetails
+          sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0 }}
+        >
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            multiline
+            minRows={2}
+            placeholder="description"
+            value={nodeData.description ?? ""}
+            onChange={(e) =>
+              updateNode((d) => ({ ...d, description: e.target.value }))
+            }
+          />
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            placeholder="uri (e.g. https://example.com/MyClass)"
+            value={nodeData.uri ?? ""}
+            onChange={(e) => updateNode((d) => ({ ...d, uri: e.target.value }))}
+          />
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            placeholder="icon (svg body or url)"
+            value={nodeData.icon ?? ""}
+            onChange={(e) =>
+              updateNode((d) => ({ ...d, icon: e.target.value }))
+            }
+          />
+        </AccordionDetails>
+      </Accordion>
       <DividerLine width="100%" />
 
       <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="h6">Attributes</Typography>
-        {/* SA-FIX-CLASS-FUND #10: explicit + button auto-names the new
-            row as `attribute1`, `attribute2`, … */}
-        <Tooltip title="Add attribute">
-          <IconButton size="small" onClick={() => addAttribute("")}>
-            <Typography variant="caption">+</Typography>
-          </IconButton>
-        </Tooltip>
+        <InspectorSectionHeader>Attributes</InspectorSectionHeader>
+        {/* SA-FINAL-3 #5 + #11 — single `+ add attribute` text-link
+            replaces the previous IconButton-with-glyph + duplicate
+            inline `+ Add attribute (Enter)` textfield combo. The
+            inline textfield is kept below for keyboard add. */}
+        <AddRowButton
+          label="add attribute"
+          onClick={() => addAttribute("")}
+        />
       </Stack>
-      {nodeData.attributes.map((row) => (
+      {nodeData.attributes.map((row, idx) => (
         <AttributeRow
           key={row.id}
           row={row}
@@ -1035,6 +1212,14 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           enumerationNames={enumerationNames}
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
+          onMoveUp={
+            idx > 0 ? () => moveAttribute(row.id, "up") : undefined
+          }
+          onMoveDown={
+            idx < nodeData.attributes.length - 1
+              ? () => moveAttribute(row.id, "down")
+              : undefined
+          }
           /* SA-FIX-CRITICAL-2 #2: hide visibility + type columns for
              Enumeration literals. */
           isEnumerationParent={nodeData.stereotype === "Enumeration"}
@@ -1067,16 +1252,14 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             alignItems="center"
             justifyContent="space-between"
           >
-            <Typography variant="h6">Methods</Typography>
-            {/* SA-FIX-CLASS-FUND #10: + button auto-names new method
-                as `method1`, `method2`, … */}
-            <Tooltip title="Add method">
-              <IconButton size="small" onClick={() => addMethod("")}>
-                <Typography variant="caption">+</Typography>
-              </IconButton>
-            </Tooltip>
+            <InspectorSectionHeader>Methods</InspectorSectionHeader>
+            {/* SA-FINAL-3 #5 + #11 — unified `+ add method` text-link. */}
+            <AddRowButton
+              label="add method"
+              onClick={() => addMethod("")}
+            />
           </Stack>
-          {nodeData.methods.map((row) => (
+          {nodeData.methods.map((row, idx) => (
             <MethodRow
               key={row.id}
               row={row}
@@ -1085,6 +1268,14 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               quantumCircuits={quantumCircuitDiagrams}
               onPatch={(patch) => patchMethod(row.id, patch)}
               onDelete={() => deleteMethod(row.id)}
+              onMoveUp={
+                idx > 0 ? () => moveMethod(row.id, "up") : undefined
+              }
+              onMoveDown={
+                idx < nodeData.methods.length - 1
+                  ? () => moveMethod(row.id, "down")
+                  : undefined
+              }
             />
           ))}
           <MuiTextField

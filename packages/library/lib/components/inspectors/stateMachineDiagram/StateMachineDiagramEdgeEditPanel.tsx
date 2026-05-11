@@ -10,10 +10,11 @@ import CodeMirror from "@uiw/react-codemirror"
 import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
-import { DividerLine, EdgeStyleEditor, Typography } from "@/components/ui"
+import { DividerLine, EdgeStyleEditor } from "@/components/ui"
 import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
+import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
  * SA-3 inspector body for `StateTransition` edges. Editable fields:
@@ -151,7 +152,7 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
 
       {/* SA-FIX-State PC-5 #2: CodeMirror Python editor for `code`. */}
       <Stack spacing={0.5}>
-        <Typography variant="caption">code</Typography>
+        <InspectorSectionHeader>code</InspectorSectionHeader>
         <Box
           sx={{
             border: "1px solid var(--besser-gray, #ccc)",
@@ -179,14 +180,8 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         alignItems="center"
         justifyContent="space-between"
       >
-        <Typography variant="caption">parameters</Typography>
-        <Typography
-          variant="caption"
-          sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
-          onClick={addParam}
-        >
-          + add
-        </Typography>
+        <InspectorSectionHeader>parameters</InspectorSectionHeader>
+        <AddRowButton onClick={addParam} />
       </Stack>
       {Object.keys(params)
         .sort((a, b) => Number(a) - Number(b))

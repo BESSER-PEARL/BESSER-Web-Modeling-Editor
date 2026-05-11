@@ -18,6 +18,7 @@ import { DividerLine, EdgeStyleEditor, Typography } from "@/components/ui"
 import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
+import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
  * SA-4 / SA-2.2 inspector body for the `AgentStateTransition` edge.
@@ -300,7 +301,8 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
       {mode === "predefined" ? (
         <>
           <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Typography variant="caption" sx={{ minWidth: 90 }}>
+            {/* SA-FINAL-3 #6: caption col 90 → 70 for sibling consistency. */}
+            <Typography variant="caption" sx={{ minWidth: 70 }}>
               predefinedType
             </Typography>
             <Select
@@ -325,7 +327,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
           {predefined.predefinedType === "when_intent_matched" ? (
             intentNames.length > 0 ? (
               <Stack direction="row" alignItems="center" spacing={0.5}>
-                <Typography variant="caption" sx={{ minWidth: 90 }}>
+                <Typography variant="caption" sx={{ minWidth: 70 }}>
                   intentName
                 </Typography>
                 <Select
@@ -361,7 +363,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
           {/* SA-2.2 #24 — fileType dropdown (PDF / TXT / JSON). */}
           {predefined.predefinedType === "when_file_received" ? (
             <Stack direction="row" alignItems="center" spacing={0.5}>
-              <Typography variant="caption" sx={{ minWidth: 90 }}>
+              <Typography variant="caption" sx={{ minWidth: 70 }}>
                 fileType
               </Typography>
               <Select
@@ -444,14 +446,8 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
             alignItems="center"
             justifyContent="space-between"
           >
-            <Typography variant="caption">conditions</Typography>
-            <Typography
-              variant="caption"
-              sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
-              onClick={addCondition}
-            >
-              + add
-            </Typography>
+            <InspectorSectionHeader>conditions</InspectorSectionHeader>
+            <AddRowButton onClick={addCondition} />
           </Stack>
           {(custom.condition ?? []).map((c, idx) => (
             <Stack
@@ -502,14 +498,8 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         alignItems="center"
         justifyContent="space-between"
       >
-        <Typography variant="caption">parameters</Typography>
-        <Typography
-          variant="caption"
-          sx={{ cursor: "pointer", color: "var(--besser-primary)" }}
-          onClick={addParam}
-        >
-          + add
-        </Typography>
+        <InspectorSectionHeader>parameters</InspectorSectionHeader>
+        <AddRowButton onClick={addParam} />
       </Stack>
       {Object.keys(params)
         .sort((a, b) => Number(a) - Number(b))

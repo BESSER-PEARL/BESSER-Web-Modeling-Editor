@@ -28,6 +28,7 @@ import {
 import { DeleteIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
 import { RagDbFields } from "./RagDbFields"
+import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
  * SA-FIX-Agent — full AgentState body editor.
@@ -291,17 +292,12 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               </IconButton>
             </Stack>
           ))}
-          <Typography
-            variant="caption"
-            sx={{
-              cursor: "pointer",
-              color: "var(--besser-primary)",
-              alignSelf: "flex-start",
-            }}
-            onClick={() => addRow(section, { name: "", replyType: "text" })}
-          >
-            + add text body
-          </Typography>
+          <Box sx={{ alignSelf: "flex-start" }}>
+            <AddRowButton
+              label="add text body"
+              onClick={() => addRow(section, { name: "", replyType: "text" })}
+            />
+          </Box>
         </Box>
       )
     }
@@ -494,9 +490,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <DividerLine width="100%" />
 
-      <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-        Agent Action
-      </Typography>
+      <InspectorSectionHeader>Agent Action</InspectorSectionHeader>
       <RadioGroup
         value={getActiveMode("main")}
         onChange={(_, value) => setMode("main", value as ReplyMode)}
@@ -515,9 +509,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <DividerLine width="100%" />
 
-      <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-        Agent Fallback Action
-      </Typography>
+      <InspectorSectionHeader>Agent Fallback Action</InspectorSectionHeader>
       <RadioGroup
         value={getActiveMode("fallback")}
         onChange={(_, value) => setMode("fallback", value as ReplyMode)}

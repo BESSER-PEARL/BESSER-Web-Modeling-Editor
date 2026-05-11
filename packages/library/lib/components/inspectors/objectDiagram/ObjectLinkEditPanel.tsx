@@ -153,7 +153,8 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       />
 
       <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Typography variant="caption" sx={{ minWidth: 80 }}>
+        {/* SA-FINAL-3 #6: caption col 80 → 70 for sibling consistency. */}
+        <Typography variant="caption" sx={{ minWidth: 70 }}>
           association
         </Typography>
         <Select

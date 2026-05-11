@@ -13,6 +13,7 @@ import { StateMarkerNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { DeleteIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
+import { InspectorSectionHeader } from "../_shared"
 
 /**
  * SA-FIX-State (PC-6 #3) — inline decisions editor for `StateMergeNode`.
@@ -113,7 +114,7 @@ export const StateMergeNodeEditPanel: React.FC<PopoverProps> = ({
       />
 
       <DividerLine width="100%" />
-      <Typography variant="caption">decisions</Typography>
+      <InspectorSectionHeader>decisions</InspectorSectionHeader>
       {outgoingEdges.length === 0 && (
         <Typography variant="caption" sx={{ color: "var(--besser-gray, #888)" }}>
           No outgoing transitions yet.

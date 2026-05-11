@@ -4,6 +4,7 @@ import {
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField as MuiTextField,
   Tooltip,
   Typography as MuiTypography,
@@ -17,36 +18,149 @@ import { DeleteIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
 import { generateUUID } from "@/utils"
 import { diagramBridge, IClassInfo } from "@/services/diagramBridge"
+import { InspectorSectionHeader } from "../_shared"
 
 interface ObjectAttrRowProps {
   row: ObjectNodeAttribute
   /** Cached read-only display type, auto-inherited from the linked class. */
   displayType?: string
+  /** Map of enumeration name → its literal values, sourced from sibling
+   *  ClassDiagram via `diagramBridge.getClassDiagramData()`. */
+  enumLiterals: Map<string, string[]>
   onPatch: (patch: Partial<ObjectNodeAttribute>) => void
   onDelete: () => void
 }
 
+const INT_TYPES = new Set(["int", "integer", "number"])
+const FLOAT_TYPES = new Set(["float", "double", "real"])
+const BOOL_TYPES = new Set(["bool", "boolean"])
+const DATE_TYPES = new Set(["date"])
+const DATETIME_TYPES = new Set(["datetime"])
+const TIME_TYPES = new Set(["time"])
+
 /**
- * SA-FIX-OBJECT-DEEP: simplified per-attribute row for the
- * ObjectDiagram inspector. Renders a single inline `name = value`
- * widget — two compact fields side by side with a fixed `=` glyph.
- * The type is read-only (auto-inherited from the linked class) and
- * surfaces only as a small caption beside the value field; v3's
- * type-aware widgets (date pickers, enum dropdowns, custom-type
- * editors) are intentionally dropped here. The full v3 layout lives
- * in `packages/editor/.../uml-object-name-update.tsx`; we mirror its
- * minimal `name = value` shape because that's all an object instance
- * needs to capture (UML object diagrams show data values, not type
- * structure).
+ * SA-FINAL-3 #1 — restore per-attribute-type value widgets in the
+ * ObjectDiagram inspector. Mirrors the v3 source-of-truth at
+ * `packages/editor/src/main/packages/uml-object-diagram/uml-object-attribute/uml-object-attribute-update.tsx`:
+ *
+ *  - `bool` / `boolean` → MUI `Switch` (committing the canonical
+ *    `"True"` / `"False"` string values so the BESSER round-trip is
+ *    preserved).
+ *  - `int` / `float` → `MuiTextField` with `type="number"`.
+ *  - `date` / `datetime` / `time` → native HTML date/time inputs styled
+ *    as MUI text-fields.
+ *  - enum (when the inherited type matches a sibling Enumeration's
+ *    name) → `Select` of literal values.
+ *  - anything else → plain `MuiTextField`.
+ *
+ * The row keeps the same compact `name = widget` shape as the previous
+ * minimal port; the value widget is the only column that becomes
+ * type-aware.
  */
 const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
   row,
   displayType,
+  enumLiterals,
   onPatch,
   onDelete,
 }) => {
   const valueAsString =
     row.value !== undefined && row.value !== null ? String(row.value) : ""
+
+  // Resolve the canonical type-string to lower-case for matching. The
+  // raw type (preserving case, e.g. `GenderEnum`) is used as the enum
+  // map key.
+  const rawType = (displayType ?? row.attributeType ?? "").toString()
+  const lowerType = rawType.toLowerCase()
+  const isBool = BOOL_TYPES.has(lowerType)
+  const isInt = INT_TYPES.has(lowerType)
+  const isFloat = FLOAT_TYPES.has(lowerType)
+  const isDate = DATE_TYPES.has(lowerType)
+  const isDatetime = DATETIME_TYPES.has(lowerType)
+  const isTime = TIME_TYPES.has(lowerType)
+  const enumValues = rawType ? enumLiterals.get(rawType) ?? [] : []
+  const isEnum = enumValues.length > 0
+
+  const commitValue = (next: string | undefined) =>
+    onPatch({ value: next === "" || next === undefined ? undefined : next })
+
+  let valueWidget: React.ReactNode
+  if (isBool) {
+    const checked = valueAsString.toLowerCase() === "true"
+    valueWidget = (
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={0.5}
+        sx={{ flex: 1 }}
+      >
+        <Switch
+          size="small"
+          checked={checked}
+          onChange={(_, c) => commitValue(c ? "True" : "False")}
+        />
+        <MuiTypography variant="caption" sx={{ userSelect: "none" }}>
+          {checked ? "True" : "False"}
+        </MuiTypography>
+      </Stack>
+    )
+  } else if (isInt || isFloat) {
+    valueWidget = (
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        placeholder={isInt ? "0" : "0.0"}
+        type="number"
+        inputProps={isInt ? { step: 1 } : { step: "any" }}
+        value={valueAsString}
+        onChange={(e) => commitValue(e.target.value)}
+        sx={{ flex: 1 }}
+      />
+    )
+  } else if (isDate || isDatetime || isTime) {
+    valueWidget = (
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        type={isDate ? "date" : isTime ? "time" : "datetime-local"}
+        placeholder={
+          isDate ? "YYYY-MM-DD" : isTime ? "HH:MM" : "YYYY-MM-DDTHH:MM"
+        }
+        value={valueAsString}
+        onChange={(e) => commitValue(e.target.value)}
+        sx={{ flex: 1 }}
+        InputLabelProps={{ shrink: true }}
+      />
+    )
+  } else if (isEnum) {
+    valueWidget = (
+      <Select
+        size="small"
+        value={valueAsString}
+        displayEmpty
+        onChange={(e) => commitValue(String(e.target.value))}
+        sx={{ flex: 1 }}
+      >
+        <MenuItem value="">— select literal —</MenuItem>
+        {enumValues.map((lit) => (
+          <MenuItem key={lit} value={lit}>
+            {lit}
+          </MenuItem>
+        ))}
+      </Select>
+    )
+  } else {
+    valueWidget = (
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        placeholder="value"
+        value={valueAsString}
+        onChange={(e) => commitValue(e.target.value)}
+        sx={{ flex: 1 }}
+      />
+    )
+  }
 
   return (
     <Stack
@@ -74,18 +188,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
       >
         =
       </MuiTypography>
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        placeholder="value"
-        value={valueAsString}
-        onChange={(e) =>
-          onPatch({
-            value: e.target.value === "" ? undefined : e.target.value,
-          })
-        }
-        sx={{ flex: 1 }}
-      />
+      {valueWidget}
       {displayType && (
         <Tooltip title={`type inherited from class: ${displayType}`}>
           <MuiTypography
@@ -140,6 +243,43 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     } catch {
       return []
     }
+  }, [nodes])
+
+  /**
+   * SA-FINAL-3 #1: build a `Map<enumName, literals[]>` from the sibling
+   * ClassDiagram so the type-aware row can render a `Select` for any
+   * enum-typed attribute. Mirrors the v3 `getEnumerationValues` helper
+   * at `packages/editor/.../uml-object-attribute-update.tsx`.
+   */
+  const enumLiterals = useMemo<Map<string, string[]>>(() => {
+    const m = new Map<string, string[]>()
+    try {
+      const data = diagramBridge.getClassDiagramData()
+      if (!data) return m
+      for (const n of data.nodes ?? []) {
+        const nd = (n as {
+          type?: string
+          data?: {
+            name?: string
+            stereotype?: string | null
+            attributes?: { name?: string }[]
+          }
+        })
+        const isEnum =
+          (nd.type === "class" && nd.data?.stereotype === "Enumeration") ||
+          nd.type === "Enumeration"
+        if (!isEnum) continue
+        const name = nd.data?.name
+        if (typeof name !== "string" || name.length === 0) continue
+        const lits = (nd.data?.attributes ?? [])
+          .map((a) => (typeof a.name === "string" ? a.name : ""))
+          .filter((s) => s.length > 0)
+        m.set(name, lits)
+      }
+    } catch {
+      /* swallow — empty map is the safe fallback */
+    }
+    return m
   }, [nodes])
 
   if (!node) return null
@@ -369,12 +509,13 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <DividerLine width="100%" />
 
-      <Typography variant="h6">Attributes</Typography>
+      <InspectorSectionHeader>Attributes</InspectorSectionHeader>
       {nodeData.attributes.map((row) => (
         <ObjectAttrRow
           key={row.id}
           row={row}
           displayType={resolveDisplayType(row)}
+          enumLiterals={enumLiterals}
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
         />

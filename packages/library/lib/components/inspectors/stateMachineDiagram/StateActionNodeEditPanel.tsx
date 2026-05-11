@@ -1,4 +1,4 @@
-import { Box, Typography, TextField as MuiTextField } from "@mui/material"
+import { Box, TextField as MuiTextField } from "@mui/material"
 import React from "react"
 import CodeMirror from "@uiw/react-codemirror"
 import { python } from "@codemirror/lang-python"
@@ -7,6 +7,7 @@ import { useDiagramStore } from "@/store/context"
 import { StateActionNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { InspectorSectionHeader } from "../_shared"
 
 /**
  * SA-3 inspector body for `StateActionNode`. Editable: `name` plus the
@@ -55,9 +56,7 @@ export const StateActionNodeEditPanel: React.FC<PopoverProps> = ({
         onChange={(e) => update({ name: e.target.value })}
       />
       <Box>
-        <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          code
-        </Typography>
+        <InspectorSectionHeader>code</InspectorSectionHeader>
         <Box
           sx={{
             border: "1px solid var(--besser-gray, #e9ecef)",

@@ -1,4 +1,7 @@
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   MenuItem,
   Select,
@@ -11,6 +14,7 @@ import { useDiagramStore } from "@/store/context"
 import { NNContainerNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { InspectorSectionHeader } from "../_shared"
 
 /**
  * SA-5 inspector for `NNContainer`. Edits the model name + the
@@ -68,16 +72,42 @@ export const NNContainerEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
       />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        multiline
-        minRows={2}
-        label="description"
-        value={data.description ?? ""}
-        onChange={(e) => update({ description: e.target.value })}
-      />
+      {/* SA-FINAL-3 #7 — description collapsed behind a Metadata
+          Accordion when empty. */}
+      <Accordion
+        defaultExpanded={!!data.description}
+        disableGutters
+        elevation={0}
+        sx={{
+          background: "transparent",
+          "&:before": { display: "none" },
+          border: "1px solid var(--besser-gray, #e9ecef)",
+          borderRadius: 1,
+        }}
+      >
+        <AccordionSummary
+          sx={{
+            minHeight: 32,
+            "& .MuiAccordionSummary-content": { margin: "4px 0" },
+          }}
+        >
+          <InspectorSectionHeader>Metadata</InspectorSectionHeader>
+        </AccordionSummary>
+        <AccordionDetails
+          sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0 }}
+        >
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            multiline
+            minRows={2}
+            label="description"
+            value={data.description ?? ""}
+            onChange={(e) => update({ description: e.target.value })}
+          />
+        </AccordionDetails>
+      </Accordion>
       <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography variant="caption" sx={{ minWidth: 100 }}>
           entryLayerId

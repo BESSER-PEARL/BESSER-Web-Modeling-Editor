@@ -12,6 +12,7 @@ import { useDiagramStore } from "@/store/context"
 import { NNLayerNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { InspectorSectionHeader } from "../_shared"
 import {
   AttributeWidgetConfig,
   COLLIDING_SLUGS,
@@ -362,9 +363,7 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
       {optionalFields.length > 0 && (
         <>
           <DividerLine width="100%" />
-          <Typography variant="caption" sx={{ opacity: 0.7 }}>
-            optional attributes
-          </Typography>
+          <InspectorSectionHeader>optional attributes</InspectorSectionHeader>
           {optionalFields.map((field) => {
             const enabled = readAttribute(field.slug) !== undefined
             return (
