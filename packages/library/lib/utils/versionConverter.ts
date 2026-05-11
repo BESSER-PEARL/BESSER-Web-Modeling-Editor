@@ -191,8 +191,15 @@ export function convertV3HandleToV4(v3Handle: string): string {
     LeftTop: "top-left",
     LeftBottom: "bottom-left",
   }
-
-  return handleMap[v3Handle] || v3Handle.toLowerCase()
+  if (handleMap[v3Handle]) return handleMap[v3Handle]
+  // Fallback: legacy v3 fixtures stored corner handles in single-token
+  // CamelCase like `Bottomleft`, `Topright`. Lowercasing produces
+  // `bottomleft` which doesn't match the canonical hyphenated HandleId
+  // (`bottom-left`), so React Flow drops the edge silently. Insert a
+  // hyphen between the two compass words before lowercasing.
+  const m = v3Handle.match(/^(Top|Bottom|Left|Right)(top|bottom|left|right)$/i)
+  if (m) return `${m[1].toLowerCase()}-${m[2].toLowerCase()}`
+  return v3Handle.toLowerCase()
 }
 
 /**
