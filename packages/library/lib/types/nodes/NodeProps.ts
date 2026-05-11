@@ -542,6 +542,15 @@ export type UserModelNameNodeProps = DefaultNodeProps & {
   className?: string
   /** Inline icon SVG body for icon-view rendering. */
   icon?: string
+  /**
+   * SA-FIX-USER-ICON: per-node render mode. `"icon"` (default) renders
+   * the person/class icon — matching the v3 fork's preferred preview
+   * of a UserDiagram node. `"attributes"` shows the underlined header
+   * + attribute table (v3 "normal view"). When unset the consumer
+   * treats it as `"icon"` and the migrator normalises absent values
+   * accordingly.
+   */
+  view?: "icon" | "attributes"
 }
 
 /**

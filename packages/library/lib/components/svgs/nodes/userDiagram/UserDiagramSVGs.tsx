@@ -52,10 +52,49 @@ interface UserModelNameSVGData {
   strokeColor?: string
   textColor?: string
   attributes: ClassNodeElement[]
+  /**
+   * SA-FIX-USER-ICON: per-node render mode. `"icon"` (default) renders
+   * the person/class icon — mirrors the v3 preferred UserDiagram view.
+   * `"attributes"` shows the underlined header + attribute table.
+   */
+  view?: "icon" | "attributes"
 }
 
 interface UserModelNameSVGProps extends SVGComponentProps {
   data: UserModelNameSVGData
+}
+
+/**
+ * SA-FIX-USER-ICON: hardcoded fallback person SVG used when the linked
+ * class has no `icon` and the node hasn't been seeded with one (e.g. an
+ * `Alice : User` node where the `User` meta-class supplies its own icon
+ * is preferred — this fallback fires only when nothing is available).
+ *
+ * Ported verbatim from the v3 user-metamodel `User` class entry at
+ * `packages/editor/src/main/packages/user-modeling/usermetamodel_buml_short.json`
+ * (the `fluent` person glyph).
+ */
+const FALLBACK_PERSON_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 20 20"><g fill="none"><path fill="url(#fluentColorPerson200)" d="M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z" /><path fill="url(#fluentColorPerson201)" d="M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z" /><path fill="url(#fluentColorPerson202)" d="M10 2a4 4 0 1 0 0 8a4 4 0 0 0 0-8" /><defs><linearGradient id="fluentColorPerson200" x1="6.329" x2="8.591" y1="11.931" y2="19.153" gradientUnits="userSpaceOnUse"><stop offset=".125" stop-color="#5baad0" /><stop offset="1" stop-color="#282233" /></linearGradient><linearGradient id="fluentColorPerson201" x1="10" x2="13.167" y1="10.167" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#537fff" stop-opacity="0" /><stop offset="1" stop-color="#e362f8" /></linearGradient><linearGradient id="fluentColorPerson202" x1="7.902" x2="11.979" y1="3.063" y2="9.574" gradientUnits="userSpaceOnUse"><stop offset=".125" stop-color="#5baad0" /><stop offset="1" stop-color="#282233" /></linearGradient></defs></g></svg>`
+
+/**
+ * Resolve the SVG body to render in icon view. Preference order:
+ *   1. The node's own `data.icon` (set by the inspector, migrator, or
+ *      seeded by a palette drop).
+ *   2. The linked meta-class's icon, looked up by `className` from the
+ *      user-meta-model JSON — keeps icon parity when the user picks a
+ *      class but no icon body has been frozen onto the node yet.
+ *   3. The hardcoded fallback person glyph.
+ */
+function resolveIconBody(data: UserModelNameSVGData): string {
+  const direct = typeof data.icon === "string" ? data.icon.trim() : ""
+  if (direct) return data.icon as string
+  if (data.className) {
+    const match = getUserMetaModelClasses().find(
+      (c) => c.name === data.className
+    )
+    if (match?.icon) return match.icon
+  }
+  return FALLBACK_PERSON_ICON_SVG
 }
 
 /**
@@ -71,7 +110,7 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   svgAttributes,
   showAssessmentResults = false,
 }) => {
-  const { name, className, attributes, icon } = data
+  const { name, className, attributes } = data
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
@@ -90,16 +129,20 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
-  // SA-FINAL U1: respect the global `showIconView` toggle (parity with
-  // ObjectNameSVG). The icon-view replaces attributes only when the
-  // toggle is on AND the node carries icon markup. Previously any
-  // non-empty icon string forced icon view regardless of the setting.
-  const showIconView = useSettingsStore((s) => s.showIconView)
-  const hasIcon = typeof icon === "string" && icon.trim() !== ""
-  const iconViewActive = showIconView && hasIcon
-
+  // SA-FIX-USER-ICON: per-node `data.view` selects between the icon
+  // body (default — mirrors the v3 preferred preview where a UserDiagram
+  // card shows a person/class glyph) and the v3 "normal" attribute
+  // table. Unset → `"icon"`. The legacy global `showIconView` toggle is
+  // still read by other diagrams; on the user diagram the per-node
+  // setting wins so v4-authored fixtures behave deterministically.
+  // Touch the settings store once so call sites that flipped it before
+  // SA-FIX-USER-ICON don't accidentally bring down the subscription.
+  useSettingsStore((s) => s.showIconView)
+  const view = data.view ?? "icon"
+  const iconViewActive = view === "icon"
   // Header label per v3: instance name plus optional ` : className`.
   const headerLabel = className ? `${name} : ${className}` : name
+  const iconBody = iconViewActive ? resolveIconBody(data) : ""
 
   return (
     <svg
@@ -146,9 +189,12 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
           </tspan>
         </CustomText>
 
-        {/* If the model carries an icon body (rare; the v3 fork stored
-            inline SVG markup) AND the user has the global `showIconView`
-            toggle on, embed it via foreignObject instead of attributes. */}
+        {/* SA-FIX-USER-ICON: when icon view is active, drop a person /
+            class glyph into the body of the node. The icon body is
+            resolved from `data.icon` → linked meta-class icon →
+            hardcoded fallback (see `resolveIconBody`). The v3 fork
+            stored inline SVG markup, so `dangerouslySetInnerHTML` is
+            still the right path. */}
         {iconViewActive && (
           <foreignObject
             x={0}
@@ -166,7 +212,7 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
                 pointerEvents: "none",
               }}
               // Trusted authoring-time SVG markup, mirrors v3's behaviour.
-              dangerouslySetInnerHTML={{ __html: icon as string }}
+              dangerouslySetInnerHTML={{ __html: iconBody }}
             />
           </foreignObject>
         )}
@@ -202,6 +248,9 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
  * Static palette preview (kept for backward compat with code paths that
  * import `UserModelNameSVG` directly). The dynamic palette entries below
  * are the primary path; this is the fallback "Alice : User" card.
+ *
+ * SA-FIX-USER-ICON: defaults to `view: "icon"` so the palette ghost
+ * shows the person glyph (matches the v3 fork's preferred preview).
  */
 export const UserModelStaticPreviewSVG: FC<SVGComponentProps> = ({
   width,
@@ -219,6 +268,7 @@ export const UserModelStaticPreviewSVG: FC<SVGComponentProps> = ({
       name: "Alice",
       className: "User",
       attributes: [],
+      view: "icon",
     }}
   />
 )
@@ -289,6 +339,10 @@ function makeUserModelPaletteSVG(
           id: `__preview_${className}_${i}__`,
           name: `${n} =`,
         })),
+        // SA-FIX-USER-ICON: palette ghosts render the icon view so the
+        // user sees the person/class glyph at drag time, matching the
+        // v3 preferred preview.
+        view: "icon",
       }}
     />
   )

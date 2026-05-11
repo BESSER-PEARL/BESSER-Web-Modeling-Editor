@@ -993,8 +993,12 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // visually matches the palette card the user clicked.
     ...getUserModelNamePaletteEntries().map((entry) => ({
       type: "UserModelName" as never,
+      // SA-FIX-USER-ICON: dropped node defaults to the icon view, so
+      // only reserve room for the header (~40) and the glyph slot
+      // (~60) — drop the attributes-driven height that was used for
+      // the old class-style preview.
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 40 + entry.attributes.length * 30 + 10,
+      height: 100,
       defaultData: {
         name: `${entry.className.charAt(0).toLowerCase() + entry.className.slice(1)}_1`,
         className: entry.className,
@@ -1004,6 +1008,10 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
           attributeType: a.attributeType,
           attributeOperator: "==",
         })),
+        // SA-FIX-USER-ICON: dropped nodes default to icon view (matches
+        // the v3 fork's preferred UserDiagram preview). The inspector
+        // exposes a toggle to opt into the attributes view.
+        view: "icon" as const,
       },
       svg: entry.svg,
     })),
@@ -1015,6 +1023,9 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
         name: "Alice",
         className: "User",
         attributes: [],
+        // SA-FIX-USER-ICON: static fallback drag-source also defaults
+        // to icon view.
+        view: "icon" as const,
       },
       svg: UserModelStaticPreviewSVG,
     },

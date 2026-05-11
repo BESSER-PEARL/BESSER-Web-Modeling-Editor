@@ -1324,6 +1324,7 @@ function convertV3NodeDataToV4(
         className?: string
         description?: string
         icon?: string
+        view?: "icon" | "attributes"
       }
       return {
         ...baseData,
@@ -1340,6 +1341,12 @@ function convertV3NodeDataToV4(
           if (iconChild?.icon) return { icon: iconChild.icon }
           return {}
         })(),
+        // SA-FIX-USER-ICON: per-node render mode. v3 fixtures never
+        // carry an explicit `view`, so default migrated UserModelName
+        // nodes to `"icon"` to match the v3 fork's preferred preview.
+        // A v4 fixture that already stamps `view: "attributes"` is
+        // preserved verbatim.
+        view: e.view ?? "icon",
       }
     }
 
@@ -3206,6 +3213,7 @@ export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
         className?: string
         description?: string
         icon?: string
+        view?: "icon" | "attributes"
       }
       const attrs = data.attributes ?? []
       elements[node.id] = {
@@ -3214,11 +3222,17 @@ export function convertV4ToV3User(v4: UMLModel): V3UMLModel {
         ...(data.classId && { classId: data.classId }),
         ...(data.className && { className: data.className }),
         ...(data.description && { description: data.description }),
+        // SA-FIX-USER-ICON: preserve per-node view on v3 emit so a
+        // v4 → v3 → v4 round-trip preserves the user's explicit choice
+        // (the v3 → v4 migrator defaults `view` to `"icon"` when absent,
+        // so a missing field on v3 also round-trips cleanly).
+        ...(data.view && { view: data.view }),
       } as V3UMLElement & {
         attributes: string[]
         classId?: string
         className?: string
         description?: string
+        view?: "icon" | "attributes"
       }
 
       // Re-expand attribute rows.

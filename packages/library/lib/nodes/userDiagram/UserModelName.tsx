@@ -60,6 +60,9 @@ export function UserModelName({
   data,
 }: NodeProps<Node<UserModelNameNodeProps>>) {
   const { attributes, name, className } = data
+  // SA-FIX-USER-ICON: per-node `view` — default to `"icon"` (v3 preferred
+  // preview). The class-style attribute table is opt-in via the inspector.
+  const view = data.view ?? "icon"
   const displayAttributes = useMemo(
     () => attributes.map(formatUserModelAttributeForDisplay),
     [attributes]
@@ -99,15 +102,23 @@ export function UserModelName({
   )
 
   const minHeight = useMemo(
-    () =>
-      calculateMinHeight(
+    () => {
+      // SA-FIX-USER-ICON: icon view collapses the row stack to a single
+      // glyph slot. Reserve roughly the same footprint v3 reserved
+      // (`renderIconView` defaulted to a 50×50 glyph below a 40-px
+      // header — see `uml-user-model-name.ts:196-209`).
+      if (view === "icon") {
+        return headerHeight + 60
+      }
+      return calculateMinHeight(
         headerHeight,
         attributes.length,
         0,
         attributeHeight,
         methodHeight
-      ),
-    [headerHeight, attributes.length, attributeHeight, methodHeight]
+      )
+    },
+    [view, headerHeight, attributes.length, attributeHeight, methodHeight]
   )
 
   useEffect(() => {
@@ -174,6 +185,9 @@ export function UserModelName({
             strokeColor: data.strokeColor,
             textColor: data.textColor,
             attributes: displayAttributes,
+            // SA-FIX-USER-ICON: forward the per-node view so the SVG
+            // renders the icon glyph by default.
+            view,
           }}
           id={id}
           showAssessmentResults={!isDiagramModifiable}

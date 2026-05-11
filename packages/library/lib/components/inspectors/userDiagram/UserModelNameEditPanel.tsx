@@ -8,6 +8,8 @@ import {
   Select,
   Stack,
   TextField as MuiTextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography as MuiTypography,
 } from "@mui/material"
@@ -483,6 +485,39 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         handleDataFieldUpdate={handleDataFieldUpdate}
       />
       <DividerLine width="100%" />
+
+      {/* SA-FIX-USER-ICON: per-node `view` toggle. v3 surfaced this as a
+          global setting; v4 owns it on the node so different cards on
+          the same diagram can pick independently. Defaults to `"icon"`
+          (matches the v3 preferred preview). */}
+      <Stack direction="row" alignItems="center" spacing={1}>
+        <InspectorSectionHeader sx={{ minWidth: 50 }}>
+          view
+        </InspectorSectionHeader>
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={data.view ?? "icon"}
+          onChange={(_e, next) => {
+            // MUI emits `null` when the active button is clicked again.
+            // Ignore that so the toggle always has a value.
+            if (next === "icon" || next === "attributes") {
+              update({ view: next })
+            }
+          }}
+          sx={{ flex: 1 }}
+        >
+          <ToggleButton value="icon" sx={{ flex: 1, textTransform: "none" }}>
+            Icon
+          </ToggleButton>
+          <ToggleButton
+            value="attributes"
+            sx={{ flex: 1, textTransform: "none" }}
+          >
+            Attributes
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
 
       <MuiTextField
         size="small"
