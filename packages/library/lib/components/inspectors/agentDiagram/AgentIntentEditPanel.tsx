@@ -120,7 +120,18 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         placeholder="Description of what this intent represents"
       />
 
-      <DividerLine width="100%" />
+      {/* Strong separator between the description and training phrases
+          sections — a heavier band so the two sections are visually
+          distinct rather than blending into one form. */}
+      <Box
+        sx={{
+          height: "2px",
+          width: "100%",
+          backgroundColor: "var(--besser-primary-contrast, #000)",
+          opacity: 0.85,
+          my: 1,
+        }}
+      />
       <Stack
         direction="row"
         alignItems="center"
