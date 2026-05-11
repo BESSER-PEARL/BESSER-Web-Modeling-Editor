@@ -29,6 +29,11 @@ export interface SQLAlchemyConfig {
   dbms: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
 }
 
+export interface SupabaseConfig {
+  /** Class name that maps to auth.users. Empty string skips auth integration. */
+  user_root: string;
+}
+
 export interface JSONSchemaConfig {
   mode: 'regular' | 'smart_data';
 }
@@ -61,6 +66,7 @@ export interface AgentConfig {
 export type GeneratorConfig = {
   django: DjangoConfig;
   sql: SQLConfig;
+  supabase: SupabaseConfig;
   sqlalchemy: SQLAlchemyConfig;
   jsonschema: JSONSchemaConfig;
   qiskit: QiskitConfig;
