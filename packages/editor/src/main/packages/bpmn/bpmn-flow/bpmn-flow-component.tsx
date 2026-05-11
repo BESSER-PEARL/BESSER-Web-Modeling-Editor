@@ -128,11 +128,17 @@ export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
         element.flowType === 'sequence' &&
         path.length >= 2 &&
         (() => {
+          // BPMN 2.0.2 § 8.3.13 (p. 98), Figure 8.34: default-flow marker is a
+          // diagonal slash at the start of the connector. Rotate dir by 45° CCW
+          // (so a flow going right gets a "\" mark; vertical/diagonal flows
+          // rotate accordingly while keeping the 45° relation to dir).
           const dir = path[1].subtract(path[0]).normalize();
           const at = path[0].add(dir.scale(12));
-          const perp = new Point(-dir.y, dir.x).scale(5);
-          const a = at.subtract(perp);
-          const b = at.add(perp);
+          const k = Math.SQRT1_2; // sin(45°) = cos(45°) = √2/2
+          const slashDir = new Point((dir.x - dir.y) * k, (dir.x + dir.y) * k);
+          const half = slashDir.scale(5);
+          const a = at.subtract(half);
+          const b = at.add(half);
           return (
             <ThemedPath
               d={`M${a.x} ${a.y} L${b.x} ${b.y}`}

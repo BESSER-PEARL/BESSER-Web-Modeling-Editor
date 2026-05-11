@@ -53,6 +53,10 @@ interface OwnProps {
 type StateProps = {
   sourceElement?: UMLElement;
   targetElement?: UMLElement;
+  // BPMN 2.0.2 § 8.3.13: at most one default outgoing flow per source.
+  // Other flows from this source currently marked default — to be cleared
+  // when the user sets this flow as default.
+  siblingDefaultFlowIds: string[];
 };
 
 interface DispatchProps {
@@ -66,10 +70,24 @@ type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
-    (state, ownProps) => ({
-      sourceElement: state.elements[ownProps.element.source.element] as UMLElement | undefined,
-      targetElement: state.elements[ownProps.element.target.element] as UMLElement | undefined,
-    }),
+    (state, ownProps) => {
+      const myId = ownProps.element.id;
+      const mySourceId = ownProps.element.source.element;
+      const siblingDefaultFlowIds = Object.values(state.elements)
+        .filter((e) => {
+          if (e.id === myId) return false;
+          const f = e as unknown as Partial<BPMNFlow>;
+          if (f.flowType !== 'sequence' || f.isDefault !== true) return false;
+          const r = e as unknown as { source?: { element: string } };
+          return r.source?.element === mySourceId;
+        })
+        .map((e) => e.id);
+      return {
+        sourceElement: state.elements[mySourceId] as UMLElement | undefined,
+        targetElement: state.elements[ownProps.element.target.element] as UMLElement | undefined,
+        siblingDefaultFlowIds,
+      };
+    },
     {
       update: UMLElementRepository.update,
       delete: UMLElementRepository.delete,
@@ -178,9 +196,18 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
     this.props.update<BPMNFlow>(id, { flowType: value as BPMNFlowType });
   };
 
-  // The "one default per source" invariant is enforced at the validator level (O3, deferred).
+  // BPMN 2.0.2 § 8.3.13: at most one default outgoing flow per source. When
+  // turning this flow on, clear `isDefault` on every sibling flow from the same
+  // source first. Turning off needs no fix-up — only one flow can be on at any
+  // time, so siblings are already `false`.
   private toggleDefault = (id: string) => (_value: string) => {
-    this.props.update<BPMNFlow>(id, { isDefault: !this.props.element.isDefault });
+    const turningOn = !this.props.element.isDefault;
+    if (turningOn) {
+      for (const sibId of this.props.siblingDefaultFlowIds) {
+        this.props.update<BPMNFlow>(sibId, { isDefault: false });
+      }
+    }
+    this.props.update<BPMNFlow>(id, { isDefault: turningOn });
   };
 
   private delete = (id: string) => () => {
