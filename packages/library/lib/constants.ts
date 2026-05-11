@@ -62,12 +62,15 @@ import {
   StateForkNodeHorizontalSVG,
   StateCodeBlockSVG,
 } from "@/components/svgs/nodes/stateMachineDiagram"
-// SA-4: AgentDiagram + UserDiagram palette previews.
+// SA-4 / SA-FIX-AGENT-OCL: AgentDiagram + UserDiagram palette previews.
+// `AgentIntentObjectComponent` was removed from the palette — it is a
+// child-of-AgentIntent slot row, not a top-level draggable. Its SVG
+// remains importable from `@/components/svgs/nodes/agentDiagram` for
+// the inline canvas rendering of folded entity-slot rows.
 import {
   AgentStateSVG,
   AgentIntentSVG,
   AgentRagElementSVG,
-  AgentIntentObjectComponentSVG,
 } from "@/components/svgs/nodes/agentDiagram"
 import {
   UserModelStaticPreviewSVG,
@@ -939,24 +942,19 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "Intent", intent_description: "" },
       svg: AgentIntentSVG,
     },
-    {
-      type: "AgentIntentObjectComponent" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 50,
-      defaultData: { name: "slot:entity" },
-      svg: AgentIntentObjectComponentSVG,
-    },
+    // SA-FIX-AGENT-OCL: `AgentIntentObjectComponent` removed from the
+    // palette — it's a child-of-AgentIntent slot row (added via the
+    // intent inspector), not a top-level draggable.
     {
       type: "AgentRagElement" as never,
       width: 160,
       height: 120,
-      defaultData: {
-        name: "RAG",
-        ragDatabaseName: "",
-        dbCustomName: "",
-        dbSelectionType: "default",
-        dbQueryMode: "llm_query",
-      },
+      // SA-FIX-AGENT-OCL: defaultData stripped to just `name`. The
+      // standalone RAG palette element no longer carries DB-mode
+      // fields (`ragDatabaseName`, `dbCustomName`, `dbSelectionType`,
+      // `dbQueryMode`) — those belong to the AgentState `db_reply`
+      // mode (see `AgentStateEditPanel.tsx`), not to the cylinder.
+      defaultData: { name: "RAG" },
       svg: AgentRagElementSVG,
     },
     // Reuse SA-3's marker SVGs for state-machine-derived nodes that

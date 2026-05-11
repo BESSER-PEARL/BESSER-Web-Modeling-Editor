@@ -20,6 +20,8 @@ import { describe, it, expect } from "vitest"
 import {
   migrateClassDiagramV3ToV4,
   convertV4ToV3Class,
+  importDiagram,
+  normalizeV4Model,
 } from "@/utils/versionConverter"
 import {
   canConnectEndpoints,
@@ -796,5 +798,206 @@ describe("SA-FIX-ENUM-NO-CONNECT", () => {
   it("allows class-to-class connections (non-enum)", () => {
     const nodes = [classNode("class-1"), classNode("class-2", "Abstract")]
     expect(canConnectEndpoints(nodes, "class-1", "class-2")).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SA-FIX-AGENT-OCL: OCL constraint template loading.
+//
+// Some shipped templates (`team_player_ocl.json`, `Library_OCL.json`)
+// carry the canvas-level OCL constraint node with a lowercase
+// `type: "classoclconstraint"` and link edges with
+// `type: "ClassOCLLink"` (or its lowercase variant). The v4 normalizer
+// canonicalises the casing so the node registry resolves the React-Flow
+// component correctly.
+// ---------------------------------------------------------------------------
+describe("OCL constraint v4 template normalization", () => {
+  it("normalises lowercase classoclconstraint node type to ClassOCLConstraint", () => {
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "OCL template",
+      type: "ClassDiagram",
+      nodes: [
+        {
+          id: "ocl-1",
+          width: 210,
+          height: 90,
+          // Template casing — must be normalised.
+          type: "classoclconstraint",
+          position: { x: 0, y: 0 },
+          data: { name: "teamCenter" },
+        },
+        {
+          id: "class-1",
+          width: 160,
+          height: 130,
+          type: "class",
+          position: { x: 250, y: 0 },
+          data: { name: "Team", methods: [], attributes: [] },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeV4Model(fixture as never)
+    const ocl = result.nodes.find((n) => n.id === "ocl-1")!
+    expect(ocl.type).toBe("ClassOCLConstraint")
+  })
+
+  it("re-keys legacy `constraint` field onto `expression`", () => {
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "OCL legacy data",
+      type: "ClassDiagram",
+      nodes: [
+        {
+          id: "ocl-2",
+          width: 210,
+          height: 90,
+          type: "classoclconstraint",
+          position: { x: 0, y: 0 },
+          data: {
+            // v3 wire-form field name — must be carried onto v4 `expression`.
+            constraint: "context Team inv: name.size() > 0",
+          },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeV4Model(fixture as never)
+    const ocl = result.nodes.find((n) => n.id === "ocl-2")!
+    const data = ocl.data as { expression?: string; constraint?: string }
+    expect(ocl.type).toBe("ClassOCLConstraint")
+    expect(data.expression).toBe("context Team inv: name.size() > 0")
+    // Legacy field stripped after re-keying.
+    expect(data.constraint).toBeUndefined()
+  })
+
+  it("preserves user expression when both expression and constraint are present", () => {
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "OCL conflict",
+      type: "ClassDiagram",
+      nodes: [
+        {
+          id: "ocl-3",
+          width: 210,
+          height: 90,
+          type: "classoclconstraint",
+          position: { x: 0, y: 0 },
+          data: {
+            // User edit landed on `expression`; legacy data still on `constraint`.
+            expression: "context Team inv: division.size() > 0",
+            constraint: "legacy",
+          },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeV4Model(fixture as never)
+    const ocl = result.nodes.find((n) => n.id === "ocl-3")!
+    const data = ocl.data as { expression?: string; constraint?: string }
+    expect(data.expression).toBe("context Team inv: division.size() > 0")
+    expect(data.constraint).toBeUndefined()
+  })
+
+  it("normalises lowercase classocllink edge type to ClassOCLLink", () => {
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "OCL edge",
+      type: "ClassDiagram",
+      nodes: [
+        {
+          id: "ocl-1",
+          width: 210,
+          height: 90,
+          type: "classoclconstraint",
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+        {
+          id: "class-1",
+          width: 160,
+          height: 130,
+          type: "class",
+          position: { x: 250, y: 0 },
+          data: { name: "Team", methods: [], attributes: [] },
+        },
+      ],
+      edges: [
+        {
+          id: "ocl-link-1",
+          source: "ocl-1",
+          target: "class-1",
+          type: "classocllink",
+          data: { points: [] },
+        },
+      ],
+    }
+    const result = normalizeV4Model(fixture as never)
+    const edge = result.edges.find((e) => e.id === "ocl-link-1")!
+    expect(edge.type).toBe("ClassOCLLink")
+  })
+
+  it("v3 template OCL constraint migrates and renders correctly through importDiagram", () => {
+    // Simulates a v3 template fixture carrying ClassOCLConstraint as a
+    // top-level element with the v3 `constraint` wire field. After
+    // `importDiagram` (which routes through the v3→v4 migrator and the
+    // v4 normalizer) the resulting v4 node must be ready for the
+    // ClassOCLConstraint React component (canonical type +
+    // `expression` data field).
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "ClassDiagram",
+      size: { width: 800, height: 600 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "ocl-1": {
+          id: "ocl-1",
+          name: "myInv",
+          type: "ClassOCLConstraint",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 210, height: 90 },
+          constraint: "context Team inv: name.size() > 0",
+          description: "Team name must not be empty",
+        },
+      },
+      relationships: {},
+      assessments: {},
+    }
+    const result = importDiagram(v3Fixture as never)
+    const ocl = result.nodes.find((n) => n.id === "ocl-1")!
+    expect(ocl.type).toBe("ClassOCLConstraint")
+    const data = ocl.data as { expression?: string; description?: string }
+    expect(data.expression).toBe("context Team inv: name.size() > 0")
+    expect(data.description).toBe("Team name must not be empty")
+  })
+
+  it("is a no-op when OCL nodes already use canonical PascalCase type", () => {
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "Already canonical",
+      type: "ClassDiagram",
+      nodes: [
+        {
+          id: "ocl-1",
+          width: 210,
+          height: 90,
+          type: "ClassOCLConstraint",
+          position: { x: 0, y: 0 },
+          data: { expression: "inv: true" },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeV4Model(fixture as never)
+    const ocl = result.nodes.find((n) => n.id === "ocl-1")!
+    expect(ocl.type).toBe("ClassOCLConstraint")
+    const data = ocl.data as { expression?: string }
+    expect(data.expression).toBe("inv: true")
   })
 })

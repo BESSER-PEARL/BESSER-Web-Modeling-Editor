@@ -471,40 +471,22 @@ export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
 }
 
 /**
- * `AgentRagElement` — RAG database element. Open question #5 resolution
- * (per the SA-4 brief): retain BOTH `dbCustomName` and `ragDatabaseName`
- * verbatim. The editor renders `dbCustomName ?? ragDatabaseName` for
- * display, but stores both fields untouched on `data` so the v3 → v4 → v3
- * round-trip is lossless. The BAF generator (backend) decides which one
- * to consume by inspecting `dbSelectionType`.
+ * `AgentRagElement` — standalone RAG database element (cylinder visual).
+ *
+ * SA-FIX-AGENT-OCL: the DB-mode fields (`ragDatabaseName`,
+ * `dbCustomName`, `dbSelectionType`, `dbQueryMode`, `dbOperation`,
+ * `dbSqlQuery`) were removed from this prop type. Those settings belong
+ * to the AgentState `db_reply` reply mode (see `AgentStateEditPanel`),
+ * not to the standalone cylinder. The standalone palette element now
+ * carries only its display name — keeping the type lean and the
+ * inspector focused on what the canvas actually surfaces.
+ *
+ * Round-trip: when older v3/v4 fixtures ship the legacy DB fields on
+ * an `AgentRagElement`, the versionConverter still preserves them on
+ * the v3 wire form via passthrough (the migrator never relied on
+ * reading them from this typed shape).
  */
-export type AgentRagElementNodeProps = DefaultNodeProps & {
-  /**
-   * Original v3 field — typically the canonical RAG database identifier
-   * (mapped to a vector store on the backend).
-   */
-  ragDatabaseName?: string
-  /**
-   * v3 selection-mode discriminator: `'predefined' | 'custom' | 'default'`.
-   * When `'custom'`, the editor and BAF generator both consume
-   * `dbCustomName` instead of `ragDatabaseName`.
-   */
-  dbSelectionType?: string
-  /**
-   * v3 custom-name field — preserved verbatim alongside `ragDatabaseName`
-   * (per open question #5). Display preference: `dbCustomName ??
-   * ragDatabaseName`.
-   */
-  dbCustomName?: string
-  /** v3 query-mode discriminator: `'sql' | 'natural_language' | 'llm_query' | …`. */
-  dbQueryMode?: string
-  /** v3 SQL operation type when `dbQueryMode === 'sql'`. */
-  dbOperation?: string
-  /** v3 SQL query text. */
-  dbSqlQuery?: string
-  /** Optional `ragType` discriminator surfaced by the inspector. */
-  ragType?: string
-}
+export type AgentRagElementNodeProps = DefaultNodeProps
 
 /* -------------------------------------------------------------------------- */
 /* UserDiagram (BESSER) — SA-4                                                 */

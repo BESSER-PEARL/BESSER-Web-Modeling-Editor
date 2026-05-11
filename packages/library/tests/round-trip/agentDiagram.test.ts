@@ -23,9 +23,9 @@ import {
   convertV4ToV3Agent,
   importDiagram,
   normalizeAgentBodies,
+  normalizeV4Model,
 } from "@/utils/versionConverter"
 import type {
-  AgentRagElementNodeProps,
   AgentStateNodeProps,
   AgentIntentNodeProps,
 } from "@/types"
@@ -89,14 +89,18 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(intentDesc.type).toBe("AgentIntentDescription")
     expect(intentDesc.parentId).toBe("ai-Greeting")
 
-    // RAG element — open question #5: BOTH names preserved verbatim.
+    // RAG element — open question #5: BOTH names preserved verbatim
+    // on `data` (migrator passthrough). SA-FIX-AGENT-OCL trimmed the
+    // typed `AgentRagElementNodeProps` to `name` only, but the
+    // migrator still keeps legacy DB fields on the raw data for v3
+    // round-trip parity, so we assert via a structural cast.
     const rag = v4.nodes.find((n) => n.id === "rag-1")!
     expect(rag.type).toBe("AgentRagElement")
-    const ragData = rag.data as AgentRagElementNodeProps
-    expect(ragData.ragDatabaseName).toBe("kb_main")
-    expect(ragData.dbCustomName).toBe("knowledge_corpus_v2")
-    expect(ragData.dbSelectionType).toBe("custom")
-    expect(ragData.dbQueryMode).toBe("llm_query")
+    const ragRaw = rag.data as Record<string, unknown>
+    expect(ragRaw.ragDatabaseName).toBe("kb_main")
+    expect(ragRaw.dbCustomName).toBe("knowledge_corpus_v2")
+    expect(ragRaw.dbSelectionType).toBe("custom")
+    expect(ragRaw.dbQueryMode).toBe("llm_query")
 
     // Init edge.
     const initEdge = v4.edges.find((e) => e.id === "init-edge-1")!
@@ -611,5 +615,229 @@ describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () 
     }
     const result = normalizeAgentBodies(fixture as never)
     expect(result).toBe(fixture)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SA-FIX-AGENT-OCL: v4 normalizer covers template inputs that ship the
+// legacy separate-child-nodes shape under `version: "4.0.0"`.
+// ---------------------------------------------------------------------------
+describe("normalizeV4Model — template (v4.0.0) inputs with legacy shape", () => {
+  it("folds AgentStateBody children with parentId into data.bodies", () => {
+    // Mirrors the agent templates at
+    // `packages/webapp/src/main/templates/pattern/agent/*.json`: the
+    // body has a valid `parentId` but the parent state has no
+    // `data.bodies` array.
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "Greeting",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "state-1",
+          width: 210,
+          height: 100,
+          type: "AgentState",
+          position: { x: 0, y: 0 },
+          data: { name: "greeting", replyType: "text" },
+        },
+        {
+          id: "body-1",
+          width: 209,
+          height: 30,
+          type: "AgentStateBody",
+          parentId: "state-1",
+          position: { x: 0.5, y: 40.5 },
+          data: { name: "Hi!", replyType: "text" },
+        },
+        {
+          id: "body-2",
+          width: 209,
+          height: 30,
+          type: "AgentStateBody",
+          parentId: "state-1",
+          position: { x: 0.5, y: 70.5 },
+          data: { name: "How are you?", replyType: "text" },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeV4Model(fixture as never)
+    // The 2 body nodes are absorbed into the parent state.
+    expect(result.nodes.length).toBe(1)
+    const state = result.nodes[0]
+    expect(state.type).toBe("AgentState")
+    const bodies = (state.data as { bodies?: Array<{ id: string; name?: string }> })
+      .bodies
+    expect(bodies).toBeDefined()
+    expect(bodies!.length).toBe(2)
+    expect(bodies!.map((b) => b.id).sort()).toEqual(["body-1", "body-2"])
+  })
+
+  it("forces extent:'parent' + draggable:false on AgentIntent children", () => {
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "Greeting",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "intent-1",
+          width: 230,
+          height: 130,
+          type: "AgentIntent",
+          position: { x: 0, y: 0 },
+          data: { name: "Greeting_intent" },
+        },
+        {
+          id: "ib-1",
+          width: 229,
+          height: 30,
+          type: "AgentIntentBody",
+          parentId: "intent-1",
+          position: { x: 0.5, y: 40.5 },
+          data: { name: "Hi" },
+        },
+        {
+          id: "ib-2",
+          width: 229,
+          height: 30,
+          type: "AgentIntentBody",
+          parentId: "intent-1",
+          position: { x: 0.5, y: 70.5 },
+          data: { name: "Hello" },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeV4Model(fixture as never)
+    // All 3 nodes preserved; the 2 children now have extent + draggable set.
+    expect(result.nodes.length).toBe(3)
+    const children = result.nodes.filter((n) => n.type === "AgentIntentBody")
+    expect(children.length).toBe(2)
+    for (const c of children) {
+      expect((c as unknown as { extent?: string }).extent).toBe("parent")
+      expect((c as unknown as { draggable?: boolean }).draggable).toBe(false)
+      expect(c.parentId).toBe("intent-1")
+    }
+  })
+
+  it("drops AgentIntent children with no matching parent and prunes edges", () => {
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "Orphans",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "intent-1",
+          width: 230,
+          height: 130,
+          type: "AgentIntent",
+          position: { x: 0, y: 0 },
+          data: { name: "I1" },
+        },
+        {
+          // Orphan: parentId points at a non-existent intent.
+          id: "orphan-body",
+          width: 229,
+          height: 30,
+          type: "AgentIntentBody",
+          parentId: "does-not-exist",
+          position: { x: 0, y: 0 },
+          data: { name: "lost" },
+        },
+        {
+          // Orphan: no parentId at all.
+          id: "orphan-desc",
+          width: 229,
+          height: 30,
+          type: "AgentIntentDescription",
+          position: { x: 0, y: 0 },
+          data: { name: "lost-desc" },
+        },
+      ],
+      edges: [
+        // Edge that references an orphan child — must be pruned.
+        {
+          id: "stale-edge",
+          source: "orphan-body",
+          target: "intent-1",
+          type: "AgentStateTransition",
+          data: { points: [] },
+        },
+      ],
+    }
+    const result = normalizeV4Model(fixture as never)
+    expect(result.nodes.length).toBe(1)
+    expect(result.nodes[0].id).toBe("intent-1")
+    // Edges referencing dropped nodes are removed.
+    expect(result.edges.find((e) => e.id === "stale-edge")).toBeUndefined()
+  })
+
+  it("template-style fixture (parentId only, no data.bodies) round-trips through importDiagram", () => {
+    // Smaller variant of the greetingagent template — version "4.0.0",
+    // AgentStateBody nodes carry `parentId` pointing at the AgentState,
+    // but the parent state's `data` has no `bodies` array. Previously
+    // these bodies rendered as draggable root nodes; now `importDiagram`
+    // routes through the v4 normalizer and folds them.
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "Greeting Agent",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "state-greet",
+          width: 210,
+          height: 100,
+          type: "AgentState",
+          position: { x: 0, y: 0 },
+          data: { name: "greeting", replyType: "text" },
+        },
+        {
+          id: "body-greet-1",
+          width: 209,
+          height: 30,
+          type: "AgentStateBody",
+          parentId: "state-greet",
+          position: { x: 0.5, y: 40.5 },
+          data: { name: "Hi!", replyType: "text" },
+        },
+        {
+          id: "intent-greet",
+          width: 230,
+          height: 130,
+          type: "AgentIntent",
+          position: { x: 0, y: -300 },
+          data: { name: "Greeting_intent" },
+        },
+        {
+          id: "intent-body-1",
+          width: 229,
+          height: 30,
+          type: "AgentIntentBody",
+          parentId: "intent-greet",
+          position: { x: 0.5, y: 40.5 },
+          data: { name: "Hi" },
+        },
+      ],
+      edges: [],
+      assessments: {},
+    }
+    const result = importDiagram(fixture as never)
+    // AgentStateBody folded onto data.bodies; remaining nodes: state +
+    // intent + intent-body.
+    expect(result.nodes.length).toBe(3)
+    const state = result.nodes.find((n) => n.id === "state-greet")!
+    const stateBodies = (state.data as { bodies?: Array<{ id: string }> }).bodies
+    expect(stateBodies?.length).toBe(1)
+    expect(stateBodies?.[0].id).toBe("body-greet-1")
+    // AgentIntentBody retained as a child with extent + draggable.
+    const ib = result.nodes.find((n) => n.id === "intent-body-1")!
+    expect(ib.parentId).toBe("intent-greet")
+    expect((ib as unknown as { extent?: string }).extent).toBe("parent")
+    expect((ib as unknown as { draggable?: boolean }).draggable).toBe(false)
   })
 })

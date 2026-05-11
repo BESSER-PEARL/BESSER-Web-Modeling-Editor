@@ -12,17 +12,12 @@ import { getCustomColorsFromData } from "@/utils/layoutUtils"
  * SA-4 `AgentRagElement`. Cylinder-shaped database element. Mirrors v3
  * source at `agent-state-diagram/agent-rag-element/agent-rag-element-component.tsx`.
  *
- * Open question #5 resolution (from the SA-4 brief):
- *  - Both `dbCustomName` and `ragDatabaseName` are stored verbatim on
- *    `data` so the round-trip is lossless.
- *  - The display label resolves to `dbCustomName ?? ragDatabaseName ??
- *    name`, mirroring the BAF generator's eventual lookup order.
- *  - The inspector exposes BOTH fields so the user can decide which one
- *    drives the runtime; selection is signalled by `dbSelectionType`
- *    (`'predefined'` ⇒ ragDatabaseName, `'custom'` ⇒ dbCustomName).
- *
- * The `ragType` discriminator (mentioned in the brief) lives alongside
- * the other db-mode fields and round-trips verbatim.
+ * SA-FIX-AGENT-OCL: the standalone RAG element is now name-only — the
+ * DB-mode fields (`ragDatabaseName`, `dbCustomName`, `dbSelectionType`,
+ * `dbQueryMode`, `dbOperation`, `dbSqlQuery`) were removed from this
+ * node's typed shape. Those settings belong to the AgentState
+ * `db_reply` reply mode (see `AgentStateEditPanel.tsx`). The cylinder
+ * now renders only `data.name`.
  */
 export function AgentRagElement({
   id,
@@ -36,11 +31,12 @@ export function AgentRagElement({
   if (!width || !height) return null
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const { name, ragDatabaseName, dbCustomName } = data
+  const { name } = data
 
-  // Open question #5: render `dbCustomName ?? ragDatabaseName`, falling
-  // back to the node `name` if neither is set.
-  const display = dbCustomName || ragDatabaseName || name
+  // SA-FIX-AGENT-OCL: surface only the node `name`. DB-mode display
+  // (dbCustomName/ragDatabaseName fallback) was removed — those fields
+  // are no longer carried on the standalone RAG cylinder.
+  const display = name
 
   // v3 cylinder geometry: top/bottom ellipses + sided rectangle.
   const ellipseHeight = Math.min(height * 0.3, 30)

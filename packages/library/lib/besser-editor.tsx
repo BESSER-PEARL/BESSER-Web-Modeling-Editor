@@ -8,6 +8,7 @@ import {
   filterRenderedElements,
   getSVG,
   getRenderedDiagramBounds,
+  normalizeV4Model,
 } from "./utils"
 import { UMLDiagramType } from "./types"
 import { createDiagramStore, DiagramStore } from "@/store/diagramStore"
@@ -483,7 +484,15 @@ export class BesserEditor {
   }
 
   set model(model: Besser.UMLModel) {
-    const { nodes, edges, assessments, interactive } = model
+    // SA-FIX-AGENT-OCL: run the v4 normalizer on EVERY model set so
+    // template / project JSON that ships the wrong v4 shape (orphan
+    // AgentStateBody, missing extent/draggable on AgentIntent children,
+    // lowercase `classoclconstraint` types) is canonicalised before the
+    // editor sees it. Webapp call sites set `editor.model = template`
+    // directly, bypassing `importDiagram`, so this is the only chokepoint
+    // we can rely on to scrub legacy inputs.
+    const normalized = normalizeV4Model(model)
+    const { nodes, edges, assessments, interactive } = normalized
 
     // SA-FIX-Editor PC-12.9: replacing the model wholesale should also
     // discard accumulated undo history — a user shouldn't be able to
@@ -499,7 +508,7 @@ export class BesserEditor {
     this.diagramStore.getState().setInteractive(interactive)
     this.metadataStore
       .getState()
-      .updateMetaData(model.title, parseDiagramType(model.type))
+      .updateMetaData(normalized.title, parseDiagramType(normalized.type))
   }
 
   /**

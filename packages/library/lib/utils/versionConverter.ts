@@ -3705,24 +3705,178 @@ export function normalizeAgentBodies(model: UMLModel): UMLModel {
 }
 
 /**
+ * SA-FIX-AGENT-OCL: normalise intent child nodes so they render inline
+ * under their parent `AgentIntent`. Templates and v4 fixtures from
+ * older builds frequently forget the React-Flow `extent: "parent"` /
+ * `draggable: false` attributes — without these, child nodes appear as
+ * free-floating, draggable shapes at the canvas root even though they
+ * have a `parentId`. Also drops orphan intent children whose
+ * `parentId` no longer resolves to a real AgentIntent, and prunes
+ * edges referencing dropped nodes. Returns the input model by
+ * reference when no transformation was needed.
+ */
+function normalizeAgentIntentChildren(model: UMLModel): UMLModel {
+  if (model.type !== "AgentDiagram") return model
+  const isIntentChildType = (t: string): boolean =>
+    t === "AgentIntentBody" ||
+    t === "AgentIntentDescription" ||
+    t === "AgentIntentObjectComponent"
+  const isAgentIntentType = (t: string): boolean => t === "AgentIntent"
+
+  const intentIds = new Set(
+    model.nodes
+      .filter((n) => isAgentIntentType(n.type as string))
+      .map((n) => n.id)
+  )
+
+  const droppedIds = new Set<string>()
+  const normalizedNodes: BesserNode[] = []
+  let touched = 0
+  for (const n of model.nodes) {
+    if (!isIntentChildType(n.type as string)) {
+      normalizedNodes.push(n)
+      continue
+    }
+    if (!n.parentId || !intentIds.has(n.parentId)) {
+      droppedIds.add(n.id)
+      continue
+    }
+    const needsExtent =
+      (n as unknown as { extent?: string }).extent !== "parent"
+    const needsDraggable =
+      (n as unknown as { draggable?: boolean }).draggable !== false
+    if (!needsExtent && !needsDraggable) {
+      normalizedNodes.push(n)
+      continue
+    }
+    touched += 1
+    normalizedNodes.push({
+      ...n,
+      extent: "parent",
+      draggable: false,
+    } as BesserNode)
+  }
+
+  if (droppedIds.size === 0 && touched === 0) return model
+
+  let nextEdges = model.edges
+  if (droppedIds.size > 0) {
+    nextEdges = model.edges.filter(
+      (e) => !droppedIds.has(e.source) && !droppedIds.has(e.target)
+    )
+    log.warn(
+      `normalizeAgentIntentChildren: dropped ${droppedIds.size} orphan ` +
+        `AgentIntent child node(s) — no matching AgentIntent parent.`
+    )
+  }
+  if (touched > 0) {
+    log.warn(
+      `normalizeAgentIntentChildren: forced extent:"parent" + ` +
+        `draggable:false on ${touched} AgentIntent child node(s).`
+    )
+  }
+  return { ...model, nodes: normalizedNodes, edges: nextEdges }
+}
+
+/**
+ * SA-FIX-AGENT-OCL: normalise OCL constraint node types. Templates
+ * (Library_OCL.json, team_player_ocl.json) ship the canvas-level OCL
+ * constraint with a lowercase `type: "classoclconstraint"` instead of
+ * the canonical `type: "ClassOCLConstraint"` registered in the v4 node
+ * registry, which prevents the React-Flow renderer from picking up the
+ * right component. Re-keys legacy `constraint` field onto `expression`
+ * so v3 wire-form OCL bodies surface in the inspector.
+ */
+function normalizeOCLConstraintNodes(model: UMLModel): UMLModel {
+  const isLegacyOclType = (t: unknown): boolean =>
+    typeof t === "string" && t.toLowerCase() === "classoclconstraint"
+  const isLegacyOclLinkType = (t: unknown): boolean =>
+    typeof t === "string" && t.toLowerCase() === "classocllink"
+
+  let touchedNodes = 0
+  const normalizedNodes = model.nodes.map((n) => {
+    if (!isLegacyOclType(n.type)) return n
+    touchedNodes += 1
+    const d = (n.data ?? {}) as Record<string, unknown>
+    const nextData: Record<string, unknown> = { ...d }
+    if (
+      (nextData.expression === undefined || nextData.expression === "") &&
+      typeof nextData.constraint === "string"
+    ) {
+      nextData.expression = nextData.constraint
+    }
+    delete nextData.constraint
+    return {
+      ...n,
+      type: "ClassOCLConstraint",
+      data: nextData,
+    } as BesserNode
+  })
+
+  let touchedEdges = 0
+  const normalizedEdges = model.edges.map((e) => {
+    if (!isLegacyOclLinkType(e.type)) return e
+    touchedEdges += 1
+    return { ...e, type: "ClassOCLLink" } as BesserEdge
+  })
+
+  if (touchedNodes === 0 && touchedEdges === 0) return model
+  log.warn(
+    `normalizeOCLConstraintNodes: normalised ${touchedNodes} OCL node ` +
+      `type(s) and ${touchedEdges} OCL edge type(s) to canonical casing.`
+  )
+  return { ...model, nodes: normalizedNodes, edges: normalizedEdges }
+}
+
+/**
+ * SA-FIX-AGENT-OCL: unconditional v4 normalization pass.
+ *
+ * Runs on EVERY model load — including `version: "4.0.0"` templates and
+ * locally stored projects that bypass the v3→v4 migrator. Each sub-pass
+ * returns the input model by reference when no transformation was
+ * needed, so a clean v4 model flows through unchanged
+ * (`normalizeV4Model(m) === m`).
+ *
+ * Pipeline:
+ *  1. `normalizeAgentBodies` — fold orphan AgentStateBody /
+ *     AgentStateFallbackBody onto their parent's `data.bodies`.
+ *  2. `normalizeAgentIntentChildren` — ensure AgentIntent child rows
+ *     render inline (extent + draggable) and drop orphans.
+ *  3. `normalizeOCLConstraintNodes` — canonicalise the OCL node /
+ *     edge type names (lowercase → PascalCase) and re-key legacy
+ *     `constraint` field onto `expression`.
+ */
+export function normalizeV4Model(model: UMLModel): UMLModel {
+  let m = model
+  m = normalizeAgentBodies(m)
+  m = normalizeAgentIntentChildren(m)
+  m = normalizeOCLConstraintNodes(m)
+  return m
+}
+
+/**
  * Universal import function that handles v2, v3 and v4 formats
  */
 export function importDiagram(data: any | V3UMLModel): UMLModel {
   if (isV4Format(data)) {
-    // SA-FIX-CRITICAL-2 #1: normalise floating AgentStateBody /
-    // AgentStateFallbackBody nodes onto the parent AgentState before
-    // the editor sees them. v4 fixtures from older builds (or external
-    // tools that didn't honour the inline-body shape) can ship body
-    // nodes at the top level; this pass folds them.
-    return normalizeAgentBodies(data)
+    // SA-FIX-CRITICAL-2 #1 / SA-FIX-AGENT-OCL: normalise v4 input on load.
+    // Templates that ship `version: "4.0.0"` but the legacy
+    // separate-child-nodes shape (orphan AgentStateBody, missing
+    // extent/draggable on intent children, lowercase OCL types) are
+    // canonicalised before the editor sees them.
+    return normalizeV4Model(data)
   }
 
   if (isV3Format(data)) {
-    return convertV3ToV4(data)
+    // SA-FIX-AGENT-OCL: run the v4 normalizer over the migrator's
+    // output as well — the v3→v4 fold logic can still leave orphans
+    // and the resulting v4 model should be canonicalised before
+    // reaching the editor.
+    return normalizeV4Model(convertV3ToV4(data))
   }
 
   if (isV2Format(data)) {
-    return convertV2ToV4(data)
+    return normalizeV4Model(convertV2ToV4(data))
   }
 
   if (data.model) {
