@@ -123,16 +123,7 @@
         "targetRole": "publishes",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 200,
-            "y": 100
-          },
-          {
-            "x": 440,
-            "y": 100
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -150,16 +141,7 @@
         "targetRole": "has",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 800,
-            "y": 95
-          },
-          {
-            "x": 600,
-            "y": 95
-          }
-        ]
+        "points": []
       }
     }
   ],

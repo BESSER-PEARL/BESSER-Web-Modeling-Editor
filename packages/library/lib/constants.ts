@@ -278,6 +278,16 @@ export const MARKER_CONFIGS = Object.freeze({
     widthFactor: 1.0,
     heightFactor: 0.866,
   },
+  // Compact arrowhead used by NN edges — the layer cards sit close
+  // together so the default 18 px arrow visually overpowered the short
+  // segment. 12 px gives a proportional head without losing legibility.
+  "nn-arrow": {
+    type: "arrow",
+    filled: false,
+    size: 12,
+    widthFactor: 1.0,
+    heightFactor: 0.866,
+  },
   // Component/Deployment diagram - interface socket
   // Size = interface radius so arc perfectly overlaps the interface circle
   "required-interface": {

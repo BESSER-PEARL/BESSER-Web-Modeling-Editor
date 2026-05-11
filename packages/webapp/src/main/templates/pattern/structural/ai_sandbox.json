@@ -1674,16 +1674,7 @@
         "targetRole": "metrics",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1420,
-            "y": 100
-          },
-          {
-            "x": 1420,
-            "y": 280
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1701,16 +1692,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1340,
-            "y": 80
-          },
-          {
-            "x": 1230,
-            "y": 80
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1728,24 +1710,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1337.5,
-            "y": 280
-          },
-          {
-            "x": 1337.5,
-            "y": 215
-          },
-          {
-            "x": 1170,
-            "y": 215
-          },
-          {
-            "x": 1170,
-            "y": 150
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1763,20 +1728,7 @@
         "targetRole": "measurand",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1070,
-            "y": 320
-          },
-          {
-            "x": 1160,
-            "y": 320
-          },
-          {
-            "x": 1160,
-            "y": 700
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1794,16 +1746,7 @@
         "targetRole": "metric",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1070,
-            "y": 300
-          },
-          {
-            "x": 1270,
-            "y": 300
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1821,24 +1764,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 870,
-            "y": 475
-          },
-          {
-            "x": 830,
-            "y": 475
-          },
-          {
-            "x": 830,
-            "y": 95
-          },
-          {
-            "x": 990,
-            "y": 95
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1856,16 +1782,7 @@
         "targetRole": "observation",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 990,
-            "y": 360
-          },
-          {
-            "x": 990,
-            "y": 450
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1883,20 +1800,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1570,
-            "y": 130
-          },
-          {
-            "x": 1472.5,
-            "y": 130
-          },
-          {
-            "x": 1472.5,
-            "y": 280
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1914,20 +1818,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1570,
-            "y": 205
-          },
-          {
-            "x": 1472.5,
-            "y": 205
-          },
-          {
-            "x": 1472.5,
-            "y": 280
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1945,16 +1836,7 @@
         "targetRole": "f_date",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1280,
-            "y": 1080
-          },
-          {
-            "x": 1420,
-            "y": 1080
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1972,16 +1854,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 970,
-            "y": 820
-          },
-          {
-            "x": 970,
-            "y": 740
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1999,24 +1872,7 @@
         "targetRole": "f_features",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1100,
-            "y": 1120
-          },
-          {
-            "x": 1100,
-            "y": 1160
-          },
-          {
-            "x": 1585,
-            "y": 1160
-          },
-          {
-            "x": 1585,
-            "y": 1110
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2034,20 +1890,7 @@
         "targetRole": "baseMetric",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1690,
-            "y": 240
-          },
-          {
-            "x": 1690,
-            "y": 310
-          },
-          {
-            "x": 1540,
-            "y": 310
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2065,20 +1908,7 @@
         "targetRole": "eval",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1527.5,
-            "y": 510
-          },
-          {
-            "x": 1527.5,
-            "y": 567.5
-          },
-          {
-            "x": 1420,
-            "y": 567.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2096,20 +1926,7 @@
         "targetRole": "involves",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1622.5,
-            "y": 510
-          },
-          {
-            "x": 1622.5,
-            "y": 720
-          },
-          {
-            "x": 1250,
-            "y": 720
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2128,20 +1945,7 @@
         "targetRole": "evaluates",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1210,
-            "y": 602.5
-          },
-          {
-            "x": 980,
-            "y": 602.5
-          },
-          {
-            "x": 980,
-            "y": 700
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2159,16 +1963,7 @@
         "targetRole": "dataset",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1050,
-            "y": 895
-          },
-          {
-            "x": 1180,
-            "y": 895
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2186,16 +1981,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1215,
-            "y": 810
-          },
-          {
-            "x": 1215,
-            "y": 740
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2213,16 +1999,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1230,
-            "y": 1050
-          },
-          {
-            "x": 1230,
-            "y": 970
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2240,24 +2017,7 @@
         "targetRole": "",
         "isManuallyLayouted": true,
         "messages": [],
-        "points": [
-          {
-            "x": 1530,
-            "y": 980
-          },
-          {
-            "x": 1530,
-            "y": 792.2314453125
-          },
-          {
-            "x": 1160,
-            "y": 792.2314453125
-          },
-          {
-            "x": 1160,
-            "y": 740
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2275,20 +2035,7 @@
         "targetRole": "conf",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1880,
-            "y": 450
-          },
-          {
-            "x": 1880,
-            "y": 610
-          },
-          {
-            "x": 1840,
-            "y": 610
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2306,20 +2053,7 @@
         "targetRole": "observations",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1262.5,
-            "y": 550
-          },
-          {
-            "x": 1262.5,
-            "y": 475
-          },
-          {
-            "x": 1090,
-            "y": 475
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2337,16 +2071,7 @@
         "targetRole": "eval",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1680,
-            "y": 600
-          },
-          {
-            "x": 1420,
-            "y": 600
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2364,24 +2089,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 890,
-            "y": 730
-          },
-          {
-            "x": 850,
-            "y": 730
-          },
-          {
-            "x": 850,
-            "y": 95
-          },
-          {
-            "x": 990,
-            "y": 95
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2399,24 +2107,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1760,
-            "y": 580
-          },
-          {
-            "x": 1760,
-            "y": 0
-          },
-          {
-            "x": 1170,
-            "y": 0
-          },
-          {
-            "x": 1170,
-            "y": 40
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2434,24 +2125,7 @@
         "targetRole": "",
         "isManuallyLayouted": true,
         "messages": [],
-        "points": [
-          {
-            "x": 1880,
-            "y": 350
-          },
-          {
-            "x": 1880,
-            "y": -28.800010681152344
-          },
-          {
-            "x": 1110,
-            "y": -28.800010681152344
-          },
-          {
-            "x": 1110,
-            "y": 40
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2469,16 +2143,7 @@
         "targetRole": "ref",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1230,
-            "y": 620
-          },
-          {
-            "x": 1230,
-            "y": 700
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2496,20 +2161,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 580,
-            "y": 550
-          },
-          {
-            "x": 580,
-            "y": 500
-          },
-          {
-            "x": 870,
-            "y": 500
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2527,28 +2179,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1352.5,
-            "y": 970
-          },
-          {
-            "x": 1352.5,
-            "y": 1010
-          },
-          {
-            "x": 830,
-            "y": 1010
-          },
-          {
-            "x": 830,
-            "y": 525
-          },
-          {
-            "x": 870,
-            "y": 525
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2566,16 +2197,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 2080,
-            "y": 480
-          },
-          {
-            "x": 1670,
-            "y": 480
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -2593,20 +2215,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 495,
-            "y": 550
-          },
-          {
-            "x": 495,
-            "y": 67.5
-          },
-          {
-            "x": 990,
-            "y": 67.5
-          }
-        ]
+        "points": []
       }
     }
   ],

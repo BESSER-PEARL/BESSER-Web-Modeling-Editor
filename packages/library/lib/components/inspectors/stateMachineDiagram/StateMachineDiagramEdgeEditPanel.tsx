@@ -6,40 +6,28 @@ import {
   Tooltip,
 } from "@mui/material"
 import React from "react"
-import CodeMirror from "@uiw/react-codemirror"
-import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { DividerLine, EdgeStyleEditor } from "@/components/ui"
-import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
+import { SwapHorizIcon } from "@/components/Icon"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
-import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * Inspector body for `StateTransition` edges. Editable fields:
+ * Inspector body for `StateTransition` edges. v3 parity (strictly):
  *
- *  - `name`
- *  - `guard` (optional boolean expression rendered as `[guard]` next to
- *    the label on the canvas — see `StateMachineDiagramEdge.tsx`).
- *  - `params` — ordered string-keyed dict mirroring the v3 shape at
- *    `packages/editor/.../uml-state-transition.ts:14`.
- *  - brief additions: `code` (action body) and `eventName`
- *    (explicit trigger).
+ *  - `name` (transition function name)
+ *  - `params` — single string (e.g. "{60}"), as stored on the v3
+ *    relationship at `packages/editor/.../uml-state-transition.ts`.
  *
- * Flip + color editor surface via
- * `EdgeStyleEditor` + `SwapHorizIcon`, mirroring the class-edge
- * and agent-edge approach.
- *
- * The `code` field uses CodeMirror with Python
- * syntax highlighting (matches AgentDiagramEdgeEditPanel).
+ * v3 did NOT carry guard / eventName / code / structured params on the
+ * transition; those were SA-3 additions. Removed to match the BESSER
+ * metamodel.
  */
 type EdgeData = CustomEdgeProps & {
   name?: string
-  guard?: string
-  code?: string
-  eventName?: string
-  params?: { [key: string]: string }
+  /** Free-text params string. v3 stored a single string here. */
+  params?: string | { [key: string]: string }
 }
 
 export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
@@ -55,7 +43,16 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   if (!edge) return null
 
   const data: EdgeData = (edge.data ?? {}) as EdgeData
-  const params = data.params ?? {}
+
+  // The migrator stored v3's "{60}" string as a normalised dict
+  // `{ "0": "{60}" }`. Surface it back as a single string in the
+  // inspector so users see what v3 saw.
+  const paramsAsString =
+    typeof data.params === "string"
+      ? data.params
+      : typeof data.params === "object" && data.params !== null
+        ? (data.params["0"] ?? "")
+        : ""
 
   const update = (patch: Partial<EdgeData>) => {
     setEdges((all) =>
@@ -72,8 +69,6 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     update({ [key]: value } as Partial<EdgeData>)
   }
 
-  // Flip swaps source/target/handle pairs on the
-  // edge, mirroring `ClassEdgeEditPanel.handleSwap`.
   const handleSwap = () => {
     setEdges((all) =>
       all.map((e) => {
@@ -89,27 +84,8 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     )
   }
 
-  const setParam = (key: string, value: string) => {
-    update({ params: { ...params, [key]: value } })
-  }
-
-  const removeParam = (key: string) => {
-    const next = { ...params }
-    delete next[key]
-    update({ params: next })
-  }
-
-  const addParam = () => {
-    const numericKeys = Object.keys(params)
-      .map((k) => parseInt(k, 10))
-      .filter((n) => !Number.isNaN(n))
-    const nextKey = ((numericKeys.length ? Math.max(...numericKeys) : -1) + 1).toString()
-    update({ params: { ...params, [nextKey]: "" } })
-  }
-
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      {/* Color editor + flip action */}
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
@@ -131,81 +107,17 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         label="name"
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
+        placeholder="event handler function name"
       />
       <MuiTextField
         size="small"
         variant="outlined"
         fullWidth
-        label="guard"
-        value={data.guard ?? ""}
-        onChange={(e) => update({ guard: e.target.value })}
-        placeholder="boolean expression in [...]"
+        label="params"
+        value={paramsAsString}
+        onChange={(e) => update({ params: e.target.value })}
+        placeholder="{60}"
       />
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        label="event name"
-        value={data.eventName ?? ""}
-        onChange={(e) => update({ eventName: e.target.value })}
-      />
-
-      {/* CodeMirror Python editor for `code`. */}
-      <Stack spacing={0.5}>
-        <InspectorSectionHeader>code</InspectorSectionHeader>
-        <Box
-          sx={{
-            border: "1px solid var(--besser-gray, #ccc)",
-            borderRadius: "4px",
-            "& .cm-editor": { fontSize: "13px", minHeight: 80 },
-          }}
-        >
-          <CodeMirror
-            value={data.code ?? ""}
-            extensions={[python()]}
-            onChange={(v) => update({ code: v })}
-            basicSetup={{
-              lineNumbers: true,
-              tabSize: 4,
-              indentOnInput: true,
-            }}
-            placeholder="Action code executed on transition"
-          />
-        </Box>
-      </Stack>
-
-      <DividerLine width="100%" />
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-      >
-        <InspectorSectionHeader>parameters</InspectorSectionHeader>
-        <AddRowButton onClick={addParam} />
-      </Stack>
-      {Object.keys(params)
-        .sort((a, b) => Number(a) - Number(b))
-        .map((key) => (
-          <Stack
-            key={key}
-            direction="row"
-            alignItems="center"
-            spacing={0.5}
-            sx={{ padding: "4px 0" }}
-          >
-            <MuiTextField
-              size="small"
-              variant="outlined"
-              fullWidth
-              placeholder={`param ${key}`}
-              value={params[key]}
-              onChange={(e) => setParam(key, e.target.value)}
-            />
-            <IconButton size="small" onClick={() => removeParam(key)}>
-              <DeleteIcon width={14} height={14} />
-            </IconButton>
-          </Stack>
-        ))}
     </Box>
   )
 }

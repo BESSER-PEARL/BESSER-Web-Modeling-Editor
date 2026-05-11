@@ -1432,16 +1432,7 @@
         "targetRole": "created_by",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1640,
-            "y": 1265
-          },
-          {
-            "x": 1410,
-            "y": 1265
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1460,16 +1451,7 @@
         "targetRole": "company",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 560,
-            "y": 975
-          },
-          {
-            "x": 240,
-            "y": 975
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1488,16 +1470,7 @@
         "targetRole": "opportunity",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 920,
-            "y": 1525
-          },
-          {
-            "x": 780,
-            "y": 1525
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1516,20 +1489,7 @@
         "targetRole": "created_contacts",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1275,
-            "y": 1060
-          },
-          {
-            "x": 1275,
-            "y": 885
-          },
-          {
-            "x": 900,
-            "y": 885
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1548,16 +1508,7 @@
         "targetRole": "owner",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 780,
-            "y": 1335
-          },
-          {
-            "x": 1230,
-            "y": 1335
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1576,16 +1527,7 @@
         "targetRole": "tags",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 560,
-            "y": 755
-          },
-          {
-            "x": 230,
-            "y": 755
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1604,20 +1546,7 @@
         "targetRole": "generated_emails",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1775,
-            "y": 1160
-          },
-          {
-            "x": 1775,
-            "y": 885
-          },
-          {
-            "x": 1650,
-            "y": 885
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1636,24 +1565,7 @@
         "targetRole": "tasks",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 815,
-            "y": 1000
-          },
-          {
-            "x": 815,
-            "y": 1205
-          },
-          {
-            "x": 1030,
-            "y": 1205
-          },
-          {
-            "x": 1030,
-            "y": 1410
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1672,16 +1584,7 @@
         "targetRole": "contact",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 240,
-            "y": 585
-          },
-          {
-            "x": 560,
-            "y": 585
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1700,20 +1603,7 @@
         "targetRole": "opportunities",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 150,
-            "y": 1380
-          },
-          {
-            "x": 150,
-            "y": 1555
-          },
-          {
-            "x": 440,
-            "y": 1555
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1732,20 +1622,7 @@
         "targetRole": "created_by",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1515,
-            "y": 940
-          },
-          {
-            "x": 1515,
-            "y": 1137.5
-          },
-          {
-            "x": 1410,
-            "y": 1137.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1764,20 +1641,7 @@
         "targetRole": "performed_by",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1190,
-            "y": 405
-          },
-          {
-            "x": 1365,
-            "y": 405
-          },
-          {
-            "x": 1365,
-            "y": 1060
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1796,20 +1660,7 @@
         "targetRole": "assigned_to",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1140,
-            "y": 1535
-          },
-          {
-            "x": 1320,
-            "y": 1535
-          },
-          {
-            "x": 1320,
-            "y": 1370
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1828,16 +1679,7 @@
         "targetRole": "enrichment_logs",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 900,
-            "y": 685
-          },
-          {
-            "x": 1100,
-            "y": 685
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1856,16 +1698,7 @@
         "targetRole": "opportunities",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 670,
-            "y": 1000
-          },
-          {
-            "x": 670,
-            "y": 1300
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1884,16 +1717,7 @@
         "targetRole": "generated_emails",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 900,
-            "y": 830
-          },
-          {
-            "x": 1470,
-            "y": 830
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1912,16 +1736,7 @@
         "targetRole": "created_by",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 240,
-            "y": 1215
-          },
-          {
-            "x": 1230,
-            "y": 1215
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1940,20 +1755,7 @@
         "targetRole": "contact",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 940,
-            "y": 405
-          },
-          {
-            "x": 730,
-            "y": 405
-          },
-          {
-            "x": 730,
-            "y": 540
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -1972,16 +1774,7 @@
         "targetRole": "tags",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 145,
-            "y": 950
-          },
-          {
-            "x": 145,
-            "y": 820
-          }
-        ]
+        "points": []
       }
     }
   ],

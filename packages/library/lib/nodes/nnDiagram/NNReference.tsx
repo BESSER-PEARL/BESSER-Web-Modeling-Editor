@@ -4,6 +4,7 @@ import { DefaultNodeWrapper } from "../wrappers"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { useDiagramStore } from "@/store/context"
 import { NNReferenceNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
@@ -29,6 +30,17 @@ export function NNReference({
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
   const refFill = !data.fillColor ? "#FFFDE7" : fillColor
+  // Render the REFERENCED container's name (look it up live). v3 parity:
+  // the NNReference card displays "→ <container name>", not its own
+  // internal label. Falls back to `data.name` only when the reference is
+  // unset or its target node has been deleted.
+  const referencedName = useDiagramStore((s) => {
+    if (!data.referenceTarget) return null
+    const target = s.nodes.find((n) => n.id === data.referenceTarget)
+    if (!target) return null
+    return ((target.data as { name?: string }) ?? {}).name ?? null
+  })
+  const labelText = referencedName || data.name || "reference"
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
@@ -57,6 +69,7 @@ export function NNReference({
             stroke={strokeColor}
             strokeDasharray="4 2"
             strokeWidth={1.2}
+            pointerEvents="visiblePainted"
           />
           <text
             x={width / 2}
@@ -65,8 +78,9 @@ export function NNReference({
             fontSize={LAYOUT.NAME_FONT_SIZE - 2}
             fill={textColor}
             fontStyle="italic"
+            pointerEvents="none"
           >
-            {`→ ${data.name || data.referenceTarget || ""}`}
+            {`→ ${labelText}`}
           </text>
         </svg>
       </div>

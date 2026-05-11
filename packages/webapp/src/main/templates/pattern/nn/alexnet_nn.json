@@ -6,183 +6,186 @@
   "nodes": [
     {
       "id": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
-      "type": "NNContainer",
-      "position": {
-        "x": 40,
-        "y": 40
-      },
       "width": 1370,
       "height": 230,
-      "measured": {
-        "width": 1370,
-        "height": 230
+      "type": "NNContainer",
+      "position": {
+        "x": 85,
+        "y": 40
       },
       "data": {
         "name": "features"
+      },
+      "measured": {
+        "width": 1370,
+        "height": 230
       }
     },
     {
       "id": "b5dc30d6-d933-4f16-b079-b8486e224360",
+      "width": 90,
+      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 800,
-        "y": 490
+        "x": 95,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
-        "name": "Conv2DLayer",
+        "name": "Conv2DLayer2",
         "attributes": {
           "kernel_dim": "[11, 11]",
           "out_channels": "64",
           "actv_func": "relu",
           "in_channels": "3",
           "stride_dim": "[4, 4]",
-          "padding_amount": "2"
+          "padding_amount": "2",
+          "name": "Conv2DLayer2"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "fe4ffcd2-cdfa-4f76-aef2-2150fe47f87c",
+      "width": 90,
+      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 940,
-        "y": 490
+        "x": 245,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
-        "name": "PoolingLayer",
+        "name": "PoolingLayer2",
         "attributes": {
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[3, 3]",
-          "stride_dim": "[2, 2]"
+          "stride_dim": "[2, 2]",
+          "name": "PoolingLayer2"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "68872556-8ebc-45fa-9974-6b1d9fa5fa7b",
+      "width": 90,
+      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 1090,
-        "y": 490
+        "x": 370,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
-        "name": "Conv2DLayer",
+        "name": "Conv2DLayer3",
         "attributes": {
           "kernel_dim": "[5, 5]",
           "out_channels": "192",
           "actv_func": "relu",
           "in_channels": "64",
-          "padding_amount": "2"
+          "padding_amount": "2",
+          "name": "Conv2DLayer3"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "aba29a03-7ea5-4657-bb55-c707885f1d0d",
+      "width": 90,
+      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 1230,
-        "y": 490
+        "x": 520,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
-        "name": "PoolingLayer",
+        "name": "PoolingLayer3",
         "attributes": {
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[3, 3]",
-          "stride_dim": "[2, 2]"
+          "stride_dim": "[2, 2]",
+          "name": "PoolingLayer3"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "429c3da2-212e-48da-9eb3-6c824f9b5362",
+      "width": 90,
+      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 1370,
-        "y": 490
+        "x": 660,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
-        "name": "Conv2DLayer",
+        "name": "Conv2DLayer4",
         "attributes": {
           "kernel_dim": "[3, 3]",
           "out_channels": "384",
           "actv_func": "relu",
           "in_channels": "192",
-          "padding_amount": "1"
+          "padding_amount": "1",
+          "name": "Conv2DLayer4"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "9912f3eb-90ad-45f7-a3ed-30f6a4e0ea96",
+      "width": 90,
+      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 1520,
-        "y": 490
+        "x": 825,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
-        "name": "Conv2DLayer",
+        "name": "Conv2DLayer5",
         "attributes": {
           "kernel_dim": "[3, 3]",
           "out_channels": "256",
           "actv_func": "relu",
           "in_channels": "384",
-          "padding_amount": "1"
+          "padding_amount": "1",
+          "name": "Conv2DLayer5"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "f6b3b33b-4cb0-423b-8e12-a17f92cb008b",
+      "width": 90,
+      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 1690,
-        "y": 490
+        "x": 1000,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
         "name": "Conv2DLayer",
         "attributes": {
@@ -190,258 +193,272 @@
           "out_channels": "256",
           "actv_func": "relu",
           "in_channels": "256",
-          "padding_amount": "1"
+          "padding_amount": "1",
+          "name": "Conv2DLayer"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "3903acba-4f59-4f5e-b39e-cb6fd8133d01",
+      "width": 90,
+      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 1840,
-        "y": 490
+        "x": 1175,
+        "y": 75
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
       "data": {
-        "name": "PoolingLayer",
+        "name": "PoolingLayer4",
         "attributes": {
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[3, 3]",
-          "stride_dim": "[2, 2]"
+          "stride_dim": "[2, 2]",
+          "name": "PoolingLayer4"
         }
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "3c885977-837c-4469-8112-4e26f02e7937",
-      "type": "NNContainer",
-      "position": {
-        "x": 190,
-        "y": 300
-      },
       "width": 840,
       "height": 190,
-      "measured": {
-        "width": 840,
-        "height": 190
+      "type": "NNContainer",
+      "position": {
+        "x": 170,
+        "y": 315
       },
       "data": {
         "name": "classifier"
+      },
+      "measured": {
+        "width": 840,
+        "height": 190
       }
     },
     {
       "id": "24e6c691-b91a-400d-8cb9-b1105ff3d4c4",
+      "width": 90,
+      "height": 100,
       "type": "DropoutLayer",
       "position": {
-        "x": 810,
-        "y": 480
+        "x": 20,
+        "y": 60
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
       "data": {
-        "name": "DropoutLayer",
+        "name": "DropoutLayer2",
         "attributes": {
-          "rate": "0.5"
+          "rate": "0.5",
+          "name": "DropoutLayer2"
         }
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "8f9da758-b58b-4fff-84ef-9a0d63234de6",
+      "width": 90,
+      "height": 100,
       "type": "LinearLayer",
       "position": {
-        "x": 980,
-        "y": 480
+        "x": 170,
+        "y": 60
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
       "data": {
-        "name": "LinearLayer",
+        "name": "LinearLayer2",
         "attributes": {
           "out_features": "4096",
           "in_features": "9216",
-          "actv_func": "relu"
+          "actv_func": "relu",
+          "name": "LinearLayer2"
         }
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "355f6cde-8462-43b6-a5a8-a2367b47a81f",
+      "width": 90,
+      "height": 100,
       "type": "DropoutLayer",
       "position": {
-        "x": 1160,
-        "y": 480
+        "x": 320,
+        "y": 60
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
       "data": {
         "name": "DropoutLayer",
         "attributes": {
-          "rate": "0.5"
+          "rate": "0.5",
+          "name": "DropoutLayer"
         }
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "b26b456a-dd21-46d8-ae5e-953c4c980a85",
+      "width": 90,
+      "height": 100,
       "type": "LinearLayer",
       "position": {
-        "x": 1330,
-        "y": 480
+        "x": 510,
+        "y": 60
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
       "data": {
-        "name": "LinearLayer",
+        "name": "LinearLayer3",
         "attributes": {
           "out_features": "4096",
           "in_features": "4096",
-          "actv_func": "relu"
+          "actv_func": "relu",
+          "name": "LinearLayer3"
         }
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "d84e4a67-bf8a-4843-af31-783a08e96f49",
+      "width": 90,
+      "height": 100,
       "type": "LinearLayer",
       "position": {
-        "x": 1490,
-        "y": 480
+        "x": 700,
+        "y": 60
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
       "data": {
         "name": "LinearLayer",
         "attributes": {
           "out_features": "1000",
-          "in_features": "4096"
+          "in_features": "4096",
+          "name": "LinearLayer"
         }
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "f27bd4bd-6984-4826-aa9a-00993403695f",
+      "width": 810,
+      "height": 180,
       "type": "NNContainer",
       "position": {
         "x": 180,
         "y": 560
       },
-      "width": 810,
-      "height": 180,
+      "data": {
+        "name": "alexnet"
+      },
       "measured": {
         "width": 810,
         "height": 180
-      },
-      "data": {
-        "name": "alexnet"
       }
     },
     {
       "id": "a015eb20-e375-4c95-a6e2-6cf2d5cf109c",
+      "width": 90,
+      "height": 100,
       "type": "NNReference",
       "position": {
-        "x": 800,
-        "y": 510
+        "x": 55,
+        "y": 50
       },
-      "width": 140,
-      "height": 40,
-      "measured": {
-        "width": 140,
-        "height": 40
-      },
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
       "data": {
-        "name": "features"
+        "name": "features",
+        "referenceTarget": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "1174b414-b33b-4f5f-a66e-1fdf674d587f",
+      "width": 90,
+      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 1000,
-        "y": 480
+        "x": 265,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
       "data": {
         "name": "PoolingLayer",
         "attributes": {
           "pooling_type": "adaptive_average",
           "pooling.dimension": "2D",
-          "output_dim": "[6, 6]"
+          "output_dim": "[6, 6]",
+          "name": "PoolingLayer"
         }
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "e3dbae01-2673-4567-917e-b4b452e76fd9",
+      "width": 90,
+      "height": 100,
       "type": "FlattenLayer",
       "position": {
-        "x": 1170,
-        "y": 480
+        "x": 465,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
-      "measured": {
-        "width": 110,
-        "height": 110
-      },
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
       "data": {
         "name": "FlattenLayer",
         "attributes": {
-          "start_dim": "1"
+          "start_dim": "1",
+          "name": "FlattenLayer"
         }
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     },
     {
       "id": "e7e7de00-2174-4379-90e1-98036e29ce1f",
+      "width": 90,
+      "height": 100,
       "type": "NNReference",
       "position": {
-        "x": 1350,
-        "y": 510
+        "x": 645,
+        "y": 50
       },
-      "width": 140,
-      "height": 40,
-      "measured": {
-        "width": 140,
-        "height": 40
-      },
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
       "data": {
-        "name": "classifier"
+        "name": "classifier",
+        "referenceTarget": "3c885977-837c-4469-8112-4e26f02e7937"
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
+      "measured": {
+        "width": 90,
+        "height": 100
+      }
     }
   ],
   "edges": [
@@ -455,22 +472,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 330,
-            "y": 415
-          },
-          {
-            "x": 390,
-            "y": 415
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -483,22 +485,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 500,
-            "y": 415
-          },
-          {
-            "x": 570,
-            "y": 415
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -511,22 +498,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 680,
-            "y": 415
-          },
-          {
-            "x": 740,
-            "y": 415
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -539,22 +511,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 850,
-            "y": 415
-          },
-          {
-            "x": 900,
-            "y": 415
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -562,27 +519,12 @@
       "source": "a015eb20-e375-4c95-a6e2-6cf2d5cf109c",
       "target": "1174b414-b33b-4f5f-a66e-1fdf674d587f",
       "type": "NNNext",
-      "sourceHandle": "right-bottom",
+      "sourceHandle": "right",
       "targetHandle": "left",
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 340,
-            "y": 670
-          },
-          {
-            "x": 400,
-            "y": 670
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -595,22 +537,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 510,
-            "y": 675
-          },
-          {
-            "x": 570,
-            "y": 675
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -619,26 +546,11 @@
       "target": "e7e7de00-2174-4379-90e1-98036e29ce1f",
       "type": "NNNext",
       "sourceHandle": "right",
-      "targetHandle": "left-bottom",
+      "targetHandle": "left",
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 680,
-            "y": 670
-          },
-          {
-            "x": 750,
-            "y": 670
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -651,22 +563,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 170,
-            "y": 165
-          },
-          {
-            "x": 200,
-            "y": 165
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -679,22 +576,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 310,
-            "y": 165
-          },
-          {
-            "x": 350,
-            "y": 165
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -707,22 +589,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 460,
-            "y": 165
-          },
-          {
-            "x": 490,
-            "y": 165
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -735,22 +602,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 600,
-            "y": 165
-          },
-          {
-            "x": 630,
-            "y": 165
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -763,22 +615,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 740,
-            "y": 165
-          },
-          {
-            "x": 780,
-            "y": 165
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -791,22 +628,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 890,
-            "y": 165
-          },
-          {
-            "x": 950,
-            "y": 165
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -819,22 +641,7 @@
       "data": {
         "label": "next",
         "name": "next",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": [
-          {
-            "x": 1060,
-            "y": 165
-          },
-          {
-            "x": 1100,
-            "y": 165
-          }
-        ]
+        "points": []
       }
     }
   ],

@@ -313,16 +313,33 @@ export type SfcTransitionBranchNodeProps = DefaultNodeProps & {
 export type StateBodyNodeProps = DefaultNodeProps
 
 /**
- * `State` parent node. Children (StateBody / StateFallbackBody /
- * StateCodeBlock) hang off of it via React Flow `parentId`. The
- * stereotype renders centred above the name; `italic`/`underline` style
- * the name itself. v3 cached `bodyIds` / `fallbackBodyIds` arrays — in
- * v4 those are derived at render time by walking children.
+ * Inline body row stored on `StateNodeProps.bodies` /
+ * `StateNodeProps.fallbackBodies`. v3 parity: `UMLStateBody` /
+ * `UMLStateFallbackBody` carried only a `name` field (they extend
+ * `UMLStateMember` which has nothing beyond the inherited UMLElement
+ * fields). The row id is preserved across round-trip with v3.
+ */
+export type StateBodyRow = {
+  id: string
+  name?: string
+}
+
+/**
+ * `State` parent node. v3 parity: body and fallback-body rows render
+ * inline on the parent (same pattern as `AgentState` and Class
+ * attribute rows). Replaces the prior child-node approach where
+ * `StateBody` / `StateFallbackBody` were separate React-Flow nodes
+ * connected via `parentId`. A normalizer folds any legacy floating body
+ * nodes back into these arrays on load.
  */
 export type StateNodeProps = DefaultNodeProps & {
   stereotype?: string | null
   italic?: boolean
   underline?: boolean
+  /** Main-section body rows (entry / do / exit / on). */
+  bodies?: StateBodyRow[]
+  /** Fallback body rows. */
+  fallbackBodies?: StateBodyRow[]
 }
 
 /** StateActionNode — labelled rounded rectangle. */

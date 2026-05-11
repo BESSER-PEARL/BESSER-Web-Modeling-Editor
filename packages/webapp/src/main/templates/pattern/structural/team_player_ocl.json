@@ -6,10 +6,10 @@
   "nodes": [
     {
       "id": "3838ec45-6993-4a30-b40b-b4f10400b68b",
-      "type": "classoclconstraint",
+      "type": "ClassOCLConstraint",
       "position": {
-        "x": 40,
-        "y": 60
+        "x": 30,
+        "y": 70
       },
       "width": 170,
       "height": 100,
@@ -27,7 +27,7 @@
       "type": "class",
       "position": {
         "x": 290,
-        "y": 50
+        "y": 55
       },
       "width": 160,
       "height": 130,
@@ -67,10 +67,10 @@
         "x": 670,
         "y": 40
       },
-      "width": 160,
+      "width": 170,
       "height": 160,
       "measured": {
-        "width": 160,
+        "width": 170,
         "height": 160
       },
       "data": {
@@ -106,10 +106,10 @@
     },
     {
       "id": "c5dd70c4-8a90-4358-8e2d-7b688b5d056a",
-      "type": "classoclconstraint",
+      "type": "ClassOCLConstraint",
       "position": {
         "x": 950,
-        "y": 60
+        "y": 70
       },
       "width": 160,
       "height": 100,
@@ -140,16 +140,7 @@
         "targetRole": "players",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 450,
-            "y": 115
-          },
-          {
-            "x": 670,
-            "y": 115
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -167,16 +158,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 950,
-            "y": 110
-          },
-          {
-            "x": 830,
-            "y": 110
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -194,16 +176,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 210,
-            "y": 110
-          },
-          {
-            "x": 290,
-            "y": 110
-          }
-        ]
+        "points": []
       }
     }
   ],

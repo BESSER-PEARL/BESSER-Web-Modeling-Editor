@@ -602,16 +602,7 @@
         "targetRole": "books",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 771.0000203450521,
-            "y": 584.6666564941406
-          },
-          {
-            "x": 771.0000203450521,
-            "y": 412
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -630,16 +621,7 @@
         "targetRole": "books",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1014,
-            "y": 376
-          },
-          {
-            "x": 811,
-            "y": 376
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -657,16 +639,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 256,
-            "y": 217.5
-          },
-          {
-            "x": 571,
-            "y": 217.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -684,16 +657,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 258,
-            "y": 303
-          },
-          {
-            "x": 571,
-            "y": 303
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -711,16 +675,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 256,
-            "y": 388
-          },
-          {
-            "x": 571,
-            "y": 388
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -738,24 +693,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 250,
-            "y": 85
-          },
-          {
-            "x": 410.5,
-            "y": 85
-          },
-          {
-            "x": 410.5,
-            "y": 304.5
-          },
-          {
-            "x": 571,
-            "y": 304.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -773,16 +711,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1011.0000203450521,
-            "y": 812
-          },
-          {
-            "x": 1011.0000203450521,
-            "y": 769.6666564941406
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -800,16 +729,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 798.0000203450521,
-            "y": 805
-          },
-          {
-            "x": 798.0000203450521,
-            "y": 769.6666564941406
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -827,16 +747,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1127,
-            "y": 234
-          },
-          {
-            "x": 1127,
-            "y": 340
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -854,24 +765,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 253,
-            "y": 625
-          },
-          {
-            "x": 412,
-            "y": 625
-          },
-          {
-            "x": 412,
-            "y": 304.5
-          },
-          {
-            "x": 571,
-            "y": 304.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -889,24 +783,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 255,
-            "y": 516
-          },
-          {
-            "x": 413,
-            "y": 516
-          },
-          {
-            "x": 413,
-            "y": 304.5
-          },
-          {
-            "x": 571,
-            "y": 304.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -924,24 +801,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 256,
-            "y": 817
-          },
-          {
-            "x": 413.5,
-            "y": 817
-          },
-          {
-            "x": 413.5,
-            "y": 304.5
-          },
-          {
-            "x": 571,
-            "y": 304.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -959,16 +819,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 907,
-            "y": 934
-          },
-          {
-            "x": 907,
-            "y": 769.6666564941406
-          }
-        ]
+        "points": []
       }
     }
   ],

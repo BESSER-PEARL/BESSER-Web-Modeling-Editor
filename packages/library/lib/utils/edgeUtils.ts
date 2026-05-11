@@ -377,7 +377,9 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     case "NNNext":
       return {
         markerPadding: EDGES.MARKER_PADDING,
-        markerEnd: "url(#black-arrow)",
+        // Compact arrow (12 px) so the NN flow arrows don't overpower
+        // the short layer-to-layer segments.
+        markerEnd: "url(#nn-arrow)",
         strokeDashArray: "0",
         offset: 0,
       }

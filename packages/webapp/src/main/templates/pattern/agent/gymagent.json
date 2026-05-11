@@ -458,16 +458,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 755,
-            "y": 92.5
-          },
-          {
-            "x": 840,
-            "y": 92.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -494,20 +485,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "Muscles_intent"
         },
-        "points": [
-          {
-            "x": 760,
-            "y": 290
-          },
-          {
-            "x": 350,
-            "y": 290
-          },
-          {
-            "x": 350,
-            "y": 410
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -534,16 +512,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1010,
-            "y": 140
-          },
-          {
-            "x": 1010,
-            "y": 240
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -570,28 +539,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "Other"
         },
-        "points": [
-          {
-            "x": 1180,
-            "y": 315
-          },
-          {
-            "x": 1220,
-            "y": 315
-          },
-          {
-            "x": 1220,
-            "y": 310
-          },
-          {
-            "x": 1380,
-            "y": 310
-          },
-          {
-            "x": 1380,
-            "y": 350
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -618,24 +566,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 560,
-            "y": 442.5
-          },
-          {
-            "x": 660,
-            "y": 442.5
-          },
-          {
-            "x": 660,
-            "y": 315
-          },
-          {
-            "x": 760,
-            "y": 315
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -662,28 +593,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1290,
-            "y": 367.5
-          },
-          {
-            "x": 1250,
-            "y": 367.5
-          },
-          {
-            "x": 1250,
-            "y": 380
-          },
-          {
-            "x": 1075,
-            "y": 380
-          },
-          {
-            "x": 1075,
-            "y": 340
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -710,28 +620,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 790,
-            "y": 617.5
-          },
-          {
-            "x": 750,
-            "y": 617.5
-          },
-          {
-            "x": 750,
-            "y": 455
-          },
-          {
-            "x": 865,
-            "y": 455
-          },
-          {
-            "x": 865,
-            "y": 340
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -758,16 +647,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "Nutrition_intent"
         },
-        "points": [
-          {
-            "x": 985,
-            "y": 340
-          },
-          {
-            "x": 985,
-            "y": 570
-          }
-        ]
+        "points": []
       }
     }
   ],

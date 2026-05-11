@@ -600,16 +600,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 95,
-            "y": 192.5
-          },
-          {
-            "x": 190,
-            "y": 192.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -636,16 +627,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "OpeningHours"
         },
-        "points": [
-          {
-            "x": 950,
-            "y": 305
-          },
-          {
-            "x": 1250,
-            "y": 305
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -672,20 +654,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "CheapestBook"
         },
-        "points": [
-          {
-            "x": 885,
-            "y": 270
-          },
-          {
-            "x": 885,
-            "y": 135
-          },
-          {
-            "x": 1250,
-            "y": 135
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -712,20 +681,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "Contact"
         },
-        "points": [
-          {
-            "x": 885,
-            "y": 340
-          },
-          {
-            "x": 885,
-            "y": 510
-          },
-          {
-            "x": 1250,
-            "y": 510
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -752,20 +708,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1250,
-            "y": 87.5
-          },
-          {
-            "x": 820,
-            "y": 87.5
-          },
-          {
-            "x": 820,
-            "y": 270
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -792,24 +735,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1460,
-            "y": 560
-          },
-          {
-            "x": 1460,
-            "y": 600
-          },
-          {
-            "x": 820,
-            "y": 600
-          },
-          {
-            "x": 820,
-            "y": 340
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -836,28 +762,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1355,
-            "y": 360
-          },
-          {
-            "x": 1355,
-            "y": 400
-          },
-          {
-            "x": 1100,
-            "y": 400
-          },
-          {
-            "x": 1100,
-            "y": 322.5
-          },
-          {
-            "x": 950,
-            "y": 322.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -884,24 +789,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 530,
-            "y": 212.5
-          },
-          {
-            "x": 610,
-            "y": 212.5
-          },
-          {
-            "x": 610,
-            "y": 305
-          },
-          {
-            "x": 690,
-            "y": 305
-          }
-        ]
+        "points": []
       }
     }
   ],

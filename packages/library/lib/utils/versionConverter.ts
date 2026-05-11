@@ -3976,7 +3976,73 @@ export function normalizeV4Model(model: UMLModel): UMLModel {
   m = normalizeAgentBodyKindToArrays(m)
   m = normalizeAgentIntentChildren(m)
   m = normalizeOCLConstraintNodes(m)
+  m = normalizeStateBodyNodesInline(m)
   return m
+}
+
+/**
+ * v3 parity: fold any floating `StateBody` / `StateFallbackBody` React
+ * Flow child nodes onto their parent `State.data.bodies` /
+ * `State.data.fallbackBodies` inline arrays, then remove the floating
+ * nodes from the diagram. Mirrors `normalizeAgentBodies`. v3 ships them
+ * as labelled rows on the parent state, not as separate canvas nodes.
+ */
+function normalizeStateBodyNodesInline(model: UMLModel): UMLModel {
+  const bodyChildren = model.nodes.filter(
+    (n) =>
+      typeof n.type === "string" &&
+      (n.type === "StateBody" || n.type === "StateFallbackBody")
+  )
+  if (bodyChildren.length === 0) return model
+
+  const parentOf: Record<string, { bodies: any[]; fallbackBodies: any[] }> = {}
+  for (const child of bodyChildren) {
+    const pid = (child as { parentId?: string }).parentId
+    if (!pid) continue
+    const slot = (parentOf[pid] ??= { bodies: [], fallbackBodies: [] })
+    const row = {
+      id: child.id,
+      name:
+        ((child.data as { name?: string } | undefined) ?? {}).name ?? "",
+    }
+    if (child.type === "StateFallbackBody") slot.fallbackBodies.push(row)
+    else slot.bodies.push(row)
+  }
+  if (Object.keys(parentOf).length === 0) return model
+
+  const nodes = model.nodes
+    .filter(
+      (n) =>
+        typeof n.type !== "string" ||
+        (n.type !== "StateBody" && n.type !== "StateFallbackBody")
+    )
+    .map((n) => {
+      if (n.type !== "State") return n
+      const adds = parentOf[n.id]
+      if (!adds) return n
+      const data = n.data as Record<string, unknown> & {
+        bodies?: Array<{ id: string; name?: string }>
+        fallbackBodies?: Array<{ id: string; name?: string }>
+      }
+      return {
+        ...n,
+        data: {
+          ...data,
+          bodies: [...(data.bodies ?? []), ...adds.bodies],
+          ...(adds.fallbackBodies.length > 0 && {
+            fallbackBodies: [
+              ...(data.fallbackBodies ?? []),
+              ...adds.fallbackBodies,
+            ],
+          }),
+        },
+      } as BesserNode
+    })
+  log.warn(
+    `normalizeStateBodyNodesInline: folded ${bodyChildren.length} StateBody / ` +
+      `StateFallbackBody node(s) onto their parent State's data arrays.`
+  )
+  return { ...model, nodes }
 }
 
 /**

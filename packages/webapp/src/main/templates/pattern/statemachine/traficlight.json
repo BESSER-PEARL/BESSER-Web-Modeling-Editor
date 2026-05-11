@@ -42,13 +42,13 @@
       "id": "6ad4504f-9589-456e-96e4-65446b921ae9",
       "type": "StateBody",
       "position": {
-        "x": 1010.5,
-        "y": 380.5
+        "x": 10,
+        "y": 50
       },
-      "width": 159,
+      "width": 140,
       "height": 30,
       "measured": {
-        "width": 159,
+        "width": 140,
         "height": 30
       },
       "data": {
@@ -60,13 +60,13 @@
       "id": "6bc3cb72-fc37-48c2-bdf9-a5a2a6e33db1",
       "type": "StateFallbackBody",
       "position": {
-        "x": 1010.5,
-        "y": 410.5
+        "x": 10,
+        "y": 90
       },
-      "width": 159,
+      "width": 140,
       "height": 30,
       "measured": {
-        "width": 159,
+        "width": 140,
         "height": 30
       },
       "data": {
@@ -95,13 +95,13 @@
       "id": "2cc41e70-e864-4cf8-9c93-f037ee2da9dd",
       "type": "StateBody",
       "position": {
-        "x": 1010.5,
-        "y": 380.5
+        "x": 10,
+        "y": 50
       },
-      "width": 159,
+      "width": 140,
       "height": 30,
       "measured": {
-        "width": 159,
+        "width": 140,
         "height": 30
       },
       "data": {
@@ -113,13 +113,13 @@
       "id": "970541a6-dfef-4bd4-88a7-16cd3f17de9f",
       "type": "StateFallbackBody",
       "position": {
-        "x": 1010.5,
-        "y": 410.5
+        "x": 10,
+        "y": 90
       },
-      "width": 159,
+      "width": 140,
       "height": 30,
       "measured": {
-        "width": 159,
+        "width": 140,
         "height": 30
       },
       "data": {
@@ -148,13 +148,13 @@
       "id": "cb38bcab-92d0-4051-afdd-408e422bd01d",
       "type": "StateBody",
       "position": {
-        "x": 1010.5,
-        "y": 380.5
+        "x": 10,
+        "y": 50
       },
-      "width": 159,
+      "width": 140,
       "height": 30,
       "measured": {
-        "width": 159,
+        "width": 140,
         "height": 30
       },
       "data": {
@@ -166,13 +166,13 @@
       "id": "54829163-af16-487e-b383-2e5c3d6fbbd4",
       "type": "StateFallbackBody",
       "position": {
-        "x": 1010.5,
-        "y": 410.5
+        "x": 10,
+        "y": 90
       },
-      "width": 159,
+      "width": 140,
       "height": 30,
       "measured": {
-        "width": 159,
+        "width": 140,
         "height": 30
       },
       "data": {
@@ -254,16 +254,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 205,
-            "y": 82.5
-          },
-          {
-            "x": 460,
-            "y": 82.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -285,24 +276,7 @@
         "params": {
           "0": "{60}"
         },
-        "points": [
-          {
-            "x": 620,
-            "y": 90
-          },
-          {
-            "x": 780,
-            "y": 90
-          },
-          {
-            "x": 780,
-            "y": 240
-          },
-          {
-            "x": 940,
-            "y": 240
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -324,24 +298,7 @@
         "params": {
           "0": "{20}"
         },
-        "points": [
-          {
-            "x": 1100,
-            "y": 240
-          },
-          {
-            "x": 1270,
-            "y": 240
-          },
-          {
-            "x": 1270,
-            "y": 90
-          },
-          {
-            "x": 1440,
-            "y": 90
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -363,16 +320,7 @@
         "params": {
           "0": "{3}"
         },
-        "points": [
-          {
-            "x": 1440,
-            "y": 90
-          },
-          {
-            "x": 620,
-            "y": 90
-          }
-        ]
+        "points": []
       }
     }
   ],

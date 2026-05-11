@@ -338,24 +338,7 @@
         "targetRole": "books",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 690,
-            "y": 362.5
-          },
-          {
-            "x": 620,
-            "y": 362.5
-          },
-          {
-            "x": 620,
-            "y": 147.5
-          },
-          {
-            "x": 550,
-            "y": 147.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -374,16 +357,7 @@
         "targetRole": "books",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 760,
-            "y": 87.5
-          },
-          {
-            "x": 550,
-            "y": 87.5
-          }
-        ]
+        "points": []
       }
     }
   ],

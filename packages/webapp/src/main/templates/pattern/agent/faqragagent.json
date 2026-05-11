@@ -169,24 +169,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 85,
-            "y": 142.5
-          },
-          {
-            "x": 207.5,
-            "y": 142.5
-          },
-          {
-            "x": 207.5,
-            "y": 87.5
-          },
-          {
-            "x": 330,
-            "y": 87.5
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -213,16 +196,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 750,
-            "y": 90
-          },
-          {
-            "x": 1030,
-            "y": 90
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -249,28 +223,7 @@
           "condition": "when_no_intent_matched",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1135,
-            "y": 110
-          },
-          {
-            "x": 1135,
-            "y": 150
-          },
-          {
-            "x": 910,
-            "y": 150
-          },
-          {
-            "x": 910,
-            "y": 395
-          },
-          {
-            "x": 950,
-            "y": 395
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -297,16 +250,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1200,
-            "y": 360
-          },
-          {
-            "x": 1200,
-            "y": 110
-          }
-        ]
+        "points": []
       }
     }
   ],

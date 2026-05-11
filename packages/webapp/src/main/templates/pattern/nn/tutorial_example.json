@@ -25,14 +25,14 @@
       "id": "dc98557d-a1e1-403d-afcb-01b318a221dd",
       "type": "Conv2DLayer",
       "position": {
-        "x": 780,
-        "y": 560
+        "x": 30,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "Conv2DLayer",
@@ -49,14 +49,14 @@
       "id": "a0594c44-830e-4693-a34a-fd97f81f6b85",
       "type": "PoolingLayer",
       "position": {
-        "x": 920,
-        "y": 560
+        "x": 140,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "PoolingLayer",
@@ -72,14 +72,14 @@
       "id": "28142ef8-9d9a-4b5b-b0bb-bf8338f7da39",
       "type": "Conv2DLayer",
       "position": {
-        "x": 1060,
-        "y": 560
+        "x": 250,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "Conv2DLayer",
@@ -96,14 +96,14 @@
       "id": "b2215ce8-2b0c-4cc4-97ba-0957480c2ce5",
       "type": "PoolingLayer",
       "position": {
-        "x": 1200,
-        "y": 560
+        "x": 360,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "PoolingLayer",
@@ -119,14 +119,14 @@
       "id": "b4f15221-2f2b-4876-8b79-ab7655ea7fa3",
       "type": "Conv2DLayer",
       "position": {
-        "x": 1340,
-        "y": 560
+        "x": 470,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "Conv2DLayer",
@@ -143,14 +143,14 @@
       "id": "c97bc5bd-dfff-4d74-8d6d-b9bee945913c",
       "type": "FlattenLayer",
       "position": {
-        "x": 1480,
-        "y": 560
+        "x": 580,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "FlattenLayer",
@@ -162,14 +162,14 @@
       "id": "726c2fc0-6ca9-49e5-8a83-2bd6c818ddf4",
       "type": "LinearLayer",
       "position": {
-        "x": 1620,
-        "y": 550
+        "x": 690,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "LinearLayer",
@@ -185,14 +185,14 @@
       "id": "448f4122-75ed-4acb-b54a-c00a052a04b5",
       "type": "LinearLayer",
       "position": {
-        "x": 1760,
-        "y": 550
+        "x": 800,
+        "y": 50
       },
-      "width": 110,
-      "height": 110,
+      "width": 90,
+      "height": 100,
       "measured": {
-        "width": 110,
-        "height": 110
+        "width": 90,
+        "height": 100
       },
       "data": {
         "name": "LinearLayer",
@@ -290,16 +290,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 180,
-            "y": 195
-          },
-          {
-            "x": 210,
-            "y": 195
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -318,16 +309,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 320,
-            "y": 195
-          },
-          {
-            "x": 350,
-            "y": 195
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -346,16 +328,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 460,
-            "y": 195
-          },
-          {
-            "x": 490,
-            "y": 195
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -374,16 +347,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 600,
-            "y": 195
-          },
-          {
-            "x": 630,
-            "y": 195
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -402,16 +366,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 740,
-            "y": 195
-          },
-          {
-            "x": 770,
-            "y": 195
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -430,16 +385,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 880,
-            "y": 190
-          },
-          {
-            "x": 910,
-            "y": 190
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -458,16 +404,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 1020,
-            "y": 185
-          },
-          {
-            "x": 1050,
-            "y": 185
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -485,16 +422,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 155,
-            "y": 390
-          },
-          {
-            "x": 155,
-            "y": 290
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -512,16 +440,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 465,
-            "y": 410
-          },
-          {
-            "x": 465,
-            "y": 290
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -539,16 +458,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 725,
-            "y": 400
-          },
-          {
-            "x": 725,
-            "y": 290
-          }
-        ]
+        "points": []
       }
     }
   ],

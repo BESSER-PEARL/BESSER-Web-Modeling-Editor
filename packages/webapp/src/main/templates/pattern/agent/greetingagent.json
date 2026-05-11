@@ -408,16 +408,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "Greeting_intent"
         },
-        "points": [
-          {
-            "x": 470,
-            "y": 380
-          },
-          {
-            "x": 660,
-            "y": 380
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -435,16 +426,7 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": [
-          {
-            "x": 255,
-            "y": 380
-          },
-          {
-            "x": 330,
-            "y": 380
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -471,24 +453,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "Good_intent"
         },
-        "points": [
-          {
-            "x": 870,
-            "y": 380
-          },
-          {
-            "x": 935,
-            "y": 380
-          },
-          {
-            "x": 935,
-            "y": 255
-          },
-          {
-            "x": 1000,
-            "y": 255
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -515,24 +480,7 @@
           "condition": "when_intent_matched",
           "conditionValue": "Bad_intent"
         },
-        "points": [
-          {
-            "x": 870,
-            "y": 405
-          },
-          {
-            "x": 930,
-            "y": 405
-          },
-          {
-            "x": 930,
-            "y": 545
-          },
-          {
-            "x": 990,
-            "y": 545
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -559,24 +507,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1110,
-            "y": 220
-          },
-          {
-            "x": 1110,
-            "y": 209
-          },
-          {
-            "x": 400,
-            "y": 209
-          },
-          {
-            "x": 400,
-            "y": 360
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -603,24 +534,7 @@
           "condition": "auto",
           "conditionValue": ""
         },
-        "points": [
-          {
-            "x": 1045,
-            "y": 580
-          },
-          {
-            "x": 1045,
-            "y": 620
-          },
-          {
-            "x": 400,
-            "y": 620
-          },
-          {
-            "x": 400,
-            "y": 400
-          }
-        ]
+        "points": []
       }
     }
   ],
