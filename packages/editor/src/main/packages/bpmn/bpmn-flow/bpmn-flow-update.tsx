@@ -143,7 +143,7 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
           <Flex>
             <Textfield value={element.name} onChange={this.rename(element.id)} autoFocus />
             <ColorButton onClick={this.toggleColor} />
-            <Button color="link" onClick={() => this.props.flip(element.id)}>
+            <Button color="link" onClick={this.handleFlip}>
               <ExchangeIcon />
             </Button>
             <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
@@ -208,6 +208,19 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
       }
     }
     this.props.update<BPMNFlow>(id, { isDefault: turningOn });
+  };
+
+  // BPMN 2.0.2 § 8.3.13: flipping a sequence flow swaps source ↔ target. If
+  // `isDefault` is set and the post-flip source (= current target) is not a
+  // valid default source, clear `isDefault` before the flip so the data
+  // reflects the spec. Endpoint-drag is not intercepted here — see §11 of the
+  // 04A1 guide for the deferred saga-based fix.
+  private handleFlip = () => {
+    const { element, targetElement } = this.props;
+    if (element.isDefault && !canBeDefault(element.flowType, targetElement)) {
+      this.props.update<BPMNFlow>(element.id, { isDefault: false });
+    }
+    this.props.flip(element.id);
   };
 
   private delete = (id: string) => () => {
