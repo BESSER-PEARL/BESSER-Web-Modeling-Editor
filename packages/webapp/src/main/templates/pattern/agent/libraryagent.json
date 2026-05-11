@@ -8,8 +8,8 @@
       "id": "initial_72th6ksf3_mm9b38u1",
       "type": "StateInitialNode",
       "position": {
-        "x": -1120,
-        "y": -620
+        "x": 50,
+        "y": 170
       },
       "width": 45,
       "height": 45,
@@ -25,8 +25,8 @@
       "id": "intent_jtmr4apyg_mm9b38u1",
       "type": "AgentIntent",
       "position": {
-        "x": -680,
-        "y": -100
+        "x": 490,
+        "y": 690
       },
       "width": 410,
       "height": 190,
@@ -43,8 +43,8 @@
       "id": "intentBody_jn9sy9wl2_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 1170.5,
+        "y": 860.5
       },
       "width": 409,
       "height": 30,
@@ -61,8 +61,8 @@
       "id": "intentBody_61dj9fnk0_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 100.5
+        "x": 1170.5,
+        "y": 890.5
       },
       "width": 409,
       "height": 30,
@@ -79,8 +79,8 @@
       "id": "intentBody_b8jkj9t1s_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 130.5
+        "x": 1170.5,
+        "y": 920.5
       },
       "width": 409,
       "height": 30,
@@ -97,8 +97,8 @@
       "id": "intentBody_jl9eozt0r_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 160.5
+        "x": 1170.5,
+        "y": 950.5
       },
       "width": 409,
       "height": 30,
@@ -115,8 +115,8 @@
       "id": "intent_ggq3p9gv8_mm9b38u1",
       "type": "AgentIntent",
       "position": {
-        "x": -250,
-        "y": -100
+        "x": 920,
+        "y": 690
       },
       "width": 490,
       "height": 130,
@@ -133,8 +133,8 @@
       "id": "intentBody_06wxt0vga_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 1170.5,
+        "y": 830.5
       },
       "width": 489,
       "height": 30,
@@ -151,8 +151,8 @@
       "id": "intentBody_14tgxxf1f_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 1170.5,
+        "y": 860.5
       },
       "width": 489,
       "height": 30,
@@ -169,8 +169,8 @@
       "id": "intentBody_j2ugmtuh8_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 100.5
+        "x": 1170.5,
+        "y": 890.5
       },
       "width": 489,
       "height": 30,
@@ -187,8 +187,8 @@
       "id": "intent_zuidaui0x_mm9b38u1",
       "type": "AgentIntent",
       "position": {
-        "x": -1130,
-        "y": -100
+        "x": 40,
+        "y": 690
       },
       "width": 430,
       "height": 160,
@@ -205,8 +205,8 @@
       "id": "intentBody_9kmxc6vnq_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 1170.5,
+        "y": 860.5
       },
       "width": 429,
       "height": 30,
@@ -223,8 +223,8 @@
       "id": "intentBody_mxczpzj8h_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 100.5
+        "x": 1170.5,
+        "y": 890.5
       },
       "width": 429,
       "height": 30,
@@ -241,8 +241,8 @@
       "id": "intentBody_8yqem5n2k_mm9b38u1",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 130.5
+        "x": 1170.5,
+        "y": 920.5
       },
       "width": 429,
       "height": 30,
@@ -259,8 +259,8 @@
       "id": "state_zl3bfe65n_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": -480,
-        "y": -520
+        "x": 690,
+        "y": 270
       },
       "width": 260,
       "height": 70,
@@ -277,8 +277,8 @@
       "id": "body_wybm5pc31_mm9b38u1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 1170.5,
+        "y": 830.5
       },
       "width": 259,
       "height": 30,
@@ -297,8 +297,8 @@
       "id": "state_j5tnma02n_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": 80,
-        "y": -530
+        "x": 1250,
+        "y": 260
       },
       "width": 420,
       "height": 100,
@@ -315,8 +315,8 @@
       "id": "body_a8ph8sxrt_mm9b38u1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 1170.5,
+        "y": 830.5
       },
       "width": 419,
       "height": 30,
@@ -325,7 +325,7 @@
         "height": 30
       },
       "data": {
-        "name": "Our opening hours are Monday–Friday 9 AM–6 PM.",
+        "name": "Our opening hours are Monday\u2013Friday 9 AM\u20136 PM.",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -335,8 +335,8 @@
       "id": "fb1432f7-1778-4c8b-90f3-e471e86cec31",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 1170.5,
+        "y": 860.5
       },
       "width": 419,
       "height": 30,
@@ -345,7 +345,7 @@
         "height": 30
       },
       "data": {
-        "name": "Saturday 10 AM–4 PM. Closed Sunday.",
+        "name": "Saturday 10 AM\u20134 PM. Closed Sunday.",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -355,8 +355,8 @@
       "id": "state_krso67h8q_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": 80,
-        "y": -750
+        "x": 1250,
+        "y": 40
       },
       "width": 420,
       "height": 190,
@@ -373,8 +373,8 @@
       "id": "body_38x5jthwr_mm9b38u1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 1170.5,
+        "y": 830.5
       },
       "width": 419,
       "height": 30,
@@ -393,8 +393,8 @@
       "id": "body_0yl3shkws_mm9b38u1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 1170.5,
+        "y": 860.5
       },
       "width": 419,
       "height": 30,
@@ -413,8 +413,8 @@
       "id": "b533e6a5-cc51-4f0d-a269-98bf81a02c31",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 100.5
+        "x": 1170.5,
+        "y": 890.5
       },
       "width": 419,
       "height": 30,
@@ -433,8 +433,8 @@
       "id": "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 130.5
+        "x": 1170.5,
+        "y": 920.5
       },
       "width": 419,
       "height": 30,
@@ -443,7 +443,7 @@
         "height": 30
       },
       "data": {
-        "name": "3. Click on “Cheapest Book”.",
+        "name": "3. Click on \u201cCheapest Book\u201d.",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -453,8 +453,8 @@
       "id": "b779be48-1bc4-4984-9274-00c91203552a",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 160.5
+        "x": 1170.5,
+        "y": 950.5
       },
       "width": 419,
       "height": 30,
@@ -463,7 +463,7 @@
         "height": 30
       },
       "data": {
-        "name": "4. Select an author and click “Execute”.",
+        "name": "4. Select an author and click \u201cExecute\u201d.",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -473,8 +473,8 @@
       "id": "state_5emfhqwzt_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": 80,
-        "y": -330
+        "x": 1250,
+        "y": 460
       },
       "width": 420,
       "height": 100,
@@ -491,8 +491,8 @@
       "id": "body_b6vkku4r1_mm9b38u1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 1170.5,
+        "y": 830.5
       },
       "width": 419,
       "height": 30,
@@ -511,8 +511,8 @@
       "id": "body_8i8n5kbs0_mm9b38u1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 1170.5,
+        "y": 860.5
       },
       "width": 419,
       "height": 30,
@@ -531,8 +531,8 @@
       "id": "46badadf-e50d-481e-8246-3ba2393fce47",
       "type": "AgentState",
       "position": {
-        "x": -980,
-        "y": -630
+        "x": 190,
+        "y": 160
       },
       "width": 340,
       "height": 70,
@@ -549,8 +549,8 @@
       "id": "e3aad61a-89b4-46a6-8c16-6f80b861d717",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 1170.5,
+        "y": 830.5
       },
       "width": 339,
       "height": 30,
@@ -569,8 +569,8 @@
       "id": "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13",
       "type": "AgentIntent",
       "position": {
-        "x": 260,
-        "y": -100
+        "x": 1430,
+        "y": 690
       },
       "width": 250,
       "height": 70,
@@ -602,12 +602,12 @@
         "messages": [],
         "points": [
           {
-            "x": -1075,
-            "y": -597.5
+            "x": 95,
+            "y": 192.5
           },
           {
-            "x": -980,
-            "y": -597.5
+            "x": 190,
+            "y": 192.5
           }
         ]
       }
@@ -638,12 +638,12 @@
         },
         "points": [
           {
-            "x": -220,
-            "y": -485
+            "x": 950,
+            "y": 305
           },
           {
-            "x": 80,
-            "y": -485
+            "x": 1250,
+            "y": 305
           }
         ]
       }
@@ -674,16 +674,16 @@
         },
         "points": [
           {
-            "x": -285,
-            "y": -520
+            "x": 885,
+            "y": 270
           },
           {
-            "x": -285,
-            "y": -655
+            "x": 885,
+            "y": 135
           },
           {
-            "x": 80,
-            "y": -655
+            "x": 1250,
+            "y": 135
           }
         ]
       }
@@ -714,16 +714,16 @@
         },
         "points": [
           {
-            "x": -285,
-            "y": -450
+            "x": 885,
+            "y": 340
           },
           {
-            "x": -285,
-            "y": -280
+            "x": 885,
+            "y": 510
           },
           {
-            "x": 80,
-            "y": -280
+            "x": 1250,
+            "y": 510
           }
         ]
       }
@@ -754,16 +754,16 @@
         },
         "points": [
           {
-            "x": 80,
-            "y": -702.5
+            "x": 1250,
+            "y": 87.5
           },
           {
-            "x": -350,
-            "y": -702.5
+            "x": 820,
+            "y": 87.5
           },
           {
-            "x": -350,
-            "y": -520
+            "x": 820,
+            "y": 270
           }
         ]
       }
@@ -794,20 +794,20 @@
         },
         "points": [
           {
-            "x": 290,
-            "y": -230
+            "x": 1460,
+            "y": 560
           },
           {
-            "x": 290,
-            "y": -190
+            "x": 1460,
+            "y": 600
           },
           {
-            "x": -350,
-            "y": -190
+            "x": 820,
+            "y": 600
           },
           {
-            "x": -350,
-            "y": -450
+            "x": 820,
+            "y": 340
           }
         ]
       }
@@ -838,24 +838,24 @@
         },
         "points": [
           {
-            "x": 185,
-            "y": -430
+            "x": 1355,
+            "y": 360
           },
           {
-            "x": 185,
-            "y": -390
+            "x": 1355,
+            "y": 400
           },
           {
-            "x": -70,
-            "y": -390
+            "x": 1100,
+            "y": 400
           },
           {
-            "x": -70,
-            "y": -467.5
+            "x": 1100,
+            "y": 322.5
           },
           {
-            "x": -220,
-            "y": -467.5
+            "x": 950,
+            "y": 322.5
           }
         ]
       }
@@ -886,20 +886,20 @@
         },
         "points": [
           {
-            "x": -640,
-            "y": -577.5
+            "x": 530,
+            "y": 212.5
           },
           {
-            "x": -560,
-            "y": -577.5
+            "x": 610,
+            "y": 212.5
           },
           {
-            "x": -560,
-            "y": -485
+            "x": 610,
+            "y": 305
           },
           {
-            "x": -480,
-            "y": -485
+            "x": 690,
+            "y": 305
           }
         ]
       }

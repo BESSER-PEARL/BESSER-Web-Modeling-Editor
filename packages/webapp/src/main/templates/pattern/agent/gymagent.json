@@ -8,8 +8,8 @@
       "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
       "type": "StateInitialNode",
       "position": {
-        "x": -230,
-        "y": -370
+        "x": 710,
+        "y": 70
       },
       "width": 45,
       "height": 45,
@@ -25,8 +25,8 @@
       "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
       "type": "AgentState",
       "position": {
-        "x": -180,
-        "y": -200
+        "x": 760,
+        "y": 240
       },
       "width": 420,
       "height": 100,
@@ -43,8 +43,8 @@
       "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 940.5,
+        "y": 480.5
       },
       "width": 419,
       "height": 30,
@@ -63,8 +63,8 @@
       "id": "1f369122-06c2-4050-ba54-4ea160f95a8c",
       "type": "AgentStateFallbackBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 940.5,
+        "y": 510.5
       },
       "width": 419,
       "height": 30,
@@ -83,8 +83,8 @@
       "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
       "type": "AgentIntent",
       "position": {
-        "x": -900,
-        "y": -400
+        "x": 40,
+        "y": 40
       },
       "width": 630,
       "height": 100,
@@ -101,8 +101,8 @@
       "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 940.5,
+        "y": 510.5
       },
       "width": 629,
       "height": 30,
@@ -119,8 +119,8 @@
       "id": "68ccb630-b264-41a0-b70e-1e369bd5706c",
       "type": "AgentState",
       "position": {
-        "x": -800,
-        "y": -30
+        "x": 140,
+        "y": 410
       },
       "width": 420,
       "height": 130,
@@ -137,8 +137,8 @@
       "id": "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 940.5,
+        "y": 480.5
       },
       "width": 419,
       "height": 30,
@@ -157,8 +157,8 @@
       "id": "747b8558-325d-4a15-baba-0d18a6602a8d",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 940.5,
+        "y": 510.5
       },
       "width": 419,
       "height": 30,
@@ -167,7 +167,7 @@
         "height": 30
       },
       "data": {
-        "name": "Train 3–5 times per week, progressively increasing the weight while eating enough protein and calories to support growth. ",
+        "name": "Train 3\u20135 times per week, progressively increasing the weight while eating enough protein and calories to support growth. ",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -177,8 +177,8 @@
       "id": "900f7fd9-738a-4981-a7d9-6c7334621981",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 100.5
+        "x": 940.5,
+        "y": 540.5
       },
       "width": 419,
       "height": 30,
@@ -187,7 +187,7 @@
         "height": 30
       },
       "data": {
-        "name": "Get good sleep and stay consistent—muscle comes from steady effort over time.",
+        "name": "Get good sleep and stay consistent\u2014muscle comes from steady effort over time.",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -197,8 +197,8 @@
       "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
       "type": "AgentState",
       "position": {
-        "x": -100,
-        "y": -370
+        "x": 840,
+        "y": 70
       },
       "width": 420,
       "height": 70,
@@ -215,8 +215,8 @@
       "id": "ad226172-93d8-4644-80c5-62825565dd24",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 940.5,
+        "y": 480.5
       },
       "width": 419,
       "height": 30,
@@ -235,8 +235,8 @@
       "id": "7610bbda-21ef-4637-a188-1da1352bea17",
       "type": "AgentState",
       "position": {
-        "x": -150,
-        "y": 130
+        "x": 790,
+        "y": 570
       },
       "width": 420,
       "height": 190,
@@ -253,8 +253,8 @@
       "id": "bb7e67bd-ead9-4f14-93db-c18af0d806af",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 940.5,
+        "y": 480.5
       },
       "width": 419,
       "height": 30,
@@ -263,7 +263,7 @@
         "height": 30
       },
       "data": {
-        "name": "Nutrition basics: Eat mostly whole foods (lean protein, vegetables, fruits, whole grains, healthy fats). Protein: ~1.6–2.2 g per kg of body weight daily..",
+        "name": "Nutrition basics: Eat mostly whole foods (lean protein, vegetables, fruits, whole grains, healthy fats). Protein: ~1.6\u20132.2 g per kg of body weight daily..",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -273,8 +273,8 @@
       "id": "13072ea8-9b51-45fe-927e-a9323627701b",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 940.5,
+        "y": 510.5
       },
       "width": 419,
       "height": 30,
@@ -293,8 +293,8 @@
       "id": "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 100.5
+        "x": 940.5,
+        "y": 540.5
       },
       "width": 419,
       "height": 30,
@@ -313,8 +313,8 @@
       "id": "44904a03-ac46-4f9f-983a-f6a740b81c0e",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 130.5
+        "x": 940.5,
+        "y": 570.5
       },
       "width": 419,
       "height": 30,
@@ -333,8 +333,8 @@
       "id": "90dfba4f-6dec-4ca8-8c15-786ed36587a1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 160.5
+        "x": 940.5,
+        "y": 600.5
       },
       "width": 419,
       "height": 30,
@@ -343,7 +343,7 @@
         "height": 30
       },
       "data": {
-        "name": "Be consistent — results come from habits, not perfection",
+        "name": "Be consistent \u2014 results come from habits, not perfection",
         "replyType": "text",
         "ragDatabaseName": ""
       },
@@ -353,8 +353,8 @@
       "id": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
       "type": "AgentState",
       "position": {
-        "x": 350,
-        "y": -90
+        "x": 1290,
+        "y": 350
       },
       "width": 180,
       "height": 70,
@@ -371,8 +371,8 @@
       "id": "6a3aeb02-bb44-4472-8489-595e8dc8ceb1",
       "type": "AgentStateBody",
       "position": {
-        "x": 0.5,
-        "y": 40.5
+        "x": 940.5,
+        "y": 480.5
       },
       "width": 179,
       "height": 30,
@@ -381,7 +381,7 @@
         "height": 30
       },
       "data": {
-        "name": "AI response 🪄",
+        "name": "AI response \ud83e\ude84",
         "replyType": "llm",
         "ragDatabaseName": ""
       },
@@ -391,8 +391,8 @@
       "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
       "type": "AgentIntent",
       "position": {
-        "x": -900,
-        "y": -290
+        "x": 40,
+        "y": 150
       },
       "width": 630,
       "height": 100,
@@ -409,8 +409,8 @@
       "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
       "type": "AgentIntentBody",
       "position": {
-        "x": 0.5,
-        "y": 70.5
+        "x": 940.5,
+        "y": 510.5
       },
       "width": 629,
       "height": 30,
@@ -427,8 +427,8 @@
       "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
       "type": "AgentIntent",
       "position": {
-        "x": -860,
-        "y": 150
+        "x": 80,
+        "y": 590
       },
       "width": 630,
       "height": 70,
@@ -460,12 +460,12 @@
         "messages": [],
         "points": [
           {
-            "x": -185,
-            "y": -347.5
+            "x": 755,
+            "y": 92.5
           },
           {
-            "x": -100,
-            "y": -347.5
+            "x": 840,
+            "y": 92.5
           }
         ]
       }
@@ -496,16 +496,16 @@
         },
         "points": [
           {
-            "x": -180,
-            "y": -150
+            "x": 760,
+            "y": 290
           },
           {
-            "x": -590,
-            "y": -150
+            "x": 350,
+            "y": 290
           },
           {
-            "x": -590,
-            "y": -30
+            "x": 350,
+            "y": 410
           }
         ]
       }
@@ -536,12 +536,12 @@
         },
         "points": [
           {
-            "x": 70,
-            "y": -300
+            "x": 1010,
+            "y": 140
           },
           {
-            "x": 70,
-            "y": -200
+            "x": 1010,
+            "y": 240
           }
         ]
       }
@@ -572,24 +572,24 @@
         },
         "points": [
           {
-            "x": 240,
-            "y": -125
+            "x": 1180,
+            "y": 315
           },
           {
-            "x": 280,
-            "y": -125
+            "x": 1220,
+            "y": 315
           },
           {
-            "x": 280,
-            "y": -130
+            "x": 1220,
+            "y": 310
           },
           {
-            "x": 440,
-            "y": -130
+            "x": 1380,
+            "y": 310
           },
           {
-            "x": 440,
-            "y": -90
+            "x": 1380,
+            "y": 350
           }
         ]
       }
@@ -620,20 +620,20 @@
         },
         "points": [
           {
-            "x": -380,
-            "y": 2.5
+            "x": 560,
+            "y": 442.5
           },
           {
-            "x": -280,
-            "y": 2.5
+            "x": 660,
+            "y": 442.5
           },
           {
-            "x": -280,
-            "y": -125
+            "x": 660,
+            "y": 315
           },
           {
-            "x": -180,
-            "y": -125
+            "x": 760,
+            "y": 315
           }
         ]
       }
@@ -664,24 +664,24 @@
         },
         "points": [
           {
-            "x": 350,
-            "y": -72.5
+            "x": 1290,
+            "y": 367.5
           },
           {
-            "x": 310,
-            "y": -72.5
+            "x": 1250,
+            "y": 367.5
           },
           {
-            "x": 310,
-            "y": -60
+            "x": 1250,
+            "y": 380
           },
           {
-            "x": 135,
-            "y": -60
+            "x": 1075,
+            "y": 380
           },
           {
-            "x": 135,
-            "y": -100
+            "x": 1075,
+            "y": 340
           }
         ]
       }
@@ -712,24 +712,24 @@
         },
         "points": [
           {
-            "x": -150,
-            "y": 177.5
+            "x": 790,
+            "y": 617.5
           },
           {
-            "x": -190,
-            "y": 177.5
+            "x": 750,
+            "y": 617.5
           },
           {
-            "x": -190,
-            "y": 15
+            "x": 750,
+            "y": 455
           },
           {
-            "x": -75,
-            "y": 15
+            "x": 865,
+            "y": 455
           },
           {
-            "x": -75,
-            "y": -100
+            "x": 865,
+            "y": 340
           }
         ]
       }
@@ -760,12 +760,12 @@
         },
         "points": [
           {
-            "x": 45,
-            "y": -100
+            "x": 985,
+            "y": 340
           },
           {
-            "x": 45,
-            "y": 130
+            "x": 985,
+            "y": 570
           }
         ]
       }

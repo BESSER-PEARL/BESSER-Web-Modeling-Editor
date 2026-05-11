@@ -93,10 +93,7 @@ export function tryFindStraightPath(
   // more than this (e.g. "right-top" vs "left-bottom"), a straight 2-point
   // path would render as a diagonal, so we bail out and let the caller use
   // getSmoothStepPath which produces proper orthogonal bends.
-  // Bumped from 1px → 24px so near-aligned handles (e.g. user dragged a
-  // node a few pixels) still produce a clean straight line instead of a
-  // step-bend zig-zag. The diagonal nudge below 24 px is barely visible.
-  const HANDLE_ALIGNMENT_TOLERANCE = 24
+  const HANDLE_ALIGNMENT_TOLERANCE = 10
 
   const sourceHandleEdge = source.direction
   const targetHandleEdge = target.direction

@@ -8,8 +8,8 @@
       "id": "class_oho5ergc3_mjikkmod",
       "type": "class",
       "position": {
-        "x": -440,
-        "y": -380
+        "x": 310,
+        "y": 40
       },
       "width": 240,
       "height": 215,
@@ -92,8 +92,8 @@
       "id": "class_06blhjj3h_mjikkmod",
       "type": "class",
       "position": {
-        "x": -60,
-        "y": -150
+        "x": 690,
+        "y": 270
       },
       "width": 350,
       "height": 185,
@@ -157,8 +157,8 @@
       "id": "class_d3f0di6lb_mjikkmoe",
       "type": "class",
       "position": {
-        "x": 10,
-        "y": -380
+        "x": 760,
+        "y": 40
       },
       "width": 220,
       "height": 95,
@@ -195,8 +195,8 @@
       "id": "50ffa27f-f8a9-438b-b81b-174266f39952",
       "type": "class",
       "position": {
-        "x": -710,
-        "y": -220
+        "x": 40,
+        "y": 200
       },
       "width": 160,
       "height": 350,
@@ -306,8 +306,8 @@
       "id": "de57bf9a-a91f-4c69-9ad0-4879e2222edd",
       "type": "classoclconstraint",
       "position": {
-        "x": -710,
-        "y": -380
+        "x": 40,
+        "y": 40
       },
       "width": 210,
       "height": 90,
@@ -340,20 +340,20 @@
         "messages": [],
         "points": [
           {
-            "x": -60,
-            "y": -57.5
+            "x": 690,
+            "y": 362.5
           },
           {
-            "x": -130,
-            "y": -57.5
+            "x": 620,
+            "y": 362.5
           },
           {
-            "x": -130,
-            "y": -272.5
+            "x": 620,
+            "y": 147.5
           },
           {
-            "x": -200,
-            "y": -272.5
+            "x": 550,
+            "y": 147.5
           }
         ]
       }
@@ -376,12 +376,12 @@
         "messages": [],
         "points": [
           {
-            "x": 10,
-            "y": -332.5
+            "x": 760,
+            "y": 87.5
           },
           {
-            "x": -200,
-            "y": -332.5
+            "x": 550,
+            "y": 87.5
           }
         ]
       }
