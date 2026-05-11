@@ -5,6 +5,7 @@ import { useHandleOnResize } from "@/hooks"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
+import { useDiagramStore } from "@/store/context"
 import { NNContainerNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
@@ -39,6 +40,23 @@ export function NNContainer({
   const containerFill = !data.fillColor ? "#F5F5F5" : fillColor
   const cornerRadius = 8
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
+
+  // Show a helper hint inside the container body when no child layer /
+  // TensorOp has been dropped yet. Subscribe to the node list so the
+  // hint disappears as soon as the user attaches a child.
+  const hasChildren = useDiagramStore((s) =>
+    s.nodes.some((n) => n.parentId === id)
+  )
+  const hintLines = [
+    "Drag Layers and TensorOps here",
+    "Connect layers and tensorOps",
+    "with 'next' relationship",
+    "(Drag edges to resize)",
+  ]
+  const hintLineHeight = 18
+  const hintBlockHeight = hintLines.length * hintLineHeight
+  const hintTopY =
+    headerHeight + (height - headerHeight - hintBlockHeight) / 2 + 14
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
@@ -86,6 +104,20 @@ export function NNContainer({
             stroke={strokeColor}
             strokeWidth={1}
           />
+          {!hasChildren &&
+            hintLines.map((line, i) => (
+              <text
+                key={i}
+                x={width / 2}
+                y={hintTopY + i * hintLineHeight}
+                textAnchor="middle"
+                fontSize={13}
+                fill={textColor}
+                opacity={0.55}
+              >
+                {line}
+              </text>
+            ))}
         </svg>
       </div>
       <PopoverManager
