@@ -243,7 +243,7 @@ const generateUUID = (): string => {
 };
 
 /**
- * SA-UX-FIX-2 (B3) / SA-FIX-User: seed for the UserDiagram template.
+ * Seed for the UserDiagram template.
  *
  * The v3 editor surfaced a multi-class user-meta-model whenever the
  * UserDiagram tab was opened (`composeUserModelPreview`). After the
@@ -254,7 +254,7 @@ const generateUUID = (): string => {
  * JSON via `getUserMetaModelClasses()` so the seed is in lock-step
  * with the source of truth.
  *
- * Type strategy (SA-FIX-User Fix #2): the meta-model JSON uses raw
+ * Type strategy (Fix #2): the meta-model JSON uses raw
  * enum class names (`GenderEnum`, `DegreeEnum`, `AspectsEnum`, …) for
  * enum-typed attributes. Those are NOT primitive types and the v4
  * inspector resolves them by linking to the meta-model class via
@@ -423,7 +423,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
   }
 
   // For UML diagrams (v4 shape)
-  // SA-UX-FIX-2 (B3): UserDiagram gets a default user-meta-model template
+  // UserDiagram gets a default user-meta-model template
   // so the tab is non-empty on first open. Other diagrams stay blank.
   const seededNodes =
     type === UMLDiagramType.UserDiagram ? buildUserDiagramSeedNodes() : [];
@@ -580,11 +580,11 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migrateProjectToV5(obj);
   }
 
-  // SA-FIX-User Fix #3: retrofit existing-but-empty UserDiagrams. v3
+  // Fix #3: retrofit existing-but-empty UserDiagrams. v3
   // showed a 4-class meta-model template via `composeUserModelPreview`,
-  // but PC-9 found that v4 only seeds via `createEmptyDiagram` (i.e.
+  // but found that v4 only seeds via `createEmptyDiagram` (i.e.
   // only on fresh project creation). Projects loaded from storage that
-  // were created before SA-UX-FIX-2 — or had their UserDiagram emptied
+  // were created — or had their UserDiagram emptied
   // by the user without re-seeding — would stay blank forever. Walk
   // every UserDiagram entry and re-seed any whose `model.nodes` array
   // is empty. Idempotent: never touches a UserDiagram that already has
@@ -597,7 +597,7 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
 };
 
 /**
- * SA-FIX-User Fix #3: walk a project's UserDiagram entries and seed
+ * Fix #3: walk a project's UserDiagram entries and seed
  * any whose nodes array is empty. Mutates in place; returns nothing.
  */
 const retrofitEmptyUserDiagrams = (project: BesserProject): void => {
@@ -629,7 +629,7 @@ const retrofitEmptyUserDiagrams = (project: BesserProject): void => {
  * shape migrator from `@besser/wme`. GUI / quantum diagrams are skipped
  * because their models are not UMLModels.
  *
- * Atomicity (SA-FINAL-3 Task 3 fix): `schemaVersion` is only stamped to 5
+ * Atomicity: `schemaVersion` is only stamped to 5
  * when EVERY diagram migration succeeds. If any diagram throws, the v3
  * model is left in place AND `schemaVersion` is left unchanged so the
  * next load retries — honouring the previous "next launch will retry"

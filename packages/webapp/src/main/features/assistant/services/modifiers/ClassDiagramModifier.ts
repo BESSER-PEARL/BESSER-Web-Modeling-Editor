@@ -1,7 +1,7 @@
 /**
  * Class Diagram Modifier (v4-native)
  *
- * SA-7b.1: walks v4 `model.nodes[]` / `model.edges[]` directly.
+ * Walks v4 `model.nodes[]` / `model.edges[]` directly.
  *
  * v4 ClassDiagram shape (per docs/source/migrations/uml-v4-shape.md):
  *   - All classifiers (Class, AbstractClass, Interface, Enumeration) collapse
@@ -302,7 +302,7 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     this.recalculateClassHeight(node);
 
-    // SA-7b.1 test-compat: tests rely on `node.type` mirroring the legacy element type
+    // Test-compat: tests rely on `node.type` mirroring the legacy element type
     // (e.g. 'AbstractClass', 'Enumeration'). Keep it for back-compat during transition;
     // canonical v4 reads still go through `data.stereotype`.
     (node as any).type = stereotypeToLegacyType(stereotype);

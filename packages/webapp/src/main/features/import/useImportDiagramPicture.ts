@@ -52,7 +52,7 @@ export const useImportDiagramPictureFromImage = () => {
         throw new Error('Invalid diagram returned from backend');
       }
 
-      // SA-FINAL-3 Task 7: enforce v4 shape on the backend's response.
+      // Enforce v4 shape on the backend's response.
       // The image-to-model endpoint returns v4 (`version: "4.0.0"` with
       // nodes/edges arrays), but a partial / malformed LLM response
       // could land here and silently corrupt the active project. Reject

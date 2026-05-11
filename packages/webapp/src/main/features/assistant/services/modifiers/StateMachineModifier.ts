@@ -1,7 +1,7 @@
 /**
  * State Machine Modifier (v4-native)
  *
- * SA-7b.1: walks v4 `model.nodes[]` / `model.edges[]` directly.
+ * Walks v4 `model.nodes[]` / `model.edges[]` directly.
  *
  * v4 State diagram: State has `data.bodies[]` and `data.fallbackBodies[]` rows
  * (StateBody/StateFallbackBody collapse onto the parent state — they are NOT

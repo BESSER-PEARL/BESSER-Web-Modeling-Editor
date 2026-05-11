@@ -263,7 +263,7 @@ export function useAssistantLogic({
 
   useEffect(() => {
     if (modelingService && activeDiagram?.model && isUMLModel(activeDiagram.model)) {
-      // SA-7b: assistant operates on v3 BESSERModel internally; activeDiagram.model
+      // Assistant operates on v3 BESSERModel internally; activeDiagram.model
       // is v4. The service's updateCurrentModel expects v3, but we cast through
       // any here — getCurrentModel() handles the v4→v3 conversion when reading
       // back via editor.model. The local cache may be a v4 snapshot but is
@@ -415,7 +415,7 @@ export function useAssistantLogic({
       try {
         await injection.ensureTargetDiagramReady(diagramType);
 
-        // SA-FINAL-3 Task 4: use the combined add+switch thunk so the
+        // Use the combined add+switch thunk so the
         // BesserEditor is reinitialized exactly once for a single
         // user-visible create-tab action (previously add + switch
         // produced two reinits in a tight render window).

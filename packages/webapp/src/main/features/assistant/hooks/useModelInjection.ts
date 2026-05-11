@@ -207,7 +207,7 @@ export function useModelInjection({
 
       // New tab: create it, convert systemSpec -> model, write to Redux directly.
       //
-      // SA-FINAL-3 Task 4: this path previously dispatched THREE editor-
+      // This path previously dispatched THREE editor-
       // reinit-triggering actions for a single user-visible operation —
       // `addDiagramThunk` (bump #1), `switchDiagramIndexThunk` (bump #2),
       // and a manual `bumpEditorRevision()` after the model write

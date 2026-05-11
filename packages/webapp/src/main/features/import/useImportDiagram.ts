@@ -17,7 +17,7 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { useBumlToDiagram, isBumlFile, isJsonFile } from './useBumlToDiagram';
 
 /**
- * SA-FINAL-3 Task 6: detect v3-shape `{elements, relationships}` UMLModels
+ * Detect v3-shape `{elements, relationships}` UMLModels
  * inside an imported `ProjectDiagram`, migrate them to v4 `{nodes, edges}`,
  * and surface a user-facing toast so the user knows the file was migrated.
  *
@@ -69,7 +69,7 @@ export const useImportDiagram = () => {
         throw new Error('Unsupported file type. Please select a .json or .py file.');
       }
 
-      // SA-FINAL-3 Task 6: accept legacy v3 single-file exports by
+      // Accept legacy v3 single-file exports by
       // migrating them through the v3 → v4 shape converter before
       // validation. Without this, v3 JSON exports (elements/relationships
       // shape) are rejected with "Invalid diagram: missing model or
@@ -128,7 +128,7 @@ export const useImportDiagramToProject = () => {
         throw new Error('Unsupported file type. Please select a .json or .py file.');
       }
 
-      // SA-FINAL-3 Task 6: migrate v3-shape uploads before validation.
+      // Migrate v3-shape uploads before validation.
       diagram = maybeMigrateImportedDiagram(diagram);
 
       // Validate that it's a valid diagram

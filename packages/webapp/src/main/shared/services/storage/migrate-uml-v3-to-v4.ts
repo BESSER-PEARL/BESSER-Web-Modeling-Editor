@@ -1,5 +1,5 @@
 /**
- * SA-7b: localStorage migrator from v3 UMLModel shape (`elements` /
+ * LocalStorage migrator from v3 UMLModel shape (`elements` /
  * `relationships` records) to v4 shape (`nodes` / `edges` arrays).
  *
  * Wraps the per-diagram migrators exposed by `@besser/wme`. Dispatches by

@@ -1,7 +1,7 @@
 /**
  * Agent Diagram Modifier (v4-native)
  *
- * SA-7b.2: walks v4 `model.nodes[]` / `model.edges[]` directly — no v3↔v4
+ * Walks v4 `model.nodes[]` / `model.edges[]` directly — no v3↔v4
  * conversion seam.
  *
  * v4 AgentDiagram shape (per docs/source/migrations/uml-v4-shape.md and

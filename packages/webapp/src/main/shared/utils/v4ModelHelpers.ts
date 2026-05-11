@@ -1,5 +1,5 @@
 /**
- * SA-7b: helpers for walking v4 UMLModel `nodes` / `edges` arrays.
+ * Helpers for walking v4 UMLModel `nodes` / `edges` arrays.
  *
  * v3 stored elements as a `Record<id, UMLElement>` and relationships as a
  * `Record<id, UMLRelationship>`; v4 uses `nodes: BesserNode[]` and

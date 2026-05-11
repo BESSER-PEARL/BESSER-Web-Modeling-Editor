@@ -52,7 +52,7 @@ export interface ModelUpdate {
 }
 
 /**
- * SA-7b.1: webapp internals consume v4 directly. `BESSERModel` is now a thin
+ * Webapp internals consume v4 directly. `BESSERModel` is now a thin
  * alias for the lib's v4 `UMLModel`. Modifiers, converters, and
  * UMLModelingService walk `nodes[]` / `edges[]` natively — no v3 detour.
  *
@@ -116,7 +116,7 @@ export class UMLModelingService {
     }
 
     if (this.editor?.model) {
-      // SA-7b.1: editor.model is v4; consume directly.
+      // Editor.model is v4; consume directly.
       return this.editor.model as BESSERModel;
     }
 

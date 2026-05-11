@@ -38,7 +38,7 @@ function getAgentDiagramModel() {
 }
 
 /**
- * SA-7b: v4 ClassDiagram nodes carry attribute/method rows inline on
+ * V4 ClassDiagram nodes carry attribute/method rows inline on
  * `node.data.attributes` / `node.data.methods` (each row has `id`, `name`,
  * `attributeType`, `visibility`, ...). Previously v3 had each attribute /
  * method as a separate UMLElement with `owner === classId`.

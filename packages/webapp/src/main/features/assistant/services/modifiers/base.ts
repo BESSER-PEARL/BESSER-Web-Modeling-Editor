@@ -2,7 +2,7 @@
  * Base Modifier Interface
  * Defines the contract for all diagram-specific modification handlers.
  *
- * SA-7b.1: webapp internals are v4-native. Modifiers walk `model.nodes[]` /
+ * Webapp internals are v4-native. Modifiers walk `model.nodes[]` /
  * `model.edges[]` directly — no v3 elements/relationships records anywhere.
  */
 

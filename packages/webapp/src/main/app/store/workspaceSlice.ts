@@ -140,7 +140,7 @@ async function setupBridgeForActiveDiagram(
   } else if (diagramType === 'UserDiagram') {
     try {
       const { diagramBridge } = await import('@besser/wme');
-      // SA-FIX-User Fix #4: feed the v4-shape `{nodes, edges}` view of
+      // Fix #4: feed the v4-shape `{nodes, edges}` view of
       // the user meta-model. The raw `userMetaModel` JSON is the v3
       // `{elements, relationships}` shape — passing it directly caused
       // every bridge reader (`getAvailableClasses`, enum-literal lookups
@@ -191,7 +191,7 @@ export const createProjectThunk = createAsyncThunk(
       project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives);
     });
 
-    // SA-FIX content-bleed-on-new-project: explicitly clear the singleton
+    // Content-bleed-on-new-project: explicitly clear the singleton
     // `diagramBridge` cache (including its localStorage backup) before
     // priming it for the new project. Without this, the bridge keeps the
     // *previous* project's ClassDiagram data — which surfaces as stale
@@ -329,7 +329,7 @@ export const updateQuantumDiagramThunk = createAsyncThunk(
  * Use after direct ProjectStorageRepository writes from editors
  * (GrapesJS, Quantum, Agent) that bypass Redux thunks.
  *
- * ## bumpEditorRevision contract (SA-FINAL-3 Task 5)
+ * ## bumpEditorRevision contract
  *
  * This thunk DOES NOT bump `editorRevision`, by design. It exists for
  * "metadata-only" project refreshes where the active editor's bound
@@ -549,7 +549,7 @@ export const addDiagramThunk = createAsyncThunk(
 );
 
 /**
- * SA-FINAL-3 Task 4: combined add + switch in a single thunk.
+ * Combined add + switch in a single thunk.
  *
  * Background: the Assistant's "new tab" flow used to dispatch three
  * separate actions — `addDiagramThunk` (bumps editorRevision once),
@@ -881,7 +881,7 @@ const workspaceSlice = createSlice({
         }
         state.activeDiagram = diagram;
         state.activeDiagramIndex = index;
-        // SA-FINAL-3 Task 4: SINGLE editorRevision bump for the combined
+        // SINGLE editorRevision bump for the combined
         // add + switch (vs. the previous 3 bumps when add, switch, and
         // a manual bumpEditorRevision were dispatched separately).
         state.editorRevision += 1;
@@ -986,7 +986,7 @@ const workspaceSlice = createSlice({
         const nextActive = getActiveDiagram(p, state.activeDiagramType);
         state.activeDiagram = nextActive ?? state.activeDiagram;
 
-        // SA-FINAL-3 Task 5: development-only contract warning.
+        // Development-only contract warning.
         // If the active diagram's model identity changed (i.e. the body
         // of the currently-displayed diagram was rewritten by whatever
         // triggered the refresh), the caller MUST dispatch

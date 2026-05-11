@@ -86,12 +86,12 @@ export const BesserEditorComponent: React.FC = () => {
     );
   }, [store]);
 
-  // SA-FINAL-3 Task 2: flush any pending debounced save synchronously.
+  // Flush any pending debounced save synchronously.
   // Mirrors GraphicalUIEditor's flush-on-cleanup pattern so a rapid tab
   // switch within the 300 ms debounce window doesn't drop the user's
   // last keystroke.
   //
-  // SA-FIX content-bleed-on-new-project: only flush when the captured
+  // Content-bleed-on-new-project: only flush when the captured
   // binding still matches live state. When `createProjectThunk` (or any
   // other thunk that swaps the active project/diagram) runs while a
   // debounced save is pending, the global Redux state has already moved
@@ -215,8 +215,8 @@ export const BesserEditorComponent: React.FC = () => {
       //   localStorage writes on every keystroke.
       // - The cross-diagram bridge (consumed by ObjectDiagram/UserDiagram
       //   palettes) is updated SYNCHRONOUSLY on every model commit so it
-      //   never lags the live ClassDiagram editor. SA-FINAL-3 Task 1 fix
-      //   for PC-A5: previously the bridge was fed from a debounced
+      //   never lags the live ClassDiagram editor. fix
+      //   for: previously the bridge was fed from a debounced
       //   Redux selector in DiagramTabs.tsx, which trailed the editor by
       //   one 300 ms window.
       const isClassDiagram = currentOptions.type === UMLDiagramType.ClassDiagram;

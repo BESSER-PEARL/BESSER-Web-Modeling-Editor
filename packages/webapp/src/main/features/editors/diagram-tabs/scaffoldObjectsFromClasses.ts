@@ -1,7 +1,7 @@
 /**
  * Generate a deterministic Object Diagram from a Class Diagram (v4-native).
  *
- * SA-7b.2: walks v4 `model.nodes[]` / `model.edges[]` directly. No v3↔v4
+ * Walks v4 `model.nodes[]` / `model.edges[]` directly. No v3↔v4
  * conversion seam.
  *
  * For every concrete `class` node in the source class diagram (skipping
@@ -102,7 +102,7 @@ const firstEnumLiteral = (
   if (!enumName) return undefined;
   const enumNode = (classModel.nodes ?? []).find((n: any) => {
     const data = (n.data as any) || {};
-    // SA-FINAL C3: stereotype is PascalCase per the canonical enum
+    // Stereotype is PascalCase per the canonical enum
     // (`ClassType.Enumeration === 'Enumeration'`). The previous
     // lowercase compare never matched, so enum-typed attributes silently
     // fell back to `fallbackForType` instead of resolving the first
