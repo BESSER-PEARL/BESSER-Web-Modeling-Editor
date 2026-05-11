@@ -36,6 +36,26 @@ const FLOW_NODE_TYPES: ReadonlySet<string> = new Set([
 const DATA_TYPES: ReadonlySet<string> = new Set(['BPMNDataObject', 'BPMNDataStore']);
 const ARTIFACT_TYPES: ReadonlySet<string> = new Set(['BPMNAnnotation', 'BPMNGroup']);
 
+// BPMN 2.0.2 § 8.3.13, p. 98: only Exclusive/Inclusive/Complex gateways and
+// Activities (Task / Subprocess / Transaction / CallActivity) may carry a
+// default outgoing sequence flow. Parallel and Event-Based gateways do not.
+const DEFAULT_ELIGIBLE_ACTIVITY_TYPES: ReadonlySet<string> = new Set([
+  'BPMNTask',
+  'BPMNSubprocess',
+  'BPMNTransaction',
+  'BPMNCallActivity',
+]);
+const DEFAULT_ELIGIBLE_GATEWAY_TYPES: ReadonlySet<string> = new Set(['exclusive', 'inclusive', 'complex']);
+
+function canCarryDefault(source: AnyBPMNElement | undefined): boolean {
+  if (!source) return false;
+  if (DEFAULT_ELIGIBLE_ACTIVITY_TYPES.has(source.type)) return true;
+  if (source.type === 'BPMNGateway') {
+    return DEFAULT_ELIGIBLE_GATEWAY_TYPES.has(source.gatewayType ?? '');
+  }
+  return false;
+}
+
 interface AnyBPMNElement extends UMLElement {
   taskType?: string;
   marker?: string;
@@ -64,10 +84,11 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
   const elements = Object.values(model.elements) as AnyBPMNElement[];
   const relationships = Object.values(model.relationships) as AnyBPMNFlow[];
 
-  // Build a map of source-node-id → default-flow-id. Only sequence flows on
-  // gateway/activity sources can be default; events cannot. The "one default
-  // per source" invariant is enforced upstream (validator/popup); on conflict
-  // we keep the first and skip the rest.
+  // Build a map of source-node-id → default-flow-id. Spec-strict: only
+  // Exclusive/Inclusive/Complex gateways and Activities may carry a default
+  // flow (BPMN 2.0.2 § 8.3.13). The "one default per source" invariant is
+  // enforced upstream (validator/popup); on conflict we keep the first and
+  // skip the rest.
   const defaultFlowBySource = new Map<string, string>();
   for (const rel of relationships) {
     if (
@@ -75,7 +96,8 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
       rel.isDefault &&
       rel.flowType === 'sequence' &&
       rel.source?.element &&
-      !defaultFlowBySource.has(rel.source.element)
+      !defaultFlowBySource.has(rel.source.element) &&
+      canCarryDefault(model.elements[rel.source.element] as AnyBPMNElement | undefined)
     ) {
       defaultFlowBySource.set(rel.source.element, rel.id);
     }
