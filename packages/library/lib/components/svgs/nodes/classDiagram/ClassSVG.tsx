@@ -79,6 +79,11 @@ export const ClassSVG = ({
       row.isExternalId !== undefined ||
       row.defaultValue !== undefined
     if (!hasStructuredFields && !isEnumerationStereotype) return row
+    // Palette sidebar previews always render in UML mode so the visibility
+    // symbol (`+`/`-`/`#`/`~`) is visible on the drag source regardless of
+    // the user's live ER/UML toggle. The toggle is a canvas-only rendering
+    // setting; previews are a static reference of what a node looks like.
+    const isPalettePreview = SIDEBAR_PREVIEW_SCALE !== undefined
     const formatted = formatDisplayName(
       {
         name: row.name,
@@ -90,7 +95,7 @@ export const ClassSVG = ({
         isExternalId: row.isExternalId,
         defaultValue: row.defaultValue,
       },
-      classNotation,
+      isPalettePreview ? "UML" : classNotation,
       stereotype ?? undefined
     )
     return { ...row, name: formatted }
