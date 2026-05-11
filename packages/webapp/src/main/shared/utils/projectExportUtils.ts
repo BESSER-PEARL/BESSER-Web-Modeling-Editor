@@ -1,4 +1,11 @@
+import { UMLModel } from '@besser/wme';
 import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent } from '../types/project';
+import { LocalStorageRepository } from '../services/storage/local-storage-repository';
+import {
+  StoredAgentConfiguration,
+  StoredAgentProfileConfigurationMapping,
+  StoredUserProfile,
+} from '../services/storage/local-storage-types';
 import { normalizeProjectName } from './projectName';
 
 export const PROJECT_EXPORT_VERSION = '2.0.0';
@@ -94,16 +101,57 @@ export interface ProjectExportEnvelope {
   project: ExportableProjectPayload;
   exportedAt: string;
   version: string;
+  /**
+   * Optional bundled personalization state. Lives in localStorage at runtime
+   * (besser_agentConfigs, besser_userProfiles, besser_agentProfileMappings,
+   * besser_agentBaseModels, besser_agentActiveConfig) — bundled here so an
+   * imported project can restore the user's saved configurations and profile
+   * mappings rather than landing with an empty Personalization tab.
+   */
+  agentConfigurations?: StoredAgentConfiguration[];
+  userProfiles?: StoredUserProfile[];
+  agentProfileMappings?: StoredAgentProfileConfigurationMapping[];
+  activeAgentConfigurationId?: string | null;
+  agentBaseModels?: Record<string, UMLModel>;
+}
+
+export interface BuildProjectExportEnvelopeOptions {
+  /**
+   * Bundle saved configurations / user profiles / mappings / base agent
+   * models into the envelope. Default: ``true``. Set to ``false`` for paths
+   * that publish the envelope to a third party (e.g. GitHub deploy) so user
+   * profiles don't end up in a public repo.
+   */
+  includePersonalization?: boolean;
 }
 
 /** Build a V2 project-export envelope (project + exportedAt + version). */
 export function buildProjectExportEnvelope(
   project: BesserProject,
   diagramTypes?: SupportedDiagramType[],
+  options: BuildProjectExportEnvelopeOptions = {},
 ): ProjectExportEnvelope {
-  return {
+  const includePersonalization = options.includePersonalization !== false;
+
+  const envelope: ProjectExportEnvelope = {
     project: buildExportableProjectPayload(project, diagramTypes),
     exportedAt: new Date().toISOString(),
     version: PROJECT_EXPORT_VERSION,
   };
+
+  if (includePersonalization) {
+    const agentConfigurations = LocalStorageRepository.getAgentConfigurations();
+    const userProfiles = LocalStorageRepository.getUserProfiles();
+    const agentProfileMappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
+    const activeAgentConfigurationId = LocalStorageRepository.getActiveAgentConfigurationId();
+    const agentBaseModels = LocalStorageRepository.getAllAgentBaseModels();
+
+    if (agentConfigurations.length > 0) envelope.agentConfigurations = agentConfigurations;
+    if (userProfiles.length > 0) envelope.userProfiles = userProfiles;
+    if (agentProfileMappings.length > 0) envelope.agentProfileMappings = agentProfileMappings;
+    if (activeAgentConfigurationId) envelope.activeAgentConfigurationId = activeAgentConfigurationId;
+    if (Object.keys(agentBaseModels).length > 0) envelope.agentBaseModels = agentBaseModels;
+  }
+
+  return envelope;
 }
