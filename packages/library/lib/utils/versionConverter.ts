@@ -1100,10 +1100,7 @@ function convertV3NodeDataToV4(
         bodies?: string[]
         fallbackBodies?: string[]
       }
-      const v3RowToV4 = (
-        row: V3UMLElement,
-        kind: "entry" | "do" | "exit" | "on" | "fallback"
-      ) => {
+      const v3RowToV4 = (row: V3UMLElement) => {
         const r = row as V3UMLElement & {
           replyType?: string
           ragDatabaseName?: string
@@ -1113,18 +1110,9 @@ function convertV3NodeDataToV4(
           dbOperation?: string
           dbSqlQuery?: string
           code?: string
-          kind?: string
         }
-        const explicitKind = r.kind as
-          | "entry"
-          | "do"
-          | "exit"
-          | "on"
-          | "fallback"
-          | undefined
         return {
           id: r.id,
-          kind: explicitKind ?? kind,
           name: r.name,
           ...(r.replyType !== undefined && { replyType: r.replyType }),
           ...(r.ragDatabaseName !== undefined && {
@@ -1172,17 +1160,19 @@ function convertV3NodeDataToV4(
                   !!b && b.type === "AgentStateFallbackBody"
               ) as V3UMLElement[])
           : ownedByType("AgentStateFallbackBody")
-      const bodies: Array<Record<string, unknown>> = []
-      for (const row of orderedBodies) bodies.push(v3RowToV4(row, "do"))
-      for (const row of orderedFallbacks)
-        bodies.push(v3RowToV4(row, "fallback"))
+      // v3 parity: main + fallback bodies live in separate arrays on the
+      // parent. Replaces the prior `kind: 'fallback'` discriminator on each
+      // body row — the row's container array IS the discriminator.
+      const mainRows = orderedBodies.map(v3RowToV4)
+      const fallbackRows = orderedFallbacks.map(v3RowToV4)
       return {
         ...baseData,
         replyType: e.replyType ?? "text",
         ...(e.stereotype !== undefined && { stereotype: e.stereotype }),
         ...(e.italic !== undefined && { italic: !!e.italic }),
         ...(e.underline !== undefined && { underline: !!e.underline }),
-        ...(bodies.length > 0 && { bodies }),
+        ...(mainRows.length > 0 && { bodies: mainRows }),
+        ...(fallbackRows.length > 0 && { fallbackBodies: fallbackRows }),
       }
     }
 
@@ -2941,27 +2931,27 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         // The parent state also re-emits the v3 `bodies: string[]` /
         // `fallbackBodies: string[]` arrays so the v3 wire form is
         // round-trip equivalent.
+        type AgentBodyRowV4 = {
+          id: string
+          name?: string
+          code?: string
+          replyType?: string
+          ragDatabaseName?: string
+          dbSelectionType?: string
+          dbCustomName?: string
+          dbQueryMode?: string
+          dbOperation?: string
+          dbSqlQuery?: string
+          fillColor?: string
+          textColor?: string
+        }
         const data = node.data as Record<string, unknown> & {
-          bodies?: Array<{
-            id: string
-            kind: "entry" | "do" | "exit" | "on" | "fallback"
-            name?: string
-            code?: string
-            replyType?: string
-            ragDatabaseName?: string
-            dbSelectionType?: string
-            dbCustomName?: string
-            dbQueryMode?: string
-            dbOperation?: string
-            dbSqlQuery?: string
-            fillColor?: string
-            textColor?: string
-          }>
+          bodies?: AgentBodyRowV4[]
+          fallbackBodies?: AgentBodyRowV4[]
         }
         const bodyIds: string[] = []
         const fallbackIds: string[] = []
-        for (const row of data.bodies ?? []) {
-          const isFallback = row.kind === "fallback"
+        const emitRow = (row: AgentBodyRowV4, isFallback: boolean) => {
           const v3Type: string = isFallback
             ? "AgentStateFallbackBody"
             : "AgentStateBody"
@@ -2991,17 +2981,14 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
               dbSqlQuery: row.dbSqlQuery,
             }),
             ...(row.code !== undefined && { code: row.code }),
-            // For non-fallback rows, preserve `kind` if it deviates
-            // from the default `'do'` so the v3 wire form is exact.
-            ...(!isFallback &&
-              row.kind !== undefined &&
-              row.kind !== "do" && { kind: row.kind }),
             ...(row.fillColor && { fillColor: row.fillColor }),
             ...(row.textColor && { textColor: row.textColor }),
           } as V3UMLElement
           if (isFallback) fallbackIds.push(row.id)
           else bodyIds.push(row.id)
         }
+        for (const row of data.bodies ?? []) emitRow(row, false)
+        for (const row of data.fallbackBodies ?? []) emitRow(row, true)
         elements[node.id] = {
           ...baseV3,
           ...(data.replyType !== undefined && {
@@ -3677,11 +3664,13 @@ export function normalizeAgentBodies(model: UMLModel): UMLModel {
     return best
   }
 
-  // Build a map of host AgentState id → list of folded body rows to add.
-  const newRowsByHost: Record<
-    string,
-    Array<Record<string, unknown>>
-  > = {}
+  // Build per-host buckets of folded body rows, split by section. Replaces
+  // the prior single-bucket approach that tagged rows with `kind: 'fallback'`.
+  type RowBuckets = {
+    bodies: Array<Record<string, unknown>>
+    fallbackBodies: Array<Record<string, unknown>>
+  }
+  const newRowsByHost: Record<string, RowBuckets> = {}
   for (const body of floatingBodies) {
     const host = findHostState(body)
     const d = (body.data ?? {}) as {
@@ -3694,14 +3683,12 @@ export function normalizeAgentBodies(model: UMLModel): UMLModel {
       dbOperation?: string
       dbSqlQuery?: string
       code?: string
-      kind?: string
       fillColor?: string
       textColor?: string
     }
     const isFallback = isFallbackType(body.type as string)
     const row: Record<string, unknown> = {
       id: body.id,
-      kind: isFallback ? "fallback" : (d.kind ?? "do"),
       ...(d.name !== undefined && { name: d.name }),
       ...(d.replyType !== undefined && { replyType: d.replyType }),
       ...(d.ragDatabaseName !== undefined && {
@@ -3718,8 +3705,10 @@ export function normalizeAgentBodies(model: UMLModel): UMLModel {
       ...(d.fillColor !== undefined && { fillColor: d.fillColor }),
       ...(d.textColor !== undefined && { textColor: d.textColor }),
     }
-    if (!newRowsByHost[host.id]) newRowsByHost[host.id] = []
-    newRowsByHost[host.id].push(row)
+    if (!newRowsByHost[host.id])
+      newRowsByHost[host.id] = { bodies: [], fallbackBodies: [] }
+    if (isFallback) newRowsByHost[host.id].fallbackBodies.push(row)
+    else newRowsByHost[host.id].bodies.push(row)
   }
 
   const nodes = model.nodes
@@ -3727,14 +3716,19 @@ export function normalizeAgentBodies(model: UMLModel): UMLModel {
     .map((n) => {
       if (!isAgentStateType(n.type as string)) return n
       const adds = newRowsByHost[n.id]
-      if (!adds || adds.length === 0) return n
+      if (!adds || (adds.bodies.length === 0 && adds.fallbackBodies.length === 0))
+        return n
       const existingBodies =
         ((n.data as { bodies?: Array<Record<string, unknown>> }).bodies ?? [])
+      const existingFallback =
+        ((n.data as { fallbackBodies?: Array<Record<string, unknown>> })
+          .fallbackBodies ?? [])
       return {
         ...n,
         data: {
           ...n.data,
-          bodies: [...existingBodies, ...adds],
+          bodies: [...existingBodies, ...adds.bodies],
+          fallbackBodies: [...existingFallback, ...adds.fallbackBodies],
         },
       } as BesserNode
     })
@@ -3972,9 +3966,56 @@ function normalizeOCLConstraintNodes(model: UMLModel): UMLModel {
 export function normalizeV4Model(model: UMLModel): UMLModel {
   let m = model
   m = normalizeAgentBodies(m)
+  m = normalizeAgentBodyKindToArrays(m)
   m = normalizeAgentIntentChildren(m)
   m = normalizeOCLConstraintNodes(m)
   return m
+}
+
+/**
+ * Split legacy AgentState body rows that carry a `kind: "fallback"`
+ * discriminator into the new `data.fallbackBodies[]` array. The `kind`
+ * field is dropped from every body row regardless of value. Runs on every
+ * v4 load so locally-stored projects from before the split surface in the
+ * new shape.
+ */
+function normalizeAgentBodyKindToArrays(model: UMLModel): UMLModel {
+  type LegacyRow = { id: string; kind?: string } & Record<string, unknown>
+  let touched = 0
+  const nodes = model.nodes.map((n) => {
+    if (n.type !== "AgentState") return n
+    const data = n.data as Record<string, unknown> & {
+      bodies?: LegacyRow[]
+      fallbackBodies?: LegacyRow[]
+    }
+    const bodies = data.bodies ?? []
+    const hasLegacyKind = bodies.some((r) => r && r.kind !== undefined)
+    if (!hasLegacyKind) return n
+    const main: LegacyRow[] = []
+    const fallback: LegacyRow[] = data.fallbackBodies
+      ? data.fallbackBodies.slice()
+      : []
+    for (const r of bodies) {
+      const { kind, ...rest } = r
+      if (kind === "fallback") fallback.push(rest as LegacyRow)
+      else main.push(rest as LegacyRow)
+    }
+    touched += 1
+    return {
+      ...n,
+      data: {
+        ...data,
+        bodies: main,
+        ...(fallback.length > 0 && { fallbackBodies: fallback }),
+      },
+    } as BesserNode
+  })
+  if (touched === 0) return model
+  log.warn(
+    `normalizeAgentBodyKindToArrays: migrated ${touched} AgentState node(s) ` +
+      `from kind-discriminated bodies[] to split bodies[] / fallbackBodies[].`
+  )
+  return { ...model, nodes }
 }
 
 /**

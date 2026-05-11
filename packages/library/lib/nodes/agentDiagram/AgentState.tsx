@@ -35,7 +35,8 @@ const renderRow = (
   index: number,
   yOffset: number,
   width: number,
-  textColor: string
+  textColor: string,
+  isFallback: boolean
 ): React.ReactNode => {
   const isCode = body.replyType === "code"
   const codeText = body.code ?? body.name ?? ""
@@ -87,7 +88,7 @@ const renderRow = (
           whiteSpace: "nowrap",
           overflow: "hidden",
           textOverflow: "ellipsis",
-          fontStyle: body.kind === "fallback" ? "italic" : undefined,
+          fontStyle: isFallback ? "italic" : undefined,
         }}
         title={labelText}
       >
@@ -111,16 +112,18 @@ export function AgentState({
   if (!width || !height) return null
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const { name, stereotype, italic, underline, bodies } = data
+  const { name, stereotype, italic, underline } = data
   const cornerRadius = 8
   const showStereotype = !!stereotype
   const headerHeight = showStereotype
     ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
     : LAYOUT.DEFAULT_HEADER_HEIGHT
 
-  const allBodies = bodies ?? []
-  const mainBodies = allBodies.filter((b) => b.kind !== "fallback")
-  const fallbackBodies = allBodies.filter((b) => b.kind === "fallback")
+  // v3 parity: main + fallback bodies live in separate arrays on the parent
+  // (replacing the prior `kind: 'fallback'` discriminator on body rows).
+  const mainBodies = data.bodies ?? []
+  const fallbackBodies = data.fallbackBodies ?? []
+  const hasAnyBody = mainBodies.length > 0 || fallbackBodies.length > 0
   const fallbackDividerY = headerHeight + mainBodies.length * ROW_HEIGHT
   const hasFallbackDivider = fallbackBodies.length > 0 && mainBodies.length > 0
 
@@ -222,7 +225,7 @@ export function AgentState({
           )}
           {/* Header divider — drawn whenever any body row exists, like
               v3's `hasBody` check. */}
-          {allBodies.length > 0 && (
+          {hasAnyBody && (
             <line
               x1={0}
               x2={width}
@@ -233,7 +236,7 @@ export function AgentState({
             />
           )}
           {mainBodies.map((b, i) =>
-            renderRow(b, i, headerHeight, width, textColor)
+            renderRow(b, i, headerHeight, width, textColor, false)
           )}
           {hasFallbackDivider && (
             <line
@@ -248,7 +251,7 @@ export function AgentState({
             />
           )}
           {fallbackBodies.map((b, i) =>
-            renderRow(b, i, fallbackDividerY, width, textColor)
+            renderRow(b, i, fallbackDividerY, width, textColor, true)
           )}
         </svg>
       </div>

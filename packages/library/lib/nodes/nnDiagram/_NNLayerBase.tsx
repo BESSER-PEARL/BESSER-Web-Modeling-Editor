@@ -187,17 +187,39 @@ export function NNLayerBase({
           viewBox={`0 0 ${width} ${height}`}
           overflow="visible"
         >
-          <rect
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            rx={cornerRadius}
-            ry={cornerRadius}
-            fill={fill}
-            stroke={strokeColor}
-            strokeWidth={LAYOUT.LINE_WIDTH}
-          />
+          {/*
+           * v3 parity: NN layer cards with a kind icon (Conv1D / Conv2D /
+           * RNN / …) had no outer box — just the stereotype + name above a
+           * standalone icon. Only render the boxed card (rect + header
+           * divider) when there is no icon to show, so the boxed look is
+           * limited to icon-less variants (e.g. layers without a PNG asset
+           * yet).
+           */}
+          {!showIcon && (
+            <>
+              <rect
+                x={0}
+                y={0}
+                width={width}
+                height={height}
+                rx={cornerRadius}
+                ry={cornerRadius}
+                fill={fill}
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.LINE_WIDTH}
+              />
+              {height > headerHeight + 4 && (
+                <line
+                  x1={0}
+                  x2={width}
+                  y1={headerHeight}
+                  y2={headerHeight}
+                  stroke={strokeColor}
+                  strokeWidth={1}
+                />
+              )}
+            </>
+          )}
           <text
             x={width / 2}
             y={18}
@@ -217,16 +239,6 @@ export function NNLayerBase({
           >
             {data.name}
           </text>
-          {height > headerHeight + 4 && (
-            <line
-              x1={0}
-              x2={width}
-              y1={headerHeight}
-              y2={headerHeight}
-              stroke={strokeColor}
-              strokeWidth={1}
-            />
-          )}
           {showIcon && (
             <image
               href={`${NN_LAYER_ICON_BASE}${iconFile}`}

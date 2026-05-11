@@ -386,8 +386,6 @@ export type StateMarkerNodeProps = DefaultNodeProps
 export type AgentStateBodyRow = {
   /** Stable id (re-emitted as the v3 element id on export). */
   id: string
-  /** Section discriminator: `entry` / `do` / `exit` / `on` / `fallback`. */
-  kind: "entry" | "do" | "exit" | "on" | "fallback"
   /** Display label / row content (also stores v3 `name`). */
   name?: string
   /** Optional code body when `replyType === 'code'`. */
@@ -423,10 +421,17 @@ export type AgentStateNodeProps = StateNodeProps & {
    */
   replyType?: string
   /**
-   * Inline body rows. Folded from v3's child `AgentStateBody` /
-   * `AgentStateFallbackBody` elements per SA-FIX-Agent.
+   * Main-section inline body rows. Folded from v3's child `AgentStateBody`
+   * elements per SA-FIX-Agent. Fallback rows live in `fallbackBodies`
+   * below — kept as a separate array (replacing the prior `kind: 'fallback'`
+   * discriminator) so the body row shape stays clean.
    */
   bodies?: AgentStateBodyRow[]
+  /**
+   * Fallback-section inline body rows. Folded from v3's child
+   * `AgentStateFallbackBody` elements.
+   */
+  fallbackBodies?: AgentStateBodyRow[]
 }
 
 /**

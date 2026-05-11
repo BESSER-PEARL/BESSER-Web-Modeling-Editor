@@ -97,9 +97,6 @@ const getDbDisplayName = (
 }
 
 type Section = "main" | "fallback"
-const isFallback = (b: AgentStateBodyRow) => b.kind === "fallback"
-const inSection = (b: AgentStateBodyRow, section: Section) =>
-  section === "fallback" ? isFallback(b) : !isFallback(b)
 
 export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { nodes, setNodes } = useDiagramStore(
@@ -112,7 +109,8 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   if (!node) return null
 
   const data = node.data as AgentStateNodeProps
-  const bodies: AgentStateBodyRow[] = data.bodies ?? []
+  const mainBodies: AgentStateBodyRow[] = data.bodies ?? []
+  const fallbackBodies: AgentStateBodyRow[] = data.fallbackBodies ?? []
 
   /* ─────────────────────── Top-level node helpers ─────────────────────── */
 
@@ -128,11 +126,24 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     updateNode({ [key]: value } as Partial<AgentStateNodeProps>)
   }
 
-  const replaceBodies = (
+  /**
+   * v3 parity: fallback rows live in their own array (`data.fallbackBodies`)
+   * rather than carrying a `kind: "fallback"` discriminator on each row.
+   * Helpers below route reads/writes to the right array based on `section`.
+   */
+  const replaceSection = (
+    section: Section,
     mapper: (rows: AgentStateBodyRow[]) => AgentStateBodyRow[]
   ) => {
-    updateNode({ bodies: mapper(bodies) })
+    if (section === "fallback") {
+      updateNode({ fallbackBodies: mapper(fallbackBodies) })
+    } else {
+      updateNode({ bodies: mapper(mainBodies) })
+    }
   }
+
+  const sectionForRow = (rowId: string): Section =>
+    mainBodies.some((r) => r.id === rowId) ? "main" : "fallback"
 
   /* ─────────────────────── Body / Fallback helpers ────────────────────── */
 
@@ -148,7 +159,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }, [nodes])
 
   const sectionRows = (section: Section): AgentStateBodyRow[] =>
-    bodies.filter((b) => inSection(b, section))
+    section === "fallback" ? fallbackBodies : mainBodies
 
   const getActiveMode = (section: Section): ReplyMode => {
     const rows = sectionRows(section)
@@ -163,39 +174,34 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     rowId: string,
     patch: Partial<AgentStateBodyRow>
   ) => {
-    replaceBodies((rows) =>
+    replaceSection(sectionForRow(rowId), (rows) =>
       rows.map((r) => (r.id === rowId ? { ...r, ...patch } : r))
     )
   }
 
   const removeRow = (rowId: string) => {
-    replaceBodies((rows) => rows.filter((r) => r.id !== rowId))
+    replaceSection(sectionForRow(rowId), (rows) =>
+      rows.filter((r) => r.id !== rowId)
+    )
   }
 
   const addRow = (
     section: Section,
     init: Partial<AgentStateBodyRow> & { name?: string }
   ) => {
-    const sectionKind: AgentStateBodyRow["kind"] =
-      section === "fallback" ? "fallback" : init.kind ?? "do"
     const newRow: AgentStateBodyRow = {
       id: generateUUID(),
       replyType: "text",
       ...init,
-      // Section discriminator always wins over `init.kind` so fallback
-      // rows never get tagged with `entry` / `do` / `exit` / `on`.
-      kind: sectionKind,
     }
-    replaceBodies((rows) => [...rows, newRow])
+    replaceSection(section, (rows) => [...rows, newRow])
   }
 
   const removeRowsWhere = (
     section: Section,
     predicate: (r: AgentStateBodyRow) => boolean
   ) => {
-    replaceBodies((rows) =>
-      rows.filter((r) => !(inSection(r, section) && predicate(r)))
-    )
+    replaceSection(section, (rows) => rows.filter((r) => !predicate(r)))
   }
 
   const setMode = (section: Section, next: ReplyMode) => {

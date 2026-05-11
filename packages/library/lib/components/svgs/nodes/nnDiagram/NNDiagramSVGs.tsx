@@ -55,17 +55,37 @@ const buildLayerPreview = (
         overflow="visible"
         {...svgAttributes}
       >
-        <rect
-          x={0}
-          y={0}
-          width={width}
-          height={height}
-          rx={6}
-          ry={6}
-          fill={fill}
-          stroke="var(--besser-primary-contrast, #000)"
-          strokeWidth={1.5}
-        />
+        {/*
+         * v3 parity: NN layer cards with a kind icon (Conv1D / Conv2D /
+         * RNN / …) had no outer box — just the stereotype + name above a
+         * standalone icon. Mirror `_NNLayerBase.tsx`: only render the
+         * boxed card (rect + header divider) when there is no icon.
+         */}
+        {!showIcon && (
+          <>
+            <rect
+              x={0}
+              y={0}
+              width={width}
+              height={height}
+              rx={6}
+              ry={6}
+              fill={fill}
+              stroke="var(--besser-primary-contrast, #000)"
+              strokeWidth={1.5}
+            />
+            {height > headerHeight + 4 && (
+              <line
+                x1={0}
+                x2={width}
+                y1={headerHeight}
+                y2={headerHeight}
+                stroke="var(--besser-primary-contrast, #000)"
+                strokeWidth={1}
+              />
+            )}
+          </>
+        )}
         <text
           x={width / 2}
           y={18}
@@ -85,16 +105,6 @@ const buildLayerPreview = (
         >
           {defaultName}
         </text>
-        {height > headerHeight + 4 && (
-          <line
-            x1={0}
-            x2={width}
-            y1={headerHeight}
-            y2={headerHeight}
-            stroke="var(--besser-primary-contrast, #000)"
-            strokeWidth={1}
-          />
-        )}
         {showIcon && (
           <image
             href={`${NN_LAYER_ICON_BASE}${iconFile}`}

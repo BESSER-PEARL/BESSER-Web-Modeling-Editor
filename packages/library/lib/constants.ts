@@ -899,6 +899,24 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "AgentState", replyType: "text" },
       svg: AgentStateSVG,
     },
+
+    {
+      type: "AgentState" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 130,
+      defaultData: {
+        name: "AgentState",
+        replyType: "text",
+        bodies: [
+          {
+            id: "agentstate-template-body-text",
+            name: "Hello world",
+            replyType: "text",
+          },
+        ],
+      },
+      svg: AgentStateSVG,
+    },
     {
       type: "AgentIntent" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
