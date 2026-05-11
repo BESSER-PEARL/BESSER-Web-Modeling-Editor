@@ -426,9 +426,16 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      {/*
+       * v3 parity: the explicit `name` TextField below is the canonical
+       * name editor. Suppress the duplicate name input that
+       * `NodeStyleEditor` would render by default; the style controls
+       * (fill / line / text color) remain.
+       */}
       <NodeStyleEditor
         nodeData={data}
         handleDataFieldUpdate={handleDataFieldUpdate}
+        showNameInputChange={false}
       />
       <DividerLine width="100%" />
 
