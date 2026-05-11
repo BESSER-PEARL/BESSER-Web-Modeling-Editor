@@ -2203,10 +2203,14 @@ export function migrateStateMachineDiagramV3ToV4(
  * SA-4 AgentDiagram v3 → v4 migrator. See
  * `migrateClassDiagramV3ToV4` for the shared shape rules; AgentDiagram
  * additionally:
- *  - Keeps `AgentStateBody` / `AgentStateFallbackBody` /
- *    `AgentIntentBody` / `AgentIntentDescription` as separate React-Flow
- *    children with `parentId` (mirrors SA-3's body/fallback-body
- *    decision — brief wins over spec).
+ *  - Folds `AgentStateBody` / `AgentStateFallbackBody` onto the parent
+ *    AgentState's `data.bodies[]` (SA-FIX-Agent).
+ *  - Folds `AgentIntentBody` / `AgentIntentDescription` /
+ *    `AgentIntentObjectComponent` onto the parent AgentIntent's
+ *    `data.training_phrases[]` / `data.intent_description` /
+ *    `data.entity_slots[]` inline arrays (SA-FIX-INTENT-INLINE). The
+ *    fold happens via `normalizeV4Model` so legacy v4 fixtures and
+ *    locally-stored projects converge on the inline shape too.
  *  - Collapses the 5 legacy `AgentStateTransition` shapes onto the
  *    canonical v4 `AgentStateTransitionData` via
  *    `liftAgentTransitionDataToV4`. The `legacy` bag is preserved on
@@ -2224,7 +2228,9 @@ export function migrateAgentDiagramV3ToV4(
       `migrateAgentDiagramV3ToV4: expected AgentDiagram, got ${v4.type}`
     )
   }
-  return v4
+  // SA-FIX-INTENT-INLINE: fold legacy intent children onto inline arrays
+  // so callers always see the canonical v4 shape.
+  return normalizeV4Model(v4)
 }
 
 /**
@@ -3010,15 +3016,26 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         break
       }
       case "AgentIntent": {
-        const data = node.data as Record<string, unknown>
-        // SA-2.2 #28: roll up the v4-only `AgentIntentDescription` child node
-        // into the v3 parent's `intent_description` field. v3 has no
-        // `AgentIntentDescription` element type (see
-        // `packages/editor/.../agent-state-diagram/index.ts:AgentElementType`),
-        // so emitting the child as a separate v3 element silently drops it
-        // when v3 deserialises. Prefer the v4 parent's
-        // `intent_description` if set; otherwise fall back to the
-        // description child's `name`.
+        const data = node.data as Record<string, unknown> & {
+          training_phrases?: Array<{ id: string; name: string }>
+          entity_slots?: Array<{
+            id: string
+            name: string
+            entity?: string
+            slot?: string
+            value?: string
+          }>
+        }
+        // SA-FIX-INTENT-INLINE: re-expand the inline arrays back into
+        // top-level v3 elements. `training_phrases` → `AgentIntentBody`;
+        // `entity_slots` → `AgentIntentObjectComponent`. Original row
+        // ids are preserved so the v4 → v3 → v4 cycle keeps stable ids.
+        //
+        // v3 has no `AgentIntentDescription` element type; the parent's
+        // `intent_description` carries the description on the v3 wire.
+        // SA-2.2 #28: prefer the v4 parent's value, but fall back to a
+        // legacy `AgentIntentDescription` child if older code left one
+        // behind (during partial migrations).
         let intentDescription = data.intent_description as string | undefined
         if (intentDescription === undefined || intentDescription === "") {
           const descChild = v4.nodes.find(
@@ -3033,6 +3050,27 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
             }
           }
         }
+        for (const phrase of data.training_phrases ?? []) {
+          elements[phrase.id] = {
+            id: phrase.id,
+            name: phrase.name ?? "",
+            type: "AgentIntentBody",
+            owner: node.id,
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+          } as V3UMLElement
+        }
+        for (const slot of data.entity_slots ?? []) {
+          elements[slot.id] = {
+            id: slot.id,
+            name: slot.name ?? "",
+            type: "AgentIntentObjectComponent",
+            owner: node.id,
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+            ...(slot.entity !== undefined && { entity: slot.entity }),
+            ...(slot.slot !== undefined && { slot: slot.slot }),
+            ...(slot.value !== undefined && { value: slot.value }),
+          } as V3UMLElement
+        }
         elements[node.id] = {
           ...baseV3,
           ...(intentDescription !== undefined && {
@@ -3045,23 +3083,27 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         break
       }
       case "AgentIntentBody": {
+        // SA-FIX-INTENT-INLINE: any surviving free-standing
+        // `AgentIntentBody` (no parent intent) emits as-is for legacy
+        // round-trip. The normaliser folds the owned ones onto the
+        // parent's `training_phrases` so this case is rarely hit.
         elements[node.id] = baseV3
         break
       }
       case "AgentIntentDescription":
       case "AgentIntentObjectComponent": {
         // SA-2.2 #28: skip these EXTRA-in-v4 child types on export. v3
-        // doesn't recognise `AgentIntentDescription` /
-        // `AgentIntentObjectComponent` as element types (they're absent
-        // from the v3 `AgentElementType` registry). Description content
-        // is preserved on the parent intent's `intent_description`
-        // (rolled up in the `AgentIntent` case above). Object-component
-        // entity/slot/value data is currently unmapped on the v3 wire —
-        // skipping prevents v3 deserialisers from emitting "unknown
-        // element type" warnings or silently constructing an invalid
-        // node. Round-trip parity is maintained because
-        // `migrateAgentDiagramV3ToV4` re-creates these children from
-        // the parent's `intent_description` text on import.
+        // doesn't recognise `AgentIntentDescription` (it's absent from
+        // the v3 `AgentElementType` registry); description content is
+        // preserved on the parent intent's `intent_description` (rolled
+        // up in the `AgentIntent` case above). SA-FIX-INTENT-INLINE:
+        // `AgentIntentObjectComponent` rows are now re-emitted from the
+        // parent's `entity_slots` array (rolled up in the `AgentIntent`
+        // case above), so any free-standing `AgentIntentObjectComponent`
+        // node (no parent intent) is also dropped here. Round-trip
+        // parity is maintained because `migrateAgentDiagramV3ToV4` folds
+        // the v3 children back onto the parent's inline arrays on
+        // import.
         break
       }
       case "AgentRagElement": {
@@ -3705,15 +3747,30 @@ export function normalizeAgentBodies(model: UMLModel): UMLModel {
 }
 
 /**
- * SA-FIX-AGENT-OCL: normalise intent child nodes so they render inline
- * under their parent `AgentIntent`. Templates and v4 fixtures from
- * older builds frequently forget the React-Flow `extent: "parent"` /
- * `draggable: false` attributes — without these, child nodes appear as
- * free-floating, draggable shapes at the canvas root even though they
- * have a `parentId`. Also drops orphan intent children whose
- * `parentId` no longer resolves to a real AgentIntent, and prunes
- * edges referencing dropped nodes. Returns the input model by
- * reference when no transformation was needed.
+ * SA-FIX-INTENT-INLINE: fold legacy `AgentIntentBody` /
+ * `AgentIntentDescription` / `AgentIntentObjectComponent` child nodes
+ * onto their parent `AgentIntent.data.{training_phrases, intent_description,
+ * entity_slots}`, then remove the children from the node list.
+ *
+ * v3 (and SA-4) rendered each row as a separate React-Flow node anchored
+ * via `parentId`. The user requested the rows live inline on the parent
+ * intent SVG, matching how `Class` renders attribute rows and
+ * `AgentState` renders body rows. This normaliser runs on every model
+ * load so legacy fixtures, templates, and locally-stored projects
+ * surface the new inline shape.
+ *
+ *  - `AgentIntentBody` children → append `{id, name}` to
+ *    `parent.data.training_phrases`.
+ *  - `AgentIntentDescription` children → set
+ *    `parent.data.intent_description` (only when the parent doesn't
+ *    already have a non-empty value, so explicit parent text wins).
+ *  - `AgentIntentObjectComponent` children → append
+ *    `{id, name, entity, slot, value}` to `parent.data.entity_slots`.
+ *  - Orphan intent children (no matching parent) are dropped along with
+ *    any edges referencing them.
+ *
+ * Returns the input model by reference when no transformation was
+ * needed.
  */
 function normalizeAgentIntentChildren(model: UMLModel): UMLModel {
   if (model.type !== "AgentDiagram") return model
@@ -3729,50 +3786,116 @@ function normalizeAgentIntentChildren(model: UMLModel): UMLModel {
       .map((n) => n.id)
   )
 
+  // Collect children to fold, grouped by parent intent.
+  type PhraseRow = { id: string; name: string }
+  type SlotRow = {
+    id: string
+    name: string
+    entity?: string
+    slot?: string
+    value?: string
+  }
+  const phrasesByParent: Record<string, PhraseRow[]> = {}
+  const slotsByParent: Record<string, SlotRow[]> = {}
+  const descriptionByParent: Record<string, string> = {}
   const droppedIds = new Set<string>()
-  const normalizedNodes: BesserNode[] = []
-  let touched = 0
+  const foldedIds = new Set<string>()
+
   for (const n of model.nodes) {
-    if (!isIntentChildType(n.type as string)) {
-      normalizedNodes.push(n)
-      continue
-    }
+    if (!isIntentChildType(n.type as string)) continue
     if (!n.parentId || !intentIds.has(n.parentId)) {
       droppedIds.add(n.id)
       continue
     }
-    const needsExtent =
-      (n as unknown as { extent?: string }).extent !== "parent"
-    const needsDraggable =
-      (n as unknown as { draggable?: boolean }).draggable !== false
-    if (!needsExtent && !needsDraggable) {
-      normalizedNodes.push(n)
-      continue
+    const d = (n.data ?? {}) as Record<string, unknown>
+    const name = typeof d.name === "string" ? d.name : ""
+    const nodeType = n.type as string
+    if (nodeType === "AgentIntentBody") {
+      const row: PhraseRow = { id: n.id, name }
+      ;(phrasesByParent[n.parentId] ??= []).push(row)
+      foldedIds.add(n.id)
+    } else if (nodeType === "AgentIntentDescription") {
+      // First non-empty wins per parent; the parent's own
+      // `intent_description` is preferred over child text downstream.
+      if (
+        descriptionByParent[n.parentId] === undefined ||
+        descriptionByParent[n.parentId] === ""
+      ) {
+        descriptionByParent[n.parentId] = name
+      }
+      foldedIds.add(n.id)
+    } else if (nodeType === "AgentIntentObjectComponent") {
+      const row: SlotRow = {
+        id: n.id,
+        name,
+        ...(typeof d.entity === "string" && { entity: d.entity }),
+        ...(typeof d.slot === "string" && { slot: d.slot }),
+        ...(typeof d.value === "string" && { value: d.value }),
+      }
+      ;(slotsByParent[n.parentId] ??= []).push(row)
+      foldedIds.add(n.id)
     }
-    touched += 1
-    normalizedNodes.push({
-      ...n,
-      extent: "parent",
-      draggable: false,
-    } as BesserNode)
   }
 
-  if (droppedIds.size === 0 && touched === 0) return model
+  if (droppedIds.size === 0 && foldedIds.size === 0) return model
+
+  const normalizedNodes: BesserNode[] = []
+  for (const n of model.nodes) {
+    if (droppedIds.has(n.id) || foldedIds.has(n.id)) continue
+    if ((n.type as string) === "AgentIntent") {
+      const phraseAdds = phrasesByParent[n.id] ?? []
+      const slotAdds = slotsByParent[n.id] ?? []
+      const descAdd = descriptionByParent[n.id]
+      if (phraseAdds.length === 0 && slotAdds.length === 0 && descAdd === undefined) {
+        normalizedNodes.push(n)
+        continue
+      }
+      const existingData = (n.data ?? {}) as Record<string, unknown>
+      const existingPhrases =
+        (existingData.training_phrases as PhraseRow[] | undefined) ?? []
+      const existingSlots =
+        (existingData.entity_slots as SlotRow[] | undefined) ?? []
+      const existingDescription =
+        typeof existingData.intent_description === "string"
+          ? existingData.intent_description
+          : ""
+      const mergedDescription =
+        existingDescription !== "" ? existingDescription : descAdd ?? ""
+      const nextData: Record<string, unknown> = {
+        ...existingData,
+        ...(phraseAdds.length > 0 && {
+          training_phrases: [...existingPhrases, ...phraseAdds],
+        }),
+        ...(slotAdds.length > 0 && {
+          entity_slots: [...existingSlots, ...slotAdds],
+        }),
+        ...(mergedDescription !== "" && {
+          intent_description: mergedDescription,
+        }),
+      }
+      normalizedNodes.push({ ...n, data: nextData } as BesserNode)
+    } else {
+      normalizedNodes.push(n)
+    }
+  }
 
   let nextEdges = model.edges
-  if (droppedIds.size > 0) {
+  if (droppedIds.size > 0 || foldedIds.size > 0) {
+    const removed = new Set<string>([...droppedIds, ...foldedIds])
     nextEdges = model.edges.filter(
-      (e) => !droppedIds.has(e.source) && !droppedIds.has(e.target)
+      (e) => !removed.has(e.source) && !removed.has(e.target)
     )
+  }
+  if (droppedIds.size > 0) {
     log.warn(
       `normalizeAgentIntentChildren: dropped ${droppedIds.size} orphan ` +
         `AgentIntent child node(s) — no matching AgentIntent parent.`
     )
   }
-  if (touched > 0) {
+  if (foldedIds.size > 0) {
     log.warn(
-      `normalizeAgentIntentChildren: forced extent:"parent" + ` +
-        `draggable:false on ${touched} AgentIntent child node(s).`
+      `normalizeAgentIntentChildren: folded ${foldedIds.size} legacy ` +
+        `AgentIntent child node(s) onto their parent's inline data arrays.`
     )
   }
   return { ...model, nodes: normalizedNodes, edges: nextEdges }

@@ -43,11 +43,13 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(v4.version).toMatch(/^4\./)
     expect(v4.type).toBe("AgentDiagram")
 
-    // SA-FIX-Agent: AgentStateBody / AgentStateFallbackBody rows are
-    // folded onto the parent's `data.bodies` array, so the 14 v3
-    // element ids land as 11 v4 nodes (the 3 body/fallback rows are
-    // absorbed into their parent state).
-    expect(v4.nodes.length).toBe(11)
+    // SA-FIX-Agent + SA-FIX-INTENT-INLINE: body rows AND intent children
+    // (AgentIntentBody / AgentIntentDescription / AgentIntentObjectComponent)
+    // are folded onto their parent's inline data arrays. Of the 14
+    // v3 elements, 3 AgentState body/fallback rows are absorbed by their
+    // parent state and 5 AgentIntent child rows are absorbed by their
+    // parent intents — leaving 6 v4 nodes.
+    expect(v4.nodes.length).toBe(6)
 
     // AgentState — retains stereotype/replyType + inline bodies.
     const greet = v4.nodes.find((n) => n.id === "as-Greet")!
@@ -76,18 +78,23 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(v4.nodes.find((n) => n.id === "asfb-Greet-1")).toBeUndefined()
     expect(v4.nodes.find((n) => n.id === "asb-Help-1")).toBeUndefined()
 
-    // Intent + intent body + description.
+    // SA-FIX-INTENT-INLINE: AgentIntentBody / AgentIntentDescription rows
+    // are folded onto the parent intent's inline arrays. The v3 fixture
+    // has 2 training utterances for "Greeting" (aib-Greeting-1 /
+    // aib-Greeting-2) plus a description row (aid-Greeting-1).
     const greetIntent = v4.nodes.find((n) => n.id === "ai-Greeting")!
     expect(greetIntent.type).toBe("AgentIntent")
-    expect((greetIntent.data as AgentIntentNodeProps).intent_description).toBe(
-      "User says hello."
-    )
-    const intentBody = v4.nodes.find((n) => n.id === "aib-Greeting-1")!
-    expect(intentBody.type).toBe("AgentIntentBody")
-    expect(intentBody.parentId).toBe("ai-Greeting")
-    const intentDesc = v4.nodes.find((n) => n.id === "aid-Greeting-1")!
-    expect(intentDesc.type).toBe("AgentIntentDescription")
-    expect(intentDesc.parentId).toBe("ai-Greeting")
+    const greetIntentData = greetIntent.data as AgentIntentNodeProps
+    expect(greetIntentData.intent_description).toBe("User says hello.")
+    expect(greetIntentData.training_phrases?.length).toBe(2)
+    expect(greetIntentData.training_phrases?.[0].id).toBe("aib-Greeting-1")
+    expect(greetIntentData.training_phrases?.[0].name).toBe("hello")
+    expect(greetIntentData.training_phrases?.[1].id).toBe("aib-Greeting-2")
+    expect(greetIntentData.training_phrases?.[1].name).toBe("hi there")
+    // No leftover separate intent-child nodes.
+    expect(v4.nodes.find((n) => n.id === "aib-Greeting-1")).toBeUndefined()
+    expect(v4.nodes.find((n) => n.id === "aib-Greeting-2")).toBeUndefined()
+    expect(v4.nodes.find((n) => n.id === "aid-Greeting-1")).toBeUndefined()
 
     // RAG element — open question #5: BOTH names preserved verbatim
     // on `data` (migrator passthrough). SA-FIX-AGENT-OCL trimmed the
@@ -173,11 +180,6 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     const canonical = (m: typeof v4) => ({
       type: m.type,
       nodes: m.nodes
-        .filter(
-          (n) =>
-            n.type !== "AgentIntentDescription" &&
-            n.type !== "AgentIntentObjectComponent"
-        )
         .map((n) => ({
           id: n.id,
           type: n.type,
@@ -211,6 +213,33 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
               replyType: b.replyType ?? null,
               ragDatabaseName: b.ragDatabaseName ?? null,
               dbCustomName: b.dbCustomName ?? null,
+            }))
+            .sort((a, b) => a.id.localeCompare(b.id)),
+          // SA-FIX-INTENT-INLINE: inline training phrases + entity slots.
+          training_phrases: (
+            (n.data as {
+              training_phrases?: Array<{ id: string; name: string }>
+            }).training_phrases ?? []
+          )
+            .map((p) => ({ id: p.id, name: p.name ?? "" }))
+            .sort((a, b) => a.id.localeCompare(b.id)),
+          entity_slots: (
+            (n.data as {
+              entity_slots?: Array<{
+                id: string
+                name: string
+                entity?: string
+                slot?: string
+                value?: string
+              }>
+            }).entity_slots ?? []
+          )
+            .map((s) => ({
+              id: s.id,
+              name: s.name ?? "",
+              entity: s.entity ?? null,
+              slot: s.slot ?? null,
+              value: s.value ?? null,
             }))
             .sort((a, b) => a.id.localeCompare(b.id)),
         }))
@@ -675,7 +704,11 @@ describe("normalizeV4Model — template (v4.0.0) inputs with legacy shape", () =
     expect(bodies!.map((b) => b.id).sort()).toEqual(["body-1", "body-2"])
   })
 
-  it("forces extent:'parent' + draggable:false on AgentIntent children", () => {
+  it("folds AgentIntentBody children into the parent's data.training_phrases", () => {
+    // SA-FIX-INTENT-INLINE: legacy v4 templates carry AgentIntentBody
+    // children as separate React-Flow nodes via `parentId`. The
+    // normaliser folds them onto the parent intent's inline
+    // `training_phrases` array and removes the child nodes.
     const fixture = {
       id: "tpl",
       version: "4.0.0",
@@ -712,15 +745,107 @@ describe("normalizeV4Model — template (v4.0.0) inputs with legacy shape", () =
       edges: [],
     }
     const result = normalizeV4Model(fixture as never)
-    // All 3 nodes preserved; the 2 children now have extent + draggable set.
-    expect(result.nodes.length).toBe(3)
-    const children = result.nodes.filter((n) => n.type === "AgentIntentBody")
-    expect(children.length).toBe(2)
-    for (const c of children) {
-      expect((c as unknown as { extent?: string }).extent).toBe("parent")
-      expect((c as unknown as { draggable?: boolean }).draggable).toBe(false)
-      expect(c.parentId).toBe("intent-1")
+    // Only the parent intent survives — children are folded.
+    expect(result.nodes.length).toBe(1)
+    expect(result.nodes[0].id).toBe("intent-1")
+    expect(result.nodes[0].type).toBe("AgentIntent")
+    const intentData = result.nodes[0].data as AgentIntentNodeProps
+    expect(intentData.training_phrases?.length).toBe(2)
+    expect(intentData.training_phrases?.[0]).toEqual({ id: "ib-1", name: "Hi" })
+    expect(intentData.training_phrases?.[1]).toEqual({ id: "ib-2", name: "Hello" })
+  })
+
+  it("folds AgentIntentDescription onto data.intent_description and AgentIntentObjectComponent onto data.entity_slots", () => {
+    // SA-FIX-INTENT-INLINE: legacy v4 templates also need
+    // `AgentIntentDescription` (single description row) and
+    // `AgentIntentObjectComponent` (entity/slot mapping) folded.
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "Slot test",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "intent-1",
+          width: 230,
+          height: 130,
+          type: "AgentIntent",
+          position: { x: 0, y: 0 },
+          data: { name: "BookFlight" },
+        },
+        {
+          id: "desc-1",
+          width: 229,
+          height: 30,
+          type: "AgentIntentDescription",
+          parentId: "intent-1",
+          position: { x: 0.5, y: 40.5 },
+          data: { name: "Books a flight ticket" },
+        },
+        {
+          id: "slot-1",
+          width: 229,
+          height: 30,
+          type: "AgentIntentObjectComponent",
+          parentId: "intent-1",
+          position: { x: 0.5, y: 70.5 },
+          data: {
+            name: "origin",
+            entity: "city",
+            slot: "departure",
+            value: "Paris",
+          },
+        },
+      ],
+      edges: [],
     }
+    const result = normalizeV4Model(fixture as never)
+    expect(result.nodes.length).toBe(1)
+    const intentData = result.nodes[0].data as AgentIntentNodeProps
+    expect(intentData.intent_description).toBe("Books a flight ticket")
+    expect(intentData.entity_slots?.length).toBe(1)
+    expect(intentData.entity_slots?.[0]).toEqual({
+      id: "slot-1",
+      name: "origin",
+      entity: "city",
+      slot: "departure",
+      value: "Paris",
+    })
+  })
+
+  it("prefers an existing parent intent_description over a child AgentIntentDescription", () => {
+    // SA-FIX-INTENT-INLINE: parent's explicit `intent_description`
+    // wins over any legacy child row carrying its own text.
+    const fixture = {
+      id: "tpl",
+      version: "4.0.0",
+      title: "Description precedence",
+      type: "AgentDiagram",
+      nodes: [
+        {
+          id: "intent-1",
+          width: 230,
+          height: 130,
+          type: "AgentIntent",
+          position: { x: 0, y: 0 },
+          data: { name: "I1", intent_description: "Parent wins" },
+        },
+        {
+          id: "desc-1",
+          width: 229,
+          height: 30,
+          type: "AgentIntentDescription",
+          parentId: "intent-1",
+          position: { x: 0, y: 40 },
+          data: { name: "Child loses" },
+        },
+      ],
+      edges: [],
+    }
+    const result = normalizeV4Model(fixture as never)
+    expect(result.nodes.length).toBe(1)
+    const intentData = result.nodes[0].data as AgentIntentNodeProps
+    expect(intentData.intent_description).toBe("Parent wins")
   })
 
   it("drops AgentIntent children with no matching parent and prunes edges", () => {
@@ -827,17 +952,167 @@ describe("normalizeV4Model — template (v4.0.0) inputs with legacy shape", () =
       assessments: {},
     }
     const result = importDiagram(fixture as never)
-    // AgentStateBody folded onto data.bodies; remaining nodes: state +
-    // intent + intent-body.
-    expect(result.nodes.length).toBe(3)
+    // SA-FIX-INTENT-INLINE: AgentStateBody folds onto state.data.bodies,
+    // AgentIntentBody folds onto intent.data.training_phrases — leaving
+    // just the parent state and intent.
+    expect(result.nodes.length).toBe(2)
     const state = result.nodes.find((n) => n.id === "state-greet")!
     const stateBodies = (state.data as { bodies?: Array<{ id: string }> }).bodies
     expect(stateBodies?.length).toBe(1)
     expect(stateBodies?.[0].id).toBe("body-greet-1")
-    // AgentIntentBody retained as a child with extent + draggable.
-    const ib = result.nodes.find((n) => n.id === "intent-body-1")!
-    expect(ib.parentId).toBe("intent-greet")
-    expect((ib as unknown as { extent?: string }).extent).toBe("parent")
-    expect((ib as unknown as { draggable?: boolean }).draggable).toBe(false)
+    const intent = result.nodes.find((n) => n.id === "intent-greet")!
+    const intentData = intent.data as AgentIntentNodeProps
+    expect(intentData.training_phrases?.length).toBe(1)
+    expect(intentData.training_phrases?.[0].id).toBe("intent-body-1")
+    expect(intentData.training_phrases?.[0].name).toBe("Hi")
+  })
+
+  /**
+   * SA-FIX-INTENT-INLINE: v3 → v4 path
+   *
+   * A v3 AgentIntent with separate `AgentIntentBody` /
+   * `AgentIntentDescription` / `AgentIntentObjectComponent` children
+   * must end up as a single v4 AgentIntent node with inline arrays.
+   */
+  it("v3 AgentIntent with child rows migrates to v4 inline arrays", () => {
+    const v3Fixture = {
+      version: "3.0.0",
+      type: "AgentDiagram",
+      size: { width: 1000, height: 800 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        "ai-Book": {
+          id: "ai-Book",
+          name: "BookFlight",
+          type: "AgentIntent",
+          owner: null,
+          bounds: { x: 0, y: 0, width: 240, height: 120 },
+          intent_description: "User books a flight",
+          italic: false,
+          underline: false,
+          stereotype: null,
+        },
+        "aib-Book-1": {
+          id: "aib-Book-1",
+          name: "book a flight",
+          type: "AgentIntentBody",
+          owner: "ai-Book",
+          bounds: { x: 0, y: 40, width: 240, height: 30 },
+        },
+        "aib-Book-2": {
+          id: "aib-Book-2",
+          name: "I want to fly",
+          type: "AgentIntentBody",
+          owner: "ai-Book",
+          bounds: { x: 0, y: 70, width: 240, height: 30 },
+        },
+        "aioc-Book-1": {
+          id: "aioc-Book-1",
+          name: "origin",
+          type: "AgentIntentObjectComponent",
+          owner: "ai-Book",
+          bounds: { x: 0, y: 100, width: 240, height: 30 },
+          entity: "city",
+          slot: "departure",
+          value: "Paris",
+        },
+      },
+      relationships: {},
+      assessments: {},
+    }
+
+    const v4 = migrateAgentDiagramV3ToV4(v3Fixture as never)
+    expect(v4.nodes.length).toBe(1)
+    const intent = v4.nodes[0]
+    expect(intent.type).toBe("AgentIntent")
+    const data = intent.data as AgentIntentNodeProps
+    expect(data.intent_description).toBe("User books a flight")
+    expect(data.training_phrases?.length).toBe(2)
+    expect(data.training_phrases?.[0].id).toBe("aib-Book-1")
+    expect(data.training_phrases?.[0].name).toBe("book a flight")
+    expect(data.training_phrases?.[1].id).toBe("aib-Book-2")
+    expect(data.entity_slots?.length).toBe(1)
+    expect(data.entity_slots?.[0]).toEqual({
+      id: "aioc-Book-1",
+      name: "origin",
+      entity: "city",
+      slot: "departure",
+      value: "Paris",
+    })
+  })
+
+  /**
+   * SA-FIX-INTENT-INLINE: v4 round-trip
+   *
+   * A v4 AgentIntent built directly with inline arrays round-trips
+   * losslessly through v4 → v3 → v4 — child rows are re-emitted as v3
+   * `AgentIntentBody` / `AgentIntentObjectComponent` elements (their
+   * ids preserved) and folded back onto the parent's inline arrays.
+   */
+  it("v4 AgentIntent with inline arrays round-trips through v4 → v3 → v4", () => {
+    const v4 = {
+      version: "4.0.0" as const,
+      id: "rt",
+      title: "round trip",
+      type: "AgentDiagram" as const,
+      nodes: [
+        {
+          id: "intent-rt",
+          type: "AgentIntent",
+          position: { x: 0, y: 0 },
+          width: 240,
+          height: 200,
+          data: {
+            name: "BookFlight",
+            intent_description: "User books a flight",
+            training_phrases: [
+              { id: "phrase-1", name: "book a flight" },
+              { id: "phrase-2", name: "I want to fly" },
+            ],
+            entity_slots: [
+              {
+                id: "slot-1",
+                name: "origin",
+                entity: "city",
+                slot: "departure",
+                value: "Paris",
+              },
+            ],
+          },
+        },
+      ],
+      edges: [],
+      assessments: {},
+    }
+
+    const v3 = convertV4ToV3Agent(v4 as never)
+    expect(v3.elements["phrase-1"]).toBeDefined()
+    expect(v3.elements["phrase-1"].type).toBe("AgentIntentBody")
+    expect(v3.elements["phrase-1"].owner).toBe("intent-rt")
+    expect(v3.elements["phrase-1"].name).toBe("book a flight")
+    expect(v3.elements["phrase-2"]).toBeDefined()
+    expect(v3.elements["phrase-2"].type).toBe("AgentIntentBody")
+    expect(v3.elements["slot-1"]).toBeDefined()
+    expect(v3.elements["slot-1"].type).toBe("AgentIntentObjectComponent")
+    expect(v3.elements["slot-1"].owner).toBe("intent-rt")
+    expect(
+      (v3.elements["slot-1"] as { entity?: string }).entity
+    ).toBe("city")
+    expect((v3.elements["intent-rt"] as { intent_description?: string }).intent_description)
+      .toBe("User books a flight")
+
+    const v4Again = migrateAgentDiagramV3ToV4(v3 as never)
+    expect(v4Again.nodes.length).toBe(1)
+    const intentAgain = v4Again.nodes[0]
+    const dataAgain = intentAgain.data as AgentIntentNodeProps
+    expect(dataAgain.intent_description).toBe("User books a flight")
+    expect(dataAgain.training_phrases?.length).toBe(2)
+    expect(dataAgain.training_phrases?.map((p) => p.id).sort()).toEqual([
+      "phrase-1",
+      "phrase-2",
+    ])
+    expect(dataAgain.entity_slots?.length).toBe(1)
+    expect(dataAgain.entity_slots?.[0].id).toBe("slot-1")
+    expect(dataAgain.entity_slots?.[0].entity).toBe("city")
   })
 })

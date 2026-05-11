@@ -7,24 +7,30 @@ import {
 import React from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
-import { AgentIntentNodeProps } from "@/types"
+import {
+  AgentIntentEntitySlot,
+  AgentIntentNodeProps,
+  AgentIntentTrainingPhrase,
+} from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { DeleteIcon } from "@/components/Icon"
+import { generateUUID } from "@/utils"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
 
 /**
- * SA-UX-FIX-2 (B1) — consolidated parent-intent inspector.
+ * SA-FIX-INTENT-INLINE — inspector that edits the parent `AgentIntent`'s
+ * inline arrays (`training_phrases[]` / `entity_slots[]`) plus the
+ * single-string `intent_description`.
  *
- * v3 used to surface ALL intent fields (name + description + every
- * training phrase + every entity/slot mapping) in a single form opened
- * from the parent `AgentIntent`. SA-4 split each child onto its own
- * inspector, but users reported they could not "find" the description
- * or training phrases, because clicking the parent only exposed the
- * name. This panel restores the v3 one-stop form by walking the
- * `parentId` chain to enumerate the intent's children and editing them
- * in place. Children retain their own inspectors as well (SA-4 wiring
- * preserved) for direct-edit workflows.
+ * v3 originally surfaced every intent field on the parent form. SA-4
+ * split each child onto its own popover/node; users reported they could
+ * not find description / training phrases from the parent. SA-UX-FIX-2
+ * restored the one-stop form by walking the `parentId` chain over
+ * separate React-Flow child nodes. SA-FIX-INTENT-INLINE folds those
+ * children back onto the parent's `data` arrays so the inspector is now
+ * a straight read/write over the parent node — no more child-node
+ * traversal, no more `extent`/`draggable` housekeeping.
  */
 export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { nodes, setNodes } = useDiagramStore(
@@ -37,8 +43,10 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   if (!intent) return null
 
   const data = intent.data as AgentIntentNodeProps
+  const phrases = data.training_phrases ?? []
+  const slots = data.entity_slots ?? []
 
-  const update = (patch: Partial<AgentIntentNodeProps>) => {
+  const updateData = (patch: Partial<AgentIntentNodeProps>) => {
     setNodes((all) =>
       all.map((n) =>
         n.id === elementId ? { ...n, data: { ...n.data, ...patch } } : n
@@ -47,108 +55,61 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   const handleDataFieldUpdate = (key: string, value: string) => {
-    update({ [key]: value } as Partial<AgentIntentNodeProps>)
-  }
-
-  // Children of this intent (training phrases, description, slot bindings)
-  const trainingPhrases = nodes.filter(
-    (n) => n.parentId === elementId && n.type === "AgentIntentBody"
-  )
-  const descriptionNodes = nodes.filter(
-    (n) => n.parentId === elementId && n.type === "AgentIntentDescription"
-  )
-  const objectComponents = nodes.filter(
-    (n) => n.parentId === elementId && n.type === "AgentIntentObjectComponent"
-  )
-
-  // The v3 model held a single description per intent. Use the first one if
-  // present and mirror the value onto `data.intent_description` for the
-  // round-trip.
-  const descriptionNode = descriptionNodes[0] ?? null
-  const descriptionValue =
-    (descriptionNode?.data as { name?: string } | undefined)?.name ??
-    data.intent_description ??
-    ""
-
-  const setChildField = (
-    childId: string,
-    patch: Record<string, unknown>
-  ) => {
-    setNodes((all) =>
-      all.map((n) =>
-        n.id === childId ? { ...n, data: { ...n.data, ...patch } } : n
-      )
-    )
+    updateData({ [key]: value } as Partial<AgentIntentNodeProps>)
   }
 
   const setDescription = (value: string) => {
-    if (descriptionNode) {
-      setChildField(descriptionNode.id, { name: value })
-    }
-    // Always mirror onto the parent so the v3 wire shape is preserved.
-    update({ intent_description: value })
+    updateData({ intent_description: value })
   }
 
-  const setPhrase = (childId: string, value: string) => {
-    setChildField(childId, { name: value })
+  const setPhrase = (rowId: string, value: string) => {
+    updateData({
+      training_phrases: phrases.map((p) =>
+        p.id === rowId ? { ...p, name: value } : p
+      ),
+    })
   }
 
-  const removeChild = (childId: string) => {
-    setNodes((all) => all.filter((n) => n.id !== childId))
+  const removePhrase = (rowId: string) => {
+    updateData({
+      training_phrases: phrases.filter((p) => p.id !== rowId),
+    })
   }
 
   const addPhrase = () => {
-    // Stack a new AgentIntentBody under the intent. Position is computed by
-    // appending below the existing rows; layout normalisation runs on the
-    // next React-Flow render via the parent's auto-grow logic.
-    const lastY = Math.max(
-      0,
-      ...trainingPhrases.map((n) => (n.position?.y ?? 0) + (Number(n.height) || 30))
-    )
-    const newId = `${elementId}-phrase-${Date.now().toString(36)}`
-    const intentWidth = Math.max(120, Number(intent.width) || 200)
-    setNodes((all) => [
-      ...all,
-      {
-        id: newId,
-        type: "AgentIntentBody",
-        parentId: elementId,
-        position: { x: 0, y: Math.max(40, lastY + 4) },
-        width: intentWidth,
-        height: 30,
-        data: { name: "" },
-        // Match other body rows: extents constrained to the parent.
-        extent: "parent",
-        draggable: false,
-        selectable: true,
-      } as never,
-    ])
+    const next: AgentIntentTrainingPhrase = {
+      id: generateUUID(),
+      name: "",
+    }
+    updateData({ training_phrases: [...phrases, next] })
   }
 
-  const addObjectComponent = () => {
-    const newId = `${elementId}-slot-${Date.now().toString(36)}`
-    const intentWidth = Math.max(120, Number(intent.width) || 200)
-    const lastY = Math.max(
-      0,
-      ...objectComponents.map(
-        (n) => (n.position?.y ?? 0) + (Number(n.height) || 30)
-      )
-    )
-    setNodes((all) => [
-      ...all,
-      {
-        id: newId,
-        type: "AgentIntentObjectComponent",
-        parentId: elementId,
-        position: { x: 0, y: Math.max(40, lastY + 4) },
-        width: intentWidth,
-        height: 30,
-        data: { name: "", entity: "", slot: "", value: "" },
-        extent: "parent",
-        draggable: false,
-        selectable: true,
-      } as never,
-    ])
+  const setSlotField = (
+    rowId: string,
+    patch: Partial<AgentIntentEntitySlot>
+  ) => {
+    updateData({
+      entity_slots: slots.map((s) =>
+        s.id === rowId ? { ...s, ...patch } : s
+      ),
+    })
+  }
+
+  const removeSlot = (rowId: string) => {
+    updateData({
+      entity_slots: slots.filter((s) => s.id !== rowId),
+    })
+  }
+
+  const addSlot = () => {
+    const next: AgentIntentEntitySlot = {
+      id: generateUUID(),
+      name: "",
+      entity: "",
+      slot: "",
+      value: "",
+    }
+    updateData({ entity_slots: [...slots, next] })
   }
 
   return (
@@ -165,7 +126,7 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         fullWidth
         label="intent name"
         value={data.name ?? ""}
-        onChange={(e) => update({ name: e.target.value })}
+        onChange={(e) => updateData({ name: e.target.value })}
       />
 
       <DividerLine width="100%" />
@@ -176,7 +137,7 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         fullWidth
         multiline
         minRows={2}
-        value={descriptionValue}
+        value={data.intent_description ?? ""}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Description of what this intent represents"
       />
@@ -190,25 +151,25 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         <InspectorSectionHeader>training phrases</InspectorSectionHeader>
         <AddRowButton onClick={addPhrase} />
       </Stack>
-      {trainingPhrases.length === 0 ? (
+      {phrases.length === 0 ? (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
           no training phrases yet
         </Typography>
       ) : (
-        trainingPhrases.map((p) => (
+        phrases.map((p) => (
           <Stack key={p.id} direction="row" spacing={0.5} alignItems="center">
             <MuiTextField
               size="small"
               variant="outlined"
               fullWidth
-              value={(p.data as { name?: string }).name ?? ""}
+              value={p.name ?? ""}
               onChange={(e) => setPhrase(p.id, e.target.value)}
               placeholder="e.g. hello"
             />
             <IconButton
               size="small"
               aria-label="delete training phrase"
-              onClick={() => removeChild(p.id)}
+              onClick={() => removePhrase(p.id)}
             >
               <DeleteIcon />
             </IconButton>
@@ -223,77 +184,67 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         justifyContent="space-between"
       >
         <InspectorSectionHeader>entity slots</InspectorSectionHeader>
-        <AddRowButton onClick={addObjectComponent} />
+        <AddRowButton onClick={addSlot} />
       </Stack>
-      {objectComponents.length === 0 ? (
+      {slots.length === 0 ? (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
           no entity slots yet
         </Typography>
       ) : (
-        objectComponents.map((oc) => {
-          const ocData = oc.data as {
-            name?: string
-            entity?: string
-            slot?: string
-            value?: string
-          }
-          return (
-            <Stack key={oc.id} spacing={0.5} sx={{ mb: 0.5 }}>
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <MuiTextField
-                  size="small"
-                  variant="outlined"
-                  fullWidth
-                  label="name"
-                  value={ocData.name ?? ""}
-                  onChange={(e) =>
-                    setChildField(oc.id, { name: e.target.value })
-                  }
-                />
-                <IconButton
-                  size="small"
-                  aria-label="delete entity slot"
-                  onClick={() => removeChild(oc.id)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Stack>
-              <Stack direction="row" spacing={0.5}>
-                <MuiTextField
-                  size="small"
-                  variant="outlined"
-                  label="entity"
-                  value={ocData.entity ?? ""}
-                  onChange={(e) =>
-                    setChildField(oc.id, { entity: e.target.value })
-                  }
-                  sx={{ flex: 1 }}
-                />
-                <MuiTextField
-                  size="small"
-                  variant="outlined"
-                  label="slot"
-                  value={ocData.slot ?? ""}
-                  onChange={(e) =>
-                    setChildField(oc.id, { slot: e.target.value })
-                  }
-                  sx={{ flex: 1 }}
-                />
-              </Stack>
+        slots.map((s) => (
+          <Stack key={s.id} spacing={0.5} sx={{ mb: 0.5 }}>
+            <Stack direction="row" spacing={0.5} alignItems="center">
               <MuiTextField
                 size="small"
                 variant="outlined"
                 fullWidth
-                label="value"
-                value={ocData.value ?? ""}
+                label="name"
+                value={s.name ?? ""}
+                onChange={(e) => setSlotField(s.id, { name: e.target.value })}
+              />
+              <IconButton
+                size="small"
+                aria-label="delete entity slot"
+                onClick={() => removeSlot(s.id)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Stack>
+            <Stack direction="row" spacing={0.5}>
+              <MuiTextField
+                size="small"
+                variant="outlined"
+                label="entity"
+                value={s.entity ?? ""}
                 onChange={(e) =>
-                  setChildField(oc.id, { value: e.target.value })
+                  setSlotField(s.id, { entity: e.target.value })
                 }
-                placeholder="optional fixed value"
+                sx={{ flex: 1 }}
+              />
+              <MuiTextField
+                size="small"
+                variant="outlined"
+                label="slot"
+                value={s.slot ?? ""}
+                onChange={(e) =>
+                  setSlotField(s.id, { slot: e.target.value })
+                }
+                sx={{ flex: 1 }}
               />
             </Stack>
-          )
-        })
+            <MuiTextField
+              size="small"
+              variant="outlined"
+              fullWidth
+              label="value"
+              value={s.value ?? ""}
+              onChange={(e) =>
+                setSlotField(s.id, { value: e.target.value })
+              }
+              placeholder="optional fixed value"
+            />
+          </Stack>
+        ))
       )}
     </Box>
   )

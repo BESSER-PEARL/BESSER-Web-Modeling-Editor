@@ -430,36 +430,78 @@ export type AgentStateNodeProps = StateNodeProps & {
 }
 
 /**
- * `AgentIntent` parent node. Children: `AgentIntentBody` (training utterance
- * row), `AgentIntentDescription` (single description row),
- * `AgentIntentObjectComponent` (entity/slot mapping). All nested via
- * `parentId`.
+ * SA-FIX-INTENT-INLINE training-phrase row attached to
+ * `AgentIntent.data.training_phrases`. Mirrors the v3 `AgentIntentBody`
+ * element shape — one user utterance per row. Folded inline like
+ * `ClassNodeElement` rows so the editor renders them as SVG rows on the
+ * parent intent.
+ */
+export type AgentIntentTrainingPhrase = {
+  /** Stable id (re-emitted as the v3 element id on export). */
+  id: string
+  /** Display label / utterance text. */
+  name: string
+}
+
+/**
+ * SA-FIX-INTENT-INLINE entity-slot row attached to
+ * `AgentIntent.data.entity_slots`. Mirrors v3 `AgentIntentObjectComponent`:
+ * a (name, entity, slot, value) tuple.
+ */
+export type AgentIntentEntitySlot = {
+  /** Stable id (re-emitted as the v3 element id on export). */
+  id: string
+  /** Row label / slot identifier (display name). */
+  name: string
+  /** Entity name attached to this slot. */
+  entity?: string
+  /** Slot name (entity binding). */
+  slot?: string
+  /** Optional value — fixed value the agent expects. */
+  value?: string
+}
+
+/**
+ * `AgentIntent` parent node. SA-FIX-INTENT-INLINE folds the v3
+ * `AgentIntentBody` / `AgentIntentDescription` / `AgentIntentObjectComponent`
+ * children into inline data arrays on this node: `training_phrases[]`,
+ * `entity_slots[]`, and the existing `intent_description` string. The
+ * editor renders these as SVG rows inside the intent rectangle, matching
+ * how `Class` renders `data.attributes[]` and `AgentState` renders
+ * `data.bodies[]`. Children are no longer separate React-Flow nodes.
  */
 export type AgentIntentNodeProps = DefaultNodeProps & {
-  /** Free-text description rendered in the description row. */
+  /** Free-text description rendered as the first row under the header. */
   intent_description?: string
+  /** Inline training-utterance rows (was `AgentIntentBody` child nodes). */
+  training_phrases?: AgentIntentTrainingPhrase[]
+  /** Inline entity-slot rows (was `AgentIntentObjectComponent` child nodes). */
+  entity_slots?: AgentIntentEntitySlot[]
   stereotype?: string | null
   italic?: boolean
   underline?: boolean
 }
 
 /**
- * `AgentIntentBody` — one training utterance row.
+ * Legacy `AgentIntentBody` shape — one training utterance row. Kept as
+ * a typed alias so older fixtures and the v3 → v4 inverse converter can
+ * still reference it; SA-FIX-INTENT-INLINE folds this row onto the
+ * parent intent's `data.training_phrases` on import so React Flow no
+ * longer sees a separate node for it.
  */
 export type AgentIntentBodyNodeProps = DefaultNodeProps
 
 /**
- * `AgentIntentDescription` — single description block under the intent
- * header. Stores its description on `data.name` for symmetry with the
- * other intent body rows; the parent intent's `intent_description`
- * mirrors this value during round-trip.
+ * Legacy `AgentIntentDescription` shape — single description block under
+ * the intent header. SA-FIX-INTENT-INLINE folds the value onto the
+ * parent intent's `data.intent_description` on import.
  */
 export type AgentIntentDescriptionNodeProps = DefaultNodeProps
 
 /**
- * `AgentIntentObjectComponent` — entity / slot mapping row. Carries
- * the entity reference and slot config as plain strings; the inspector
- * exposes them as form fields.
+ * Legacy `AgentIntentObjectComponent` shape — entity / slot mapping
+ * row. SA-FIX-INTENT-INLINE folds the row onto the parent intent's
+ * `data.entity_slots` on import.
  */
 export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
   /** Entity name attached to this slot. */
