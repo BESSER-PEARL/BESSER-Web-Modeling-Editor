@@ -159,7 +159,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
 
   // Local UI state
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  // The sidebar starts collapsed (giving the canvas more space). The toggle button
+  // pins it open; otherwise hovering over it temporarily expands it as an overlay.
+  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const isSidebarExpanded = isSidebarPinned || isSidebarHovered;
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
@@ -323,9 +327,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     ? 'border-border bg-card text-foreground hover:bg-accent hover:border-border'
     : 'border-border/60 bg-card hover:border-brand/25 hover:bg-brand/[0.03]';
   const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
+  // Desktop sidebar is absolutely positioned within its layout-reserving wrapper so
+  // it can grow on hover without pushing the canvas. A shadow appears when it
+  // overlays (hovered but not pinned) to visually separate it from the canvas.
+  const isSidebarOverlaying = isSidebarHovered && !isSidebarPinned;
   const sidebarBaseClass = isDarkTheme
-    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5'
-    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5';
+    ? `hidden absolute inset-y-0 left-0 z-20 border-r border-border/70 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5 ${isSidebarOverlaying ? 'shadow-xl' : ''}`
+    : `hidden absolute inset-y-0 left-0 z-20 border-r border-border/50 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5 ${isSidebarOverlaying ? 'shadow-xl' : ''}`;
   const sidebarTitleClass = 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground';
   const sidebarDividerClass = 'my-2 border-t border-border/60';
   const sidebarToggleClass = isDarkTheme
@@ -823,29 +831,36 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       </div>
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        <WorkspaceSidebar
-          isDarkTheme={isDarkTheme}
-          isSidebarExpanded={isSidebarExpanded}
-          sidebarBaseClass={sidebarBaseClass}
-          sidebarTitleClass={sidebarTitleClass}
-          sidebarDividerClass={sidebarDividerClass}
-          sidebarToggleClass={sidebarToggleClass}
-          sidebarToggleTextClass={sidebarToggleTextClass}
-          locationPath={location.pathname}
-          activeUmlType={activeUmlType}
-          activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-          project={currentProject}
-          onSwitchUml={(type) => {
-            void handleSwitchUml(type);
-          }}
-          onSwitchDiagramType={(type) => {
-            void handleSwitchDiagramType(type);
-          }}
-          onNavigate={(path) => {
-            void handleSafeNavigate(path);
-          }}
-          onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
-        />
+        <div
+          className={`relative hidden shrink-0 transition-[width] duration-200 md:block ${isSidebarPinned ? 'w-48' : 'w-[72px]'}`}
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
+        >
+          <WorkspaceSidebar
+            isDarkTheme={isDarkTheme}
+            isSidebarExpanded={isSidebarExpanded}
+            isSidebarPinned={isSidebarPinned}
+            sidebarBaseClass={sidebarBaseClass}
+            sidebarTitleClass={sidebarTitleClass}
+            sidebarDividerClass={sidebarDividerClass}
+            sidebarToggleClass={sidebarToggleClass}
+            sidebarToggleTextClass={sidebarToggleTextClass}
+            locationPath={location.pathname}
+            activeUmlType={activeUmlType}
+            activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
+            project={currentProject}
+            onSwitchUml={(type) => {
+              void handleSwitchUml(type);
+            }}
+            onSwitchDiagramType={(type) => {
+              void handleSwitchDiagramType(type);
+            }}
+            onNavigate={(path) => {
+              void handleSafeNavigate(path);
+            }}
+            onToggleExpanded={() => setIsSidebarPinned((previous) => !previous)}
+          />
+        </div>
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
           <HiddenPerspectivesBanner />
