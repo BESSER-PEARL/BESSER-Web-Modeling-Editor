@@ -378,6 +378,46 @@ function makeAssocEdge(el: Element, source: string, target: string, flowType: An
   } as unknown as AnyBPMNFlow;
 }
 
+// ─── DI walk ────────────────────────────────────────────────────────────────
+
+interface DiMaps {
+  bounds: Map<string, AbsoluteBounds>;
+  waypoints: Map<string, Array<{ x: number; y: number }>>;
+}
+
+function parseDiagramInterchange(root: Element): DiMaps {
+  const out: DiMaps = { bounds: new Map(), waypoints: new Map() };
+
+  // BPMN 2.0.2 § 12 (p. 367): every BPMN element gets a BPMNShape or BPMNEdge in
+  // the BPMNPlane. Multi-plane files (subprocess drill-down) are rare; for
+  // round-trip with our exporter we only need the primary plane.
+  for (const diag of childrenByLocalName(root, 'BPMNDiagram')) {
+    for (const plane of childrenByLocalName(diag, 'BPMNPlane')) {
+      for (const shape of childrenByLocalName(plane, 'BPMNShape')) {
+        const ref = shape.getAttribute('bpmnElement') ?? '';
+        const b = childByLocalName(shape, 'Bounds');
+        if (!ref || !b) continue;
+        out.bounds.set(ref, {
+          x: parseFloat(b.getAttribute('x') ?? '0'),
+          y: parseFloat(b.getAttribute('y') ?? '0'),
+          width: parseFloat(b.getAttribute('width') ?? '0'),
+          height: parseFloat(b.getAttribute('height') ?? '0'),
+        });
+      }
+      for (const edge of childrenByLocalName(plane, 'BPMNEdge')) {
+        const ref = edge.getAttribute('bpmnElement') ?? '';
+        if (!ref) continue;
+        const pts = childrenByLocalName(edge, 'waypoint').map((w) => ({
+          x: parseFloat(w.getAttribute('x') ?? '0'),
+          y: parseFloat(w.getAttribute('y') ?? '0'),
+        }));
+        if (pts.length >= 2) out.waypoints.set(ref, pts);
+      }
+    }
+  }
+  return out;
+}
+
 // ─── Top-level entry point (filled in Step 5) ───────────────────────────────
 
 export function bpmnXmlToApollon(xml: string): ImportResult {
