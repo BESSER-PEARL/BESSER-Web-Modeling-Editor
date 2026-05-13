@@ -171,8 +171,9 @@ export const useImportDiagramToProject = () => {
           message: `${diagramType} diagram imported successfully and added to project "${currentProject.name}". This diagram has been converted from ${fileType} format to the new project format.`,
         };
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during import';
-        dispatch(displayError('Import failed', `Could not import diagram: ${errorMessage}`));
+        // Don't dispatch displayError here — the caller (WorkspaceShell handler)
+        // surfaces the error via react-toastify, and a duplicate persistent
+        // banner from errorManagementSlice would be uniformity drift.
         throw error;
       }
     },

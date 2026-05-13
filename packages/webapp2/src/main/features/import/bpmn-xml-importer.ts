@@ -509,13 +509,14 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
 
   const dom = new DOMParser().parseFromString(xml, 'application/xml');
 
-  // DOMParser embeds <parsererror> on bad XML.
+  // DOMParser embeds <parsererror> on bad XML. We deliberately drop the parser's
+  // verbose, locale-dependent error text and surface a concise message instead.
   const errEl = dom.getElementsByTagName('parsererror')[0];
-  if (errEl) throw new Error(`Failed to parse BPMN XML: ${errEl.textContent?.trim() ?? 'malformed XML'}`);
+  if (errEl) throw new Error('Not a valid XML file');
 
   const root = dom.documentElement;
   if (!root || root.localName !== 'definitions') {
-    throw new Error('Not a BPMN 2.0 document (missing <bpmn:definitions> root)');
+    throw new Error('Not a BPMN 2.0 document');
   }
 
   const ctx: SemanticContext = { warnings: [], skipped: [], nodes: [], edges: [], defaultFlowByOwner: new Map() };
