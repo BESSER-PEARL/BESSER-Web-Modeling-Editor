@@ -10,7 +10,10 @@ import { updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram } 
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
+import {
+  useImportDiagramToProjectWorkflow,
+  useImportBpmnDiagramToProjectWorkflow,
+} from '../../features/import/useImportDiagram';
 import { buildExportableProjectPayload } from '../../features/export/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
@@ -41,7 +44,9 @@ const GitHubSidebar = React.lazy(() =>
   import('../../features/github/components/GitHubSidebar').then((m) => ({ default: m.GitHubSidebar })),
 );
 const AssistantWorkspaceDrawer = React.lazy(() =>
-  import('../../features/assistant/components/AssistantWorkspaceDrawer').then((m) => ({ default: m.AssistantWorkspaceDrawer })),
+  import('../../features/assistant/components/AssistantWorkspaceDrawer').then((m) => ({
+    default: m.AssistantWorkspaceDrawer,
+  })),
 );
 const FeedbackDialog = React.lazy(() =>
   import('../../shared/dialogs/FeedbackDialog').then((m) => ({ default: m.FeedbackDialog })),
@@ -53,7 +58,11 @@ const HelpGuideDialog = React.lazy(() =>
 // KeyboardShortcutsDialog is imported statically alongside the hook to avoid Vite's
 // mixed static/dynamic import warning (the module is already in this chunk).
 import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../shared/dialogs/KeyboardShortcutsDialog';
-import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
+import {
+  CommandPalette,
+  useCommandPaletteShortcut,
+  buildDefaultActions,
+} from '../../shared/components/command-palette/CommandPalette';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -67,7 +76,14 @@ const sanitizeRepoName = (name: string): string => {
 };
 
 interface OnboardingHook {
-  checklist: { createdClass: boolean; addedAttribute: boolean; createdRelationship: boolean; generatedCode: boolean; exploredTemplates: boolean; triedQualityCheck: boolean };
+  checklist: {
+    createdClass: boolean;
+    addedAttribute: boolean;
+    createdRelationship: boolean;
+    generatedCode: boolean;
+    exploredTemplates: boolean;
+    triedQualityCheck: boolean;
+  };
   checklistDismissed: boolean;
   checklistCompleted: number;
   checklistTotal: number;
@@ -119,6 +135,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     isLoading: githubLoading,
   } = useGitHubAuth();
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
+  const importBpmnDiagramToProject = useImportBpmnDiagramToProjectWorkflow();
 
   // Local UI state
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -134,17 +151,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     () => toUMLDiagramType(currentDiagramType) ?? UMLDiagramType.ClassDiagram,
     [currentDiagramType],
   );
-  const { isDeploymentAvailable } = getWorkspaceContext(
-    location.pathname,
-    currentProject?.currentDiagramType,
-  );
+  const { isDeploymentAvailable } = getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
 
   // Extracted hooks
-  const {
-    hasStarred,
-    starLoading,
-    handleToggleStar,
-  } = useGitHubStar({ isAuthenticated, githubSession });
+  const { hasStarred, starLoading, handleToggleStar } = useGitHubStar({ isAuthenticated, githubSession });
 
   const {
     isDeployDialogOpen,
@@ -311,43 +321,66 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isMobileDrawerOpen]);
 
-  const handleNavigate = useCallback((path: string) => {
-    navigate(path);
-  }, [navigate]);
+  const handleNavigate = useCallback(
+    (path: string) => {
+      navigate(path);
+    },
+    [navigate],
+  );
 
-  const handleSwitchDiagramType = useCallback((type: SupportedDiagramType) => {
-    if (location.pathname !== '/') {
-      navigate('/');
-    }
-    dispatch(switchDiagramTypeThunk({ diagramType: type }));
-  }, [location.pathname, navigate, dispatch]);
+  const handleSwitchDiagramType = useCallback(
+    (type: SupportedDiagramType) => {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+      dispatch(switchDiagramTypeThunk({ diagramType: type }));
+    },
+    [location.pathname, navigate, dispatch],
+  );
 
-  const handleSwitchUml = useCallback((type: UMLDiagramType) => {
-    if (location.pathname !== '/') {
-      navigate('/');
-    }
-    // Don't skip the switch when the active UML type already matches AND we're on /
-    if (location.pathname === '/' && activeUmlType === type && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram') {
-      return;
-    }
-    switchDiagramType(type);
-  }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType]);
+  const handleSwitchUml = useCallback(
+    (type: UMLDiagramType) => {
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+      // Don't skip the switch when the active UML type already matches AND we're on /
+      if (
+        location.pathname === '/' &&
+        activeUmlType === type &&
+        currentDiagramType !== 'GUINoCodeDiagram' &&
+        currentDiagramType !== 'QuantumCircuitDiagram'
+      ) {
+        return;
+      }
+      switchDiagramType(type);
+    },
+    [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType],
+  );
 
   // Wrappers that close mobile drawer after navigating
-  const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
-    handleSwitchUml(type);
-    setIsMobileDrawerOpen(false);
-  }, [handleSwitchUml]);
+  const handleMobileSwitchUml = useCallback(
+    (type: UMLDiagramType) => {
+      handleSwitchUml(type);
+      setIsMobileDrawerOpen(false);
+    },
+    [handleSwitchUml],
+  );
 
-  const handleMobileSwitchDiagramType = useCallback((type: SupportedDiagramType) => {
-    handleSwitchDiagramType(type);
-    setIsMobileDrawerOpen(false);
-  }, [handleSwitchDiagramType]);
+  const handleMobileSwitchDiagramType = useCallback(
+    (type: SupportedDiagramType) => {
+      handleSwitchDiagramType(type);
+      setIsMobileDrawerOpen(false);
+    },
+    [handleSwitchDiagramType],
+  );
 
-  const handleMobileNavigate = useCallback((path: string) => {
-    handleNavigate(path);
-    setIsMobileDrawerOpen(false);
-  }, [handleNavigate]);
+  const handleMobileNavigate = useCallback(
+    (path: string) => {
+      handleNavigate(path);
+      setIsMobileDrawerOpen(false);
+    },
+    [handleNavigate],
+  );
 
   const handleAssistantSwitchDiagram = async (diagramType: string): Promise<boolean> => {
     // Navigate to editor view if on a different page
@@ -422,6 +455,24 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
   };
 
+  const handleImportBpmnDiagram = async () => {
+    if (!currentProject) {
+      toast.error('Create or load a project first.');
+      return;
+    }
+
+    try {
+      const result = await importBpmnDiagramToProject();
+      toast.success(result.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (message.toLowerCase().includes('cancel')) {
+        return;
+      }
+      toast.error(`Import failed: ${message}`);
+    }
+  };
+
   // Command palette actions
   const commandPaletteActions = useMemo(
     () =>
@@ -461,6 +512,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenTemplateDialog={onOpenTemplateDialog}
         onExportProject={onExportProject}
         onImportSingleDiagram={handleImportSingleDiagram}
+        onImportBpmnDiagram={handleImportBpmnDiagram}
         onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
         onOpenProjectPreview={handleOpenProjectPreview}
@@ -505,11 +557,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }`}
       >
         {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={closeMobileDrawer}
-          aria-hidden="true"
-        />
+        <div className="absolute inset-0 bg-black/50" onClick={closeMobileDrawer} aria-hidden="true" />
         {/* Drawer panel */}
         <div
           className={`relative h-full w-64 shadow-xl overflow-y-auto transition-transform duration-300 ${
@@ -517,8 +565,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           } bg-background`}
         >
           {/* Close button inside drawer */}
-          <div className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}>
-            <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>Navigation</span>
+          <div
+            className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}
+          >
+            <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>
+              Navigation
+            </span>
             <button
               type="button"
               className="p-1 rounded text-muted-foreground hover:bg-muted"
@@ -620,7 +672,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }}
         onApiKeyChange={setAssistantApiKey}
         onFileChange={handleAssistantFileChange}
-        onImport={() => { handleAssistantImport().catch(console.error); }}
+        onImport={() => {
+          handleAssistantImport().catch(console.error);
+        }}
       />
 
       <JsonViewerModal
@@ -635,7 +689,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         bumlLabel={currentProject?.name ? `Project B-UML Preview (${currentProject.name})` : 'Project B-UML Preview'}
         isBumlLoading={isProjectBumlPreviewLoading}
         bumlError={projectBumlPreviewError}
-        onRequestBuml={() => { handleRequestProjectBumlPreview().catch(console.error); }}
+        onRequestBuml={() => {
+          handleRequestProjectBumlPreview().catch(console.error);
+        }}
         onCopyBuml={handleCopyProjectBumlPreview}
         onDownloadBuml={handleDownloadProjectBumlPreview}
       />
@@ -665,7 +721,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onRepoPrivateChange={setGithubRepoPrivate}
         onCommitMessageChange={setCommitMessage}
         onCreateNewInstead={handleCreateNewInstead}
-        onPublish={() => { handlePublishToRender().catch(console.error); }}
+        onPublish={() => {
+          handlePublishToRender().catch(console.error);
+        }}
       />
 
       <DeployResultDialog

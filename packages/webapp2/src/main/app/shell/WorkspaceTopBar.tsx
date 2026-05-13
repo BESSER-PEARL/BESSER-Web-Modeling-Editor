@@ -29,6 +29,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenTemplateDialog,
   onExportProject,
   onImportSingleDiagram,
+  onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onOpenProjectPreview,
@@ -92,10 +93,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}
+            activeDiagramType={activeDiagramType}
             onOpenProjectHub={onOpenProjectHub}
             onOpenTemplateDialog={onOpenTemplateDialog}
             onExportProject={onExportProject}
             onImportSingleDiagram={onImportSingleDiagram}
+            onImportBpmnDiagram={onImportBpmnDiagram}
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
             onOpenProjectPreview={onOpenProjectPreview}
@@ -115,10 +118,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogin={onGitHubLogin}
             onOpenDeployDialog={onOpenDeployDialog}
           />
-          <CommunityMenu
-            outlineButtonClass={outlineButtonClass}
-            onOpenFeedback={onOpenFeedback}
-          />
+          <CommunityMenu outlineButtonClass={outlineButtonClass} onOpenFeedback={onOpenFeedback} />
           <HelpMenu
             outlineButtonClass={outlineButtonClass}
             onOpenHelpDialog={onOpenHelpDialog}

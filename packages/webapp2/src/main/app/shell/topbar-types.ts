@@ -21,6 +21,7 @@ export interface WorkspaceTopBarProps {
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onImportSingleDiagram: () => void;
+  onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onOpenProjectPreview: () => void;

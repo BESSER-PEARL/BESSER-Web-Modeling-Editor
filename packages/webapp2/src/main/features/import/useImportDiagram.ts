@@ -228,3 +228,46 @@ export const useImportDiagramToProjectWorkflow = () => {
 
   return handleImportDiagramToProject;
 };
+
+// File picker restricted to BPMN 2.0 XML files.
+export function selectBpmnXmlFileForProject(): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.bpmn,.xml';
+    input.multiple = false;
+
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        resolve(file);
+      } else {
+        reject(new Error('No file selected'));
+      }
+    };
+
+    input.oncancel = () => {
+      reject(new Error('File selection cancelled'));
+    };
+
+    input.click();
+  });
+}
+
+// Workflow scoped to BPMN diagrams: pick a .bpmn / .xml file and add it to the current project.
+export const useImportBpmnDiagramToProjectWorkflow = () => {
+  const importDiagramToProject = useImportDiagramToProject();
+
+  const handleImportBpmnDiagram = useCallback(async () => {
+    try {
+      const file = await selectBpmnXmlFileForProject();
+      const result = await importDiagramToProject(file);
+      return result;
+    } catch (error) {
+      console.error('Failed to import BPMN diagram to project:', error);
+      throw error;
+    }
+  }, [importDiagramToProject]);
+
+  return handleImportBpmnDiagram;
+};
