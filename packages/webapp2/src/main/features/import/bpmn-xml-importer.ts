@@ -420,6 +420,15 @@ function parseDiagramInterchange(root: Element): DiMaps {
 
 // ─── Coordinate transform (§4 of the guide) ─────────────────────────────────
 
+// BPMNPool renders a 40-px rotated lane-name column on the left of every lane.
+// Apollon stores children of a lane with x measured AFTER this header (i.e.,
+// relative to `lane.canvas.x + POOL_HEADER_WIDTH`, not the lane's own origin).
+// And it stores child.y as `abs.y - pool.y - lane.y_in_pool` — effectively
+// double-subtracting the lane's y-offset. Both quirks confirmed against the
+// editor's live Redux store on 2026-05-13 — see commit message.
+// Must match `BPMNPool.HEADER_WIDTH` in packages/editor/.../bpmn-pool.ts.
+const POOL_HEADER_WIDTH = 40;
+
 function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: ParseWarning[]): void {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const abs = di.bounds;
@@ -453,8 +462,6 @@ function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: Parse
     if (!n.owner) continue;
     const parent = byId.get(n.owner);
     if (!parent) continue;
-    // parent.bounds is still absolute here for ancestors processed before children,
-    // because we localize in two passes (see below). Use the recorded absolute, not the mutated value.
     const parentAbs = abs.get(parent.id);
     if (!parentAbs) continue;
     n.bounds = {
@@ -463,6 +470,13 @@ function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: Parse
       width: n.bounds.width,
       height: n.bounds.height,
     };
+    // Apollon's BPMN storage convention for lane-children differs from plain parent-local:
+    // the rotated lane-name column eats POOL_HEADER_WIDTH on x, and y is double-shifted
+    // by the lane's y_in_pool (parent.bounds.y is already local at this point in the loop).
+    if (parent.type === 'BPMNSwimlane') {
+      n.bounds.x -= POOL_HEADER_WIDTH;
+      n.bounds.y -= parent.bounds.y;
+    }
   }
 }
 
