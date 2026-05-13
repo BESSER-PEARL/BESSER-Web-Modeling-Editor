@@ -497,6 +497,14 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
   applyBoundsToNodes(ctx.nodes, di, ctx.warnings);
   applyBoundsToEdges(ctx.edges, di, ctx.warnings);
 
+  // Shift the whole diagram so its bounding-box center sits near the canvas origin.
+  // BPMN DI bounds are absolute, so files authored by other tools often place
+  // content far from (0, 0). Apollon's canvas viewport opens around the origin
+  // and doesn't auto-fit-to-content, so without this shift imported diagrams can
+  // land off-screen (e.g., bottom-right). Interactively-created diagrams sit
+  // near the origin already, so this matches that convention.
+  centerOnOrigin(ctx.nodes, ctx.edges);
+
   // Resolve default flows (BPMN 2.0.2 § 8.3.13, spec-strict source check from 04A1).
   const elementById = new Map(ctx.nodes.map((n) => [n.id, n]));
   for (const [sourceId, flowId] of ctx.defaultFlowByOwner.entries()) {
@@ -547,6 +555,31 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
   };
 
   return { model, warnings: ctx.warnings, skipped: ctx.skipped };
+}
+
+function centerOnOrigin(nodes: AnyBPMNElement[], edges: AnyBPMNFlow[]): void {
+  if (nodes.length === 0) return;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  for (const n of nodes) {
+    minX = Math.min(minX, n.bounds.x);
+    minY = Math.min(minY, n.bounds.y);
+    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
+    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
+  }
+  const dx = -Math.round((minX + maxX) / 2);
+  const dy = -Math.round((minY + maxY) / 2);
+  if (dx === 0 && dy === 0) return;
+  for (const n of nodes) {
+    n.bounds = { x: n.bounds.x + dx, y: n.bounds.y + dy, width: n.bounds.width, height: n.bounds.height };
+  }
+  for (const e of edges) {
+    // Edge waypoints are stored relative to e.bounds, so shifting only e.bounds
+    // moves the whole edge with its node endpoints.
+    e.bounds = { x: e.bounds.x + dx, y: e.bounds.y + dy, width: e.bounds.width, height: e.bounds.height };
+  }
 }
 
 function computeCanvasSize(topLevel: AnyBPMNElement[], edges: AnyBPMNFlow[]): { width: number; height: number } {
