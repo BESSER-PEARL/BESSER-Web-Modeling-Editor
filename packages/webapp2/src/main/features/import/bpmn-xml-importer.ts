@@ -418,6 +418,90 @@ function parseDiagramInterchange(root: Element): DiMaps {
   return out;
 }
 
+// ─── Coordinate transform (§4 of the guide) ─────────────────────────────────
+
+function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: ParseWarning[]): void {
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const abs = di.bounds;
+
+  // Apply absolute first (defensive: a node not in DI gets zeroed bounds; we
+  // grid-layout them below if any are missing).
+  for (const n of nodes) {
+    const b = abs.get(n.id);
+    if (b) n.bounds = { x: b.x, y: b.y, width: b.width, height: b.height };
+  }
+
+  // Fallback grid layout for nodes without DI (I2).
+  const missing = nodes.filter((n) => !abs.get(n.id));
+  if (missing.length > 0) {
+    warnings.push({ code: 'di-missing', message: `${missing.length} element(s) had no BPMN DI shape; auto-laid-out` });
+    let col = 0,
+      row = 0;
+    for (const n of missing) {
+      n.bounds = { x: 80 + col * 200, y: 60 + row * 120, width: 120, height: 60 };
+      col += 1;
+      if (col === 6) {
+        col = 0;
+        row += 1;
+      }
+    }
+  }
+
+  // Subtract parent absolute bounds (topological order: pools → lanes → flow nodes / subprocess children).
+  const ordered = topologicalOwnerOrder(nodes);
+  for (const n of ordered) {
+    if (!n.owner) continue;
+    const parent = byId.get(n.owner);
+    if (!parent) continue;
+    // parent.bounds is still absolute here for ancestors processed before children,
+    // because we localize in two passes (see below). Use the recorded absolute, not the mutated value.
+    const parentAbs = abs.get(parent.id);
+    if (!parentAbs) continue;
+    n.bounds = {
+      x: n.bounds.x - parentAbs.x,
+      y: n.bounds.y - parentAbs.y,
+      width: n.bounds.width,
+      height: n.bounds.height,
+    };
+  }
+}
+
+function topologicalOwnerOrder(nodes: AnyBPMNElement[]): AnyBPMNElement[] {
+  // Stable: pools (no owner) → lanes (owner = pool) → flow nodes / data / artifacts.
+  // We sort by a depth derived from the owner chain.
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const depthOf = (n: AnyBPMNElement): number => {
+    let d = 0;
+    let cur: AnyBPMNElement | undefined = n;
+    const seen = new Set<string>();
+    while (cur?.owner && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      cur = byId.get(cur.owner);
+      d += 1;
+    }
+    return d;
+  };
+  return [...nodes].sort((a, b) => depthOf(a) - depthOf(b));
+}
+
+function applyBoundsToEdges(edges: AnyBPMNFlow[], di: DiMaps, warnings: ParseWarning[]): void {
+  for (const e of edges) {
+    const pts = di.waypoints.get(e.id);
+    if (!pts || pts.length < 2) {
+      warnings.push({ code: 'edge-di-missing', message: `Edge ${e.id} has no waypoints; using zero-length path` });
+      continue;
+    }
+    const xs = pts.map((p) => p.x),
+      ys = pts.map((p) => p.y);
+    const x = Math.min(...xs),
+      y = Math.min(...ys);
+    const width = Math.max(...xs) - x,
+      height = Math.max(...ys) - y;
+    e.bounds = { x, y, width, height };
+    e.path = pts.map((p) => ({ x: p.x - x, y: p.y - y })) as any;
+  }
+}
+
 // ─── Top-level entry point (filled in Step 5) ───────────────────────────────
 
 export function bpmnXmlToApollon(xml: string): ImportResult {
