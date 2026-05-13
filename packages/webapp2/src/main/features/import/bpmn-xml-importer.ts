@@ -502,8 +502,93 @@ function applyBoundsToEdges(edges: AnyBPMNFlow[], di: DiMaps, warnings: ParseWar
   }
 }
 
-// ─── Top-level entry point (filled in Step 5) ───────────────────────────────
+// ─── Top-level entry point ──────────────────────────────────────────────────
 
 export function bpmnXmlToApollon(xml: string): ImportResult {
-  throw new Error('not implemented — see Step 5');
+  if (!xml || !xml.trim()) {
+    throw new Error('Empty BPMN file');
+  }
+
+  const dom = new DOMParser().parseFromString(xml, 'application/xml');
+
+  // DOMParser embeds <parsererror> on bad XML.
+  const errEl = dom.getElementsByTagName('parsererror')[0];
+  if (errEl) throw new Error(`Failed to parse BPMN XML: ${errEl.textContent?.trim() ?? 'malformed XML'}`);
+
+  const root = dom.documentElement;
+  if (!root || root.localName !== 'definitions') {
+    throw new Error('Not a BPMN 2.0 document (missing <bpmn:definitions> root)');
+  }
+
+  const ctx: SemanticContext = { warnings: [], skipped: [], nodes: [], edges: [], defaultFlowByOwner: new Map() };
+  parseDefinitions(root, ctx);
+
+  const di = parseDiagramInterchange(root);
+  applyBoundsToNodes(ctx.nodes, di, ctx.warnings);
+  applyBoundsToEdges(ctx.edges, di, ctx.warnings);
+
+  // Resolve default flows (BPMN 2.0.2 § 8.3.13, spec-strict source check from 04A1).
+  const elementById = new Map(ctx.nodes.map((n) => [n.id, n]));
+  for (const [sourceId, flowId] of ctx.defaultFlowByOwner.entries()) {
+    const source = elementById.get(sourceId);
+    if (!canCarryDefault(source)) {
+      ctx.warnings.push({
+        code: 'default-flow-illegal-source',
+        message: `Source ${sourceId} (${source?.type ?? 'unknown'}) cannot carry a default sequence flow; dropping default="${flowId}"`,
+      });
+      continue;
+    }
+    const flow = ctx.edges.find((e) => e.id === flowId);
+    if (!flow) {
+      ctx.warnings.push({
+        code: 'default-flow-missing',
+        message: `default="${flowId}" on ${sourceId} points to no flow`,
+      });
+      continue;
+    }
+    if (flow.flowType !== 'sequence') {
+      ctx.warnings.push({
+        code: 'default-flow-wrong-type',
+        message: `Flow ${flowId} marked default but flowType=${flow.flowType}; ignoring`,
+      });
+      continue;
+    }
+    flow.isDefault = true;
+  }
+
+  // Emit UMLModel.
+  const elements: Record<string, UMLElement> = {};
+  for (const n of ctx.nodes) elements[n.id] = n;
+  const relationships: Record<string, UMLRelationship> = {};
+  for (const e of ctx.edges) relationships[e.id] = e;
+
+  // Canvas bounds: bounding box of all top-level (owner=null) shapes + edges.
+  const topLevel = ctx.nodes.filter((n) => !n.owner);
+  const size = computeCanvasSize(topLevel, ctx.edges);
+
+  const model: UMLModel = {
+    version: '3.0.0',
+    type: UMLDiagramType.BPMN,
+    size,
+    interactive: { elements: {}, relationships: {} },
+    elements,
+    relationships,
+    assessments: {},
+  };
+
+  return { model, warnings: ctx.warnings, skipped: ctx.skipped };
+}
+
+function computeCanvasSize(topLevel: AnyBPMNElement[], edges: AnyBPMNFlow[]): { width: number; height: number } {
+  let maxX = 0,
+    maxY = 0;
+  for (const n of topLevel) {
+    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
+    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
+  }
+  for (const e of edges) {
+    maxX = Math.max(maxX, e.bounds.x + e.bounds.width);
+    maxY = Math.max(maxY, e.bounds.y + e.bounds.height);
+  }
+  return { width: Math.max(800, Math.ceil(maxX + 80)), height: Math.max(600, Math.ceil(maxY + 80)) };
 }
