@@ -420,12 +420,17 @@ function parseDiagramInterchange(root: Element): DiMaps {
 
 // ─── Coordinate transform (§4 of the guide) ─────────────────────────────────
 
+// Apollon's BPMN package stores bounds in ABSOLUTE canvas coordinates for every
+// element regardless of the `owner` chain (pool, lane, flow node, data, artifact).
+// The `owner` field is for ownership semantics (selection / grouping) — it does
+// NOT define a coordinate frame. Confirmed against the editor's at-rest model
+// in localStorage (see commit message). The exporter writes bounds AS-IS, so
+// BPMN DI absolute bounds round-trip directly into Apollon's storage with no
+// owner-chain subtraction needed.
 function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: ParseWarning[]): void {
-  const byId = new Map(nodes.map((n) => [n.id, n]));
   const abs = di.bounds;
 
-  // Apply absolute first (defensive: a node not in DI gets zeroed bounds; we
-  // grid-layout them below if any are missing).
+  // Apply absolute as-is — that's the canonical Apollon storage format for BPMN.
   for (const n of nodes) {
     const b = abs.get(n.id);
     if (b) n.bounds = { x: b.x, y: b.y, width: b.width, height: b.height };
@@ -446,40 +451,6 @@ function applyBoundsToNodes(nodes: AnyBPMNElement[], di: DiMaps, warnings: Parse
       }
     }
   }
-
-  // Subtract parent absolute bounds (topological order: pools → lanes → flow nodes / subprocess children).
-  const ordered = topologicalOwnerOrder(nodes);
-  for (const n of ordered) {
-    if (!n.owner) continue;
-    const parent = byId.get(n.owner);
-    if (!parent) continue;
-    const parentAbs = abs.get(parent.id);
-    if (!parentAbs) continue;
-    n.bounds = {
-      x: n.bounds.x - parentAbs.x,
-      y: n.bounds.y - parentAbs.y,
-      width: n.bounds.width,
-      height: n.bounds.height,
-    };
-  }
-}
-
-function topologicalOwnerOrder(nodes: AnyBPMNElement[]): AnyBPMNElement[] {
-  // Stable: pools (no owner) → lanes (owner = pool) → flow nodes / data / artifacts.
-  // We sort by a depth derived from the owner chain.
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const depthOf = (n: AnyBPMNElement): number => {
-    let d = 0;
-    let cur: AnyBPMNElement | undefined = n;
-    const seen = new Set<string>();
-    while (cur?.owner && !seen.has(cur.id)) {
-      seen.add(cur.id);
-      cur = byId.get(cur.owner);
-      d += 1;
-    }
-    return d;
-  };
-  return [...nodes].sort((a, b) => depthOf(a) - depthOf(b));
 }
 
 function applyBoundsToEdges(edges: AnyBPMNFlow[], di: DiMaps, warnings: ParseWarning[]): void {
