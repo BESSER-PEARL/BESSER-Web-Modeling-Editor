@@ -9,7 +9,6 @@ import { ProjectDiagram } from '../../shared/types/project';
  * Returns diagram data instead of directly creating diagrams in the store
  */
 export const useBumlToDiagram = () => {
-  
   const convertBumlToDiagram = useCallback(async (file: File): Promise<ProjectDiagram> => {
     const formData = new FormData();
     formData.append('buml_file', file);
@@ -21,13 +20,13 @@ export const useBumlToDiagram = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
+        const errorData = await response.json().catch((e) => ({ detail: 'Could not parse error response' }));
         console.error('Response not OK:', response.status, errorData);
 
         if (response.status === 400 && errorData.detail) {
           throw new Error(errorData.detail);
         }
-        
+
         if (response.status === 500 && errorData.detail) {
           throw new Error(errorData.detail);
         }
@@ -36,15 +35,15 @@ export const useBumlToDiagram = () => {
       }
 
       const data = await response.json();
-      
+
       // Handle both single diagram and project responses
       let diagramData;
       let title;
-      
+
       if (data.project) {
         // This is a project response - extract the first available diagram
         const projectData = data.project;
-        
+
         if (projectData.ClassDiagram) {
           diagramData = projectData.ClassDiagram;
           title = diagramData.title || 'Imported Class Diagram';
@@ -60,31 +59,29 @@ export const useBumlToDiagram = () => {
         } else if (projectData.GUINoCodeDiagram) {
           // Check if GUI model is empty
           const guiModel = projectData.GUINoCodeDiagram.model;
-          
+
           // Helper function to check if GUI model is truly empty
           const isGUIEmpty = (model: any): boolean => {
             if (!model || !model.pages || model.pages.length === 0) {
               return true;
             }
-            
+
             // Check if all pages have no components
             for (const page of model.pages) {
               if (!page.frames || page.frames.length === 0) {
                 continue;
               }
-              
+
               for (const frame of page.frames) {
-                if (frame.component && 
-                    frame.component.components && 
-                    frame.component.components.length > 0) {
+                if (frame.component && frame.component.components && frame.component.components.length > 0) {
                   return false; // Found components, not empty
                 }
               }
             }
-            
+
             return true; // All pages checked, no components found
           };
-          
+
           if (isGUIEmpty(guiModel)) {
             // Empty GUI model - skip it and keep looking for other diagrams
             console.warn('GUINoCodeDiagram is empty (no components), will try to find other diagram types...');
@@ -92,7 +89,9 @@ export const useBumlToDiagram = () => {
           }
           // GUI model has content but this function only returns single UML diagrams
           // If there's a GUI model, user should use the proper project import
-          throw new Error('This file contains a GUI model. GUI models can only be imported through the Project Import feature (File > Import Project).');
+          throw new Error(
+            'This file contains a GUI model. GUI models can only be imported through the Project Import feature (File > Import Project).',
+          );
         } else {
           throw new Error('No valid diagram found in the BUML file');
         }
@@ -105,7 +104,7 @@ export const useBumlToDiagram = () => {
       // Determine diagram type
       let modelType: UMLDiagramType;
       const diagramType = diagramData.model?.type || diagramData.type;
-      
+
       switch (diagramType) {
         case 'StateMachineDiagram':
           modelType = UMLDiagramType.StateMachineDiagram;
@@ -128,22 +127,21 @@ export const useBumlToDiagram = () => {
         title: title,
         model: {
           ...diagramData.model,
-          type: modelType
+          type: modelType,
         },
         lastUpdate: new Date().toISOString(),
-        description: `Imported from ${file.name}`
+        description: `Imported from ${file.name}`,
       };
 
       return diagram;
-
     } catch (error) {
       console.error('Error converting BUML to diagram:', error);
-      
+
       let errorMessage = 'Unknown error occurred';
       if (error instanceof Error) {
         errorMessage = error.message;
       }
-      
+
       throw new Error(`Failed to import BUML file: ${errorMessage}`);
     }
   }, []);
@@ -163,4 +161,14 @@ export const isBumlFile = (file: File): boolean => {
  */
 export const isJsonFile = (file: File): boolean => {
   return file.name.toLowerCase().endsWith('.json');
+};
+
+/**
+ * Utility function to check if a file is a BPMN 2.0 XML file.
+ * Accepts .bpmn, .bpmn.xml, and raw .xml (content-sniff in bpmnXmlToApollon
+ * rejects non-BPMN .xml files cleanly).
+ */
+export const isBpmnXmlFile = (file: File): boolean => {
+  const name = file.name.toLowerCase();
+  return name.endsWith('.bpmn') || name.endsWith('.bpmn.xml') || name.endsWith('.xml');
 };
