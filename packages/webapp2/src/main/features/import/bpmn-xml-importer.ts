@@ -1,4 +1,4 @@
-import { UMLModel, UMLElement, UMLRelationship, UMLDiagramType } from '@besser/wme';
+import { UMLModel, UMLElement, UMLRelationship, UMLDiagramType, canSourceCarryDefault } from '@besser/wme';
 
 // Inverse of bpmn-xml-exporter.ts. See .adem/bpmn/04B-bpmn-xml-import-guide.md.
 // BPMN 2.0.2 spec citations follow the convention in 04A1.
@@ -93,17 +93,8 @@ function intermediateEventTypeFor(tag: string, defLocalName: string | null): str
   return base ? `${base}-${dir}` : 'default';
 }
 
-// BPMN 2.0.2 § 8.3.13: only Exclusive/Inclusive/Complex gateways and Activities
-// may carry a default outgoing flow. Mirrors `canCarryDefault` in the exporter.
-const DEFAULT_ELIGIBLE_ACTIVITY_TYPES = new Set(['BPMNTask', 'BPMNSubprocess', 'BPMNTransaction', 'BPMNCallActivity']);
-const DEFAULT_ELIGIBLE_GATEWAY_TYPES = new Set(['exclusive', 'inclusive', 'complex']);
-
-function canCarryDefault(el: AnyBPMNElement | undefined): boolean {
-  if (!el) return false;
-  if (DEFAULT_ELIGIBLE_ACTIVITY_TYPES.has(el.type)) return true;
-  if (el.type === 'BPMNGateway') return DEFAULT_ELIGIBLE_GATEWAY_TYPES.has(el.gatewayType ?? '');
-  return false;
-}
+// Default-flow source eligibility (BPMN 2.0.2 § 8.3.13) — `canSourceCarryDefault`
+// is the shared predicate from @besser/wme (consolidated in 04C / C2).
 
 // ─── DOM helpers (namespace-agnostic via localName) ─────────────────────────
 
@@ -509,7 +500,7 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
   const elementById = new Map(ctx.nodes.map((n) => [n.id, n]));
   for (const [sourceId, flowId] of ctx.defaultFlowByOwner.entries()) {
     const source = elementById.get(sourceId);
-    if (!canCarryDefault(source)) {
+    if (!canSourceCarryDefault(source)) {
       ctx.warnings.push({
         code: 'default-flow-illegal-source',
         message: `Source ${sourceId} (${source?.type ?? 'unknown'}) cannot carry a default sequence flow; dropping default="${flowId}"`,

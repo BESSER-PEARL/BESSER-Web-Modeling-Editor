@@ -1,4 +1,4 @@
-import { UMLModel, UMLElement, UMLRelationship } from '@besser/wme';
+import { UMLModel, UMLElement, UMLRelationship, canSourceCarryDefault } from '@besser/wme';
 
 // BPMN 2.0 XML exporter. See .adem/bpmn/bpmn-xml-export-guide.md for design decisions.
 //
@@ -36,25 +36,8 @@ const FLOW_NODE_TYPES: ReadonlySet<string> = new Set([
 const DATA_TYPES: ReadonlySet<string> = new Set(['BPMNDataObject', 'BPMNDataStore']);
 const ARTIFACT_TYPES: ReadonlySet<string> = new Set(['BPMNAnnotation', 'BPMNGroup']);
 
-// BPMN 2.0.2 § 8.3.13, p. 98: only Exclusive/Inclusive/Complex gateways and
-// Activities (Task / Subprocess / Transaction / CallActivity) may carry a
-// default outgoing sequence flow. Parallel and Event-Based gateways do not.
-const DEFAULT_ELIGIBLE_ACTIVITY_TYPES: ReadonlySet<string> = new Set([
-  'BPMNTask',
-  'BPMNSubprocess',
-  'BPMNTransaction',
-  'BPMNCallActivity',
-]);
-const DEFAULT_ELIGIBLE_GATEWAY_TYPES: ReadonlySet<string> = new Set(['exclusive', 'inclusive', 'complex']);
-
-function canCarryDefault(source: AnyBPMNElement | undefined): boolean {
-  if (!source) return false;
-  if (DEFAULT_ELIGIBLE_ACTIVITY_TYPES.has(source.type)) return true;
-  if (source.type === 'BPMNGateway') {
-    return DEFAULT_ELIGIBLE_GATEWAY_TYPES.has(source.gatewayType ?? '');
-  }
-  return false;
-}
+// Default-flow source eligibility (BPMN 2.0.2 § 8.3.13) — `canSourceCarryDefault`
+// is the shared predicate from @besser/wme (consolidated in 04C / C2).
 
 interface AnyBPMNElement extends UMLElement {
   taskType?: string;
@@ -97,7 +80,7 @@ export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): Exp
       rel.flowType === 'sequence' &&
       rel.source?.element &&
       !defaultFlowBySource.has(rel.source.element) &&
-      canCarryDefault(model.elements[rel.source.element] as AnyBPMNElement | undefined)
+      canSourceCarryDefault(model.elements[rel.source.element] as AnyBPMNElement | undefined)
     ) {
       defaultFlowBySource.set(rel.source.element, rel.id);
     }
