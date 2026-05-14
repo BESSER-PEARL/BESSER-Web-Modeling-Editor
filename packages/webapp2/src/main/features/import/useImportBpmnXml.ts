@@ -26,9 +26,12 @@ export const useImportBpmnXml = () => {
     // O3: model-level flow validation — catches illegal flow types / dangling
     // endpoints that prevention (O2) and the parser cannot stop (e.g. a
     // hand-edited .bpmn). Warn-only; the diagram still imports (04C / C-D7).
-    const flowWarnings = validateAllBpmnFlows(
-      (result.model.elements ?? {}) as Record<string, { id: string; type: string }>,
-    );
+    // Flows live in model.relationships, their endpoint nodes in model.elements —
+    // the validator needs both in one map to resolve a flow's source/target.
+    const flowWarnings = validateAllBpmnFlows({
+      ...(result.model.elements ?? {}),
+      ...(result.model.relationships ?? {}),
+    } as Record<string, { id: string; type: string }>);
     if (flowWarnings.length) {
       console.warn(
         `[BPMN import] ${flowWarnings.length} flow validation warning(s):`,
