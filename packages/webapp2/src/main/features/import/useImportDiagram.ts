@@ -163,12 +163,11 @@ export const useImportDiagramToProject = () => {
           }
         }
 
-        const fileType = isBumlFile(file) ? 'Python/BUML' : isBpmnXmlFile(file) ? 'BPMN XML' : 'JSON';
         return {
           success: true,
           diagramType,
           diagramTitle: importedDiagram.title,
-          message: `${diagramType} diagram imported successfully and added to project "${currentProject.name}". This diagram has been converted from ${fileType} format to the new project format.`,
+          message: `${diagramType} diagram imported into project "${currentProject.name}".`,
         };
       } catch (error) {
         // Don't dispatch displayError here — the caller (WorkspaceShell handler)

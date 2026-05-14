@@ -39,9 +39,17 @@ export const useImportBpmnXml = () => {
       );
     }
 
-    const totalWarnings = result.warnings.length + flowWarnings.length;
-    if (totalWarnings) {
-      toast.warn(`BPMN imported with ${totalWarnings} validation warning(s) — see console for details.`);
+    // Self-contained warn toast: summarise the actual messages (parse + flow),
+    // capped so the toast stays compact. Console keeps the full detail.
+    const allWarnings = [...result.warnings.map((w) => w.message), ...flowWarnings.map((w) => w.message)];
+    if (allWarnings.length) {
+      const MAX_SHOWN = 4;
+      const shown = allWarnings.slice(0, MAX_SHOWN);
+      const summary =
+        `BPMN imported with ${allWarnings.length} validation warning(s):\n` +
+        shown.map((m) => `• ${m}`).join('\n') +
+        (allWarnings.length > MAX_SHOWN ? `\n• …and ${allWarnings.length - MAX_SHOWN} more` : '');
+      toast.warn(summary, { style: { whiteSpace: 'pre-line' } });
     }
 
     const title = file.name.replace(/\.(bpmn|bpmn\.xml|xml)$/i, '');
