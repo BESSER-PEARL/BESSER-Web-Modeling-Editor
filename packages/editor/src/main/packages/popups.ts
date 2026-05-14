@@ -100,6 +100,13 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.ColorLegend]: ColorLegendUpdate,
   [UMLElementType.Comments]: CommentsUpdate,
 
+  // BPMN popup policy (iteration 2 / O1): a BPMN element gets a custom popup
+  // ONLY if it exposes element-specific attributes. Subtype-bearing elements
+  // (Task/Gateway/Start/Intermediate/End event, Flow) and the Pool (lane
+  // management) have custom popups; the rest fall back to DefaultPopup
+  // (generic name + style). When a deferred construct gains attributes
+  // (e.g. Subprocess.isExpanded, CallActivity.calledElement — see
+  // 04-bpmn-construct-gaps-guide.md §A.3), give it a custom popup then.
   [UMLElementType.BPMNTask]: BPMNTaskUpdate,
   [UMLElementType.BPMNSubprocess]: DefaultPopup,
   [UMLElementType.BPMNTransaction]: DefaultPopup,
