@@ -126,7 +126,7 @@
     "ColorLegend": {
       "ColorLegend": "Color Description"
     },
-    "BPMN": {
+    "BPMNDiagram": {
       "BPMNTask": "Task",
       "BPMNUserTask": "User Task",
       "BPMNServiceTask": "Service Task",

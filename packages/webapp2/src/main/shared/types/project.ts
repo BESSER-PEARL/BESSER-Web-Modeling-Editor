@@ -389,6 +389,16 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migrateReferencesToIds(obj);
   }
 
+  // Back-compat: pre-`BPMNDiagram` BPMN diagrams stored `model.type === 'BPMN'`.
+  // Normalize to the new wire value so the diagram round-trips against the
+  // BESSER backend's `"<Name>Diagram"` convention.
+  for (const diagram of obj.diagrams.BPMN ?? []) {
+    const model = diagram.model as { type?: string } | undefined;
+    if (model && model.type === 'BPMN') {
+      model.type = UMLDiagramType.BPMN;
+    }
+  }
+
   return obj;
 };
 

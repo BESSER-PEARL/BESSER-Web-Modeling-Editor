@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType } from '@besser/wme';
 import { Download, FileCode2, FileImage, FileJson2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
@@ -236,7 +236,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <FileCode2 className="size-4" />
                 Export Diagram as B-UML
               </Button>
-              {editor?.model?.type === 'BPMN' && (
+              {editor?.model?.type === UMLDiagramType.BPMN && (
                 <Button variant="outline" onClick={() => handleExport('BPMN_XML')} className="justify-start gap-2 border-border/50">
                   <FileCode2 className="size-4" />
                   Export as BPMN 2.0 XML

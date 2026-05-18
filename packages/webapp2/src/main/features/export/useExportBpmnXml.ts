@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { apollonBpmnToXml } from './bpmn-xml-exporter';
 
@@ -9,7 +9,7 @@ export const useExportBpmnXml = () => {
   const exportBpmnXml = useCallback(
     (editor: ApollonEditor, diagramTitle: string) => {
       const model = editor.model;
-      if (!model || model.type !== 'BPMN') {
+      if (!model || model.type !== UMLDiagramType.BPMN) {
         throw new Error('BPMN 2.0 XML export requires a BPMN diagram.');
       }
 
