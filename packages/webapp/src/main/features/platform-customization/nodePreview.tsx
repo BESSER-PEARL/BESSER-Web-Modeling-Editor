@@ -8,6 +8,7 @@
 
 import React from 'react';
 import type {
+  ClassRepresentation,
   PlatformAssociationOverride,
   PlatformClassOverride,
 } from '../../shared/types/project';
@@ -36,13 +37,39 @@ export function dashFromLineStyle(name: string | undefined): string | undefined 
 
 /** Compact 96×64 preview of a class node. When the class has an SVG icon
  * attached via metadata, the icon is shown in place of the shape so the panel
- * matches what the generated editor will render. */
+ * matches what the generated editor will render.
+ *
+ * When ``representation`` is provided, the preview branches:
+ *   - ``'connection'`` → renders a styled edge instead of a node, using the
+ *     same line/arrow rules the runtime will apply.
+ *   - ``'port'`` → renders a small dark port handle attached to a faint host
+ *     node, mirroring what a Port instance looks like on the canvas.
+ *   - ``'container'`` / ``'node'`` (or undefined) → falls through to the
+ *     existing icon-or-shape rendering.
+ */
 export const ClassNodePreview: React.FC<{
   override?: PlatformClassOverride;
   /** Raw SVG markup attached to the class via metadata.icon, when available. */
   icon?: string;
   label?: string;
-}> = ({ override, icon, label = 'Aa' }) => {
+  /** Representation mode of the class — drives the variant rendered. When
+   *  undefined the preview defaults to a node-shape preview. */
+  representation?: ClassRepresentation;
+}> = ({ override, icon, label = 'Aa', representation }) => {
+  // Connection-class preview: render an edge using the override's edge
+  // styling. The shape/icon are irrelevant here — a connection class is
+  // drawn as a line on the canvas, so the preview must match.
+  if (representation === 'connection') {
+    return <ConnectionClassPreview override={override} />;
+  }
+
+  // Port-class preview: a small dark handle on a faint host outline. The
+  // shape/icon of the port class itself is intentionally ignored — a Port
+  // instance renders as a handle, not a node.
+  if (representation === 'port') {
+    return <PortClassPreview override={override} />;
+  }
+
   // Icons take precedence over node_shape — same rule the generated editor uses
   // (see InstanceNode.tsx in the platform generator templates).
   if (icon) {
@@ -172,6 +199,102 @@ export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride
         strokeDasharray={dash}
         markerStart={override?.sourceArrowStyle && override.sourceArrowStyle !== 'none' ? `url(#${sourceId})` : undefined}
         markerEnd={override?.targetArrowStyle && override.targetArrowStyle !== 'none' ? `url(#${targetId})` : undefined}
+      />
+    </svg>
+  );
+};
+
+/** Connection-class preview — uses the same edge geometry + markers as
+ *  ``EdgeStylePreview`` but reads from ``PlatformClassOverride`` (the
+ *  edge style fields are shared between class and association overrides).
+ *  Wrapped here so the preview tile is identical whether the user is on
+ *  the class panel or the association panel for the same logical edge. */
+const ConnectionClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({
+  override,
+}) => {
+  const stroke = override?.edgeColor ?? 'hsl(var(--primary))';
+  const sw = override?.lineWidth ?? 2;
+  const dash = dashFromLineStyle(override?.lineStyle);
+  const routing = override?.lineRouting ?? 'bezier';
+  const targetId = `prev-cls-arrow-end-${override?.targetArrowStyle ?? 'none'}-${routing}`;
+  const sourceId = `prev-cls-arrow-start-${override?.sourceArrowStyle ?? 'none'}-${routing}`;
+  return (
+    <svg
+      viewBox="0 0 96 32"
+      className="size-full"
+      role="img"
+      aria-label="Connection style preview"
+      style={{ color: stroke }}
+    >
+      <defs>
+        {makeMarker(targetId, override?.targetArrowStyle, 'end')}
+        {makeMarker(sourceId, override?.sourceArrowStyle, 'start')}
+      </defs>
+      <path
+        d={edgePreviewPath(routing)}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={sw}
+        strokeDasharray={dash}
+        markerStart={
+          override?.sourceArrowStyle && override.sourceArrowStyle !== 'none'
+            ? `url(#${sourceId})`
+            : undefined
+        }
+        markerEnd={
+          override?.targetArrowStyle && override.targetArrowStyle !== 'none'
+            ? `url(#${targetId})`
+            : undefined
+        }
+      />
+    </svg>
+  );
+};
+
+/** Port-class preview — a small dark filled square attached to the side
+ *  of a faint host outline. Mirrors what a Port instance looks like on
+ *  the generated canvas (the dark handle sticking out of an Equipment
+ *  node). The "Po"-style abbreviated label is dropped here because the
+ *  visual itself communicates the role. */
+const PortClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({ override }) => {
+  // Use the override colors when set; otherwise pick muted greys for the
+  // host outline and the brand color for the port square so the
+  // attached-to-equipment relationship reads clearly.
+  const hostStroke = 'hsl(var(--muted-foreground) / 0.45)';
+  const hostFill = 'hsl(var(--card))';
+  const portFill = override?.fillColor ?? 'hsl(var(--foreground) / 0.85)';
+  const portStroke = override?.borderColor ?? 'hsl(var(--foreground) / 0.7)';
+  return (
+    <svg
+      viewBox="0 0 96 64"
+      className="size-full"
+      role="img"
+      aria-label="Port style preview"
+    >
+      {/* Faint host equipment outline */}
+      <rect
+        x="12"
+        y="12"
+        width="60"
+        height="40"
+        rx="6"
+        ry="6"
+        fill={hostFill}
+        stroke={hostStroke}
+        strokeWidth="1.5"
+        strokeDasharray="3 3"
+      />
+      {/* Port handle, attached to the right edge of the host */}
+      <rect
+        x="68"
+        y="26"
+        width="12"
+        height="12"
+        rx="1"
+        ry="1"
+        fill={portFill}
+        stroke={portStroke}
+        strokeWidth="1"
       />
     </svg>
   );

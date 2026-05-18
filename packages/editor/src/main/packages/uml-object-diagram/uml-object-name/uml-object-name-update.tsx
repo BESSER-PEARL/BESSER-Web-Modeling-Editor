@@ -18,6 +18,7 @@ import { UMLElement } from '../../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { notEmpty } from '../../../utils/not-empty';
+import { invokeMethod, RuntimeInvokeError } from '../../../services/runtime/runtime-invoke';
 import { UMLObjectAttribute } from '../uml-object-attribute/uml-object-attribute';
 import { UMLObjectMethod } from '../uml-object-method/uml-object-method';
 import { UMLObjectName } from './uml-object-name';
@@ -25,6 +26,24 @@ import UMLObjectAttributeUpdate from '../uml-object-attribute/uml-object-attribu
 import { UserModelElementType } from '../../user-modeling';
 import { UMLUserModelAttribute } from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute';
 import UMLUserModelAttributeUpdate from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
+
+// ---------------------------------------------------------------------------
+// Method invocation types — kept minimal. Matches the editor JSON shape
+// (UMLClassMethod elements) since that's what the backend converter
+// expects and what diagramBridge exposes today.
+// ---------------------------------------------------------------------------
+interface ExecutableMethod {
+  id: string;
+  name: string;              // signature as written in the diagram, e.g. ``step(dt: float)``
+  code: string;
+  implementationType: string;
+  parameters: Array<{ name: string; type: string }>;
+}
+
+interface ParamPromptState {
+  method: ExecutableMethod;
+  values: Record<string, string>;
+}
 
 const Flex = styled.div`
   display: flex;
@@ -38,14 +57,169 @@ const ClassSelectionFlex = styled.div`
   gap: 8px;
 `;
 
+// Row of method buttons under "Run Methods". Wraps so a long method list
+// doesn't push the inspector wider than the popup container.
+const MethodButtonsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+`;
+
+const MethodFeedback = styled.div<{ kind: 'ok' | 'error' }>`
+  margin-top: 6px;
+  font-size: 12px;
+  color: ${(p) => (p.kind === 'error' ? '#c1121f' : '#555')};
+  word-break: break-word;
+`;
+
+const ParamPromptBox = styled.div`
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fafafa;
+`;
+
+const ParamRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+`;
+
+const ParamPromptActions = styled.div`
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  justify-content: flex-end;
+`;
+
+// ---------------------------------------------------------------------------
+// Attribute-name parsing — UMLObjectAttribute stores its slot as a free-form
+// string like ``"+ level: float = 0.0"``. After a runtime invoke we need to
+// rewrite the value while preserving visibility marker + type annotation
+// so the rest of the UI keeps rendering correctly.
+// ---------------------------------------------------------------------------
+interface ParsedAttrName {
+  visibilityPrefix: string;     // ``+ `` / ``- `` / etc, including trailing space, or empty
+  name: string;
+  typeAnnotation: string | null; // ``float`` / ``int`` / null
+}
+
+const parseAttrName = (raw: string): ParsedAttrName => {
+  let remainder = raw ?? '';
+  let visibilityPrefix = '';
+  const visibilityMatch = remainder.match(/^([+\-#~])\s+/);
+  if (visibilityMatch) {
+    visibilityPrefix = visibilityMatch[0];
+    remainder = remainder.slice(visibilityMatch[0].length);
+  }
+  const eqIdx = remainder.indexOf('=');
+  const decl = eqIdx >= 0 ? remainder.slice(0, eqIdx).trim() : remainder.trim();
+  const colonIdx = decl.indexOf(':');
+  if (colonIdx >= 0) {
+    return {
+      visibilityPrefix,
+      name: decl.slice(0, colonIdx).trim(),
+      typeAnnotation: decl.slice(colonIdx + 1).trim() || null,
+    };
+  }
+  return { visibilityPrefix, name: decl.trim(), typeAnnotation: null };
+};
+
+const composeAttrName = (parsed: ParsedAttrName, value: unknown): string => {
+  const valueStr = value === null || value === undefined ? '' : String(value);
+  const typeSegment = parsed.typeAnnotation ? `: ${parsed.typeAnnotation}` : '';
+  return `${parsed.visibilityPrefix}${parsed.name}${typeSegment} = ${valueStr}`;
+};
+
+// ---------------------------------------------------------------------------
+// Method signature parsing — ``step(dt: float, n: int)`` → parameter list.
+// Falls back to ``[]`` if the signature is malformed; the backend will then
+// reject the call with a clear TypeError if args are required.
+// ---------------------------------------------------------------------------
+/**
+ * Strip the leading UML visibility marker (``+``, ``-``, ``#``, ``~``) +
+ * spaces and any signature ``(...)`` suffix from a method-element name,
+ * leaving just the bare identifier. The backend's class-diagram parser
+ * normalises method names this way too, so the materialized class
+ * exposes ``increase`` rather than ``"+ increase"`` — sending the raw
+ * editor string would AttributeError.
+ */
+const extractMethodIdentifier = (rawName: string): string => {
+  const stripped = (rawName ?? '').replace(/^[+\-#~]\s+/, '');
+  const openParen = stripped.indexOf('(');
+  return (openParen >= 0 ? stripped.slice(0, openParen) : stripped).trim();
+};
+
+const parseSignatureParameters = (signature: string): Array<{ name: string; type: string }> => {
+  const open = signature.indexOf('(');
+  const close = signature.lastIndexOf(')');
+  if (open < 0 || close < 0 || close <= open) return [];
+  const inner = signature.slice(open + 1, close).trim();
+  if (!inner) return [];
+  return inner
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const colon = p.indexOf(':');
+      if (colon >= 0) {
+        return { name: p.slice(0, colon).trim(), type: p.slice(colon + 1).trim() || 'any' };
+      }
+      return { name: p, type: 'any' };
+    });
+};
+
+const coerceParamValue = (
+  type: string,
+  raw: string,
+): { ok: true; value: unknown } | { ok: false; error: string } => {
+  const t = type.toLowerCase();
+  if (raw === '') return { ok: true, value: null };
+  if (t.includes('int')) {
+    const n = parseInt(raw, 10);
+    if (Number.isNaN(n)) return { ok: false, error: `Expected integer, got '${raw}'` };
+    return { ok: true, value: n };
+  }
+  if (t.includes('float') || t.includes('double') || t.includes('number')) {
+    const n = parseFloat(raw);
+    if (Number.isNaN(n)) return { ok: false, error: `Expected number, got '${raw}'` };
+    return { ok: true, value: n };
+  }
+  if (t.includes('bool')) {
+    const v = raw.toLowerCase();
+    if (['true', '1', 'yes'].includes(v)) return { ok: true, value: true };
+    if (['false', '0', 'no'].includes(v)) return { ok: true, value: false };
+    return { ok: false, error: `Expected true/false, got '${raw}'` };
+  }
+  return { ok: true, value: raw };
+};
+
 type State = {
   fieldToFocus?: Textfield<string> | null;
   colorOpen: boolean;
+  /** Name of the method currently being awaited (or null). Used to
+   *  disable just that button + show its spinner label. */
+  invokingMethod: string | null;
+  /** Last successful result from runtime.invoke — surfaced in-line as
+   *  "method → value" so users see the method return value (when
+   *  non-null) without opening a separate panel. */
+  lastInvoke: { method: string; result: unknown } | null;
+  /** Last error message from runtime.invoke — surfaced verbatim. */
+  invokeError: string | null;
+  /** Open parameter-collection panel for methods that take args. */
+  paramPrompt: ParamPromptState | null;
 };
 
 const getInitialState = (): State => ({
   fieldToFocus: undefined,
   colorOpen: false,
+  invokingMethod: null,
+  lastInvoke: null,
+  invokeError: null,
+  paramPrompt: null,
 });
 
 class ObjectNameComponent extends Component<Props, State> {
@@ -342,6 +516,86 @@ class ObjectNameComponent extends Component<Props, State> {
             }}
           /> */}
         </section>
+        {(() => {
+          // Runtime invocation section — only renders when the object's
+          // class has at least one executable method. Keeps the popup
+          // tidy for objects of classes that don't (yet) declare any.
+          const executable = this.getExecutableMethods();
+          if (executable.length === 0) return null;
+          const { invokingMethod, lastInvoke, invokeError, paramPrompt } = this.state;
+          return (
+            <section>
+              <Divider />
+              <Header>Run Methods</Header>
+              <MethodButtonsRow>
+                {executable.map((m) => {
+                  const identifier = extractMethodIdentifier(m.name);
+                  return (
+                    <Button
+                      key={m.id}
+                      color="primary"
+                      onClick={() => this.handleMethodClick(m)}
+                      disabled={invokingMethod !== null}
+                      title={
+                        m.parameters.length === 0
+                          ? `Run ${identifier}()`
+                          : `Run ${identifier}(${m.parameters
+                              .map((p) => `${p.name}: ${p.type}`)
+                              .join(', ')})`
+                      }
+                    >
+                      {invokingMethod === m.id
+                        ? `${identifier}…`
+                        : `▶ ${identifier}${m.parameters.length > 0 ? ` (${m.parameters.length})` : ''}`}
+                    </Button>
+                  );
+                })}
+              </MethodButtonsRow>
+
+              {paramPrompt && (
+                <ParamPromptBox>
+                  <Body>
+                    Invoke{' '}
+                    <strong>
+                      {extractMethodIdentifier(paramPrompt.method.name)}(
+                      {paramPrompt.method.parameters.map((p) => `${p.name}: ${p.type}`).join(', ')})
+                    </strong>
+                  </Body>
+                  {paramPrompt.method.parameters.map((p) => (
+                    <ParamRow key={p.name}>
+                      <Body style={{ minWidth: 90 }}>
+                        {p.name}
+                        <span style={{ color: '#888', fontSize: 11, marginLeft: 4 }}>
+                          ({p.type})
+                        </span>
+                      </Body>
+                      <Textfield
+                        value={paramPrompt.values[p.name] ?? ''}
+                        onChange={(v: string) => this.setParamValue(p.name, v)}
+                      />
+                    </ParamRow>
+                  ))}
+                  <ParamPromptActions>
+                    <Button color="link" onClick={this.cancelParamPrompt}>
+                      Cancel
+                    </Button>
+                    <Button color="primary" onClick={this.submitParamPrompt}>
+                      Invoke
+                    </Button>
+                  </ParamPromptActions>
+                </ParamPromptBox>
+              )}
+
+              {invokeError && <MethodFeedback kind="error">{invokeError}</MethodFeedback>}
+              {!invokeError && lastInvoke && lastInvoke.result !== null && lastInvoke.result !== undefined && (
+                <MethodFeedback kind="ok">
+                  {extractMethodIdentifier(lastInvoke.method)} →{' '}
+                  <code>{String(lastInvoke.result)}</code>
+                </MethodFeedback>
+              )}
+            </section>
+          );
+        })()}
         {/* <section>
           <Divider />
           <Header>{this.props.translate('popup.methods')}</Header>
@@ -391,6 +645,175 @@ class ObjectNameComponent extends Component<Props, State> {
     );
   }
 
+  // -------------------------------------------------------------------
+  // Runtime method invocation — Phase 1.0.7
+  // -------------------------------------------------------------------
+  /** Methods declared on the selected object's class that the backend
+   *  runtime kernel can execute (implementation_type=code + non-empty
+   *  body). Walks the class diagram via ``diagramBridge``. */
+  private getExecutableMethods = (): ExecutableMethod[] => {
+    const { element } = this.props;
+    const classId = (element as any).classId as string | undefined;
+    if (!classId) return [];
+    const classData = diagramBridge.getClassDiagramData();
+    if (!classData || !classData.elements) return [];
+    const classElement = classData.elements[classId];
+    if (!classElement || !Array.isArray(classElement.methods)) return [];
+    const methods: ExecutableMethod[] = [];
+    for (const methodId of classElement.methods as string[]) {
+      const m = classData.elements[methodId];
+      if (!m) continue;
+      const impl = String(m.implementationType ?? 'none').toLowerCase();
+      const code = String(m.code ?? '').trim();
+      if (impl !== 'code' || !code) continue;
+      methods.push({
+        id: methodId,
+        name: String(m.name ?? ''),
+        code,
+        implementationType: impl,
+        parameters: parseSignatureParameters(String(m.name ?? '')),
+      });
+    }
+    return methods;
+  };
+
+  /** Build the ``classDiagram`` part of the invoke payload. */
+  private buildClassDiagramPayload = (): { title: string; model: any } => {
+    const classData = diagramBridge.getClassDiagramData() ?? {
+      elements: {},
+      relationships: {},
+    };
+    return {
+      title: 'Classes',
+      model: {
+        type: 'ClassDiagram',
+        elements: classData.elements ?? {},
+        relationships: classData.relationships ?? {},
+      },
+    };
+  };
+
+  /** Build the ``objectDiagram`` part — use the canonical serialized
+   *  model that mirrors what the validate-diagram / export endpoints
+   *  receive. Spreading raw ``state.elements`` doesn't work: those are
+   *  UMLElement instances with private fields and getters, not the
+   *  JSON shape the backend converter parses. */
+  private buildObjectDiagramPayload = (): { title: string; model: any } => {
+    const { serializedModel } = this.props;
+    return {
+      title: 'Objects',
+      model: serializedModel,
+    };
+  };
+
+  /** Apply the mutated attribute values returned from the kernel onto
+   *  the object's child ObjectAttribute slots so the user sees them
+   *  update in-place without refreshing or saving. */
+  private mergeUpdatedAttributes = (updated: Record<string, unknown>) => {
+    const { element, getById, update } = this.props;
+    const children = element.ownedElements
+      .map((id) => getById(id))
+      .filter(notEmpty)
+      .filter((c): c is UMLObjectAttribute => c instanceof UMLObjectAttribute);
+    for (const attr of children) {
+      const parsed = parseAttrName(attr.name);
+      if (parsed.name in updated) {
+        update(attr.id, { name: composeAttrName(parsed, updated[parsed.name]) });
+      }
+    }
+  };
+
+  /** Invoke a method with the given args; surface the outcome inline. */
+  private runInvoke = async (method: ExecutableMethod, args: Record<string, unknown>) => {
+    const { element } = this.props;
+    const classId = (element as any).classId as string | undefined;
+    if (!classId) {
+      this.setState({ invokeError: 'Object has no associated class.' });
+      return;
+    }
+    const classData = diagramBridge.getClassDiagramData();
+    const classElement = classData?.elements?.[classId];
+    const className = classElement?.name;
+    if (!className) {
+      this.setState({ invokeError: `Could not resolve class for classId ${classId}.` });
+      return;
+    }
+    // The runtime kernel finds the instance by its diagram name —
+    // matches what the editor's ObjectName.name carries.
+    const instanceName = element.name || '';
+    if (!instanceName) {
+      this.setState({ invokeError: 'Object has no name.' });
+      return;
+    }
+    this.setState({ invokingMethod: method.id, invokeError: null });
+    try {
+      const response = await invokeMethod({
+        classDiagram: this.buildClassDiagramPayload(),
+        objectDiagram: this.buildObjectDiagramPayload(),
+        className,
+        instanceName,
+        methodName: extractMethodIdentifier(method.name),
+        args,
+      });
+      this.mergeUpdatedAttributes(response.updated_attributes);
+      this.setState({
+        invokingMethod: null,
+        lastInvoke: { method: method.name, result: response.result },
+        paramPrompt: null,
+      });
+    } catch (e) {
+      const detail =
+        e instanceof RuntimeInvokeError ? e.detail : (e as Error).message ?? 'Invoke failed';
+      this.setState({ invokingMethod: null, invokeError: detail });
+    }
+  };
+
+  private handleMethodClick = (method: ExecutableMethod) => {
+    if (method.parameters.length === 0) {
+      void this.runInvoke(method, {});
+    } else {
+      const seedValues: Record<string, string> = {};
+      for (const p of method.parameters) seedValues[p.name] = '';
+      this.setState({
+        paramPrompt: { method, values: seedValues },
+        invokeError: null,
+      });
+    }
+  };
+
+  private setParamValue = (paramName: string, raw: string) => {
+    this.setState((prev) => {
+      if (!prev.paramPrompt) return prev;
+      return {
+        ...prev,
+        paramPrompt: {
+          ...prev.paramPrompt,
+          values: { ...prev.paramPrompt.values, [paramName]: raw },
+        },
+      };
+    });
+  };
+
+  private submitParamPrompt = () => {
+    const prompt = this.state.paramPrompt;
+    if (!prompt) return;
+    const args: Record<string, unknown> = {};
+    for (const param of prompt.method.parameters) {
+      const raw = prompt.values[param.name] ?? '';
+      const coerced = coerceParamValue(param.type, raw);
+      if (!coerced.ok) {
+        this.setState({ invokeError: `${param.name}: ${coerced.error}` });
+        return;
+      }
+      args[param.name] = coerced.value;
+    }
+    void this.runInvoke(prompt.method, args);
+  };
+
+  private cancelParamPrompt = () => {
+    this.setState({ paramPrompt: null, invokeError: null });
+  };
+
   private create = (Clazz: typeof UMLObjectAttribute | typeof UMLObjectMethod) => (value: string) => {
     const { element, create } = this.props;
     const member = new Clazz();
@@ -422,6 +845,16 @@ interface OwnProps {
 // same reason.
 type StateProps = {
   elements: ModelState['elements'];
+  // ``relationships`` is needed to build the object-diagram payload the
+  // runtime kernel consumes (the backend's converter walks both).
+  relationships: ModelState['relationships'];
+  // The canonical serialized model — what the backend's converters
+  // expect. Built via ``ModelState.toModel`` (same path the webapp's
+  // ``editor.model`` getter uses for validate-diagram / export). Raw
+  // ``state.elements`` carries UMLElement instances with private
+  // fields and getters, NOT the JSON shape the converter expects, so
+  // we can't reuse those directly for the API payload.
+  serializedModel: ReturnType<typeof ModelState.toModel>;
 };
 
 interface DispatchProps {
@@ -436,7 +869,11 @@ type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
-    (state) => ({ elements: state.elements }),
+    (state) => ({
+      elements: state.elements,
+      relationships: state.relationships,
+      serializedModel: ModelState.toModel(state),
+    }),
     {
       create: UMLElementRepository.create,
       update: UMLElementRepository.update,

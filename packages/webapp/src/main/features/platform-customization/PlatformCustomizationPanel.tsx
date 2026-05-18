@@ -533,7 +533,12 @@ const ClassRow: React.FC<{
               </span>
             </div>
             <div className="h-12 w-24 overflow-hidden rounded border bg-muted/20 p-0.5">
-              <ClassNodePreview override={override} icon={icon} label={name.slice(0, 2)} />
+              <ClassNodePreview
+                override={override}
+                icon={icon}
+                label={name.slice(0, 2)}
+                representation={getRepresentation(override)}
+              />
             </div>
             <span /> {/* spacer */}
           </button>
