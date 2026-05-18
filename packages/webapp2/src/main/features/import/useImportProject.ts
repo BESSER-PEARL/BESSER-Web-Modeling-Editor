@@ -1,9 +1,11 @@
 import {
+  ALL_DIAGRAM_TYPES,
   BesserProject,
   ProjectDiagram,
   createEmptyDiagram,
   SupportedDiagramType,
   getActiveDiagram,
+  toSupportedDiagramType,
 } from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { BACKEND_URL } from '../../shared/constants/constant';
@@ -352,36 +354,55 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           console.log(`Project "${convertedProject.name}" imported successfully (Legacy format converted)`);
           resolve(convertedProject);
         } else if (jsonData && jsonData.model && typeof jsonData.model === 'object' && jsonData.model.type) {
-          // Raw single-diagram JSON (e.g., exported from old editor as bare diagram)
-          const diagramType = (jsonData.model.type as string) || 'ClassDiagram';
-          const supportedType = (diagramType in UMLDiagramType ? diagramType : 'ClassDiagram') as SupportedDiagramType;
+          // Raw single-diagram JSON (e.g., exported from old editor as bare diagram).
+          // Legacy: pre-`BPMNDiagram` BPMN files used `type: 'BPMN'` — normalize.
+          const rawType = (jsonData.model.type as string) || UMLDiagramType.ClassDiagram;
+          const wireType = rawType === 'BPMN' ? UMLDiagramType.BPMN : rawType;
+          // Map wire type → SupportedDiagramType (bucket key). Unknown types fall
+          // back to ClassDiagram; the previous `in UMLDiagramType` check tested
+          // *keys* and incorrectly missed entries where key ≠ value (BPMN).
+          const knownWireType = (Object.values(UMLDiagramType) as string[]).includes(wireType);
+          const supportedType: SupportedDiagramType = knownWireType
+            ? toSupportedDiagramType(wireType as UMLDiagramType)
+            : 'ClassDiagram';
           const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-          const allTypes: SupportedDiagramType[] = [
-            'ClassDiagram',
-            'ObjectDiagram',
-            'StateMachineDiagram',
-            'AgentDiagram',
-            'GUINoCodeDiagram',
-            'QuantumCircuitDiagram',
-          ];
+          const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
+            ClassDiagram: UMLDiagramType.ClassDiagram,
+            ObjectDiagram: UMLDiagramType.ObjectDiagram,
+            StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
+            AgentDiagram: UMLDiagramType.AgentDiagram,
+            GUINoCodeDiagram: null,
+            QuantumCircuitDiagram: null,
+            BPMN: UMLDiagramType.BPMN,
+          };
+          const diagramTitles: Record<SupportedDiagramType, string> = {
+            ClassDiagram: 'Class Diagram',
+            ObjectDiagram: 'Object Diagram',
+            StateMachineDiagram: 'State Machine Diagram',
+            AgentDiagram: 'Agent Diagram',
+            GUINoCodeDiagram: 'GUI Diagram',
+            QuantumCircuitDiagram: 'Quantum Circuit',
+            BPMN: 'BPMN Diagram',
+          };
 
+          // ALL_DIAGRAM_TYPES (incl. BPMN) — the prior local list silently
+          // dropped BPMN, which produced a project without a BPMN bucket and
+          // failed isProject() validation on the next load.
           const diagrams: any = {};
-          for (const t of allTypes) {
+          for (const t of ALL_DIAGRAM_TYPES) {
             if (t === supportedType) {
               diagrams[t] = [
                 {
                   id: jsonData.id || `${t}_${Date.now()}`,
-                  title: jsonData.title || t.replace(/([A-Z])/g, ' $1').trim(),
+                  title: jsonData.title || diagramTitles[t],
                   model: jsonData.model,
                   lastUpdate: jsonData.lastUpdate || new Date().toISOString(),
                 },
               ];
             } else {
-              const umlType =
-                t === 'GUINoCodeDiagram' || t === 'QuantumCircuitDiagram' ? null : ((UMLDiagramType as any)[t] ?? null);
               const kind = t === 'GUINoCodeDiagram' ? 'gui' : t === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-              diagrams[t] = [createEmptyDiagram(t.replace(/([A-Z])/g, ' $1').trim(), umlType, kind)];
+              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], kind)];
             }
           }
 
