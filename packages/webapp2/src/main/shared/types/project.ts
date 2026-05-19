@@ -120,6 +120,33 @@ export interface KnowledgeGraphData {
   settings?: KnowledgeGraphSettings;
 }
 
+/** A single inconsistency surfaced by the OWL/SHACL consistency check.
+ *  Mirrors `besser.BUML.notations.kg_to_buml.consistency.ConsistencyIssue`. */
+export interface ConsistencyIssue {
+  id: string;
+  code: string;
+  severity: 'info' | 'warning' | 'violation';
+  message: string;
+  affected_node_ids: string[];
+  affected_edge_ids: string[];
+  constraint_node_id: string | null;
+  spec_kind: string | null;
+  path_iri: string | null;
+  /** Short human-readable summary of the violated constraint, e.g.
+   *  "hasPrincipalInvestigator: exactly 1 of SeniorResearcher". */
+  constraint_label: string | null;
+}
+
+export interface ConsistencyReport {
+  issues: ConsistencyIssue[];
+  issueCount: number;
+  severityCounts: Record<'info' | 'warning' | 'violation', number>;
+  kgSignature: string;
+  inferenceUsed: 'rdfs' | 'owlrl';
+  exportedAt?: string;
+  version?: string;
+}
+
 export const DEFAULT_KG_SOFT_LIMIT = 50;
 export const DEFAULT_KG_HARD_LIMIT = 100;
 export const DEFAULT_KG_LAYOUT: KnowledgeGraphLayout = 'concentric';

@@ -1209,11 +1209,31 @@ const AddConnectionForm: React.FC<{
       };
     } else {
       const trimmed = predicate.trim();
+      // Infer a sensible default predicate IRI for common node-type pairs
+      // when the user didn't type one — keeps the resulting edge structurally
+      // meaningful (rdf:type for individual→class, rdfs:subClassOf for
+      // class→class) so the preflight + consistency check recognise it.
+      const sourceNode = model.nodes.find((n) => n.id === source);
+      const targetNode = model.nodes.find((n) => n.id === target);
+      const sType = sourceNode?.nodeType;
+      const tType = targetNode?.nodeType;
+      let defaultIri: string | undefined;
+      let defaultLabel: string | undefined;
+      if (!trimmed) {
+        if (sType === 'individual' && tType === 'class') {
+          defaultIri = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+          defaultLabel = 'type';
+        } else if (sType === 'class' && tType === 'class') {
+          defaultIri = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
+          defaultLabel = 'subClassOf';
+        }
+      }
       edge = {
         id: newEdgeId(),
         source,
         target,
-        ...(trimmed ? { label: trimmed } : {}),
+        ...(trimmed ? { label: trimmed } : defaultLabel ? { label: defaultLabel } : {}),
+        ...(defaultIri ? { iri: defaultIri } : {}),
       };
     }
     onStage(edge);

@@ -675,6 +675,17 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         } else if (sourceType === 'nodeConstraint' && targetType === 'propertyConstraint') {
           label = 'property';
           iri = 'http://www.w3.org/ns/shacl#property';
+        } else if (sourceType === 'individual' && targetType === 'class') {
+          // Default an Individual → Class edge to rdf:type (the canonical
+          // "instance of" predicate). Without this the preflight orphan
+          // detector wouldn't recognise the class link and the consistency
+          // checker wouldn't have any rdf:type triple to validate against.
+          label = 'type';
+          iri = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
+        } else if (sourceType === 'class' && targetType === 'class') {
+          // Class → Class edges default to rdfs:subClassOf.
+          label = 'subClassOf';
+          iri = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
         }
         const data: Record<string, unknown> = { id: newId('edge'), source, target: id, label };
         if (iri) data.iri = iri;

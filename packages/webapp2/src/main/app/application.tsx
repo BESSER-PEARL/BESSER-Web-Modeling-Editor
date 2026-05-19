@@ -64,6 +64,11 @@ const KgExportOptionsDialog = React.lazy(() =>
 const KgRefineModal = React.lazy(() =>
   import('../features/import/KgRefineModal').then((m) => ({ default: m.KgRefineModal })),
 );
+const KgConsistencyConfirmModal = React.lazy(() =>
+  import('../features/import/KgConsistencyConfirmModal').then((m) => ({
+    default: m.KgConsistencyConfirmModal,
+  })),
+);
 const GeneratorConfigDialogs = React.lazy(() =>
   import('../features/generation/dialogs/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
 );
@@ -121,6 +126,7 @@ function AppContentInner() {
     isLocalEnvironment,
     kgRefineModalProps,
     kgExportOptionsModalProps,
+    kgConsistencyConfirmModalProps,
   } = useGeneratorExecution(editor);
 
   // For the KG export-options dialog: feed it the current KG nodes so it
@@ -249,6 +255,14 @@ function AppContentInner() {
           button when the KG is clean. */}
       <Suspense fallback={null}>
         <KgRefineModal {...kgRefineModalProps} />
+      </Suspense>
+
+      {/* Pre-conversion consistency-gate modal: shown when the OWL/SHACL
+          consistency check (via /check-kg-consistency) finds issues just
+          before a KG → ClassDiagram / ObjectDiagram conversion runs. Users
+          can fix, proceed, or cancel. */}
+      <Suspense fallback={null}>
+        <KgConsistencyConfirmModal {...kgConsistencyConfirmModalProps} />
       </Suspense>
 
       {/* KG export-options dialog: opened from Generate → Export Knowledge

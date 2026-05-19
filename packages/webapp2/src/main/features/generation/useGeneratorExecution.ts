@@ -376,8 +376,10 @@ export interface UseGeneratorExecutionReturn {
     open: boolean;
     onClose: () => void;
     onFixInKg: (issue: KgIssue) => void;
+    onFocusNodes: (nodeIds: string[]) => void;
     convertTarget?: KgConversionTarget;
     onConvert?: (kgSignature: string) => void;
+    initialTab?: 'static' | 'consistency' | 'llm';
   };
   /** Props bag to spread onto <KgExportOptionsDialog />. Opens when the user
    *  picks "Export with options…" in the Generate menu on a KG diagram. */
@@ -385,6 +387,16 @@ export interface UseGeneratorExecutionReturn {
     open: boolean;
     onClose: () => void;
     onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => void;
+  };
+  /** Props bag for <KgConsistencyConfirmModal />. Opens before a KG →
+   *  ClassDiagram / ObjectDiagram conversion if the consistency check
+   *  returned at least one issue. */
+  kgConsistencyConfirmModalProps: {
+    open: boolean;
+    report: import('../../shared/types/project').ConsistencyReport | null;
+    onOpenRefine: () => void;
+    onProceed: () => void;
+    onCancel: () => void;
   };
 }
 
@@ -411,15 +423,41 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   // KG → RDF export-options modal: opened by the ``kg_export_with_options``
   // generator entry; lets the user pick syntax + constraint vocabulary.
   const [kgExportOptionsOpen, setKgExportOptionsOpen] = useState(false);
+  // Pre-conversion consistency gate: when /check-kg-consistency returns
+  // non-zero issues, this state opens KgConsistencyConfirmModal and stores
+  // a resolver that the modal's buttons call back through.
+  const [kgConsistencyGate, setKgConsistencyGate] = useState<{
+    open: boolean;
+    report: import('../../shared/types/project').ConsistencyReport | null;
+    resolve: ((d: 'proceed' | 'cancel') => void) | null;
+  }>({ open: false, report: null, resolve: null });
+  // When the user picks "Open Refine to fix" from the gate, we also open
+  // the Refine modal on the Consistency tab. This flag carries that intent
+  // through to kgRefineModalProps.initialTab.
+  const [kgRefineInitialTab, setKgRefineInitialTab] = useState<
+    'static' | 'consistency' | 'llm' | undefined
+  >(undefined);
+
+  const onConsistencyIssues = useCallback(
+    (report: import('../../shared/types/project').ConsistencyReport): Promise<'proceed' | 'cancel'> => {
+      return new Promise((resolve) => {
+        setKgConsistencyGate({ open: true, report, resolve });
+      });
+    },
+    [],
+  );
 
   const runKgWithPreflight = useCallback(
     async (target: KgConversionTarget): Promise<void> => {
       const report = await runKgPreflight(target);
       if (!report) return;
-      // Zero-friction path: no inconsistencies → convert immediately
-      // without opening the modal.
+      // Zero-friction path: no preflight issues → still run the
+      // OWL/SHACL consistency gate, then convert.
       if (report.issueCount === 0) {
-        await runKgConversion(target, { kgSignature: report.kgSignature });
+        await runKgConversion(target, {
+          kgSignature: report.kgSignature,
+          onConsistencyIssues,
+        });
         return;
       }
       // Issues present → open the Refine KG modal in convert mode so the
@@ -428,7 +466,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       // target so we can dispatch the conversion when the user confirms.
       setKgConvertTarget(target);
     },
-    [runKgPreflight, runKgConversion],
+    [runKgPreflight, runKgConversion, onConsistencyIssues],
   );
   const exportKgRdf = useExportKgRdf();
 
@@ -1070,6 +1108,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onClose: () => {
       setKgRefineOpen(false);
       setKgConvertTarget(null);
+      setKgRefineInitialTab(undefined);
     },
     onFixInKg: (issue: KgIssue) => {
       const ids = issue?.affectedNodeIds ?? [];
@@ -1077,11 +1116,42 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         kgFocus.focus(ids, { maxNeighbors: 15 });
       }
     },
+    onFocusNodes: (nodeIds: string[]) => {
+      if (nodeIds.length > 0) {
+        kgFocus.focus(nodeIds, { maxNeighbors: 15 });
+      }
+    },
     convertTarget: kgConvertTarget ?? undefined,
     onConvert: (kgSignature: string) => {
       const target = kgConvertTarget;
       if (!target) return;
-      void runKgConversion(target, { kgSignature });
+      void runKgConversion(target, { kgSignature, onConsistencyIssues });
+    },
+    initialTab: kgRefineInitialTab,
+  };
+
+  // Pre-conversion consistency confirmation modal. Wired so that "Proceed
+  // anyway" re-runs the conversion with the gate suppressed (we don't ask
+  // a second time).
+  const kgConsistencyConfirmModalProps = {
+    open: kgConsistencyGate.open,
+    report: kgConsistencyGate.report,
+    onOpenRefine: () => {
+      // Close the gate (resolve as cancel — we're routing the user to the
+      // Refine modal instead of running the conversion). Open the Refine
+      // modal on the Consistency tab.
+      kgConsistencyGate.resolve?.('cancel');
+      setKgConsistencyGate({ open: false, report: null, resolve: null });
+      setKgRefineInitialTab('consistency');
+      setKgRefineOpen(true);
+    },
+    onProceed: () => {
+      kgConsistencyGate.resolve?.('proceed');
+      setKgConsistencyGate({ open: false, report: null, resolve: null });
+    },
+    onCancel: () => {
+      kgConsistencyGate.resolve?.('cancel');
+      setKgConsistencyGate({ open: false, report: null, resolve: null });
     },
   };
 
@@ -1105,5 +1175,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     isLocalEnvironment,
     kgRefineModalProps,
     kgExportOptionsModalProps,
+    kgConsistencyConfirmModalProps,
   };
 }

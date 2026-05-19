@@ -22,13 +22,27 @@ import {
 import { displayError } from '../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram } from '../../shared/types/project';
-import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
+import type {
+  BesserProject,
+  ConsistencyReport,
+  SupportedDiagramType,
+} from '../../shared/types/project';
+import { useKgConsistencyCheck } from './useKgConsistencyCheck';
 
 export type KgConversionTarget = 'kg_to_class' | 'kg_to_object';
 
 export interface KgConvertOptions {
   resolutions?: Array<{ issueId: string; decision: 'accept' | 'skip' }>;
   kgSignature?: string;
+  /** Skip the pre-conversion consistency gate. Used when the gate's
+   *  `onProceed` re-invokes the conversion — we don't want to ask twice. */
+  skipConsistencyGate?: boolean;
+  /** Optional handler called when the consistency check found at least one
+   *  issue. Returns a promise that resolves with the user's choice:
+   *    - `"proceed"`: continue with the conversion;
+   *    - `"cancel"`: abort silently.
+   *  When omitted, the conversion proceeds without showing a gate (back-compat). */
+  onConsistencyIssues?: (report: ConsistencyReport) => Promise<'proceed' | 'cancel'>;
 }
 
 const ENDPOINT_BY_TARGET: Record<KgConversionTarget, string> = {
@@ -83,12 +97,31 @@ export function getActiveKgDiagram(): { project: BesserProject; diagram: any } |
 
 export const useKgToUmlConversion = () => {
   const dispatch = useAppDispatch();
+  const checkConsistency = useKgConsistencyCheck();
 
   return useCallback(
     async (target: KgConversionTarget, options: KgConvertOptions = {}): Promise<void> => {
       const active = getActiveKgDiagram();
       if (!active) return;
       const { project, diagram: kgDiagram } = active;
+
+      // Pre-conversion OWL/SHACL consistency gate. Skipped on explicit
+      // request (e.g. when the gate's "Proceed anyway" callback re-runs
+      // the conversion) or when no handler is wired up.
+      if (!options.skipConsistencyGate && options.onConsistencyIssues) {
+        try {
+          const consistencyReport = await checkConsistency(kgDiagram);
+          if (consistencyReport.issueCount > 0) {
+            const decision = await options.onConsistencyIssues(consistencyReport);
+            if (decision === 'cancel') return;
+          }
+        } catch (err) {
+          // The check is advisory — if the endpoint fails we surface a toast
+          // and continue with the conversion rather than blocking the user.
+          const message = err instanceof Error ? err.message : 'Consistency check failed.';
+          toast.warn(`Consistency check skipped: ${message}`);
+        }
+      }
 
       try {
         const body: Record<string, unknown> = {
@@ -150,6 +183,6 @@ export const useKgToUmlConversion = () => {
         toast.error(message);
       }
     },
-    [dispatch],
+    [dispatch, checkConsistency],
   );
 };

@@ -37,8 +37,12 @@ import { KgPreflightIssueRow, type RowDecision, type RowRouting } from './KgPref
 import { useKgRefine, type PendingOrphanClassification } from './useKgRefine';
 import type { KgIssue, KgPreflightReport } from './useKgPreflight';
 import type { KgConversionTarget } from './useKgToUmlConversion';
+import { useKgConsistencyCheck } from './useKgConsistencyCheck';
+import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { getActiveDiagram } from '../../shared/types/project';
+import type { BesserProject, ConsistencyReport } from '../../shared/types/project';
 
-type TabKey = 'static' | 'llm';
+type TabKey = 'static' | 'consistency' | 'llm';
 type LlmPhase = 'input' | 'review';
 type DiagramTypeArg = 'ClassDiagram' | 'ObjectDiagram';
 
@@ -56,6 +60,10 @@ export interface KgRefineModalProps {
   open: boolean;
   onClose: () => void;
   onFixInKg?: (issue: KgIssue) => void;
+  /** Selects + zooms-to a set of node ids on the KG canvas, then closes the
+   *  modal. Used by the Consistency tab's "Fix in KG" buttons to take the
+   *  user straight to the offending node. */
+  onFocusNodes?: (nodeIds: string[]) => void;
   /**
    * When set, the modal acts as the pre-conversion review surface for
    * the given target. Applies don't auto-close the modal; instead the
@@ -69,6 +77,10 @@ export interface KgRefineModalProps {
    * The modal closes itself after invoking this callback.
    */
   onConvert?: (kgSignature: string) => void;
+  /** Tab to focus when the modal opens. Defaults to "static". The
+   *  pre-conversion gate uses "consistency" to deep-link the user
+   *  straight into the new tab. */
+  initialTab?: TabKey;
 }
 
 function _initialDecisions(issues: KgIssue[]): Record<string, RowDecision> {
@@ -140,8 +152,10 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   open,
   onClose,
   onFixInKg,
+  onFocusNodes,
   convertTarget,
   onConvert,
+  initialTab,
 }) => {
   const { apiKey, setApiKey } = useOpenAIApiKey();
   const refine = useKgRefine();
@@ -150,7 +164,14 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     : 'ClassDiagram';
   const diagramLabel = convertTarget ? DIAGRAM_LABEL_BY_TARGET[convertTarget] : null;
 
-  const [activeTab, setActiveTab] = useState<TabKey>('static');
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'static');
+  // Consistency tab state — independent of static/LLM tabs.
+  const checkConsistency = useKgConsistencyCheck();
+  const [consistencyStatus, setConsistencyStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [consistencyReport, setConsistencyReport] = useState<ConsistencyReport | null>(null);
+  const [consistencyError, setConsistencyError] = useState<string | null>(null);
+  const [consistencyLastRun, setConsistencyLastRun] = useState<number | null>(null);
+  const ranConsistencyRef = useRef(false);
   // Static tab decisions
   const [staticDecisions, setStaticDecisions] = useState<Record<string, RowDecision>>({});
   // Per-row routing choice for selected static issues: apply the
@@ -178,7 +199,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   // Reset internal state on close.
   useEffect(() => {
     if (!open) {
-      setActiveTab('static');
+      setActiveTab(initialTab ?? 'static');
       setStaticDecisions({});
       setStaticRouting({});
       setLlmDeferredIds([]);
@@ -190,9 +211,14 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
       setPendingOrphan(null);
       setLatestKgSignature(null);
       ranStaticRef.current = false;
+      setConsistencyStatus('idle');
+      setConsistencyReport(null);
+      setConsistencyError(null);
+      setConsistencyLastRun(null);
+      ranConsistencyRef.current = false;
       refine.reset();
     }
-  }, [open, refine]);
+  }, [open, refine, initialTab]);
 
   // Auto-run the static analyzer the first time the modal opens.
   useEffect(() => {
@@ -206,6 +232,38 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Consistency tab runner. Reads the active KG diagram from local storage,
+  // calls /check-kg-consistency, and stores the report. Only invoked when
+  // the user explicitly clicks the "Run check" / "Re-check" button — the
+  // OWL/SHACL validation can be slow on large KGs, so we keep the user in
+  // control of when it actually fires.
+  const runConsistency = React.useCallback(async () => {
+    const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
+    if (!project) {
+      setConsistencyStatus('error');
+      setConsistencyError('No project is open.');
+      return;
+    }
+    const kgDiagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
+    if (!kgDiagram || !kgDiagram.model) {
+      setConsistencyStatus('error');
+      setConsistencyError('No active Knowledge Graph diagram.');
+      return;
+    }
+    setConsistencyStatus('loading');
+    setConsistencyError(null);
+    try {
+      const report = await checkConsistency(kgDiagram);
+      setConsistencyReport(report);
+      setConsistencyStatus('success');
+      setConsistencyLastRun(Date.now());
+      ranConsistencyRef.current = true;
+    } catch (err) {
+      setConsistencyStatus('error');
+      setConsistencyError(err instanceof Error ? err.message : 'Consistency check failed.');
+    }
+  }, [checkConsistency]);
 
   // Initialise / refresh LLM-tab decisions when a new LLM report arrives.
   useEffect(() => {
@@ -429,6 +487,13 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
           className="-mx-6 flex border-b border-border px-6"
         >
           {tabButton('static', 'Automatic')}
+          {tabButton(
+            'consistency',
+            'Consistency',
+            consistencyReport && consistencyReport.issueCount > 0
+              ? String(consistencyReport.issueCount)
+              : undefined,
+          )}
           {tabButton('llm', 'AI', llmTabBadge)}
         </div>
 
@@ -605,6 +670,138 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                 </Button>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'consistency' && (
+          <div role="tabpanel" data-testid="kg-refine-panel-consistency" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Validates the Knowledge Graph against every OWL/SHACL constraint authored
+              on it. Uses pyshacl with OWL2-RL inference on the backend; the check can be
+              slow on large graphs, so it runs only when you click <strong>Run check</strong>.
+            </p>
+            {consistencyStatus === 'idle' && (
+              <div
+                data-testid="kg-refine-consistency-idle"
+                className="rounded border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground"
+              >
+                No check has been run for this Knowledge Graph yet. Click
+                <strong> Run check </strong>
+                below to evaluate every OWL/SHACL constraint against the current ABox.
+              </div>
+            )}
+            {consistencyStatus === 'loading' && (
+              <p className="text-sm text-muted-foreground">Checking consistency…</p>
+            )}
+            {consistencyStatus === 'error' && (
+              <p className="text-sm text-destructive" data-testid="kg-refine-consistency-error">
+                {consistencyError ?? 'Consistency check failed.'}
+              </p>
+            )}
+            {consistencyStatus === 'success' && consistencyReport && (
+              <>
+                {consistencyReport.issueCount === 0 ? (
+                  <div
+                    data-testid="kg-refine-consistency-empty"
+                    className="rounded border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
+                  >
+                    <p className="font-medium">All OWL/SHACL constraints are satisfied.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      {consistencyReport.severityCounts.violation} violation{consistencyReport.severityCounts.violation === 1 ? '' : 's'},{' '}
+                      {consistencyReport.severityCounts.warning} warning{consistencyReport.severityCounts.warning === 1 ? '' : 's'},{' '}
+                      {consistencyReport.severityCounts.info} info
+                      {consistencyLastRun && ` — last run ${new Date(consistencyLastRun).toLocaleTimeString()}`}
+                    </p>
+                    <ul className="max-h-[420px] divide-y divide-border overflow-y-auto rounded border border-border">
+                      {consistencyReport.issues.map((issue) => {
+                        const tone =
+                          issue.severity === 'violation'
+                            ? 'border-l-4 border-l-red-500'
+                            : issue.severity === 'warning'
+                              ? 'border-l-4 border-l-amber-500'
+                              : 'border-l-4 border-l-sky-500';
+                        const hasTargets = issue.affected_node_ids.length > 0;
+                        return (
+                          <li
+                            key={issue.id}
+                            data-testid={`kg-refine-consistency-issue-${issue.id}`}
+                            className={`px-3 py-2 text-sm ${tone}`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                {issue.constraint_label ? (
+                                  <>
+                                    <div className="font-medium">{issue.constraint_label}</div>
+                                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                                      {issue.message}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="font-medium">{issue.message}</div>
+                                )}
+                                <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                                  <span className="rounded bg-muted px-1.5 py-0.5 uppercase tracking-wide">
+                                    {issue.severity}
+                                  </span>
+                                  {issue.spec_kind && (
+                                    <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-900 dark:bg-purple-900 dark:text-purple-100">
+                                      {issue.spec_kind}
+                                    </span>
+                                  )}
+                                  {hasTargets && (
+                                    <span className="truncate">on {issue.affected_node_ids[0]}</span>
+                                  )}
+                                </div>
+                              </div>
+                              {hasTargets && onFocusNodes && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 shrink-0 text-xs"
+                                  onClick={() => {
+                                    // Include the constraint node id so the
+                                    // focused view shows both the offending
+                                    // individual AND the constraint that was
+                                    // violated (with maxNeighbors:15 the focus
+                                    // helper then pulls in the linked
+                                    // class / property / NodeConstraint chain).
+                                    const ids = [...issue.affected_node_ids];
+                                    if (
+                                      issue.constraint_node_id &&
+                                      !ids.includes(issue.constraint_node_id)
+                                    ) {
+                                      ids.push(issue.constraint_node_id);
+                                    }
+                                    onFocusNodes(ids);
+                                    onClose();
+                                  }}
+                                  data-testid={`kg-refine-consistency-fix-${issue.id}`}
+                                >
+                                  Fix in KG
+                                </Button>
+                              )}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
+              </>
+            )}
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={() => void runConsistency()}
+                disabled={consistencyStatus === 'loading'}
+                data-testid="kg-refine-consistency-recheck"
+              >
+                {consistencyStatus === 'idle' ? 'Run check' : 'Re-check'}
+              </Button>
+            </div>
           </div>
         )}
 
