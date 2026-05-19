@@ -12,6 +12,9 @@ import { getActiveDiagram } from '../../shared/types/project';
 import type { BesserProject } from '../../shared/types/project';
 
 export type KgRdfFormat = 'owl' | 'ttl';
+/** Which constraint vocabularies to emit alongside the domain triples.
+ *  Mirrors the backend `vocab` parameter on `/export-kg-rdf/{fmt}`. */
+export type KgRdfVocab = 'owl' | 'shacl' | 'both';
 
 const FALLBACK_FILENAME_BY_FORMAT: Record<KgRdfFormat, string> = {
   owl: 'knowledge_graph.owl',
@@ -32,7 +35,7 @@ export const useExportKgRdf = () => {
   const downloadFile = useFileDownload();
 
   return useCallback(
-    async (format: KgRdfFormat): Promise<void> => {
+    async (format: KgRdfFormat, vocab: KgRdfVocab = 'both'): Promise<void> => {
       const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
       if (!project) {
         toast.error('Open a project before exporting.');
@@ -53,6 +56,7 @@ export const useExportKgRdf = () => {
             id: kgDiagram.id,
             title: kgDiagram.title,
             model: kgDiagram.model,
+            vocab,
           }),
         });
 
@@ -70,7 +74,9 @@ export const useExportKgRdf = () => {
         const filename = extractFilename(response.headers.get('Content-Disposition'), fallback);
 
         downloadFile({ file: blob, filename });
-        toast.success(`${format.toUpperCase()} export completed successfully`);
+        const vocabSuffix =
+          vocab === 'both' ? '' : ` (${vocab.toUpperCase()} constraints only)`;
+        toast.success(`${format.toUpperCase()} export completed${vocabSuffix}.`);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'KG export failed.';
         toast.error(message);

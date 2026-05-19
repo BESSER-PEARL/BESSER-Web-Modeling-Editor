@@ -379,6 +379,13 @@ export interface UseGeneratorExecutionReturn {
     convertTarget?: KgConversionTarget;
     onConvert?: (kgSignature: string) => void;
   };
+  /** Props bag to spread onto <KgExportOptionsDialog />. Opens when the user
+   *  picks "Export with options…" in the Generate menu on a KG diagram. */
+  kgExportOptionsModalProps: {
+    open: boolean;
+    onClose: () => void;
+    onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => void;
+  };
 }
 
 export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGeneratorExecutionReturn {
@@ -401,6 +408,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   // calls ``onConvert`` with the kgSignature once the analyzer reports
   // zero remaining issues.
   const [kgConvertTarget, setKgConvertTarget] = useState<KgConversionTarget | null>(null);
+  // KG → RDF export-options modal: opened by the ``kg_export_with_options``
+  // generator entry; lets the user pick syntax + constraint vocabulary.
+  const [kgExportOptionsOpen, setKgExportOptionsOpen] = useState(false);
 
   const runKgWithPreflight = useCallback(
     async (target: KgConversionTarget): Promise<void> => {
@@ -616,6 +626,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             diagram_type: currentProject.currentDiagramType,
             ...getModelMetrics(currentProject),
           });
+          return { ok: true };
+        }
+
+        if (generatorType === 'kg_export_with_options') {
+          if (!isKgContext) {
+            toast.error('Open a Knowledge Graph diagram before exporting.');
+            return { ok: false, error: 'Open a Knowledge Graph diagram before exporting.' };
+          }
+          setKgExportOptionsOpen(true);
           return { ok: true };
         }
 
@@ -1066,6 +1085,17 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
   };
 
+  // Props for the KG export-options modal.
+  const kgExportOptionsModalProps = {
+    open: kgExportOptionsOpen,
+    onClose: () => setKgExportOptionsOpen(false),
+    onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => {
+      exportKgRdf(fmt, vocab).catch((err) =>
+        toast.error(err instanceof Error ? err.message : 'KG export failed.'),
+      );
+    },
+  };
+
   return {
     isGenerating,
     handleGenerateRequest,
@@ -1074,5 +1104,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     configState,
     isLocalEnvironment,
     kgRefineModalProps,
+    kgExportOptionsModalProps,
   };
 }

@@ -28,7 +28,35 @@ export interface QuantumCircuitData {
 }
 
 // Knowledge Graph data structure (rendered with Cytoscape.js)
-export type KGNodeType = 'class' | 'individual' | 'property' | 'literal' | 'blank';
+export type KGNodeType =
+  | 'class'
+  | 'individual'
+  | 'property'
+  | 'literal'
+  | 'blank'
+  | 'nodeConstraint'
+  | 'propertyConstraint';
+
+/** A single normalised OWL2 / SHACL constraint, stored inside a NodeConstraint
+ * or PropertyConstraint via `metadata.constraintSpecs`. Mirrors the backend
+ * `ConstraintSpec` dataclass; `kind` is the discriminator and `value` shape
+ * depends on `kind` (see `constraint-catalog.ts`).
+ *
+ * For the four SHACL logical operators (`shaclNot` / `shaclAnd` / `shaclOr` /
+ * `shaclXone`), `value` is a `KGNestedShape[]` — see below. */
+export interface KGConstraintSpec {
+  kind: string;
+  value?: unknown;
+  on_class?: string;
+  vocab_pref?: 'owl' | 'shacl';
+}
+
+/** One slot of a SHACL logical operator. Either a reference to another
+ *  constraint node (by id) or an inline anonymous shape carrying its own
+ *  list of constraint specs. The two forms are mutually exclusive. */
+export type KGNestedShape =
+  | { ref: string }
+  | { specs: KGConstraintSpec[] };
 
 export interface KGNodeData {
   id: string;
@@ -38,6 +66,10 @@ export interface KGNodeData {
   value?: string;      // for literals
   datatype?: string;   // for literals
   position?: { x: number; y: number };
+  /** Free-form annotations. For NodeConstraint / PropertyConstraint nodes,
+   *  `metadata.constraintSpecs` carries the list of constraint specifications
+   *  and `metadata.isAnonymous` flags shapes without a stable IRI. */
+  metadata?: Record<string, unknown> & { constraintSpecs?: KGConstraintSpec[] };
 }
 
 export interface KGEdgeData {
@@ -47,6 +79,14 @@ export interface KGEdgeData {
   label?: string;
   iri?: string;
 }
+
+/** Predicate IRIs reserved for the constraint subsystem. These wire
+ *  NodeConstraint / PropertyConstraint nodes to their targets and to each
+ *  other; the RDF exporter knows to filter them and substitute the
+ *  vocabulary-appropriate predicates. */
+export const KG_CONSTRAINT_TARGET_CLASS = 'http://besser.local/kg#constraintTargetClass';
+export const KG_CONSTRAINT_TARGET_PROPERTY = 'http://besser.local/kg#constraintTargetProperty';
+export const KG_SH_PROPERTY = 'http://www.w3.org/ns/shacl#property';
 
 export type KnowledgeGraphLayout = 'concentric' | 'fcose' | 'grid';
 

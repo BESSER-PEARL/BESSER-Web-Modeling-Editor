@@ -9,6 +9,7 @@ import type { KnowledgeGraphData, KGNodeData, KGEdgeData, KGNodeType } from './t
 import type { ConnectMode } from './KnowledgeGraphToolbar';
 import type { KgSelection } from './KnowledgeGraphInspector';
 import type { KnowledgeGraphLayout } from '../../../shared/types/project';
+import { isEdgeAllowed, explainEdgeRejection } from './edge-rules';
 
 // Register extensions exactly once. Cytoscape will throw a benign error on
 // re-registration during HMR; we swallow it.
@@ -164,6 +165,11 @@ function modelToElements(model: KnowledgeGraphData): ElementDefinition[] {
         iri: n.iri,
         value: n.value,
         datatype: n.datatype,
+        // Carry metadata through Cytoscape so cyToModel can put it back on
+        // the re-emitted KGNodeData. Critical for constraint nodes, whose
+        // `metadata.constraintSpecs` would otherwise be silently dropped on
+        // every canvas interaction.
+        metadata: n.metadata,
       },
       // Copy the position object — Cytoscape layouts mutate it in place,
       // and React may freeze state-derived objects in dev mode, which
@@ -201,6 +207,11 @@ function cyToModel(cy: Core, previous: KnowledgeGraphData): KnowledgeGraphData {
       iri: data.iri,
       value: data.value,
       datatype: data.datatype,
+      // Restore the metadata that modelToElements stashed onto data.metadata.
+      // Without this, constraint-bearing nodes lose their `constraintSpecs`
+      // every time the canvas re-emits the model, leading to empty
+      // constraints downstream in the KG → ClassDiagram conversion.
+      metadata: data.metadata,
       position: { x: position.x, y: position.y },
     };
   });
@@ -240,7 +251,16 @@ function mergeWithFullModel(
   const mergedNodes: KGNodeData[] = [];
   for (const n of full.nodes) {
     if (canvasNodeById.has(n.id)) {
-      mergedNodes.push(canvasNodeById.get(n.id)!);
+      const canvasNode = canvasNodeById.get(n.id)!;
+      // Defense-in-depth: if the canvas-emitted node lacks metadata (e.g.
+      // an older diagram saved before metadata was round-tripped through
+      // Cytoscape data), keep the original full-model metadata so
+      // constraint specs survive the merge.
+      mergedNodes.push(
+        canvasNode.metadata === undefined && n.metadata !== undefined
+          ? { ...canvasNode, metadata: n.metadata }
+          : canvasNode,
+      );
       consumed.add(n.id);
     } else if (visibleSet.has(n.id)) {
       // Was visible, now absent → deleted on the canvas. Drop.
@@ -493,7 +513,12 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         snap: true,
         hoverDelay: 150,
         handleNodes: 'node',
-        canConnect: (source: any, target: any) => !source.same(target),
+        canConnect: (source: any, target: any) => {
+          if (source.same(target)) return false;
+          const s = String(source.data('nodeType') ?? '') as KGNodeType;
+          const t = String(target.data('nodeType') ?? '') as KGNodeType;
+          return isEdgeAllowed(s, t);
+        },
         edgeParams: () => ({ data: { id: newId('edge'), label: '' } }),
       });
       ehRef.current = eh;
@@ -601,11 +626,40 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
           clearClickSource();
           return;
         }
-        // Commit the edge.
-        cy.add({
-          group: 'edges',
-          data: { id: newId('edge'), source, target: id, label: '' },
-        });
+        // Commit the edge. If source / target are constraint nodes, auto-tag
+        // the edge with the right internal predicate IRI so the preflight
+        // recognises it as a constraint link (constraintTargetClass /
+        // constraintTargetProperty / sh:property). Without this, an edge
+        // dragged in the editor would be saved without an iri and the
+        // preflight would flag the constraint as unattached.
+        const sourceNode = cy.getElementById(source);
+        const targetNode = cy.getElementById(id);
+        const sourceType = String(sourceNode.data('nodeType') ?? '');
+        const targetType = String(targetNode.data('nodeType') ?? '');
+        // OWL2 DL gate: silently no-op if the source→target combination isn't
+        // permitted (same UX as the existing self-loop case).
+        if (!isEdgeAllowed(sourceType as KGNodeType, targetType as KGNodeType)) {
+          console.warn(
+            `KG edge rejected: ${explainEdgeRejection(sourceType as KGNodeType, targetType as KGNodeType)}`,
+          );
+          clearClickSource();
+          return;
+        }
+        let label = '';
+        let iri: string | undefined;
+        if (sourceType === 'propertyConstraint' && targetType === 'property') {
+          label = 'constraintTargetProperty';
+          iri = 'http://besser.local/kg#constraintTargetProperty';
+        } else if (sourceType === 'nodeConstraint' && targetType === 'class') {
+          label = 'constraintTargetClass';
+          iri = 'http://besser.local/kg#constraintTargetClass';
+        } else if (sourceType === 'nodeConstraint' && targetType === 'propertyConstraint') {
+          label = 'property';
+          iri = 'http://www.w3.org/ns/shacl#property';
+        }
+        const data: Record<string, unknown> = { id: newId('edge'), source, target: id, label };
+        if (iri) data.iri = iri;
+        cy.add({ group: 'edges', data });
         clearClickSource();
         emitChangeFromCy(cy);
       });

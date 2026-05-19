@@ -16,6 +16,7 @@ export type GeneratorType =
   | 'kg_to_object'
   | 'kg_refine'
   | 'kg_export_owl'
-  | 'kg_export_ttl';
+  | 'kg_export_ttl'
+  | 'kg_export_with_options';
 
 export type GeneratorMenuMode = 'class' | 'object' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'kg' | 'none';

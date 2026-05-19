@@ -1,11 +1,22 @@
 /** Color per KG node type — palette swatches and canvas nodes stay in sync. */
 export const KG_NODE_COLORS: Record<string, { fill: string; border: string; text: string }> = {
-  class:      { fill: '#2563eb', border: '#1d4ed8', text: '#ffffff' },
-  individual: { fill: '#f97316', border: '#c2410c', text: '#1f2937' },
-  property:   { fill: '#16a34a', border: '#15803d', text: '#ffffff' },
-  literal:    { fill: '#facc15', border: '#ca8a04', text: '#1f2937' },
-  blank:      { fill: '#9ca3af', border: '#4b5563', text: '#1f2937' },
+  class:              { fill: '#2563eb', border: '#1d4ed8', text: '#ffffff' },
+  individual:         { fill: '#f97316', border: '#c2410c', text: '#1f2937' },
+  property:           { fill: '#16a34a', border: '#15803d', text: '#ffffff' },
+  literal:            { fill: '#facc15', border: '#ca8a04', text: '#1f2937' },
+  blank:              { fill: '#9ca3af', border: '#4b5563', text: '#1f2937' },
+  nodeConstraint:     { fill: '#a855f7', border: '#7e22ce', text: '#ffffff' },
+  propertyConstraint: { fill: '#a855f7', border: '#7e22ce', text: '#ffffff' },
 };
+
+/** Predicate IRIs used internally to wire constraint nodes to their targets
+ *  and to each other. Stylesheet selectors render these edges as dashed so
+ *  they read as "constraint connection" rather than as domain edges. */
+const KG_CONSTRAINT_EDGE_IRIS = [
+  'http://besser.local/kg#constraintTargetClass',
+  'http://besser.local/kg#constraintTargetProperty',
+  'http://www.w3.org/ns/shacl#property',
+];
 
 // Typed as `any[]` because the `Stylesheet` type alias isn't reachable under
 // the `export = cytoscape` pattern — `cytoscape.StylesheetStyle` / `StylesheetCSS`
@@ -81,6 +92,35 @@ export const kgStylesheet: any[] = [
       height: 40,
     },
   },
+  {
+    selector: 'node[nodeType = "nodeConstraint"]',
+    style: {
+      shape: 'round-rectangle',
+      'background-color': KG_NODE_COLORS.nodeConstraint.fill,
+      'border-color': KG_NODE_COLORS.nodeConstraint.border,
+      color: KG_NODE_COLORS.nodeConstraint.text,
+    },
+  },
+  {
+    selector: 'node[nodeType = "propertyConstraint"]',
+    style: {
+      shape: 'diamond',
+      'background-color': KG_NODE_COLORS.propertyConstraint.fill,
+      'border-color': KG_NODE_COLORS.propertyConstraint.border,
+      color: KG_NODE_COLORS.propertyConstraint.text,
+    },
+  },
+  // Internal constraint-wiring edges render as dashed lines so they don't
+  // visually conflict with domain edges (rdfs:subClassOf, properties, etc.).
+  ...KG_CONSTRAINT_EDGE_IRIS.map((iri) => ({
+    selector: `edge[iri = "${iri}"]`,
+    style: {
+      'line-style': 'dashed',
+      'line-color': KG_NODE_COLORS.nodeConstraint.border,
+      'target-arrow-color': KG_NODE_COLORS.nodeConstraint.border,
+      color: KG_NODE_COLORS.nodeConstraint.border,
+    },
+  })),
   {
     selector: 'edge',
     style: {

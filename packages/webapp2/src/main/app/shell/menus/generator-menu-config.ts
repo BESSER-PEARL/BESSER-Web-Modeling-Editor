@@ -98,6 +98,7 @@ const KG_GENERATORS: GeneratorMenuEntry[] = [
     actions: [
       { kind: 'action', label: 'OWL (RDF/XML)', generator: 'kg_export_owl' },
       { kind: 'action', label: 'Turtle (TTL)', generator: 'kg_export_ttl' },
+      { kind: 'action', label: 'Export with options…', generator: 'kg_export_with_options' },
     ],
   },
 ];

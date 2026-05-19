@@ -11,10 +11,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { KnowledgeGraphData, KGNodeData, KGEdgeData, KGNodeType } from './types';
+import type {
+  KnowledgeGraphData,
+  KGNodeData,
+  KGEdgeData,
+  KGNodeType,
+  KGConstraintSpec,
+} from './types';
 import { KG_NODE_TYPES } from './types';
 import { KG_NODE_COLORS } from './stylesheet';
 import { KgShapeIcon } from './KgShapeIcon';
+import { ConstraintSpecsEditor } from './ConstraintSpecsEditor';
+import { KG_EDGE_RULES, sourceTypesAllowedToTarget } from './edge-rules';
 
 export type KgSelection =
   | { kind: 'node'; id: string }
@@ -54,12 +62,14 @@ type Draft = NodeDraft | EdgeDraft | null;
 
 const DATALIST_ID = 'kg-inspector-predicates';
 
+function makeRandomId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? (crypto as Crypto).randomUUID()
+    : Math.random().toString(36).slice(2);
+}
+
 function newEdgeId(): string {
-  const rand =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? (crypto as Crypto).randomUUID()
-      : Math.random().toString(36).slice(2);
-  return `edge:${rand}`;
+  return `edge:${makeRandomId()}`;
 }
 
 function derivePredicateSuggestions(model: KnowledgeGraphData): string[] {
@@ -98,7 +108,10 @@ function nodeFieldsEqual(a: KGNodeData, b: KGNodeData): boolean {
     a.label === b.label &&
     (a.iri ?? '') === (b.iri ?? '') &&
     (a.value ?? '') === (b.value ?? '') &&
-    (a.datatype ?? '') === (b.datatype ?? '')
+    (a.datatype ?? '') === (b.datatype ?? '') &&
+    // For constraint nodes, the spec list lives in metadata and must
+    // participate in dirty detection so Apply triggers correctly.
+    JSON.stringify(a.metadata ?? null) === JSON.stringify(b.metadata ?? null)
   );
 }
 
@@ -378,6 +391,46 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
             draft={draft}
             model={model}
             onDraftChange={(d) => setDraft(d)}
+            onCreateConstraintFor={(nodeType, propertyTargetId) => {
+              // First commit any pending edits to the current class/property,
+              // then add the new constraint node + linking edge, then select
+              // the new node so the user lands in its inspector.
+              const afterDraft = applyDraft(model, draft);
+              const targetId = propertyTargetId ?? draft.originalId;
+              const newNodeId = `${nodeType}:${makeRandomId()}`;
+              const newEdgeIdValue = newEdgeId();
+              const edgeIri =
+                nodeType === 'nodeConstraint'
+                  ? 'http://besser.local/kg#constraintTargetClass'
+                  : 'http://besser.local/kg#constraintTargetProperty';
+              const next: KnowledgeGraphData = {
+                ...afterDraft,
+                nodes: [
+                  ...afterDraft.nodes,
+                  {
+                    id: newNodeId,
+                    nodeType,
+                    label:
+                      nodeType === 'nodeConstraint' ? 'New node constraint' : 'New property constraint',
+                    metadata: { constraintSpecs: [], isAnonymous: true },
+                  },
+                ],
+                edges: [
+                  ...afterDraft.edges,
+                  {
+                    id: newEdgeIdValue,
+                    source: newNodeId,
+                    target: targetId,
+                    label: nodeType === 'nodeConstraint' ? 'targetClass' : 'path',
+                    iri: edgeIri,
+                  },
+                ],
+              };
+              onChange(next);
+              setDraft(null);
+              syncedSigRef.current = null;
+              onRequestSelection({ kind: 'node', id: newNodeId });
+            }}
           />
         )}
         {draft?.kind === 'edge' && (
@@ -583,7 +636,14 @@ const NodeFields: React.FC<{
   draft: NodeDraft;
   model: KnowledgeGraphData;
   onDraftChange: (next: NodeDraft) => void;
-}> = ({ draft, model, onDraftChange }) => {
+  /** Called when the user clicks "+ Add constraint" on a Class or Property
+   *  inspector. Parent applies the current draft, materialises the new
+   *  constraint node + linking edge, and selects the new node. */
+  onCreateConstraintFor: (
+    nodeType: 'nodeConstraint' | 'propertyConstraint',
+    propertyTargetId?: string,
+  ) => void;
+}> = ({ draft, model, onDraftChange, onCreateConstraintFor }) => {
   const swatch = KG_NODE_COLORS[draft.fields.nodeType];
   const setFields = (patch: Partial<KGNodeData>) =>
     onDraftChange({ ...draft, fields: { ...draft.fields, ...patch } });
@@ -674,7 +734,162 @@ const NodeFields: React.FC<{
         id: <code className="rounded bg-muted px-1 py-0.5">{draft.originalId}</code>
       </div>
 
+      {(draft.fields.nodeType === 'nodeConstraint' || draft.fields.nodeType === 'propertyConstraint') && (
+        <ConstraintSpecsEditor
+          node={draft.fields}
+          model={model}
+          onSpecsChange={(specs: KGConstraintSpec[]) => {
+            const meta = { ...(draft.fields.metadata ?? {}), constraintSpecs: specs };
+            setFields({ metadata: meta });
+          }}
+        />
+      )}
+
+      {(draft.fields.nodeType === 'class' || draft.fields.nodeType === 'property') && (
+        <AttachedConstraints
+          ownerNode={draft.fields}
+          model={model}
+          onAddConstraint={(nodeType, propertyTargetId) =>
+            onCreateConstraintFor(nodeType, propertyTargetId)
+          }
+        />
+      )}
+
       <ConnectionsEditor draft={draft} model={model} onDraftChange={onDraftChange} />
+    </div>
+  );
+};
+
+/** "Constraints" section rendered inside the Class / Property inspector.
+ *  Lists existing constraints attached to this node as chips (with one-line
+ *  natural-language summaries) and exposes an "+ Add constraint" button that
+ *  creates a fresh NodeConstraint / PropertyConstraint and wires it. */
+const AttachedConstraints: React.FC<{
+  ownerNode: KGNodeData;
+  model: KnowledgeGraphData;
+  onAddConstraint: (
+    nodeType: 'nodeConstraint' | 'propertyConstraint',
+    propertyTargetId?: string,
+  ) => void;
+}> = ({ ownerNode, model, onAddConstraint }) => {
+  const CONSTRAINT_TARGET_CLASS = 'http://besser.local/kg#constraintTargetClass';
+  const CONSTRAINT_TARGET_PROPERTY = 'http://besser.local/kg#constraintTargetProperty';
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  // For a class: collect NodeConstraints pointing at this class; for a
+  // property: collect PropertyConstraints pointing at this property. Used to
+  // render chips so the user knows what's already attached.
+  const attached = useMemo(() => {
+    const isClass = ownerNode.nodeType === 'class';
+    const targetIri = isClass ? CONSTRAINT_TARGET_CLASS : CONSTRAINT_TARGET_PROPERTY;
+    return model.edges
+      .filter((e) => e.iri === targetIri && e.target === ownerNode.id)
+      .map((e) => model.nodes.find((n) => n.id === e.source))
+      .filter(Boolean) as KGNodeData[];
+  }, [model.edges, model.nodes, ownerNode.id, ownerNode.nodeType]);
+
+  // For a class: list properties whose rdfs:domain is this class — used by
+  // the "Constrain a property of this class…" sub-menu.
+  const propertiesOfClass = useMemo(() => {
+    if (ownerNode.nodeType !== 'class') return [];
+    const domainPred = 'http://www.w3.org/2000/01/rdf-schema#domain';
+    const ids = new Set<string>();
+    for (const e of model.edges) {
+      if (e.iri === domainPred && e.target === ownerNode.id) ids.add(e.source);
+    }
+    return Array.from(ids)
+      .map((id) => model.nodes.find((n) => n.id === id))
+      .filter((n): n is KGNodeData => !!n && n.nodeType === 'property');
+  }, [model.edges, model.nodes, ownerNode.id, ownerNode.nodeType]);
+
+  return (
+    <div className="space-y-2 border-t border-border/60 pt-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Constraints ({attached.length})
+        </Label>
+        <div ref={menuRef} className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={() => {
+              if (ownerNode.nodeType === 'property') {
+                onAddConstraint('propertyConstraint');
+              } else {
+                setMenuOpen((o) => !o);
+              }
+            }}
+          >
+            <Plus className="size-3.5" />
+            Add constraint
+          </Button>
+          {menuOpen && ownerNode.nodeType === 'class' && (
+            <div className="absolute right-0 z-50 mt-1 w-72 rounded-md border bg-popover text-popover-foreground shadow-md">
+              <button
+                type="button"
+                className="block w-full px-3 py-1.5 text-left text-xs hover:bg-muted/60"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onAddConstraint('nodeConstraint');
+                }}
+              >
+                <div className="font-medium">Constrain this class…</div>
+                <div className="text-muted-foreground">
+                  E.g. disjoint with, has key, closed shape.
+                </div>
+              </button>
+              <div className="border-t" />
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Constrain a property of this class
+              </div>
+              {propertiesOfClass.length === 0 && (
+                <div className="px-3 py-1.5 text-xs italic text-muted-foreground">
+                  No properties in this class's domain yet.
+                </div>
+              )}
+              {propertiesOfClass.map((prop) => (
+                <button
+                  key={prop.id}
+                  type="button"
+                  className="block w-full px-3 py-1.5 text-left text-xs hover:bg-muted/60"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onAddConstraint('propertyConstraint', prop.id);
+                  }}
+                >
+                  {prop.label || prop.id}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      {attached.length > 0 ? (
+        <ul className="flex flex-wrap gap-1">
+          {attached.map((c) => (
+            <li
+              key={c.id}
+              className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-[11px] text-purple-900 dark:border-purple-700 dark:bg-purple-900/40 dark:text-purple-100"
+              title={c.id}
+            >
+              {c.label || (c.nodeType === 'nodeConstraint' ? 'Node constraint' : 'Property constraint')}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs italic text-muted-foreground">No constraints yet.</p>
+      )}
     </div>
   );
 };
@@ -826,6 +1041,50 @@ const ConnectionRow: React.FC<{
   );
 };
 
+/** Catalog of fixed predicates for constraint-node connections. The
+ *  inspector restricts the predicate picker to entries from this table
+ *  whenever the source (or, for incoming edges, the target) of the edge is
+ *  a constraint node — this stops the user from inventing predicates that
+ *  the exporter wouldn't recognise. Entries are keyed by the source side
+ *  of the directed edge; each carries the canonical IRI plus the allowed
+ *  target node types.
+ *
+ *  Pre-existing free-text predicates remain available for non-constraint
+ *  source nodes (Class / Property / Individual / Literal / Blank) so the
+ *  generic KG authoring flow is untouched.
+ */
+interface ConstraintPredicateOption {
+  iri: string;
+  label: string;
+  targetTypes: KGNodeType[];
+  description: string;
+}
+
+const CONSTRAINT_PREDICATES_BY_SOURCE: Partial<Record<KGNodeType, ConstraintPredicateOption[]>> = {
+  nodeConstraint: [
+    {
+      iri: 'http://besser.local/kg#constraintTargetClass',
+      label: 'constraintTargetClass',
+      targetTypes: ['class'],
+      description: 'Apply this NodeConstraint to a class.',
+    },
+    {
+      iri: 'http://www.w3.org/ns/shacl#property',
+      label: 'property',
+      targetTypes: ['propertyConstraint'],
+      description: 'Group a PropertyConstraint under this NodeConstraint (sh:property).',
+    },
+  ],
+  propertyConstraint: [
+    {
+      iri: 'http://besser.local/kg#constraintTargetProperty',
+      label: 'constraintTargetProperty',
+      targetTypes: ['property'],
+      description: 'Apply this PropertyConstraint to a property.',
+    },
+  ],
+};
+
 const AddConnectionForm: React.FC<{
   draft: NodeDraft;
   model: KnowledgeGraphData;
@@ -834,15 +1093,63 @@ const AddConnectionForm: React.FC<{
 }> = ({ draft, model, onCancel, onStage }) => {
   const [direction, setDirection] = useState<'outgoing' | 'incoming'>('outgoing');
   const [predicate, setPredicate] = useState('');
+  // For constraint sources we use a dropdown (selectedOption stores the
+  // catalog entry); for everything else the free-text `predicate` is used.
+  const [selectedOption, setSelectedOption] = useState<ConstraintPredicateOption | null>(null);
   const [targetId, setTargetId] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<'all' | KGNodeType>('all');
   const [query, setQuery] = useState('');
 
+  // Which "side" of the to-be-built edge is the constraint node? That's the
+  // side we restrict to fixed predicates. For an outgoing edge, the draft
+  // node is the source; for an incoming edge, the draft node is the target,
+  // so the constrained "source side" is the OTHER node — which means the
+  // valid predicate set depends on what the other node is. For simplicity
+  // we restrict predicates only when the draft node is the source side of
+  // the resulting edge (outgoing from the inspector's POV).
+  const constraintOptions = useMemo<ConstraintPredicateOption[] | null>(() => {
+    if (direction !== 'outgoing') return null;
+    return CONSTRAINT_PREDICATES_BY_SOURCE[draft.fields.nodeType] ?? null;
+  }, [direction, draft.fields.nodeType]);
+
+  // Whenever the predicate set changes, default the selection to the first
+  // option (or clear it if none).
+  useEffect(() => {
+    if (constraintOptions && constraintOptions.length > 0) {
+      setSelectedOption((prev) => prev ?? constraintOptions[0]);
+    } else {
+      setSelectedOption(null);
+    }
+  }, [constraintOptions]);
+
+  // Allowed target node types in the current context. The constraint-source
+  // path (NodeConstraint / PropertyConstraint with a fixed predicate set)
+  // takes precedence; otherwise we fall back to the OWL2 DL edge-rule matrix.
+  // For an incoming edge, "target" of the form means the OTHER node — we
+  // need the inverse rule (which source types may point at the draft node).
+  const allowedTargetTypes = useMemo<KGNodeType[]>(() => {
+    if (constraintOptions && selectedOption) return selectedOption.targetTypes;
+    const draftType = draft.fields.nodeType;
+    if (direction === 'outgoing') {
+      return KG_EDGE_RULES[draftType]?.allowed ?? [];
+    }
+    return sourceTypesAllowedToTarget(draftType);
+  }, [constraintOptions, selectedOption, direction, draft.fields.nodeType]);
+
+  // Force the type-filter chips to a valid choice when allowedTargetTypes
+  // narrows below the current selection.
+  useEffect(() => {
+    if (typeFilter !== 'all' && !allowedTargetTypes.includes(typeFilter as KGNodeType)) {
+      setTypeFilter('all');
+    }
+  }, [allowedTargetTypes, typeFilter]);
+
   const suggestions = useMemo(() => derivePredicateSuggestions(model), [model]);
-  const candidateNodes = useMemo(
-    () => model.nodes.filter((n) => n.id !== draft.originalId),
-    [model.nodes, draft.originalId],
-  );
+  const candidateNodes = useMemo(() => {
+    return model.nodes
+      .filter((n) => n.id !== draft.originalId)
+      .filter((n) => allowedTargetTypes.includes(n.nodeType));
+  }, [model.nodes, draft.originalId, allowedTargetTypes]);
   const filteredNodes = useMemo(() => {
     const q = query.trim().toLowerCase();
     return candidateNodes.filter((n) => {
@@ -855,17 +1162,46 @@ const AddConnectionForm: React.FC<{
     });
   }, [candidateNodes, typeFilter, query]);
 
+  // Visible type-filter chips: only the types currently permitted as the
+  // other end of the edge (so "All" + each allowed).
+  const visibleTypeChips = useMemo(
+    () => KG_NODE_TYPES.filter((t) => allowedTargetTypes.includes(t.type)),
+    [allowedTargetTypes],
+  );
+
+  // If the rule produces no permitted targets (e.g. an outgoing edge from a
+  // literal), surface a short explanation in place of the picker.
+  const noTargetsReason = useMemo<string | null>(() => {
+    if (allowedTargetTypes.length > 0) return null;
+    const draftType = draft.fields.nodeType;
+    return KG_EDGE_RULES[draftType]?.reason
+      ?? 'No valid target types for this node under OWL2 DL.';
+  }, [allowedTargetTypes, draft.fields.nodeType]);
+
   const stage = () => {
     if (!targetId) return;
     const source = direction === 'outgoing' ? draft.originalId : targetId;
     const target = direction === 'outgoing' ? targetId : draft.originalId;
-    const trimmed = predicate.trim();
-    const edge: KGEdgeData = {
-      id: newEdgeId(),
-      source,
-      target,
-      ...(trimmed ? { label: trimmed } : {}),
-    };
+    let edge: KGEdgeData;
+    if (constraintOptions && selectedOption) {
+      // Constraint-source path: emit the canonical IRI + a matching label so
+      // the preflight / exporter recognise it.
+      edge = {
+        id: newEdgeId(),
+        source,
+        target,
+        label: selectedOption.label,
+        iri: selectedOption.iri,
+      };
+    } else {
+      const trimmed = predicate.trim();
+      edge = {
+        id: newEdgeId(),
+        source,
+        target,
+        ...(trimmed ? { label: trimmed } : {}),
+      };
+    }
     onStage(edge);
   };
 
@@ -893,93 +1229,138 @@ const AddConnectionForm: React.FC<{
         </Button>
       </div>
 
-      <div className="space-y-1">
-        <Label className="text-xs">Predicate (type or pick)</Label>
-        <Input
-          value={predicate}
-          onChange={(e) => setPredicate(e.target.value)}
-          placeholder="e.g. knows, type, hasName"
-          list={DATALIST_ID}
-          className="h-8"
-        />
-        <datalist id={DATALIST_ID}>
-          {suggestions.map((s) => (
-            <option key={s} value={s} />
-          ))}
-        </datalist>
-      </div>
+      {constraintOptions ? (
+        // For NodeConstraint / PropertyConstraint sources we only expose the
+        // catalog of internal predicates — typing a free-text predicate here
+        // would produce an edge the exporter can't recognise.
+        <div className="space-y-1">
+          <Label className="text-xs">Predicate</Label>
+          <Select
+            value={selectedOption?.iri ?? ''}
+            onValueChange={(v) => {
+              const next = constraintOptions.find((o) => o.iri === v) ?? null;
+              setSelectedOption(next);
+            }}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {constraintOptions.map((opt) => (
+                <SelectItem key={opt.iri} value={opt.iri}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedOption && (
+            <p className="text-[11px] italic text-muted-foreground">
+              {selectedOption.description}
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <Label className="text-xs">Predicate (type or pick)</Label>
+          <Input
+            value={predicate}
+            onChange={(e) => setPredicate(e.target.value)}
+            placeholder="e.g. knows, type, hasName"
+            list={DATALIST_ID}
+            className="h-8"
+          />
+          <datalist id={DATALIST_ID}>
+            {suggestions.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+        </div>
+      )}
 
       <div className="space-y-1">
         <Label className="text-xs">
           {direction === 'outgoing' ? 'Target' : 'Source'} node
         </Label>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by label / IRI"
-            className="h-7 pl-7 text-xs"
-          />
-        </div>
-        <div className="flex flex-wrap gap-1">
-          <NodePickerChip
-            active={typeFilter === 'all'}
-            onClick={() => setTypeFilter('all')}
-            label="All"
-          />
-          {KG_NODE_TYPES.map((t) => (
-            <NodePickerChip
-              key={t.type}
-              active={typeFilter === t.type}
-              onClick={() => setTypeFilter(t.type)}
-              label={t.label}
-              icon={<KgShapeIcon type={t.type} size={12} />}
-            />
-          ))}
-        </div>
-        <div className="max-h-40 overflow-y-auto rounded-md border border-border/50 bg-background">
-          {candidateNodes.length === 0 && (
-            <div className="p-2 text-[11px] text-muted-foreground">
-              No other nodes in the model.
+        {noTargetsReason ? (
+          <div className="rounded-md border border-amber-300/60 bg-amber-50/70 p-2 text-[11px] italic text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+            {noTargetsReason}
+          </div>
+        ) : (
+          <>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Filter by label / IRI"
+                className="h-7 pl-7 text-xs"
+              />
             </div>
-          )}
-          {candidateNodes.length > 0 && filteredNodes.length === 0 && (
-            <div className="p-2 text-[11px] text-muted-foreground">No nodes match.</div>
-          )}
-          {filteredNodes.map((n) => {
-            const selected = n.id === targetId;
-            return (
-              <label
-                key={n.id}
-                className={
-                  'flex cursor-pointer items-center gap-2 border-b border-border/40 px-2 py-1.5 text-xs last:border-b-0 hover:bg-muted/50 ' +
-                  (selected ? 'bg-brand/10' : '')
-                }
-                title={n.iri ?? n.id}
-              >
-                <input
-                  type="radio"
-                  name="kg-add-connection-target"
-                  checked={selected}
-                  onChange={() => setTargetId(n.id)}
-                  className="size-3.5"
+            <div className="flex flex-wrap gap-1">
+              <NodePickerChip
+                active={typeFilter === 'all'}
+                onClick={() => setTypeFilter('all')}
+                label="All"
+              />
+              {visibleTypeChips.map((t) => (
+                <NodePickerChip
+                  key={t.type}
+                  active={typeFilter === t.type}
+                  onClick={() => setTypeFilter(t.type)}
+                  label={t.label}
+                  icon={<KgShapeIcon type={t.type} size={12} />}
                 />
-                <span className="inline-flex size-4 shrink-0 items-center justify-center">
-                  <KgShapeIcon type={n.nodeType} size={14} />
-                </span>
-                <span className="truncate">{pickerRowLabel(n)}</span>
-              </label>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+            <div className="max-h-40 overflow-y-auto rounded-md border border-border/50 bg-background">
+              {candidateNodes.length === 0 && (
+                <div className="p-2 text-[11px] text-muted-foreground">
+                  No other nodes in the model.
+                </div>
+              )}
+              {candidateNodes.length > 0 && filteredNodes.length === 0 && (
+                <div className="p-2 text-[11px] text-muted-foreground">No nodes match.</div>
+              )}
+              {filteredNodes.map((n) => {
+                const selected = n.id === targetId;
+                return (
+                  <label
+                    key={n.id}
+                    className={
+                      'flex cursor-pointer items-center gap-2 border-b border-border/40 px-2 py-1.5 text-xs last:border-b-0 hover:bg-muted/50 ' +
+                      (selected ? 'bg-brand/10' : '')
+                    }
+                    title={n.iri ?? n.id}
+                  >
+                    <input
+                      type="radio"
+                      name="kg-add-connection-target"
+                      checked={selected}
+                      onChange={() => setTargetId(n.id)}
+                      className="size-3.5"
+                    />
+                    <span className="inline-flex size-4 shrink-0 items-center justify-center">
+                      <KgShapeIcon type={n.nodeType} size={14} />
+                    </span>
+                    <span className="truncate">{pickerRowLabel(n)}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex gap-2 pt-1">
         <Button variant="outline" size="sm" className="flex-1" onClick={onCancel}>
           Cancel
         </Button>
-        <Button size="sm" className="flex-1" disabled={!targetId} onClick={stage}>
+        <Button
+          size="sm"
+          className="flex-1"
+          disabled={!targetId || noTargetsReason !== null}
+          onClick={stage}
+        >
           Stage
         </Button>
       </div>

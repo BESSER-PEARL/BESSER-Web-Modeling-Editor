@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LazyPostHogProvider } from '../shared/services/analytics/LazyPostHogProvider';
 import { ToastContainer } from 'react-toastify';
@@ -57,6 +57,10 @@ const TemplateLibraryDialog = React.lazy(() =>
 const ExportDialog = React.lazy(() =>
   import('../features/export/ExportDialog').then((m) => ({ default: m.ExportDialog })),
 );
+const KgExportOptionsDialog = React.lazy(() =>
+  import('../features/export/KgExportOptionsDialog').then((m) => ({ default: m.KgExportOptionsDialog })),
+);
+
 const KgRefineModal = React.lazy(() =>
   import('../features/import/KgRefineModal').then((m) => ({ default: m.KgRefineModal })),
 );
@@ -116,7 +120,17 @@ function AppContentInner() {
     configState,
     isLocalEnvironment,
     kgRefineModalProps,
+    kgExportOptionsModalProps,
   } = useGeneratorExecution(editor);
+
+  // For the KG export-options dialog: feed it the current KG nodes so it
+  // can count how many constraint specs would be skipped at each vocab.
+  const kgExportNodes = useMemo(() => {
+    if (!currentProject) return [];
+    const diagram = getActiveDiagram(currentProject, 'KnowledgeGraphDiagram');
+    const nodes = (diagram?.model as { nodes?: unknown[] } | undefined)?.nodes;
+    return Array.isArray(nodes) ? (nodes as Array<{ id: string; nodeType: string; label?: string; metadata?: Record<string, unknown> }>) : [];
+  }, [currentProject]);
 
   const handleExport = () => {
     setShowExportDialog(true);
@@ -235,6 +249,15 @@ function AppContentInner() {
           button when the KG is clean. */}
       <Suspense fallback={null}>
         <KgRefineModal {...kgRefineModalProps} />
+      </Suspense>
+
+      {/* KG export-options dialog: opened from Generate → Export Knowledge
+          Graph → Export with options…. Lets the user pick syntax + vocab. */}
+      <Suspense fallback={null}>
+        <KgExportOptionsDialog
+          {...kgExportOptionsModalProps}
+          nodes={kgExportNodes as any}
+        />
       </Suspense>
 
       {/* Onboarding tutorial — disabled for now

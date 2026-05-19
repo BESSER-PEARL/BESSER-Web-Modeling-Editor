@@ -108,5 +108,42 @@ export const KgShapeIcon: React.FC<Props> = ({ type, size = 18 }) => {
         </svg>
       );
     }
+    case 'nodeConstraint': {
+      // Round-rectangle (same as class), purple.
+      const w = size;
+      const h = Math.round(size * 0.72);
+      return (
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
+          <rect
+            x={strokeWidth}
+            y={strokeWidth}
+            width={w - strokeWidth * 2}
+            height={h - strokeWidth * 2}
+            rx={Math.min(3, h / 3)}
+            ry={Math.min(3, h / 3)}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+          />
+        </svg>
+      );
+    }
+    case 'propertyConstraint': {
+      // Diamond (same as property), purple.
+      const p = strokeWidth;
+      const m = size / 2;
+      const far = size - p;
+      return (
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+          <polygon
+            points={`${m},${p} ${far},${m} ${m},${far} ${p},${m}`}
+            fill={fill}
+            stroke={stroke}
+            strokeWidth={strokeWidth}
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    }
   }
 };
