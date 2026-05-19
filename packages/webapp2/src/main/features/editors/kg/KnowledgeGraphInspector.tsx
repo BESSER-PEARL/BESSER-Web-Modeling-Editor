@@ -22,7 +22,7 @@ import { KG_NODE_TYPES } from './types';
 import { KG_NODE_COLORS } from './stylesheet';
 import { KgShapeIcon } from './KgShapeIcon';
 import { ConstraintSpecsEditor } from './ConstraintSpecsEditor';
-import { KG_EDGE_RULES, sourceTypesAllowedToTarget } from './edge-rules';
+import { KG_EDGE_RULES, isMetaVocab, sourceTypesAllowedToTarget } from './edge-rules';
 
 export type KgSelection =
   | { kind: 'node'; id: string }
@@ -1136,20 +1136,31 @@ const AddConnectionForm: React.FC<{
     return sourceTypesAllowedToTarget(draftType);
   }, [constraintOptions, selectedOption, direction, draft.fields.nodeType]);
 
+  // Whether the draft node is itself a vocabulary IRI. If so, every other
+  // node is permitted as the other end of the edge (OWL "punning" carve-out
+  // — see edge-rules.ts).
+  const draftIsMetaVocab = isMetaVocab(draft.fields.iri);
+
   // Force the type-filter chips to a valid choice when allowedTargetTypes
   // narrows below the current selection.
   useEffect(() => {
+    if (draftIsMetaVocab) return;
     if (typeFilter !== 'all' && !allowedTargetTypes.includes(typeFilter as KGNodeType)) {
       setTypeFilter('all');
     }
-  }, [allowedTargetTypes, typeFilter]);
+  }, [allowedTargetTypes, typeFilter, draftIsMetaVocab]);
 
   const suggestions = useMemo(() => derivePredicateSuggestions(model), [model]);
   const candidateNodes = useMemo(() => {
     return model.nodes
       .filter((n) => n.id !== draft.originalId)
-      .filter((n) => allowedTargetTypes.includes(n.nodeType));
-  }, [model.nodes, draft.originalId, allowedTargetTypes]);
+      .filter((n) => {
+        // Either endpoint in the owl/rdf/rdfs/xsd vocabulary bypasses the
+        // strict OWL2 DL gate.
+        if (draftIsMetaVocab || isMetaVocab(n.iri)) return true;
+        return allowedTargetTypes.includes(n.nodeType);
+      });
+  }, [model.nodes, draft.originalId, allowedTargetTypes, draftIsMetaVocab]);
   const filteredNodes = useMemo(() => {
     const q = query.trim().toLowerCase();
     return candidateNodes.filter((n) => {
@@ -1162,21 +1173,24 @@ const AddConnectionForm: React.FC<{
     });
   }, [candidateNodes, typeFilter, query]);
 
-  // Visible type-filter chips: only the types currently permitted as the
-  // other end of the edge (so "All" + each allowed).
-  const visibleTypeChips = useMemo(
-    () => KG_NODE_TYPES.filter((t) => allowedTargetTypes.includes(t.type)),
-    [allowedTargetTypes],
-  );
+  // Visible type-filter chips: the strict-rule allowed set plus any types
+  // that actually appear in candidateNodes via the meta-vocab carve-out.
+  const visibleTypeChips = useMemo(() => {
+    const present = new Set<KGNodeType>(allowedTargetTypes);
+    for (const n of candidateNodes) present.add(n.nodeType);
+    return KG_NODE_TYPES.filter((t) => present.has(t.type));
+  }, [allowedTargetTypes, candidateNodes]);
 
-  // If the rule produces no permitted targets (e.g. an outgoing edge from a
-  // literal), surface a short explanation in place of the picker.
+  // If the rule produces no permitted targets AND no meta-vocab nodes are
+  // available (e.g. an outgoing edge from a literal with no vocab nodes in
+  // the model), surface a short explanation in place of the picker.
   const noTargetsReason = useMemo<string | null>(() => {
+    if (candidateNodes.length > 0) return null;
     if (allowedTargetTypes.length > 0) return null;
     const draftType = draft.fields.nodeType;
     return KG_EDGE_RULES[draftType]?.reason
       ?? 'No valid target types for this node under OWL2 DL.';
-  }, [allowedTargetTypes, draft.fields.nodeType]);
+  }, [allowedTargetTypes, candidateNodes, draft.fields.nodeType]);
 
   const stage = () => {
     if (!targetId) return;

@@ -110,6 +110,20 @@ export const kgStylesheet: any[] = [
       color: KG_NODE_COLORS.propertyConstraint.text,
     },
   },
+  // Vocabulary nodes (owl:/rdf:/rdfs:/xsd:) keep their existing shape +
+  // fill so the user still reads them as their declared kind (class,
+  // individual, …), but get italic labels and a doubled purple border to
+  // mark them as framework concepts rather than user-modelled domain
+  // entities. The `Ⓥ` glyph appended by `displayLabel` provides the chip.
+  {
+    selector: 'node[?isVocab]',
+    style: {
+      'font-style': 'italic',
+      'border-style': 'double',
+      'border-color': '#7e22ce',
+      'border-width': 3,
+    },
+  },
   // Internal constraint-wiring edges render as dashed lines so they don't
   // visually conflict with domain edges (rdfs:subClassOf, properties, etc.).
   ...KG_CONSTRAINT_EDGE_IRIS.map((iri) => ({

@@ -9,7 +9,7 @@ import type { KnowledgeGraphData, KGNodeData, KGEdgeData, KGNodeType } from './t
 import type { ConnectMode } from './KnowledgeGraphToolbar';
 import type { KgSelection } from './KnowledgeGraphInspector';
 import type { KnowledgeGraphLayout } from '../../../shared/types/project';
-import { isEdgeAllowed, explainEdgeRejection } from './edge-rules';
+import { isEdgeAllowed, explainEdgeRejection, formatVocabLabel, isMetaVocab } from './edge-rules';
 
 // Register extensions exactly once. Cytoscape will throw a benign error on
 // re-registration during HMR; we swallow it.
@@ -126,6 +126,14 @@ function hasMeaningfulPositions(nodes: KGNodeData[]): boolean {
  *  `width: 'label'` stylesheet rule renders those nodes as 0×0 pixels — they
  *  are on the canvas but invisible, which looked like "class nodes are hidden". */
 function displayLabel(n: KGNodeData): string {
+  // Vocabulary terms (owl:, rdf:, rdfs:, xsd:) always render with their
+  // namespace prefix and a trailing chip glyph so the user can tell them
+  // apart from user-defined classes/individuals at a glance. The IRI takes
+  // precedence over `n.label` here because the backend often gives vocab
+  // nodes a bare local-name label ("Class", "string", …) which would
+  // otherwise be indistinguishable from a user concept.
+  const vocab = formatVocabLabel(n.iri);
+  if (vocab) return `${vocab} Ⓥ`; // U+24CB = encircled latin small v
   const raw = (n.label ?? '').toString().trim();
   if (raw) return raw;
   if (n.nodeType === 'literal') return n.value != null && String(n.value).trim() !== '' ? String(n.value) : '""';
@@ -170,6 +178,10 @@ function modelToElements(model: KnowledgeGraphData): ElementDefinition[] {
         // `metadata.constraintSpecs` would otherwise be silently dropped on
         // every canvas interaction.
         metadata: n.metadata,
+        // Tag vocabulary nodes (owl:/rdf:/rdfs:/xsd:) so the stylesheet can
+        // render them with the "framework" chip treatment. Cytoscape stores
+        // booleans as strings in selectors, so we keep this as a literal flag.
+        isVocab: isMetaVocab(n.iri),
       },
       // Copy the position object — Cytoscape layouts mutate it in place,
       // and React may freeze state-derived objects in dev mode, which
@@ -517,7 +529,9 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
           if (source.same(target)) return false;
           const s = String(source.data('nodeType') ?? '') as KGNodeType;
           const t = String(target.data('nodeType') ?? '') as KGNodeType;
-          return isEdgeAllowed(s, t);
+          const sIri = source.data('iri') as string | undefined;
+          const tIri = target.data('iri') as string | undefined;
+          return isEdgeAllowed(s, t, sIri, tIri);
         },
         edgeParams: () => ({ data: { id: newId('edge'), label: '' } }),
       });
@@ -636,9 +650,14 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         const targetNode = cy.getElementById(id);
         const sourceType = String(sourceNode.data('nodeType') ?? '');
         const targetType = String(targetNode.data('nodeType') ?? '');
+        const sourceIri = sourceNode.data('iri') as string | undefined;
+        const targetIri = targetNode.data('iri') as string | undefined;
         // OWL2 DL gate: silently no-op if the source→target combination isn't
-        // permitted (same UX as the existing self-loop case).
-        if (!isEdgeAllowed(sourceType as KGNodeType, targetType as KGNodeType)) {
+        // permitted (same UX as the existing self-loop case). Meta-vocab IRIs
+        // (owl:/rdf:/rdfs:/xsd:) bypass the strict type matrix so OWL
+        // "punning" declarations like `:Person rdf:type owl:Class` are
+        // permitted by hand.
+        if (!isEdgeAllowed(sourceType as KGNodeType, targetType as KGNodeType, sourceIri, targetIri)) {
           console.warn(
             `KG edge rejected: ${explainEdgeRejection(sourceType as KGNodeType, targetType as KGNodeType)}`,
           );

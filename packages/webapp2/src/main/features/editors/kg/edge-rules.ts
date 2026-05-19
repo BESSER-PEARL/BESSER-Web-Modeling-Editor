@@ -59,7 +59,71 @@ export const KG_EDGE_RULES: Record<KGNodeType, { allowed: KGNodeType[]; reason: 
   },
 };
 
-export function isEdgeAllowed(source: KGNodeType, target: KGNodeType): boolean {
+/** OWL / RDF / RDFS / XSD framework namespaces. IRIs in these are
+ *  *vocabulary* terms — `owl:Class`, `owl:Restriction`, `xsd:string`, etc. —
+ *  not user-modelled concepts. OWL2 DL's "punning" rule allows declarations
+ *  like `:Foo rdf:type owl:Class` even though strict node-type rules would
+ *  forbid the corresponding class → individual edge, so we short-circuit the
+ *  gate whenever either endpoint is a vocabulary term.
+ *
+ *  Mirrors `_META_VOCAB_NAMESPACES` in
+ *  `besser/BUML/notations/kg_to_buml/_common.py`. */
+export const META_VOCAB_NAMESPACES = [
+  'http://www.w3.org/2002/07/owl#',
+  'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  'http://www.w3.org/2000/01/rdf-schema#',
+  'http://www.w3.org/2001/XMLSchema#',
+] as const;
+
+export function isMetaVocab(iri: string | undefined | null): boolean {
+  if (!iri) return false;
+  return META_VOCAB_NAMESPACES.some((ns) => iri.startsWith(ns));
+}
+
+/** Short CURIE-style prefix per meta-vocabulary namespace. Used by the
+ *  canvas to render vocabulary nodes as e.g. `owl:Class`, `xsd:string`. */
+export const META_VOCAB_PREFIXES: Record<string, string> = {
+  'http://www.w3.org/2002/07/owl#': 'owl',
+  'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf',
+  'http://www.w3.org/2000/01/rdf-schema#': 'rdfs',
+  'http://www.w3.org/2001/XMLSchema#': 'xsd',
+};
+
+/** Returns the short prefix (`owl`, `rdf`, `rdfs`, `xsd`) for a meta-vocab
+ *  IRI, or `null` if `iri` is not in any of the four namespaces. */
+export function vocabPrefix(iri: string | undefined | null): string | null {
+  if (!iri) return null;
+  for (const ns of Object.keys(META_VOCAB_PREFIXES)) {
+    if (iri.startsWith(ns)) return META_VOCAB_PREFIXES[ns];
+  }
+  return null;
+}
+
+/** Returns `<prefix>:<localName>` for a meta-vocab IRI, or `null` otherwise.
+ *  When the IRI ends with the namespace exactly (no local part), returns
+ *  just the prefix. */
+export function formatVocabLabel(iri: string | undefined | null): string | null {
+  if (!iri) return null;
+  for (const ns of Object.keys(META_VOCAB_PREFIXES)) {
+    if (iri.startsWith(ns)) {
+      const local = iri.slice(ns.length);
+      return local ? `${META_VOCAB_PREFIXES[ns]}:${local}` : META_VOCAB_PREFIXES[ns];
+    }
+  }
+  return null;
+}
+
+export function isEdgeAllowed(
+  source: KGNodeType,
+  target: KGNodeType,
+  sourceIri?: string | null,
+  targetIri?: string | null,
+): boolean {
+  // Vocabulary-side carve-out for OWL "punning": either endpoint lying in the
+  // owl/rdf/rdfs/xsd namespace bypasses the strict node-type matrix. Without
+  // this, edges like `:Person rdf:type owl:Class` couldn't be authored by
+  // hand even though they're the standard way OWL declares a class.
+  if (isMetaVocab(sourceIri) || isMetaVocab(targetIri)) return true;
   return KG_EDGE_RULES[source]?.allowed.includes(target) ?? false;
 }
 
