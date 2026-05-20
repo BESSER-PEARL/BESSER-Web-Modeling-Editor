@@ -1,7 +1,6 @@
 import React, { FunctionComponent } from 'react';
 import { AgentWorkspace } from './agent-workspace';
 import { Text } from '../../../components/controls/text/text';
-import { ThemedRect } from '../../../components/theme/themedComponents';
 import { AGENT_PRIMITIVE_COLORS } from '../agent-primitive-colors';
 
 interface Props {
@@ -19,28 +18,28 @@ const truncate = (value: string, max: number) => {
 export const AgentWorkspaceComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const width = element.bounds.width;
   const height = element.bounds.height;
-  const cornerRadius = 8;
   const subtitle = truncate(element.path || element.description || '', 48);
   const accent = element.strokeColor || AGENT_PRIMITIVE_COLORS.workspace.accent;
+  const fill = fillColor || element.fillColor || AGENT_PRIMITIVE_COLORS.workspace.tint;
   const textColor = element.textColor || 'currentColor';
+
+  // Folder: a tab on the top-left rising above the body (a "folder" silhouette).
+  const tabW = Math.min(70, width * 0.45);
+  const tabH = Math.min(16, height * 0.22);
+  const slope = 10;
+  const folderPath = `M 0 0 H ${tabW} L ${tabW + slope} ${tabH} H ${width} V ${height} H 0 Z`;
 
   return (
     <g>
-      <ThemedRect
-        width="100%"
-        height="100%"
-        rx={cornerRadius}
-        fillColor={fillColor || element.fillColor || AGENT_PRIMITIVE_COLORS.workspace.tint}
-        strokeColor={accent}
-      />
-      <Text y={22} fill={accent} fontWeight="bold" fontSize="80%">
+      <path d={folderPath} fill={fill} stroke={accent} strokeWidth={1.5} />
+      <Text x={width / 2} y={tabH + 22} fill={accent} fontWeight="bold" fontSize="80%" textAnchor="middle">
         {`${AGENT_PRIMITIVE_COLORS.workspace.icon} «workspace»`}
       </Text>
-      <Text y={42} fill={textColor} fontWeight="bold">
+      <Text x={width / 2} y={tabH + 42} fill={textColor} fontWeight="bold" textAnchor="middle">
         {element.name}
       </Text>
       {subtitle ? (
-        <Text x={width / 2} y={height - 16} fill={textColor} fontWeight="normal" fontSize="80%" textAnchor="middle">
+        <Text x={width / 2} y={height - 14} fill={textColor} fontWeight="normal" fontSize="80%" textAnchor="middle">
           {subtitle}
         </Text>
       ) : null}

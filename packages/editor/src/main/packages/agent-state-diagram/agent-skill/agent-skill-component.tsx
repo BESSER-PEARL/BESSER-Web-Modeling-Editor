@@ -1,7 +1,6 @@
 import React, { FunctionComponent } from 'react';
 import { AgentSkill } from './agent-skill';
 import { Text } from '../../../components/controls/text/text';
-import { ThemedRect } from '../../../components/theme/themedComponents';
 import { AGENT_PRIMITIVE_COLORS } from '../agent-primitive-colors';
 
 interface Props {
@@ -19,24 +18,24 @@ const truncate = (value: string, max: number) => {
 export const AgentSkillComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const width = element.bounds.width;
   const height = element.bounds.height;
-  const cornerRadius = 8;
   const subtitle = truncate(element.description || element.content || '', 48);
   const accent = element.strokeColor || AGENT_PRIMITIVE_COLORS.skill.accent;
+  const fill = fillColor || element.fillColor || AGENT_PRIMITIVE_COLORS.skill.tint;
   const textColor = element.textColor || 'currentColor';
+
+  // Card with a folded top-right corner (a "note" silhouette).
+  const fold = Math.min(16, width / 6);
+  const cardPath = `M 0 0 H ${width - fold} L ${width} ${fold} V ${height} H 0 Z`;
+  const foldPath = `M ${width - fold} 0 L ${width} ${fold} L ${width - fold} ${fold} Z`;
 
   return (
     <g>
-      <ThemedRect
-        width="100%"
-        height="100%"
-        rx={cornerRadius}
-        fillColor={fillColor || element.fillColor || AGENT_PRIMITIVE_COLORS.skill.tint}
-        strokeColor={accent}
-      />
-      <Text y={22} fill={accent} fontWeight="bold" fontSize="80%">
+      <path d={cardPath} fill={fill} stroke={accent} strokeWidth={1.5} />
+      <path d={foldPath} fill={accent} fillOpacity={0.45} stroke={accent} strokeWidth={1} />
+      <Text x={width / 2} y={24} fill={accent} fontWeight="bold" fontSize="80%" textAnchor="middle">
         {`${AGENT_PRIMITIVE_COLORS.skill.icon} «skill»`}
       </Text>
-      <Text y={42} fill={textColor} fontWeight="bold">
+      <Text x={width / 2} y={44} fill={textColor} fontWeight="bold" textAnchor="middle">
         {element.name}
       </Text>
       {subtitle ? (
