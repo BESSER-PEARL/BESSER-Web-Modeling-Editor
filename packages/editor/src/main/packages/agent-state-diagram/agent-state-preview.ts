@@ -125,14 +125,14 @@ export const composeBotPreview: ComposePreview = (
     sectionTitle('Reasoning'),
     reasoningState,
     sectionSeparator(),
+    sectionTitle('Knowledge'),
+    emptyIntent,
+    ragElement,
+    sectionSeparator(),
     sectionTitle('Capabilities'),
     toolElement,
     skillElement,
     workspaceElement,
-    sectionSeparator(),
-    sectionTitle('Knowledge'),
-    emptyIntent,
-    ragElement,
   ];
 
   return elements;
