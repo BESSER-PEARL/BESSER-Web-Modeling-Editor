@@ -52,10 +52,13 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({ model, visibleIds, onT
 
   const toggleAll = () => {
     if (filtered.length === 0) return;
-    // If everything visible in the list is already selected, unselect all
-    // filtered rows; otherwise select all filtered rows.
-    if (allSelected) {
-      onBulkToggle(filtered.map((n) => n.id), false);
+    // If any filtered row is currently selected, unselect those (so users can
+    // bulk-hide a type even when not all of its nodes are selected — e.g. when
+    // a display cap blocked a previous Select-all). Otherwise select everything
+    // in the current filter.
+    if (selectedInFiltered > 0) {
+      const selectedIds = filtered.filter((n) => visibleSet.has(n.id)).map((n) => n.id);
+      onBulkToggle(selectedIds, false);
     } else {
       onBulkToggle(filtered.map((n) => n.id), true);
     }
@@ -99,8 +102,8 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({ model, visibleIds, onT
           checked={allSelected}
           disabled={filtered.length === 0}
           onChange={toggleAll}
-          aria-label={allSelected ? 'Unselect all shown nodes' : 'Select all shown nodes'}
-          title={allSelected ? 'Unselect all shown' : 'Select all shown'}
+          aria-label={selectedInFiltered > 0 ? 'Unselect all selected nodes in filter' : 'Select all shown nodes'}
+          title={selectedInFiltered > 0 ? 'Unselect all selected in filter' : 'Select all shown'}
         />
         <span className="flex-1 truncate text-[11px] text-muted-foreground">
           {filtered.length === 0
@@ -113,7 +116,7 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({ model, visibleIds, onT
             onClick={toggleAll}
             className="text-[11px] text-brand-dark underline-offset-2 hover:underline dark:text-brand"
           >
-            {allSelected ? 'Unselect all' : 'Select all'}
+            {selectedInFiltered > 0 ? 'Unselect all' : 'Select all'}
           </button>
         )}
       </div>
