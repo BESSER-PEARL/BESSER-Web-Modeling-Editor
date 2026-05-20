@@ -410,6 +410,9 @@ export const KnowledgeGraphEditor: React.FC = () => {
           onConnectModeChange={setConnectMode}
           onFit={() => canvasRef.current?.fit()}
           onResetLayout={() => canvasRef.current?.relayout()}
+          onZoomIn={() => canvasRef.current?.zoomIn()}
+          onZoomOut={() => canvasRef.current?.zoomOut()}
+          onResetZoom={() => canvasRef.current?.resetZoom()}
           nodeCount={model.nodes.length}
           edgeCount={model.edges.length}
           hiddenCount={hiddenCount}

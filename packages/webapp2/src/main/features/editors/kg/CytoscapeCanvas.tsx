@@ -323,6 +323,13 @@ export interface CytoscapeCanvasHandle {
   /** Serialize the live Cytoscape instance into a self-contained HTML
    *  viewer. Returns null if the instance hasn't initialized yet. */
   exportHtml: (title: string) => string | null;
+  /** Zoom in/out around the current viewport center (so the user keeps
+   *  looking at the same place as they zoom). Clamped by minZoom/maxZoom. */
+  zoomIn: () => void;
+  zoomOut: () => void;
+  /** Restore zoom to 1.0 around the viewport center, preserving the current
+   *  pan. Distinct from `fit`, which fits all nodes into view with padding. */
+  resetZoom: () => void;
 }
 
 interface CytoscapeCanvasProps {
@@ -437,8 +444,25 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       onRevealNodesRef.current?.(toReveal);
     };
 
+    const ZOOM_STEP = 1.2;
+    const zoomAtViewportCenter = (factor: number) => {
+      const cy = cyRef.current;
+      if (!cy) return;
+      cy.zoom({
+        level: cy.zoom() * factor,
+        renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 },
+      });
+    };
+
     useImperativeHandle(ref, () => ({
       fit: () => cyRef.current?.fit(undefined, 40),
+      zoomIn: () => zoomAtViewportCenter(ZOOM_STEP),
+      zoomOut: () => zoomAtViewportCenter(1 / ZOOM_STEP),
+      resetZoom: () => {
+        const cy = cyRef.current;
+        if (!cy) return;
+        cy.zoom({ level: 1, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
+      },
       deleteSelected: () => {
         const cy = cyRef.current;
         if (!cy) return;
@@ -509,10 +533,14 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         style: kgStylesheet as any,
         layout: { name: 'preset' },
         wheelSensitivity: 0.2,
+        minZoom: 0.1,
+        maxZoom: 4,
         // Disable panning so plain drag on the empty canvas initiates a
         // rubber-band box selection (Cytoscape's fallback when panning is
         // off). Panning is re-enabled while the user holds Space — see the
-        // keydown/keyup handlers below.
+        // keydown/keyup handlers below. Right-click drag is wired separately
+        // at the container DOM level (see further down) so users can pan
+        // without losing box-select on plain left-drag.
         userPanningEnabled: false,
         boxSelectionEnabled: true,
       });
@@ -737,9 +765,49 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       window.addEventListener('keydown', onKey);
       window.addEventListener('keyup', onKeyUp);
 
+      // Right-click drag pans the canvas. Implemented at the container DOM
+      // level — Cytoscape's `userPanningEnabled` only governs left-button
+      // drag, so this is additive: plain left-drag still box-selects, Space-
+      // held drag still pans, node grab/multi-drag are untouched.
+      const container = containerRef.current!;
+      let rmbPanning = false;
+      let lastX = 0;
+      let lastY = 0;
+      const onMouseDown = (ev: MouseEvent) => {
+        if (ev.button !== 2) return;
+        rmbPanning = true;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        ev.preventDefault();
+      };
+      const onMouseMove = (ev: MouseEvent) => {
+        if (!rmbPanning) return;
+        const dx = ev.clientX - lastX;
+        const dy = ev.clientY - lastY;
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        cy.panBy({ x: dx, y: dy });
+      };
+      const endPan = () => {
+        rmbPanning = false;
+      };
+      const onContextMenu = (ev: MouseEvent) => ev.preventDefault();
+      container.addEventListener('mousedown', onMouseDown);
+      // Window-level move/up so a drag that leaves the canvas still tracks
+      // and terminates cleanly when the button is released anywhere.
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', endPan);
+      container.addEventListener('mouseleave', endPan);
+      container.addEventListener('contextmenu', onContextMenu);
+
       return () => {
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('keyup', onKeyUp);
+        container.removeEventListener('mousedown', onMouseDown);
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', endPan);
+        container.removeEventListener('mouseleave', endPan);
+        container.removeEventListener('contextmenu', onContextMenu);
         if (selectionEmitHandle !== null) {
           clearTimeout(selectionEmitHandle);
           selectionEmitHandle = null;

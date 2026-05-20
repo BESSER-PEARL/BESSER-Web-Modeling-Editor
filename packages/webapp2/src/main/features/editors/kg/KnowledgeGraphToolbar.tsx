@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Link2, Maximize2, RefreshCcw } from 'lucide-react';
+import { Download, Link2, Maximize2, RefreshCcw, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /** 'off' = move/select only; 'connect' = click-a-source-then-click-a-target. */
@@ -10,6 +10,9 @@ interface Props {
   onConnectModeChange: (mode: ConnectMode) => void;
   onFit: () => void;
   onResetLayout: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetZoom?: () => void;
   nodeCount: number;
   edgeCount: number;
   hiddenCount: number;
@@ -25,6 +28,9 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
   onConnectModeChange,
   onFit,
   onResetLayout,
+  onZoomIn,
+  onZoomOut,
+  onResetZoom,
   nodeCount,
   edgeCount,
   hiddenCount,
@@ -51,6 +57,45 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
           <Maximize2 className="size-3.5" />
           <span className="hidden md:inline">Fit</span>
         </Button>
+        {onZoomIn && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 px-2"
+            onClick={onZoomIn}
+            title="Zoom in"
+            aria-label="Zoom in"
+          >
+            <ZoomIn className="size-3.5" />
+            <span className="hidden md:inline">Zoom in</span>
+          </Button>
+        )}
+        {onZoomOut && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 px-2"
+            onClick={onZoomOut}
+            title="Zoom out"
+            aria-label="Zoom out"
+          >
+            <ZoomOut className="size-3.5" />
+            <span className="hidden md:inline">Zoom out</span>
+          </Button>
+        )}
+        {onResetZoom && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 px-2"
+            onClick={onResetZoom}
+            title="Reset zoom to 100% (right-click drag the canvas to pan)"
+            aria-label="Reset zoom"
+          >
+            <RotateCcw className="size-3.5" />
+            <span className="hidden md:inline">Reset zoom</span>
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
