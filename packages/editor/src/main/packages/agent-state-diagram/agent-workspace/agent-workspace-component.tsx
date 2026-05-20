@@ -32,14 +32,14 @@ export const AgentWorkspaceComponent: FunctionComponent<Props> = ({ element, chi
   return (
     <g>
       <path d={folderPath} fill={fill} stroke={accent} strokeWidth={1.5} />
-      <Text x={width / 2} y={tabH + 22} fill={accent} fontWeight="bold" fontSize="80%" textAnchor="middle">
+      <Text x={width / 2} y={tabH + 16} fill={accent} fontWeight="bold" fontSize="80%" textAnchor="middle">
         {`${AGENT_PRIMITIVE_COLORS.workspace.icon} «workspace»`}
       </Text>
-      <Text x={width / 2} y={tabH + 42} fill={textColor} fontWeight="bold" textAnchor="middle">
+      <Text x={width / 2} y={tabH + 34} fill={textColor} fontWeight="bold" textAnchor="middle">
         {element.name}
       </Text>
       {subtitle ? (
-        <Text x={width / 2} y={height - 14} fill={textColor} fontWeight="normal" fontSize="80%" textAnchor="middle">
+        <Text x={width / 2} y={height - 12} fill={textColor} fontWeight="normal" fontSize="80%" textAnchor="middle">
           {subtitle}
         </Text>
       ) : null}
