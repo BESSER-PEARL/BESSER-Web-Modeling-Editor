@@ -43,7 +43,6 @@ import {
   PlatformAssociationOverride,
   PlatformClassOverride,
   PlatformCustomizationData,
-  PlatformDiagramOverride,
   PortSideName,
   ProjectDiagram,
 } from '../../shared/types/project';
@@ -55,11 +54,6 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  buildPresetCustomization,
-  DiagramCustomizationCard,
-  Preset,
-} from './DiagramCustomizationCard';
 import { ClassNodePreview, EdgeStylePreview } from './nodePreview';
 import { COLOR_SWATCHES, hasLowContrast } from './colorSwatches';
 
@@ -539,312 +533,336 @@ const ClassRow: React.FC<{
             <span /> {/* spacer */}
           </button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="border-t bg-muted/10 px-6 py-4 space-y-4">
-          {/* Representation: mutually-exclusive runtime rendering mode */}
-          <section className="rounded-md border border-muted bg-muted/20 p-3 space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label className="text-sm font-semibold text-foreground">Representation</Label>
-                <p className="text-xs text-muted-foreground">
-                  How instances of this class render in the generated editor.
-                </p>
-              </div>
-              <SegmentedControl<ClassRepresentation>
-                ariaLabel={`Representation for ${name}`}
-                value={getRepresentation(override)}
-                options={[
-                  { value: 'node', label: 'Node', description: 'Standalone box on the canvas (default)' },
-                  { value: 'container', label: 'Container', description: 'Hosts other nodes via container associations' },
-                  { value: 'port', label: 'Port', description: 'Renders as a handle on its owning equipment' },
-                  { value: 'connection', label: 'Connection', description: 'Renders as an edge between two ports' },
-                ]}
-                onChange={(rep) => onPatch(representationPatch(rep))}
-              />
-            </div>
-            {override.isContainer && (
-              <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                Tip: open each relationship in the Associations section and turn on{' '}
-                <span className="font-semibold">Container association</span> for the ones whose
-                targets should nest inside this container at runtime.
-              </p>
-            )}
-            {override.isPort && (
-              <div className="space-y-2">
-                <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                  Instances of this class render as graphical handles on their owning
-                  equipment node — not as standalone nodes.
-                </p>
-                <SelectField
-                  label="Anchor side"
-                  value={override.portSide}
-                  options={[
-                    { value: 'auto', label: 'Auto (use direction attribute)' },
-                    { value: 'top', label: 'Top' },
-                    { value: 'right', label: 'Right' },
-                    { value: 'bottom', label: 'Bottom' },
-                    { value: 'left', label: 'Left' },
-                  ]}
-                  onChange={(v) => onPatch({ portSide: v as PortSideName | undefined })}
-                />
-              </div>
-            )}
-            {override.isConnectionClass && (
-              <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                Instances of this class render as edges between two ports. Mark exactly one
-                outgoing association as <span className="font-semibold">Source endpoint</span> and
-                another as <span className="font-semibold">Target endpoint</span> (target classes
-                must be Ports).
-              </p>
-            )}
-          </section>
-
-          {/* Edge styling — only meaningful for connection classes. Mirrors
-              the same controls available on associations so the user can
-              theme edges drawn from this connection class. */}
-          {override.isConnectionClass && (
-            <div className="grid gap-6 lg:grid-cols-3">
-              <section className="space-y-3">
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Line</h4>
-                <ColorField
-                  label="Color"
-                  value={override.edgeColor}
-                  onChange={(v) => onPatch({ edgeColor: v })}
-                />
-                <SliderField
-                  label="Width"
-                  value={override.lineWidth}
-                  defaultValue={2}
-                  min={1}
-                  max={6}
-                  unit="px"
-                  onChange={(v) => onPatch({ lineWidth: v })}
-                />
-                <SelectField
-                  label="Style"
-                  value={override.lineStyle}
-                  options={[
-                    { value: 'solid', label: 'Solid' },
-                    { value: 'dashed', label: 'Dashed' },
-                    { value: 'dotted', label: 'Dotted' },
-                  ]}
-                  onChange={(v) => onPatch({ lineStyle: v as LineStyleName | undefined })}
-                />
-                <SelectField
-                  label="Routing"
-                  value={override.lineRouting}
-                  options={ROUTING_OPTIONS}
-                  onChange={(v) => onPatch({ lineRouting: v as LineRoutingName | undefined })}
-                />
-              </section>
-              <section className="space-y-3">
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Arrows</h4>
-                <SelectField
-                  label="Source arrow"
-                  value={override.sourceArrowStyle}
-                  options={ARROW_OPTIONS}
-                  onChange={(v) => onPatch({ sourceArrowStyle: v as ArrowStyleName | undefined })}
-                />
-                <SelectField
-                  label="Target arrow"
-                  value={override.targetArrowStyle}
-                  options={ARROW_OPTIONS}
-                  onChange={(v) => onPatch({ targetArrowStyle: v as ArrowStyleName | undefined })}
-                />
-              </section>
-              <section className="space-y-3">
-                <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Label</h4>
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-                    {override.labelVisible === false ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                    Visible
-                  </Label>
-                  <Switch
-                    checked={override.labelVisible !== false}
-                    onCheckedChange={(v: boolean) => onPatch({ labelVisible: v ? undefined : false })}
+        <CollapsibleContent className="border-t bg-muted/10 px-6 py-4">
+          <div className="flex gap-6 items-start">
+            {/* ── Left: all configuration sections ── */}
+            <div className="flex-1 min-w-0 space-y-4">
+              {/* Representation: mutually-exclusive runtime rendering mode */}
+              <section className="rounded-md border border-muted bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-sm font-semibold text-foreground">Representation</Label>
+                    <p className="text-xs text-muted-foreground">
+                      How instances of this class render in the generated editor.
+                    </p>
+                  </div>
+                  <SegmentedControl<ClassRepresentation>
+                    ariaLabel={`Representation for ${name}`}
+                    value={getRepresentation(override)}
+                    options={[
+                      { value: 'node', label: 'Node', description: 'Standalone box on the canvas (default)' },
+                      { value: 'container', label: 'Container', description: 'Hosts other nodes via container associations' },
+                      { value: 'port', label: 'Port', description: 'Renders as a handle on its owning equipment' },
+                      { value: 'connection', label: 'Connection', description: 'Renders as an edge between two ports' },
+                    ]}
+                    onChange={(rep) => onPatch(representationPatch(rep))}
                   />
                 </div>
-                <SliderField
-                  label="Font size"
-                  value={override.labelFontSize}
-                  defaultValue={11}
-                  min={8}
-                  max={18}
-                  unit="px"
-                  onChange={(v) => onPatch({ labelFontSize: v })}
-                />
-                <ColorField
-                  label="Font color"
-                  value={override.labelFontColor}
-                  onChange={(v) => onPatch({ labelFontColor: v })}
-                />
-              </section>
-            </div>
-          )}
-
-          {(() => {
-            const rep = getRepresentation(override);
-            const isPort = rep === 'port';
-            const isConnection = rep === 'connection';
-            // Icon is active when the class has one and useIcon is not explicitly false.
-            const iconActive = !!icon && override.useIcon !== false;
-            // For connection classes the main grid is redundant with the edge block above.
-            if (isConnection) return null;
-            return (
-              <div className="grid gap-6 lg:grid-cols-3">
-                {/* Layout */}
-                <section className="space-y-3">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Layout</h4>
-                  {!isPort && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <Label
-                          className="text-xs uppercase tracking-wider text-muted-foreground"
-                          title="Show drag handles on instances so the user can resize the node"
-                        >
-                          Resizable
-                        </Label>
-                        <Switch
-                          checked={!!override.isResizable}
-                          onCheckedChange={(v: boolean) => onPatch({ isResizable: v || undefined })}
-                        />
-                      </div>
-                      <NumberField
-                        label="Width (px)"
-                        value={override.defaultWidth}
-                        onChange={(v) => onPatch({ defaultWidth: v })}
-                      />
-                      <NumberField
-                        label="Height (px)"
-                        value={override.defaultHeight}
-                        onChange={(v) => onPatch({ defaultHeight: v })}
-                      />
-                      <ConnectionPointsField
-                        value={override.connectionPoints}
-                        onChange={(v) => onPatch({ connectionPoints: v })}
-                      />
-                    </>
-                  )}
-                  <SelectField
-                    label="Shape"
-                    value={override.nodeShape}
-                    options={[
-                      { value: 'rectangle', label: 'Rectangle' },
-                      { value: 'rounded_rect', label: 'Rounded rectangle' },
-                      { value: 'ellipse', label: 'Ellipse' },
-                      { value: 'diamond', label: 'Diamond' },
-                      { value: 'hexagon', label: 'Hexagon' },
-                    ]}
-                    onChange={(v) => onPatch({ nodeShape: v as NodeShape | undefined })}
-                  />
-                  {!isPort && (
+                {override.isContainer && (
+                  <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
+                    Tip: open each relationship in the Associations section and turn on{' '}
+                    <span className="font-semibold">Container association</span> for the ones whose
+                    targets should nest inside this container at runtime.
+                  </p>
+                )}
+                {override.isPort && (
+                  <div className="space-y-2">
+                    <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
+                      Instances of this class render as graphical handles on their owning
+                      equipment node — not as standalone nodes.
+                    </p>
                     <SelectField
-                      label="Label position"
-                      value={override.labelPosition}
+                      label="Anchor side"
+                      value={override.portSide}
                       options={[
+                        { value: 'auto', label: 'Auto (use direction attribute)' },
                         { value: 'top', label: 'Top' },
-                        { value: 'inside', label: 'Inside' },
+                        { value: 'right', label: 'Right' },
                         { value: 'bottom', label: 'Bottom' },
+                        { value: 'left', label: 'Left' },
                       ]}
-                      onChange={(v) => onPatch({ labelPosition: v as LabelPositionName | undefined })}
+                      onChange={(v) => onPatch({ portSide: v as PortSideName | undefined })}
                     />
-                  )}
-                </section>
+                  </div>
+                )}
+                {override.isConnectionClass && (
+                  <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
+                    Instances of this class render as edges between two ports. Mark exactly one
+                    outgoing association as <span className="font-semibold">Source endpoint</span> and
+                    another as <span className="font-semibold">Target endpoint</span> (target classes
+                    must be Ports).
+                  </p>
+                )}
+              </section>
 
-                {/* Appearance */}
-                <section className="space-y-3">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Appearance</h4>
-                  {!!icon && (
-                    <div className="flex items-center justify-between">
-                      <Label
-                        className="text-xs uppercase tracking-wider text-muted-foreground"
-                        title="When off, the shape / fill / border styling is used instead of the class-diagram icon"
-                      >
-                        Use icon
+              {/* Edge styling — only meaningful for connection classes */}
+              {override.isConnectionClass && (
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <section className="space-y-3">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Line</h4>
+                    <ColorField
+                      label="Color"
+                      value={override.edgeColor}
+                      onChange={(v) => onPatch({ edgeColor: v })}
+                    />
+                    <SliderField
+                      label="Width"
+                      value={override.lineWidth}
+                      defaultValue={2}
+                      min={1}
+                      max={6}
+                      unit="px"
+                      onChange={(v) => onPatch({ lineWidth: v })}
+                    />
+                    <SelectField
+                      label="Style"
+                      value={override.lineStyle}
+                      options={[
+                        { value: 'solid', label: 'Solid' },
+                        { value: 'dashed', label: 'Dashed' },
+                        { value: 'dotted', label: 'Dotted' },
+                      ]}
+                      onChange={(v) => onPatch({ lineStyle: v as LineStyleName | undefined })}
+                    />
+                    <SelectField
+                      label="Routing"
+                      value={override.lineRouting}
+                      options={ROUTING_OPTIONS}
+                      onChange={(v) => onPatch({ lineRouting: v as LineRoutingName | undefined })}
+                    />
+                  </section>
+                  <section className="space-y-3">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Arrows</h4>
+                    <SelectField
+                      label="Source arrow"
+                      value={override.sourceArrowStyle}
+                      options={ARROW_OPTIONS}
+                      onChange={(v) => onPatch({ sourceArrowStyle: v as ArrowStyleName | undefined })}
+                    />
+                    <SelectField
+                      label="Target arrow"
+                      value={override.targetArrowStyle}
+                      options={ARROW_OPTIONS}
+                      onChange={(v) => onPatch({ targetArrowStyle: v as ArrowStyleName | undefined })}
+                    />
+                  </section>
+                  <section className="space-y-3">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Label</h4>
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
+                        {override.labelVisible === false ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                        Visible
                       </Label>
                       <Switch
-                        checked={iconActive}
-                        onCheckedChange={(v: boolean) => onPatch({ useIcon: v ? undefined : false })}
+                        checked={override.labelVisible !== false}
+                        onCheckedChange={(v: boolean) => onPatch({ labelVisible: v ? undefined : false })}
                       />
                     </div>
-                  )}
-                  {!iconActive && (
-                    <>
-                      <ColorField
-                        label="Fill"
-                        value={override.fillColor}
-                        onChange={(v) => onPatch({ fillColor: v })}
-                        contrastAgainst={override.fontColor}
-                      />
-                      <ColorField
-                        label="Border"
-                        value={override.borderColor}
-                        onChange={(v) => onPatch({ borderColor: v })}
-                      />
-                      <SliderField
-                        label="Border width"
-                        value={override.borderWidth}
-                        defaultValue={2}
-                        min={0}
-                        max={8}
-                        unit="px"
-                        onChange={(v) => onPatch({ borderWidth: v })}
-                      />
-                      <SelectField
-                        label="Border style"
-                        value={override.borderStyle}
-                        options={[
-                          { value: 'solid', label: 'Solid' },
-                          { value: 'dashed', label: 'Dashed' },
-                          { value: 'dotted', label: 'Dotted' },
-                        ]}
-                        onChange={(v) => onPatch({ borderStyle: v as LineStyleName | undefined })}
-                      />
-                    </>
-                  )}
-                  <SliderField
-                    label="Border radius"
-                    value={override.borderRadius}
-                    defaultValue={8}
-                    min={0}
-                    max={32}
-                    unit="px"
-                    onChange={(v) => onPatch({ borderRadius: v })}
-                  />
-                </section>
-
-                {/* Typography — hidden for port classes (they have no visible label) */}
-                {!isPort && (
-                  <section className="space-y-3">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Typography</h4>
                     <SliderField
                       label="Font size"
-                      value={override.fontSize}
-                      defaultValue={14}
+                      value={override.labelFontSize}
+                      defaultValue={11}
                       min={8}
-                      max={24}
+                      max={18}
                       unit="px"
-                      onChange={(v) => onPatch({ fontSize: v })}
-                    />
-                    <SelectField
-                      label="Font weight"
-                      value={override.fontWeight}
-                      options={[
-                        { value: 'normal', label: 'Normal' },
-                        { value: 'bold', label: 'Bold' },
-                      ]}
-                      onChange={(v) => onPatch({ fontWeight: v as FontWeightName | undefined })}
+                      onChange={(v) => onPatch({ labelFontSize: v })}
                     />
                     <ColorField
                       label="Font color"
-                      value={override.fontColor}
-                      onChange={(v) => onPatch({ fontColor: v })}
-                      contrastAgainst={override.fillColor}
+                      value={override.labelFontColor}
+                      onChange={(v) => onPatch({ labelFontColor: v })}
                     />
                   </section>
-                )}
+                </div>
+              )}
+
+              {(() => {
+                const rep = getRepresentation(override);
+                const isPort = rep === 'port';
+                const isConnection = rep === 'connection';
+                const iconActive = !!icon && override.useIcon !== false;
+                if (isConnection) return null;
+                return (
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    {/* Layout */}
+                    <section className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Layout</h4>
+                      {!isPort && (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <Label
+                              className="text-xs uppercase tracking-wider text-muted-foreground"
+                              title="Show drag handles on instances so the user can resize the node"
+                            >
+                              Resizable
+                            </Label>
+                            <Switch
+                              checked={!!override.isResizable}
+                              onCheckedChange={(v: boolean) => onPatch({ isResizable: v || undefined })}
+                            />
+                          </div>
+                          <NumberField
+                            label="Width (px)"
+                            value={override.defaultWidth}
+                            onChange={(v) => onPatch({ defaultWidth: v })}
+                          />
+                          <NumberField
+                            label="Height (px)"
+                            value={override.defaultHeight}
+                            onChange={(v) => onPatch({ defaultHeight: v })}
+                          />
+                          <ConnectionPointsField
+                            value={override.connectionPoints}
+                            onChange={(v) => onPatch({ connectionPoints: v })}
+                          />
+                        </>
+                      )}
+                      <SelectField
+                        label="Shape"
+                        value={override.nodeShape}
+                        options={[
+                          { value: 'rectangle', label: 'Rectangle' },
+                          { value: 'rounded_rect', label: 'Rounded rectangle' },
+                          { value: 'ellipse', label: 'Ellipse' },
+                          { value: 'diamond', label: 'Diamond' },
+                          { value: 'hexagon', label: 'Hexagon' },
+                        ]}
+                        onChange={(v) => onPatch({ nodeShape: v as NodeShape | undefined })}
+                      />
+                      {!isPort && (
+                        <SelectField
+                          label="Label position"
+                          value={override.labelPosition}
+                          options={[
+                            { value: 'top', label: 'Top' },
+                            { value: 'inside', label: 'Inside' },
+                            { value: 'bottom', label: 'Bottom' },
+                          ]}
+                          onChange={(v) => onPatch({ labelPosition: v as LabelPositionName | undefined })}
+                        />
+                      )}
+                    </section>
+
+                    {/* Appearance */}
+                    <section className="space-y-3">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Appearance</h4>
+                      {!!icon && (
+                        <div className="flex items-center justify-between">
+                          <Label
+                            className="text-xs uppercase tracking-wider text-muted-foreground"
+                            title="When off, the shape / fill / border styling is used instead of the class-diagram icon"
+                          >
+                            Use icon
+                          </Label>
+                          <Switch
+                            checked={iconActive}
+                            onCheckedChange={(v: boolean) => onPatch({ useIcon: v ? undefined : false })}
+                          />
+                        </div>
+                      )}
+                      {!iconActive && (
+                        <>
+                          <ColorField
+                            label="Fill"
+                            value={override.fillColor}
+                            onChange={(v) => onPatch({ fillColor: v })}
+                            contrastAgainst={override.fontColor}
+                          />
+                          <ColorField
+                            label="Border"
+                            value={override.borderColor}
+                            onChange={(v) => onPatch({ borderColor: v })}
+                          />
+                          <SliderField
+                            label="Border width"
+                            value={override.borderWidth}
+                            defaultValue={2}
+                            min={0}
+                            max={8}
+                            unit="px"
+                            onChange={(v) => onPatch({ borderWidth: v })}
+                          />
+                          <SelectField
+                            label="Border style"
+                            value={override.borderStyle}
+                            options={[
+                              { value: 'solid', label: 'Solid' },
+                              { value: 'dashed', label: 'Dashed' },
+                              { value: 'dotted', label: 'Dotted' },
+                            ]}
+                            onChange={(v) => onPatch({ borderStyle: v as LineStyleName | undefined })}
+                          />
+                        </>
+                      )}
+                      <SliderField
+                        label="Border radius"
+                        value={override.borderRadius}
+                        defaultValue={8}
+                        min={0}
+                        max={32}
+                        unit="px"
+                        onChange={(v) => onPatch({ borderRadius: v })}
+                      />
+                    </section>
+
+                    {/* Typography — hidden for port classes */}
+                    {!isPort && (
+                      <section className="space-y-3">
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Typography</h4>
+                        <SliderField
+                          label="Font size"
+                          value={override.fontSize}
+                          defaultValue={14}
+                          min={8}
+                          max={24}
+                          unit="px"
+                          onChange={(v) => onPatch({ fontSize: v })}
+                        />
+                        <SelectField
+                          label="Font weight"
+                          value={override.fontWeight}
+                          options={[
+                            { value: 'normal', label: 'Normal' },
+                            { value: 'bold', label: 'Bold' },
+                          ]}
+                          onChange={(v) => onPatch({ fontWeight: v as FontWeightName | undefined })}
+                        />
+                        <ColorField
+                          label="Font color"
+                          value={override.fontColor}
+                          onChange={(v) => onPatch({ fontColor: v })}
+                          contrastAgainst={override.fillColor}
+                        />
+                      </section>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* ── Right: live preview panel ── */}
+            <div className="w-44 flex-shrink-0 self-start sticky top-4">
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-card/80 p-3 shadow-sm">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Preview
+                </span>
+                <div className="h-36 w-full overflow-hidden rounded-lg border border-border/40 bg-muted/20 p-2 shadow-inner">
+                  <ClassNodePreview
+                    override={override}
+                    icon={icon}
+                    label={name.slice(0, 2).toUpperCase()}
+                    representation={getRepresentation(override)}
+                  />
+                </div>
+                <span className="max-w-full truncate text-center text-xs font-medium text-foreground">
+                  {name}
+                </span>
+                <span className="text-[10px] capitalize text-muted-foreground">
+                  {getRepresentation(override)}
+                </span>
               </div>
-            );
-          })()}
+            </div>
+          </div>
         </CollapsibleContent>
       </Collapsible>
     </li>
@@ -1278,28 +1296,6 @@ export const PlatformCustomizationPanel: React.FC = () => {
     [customization, persist],
   );
 
-  const patchDiagram = useCallback(
-    (patch: Partial<PlatformDiagramOverride>) => {
-      const existing = customization.diagramCustomization ?? {};
-      const merged = compact({ ...existing, ...patch });
-      const next = { ...customization };
-      if (Object.keys(merged).length === 0) {
-        delete next.diagramCustomization;
-      } else {
-        next.diagramCustomization = merged;
-      }
-      persist(next);
-    },
-    [customization, persist],
-  );
-
-  const applyPreset = useCallback(
-    (preset: Preset) => {
-      persist(buildPresetCustomization(preset, classNames, associationNames, customization));
-    },
-    [classNames, associationNames, customization, persist],
-  );
-
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-background">
       <div className="border-b bg-card/60 px-6 py-4 backdrop-blur-sm">
@@ -1356,16 +1352,6 @@ export const PlatformCustomizationPanel: React.FC = () => {
                 </ul>
               </div>
             </div>
-          )}
-
-          {isUMLModel(classDiagramModel) && (
-            <DiagramCustomizationCard
-              classNames={classNames}
-              associationNames={associationNames}
-              customization={customization}
-              onPatch={patchDiagram}
-              onApplyPreset={applyPreset}
-            />
           )}
 
           {classNames.length > 0 && (
