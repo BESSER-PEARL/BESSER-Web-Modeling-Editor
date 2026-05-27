@@ -70,16 +70,37 @@ export const ClassNodePreview: React.FC<{
     return <PortClassPreview override={override} />;
   }
 
-  // Icons take precedence over node_shape — same rule the generated editor uses
-  // (see InstanceNode.tsx in the platform generator templates).
-  if (icon) {
+  // Icons take precedence — but only when useIcon is not explicitly disabled.
+  const showIcon = !!icon && override?.useIcon !== false;
+
+  if (showIcon) {
+    const lp = override?.labelPosition;
+    const fontColor = override?.fontColor ?? 'hsl(var(--foreground))';
+    const fontSize = override?.fontSize ? `${Math.min(override.fontSize, 13)}px` : '11px';
+    const fontWeight = override?.fontWeight ?? 'normal';
     return (
-      <div
-        className="flex size-full items-center justify-center [&_svg]:h-full [&_svg]:w-full"
-        style={{ color: override?.fontColor ?? 'hsl(var(--primary))' }}
-        // Icons are user-uploaded SVG strings; same handling as the generated InstanceNode.
-        dangerouslySetInnerHTML={{ __html: icon }}
-      />
+      <div className="flex h-full flex-col items-center justify-center gap-1" style={{ color: 'hsl(var(--primary))' }}>
+        {lp === 'top' && (
+          <span
+            className="max-w-full truncate px-1 text-center leading-none"
+            style={{ fontSize, fontWeight, color: fontColor }}
+          >
+            {label}
+          </span>
+        )}
+        <div
+          className="flex min-h-0 flex-1 items-center justify-center [&_svg]:h-full [&_svg]:w-full"
+          dangerouslySetInnerHTML={{ __html: icon }}
+        />
+        {lp !== 'top' && (
+          <span
+            className="max-w-full truncate px-1 text-center leading-none"
+            style={{ fontSize, fontWeight, color: fontColor }}
+          >
+            {label}
+          </span>
+        )}
+      </div>
     );
   }
 
@@ -92,6 +113,7 @@ export const ClassNodePreview: React.FC<{
   const fontColor = override?.fontColor ?? 'hsl(var(--foreground))';
   const fontSize = override?.fontSize ? Math.min(override.fontSize, 14) : 11;
   const fontWeight = override?.fontWeight ?? 'bold';
+  const labelPosition = override?.labelPosition;
 
   const commonProps = { fill, stroke, strokeWidth: sw, strokeDasharray: dash };
 
@@ -108,6 +130,9 @@ export const ClassNodePreview: React.FC<{
     );
   }
 
+  // Map labelPosition to a y coordinate inside the shape.
+  const textY = labelPosition === 'top' ? 20 : labelPosition === 'bottom' ? 48 : 32;
+
   return (
     <svg
       viewBox="0 0 96 64"
@@ -118,8 +143,9 @@ export const ClassNodePreview: React.FC<{
       {shapeNode}
       <text
         x="48"
-        y="36"
+        y={textY}
         textAnchor="middle"
+        dominantBaseline="middle"
         fontSize={fontSize}
         fontWeight={fontWeight}
         fill={fontColor}

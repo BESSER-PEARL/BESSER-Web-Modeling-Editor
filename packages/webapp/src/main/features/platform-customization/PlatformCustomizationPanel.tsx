@@ -717,18 +717,23 @@ const ClassRow: React.FC<{
                           />
                         </>
                       )}
-                      <SelectField
-                        label="Shape"
-                        value={override.nodeShape}
-                        options={[
-                          { value: 'rectangle', label: 'Rectangle' },
-                          { value: 'rounded_rect', label: 'Rounded rectangle' },
-                          { value: 'ellipse', label: 'Ellipse' },
-                          { value: 'diamond', label: 'Diamond' },
-                          { value: 'hexagon', label: 'Hexagon' },
-                        ]}
-                        onChange={(v) => onPatch({ nodeShape: v as NodeShape | undefined })}
-                      />
+                      {!iconActive && (
+                        <SelectField
+                          label="Shape"
+                          value={override.nodeShape}
+                          options={[
+                            { value: 'rectangle', label: 'Rectangle' },
+                            { value: 'ellipse', label: 'Ellipse' },
+                            { value: 'diamond', label: 'Diamond' },
+                            { value: 'hexagon', label: 'Hexagon' },
+                          ]}
+                          onChange={(v) => {
+                            const shape = v as NodeShape | undefined;
+                            const clearRadius = shape === 'ellipse' || shape === 'diamond' || shape === 'hexagon';
+                            onPatch({ nodeShape: shape, ...(clearRadius ? { borderRadius: undefined } : {}) });
+                          }}
+                        />
+                      )}
                       {!isPort && (
                         <SelectField
                           label="Label position"
@@ -794,15 +799,17 @@ const ClassRow: React.FC<{
                           />
                         </>
                       )}
-                      <SliderField
-                        label="Border radius"
-                        value={override.borderRadius}
-                        defaultValue={8}
-                        min={0}
-                        max={32}
-                        unit="px"
-                        onChange={(v) => onPatch({ borderRadius: v })}
-                      />
+                      {!isPort && (override.nodeShape === 'rectangle' || override.nodeShape === undefined) && (
+                        <SliderField
+                          label="Border radius"
+                          value={override.borderRadius}
+                          defaultValue={8}
+                          min={0}
+                          max={32}
+                          unit="px"
+                          onChange={(v) => onPatch({ borderRadius: v })}
+                        />
+                      )}
                     </section>
 
                     {/* Typography — hidden for port classes */}
@@ -840,8 +847,8 @@ const ClassRow: React.FC<{
               })()}
             </div>
 
-            {/* ── Right: live preview panel ── */}
-            <div className="w-44 flex-shrink-0 self-start sticky top-4">
+            {/* ── Right: live preview panel (vertically centered in the flex row) ── */}
+            <div className="w-44 flex-shrink-0 self-center">
               <div className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-card/80 p-3 shadow-sm">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Preview
@@ -850,7 +857,7 @@ const ClassRow: React.FC<{
                   <ClassNodePreview
                     override={override}
                     icon={icon}
-                    label={name.slice(0, 2).toUpperCase()}
+                    label={name.length > 8 ? name.slice(0, 7) + '…' : name}
                     representation={getRepresentation(override)}
                   />
                 </div>
