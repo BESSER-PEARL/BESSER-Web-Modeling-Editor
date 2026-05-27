@@ -32,6 +32,8 @@ type OwnProps = {
   onIdChange?: (checked: boolean) => void;
   isExternalId?: boolean;
   onExternalIdChange?: (checked: boolean) => void;
+  isInput?: boolean;
+  onInputChange?: (checked: boolean) => void;
   defaultValue?: any;
   onDefaultValueChange?: (value: string) => void;
   attributeType?: string;
@@ -255,7 +257,7 @@ class StylePaneComponent extends Component<Props, State> {
 
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, isId, onIdChange, isExternalId, onExternalIdChange, defaultValue, onDefaultValueChange, enumerationLiterals } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, isId, onIdChange, isExternalId, onExternalIdChange, isInput, onInputChange, defaultValue, onDefaultValueChange, enumerationLiterals } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
@@ -296,6 +298,20 @@ class StylePaneComponent extends Component<Props, State> {
                 type="checkbox"
                 checked={isDerived || false}
                 onChange={(e) => onDerivedChange(e.target.checked)}
+              />
+            </CheckboxRow>
+            <Divider />
+          </>
+        )}
+        {onInputChange && (
+          <>
+            <CheckboxRow as="label" htmlFor={`input-${element?.id}`}>
+              <span>Input-bound</span>
+              <input
+                id={`input-${element?.id}`}
+                type="checkbox"
+                checked={isInput || false}
+                onChange={(e) => onInputChange(e.target.checked)}
               />
             </CheckboxRow>
             <Divider />

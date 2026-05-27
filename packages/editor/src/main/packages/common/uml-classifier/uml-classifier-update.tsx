@@ -282,6 +282,7 @@ class ClassifierUpdate extends Component<Props, State> {
                     isDerived={attrMember.isDerived}
                     isId={attrMember.isId}
                     isExternalId={attrMember.isExternalId}
+                    isInput={attrMember.isInput}
                     defaultValue={attrMember.defaultValue}
                     onChange={this.props.update}
                     onSubmitKeyUp={() =>
@@ -380,6 +381,7 @@ class ClassifierUpdate extends Component<Props, State> {
                       implementationType={methodMember.implementationType || 'none'}
                       stateMachineId={methodMember.stateMachineId || ''}
                       quantumCircuitId={methodMember.quantumCircuitId || ''}
+                      isStep={methodMember.isStep || false}
                       availableStateMachines={diagramBridge.getStateMachineDiagrams()}
                       availableQuantumCircuits={diagramBridge.getQuantumCircuitDiagrams()}
                       onChange={this.props.update}

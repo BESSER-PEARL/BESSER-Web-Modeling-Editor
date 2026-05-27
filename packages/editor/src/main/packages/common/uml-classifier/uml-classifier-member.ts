@@ -72,6 +72,8 @@ export interface IUMLClassifierMember extends IUMLElement {
   isDerived?: boolean;
   isId?: boolean;
   isExternalId?: boolean;
+  isInput?: boolean;
+  isStep?: boolean;
   defaultValue?: any;
 }
 
@@ -98,6 +100,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   isDerived: boolean = false;
   isId: boolean = false;
   isExternalId: boolean = false;
+  isInput: boolean = false;
+  isStep: boolean = false;
   defaultValue: any = undefined;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
@@ -216,6 +220,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       isDerived: this.isDerived,
       isId: this.isId,
       isExternalId: this.isExternalId,
+      isInput: this.isInput,
+      isStep: this.isStep,
       defaultValue: this.defaultValue,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
@@ -235,6 +241,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.isDerived = memberValues.isDerived || false;
       this.isId = memberValues.isId || false;
       this.isExternalId = memberValues.isExternalId || false;
+      this.isInput = memberValues.isInput || false;
+      this.isStep = memberValues.isStep || false;
     } else {
       // Legacy format - parse from name to extract visibility and type
       const parsed = UMLClassifierMember.parseNameFormat(this.name);
@@ -244,6 +252,8 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.isDerived = false;
       this.isId = false;
       this.isExternalId = false;
+      this.isInput = false;
+      this.isStep = false;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }

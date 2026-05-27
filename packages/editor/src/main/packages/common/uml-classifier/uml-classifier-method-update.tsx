@@ -155,37 +155,40 @@ type Props = {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  isStep?: boolean;
   availableStateMachines?: DiagramReference[];
   availableQuantumCircuits?: DiagramReference[];
-  onChange: (id: string, values: { 
-    name?: string; 
-    code?: string; 
+  onChange: (id: string, values: {
+    name?: string;
+    code?: string;
     implementationType?: MethodImplementationType;
     stateMachineId?: string;
     quantumCircuitId?: string;
-    fillColor?: string; 
-    textColor?: string; 
-    lineColor?: string 
+    isStep?: boolean;
+    fillColor?: string;
+    textColor?: string;
+    lineColor?: string
   }) => void;
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
 };
 
-const UmlMethodUpdate = ({ 
-  id, 
-  onRefChange, 
-  value, 
-  code, 
+const UmlMethodUpdate = ({
+  id,
+  onRefChange,
+  value,
+  code,
   implementationType = 'none',
   stateMachineId = '',
   quantumCircuitId = '',
+  isStep = false,
   availableStateMachines = [],
   availableQuantumCircuits = [],
-  onChange, 
-  onSubmitKeyUp, 
-  onDelete, 
-  element 
+  onChange,
+  onSubmitKeyUp,
+  onDelete,
+  element
 }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
   const [codeEditorOpen, setCodeEditorOpen] = useState(code ? true : false); // Auto-open if code exists
@@ -337,6 +340,10 @@ const UmlMethodUpdate = ({
     onChange(id, { quantumCircuitId: qcId as string });
   };
 
+  const handleStepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(id, { isStep: e.target.checked });
+  };
+
   const visibilityValue = VISIBILITY_OPTIONS.find(v => v.symbol === visibility)?.value || 'public';
   const hasCode = localCode.trim().length > 0;
   const isBalImplementation = localImplType === 'bal';
@@ -443,13 +450,29 @@ const UmlMethodUpdate = ({
 
         {/* Code toggle button when in code mode */}
         {showCodeEditor && (
-          <CodeButton 
-            color={hasCode ? "primary" : "link"} 
+          <CodeButton
+            color={hasCode ? "primary" : "link"}
             onClick={toggleCodeEditor}
             title={codeEditorOpen ? "Hide code editor" : "Show code editor"}
           >
             {codeEditorOpen ? 'Hide Editor' : 'Show Editor'}
           </CodeButton>
+        )}
+
+        {/* Tick-step flag: only meaningful for code-based methods */}
+        {showCodeEditor && (
+          <label
+            title="Mark this method as the per-tick simulation step (Digital Twin scheduler)"
+            style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', cursor: 'pointer', marginLeft: '4px' }}
+          >
+            <input
+              type="checkbox"
+              checked={isStep}
+              onChange={handleStepChange}
+              style={{ margin: 0 }}
+            />
+            Tick step
+          </label>
         )}
       </ImplementationRow>
       

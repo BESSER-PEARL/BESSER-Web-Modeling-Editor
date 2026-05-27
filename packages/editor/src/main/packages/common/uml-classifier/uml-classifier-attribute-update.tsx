@@ -127,6 +127,7 @@ type AttributeValues = {
   isDerived?: boolean;
   isId?: boolean;
   isExternalId?: boolean;
+  isInput?: boolean;
   defaultValue?: any;
   fillColor?: string;
   textColor?: string;
@@ -143,6 +144,7 @@ type Props = {
   isDerived?: boolean;
   isId?: boolean;
   isExternalId?: boolean;
+  isInput?: boolean;
   defaultValue?: any;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
@@ -196,6 +198,7 @@ const UmlAttributeUpdate = ({
   isDerived: propIsDerived,
   isId: propIsId,
   isExternalId: propIsExternalId,
+  isInput: propIsInput,
   defaultValue: propDefaultValue,
   onChange,
   onSubmitKeyUp,
@@ -264,6 +267,7 @@ const UmlAttributeUpdate = ({
   const isDerived = propIsDerived || false;
   const isId = propIsId || false;
   const isExternalId = propIsExternalId || false;
+  const isInput = propIsInput || false;
   const defaultValue = propDefaultValue;
 
   // Get available enumerations from the model
@@ -272,96 +276,55 @@ const UmlAttributeUpdate = ({
 
   const handleVisibilityChange = (newVisibility: unknown) => {
     const vis = newVisibility as Visibility;
-    onChange(id, {
-      name: attrName,
-      visibility: vis,
-      attributeType,
-      isOptional,
-      isDerived,
-      isId,
-      isExternalId,
-      defaultValue,
-    });
+    onChange(id, { name: attrName, visibility: vis, attributeType, isOptional, isDerived, isId, isExternalId, isInput, defaultValue });
   };
 
   const handleNameChange = (newName: string | number) => {
     const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
-    onChange(id, {
-      name: nameStr,
-      visibility,
-      attributeType,
-      isOptional,
-      isDerived,
-      isId,
-      isExternalId,
-      defaultValue,
-    });
+    onChange(id, { name: nameStr, visibility, attributeType, isOptional, isDerived, isId, isExternalId, isInput, defaultValue });
   };
 
   const handleTypeChange = (newType: unknown) => {
     const typeStr = String(newType);
-    onChange(id, {
-      name: attrName,
-      visibility,
-      attributeType: typeStr,
-      isOptional,
-      isDerived,
-      isId,
-      isExternalId,
-      defaultValue,
-    });
+    onChange(id, { name: attrName, visibility, attributeType: typeStr, isOptional, isDerived, isId, isExternalId, isInput, defaultValue });
   };
 
   const handleOptionalChange = (checked: boolean) => {
-    onChange(id, {
-      name: attrName,
-      visibility,
-      attributeType,
-      isOptional: checked,
-      isDerived,
-      isId,
-      isExternalId,
-      defaultValue,
-    });
+    onChange(id, { name: attrName, visibility, attributeType, isOptional: checked, isDerived, isId, isExternalId, isInput, defaultValue });
   };
 
   const handleDerivedChange = (checked: boolean) => {
-    onChange(id, {
-      name: attrName,
-      visibility,
-      attributeType,
-      isOptional,
-      isDerived: checked,
-      isId,
-      isExternalId,
-      defaultValue,
-    });
+    onChange(id, { name: attrName, visibility, attributeType, isOptional, isDerived: checked, isId, isExternalId, isInput, defaultValue });
   };
 
   const handleIdChange = (checked: boolean) => {
     onChange(id, {
-      name: attrName,
-      visibility,
-      attributeType,
+      name: attrName, visibility, attributeType,
       // Metamodel constraint: an attribute cannot be both an id and optional.
       isOptional: checked ? false : isOptional,
-      isDerived,
-      isId: checked,
-      isExternalId,
-      defaultValue,
+      isDerived, isId: checked, isExternalId, isInput, defaultValue,
     });
   };
 
   const handleExternalIdChange = (checked: boolean) => {
     onChange(id, {
+      name: attrName, visibility, attributeType,
+      // Metamodel constraint: an attribute cannot be both an external identifier and optional.
+      isOptional: checked ? false : isOptional,
+      isDerived, isId, isExternalId: checked, isInput, defaultValue,
+    });
+  };
+
+  const handleInputChange = (checked: boolean) => {
+    onChange(id, {
       name: attrName,
       visibility,
       attributeType,
-      // Metamodel constraint: an attribute cannot be both an external identifier and optional.
-      isOptional: checked ? false : isOptional,
+      isOptional,
       isDerived,
       isId,
-      isExternalId: checked,
+      isExternalId,
+      isInput: checked,
       defaultValue,
     });
   };
@@ -375,6 +338,7 @@ const UmlAttributeUpdate = ({
       isDerived,
       isId,
       isExternalId,
+      isInput,
       defaultValue: newDefaultValue || undefined,
     });
   };
@@ -444,6 +408,8 @@ const UmlAttributeUpdate = ({
         onIdChange={handleIdChange}
         isExternalId={isExternalId}
         onExternalIdChange={handleExternalIdChange}
+        isInput={isInput}
+        onInputChange={handleInputChange}
         defaultValue={defaultValue}
         onDefaultValueChange={handleDefaultValueChange}
         attributeType={attributeType}

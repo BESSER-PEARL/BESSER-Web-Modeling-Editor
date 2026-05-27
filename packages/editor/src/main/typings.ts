@@ -124,6 +124,8 @@ export type UMLClassifierMember = UMLElement & {
   isDerived?: boolean;
   isId?: boolean;
   isExternalId?: boolean;
+  isInput?: boolean;
+  isStep?: boolean;
   defaultValue?: any;
 };
 
