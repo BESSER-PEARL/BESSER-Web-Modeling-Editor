@@ -19,6 +19,7 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { AlertTriangle, ChevronDown, Eye, EyeOff, Sliders } from 'lucide-react';
+
 import type { UMLModel } from '@besser/wme';
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
 import {
@@ -55,7 +56,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ClassNodePreview, EdgeStylePreview } from './nodePreview';
-import { COLOR_SWATCHES, hasLowContrast } from './colorSwatches';
+import { COLOR_SWATCHES } from './colorSwatches';
 
 // ---------------------------------------------------------------------------
 // Class / association extraction
@@ -292,9 +293,10 @@ function endpointRolePatch(role: AssociationEndpointRole): Partial<PlatformAssoc
 
 const ColorPicker: React.FC<{
   value?: string;
+  placeholderColor?: string;
   onChange: (v: string | undefined) => void;
   label?: string;
-}> = ({ value, onChange, label }) => (
+}> = ({ value, placeholderColor, onChange, label }) => (
   <div className="flex items-center gap-2">
     <Popover>
       <PopoverTrigger asChild>
@@ -302,8 +304,8 @@ const ColorPicker: React.FC<{
           type="button"
           aria-label={label ?? 'Pick color'}
           className="size-7 rounded-md border border-input shadow-sm"
-          style={{ backgroundColor: value ?? 'transparent' }}
-          title={value ?? 'No color set'}
+          style={{ backgroundColor: value ?? placeholderColor ?? 'transparent' }}
+          title={value ?? (placeholderColor ? `Default: ${placeholderColor}` : 'No color set')}
         />
       </PopoverTrigger>
       <PopoverContent className="w-56">
@@ -476,24 +478,17 @@ const ConnectionPointsField: React.FC<{
 const ColorField: React.FC<{
   label: string;
   value: string | undefined;
+  /** Shown in the swatch when value is undefined (e.g. to reflect a dark
+   *  theme default without permanently writing a value into the override). */
+  placeholderColor?: string;
   onChange: (v: string | undefined) => void;
   contrastAgainst?: string;
-}> = ({ label, value, onChange, contrastAgainst }) => {
-  const lowContrast = contrastAgainst ? hasLowContrast(value, contrastAgainst) : false;
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-        {label}
-        {lowContrast && (
-          <span title="Low contrast (< 3.0)">
-            <AlertTriangle className="size-3 text-amber-500" />
-          </span>
-        )}
-      </Label>
-      <ColorPicker value={value} onChange={onChange} label={label} />
-    </div>
-  );
-};
+}> = ({ label, value, placeholderColor, onChange }) => (
+  <div className="flex flex-col gap-1.5">
+    <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+    <ColorPicker value={value} placeholderColor={placeholderColor} onChange={onChange} label={label} />
+  </div>
+);
 
 // ---------------------------------------------------------------------------
 // Per-class card row
@@ -526,7 +521,7 @@ const ClassRow: React.FC<{
               <ClassNodePreview
                 override={override}
                 icon={icon}
-                label={name.slice(0, 2)}
+                label=""
                 representation={getRepresentation(override)}
               />
             </div>
@@ -680,7 +675,7 @@ const ClassRow: React.FC<{
                 const rep = getRepresentation(override);
                 const isPort = rep === 'port';
                 const isConnection = rep === 'connection';
-                const iconActive = !!icon && override.useIcon !== false;
+                const iconActive = !isPort && !!icon && override.useIcon !== false;
                 if (isConnection) return null;
                 return (
                   <div className="grid gap-6 lg:grid-cols-3">
@@ -751,7 +746,7 @@ const ClassRow: React.FC<{
                     {/* Appearance */}
                     <section className="space-y-3">
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Appearance</h4>
-                      {!!icon && (
+                      {!!icon && !isPort && (
                         <div className="flex items-center justify-between">
                           <Label
                             className="text-xs uppercase tracking-wider text-muted-foreground"
@@ -770,36 +765,41 @@ const ClassRow: React.FC<{
                           <ColorField
                             label="Fill"
                             value={override.fillColor}
+                            placeholderColor={isPort ? '#000000' : undefined}
                             onChange={(v) => onPatch({ fillColor: v })}
-                            contrastAgainst={override.fontColor}
                           />
                           <ColorField
                             label="Border"
                             value={override.borderColor}
+                            placeholderColor={isPort ? '#000000' : undefined}
                             onChange={(v) => onPatch({ borderColor: v })}
                           />
-                          <SliderField
-                            label="Border width"
-                            value={override.borderWidth}
-                            defaultValue={2}
-                            min={0}
-                            max={8}
-                            unit="px"
-                            onChange={(v) => onPatch({ borderWidth: v })}
-                          />
-                          <SelectField
-                            label="Border style"
-                            value={override.borderStyle}
-                            options={[
-                              { value: 'solid', label: 'Solid' },
-                              { value: 'dashed', label: 'Dashed' },
-                              { value: 'dotted', label: 'Dotted' },
-                            ]}
-                            onChange={(v) => onPatch({ borderStyle: v as LineStyleName | undefined })}
-                          />
+                          {!isPort && (
+                            <SliderField
+                              label="Border width"
+                              value={override.borderWidth}
+                              defaultValue={2}
+                              min={0}
+                              max={8}
+                              unit="px"
+                              onChange={(v) => onPatch({ borderWidth: v })}
+                            />
+                          )}
+                          {!isPort && (
+                            <SelectField
+                              label="Border style"
+                              value={override.borderStyle}
+                              options={[
+                                { value: 'solid', label: 'Solid' },
+                                { value: 'dashed', label: 'Dashed' },
+                                { value: 'dotted', label: 'Dotted' },
+                              ]}
+                              onChange={(v) => onPatch({ borderStyle: v as LineStyleName | undefined })}
+                            />
+                          )}
                         </>
                       )}
-                      {!isPort && (override.nodeShape === 'rectangle' || override.nodeShape === undefined) && (
+                      {!isPort && !iconActive && (override.nodeShape === 'rectangle' || override.nodeShape === undefined) && (
                         <SliderField
                           label="Border radius"
                           value={override.borderRadius}
@@ -838,7 +838,6 @@ const ClassRow: React.FC<{
                           label="Font color"
                           value={override.fontColor}
                           onChange={(v) => onPatch({ fontColor: v })}
-                          contrastAgainst={override.fillColor}
                         />
                       </section>
                     )}

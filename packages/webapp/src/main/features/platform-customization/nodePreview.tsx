@@ -283,47 +283,27 @@ const ConnectionClassPreview: React.FC<{ override?: PlatformClassOverride }> = (
 const PortClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({ override }) => {
   const hostStroke = 'hsl(var(--muted-foreground) / 0.45)';
   const hostFill = 'hsl(var(--card))';
-  const portFill = override?.fillColor ?? 'hsl(var(--foreground) / 0.85)';
-  const portStroke = override?.borderColor ?? 'hsl(var(--foreground) / 0.7)';
-  const shape = override?.nodeShape ?? 'rounded_rect';
+  const portFill = override?.fillColor ?? '#000000';
+  const portStroke = override?.borderColor ?? '#000000';
+  const portSw = override?.borderWidth ?? 1;
+  const portDash = dashFromLineStyle(override?.borderStyle);
+  const shape = override?.nodeShape ?? 'rectangle';
+
+  const glyphProps = {
+    fill: portFill,
+    stroke: portStroke,
+    strokeWidth: portSw,
+    strokeDasharray: portDash,
+  };
 
   // Port handle is always 12×12 at (68, 26) — the shape is just the primitive.
   let portGlyph: React.ReactNode;
   if (shape === 'diamond') {
-    portGlyph = (
-      <polygon
-        points="74,26 80,32 74,38 68,32"
-        fill={portFill}
-        stroke={portStroke}
-        strokeWidth="1"
-      />
-    );
+    portGlyph = <polygon points="74,26 80,32 74,38 68,32" {...glyphProps} />;
   } else if (shape === 'ellipse' || shape === 'rounded_rect') {
-    portGlyph = (
-      <ellipse
-        cx="74"
-        cy="32"
-        rx="6"
-        ry="6"
-        fill={portFill}
-        stroke={portStroke}
-        strokeWidth="1"
-      />
-    );
+    portGlyph = <ellipse cx="74" cy="32" rx="6" ry="6" {...glyphProps} />;
   } else {
-    portGlyph = (
-      <rect
-        x="68"
-        y="26"
-        width="12"
-        height="12"
-        rx="1"
-        ry="1"
-        fill={portFill}
-        stroke={portStroke}
-        strokeWidth="1"
-      />
-    );
+    portGlyph = <rect x="68" y="26" width="12" height="12" rx="1" ry="1" {...glyphProps} />;
   }
   return (
     <svg
