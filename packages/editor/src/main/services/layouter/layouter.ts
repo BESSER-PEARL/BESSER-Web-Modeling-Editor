@@ -102,6 +102,7 @@ export function* render(id: string): SagaIterator {
       width: update.bounds.width - original.bounds.width,
       height: update.bounds.height - original.bounds.height,
     };
+    
 
     if (Object.values(size).some((x) => x !== 0)) {
       yield put<ResizeAction>({
@@ -123,6 +124,14 @@ export function* render(id: string): SagaIterator {
       x: update.bounds.x - original.bounds.x,
       y: update.bounds.y - original.bounds.y,
     };
+
+    console.log('[layouter] update id=' + update.id, {
+      type: (update as any).type,
+      sizeDelta: size,
+      positionDelta: position,
+      originalBounds: { ...original.bounds },
+      updateBounds: { ...update.bounds },
+    });
 
     if (Object.values(position).some((x) => x !== 0)) {
       yield put<MoveAction>({
