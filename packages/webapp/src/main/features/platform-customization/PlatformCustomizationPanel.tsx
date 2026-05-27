@@ -527,10 +527,6 @@ const ClassRow: React.FC<{
                 }`}
               />
               <span className="text-sm font-semibold">{name}</span>
-              <span className="text-xs text-muted-foreground">
-                {Object.keys(override).length} override
-                {Object.keys(override).length === 1 ? '' : 's'}
-              </span>
             </div>
             <div className="h-12 w-24 overflow-hidden rounded border bg-muted/20 p-0.5">
               <ClassNodePreview
@@ -567,7 +563,7 @@ const ClassRow: React.FC<{
             </div>
             {override.isContainer && (
               <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                Tip: open each relationship below and turn on{' '}
+                Tip: open each relationship in the Associations section and turn on{' '}
                 <span className="font-semibold">Container association</span> for the ones whose
                 targets should nest inside this container at runtime.
               </p>
@@ -685,133 +681,170 @@ const ClassRow: React.FC<{
             </div>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Layout */}
-            <section className="space-y-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Layout</h4>
-              <div className="flex items-center justify-between">
-                <Label
-                  className="text-xs uppercase tracking-wider text-muted-foreground"
-                  title="Show drag handles on instances so the user can resize the node"
-                >
-                  Resizable
-                </Label>
-                <Switch
-                  checked={!!override.isResizable}
-                  onCheckedChange={(v: boolean) => onPatch({ isResizable: v || undefined })}
-                />
+          {(() => {
+            const rep = getRepresentation(override);
+            const isPort = rep === 'port';
+            const isConnection = rep === 'connection';
+            // Icon is active when the class has one and useIcon is not explicitly false.
+            const iconActive = !!icon && override.useIcon !== false;
+            // For connection classes the main grid is redundant with the edge block above.
+            if (isConnection) return null;
+            return (
+              <div className="grid gap-6 lg:grid-cols-3">
+                {/* Layout */}
+                <section className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Layout</h4>
+                  {!isPort && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <Label
+                          className="text-xs uppercase tracking-wider text-muted-foreground"
+                          title="Show drag handles on instances so the user can resize the node"
+                        >
+                          Resizable
+                        </Label>
+                        <Switch
+                          checked={!!override.isResizable}
+                          onCheckedChange={(v: boolean) => onPatch({ isResizable: v || undefined })}
+                        />
+                      </div>
+                      <NumberField
+                        label="Width (px)"
+                        value={override.defaultWidth}
+                        onChange={(v) => onPatch({ defaultWidth: v })}
+                      />
+                      <NumberField
+                        label="Height (px)"
+                        value={override.defaultHeight}
+                        onChange={(v) => onPatch({ defaultHeight: v })}
+                      />
+                      <ConnectionPointsField
+                        value={override.connectionPoints}
+                        onChange={(v) => onPatch({ connectionPoints: v })}
+                      />
+                    </>
+                  )}
+                  <SelectField
+                    label="Shape"
+                    value={override.nodeShape}
+                    options={[
+                      { value: 'rectangle', label: 'Rectangle' },
+                      { value: 'rounded_rect', label: 'Rounded rectangle' },
+                      { value: 'ellipse', label: 'Ellipse' },
+                      { value: 'diamond', label: 'Diamond' },
+                      { value: 'hexagon', label: 'Hexagon' },
+                    ]}
+                    onChange={(v) => onPatch({ nodeShape: v as NodeShape | undefined })}
+                  />
+                  {!isPort && (
+                    <SelectField
+                      label="Label position"
+                      value={override.labelPosition}
+                      options={[
+                        { value: 'top', label: 'Top' },
+                        { value: 'inside', label: 'Inside' },
+                        { value: 'bottom', label: 'Bottom' },
+                      ]}
+                      onChange={(v) => onPatch({ labelPosition: v as LabelPositionName | undefined })}
+                    />
+                  )}
+                </section>
+
+                {/* Appearance */}
+                <section className="space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Appearance</h4>
+                  {!!icon && (
+                    <div className="flex items-center justify-between">
+                      <Label
+                        className="text-xs uppercase tracking-wider text-muted-foreground"
+                        title="When off, the shape / fill / border styling is used instead of the class-diagram icon"
+                      >
+                        Use icon
+                      </Label>
+                      <Switch
+                        checked={iconActive}
+                        onCheckedChange={(v: boolean) => onPatch({ useIcon: v ? undefined : false })}
+                      />
+                    </div>
+                  )}
+                  {!iconActive && (
+                    <>
+                      <ColorField
+                        label="Fill"
+                        value={override.fillColor}
+                        onChange={(v) => onPatch({ fillColor: v })}
+                        contrastAgainst={override.fontColor}
+                      />
+                      <ColorField
+                        label="Border"
+                        value={override.borderColor}
+                        onChange={(v) => onPatch({ borderColor: v })}
+                      />
+                      <SliderField
+                        label="Border width"
+                        value={override.borderWidth}
+                        defaultValue={2}
+                        min={0}
+                        max={8}
+                        unit="px"
+                        onChange={(v) => onPatch({ borderWidth: v })}
+                      />
+                      <SelectField
+                        label="Border style"
+                        value={override.borderStyle}
+                        options={[
+                          { value: 'solid', label: 'Solid' },
+                          { value: 'dashed', label: 'Dashed' },
+                          { value: 'dotted', label: 'Dotted' },
+                        ]}
+                        onChange={(v) => onPatch({ borderStyle: v as LineStyleName | undefined })}
+                      />
+                    </>
+                  )}
+                  <SliderField
+                    label="Border radius"
+                    value={override.borderRadius}
+                    defaultValue={8}
+                    min={0}
+                    max={32}
+                    unit="px"
+                    onChange={(v) => onPatch({ borderRadius: v })}
+                  />
+                </section>
+
+                {/* Typography — hidden for port classes (they have no visible label) */}
+                {!isPort && (
+                  <section className="space-y-3">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Typography</h4>
+                    <SliderField
+                      label="Font size"
+                      value={override.fontSize}
+                      defaultValue={14}
+                      min={8}
+                      max={24}
+                      unit="px"
+                      onChange={(v) => onPatch({ fontSize: v })}
+                    />
+                    <SelectField
+                      label="Font weight"
+                      value={override.fontWeight}
+                      options={[
+                        { value: 'normal', label: 'Normal' },
+                        { value: 'bold', label: 'Bold' },
+                      ]}
+                      onChange={(v) => onPatch({ fontWeight: v as FontWeightName | undefined })}
+                    />
+                    <ColorField
+                      label="Font color"
+                      value={override.fontColor}
+                      onChange={(v) => onPatch({ fontColor: v })}
+                      contrastAgainst={override.fillColor}
+                    />
+                  </section>
+                )}
               </div>
-              <NumberField
-                label="Width (px)"
-                value={override.defaultWidth}
-                onChange={(v) => onPatch({ defaultWidth: v })}
-              />
-              <NumberField
-                label="Height (px)"
-                value={override.defaultHeight}
-                onChange={(v) => onPatch({ defaultHeight: v })}
-              />
-              <ConnectionPointsField
-                value={override.connectionPoints}
-                onChange={(v) => onPatch({ connectionPoints: v })}
-              />
-              <SelectField
-                label="Shape"
-                value={override.nodeShape}
-                options={[
-                  { value: 'rectangle', label: 'Rectangle' },
-                  { value: 'rounded_rect', label: 'Rounded rectangle' },
-                  { value: 'ellipse', label: 'Ellipse' },
-                  { value: 'diamond', label: 'Diamond' },
-                  { value: 'hexagon', label: 'Hexagon' },
-                ]}
-                onChange={(v) => onPatch({ nodeShape: v as NodeShape | undefined })}
-              />
-              <SelectField
-                label="Label position"
-                value={override.labelPosition}
-                options={[
-                  { value: 'top', label: 'Top' },
-                  { value: 'inside', label: 'Inside' },
-                  { value: 'bottom', label: 'Bottom' },
-                ]}
-                onChange={(v) => onPatch({ labelPosition: v as LabelPositionName | undefined })}
-              />
-            </section>
-
-            {/* Appearance */}
-            <section className="space-y-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Appearance</h4>
-              <ColorField
-                label="Fill"
-                value={override.fillColor}
-                onChange={(v) => onPatch({ fillColor: v })}
-                contrastAgainst={override.fontColor}
-              />
-              <ColorField
-                label="Border"
-                value={override.borderColor}
-                onChange={(v) => onPatch({ borderColor: v })}
-              />
-              <SliderField
-                label="Border width"
-                value={override.borderWidth}
-                defaultValue={2}
-                min={0}
-                max={8}
-                unit="px"
-                onChange={(v) => onPatch({ borderWidth: v })}
-              />
-              <SelectField
-                label="Border style"
-                value={override.borderStyle}
-                options={[
-                  { value: 'solid', label: 'Solid' },
-                  { value: 'dashed', label: 'Dashed' },
-                  { value: 'dotted', label: 'Dotted' },
-                ]}
-                onChange={(v) => onPatch({ borderStyle: v as LineStyleName | undefined })}
-              />
-              <SliderField
-                label="Border radius"
-                value={override.borderRadius}
-                defaultValue={8}
-                min={0}
-                max={32}
-                unit="px"
-                onChange={(v) => onPatch({ borderRadius: v })}
-              />
-            </section>
-
-            {/* Typography */}
-            <section className="space-y-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Typography</h4>
-              <SliderField
-                label="Font size"
-                value={override.fontSize}
-                defaultValue={14}
-                min={8}
-                max={24}
-                unit="px"
-                onChange={(v) => onPatch({ fontSize: v })}
-              />
-              <SelectField
-                label="Font weight"
-                value={override.fontWeight}
-                options={[
-                  { value: 'normal', label: 'Normal' },
-                  { value: 'bold', label: 'Bold' },
-                ]}
-                onChange={(v) => onPatch({ fontWeight: v as FontWeightName | undefined })}
-              />
-              <ColorField
-                label="Font color"
-                value={override.fontColor}
-                onChange={(v) => onPatch({ fontColor: v })}
-                contrastAgainst={override.fillColor}
-              />
-            </section>
-          </div>
+            );
+          })()}
         </CollapsibleContent>
       </Collapsible>
     </li>
@@ -853,10 +886,6 @@ const AssociationRow: React.FC<{
                 }`}
               />
               <span className="text-sm font-semibold">{name}</span>
-              <span className="text-xs text-muted-foreground">
-                {Object.keys(override).length} override
-                {Object.keys(override).length === 1 ? '' : 's'}
-              </span>
             </div>
             <div className="h-12 w-24 overflow-hidden rounded border bg-muted/20 p-0.5">
               <EdgeStylePreview override={override} />
@@ -1064,6 +1093,7 @@ function compact<T extends Record<string, any>>(obj: T): T {
     if (v !== undefined && v !== null && v !== '' && v !== false) out[k] = v;
     if (k === 'isContainer' && v === true) out[k] = true;
     if (k === 'labelVisible' && v === false) out[k] = false;
+    if (k === 'useIcon' && v === false) out[k] = false;
   }
   return out as T;
 }

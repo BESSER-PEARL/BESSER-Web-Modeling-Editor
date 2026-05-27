@@ -251,19 +251,54 @@ const ConnectionClassPreview: React.FC<{ override?: PlatformClassOverride }> = (
   );
 };
 
-/** Port-class preview — a small dark filled square attached to the side
- *  of a faint host outline. Mirrors what a Port instance looks like on
- *  the generated canvas (the dark handle sticking out of an Equipment
- *  node). The "Po"-style abbreviated label is dropped here because the
- *  visual itself communicates the role. */
+/** Port-class preview — a shape handle attached to the side of a faint host
+ *  outline. The shape is driven by `override.nodeShape` so the preview tile
+ *  matches what the generated palette and runtime port glyph will render. */
 const PortClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({ override }) => {
-  // Use the override colors when set; otherwise pick muted greys for the
-  // host outline and the brand color for the port square so the
-  // attached-to-equipment relationship reads clearly.
   const hostStroke = 'hsl(var(--muted-foreground) / 0.45)';
   const hostFill = 'hsl(var(--card))';
   const portFill = override?.fillColor ?? 'hsl(var(--foreground) / 0.85)';
   const portStroke = override?.borderColor ?? 'hsl(var(--foreground) / 0.7)';
+  const shape = override?.nodeShape ?? 'rounded_rect';
+
+  // Port handle is always 12×12 at (68, 26) — the shape is just the primitive.
+  let portGlyph: React.ReactNode;
+  if (shape === 'diamond') {
+    portGlyph = (
+      <polygon
+        points="74,26 80,32 74,38 68,32"
+        fill={portFill}
+        stroke={portStroke}
+        strokeWidth="1"
+      />
+    );
+  } else if (shape === 'ellipse' || shape === 'rounded_rect') {
+    portGlyph = (
+      <ellipse
+        cx="74"
+        cy="32"
+        rx="6"
+        ry="6"
+        fill={portFill}
+        stroke={portStroke}
+        strokeWidth="1"
+      />
+    );
+  } else {
+    portGlyph = (
+      <rect
+        x="68"
+        y="26"
+        width="12"
+        height="12"
+        rx="1"
+        ry="1"
+        fill={portFill}
+        stroke={portStroke}
+        strokeWidth="1"
+      />
+    );
+  }
   return (
     <svg
       viewBox="0 0 96 64"
@@ -284,18 +319,7 @@ const PortClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({ over
         strokeWidth="1.5"
         strokeDasharray="3 3"
       />
-      {/* Port handle, attached to the right edge of the host */}
-      <rect
-        x="68"
-        y="26"
-        width="12"
-        height="12"
-        rx="1"
-        ry="1"
-        fill={portFill}
-        stroke={portStroke}
-        strokeWidth="1"
-      />
+      {portGlyph}
     </svg>
   );
 };

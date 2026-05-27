@@ -100,6 +100,10 @@ export interface PlatformClassOverride {
   defaultHeight?: number;
 
   nodeShape?: NodeShape;
+  /** When false and the class has an icon defined in the class diagram, the
+   *  icon is suppressed and the shape/fill/border styling is used instead.
+   *  Unset (undefined) is treated as true when an icon is available. */
+  useIcon?: boolean;
   fillColor?: string;
   borderColor?: string;
   borderWidth?: number;
