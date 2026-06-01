@@ -737,6 +737,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           case 'agent':
             result = await generateCode(editor, 'agent', activeDiagramTitle, config as AgentConfig);
             break;
+          case 'test_case':
+                result = await generateCode(editor, 'test_case', activeDiagramTitle);
+                break
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
               toast.error('Switch to an Object Diagram or User Diagram to use the JSON Object generator.');

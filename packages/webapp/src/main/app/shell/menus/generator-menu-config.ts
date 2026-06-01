@@ -47,6 +47,13 @@ const CLASS_GENERATORS: GeneratorMenuEntry[] = [
       { kind: 'action', label: 'Java Classes', generator: 'java' },
     ],
   },
+   {
+    kind: 'group',
+    label: 'Testing',
+    actions: [
+      { kind: 'action', label: 'Python Test Cases', generator: 'test_case' },
+    ],
+  },
   {
     kind: 'group',
     label: 'Schema',
