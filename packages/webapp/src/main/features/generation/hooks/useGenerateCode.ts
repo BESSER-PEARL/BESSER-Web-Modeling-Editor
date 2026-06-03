@@ -196,6 +196,7 @@ export const useGenerateCode = () => {
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
+      modelOverride?: Record<string, any>,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
@@ -228,10 +229,13 @@ export const useGenerateCode = () => {
         return { ok: false, error: validationResult.message || 'Validation failed' };
       }
 
-      // Prepare body for single diagram generation
+      // Prepare body for single diagram generation. modelOverride is used by
+      // agent personalization to ship the un-personalized base instead of
+      // whatever variant happens to be active in the editor — see
+      // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: editor.model,
+        model: modelOverride ?? editor.model,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

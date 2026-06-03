@@ -616,7 +616,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean },
+      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: Record<string, any> },
     ): Promise<GenerationResult> => {
       if (!currentProject) {
         toast.error('Create or load a project before generating code.');
@@ -735,7 +735,14 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent':
-            result = await generateCode(editor, 'agent', activeDiagramTitle, config as AgentConfig);
+            result = await generateCode(
+              editor,
+              'agent',
+              activeDiagramTitle,
+              config as AgentConfig,
+              undefined,
+              options?.agentModelOverride,
+            );
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
@@ -962,6 +969,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     }
 
     let finalConfig: AgentConfig = baseConfig;
+    let agentModelOverride: Record<string, any> | undefined;
 
     if (agentGenerationMode === 'personalization') {
       const localProfiles = LocalStorageRepository.getUserProfiles();
@@ -1019,10 +1027,27 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         ...baseConfig,
         personalizationMapping,
       };
+
+      // Personalization codegen rebuilds every variant on top of the model the
+      // backend receives. Send the un-personalized base from localStorage so
+      // generation is deterministic — without this, whichever variant is
+      // active in the editor would silently become the new "base" each variant
+      // is layered onto.
+      const baseAgentDiagramId = activeAgentDiagram?.id;
+      const storedBase = baseAgentDiagramId
+        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
+        : null;
+      if (storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram) {
+        agentModelOverride = storedBase as Record<string, any>;
+      }
     }
 
     const shouldSendConfig = Object.keys(finalConfig).length > 0;
-    await executeGenerator('agent', shouldSendConfig ? finalConfig : undefined);
+    await executeGenerator(
+      'agent',
+      shouldSendConfig ? finalConfig : undefined,
+      agentModelOverride ? { agentModelOverride } : undefined,
+    );
     setConfigDialog('none');
   }, [
     currentProject,
