@@ -54,9 +54,7 @@
                   "attr_785suq5yn_mjikkmod",
                   "attr_urp7jb0c0_mjikkmod"
                 ],
-                "methods": [
-                  "method_rb01uirsh_mjikkmod"
-                ]
+                "methods": ["method_rb01uirsh_mjikkmod"]
               },
               "attr_a87fqdtdi_mjikkmod": {
                 "id": "attr_a87fqdtdi_mjikkmod",
@@ -229,9 +227,7 @@
                   "4391886d-13b5-4fa0-9894-09f1894af27f",
                   "a487fd85-dec0-47b9-bd37-71ff92026963"
                 ],
-                "methods": [
-                  "35ef5329-889b-40f0-89ce-9836936fd8a9"
-                ]
+                "methods": ["35ef5329-889b-40f0-89ce-9836936fd8a9"]
               },
               "attr_eryfh37kl_mjikkmod": {
                 "id": "attr_eryfh37kl_mjikkmod",
@@ -354,10 +350,7 @@
                   "width": 220,
                   "height": 95
                 },
-                "attributes": [
-                  "attr_p3zqpt65k_mjikkmoe",
-                  "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db"
-                ],
+                "attributes": ["attr_p3zqpt65k_mjikkmoe", "4321afe8-8ec2-48da-a0ec-b2ce9ccaf1db"],
                 "methods": []
               },
               "attr_p3zqpt65k_mjikkmoe": {
@@ -986,9 +979,7 @@
                   "width": 260,
                   "height": 70
                 },
-                "bodies": [
-                  "body_wybm5pc31_mm9b38u1"
-                ],
+                "bodies": ["body_wybm5pc31_mm9b38u1"],
                 "fallbackBodies": []
               },
               "body_wybm5pc31_mm9b38u1": {
@@ -1015,10 +1006,7 @@
                   "width": 420,
                   "height": 100
                 },
-                "bodies": [
-                  "body_a8ph8sxrt_mm9b38u1",
-                  "fb1432f7-1778-4c8b-90f3-e471e86cec31"
-                ],
+                "bodies": ["body_a8ph8sxrt_mm9b38u1", "fb1432f7-1778-4c8b-90f3-e471e86cec31"],
                 "fallbackBodies": []
               },
               "body_a8ph8sxrt_mm9b38u1": {
@@ -1143,10 +1131,7 @@
                   "width": 420,
                   "height": 100
                 },
-                "bodies": [
-                  "body_b6vkku4r1_mm9b38u1",
-                  "body_8i8n5kbs0_mm9b38u1"
-                ],
+                "bodies": ["body_b6vkku4r1_mm9b38u1", "body_8i8n5kbs0_mm9b38u1"],
                 "fallbackBodies": []
               },
               "body_b6vkku4r1_mm9b38u1": {
@@ -1186,9 +1171,7 @@
                   "width": 420,
                   "height": 70
                 },
-                "bodies": [
-                  "e3aad61a-89b4-46a6-8c16-6f80b861d717"
-                ],
+                "bodies": ["e3aad61a-89b4-46a6-8c16-6f80b861d717"],
                 "fallbackBodies": []
               },
               "e3aad61a-89b4-46a6-8c16-6f80b861d717": {
@@ -1842,36 +1825,19 @@
                                   "components": [
                                     {
                                       "type": "tbody",
-                                      "draggable": [
-                                        "table"
-                                      ],
-                                      "droppable": [
-                                        "tr"
-                                      ],
+                                      "draggable": ["table"],
+                                      "droppable": ["tr"],
                                       "components": [
                                         {
                                           "type": "row",
-                                          "draggable": [
-                                            "thead",
-                                            "tbody",
-                                            "tfoot"
-                                          ],
-                                          "droppable": [
-                                            "th",
-                                            "td"
-                                          ],
-                                          "classes": [
-                                            "row"
-                                          ],
+                                          "draggable": ["thead", "tbody", "tfoot"],
+                                          "droppable": ["th", "td"],
+                                          "classes": ["row"],
                                           "components": [
                                             {
                                               "type": "cell",
-                                              "draggable": [
-                                                "tr"
-                                              ],
-                                              "classes": [
-                                                "cell"
-                                              ]
+                                              "draggable": ["tr"],
+                                              "classes": ["cell"]
                                             }
                                           ]
                                         }
@@ -1889,9 +1855,7 @@
                                       "type": "action-button",
                                       "content": "+ decrease_stock",
                                       "style": "",
-                                      "classes": [
-                                        "action-button-component"
-                                      ],
+                                      "classes": ["action-button-component"],
                                       "attributes": {
                                         "type": "button",
                                         "data-button-label": "+ decrease_stock",
@@ -1920,9 +1884,7 @@
                                     {
                                       "type": "agent-component",
                                       "style": "",
-                                      "classes": [
-                                        "agent-component"
-                                      ],
+                                      "classes": ["agent-component"],
                                       "attributes": {
                                         "agent-name": "Library Agent",
                                         "agent-title": "BESSER Agent",
@@ -2177,36 +2139,19 @@
                                   "components": [
                                     {
                                       "type": "tbody",
-                                      "draggable": [
-                                        "table"
-                                      ],
-                                      "droppable": [
-                                        "tr"
-                                      ],
+                                      "draggable": ["table"],
+                                      "droppable": ["tr"],
                                       "components": [
                                         {
                                           "type": "row",
-                                          "draggable": [
-                                            "thead",
-                                            "tbody",
-                                            "tfoot"
-                                          ],
-                                          "droppable": [
-                                            "th",
-                                            "td"
-                                          ],
-                                          "classes": [
-                                            "row"
-                                          ],
+                                          "draggable": ["thead", "tbody", "tfoot"],
+                                          "droppable": ["th", "td"],
+                                          "classes": ["row"],
                                           "components": [
                                             {
                                               "type": "cell",
-                                              "draggable": [
-                                                "tr"
-                                              ],
-                                              "classes": [
-                                                "cell"
-                                              ]
+                                              "draggable": ["tr"],
+                                              "classes": ["cell"]
                                             }
                                           ]
                                         }
@@ -2223,9 +2168,7 @@
                                     {
                                       "type": "action-button",
                                       "style": "",
-                                      "classes": [
-                                        "action-button-component"
-                                      ],
+                                      "classes": ["action-button-component"],
                                       "attributes": {
                                         "type": "button",
                                         "data-button-label": "+ cheapest_book_by",
@@ -2402,9 +2345,7 @@
                                 {
                                   "type": "table",
                                   "style": "",
-                                  "classes": [
-                                    "has-data-binding"
-                                  ],
+                                  "classes": ["has-data-binding"],
                                   "attributes": {
                                     "chart-color": "#2c3e50",
                                     "chart-title": "Author List",
@@ -2472,36 +2413,19 @@
                                   "components": [
                                     {
                                       "type": "tbody",
-                                      "draggable": [
-                                        "table"
-                                      ],
-                                      "droppable": [
-                                        "tr"
-                                      ],
+                                      "draggable": ["table"],
+                                      "droppable": ["tr"],
                                       "components": [
                                         {
                                           "type": "row",
-                                          "draggable": [
-                                            "thead",
-                                            "tbody",
-                                            "tfoot"
-                                          ],
-                                          "droppable": [
-                                            "th",
-                                            "td"
-                                          ],
-                                          "classes": [
-                                            "row"
-                                          ],
+                                          "draggable": ["thead", "tbody", "tfoot"],
+                                          "droppable": ["th", "td"],
+                                          "classes": ["row"],
                                           "components": [
                                             {
                                               "type": "cell",
-                                              "draggable": [
-                                                "tr"
-                                              ],
-                                              "classes": [
-                                                "cell"
-                                              ]
+                                              "draggable": ["tr"],
+                                              "classes": ["cell"]
                                             }
                                           ]
                                         }
@@ -2531,9 +2455,7 @@
             ],
             "styles": [
               {
-                "selectors": [
-                  "#i7thg"
-                ],
+                "selectors": ["#i7thg"],
                 "style": {
                   "margin-top": "0",
                   "font-size": "24px",
@@ -2542,9 +2464,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ih8h6"
-                ],
+                "selectors": ["#ih8h6"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2556,9 +2476,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#i9l4g"
-                ],
+                "selectors": ["#i9l4g"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2570,9 +2488,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#io6eh"
-                ],
+                "selectors": ["#io6eh"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2584,9 +2500,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iwntp"
-                ],
+                "selectors": ["#iwntp"],
                 "style": {
                   "display": "flex",
                   "flex-direction": "column",
@@ -2594,9 +2508,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ixx2i"
-                ],
+                "selectors": ["#ixx2i"],
                 "style": {
                   "margin-top": "auto",
                   "padding-top": "20px",
@@ -2607,9 +2519,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ihyzm"
-                ],
+                "selectors": ["#ihyzm"],
                 "style": {
                   "width": "250px",
                   "background": "linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%)",
@@ -2621,9 +2531,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iyjpg"
-                ],
+                "selectors": ["#iyjpg"],
                 "style": {
                   "margin-top": "0",
                   "color": "#333",
@@ -2632,27 +2540,21 @@
                 }
               },
               {
-                "selectors": [
-                  "#itizf"
-                ],
+                "selectors": ["#itizf"],
                 "style": {
                   "color": "#666",
                   "margin-bottom": "30px"
                 }
               },
               {
-                "selectors": [
-                  "#table-book-0"
-                ],
+                "selectors": ["#table-book-0"],
                 "style": {
                   "width": "100%",
                   "min-height": "400px"
                 }
               },
               {
-                "selectors": [
-                  "#idgyv"
-                ],
+                "selectors": ["#idgyv"],
                 "style": {
                   "display": "inline-flex",
                   "align-items": "center",
@@ -2671,9 +2573,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ioq13"
-                ],
+                "selectors": ["#ioq13"],
                 "style": {
                   "margin-top": "20px",
                   "display": "flex",
@@ -2682,9 +2582,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#i0mrm"
-                ],
+                "selectors": ["#i0mrm"],
                 "style": {
                   "flex": "1",
                   "padding": "40px",
@@ -2693,9 +2591,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iir99"
-                ],
+                "selectors": ["#iir99"],
                 "style": {
                   "display": "flex",
                   "height": "100vh",
@@ -2703,9 +2599,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iopqh"
-                ],
+                "selectors": ["#iopqh"],
                 "style": {
                   "margin-top": "0",
                   "font-size": "24px",
@@ -2714,9 +2608,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ix6dg"
-                ],
+                "selectors": ["#ix6dg"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2728,9 +2620,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ixrwm"
-                ],
+                "selectors": ["#ixrwm"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2742,9 +2632,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iauyc"
-                ],
+                "selectors": ["#iauyc"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2756,9 +2644,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iui4i"
-                ],
+                "selectors": ["#iui4i"],
                 "style": {
                   "display": "flex",
                   "flex-direction": "column",
@@ -2766,9 +2652,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iijek"
-                ],
+                "selectors": ["#iijek"],
                 "style": {
                   "margin-top": "auto",
                   "padding-top": "20px",
@@ -2779,9 +2663,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#i5v1l"
-                ],
+                "selectors": ["#i5v1l"],
                 "style": {
                   "width": "250px",
                   "background": "linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%)",
@@ -2793,9 +2675,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ihqgf"
-                ],
+                "selectors": ["#ihqgf"],
                 "style": {
                   "margin-top": "0",
                   "color": "#333",
@@ -2804,27 +2684,21 @@
                 }
               },
               {
-                "selectors": [
-                  "#ij47n"
-                ],
+                "selectors": ["#ij47n"],
                 "style": {
                   "color": "#666",
                   "margin-bottom": "30px"
                 }
               },
               {
-                "selectors": [
-                  "#table-library-1"
-                ],
+                "selectors": ["#table-library-1"],
                 "style": {
                   "width": "100%",
                   "min-height": "400px"
                 }
               },
               {
-                "selectors": [
-                  "#ir5xw"
-                ],
+                "selectors": ["#ir5xw"],
                 "style": {
                   "display": "inline-flex",
                   "align-items": "center",
@@ -2843,9 +2717,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#i0iia"
-                ],
+                "selectors": ["#i0iia"],
                 "style": {
                   "margin-top": "20px",
                   "display": "flex",
@@ -2854,9 +2726,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#i845n"
-                ],
+                "selectors": ["#i845n"],
                 "style": {
                   "flex": "1",
                   "padding": "40px",
@@ -2865,9 +2735,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ipfo8"
-                ],
+                "selectors": ["#ipfo8"],
                 "style": {
                   "display": "flex",
                   "height": "100vh",
@@ -2875,9 +2743,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#i3xv3"
-                ],
+                "selectors": ["#i3xv3"],
                 "style": {
                   "margin-top": "0",
                   "font-size": "24px",
@@ -2886,9 +2752,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ibxxn"
-                ],
+                "selectors": ["#ibxxn"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2900,9 +2764,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ik9yu"
-                ],
+                "selectors": ["#ik9yu"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2914,9 +2776,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#ibnlk"
-                ],
+                "selectors": ["#ibnlk"],
                 "style": {
                   "color": "white",
                   "text-decoration": "none",
@@ -2928,9 +2788,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#itt6j"
-                ],
+                "selectors": ["#itt6j"],
                 "style": {
                   "display": "flex",
                   "flex-direction": "column",
@@ -2938,9 +2796,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#il285"
-                ],
+                "selectors": ["#il285"],
                 "style": {
                   "margin-top": "auto",
                   "padding-top": "20px",
@@ -2951,9 +2807,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#is7w8"
-                ],
+                "selectors": ["#is7w8"],
                 "style": {
                   "width": "250px",
                   "background": "linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%)",
@@ -2965,9 +2819,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#iqnfa"
-                ],
+                "selectors": ["#iqnfa"],
                 "style": {
                   "margin-top": "0",
                   "color": "#333",
@@ -2976,27 +2828,21 @@
                 }
               },
               {
-                "selectors": [
-                  "#i8odx"
-                ],
+                "selectors": ["#i8odx"],
                 "style": {
                   "color": "#666",
                   "margin-bottom": "30px"
                 }
               },
               {
-                "selectors": [
-                  "#table-author-2"
-                ],
+                "selectors": ["#table-author-2"],
                 "style": {
                   "width": "100%",
                   "min-height": "400px"
                 }
               },
               {
-                "selectors": [
-                  "#ih5us"
-                ],
+                "selectors": ["#ih5us"],
                 "style": {
                   "flex": "1",
                   "padding": "40px",
@@ -3005,9 +2851,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#in05f"
-                ],
+                "selectors": ["#in05f"],
                 "style": {
                   "display": "flex",
                   "height": "100vh",
@@ -3015,9 +2859,7 @@
                 }
               },
               {
-                "selectors": [
-                  "#im47u"
-                ],
+                "selectors": ["#im47u"],
                 "style": {
                   "width": "100%",
                   "min-height": "400px"

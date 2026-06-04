@@ -12,7 +12,7 @@ import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
-import { readAgentVariants } from '../../shared/services/agent-variants/agent-variants-service';
+import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
 import {
@@ -542,9 +542,33 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     const latestProjectSnapshot = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
     const agentIndex = latestProjectSnapshot.currentDiagramIndices.AgentDiagram ?? 0;
     const activeAgentDiagram = latestProjectSnapshot.diagrams.AgentDiagram[agentIndex] || getActiveDiagram(latestProjectSnapshot, 'AgentDiagram') || diagram;
-    const currentConfigRecord = (activeAgentDiagram.config ?? {}) as Record<string, unknown>;
+    let currentConfigRecord = (activeAgentDiagram.config ?? {}) as Record<string, unknown>;
 
     try {
+      // Persist the current live model back into its source before switching,
+      // so in-canvas edits to the active base/variant aren't discarded. When a
+      // variant is active, fold the edits into its inline snapshot; on the base,
+      // update the stored base model.
+      const currentActiveVariantId = getActiveAgentVariantId(activeAgentDiagram);
+      const liveModel = activeAgentDiagram.model;
+      if (isUMLModel(liveModel) && liveModel.type === UMLDiagramType.AgentDiagram) {
+        if (currentActiveVariantId) {
+          const currentVariants = readAgentVariants(activeAgentDiagram);
+          if (currentVariants.some((variant) => variant.id === currentActiveVariantId)) {
+            currentConfigRecord = {
+              ...currentConfigRecord,
+              personalizedVariants: currentVariants.map((variant) =>
+                variant.id === currentActiveVariantId
+                  ? { ...variant, model: structuredClone(liveModel) }
+                  : variant,
+              ),
+            };
+          }
+        } else {
+          LocalStorageRepository.saveAgentBaseModel(activeAgentDiagram.id, liveModel);
+        }
+      }
+
       if (!variantId) {
         const baseModel = LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id);
         if (!baseModel) {

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
@@ -196,7 +196,7 @@ export const useGenerateCode = () => {
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
-      modelOverride?: Record<string, any>,
+      modelOverride?: UMLModel,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 

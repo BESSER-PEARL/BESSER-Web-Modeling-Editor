@@ -1808,18 +1808,15 @@ export const AgentConfigurationPanel: React.FC = () => {
     const proceed = await confirmOverwriteIfNameCollides(trimmedName);
     if (!proceed) return;
 
-    const activeVariantId = getActiveAgentVariantId(currentAgentDiagram);
     const storedBaseModel = currentAgentDiagram?.id
       ? LocalStorageRepository.getAgentBaseModel(currentAgentDiagram.id)
       : null;
 
-    // Re-personalize from the stored base only when the live diagram is itself
-    // a personalized variant. After importing a full-project template that
-    // bundles agentBaseModels (e.g. the Personalized Gym Agent), the live
-    // diagram is still the un-personalized base, and feeding the bundled
-    // snapshot through /transform-agent-model-json instead surfaces a backend
-    // round-trip bug that resets every transition to when_no_intent_matched.
-    const agentModel = activeVariantId && storedBaseModel
+    // Re-personalize from the stored un-personalized base when one exists,
+    // otherwise the live diagram is itself the base. The stored snapshot is
+    // guaranteed to be in the canonical nested transition shape (normalized at
+    // the storage boundary), so it round-trips through the backend cleanly.
+    const agentModel = storedBaseModel
       ? cloneModel(storedBaseModel)
       : currentAgentModel
         ? cloneModel(currentAgentModel)
