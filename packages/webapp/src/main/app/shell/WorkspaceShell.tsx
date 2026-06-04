@@ -11,7 +11,11 @@ import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+import {
+  LocalStorageRepository,
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+  normalizeAgentRuntimeConfig,
+} from '../../shared/services/storage/local-storage-repository';
 import { readAgentVariants } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
@@ -25,6 +29,8 @@ import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
 import type { GenerationResult } from '../../features/generation/types';
 import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
+import { CredentialsDialog, selectIsTestAgentRunning, selectSessionId, stopAgentTestThunk, validateAgentThunk } from '../../features/agent-testing';
+import { BACKEND_URL } from '../../shared/constants/constant';
 import { WorkspaceTopBar } from './WorkspaceTopBar';
 import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
@@ -158,6 +164,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   } = useGitHubAuth();
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
 
+  const isTestAgentActive = useAppSelector(selectIsTestAgentRunning);
+  const testSessionId = useAppSelector(selectSessionId);
+  const showTestAgent = currentProject?.currentDiagramType === 'AgentDiagram';
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
+  const [isValidatingBeforeTest, setIsValidatingBeforeTest] = useState(false);
+
   // Local UI state
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
@@ -177,6 +189,77 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     location.pathname,
     currentProject?.currentDiagramType,
   );
+
+  // Build a normalized system config for the test sandbox — mirrors the same
+  // normalization that handleAgentGenerate applies before code generation, so
+  // the backend receives the same intentRecognitionTechnology / llm / platform
+  // values in both flows. Without this, a raw diagram.config that is undefined,
+  // uses the legacy 'streamlit' platform, or has a structured shape (with
+  // intentRecognitionTechnology nested under a 'system' key) would be forwarded
+  // verbatim, causing the backend to fall back to LLMIntentClassifier.
+  const normalizedAgentSystemConfig = useMemo((): Record<string, any> => {
+    const activeAgentDiagram = currentProject
+      ? getActiveDiagram(currentProject, 'AgentDiagram')
+      : undefined;
+    const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
+    const llmBlock =
+      diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
+        ? (diagramConfig.llm as Record<string, any>)
+        : null;
+    const agentConfig = diagramConfig
+      ? normalizeAgentRuntimeConfig({
+          agentPlatform:
+            typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+          agentPlatformUseStreamlit:
+            typeof diagramConfig.agentPlatformUseStreamlit === 'boolean'
+              ? diagramConfig.agentPlatformUseStreamlit
+              : undefined,
+          intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
+          agentLlmProvider: llmBlock?.provider,
+          agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
+          agentCustomLlmModel: undefined,
+          agentLlmName:
+            typeof diagramConfig.agentLlmName === 'string'
+              ? diagramConfig.agentLlmName
+              : typeof llmBlock?.name === 'string'
+              ? llmBlock.name
+              : undefined,
+        })
+      : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
+
+    const resolvedOpenAiModel =
+      agentConfig.agentLlmModel === 'other'
+        ? agentConfig.agentCustomLlmModel.trim()
+        : agentConfig.agentLlmModel;
+
+    const resolvedAgentPlatform =
+      agentConfig.agentPlatform === 'websocket' && agentConfig.agentPlatformUseStreamlit
+        ? 'streamlit'
+        : agentConfig.agentPlatform;
+
+    const defaultLlmNameFromDiagram =
+      diagramConfig &&
+      typeof diagramConfig.default_llm_name === 'string' &&
+      diagramConfig.default_llm_name
+        ? diagramConfig.default_llm_name
+        : undefined;
+
+    return {
+      agentPlatform: resolvedAgentPlatform,
+      intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
+      ...(defaultLlmNameFromDiagram ? { default_llm_name: defaultLlmNameFromDiagram } : {}),
+      ...(agentConfig.agentLlmName
+        ? { llm: { name: agentConfig.agentLlmName } }
+        : agentConfig.agentLlmProvider
+        ? {
+            llm: {
+              provider: agentConfig.agentLlmProvider,
+              ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
+            },
+          }
+        : {}),
+    };
+  }, [currentProject]);
 
   // Extracted hooks
   const {
@@ -274,6 +357,44 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   useEffect(() => {
     setDiagramTitleDraft(diagram?.title ?? '');
   }, [diagram?.id, diagram?.title]);
+
+  // Navigate to /test-agent only when the test transitions from idle to active.
+  // Using a ref avoids re-redirecting the user if they manually navigate away while
+  // the test is still running.
+  const prevIsTestAgentActiveRef = useRef(isTestAgentActive);
+  useEffect(() => {
+    const wasActive = prevIsTestAgentActiveRef.current;
+    prevIsTestAgentActiveRef.current = isTestAgentActive;
+    if (!wasActive && isTestAgentActive) {
+      navigate('/test-agent');
+    }
+  }, [isTestAgentActive, navigate]);
+
+  // Stop any running test session when the user switches to a different project
+  const prevProjectIdRef = useRef<string | undefined>(currentProject?.id);
+  useEffect(() => {
+    const currentId = currentProject?.id;
+    const prevId = prevProjectIdRef.current;
+    prevProjectIdRef.current = currentId;
+    if (prevId !== undefined && prevId !== currentId) {
+      void dispatch(stopAgentTestThunk());
+    }
+  }, [currentProject?.id, dispatch]);
+
+  // Best-effort session cleanup when the browser tab is closed or reloaded.
+  // Uses fetch with keepalive:true so the request can outlive the page.
+  useEffect(() => {
+    const sessionId = testSessionId;
+    if (!sessionId) return;
+    const handleBeforeUnload = () => {
+      fetch(`${BACKEND_URL}/test/sessions/${sessionId}`, {
+        method: 'DELETE',
+        keepalive: true,
+      }).catch(() => {});
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [testSessionId]);
 
   /* ---- Assistant-driven export (JSON / BUML) ---- */
   useEffect(() => {
@@ -650,6 +771,43 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     dispatch(updateDiagramModelThunk({ title: normalized }));
   }, [diagramTitleDraft, diagram?.title, dispatch]);
 
+  const handleTestAgent = async () => {
+    if (isModelEmpty(diagram?.model)) {
+      toast.info('The agent diagram is empty. Add states, transitions, and intents before testing.');
+      return;
+    }
+
+    setIsValidatingBeforeTest(true);
+
+    const result = await dispatch(
+      validateAgentThunk({
+        title: diagram?.title ?? 'Agent',
+        model: diagram?.model ?? {},
+        config: normalizedAgentSystemConfig,
+        configYaml: (diagram as any)?.configYaml as string | undefined,
+      }),
+    );
+
+    setIsValidatingBeforeTest(false);
+
+    if (validateAgentThunk.rejected.match(result)) {
+      const msg =
+        typeof result.payload === 'string' ? result.payload : 'Validation failed';
+      toast.error(`Agent validation failed: ${msg}`);
+      return;
+    }
+
+    if (validateAgentThunk.fulfilled.match(result) && !result.payload.valid) {
+      const errors = result.payload.errors;
+      const msg =
+        errors.length > 0 ? errors.join('\n') : 'Validation failed';
+      toast.error(`Agent validation failed:\n${msg}`);
+      return;
+    }
+
+    setIsCredentialsDialogOpen(true);
+  };
+
   const handleToggleTheme = () => {
     toggleTheme();
     setIsDarkTheme(isDarkThemeEnabled());
@@ -818,6 +976,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onSwitchDiagramType={handleMobileSwitchDiagramType}
             onNavigate={handleMobileNavigate}
             onToggleExpanded={closeMobileDrawer}
+            onTestAgent={showTestAgent ? handleTestAgent : undefined}
           />
         </div>
       </div>
@@ -845,6 +1004,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             void handleSafeNavigate(path);
           }}
           onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
+          onTestAgent={showTestAgent ? handleTestAgent : undefined}
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -979,6 +1139,16 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenChange={setIsCommandPaletteOpen}
         actions={commandPaletteActions}
       />
+
+      <CredentialsDialog
+        open={isCredentialsDialogOpen}
+        onOpenChange={setIsCredentialsDialogOpen}
+        diagramTitle={diagram?.title ?? 'Agent'}
+        diagramModel={(diagram?.model ?? {}) as object}
+        diagramConfig={normalizedAgentSystemConfig}
+        diagramConfigYaml={(diagram as any)?.configYaml as string | undefined}
+      />
+
     </div>
   );
 };

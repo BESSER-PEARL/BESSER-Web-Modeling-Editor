@@ -39,6 +39,10 @@ const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
 );
 
+const AgentTestPage = React.lazy(() =>
+  import('../features/agent-testing/AgentTestPage').then((m) => ({ default: m.AgentTestPage })),
+);
+
 // Lazy-loaded dialogs (only fetched when opened)
 const ProjectHubDialog = React.lazy(() =>
   import('../features/project/ProjectHubDialog').then((m) => ({ default: m.ProjectHubDialog })),
@@ -133,6 +137,7 @@ function AppContentInner() {
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
+            <Route path="/test-agent" element={<AgentTestPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
