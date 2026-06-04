@@ -224,7 +224,9 @@ export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
     const wsBase = BACKEND_URL
       ? BACKEND_URL.replace(/^https/, 'wss').replace(/^http/, 'ws')
       : 'ws://localhost:9000/besser_api';
-    const wsUrl = `${wsBase}/test/${sessionId}/ws`;
+    const githubSession = sessionStorage.getItem('github_session');
+    const query = githubSession ? `?github_session=${encodeURIComponent(githubSession)}` : '';
+    const wsUrl = `${wsBase}/test/${sessionId}/ws${query}`;
 
     setWsStatus('connecting');
     const ws = new WebSocket(wsUrl);

@@ -19,6 +19,13 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { BACKEND_URL } from '@/main/shared/constants/constant';
 import type { RootState } from '@/main/app/store/store';
 
+function getAgentTestAuthHeaders(base: Record<string, string> = {}): Record<string, string> {
+  const githubSession = sessionStorage.getItem('github_session');
+  return githubSession
+    ? { ...base, 'X-GitHub-Session': githubSession }
+    : base;
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -96,7 +103,7 @@ export const startAgentTestThunk = createAsyncThunk(
     try {
       const response = await fetch(`${BACKEND_URL}/test/sessions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAgentTestAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 
@@ -119,7 +126,7 @@ export const validateAgentThunk = createAsyncThunk(
     try {
       const response = await fetch(`${BACKEND_URL}/test/validate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAgentTestAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 
@@ -151,6 +158,7 @@ export const stopAgentTestThunk = createAsyncThunk(
     try {
       await fetch(`${BACKEND_URL}/test/sessions/${sessionId}`, {
         method: 'DELETE',
+        headers: getAgentTestAuthHeaders(),
       });
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to stop agent test');
@@ -190,13 +198,16 @@ export const restartAgentTestThunk = createAsyncThunk(
     // Fire-and-forget cleanup of the current session
     const oldSessionId = agentTest.sessionId;
     if (oldSessionId) {
-      fetch(`${BACKEND_URL}/test/sessions/${oldSessionId}`, { method: 'DELETE' }).catch(() => {});
+      fetch(`${BACKEND_URL}/test/sessions/${oldSessionId}`, {
+        method: 'DELETE',
+        headers: getAgentTestAuthHeaders(),
+      }).catch(() => {});
     }
 
     try {
       const response = await fetch(`${BACKEND_URL}/test/sessions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAgentTestAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -215,7 +226,9 @@ export const fetchLimitsThunk = createAsyncThunk(
   'agentTest/fetchLimits',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/test/limits`);
+      const response = await fetch(`${BACKEND_URL}/test/limits`, {
+        headers: getAgentTestAuthHeaders(),
+      });
       if (!response.ok) return rejectWithValue(`HTTP ${response.status}`);
       return (await response.json()) as AgentTestLimits;
     } catch (err) {
