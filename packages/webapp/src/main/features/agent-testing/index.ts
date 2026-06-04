@@ -36,6 +36,7 @@ export type { AgentTestLimits, AgentTestStatus, Message } from './agentTestSlice
 export { AgentTestPage } from './AgentTestPage';
 export { AgentTestPanel } from './AgentTestPanel';
 export { AgentCodeViewer } from './AgentCodeViewer';
+export { AgentFileExplorer } from './AgentFileExplorer';
 export { AgentDiagramReadOnly } from './AgentDiagramReadOnly';
 export { BafChatWrapper } from './BafChatWrapper';
 export { CredentialsDialog } from './CredentialsDialog';

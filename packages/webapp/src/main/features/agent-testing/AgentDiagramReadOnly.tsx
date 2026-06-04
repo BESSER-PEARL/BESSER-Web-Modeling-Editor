@@ -290,10 +290,10 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
       }
       prevHighlightRelIdRef.current = newRelId;
 
-      // CSS injection for thicker stroke on the active transition
+      // CSS injection: glow on the active transition (doesn't scale the arrowhead)
       if (styleElRef.current) {
         styleElRef.current.textContent = newRelId
-          ? `#${CSS.escape(newRelId)} g polyline { stroke-width: 1px !important; }`
+          ? `#${CSS.escape(newRelId)} g { filter: drop-shadow(0 0 4px ${ACTIVE_TRANSITION_STROKE}cc); }`
           : '';
       }
     }

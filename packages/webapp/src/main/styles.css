@@ -440,3 +440,9 @@ select {
   --error: #f87171;
   --error-bg: #f871711a;
 }
+
+/* Chat input row: remove the 10% horizontal padding so the textarea + buttons span full width */
+.baf-chat .chat-area__input-row {
+  padding-left: 12px;
+  padding-right: 12px;
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Bot, Code2, FlaskConical, Loader2, RotateCcw, X } from 'lucide-react';
+import { AlertCircle, Bot, FlaskConical, Folder, Loader2, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import {
@@ -7,13 +7,12 @@ import {
   selectAgentTestStatus,
   selectCurrentAgentState,
   selectLastTransition,
-  selectAgentCode,
   stopAgentTestThunk,
   restartAgentTestThunk,
 } from '@/main/features/agent-testing';
 import { BafChatWrapper } from './BafChatWrapper';
 import { TerminalPane } from './TerminalPane';
-import { AgentCodeViewer } from './AgentCodeViewer';
+import { AgentFileExplorer } from './AgentFileExplorer';
 import { AgentDiagramReadOnly } from './AgentDiagramReadOnly';
 
 type LeftTab = 'diagram' | 'code';
@@ -32,7 +31,6 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
   const currentState = useAppSelector(selectCurrentAgentState);
   const lastTransition = useAppSelector(selectLastTransition);
   const error = useAppSelector(selectAgentTestError);
-  const agentCode = useAppSelector(selectAgentCode);
 
   const [isTerminalCollapsed, setIsTerminalCollapsed] = useState(true);
   const [rightWidth, setRightWidth] = useState(() => Math.max(MIN_RIGHT_WIDTH, Math.floor(window.innerWidth * 0.5)));
@@ -149,8 +147,8 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
               ].join(' ')}
               onClick={() => setLeftTab('code')}
             >
-              <Code2 className="size-3.5" />
-              Code
+              <Folder className="size-3.5" />
+              Source
             </button>
 
             {/* Right side: Reset button + status badges */}
@@ -185,7 +183,7 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
             {leftTab === 'diagram' ? (
               <AgentDiagramReadOnly currentState={currentState} />
             ) : (
-              <AgentCodeViewer code={agentCode} />
+              <AgentFileExplorer />
             )}
           </div>
         </div>
