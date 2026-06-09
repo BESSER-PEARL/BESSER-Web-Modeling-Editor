@@ -529,13 +529,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </a>
                 </div>
 
-                {/* Headline — gradient "model" text */}
+                {/* Headline — gradient "build" text */}
                 <h1
                   className="animate-fade-up mt-7 text-center font-display text-[2.25rem] leading-[1.12] tracking-tight sm:text-[2.75rem] lg:text-5xl"
                   style={{ animationDelay: '70ms' }}
                 >
                   What would you like to{' '}
-                  <em className="gradient-text-model font-display italic not-italic">model</em> today?
+                  <em className="gradient-text-model font-display italic not-italic">build</em> today?
                 </h1>
 
                 {/* Subtitle + connection status */}
@@ -577,7 +577,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   ))}
                 </div>
 
-                {/* Capability cards — three branded cards */}
+                {/* Capability cards — three branded cards (masked for experimental launch; set to true to restore) */}
+                {false && (
                 <div
                   className="animate-fade-up mt-10 grid grid-cols-3 gap-3"
                   style={{ animationDelay: '400ms' }}
@@ -619,6 +620,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </CardContent>
                   </Card>
                 </div>
+                )}
               </div>
 
               {/* Bottom spacer + footer */}
