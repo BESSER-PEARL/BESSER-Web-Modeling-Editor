@@ -184,6 +184,11 @@ type EdgePopoverType =
   | "AgentStateTransition"
   | "AgentStateTransitionInit"
   | "UserModelLink"
+  // NNDiagram edges. Same registry pattern — type widening
+  // only; inspector bodies resolve via `getInspector(type, kind)`.
+  | "NNNext"
+  | "NNComposition"
+  | "NNAssociation"
   // Placeholder CommentLink (dashed dependency
   // arrow from a Comment to any element). No inspector body yet — the
   // edit/give/see-feedback registry treats this as "no popover".

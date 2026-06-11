@@ -1,7 +1,13 @@
 import { EDGES, INTERFACE } from "@/constants"
 import { IPoint } from "@/edges/Connection"
 import { DiagramEdgeType, UMLDiagramType } from "@/typings"
-import { Position, Rect, XYPosition, ConnectionLineType } from "@xyflow/react"
+import {
+  Node,
+  Position,
+  Rect,
+  XYPosition,
+  ConnectionLineType,
+} from "@xyflow/react"
 
 /**
  * Adjusts the target coordinates based on the position and marker padding.
@@ -855,6 +861,21 @@ export const getDefaultEdgeType = (
       return "PetriNetArc"
     case "NNDiagram":
       return "NNNext"
+    // BESSER behavioral diagrams. v3 truth —
+    // `DefaultUMLRelationshipType` in `uml-relationship-type.ts` maps
+    // StateMachineDiagram → StateTransition, AgentDiagram →
+    // AgentStateTransition and UserDiagram → UserModelLink. Without
+    // these cases user-drawn edges fell through to
+    // `ClassUnidirectional` and were silently dropped by the backend
+    // processors. (AgentDiagram additionally promotes edges touching
+    // the initial node to `AgentStateTransitionInit` — see
+    // `resolveAgentEdgeType` below.)
+    case "StateMachineDiagram":
+      return "StateTransition"
+    case "AgentDiagram":
+      return "AgentStateTransition"
+    case "UserDiagram":
+      return "UserModelLink"
     default:
       return "ClassUnidirectional"
   }
@@ -884,6 +905,149 @@ export const resolveNNEdgeType = (
     return "NNAssociation"
   }
   return fallback
+}
+
+/**
+ * Auto-detect the AgentDiagram edge type from its endpoints. Mirrors
+ * v3's supported-relationship intersection (`connectable-repository.ts`
+ * + `agent-state.ts` / `uml-state-initial-node.ts`): the initial node
+ * supports `[AgentStateTransitionInit, StateTransition]` and AgentState
+ * supports `[AgentStateTransition, AgentStateTransitionInit, Link]`, so
+ * initial ↔ AgentState (either direction) intersects to
+ * `AgentStateTransitionInit`. Everything else (state ↔ state, anything
+ * touching intents / RAG elements) falls back to the diagram default
+ * `AgentStateTransition`.
+ */
+export const resolveAgentEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType => {
+  const isInitial = (t?: string) => t === "StateInitialNode"
+  const isAgentState = (t?: string) => t === "AgentState"
+  if (
+    (isInitial(sourceType) &&
+      (isAgentState(targetType) || isInitial(targetType))) ||
+    (isInitial(targetType) && isAgentState(sourceType))
+  ) {
+    return "AgentStateTransitionInit"
+  }
+  return fallback
+}
+
+/**
+ * Default `data` payload for a freshly hand-drawn edge. Mirrors what a
+ * v3 relationship instance serialized on creation so the inspector and
+ * the backend processors see the same canonical shape:
+ *
+ *   - `AgentStateTransition` — v3 `agent-state-transition.ts` defaults
+ *     to a predefined `when_intent_matched` transition with an empty
+ *     intent (`transitionType: 'predefined'`, `predefined:
+ *     { predefinedType: 'when_intent_matched', intentName: '' }`,
+ *     `custom: { condition: [] }`, `params: {}`).
+ *   - `AgentStateTransitionInit` — pure marker, only `params`.
+ *
+ * Everything else returns `undefined` (no data key on the new edge),
+ * matching the previous behavior for class / object / … edges whose
+ * inspectors tolerate missing data.
+ */
+export const getInitialEdgeData = (
+  edgeType: string
+): Record<string, unknown> | undefined => {
+  switch (edgeType) {
+    case "AgentStateTransition":
+      return {
+        transitionType: "predefined",
+        predefined: { predefinedType: "when_intent_matched", intentName: "" },
+        custom: { condition: [] },
+        params: {},
+      }
+    case "AgentStateTransitionInit":
+      return { params: {} }
+    default:
+      return undefined
+  }
+}
+
+/**
+ * Compute the auto-filled OCL expression for a constraint node that was
+ * just linked to a class. Port of the v3 post-connect hook in
+ * `connectable-repository.ts` (develop), adapted to the v4 palette seed
+ * which already ships a context clause (`context Class inv: true`):
+ *
+ *   - empty / no `context` clause → seed `context <ClassName> inv: `
+ *     (v3 behavior — it overwrote any text without a context clause).
+ *   - `context <Other> …` → rewrite just the class token, preserving
+ *     the rest of the expression (handles the v4 palette seed and
+ *     re-linking to a different class).
+ *   - `context <ClassName> …` already correct → `null` (no change).
+ *
+ * Returns the new expression, or `null` when nothing should change.
+ */
+export const computeOclAutofillExpression = (
+  currentExpression: string | undefined,
+  className: string
+): string | null => {
+  const trimmed = (currentExpression ?? "").trim()
+  const match = /^context\s+(\S+)([\s\S]*)$/.exec(trimmed)
+  if (!match) {
+    // Empty or no context clause — v3 overwrote with a fresh clause.
+    return `context ${className} inv: `
+  }
+  if (match[1] === className) {
+    return null
+  }
+  return `context ${className}${match[2]}`
+}
+
+/**
+ * Apply the OCL context auto-fill to the node list after a
+ * `ClassOCLLink` was created between `sourceId` and `targetId`. Finds
+ * the `ClassOCLConstraint` endpoint and the class endpoint, computes
+ * the new expression via `computeOclAutofillExpression`, and returns a
+ * new node array with the constraint node's `data.expression` patched —
+ * or `null` when nothing changes (no constraint endpoint, unnamed
+ * class, or the context clause already references the class).
+ */
+export const applyOclContextAutofill = (
+  nodes: Node[],
+  sourceId: string | null | undefined,
+  targetId: string | null | undefined
+): Node[] | null => {
+  const sourceNode = nodes.find((n) => n.id === sourceId)
+  const targetNode = nodes.find((n) => n.id === targetId)
+  const isConstraint = (n?: Node) => n?.type === "ClassOCLConstraint"
+  let constraintNode: Node | undefined
+  let classNode: Node | undefined
+  if (isConstraint(sourceNode) && !isConstraint(targetNode)) {
+    constraintNode = sourceNode
+    classNode = targetNode
+  } else if (isConstraint(targetNode) && !isConstraint(sourceNode)) {
+    constraintNode = targetNode
+    classNode = sourceNode
+  }
+  if (!constraintNode || !classNode) return null
+
+  const className = (
+    (classNode.data as { name?: string } | undefined)?.name ?? ""
+  ).trim()
+  if (!className) return null
+
+  const currentExpression = (
+    constraintNode.data as { expression?: string } | undefined
+  )?.expression
+  const nextExpression = computeOclAutofillExpression(
+    currentExpression,
+    className
+  )
+  if (nextExpression === null) return null
+
+  const constraintId = constraintNode.id
+  return nodes.map((n) =>
+    n.id === constraintId
+      ? { ...n, data: { ...n.data, expression: nextExpression } }
+      : n
+  )
 }
 
 /**

@@ -229,10 +229,14 @@ export const edgeConfig = {
   },
 } as const
 
-// Bound to `defaultEdgeTypes` (not `diagramEdgeTypes`) so the canonical
-// upstream key set stays statically known; runtime additions via
-// `registerEdgeTypes` are widened to string at the boundary.
-export type DiagramEdgeType = keyof typeof defaultEdgeTypes
+// Bound to `edgeConfig` (not the mutable `diagramEdgeTypes` registry) so
+// the key set stays statically known. `edgeConfig` is a strict superset
+// of `defaultEdgeTypes` that also lists the BESSER edge types registered
+// at runtime via `registerEdgeTypes` (StateTransition,
+// AgentStateTransition(-Init), UserModelLink, NN*), so helpers like
+// `getDefaultEdgeType` / `resolveAgentEdgeType` / `resolveNNEdgeType`
+// can return those literals without widening to string.
+export type DiagramEdgeType = keyof typeof edgeConfig
 
 export interface IPoint {
   x: number

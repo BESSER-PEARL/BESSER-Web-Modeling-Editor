@@ -3,22 +3,26 @@ import type { UMLDiagramType } from "@/types/DiagramType"
 import {
   adjustSourceCoordinates,
   adjustTargetCoordinates,
+  applyOclContextAutofill,
   calculateDynamicEdgeLabels,
   calculateInnerMidpoints,
   calculateOverlayPath,
   calculateStraightPath,
   calculateTextPlacement,
+  computeOclAutofillExpression,
   findClosestHandle,
   getConnectionLineType,
   getDefaultEdgeType,
   getEdgeMarkerStyles,
+  getInitialEdgeData,
   getMarkerSegmentPath,
   parseSvgPath,
   removeDuplicatePoints,
+  resolveAgentEdgeType,
   simplifyPoints,
   simplifySvgPath,
 } from "@/utils/edgeUtils"
-import { ConnectionLineType, Position } from "@xyflow/react"
+import { ConnectionLineType, Position, type Node } from "@xyflow/react"
 import { describe, expect, it } from "vitest"
 
 // ---------------------------------------------------------------------------
@@ -1050,6 +1054,13 @@ describe("getDefaultEdgeType", () => {
     ["Sfc", "SfcDiagramEdge"],
     ["CommunicationDiagram", "CommunicationLink"],
     ["PetriNet", "PetriNetArc"],
+    ["NNDiagram", "NNNext"],
+    // BESSER behavioral diagrams — v3 `DefaultUMLRelationshipType`
+    // parity. Hand-drawn edges previously fell through to
+    // `ClassUnidirectional` and were dropped by the backend processors.
+    ["StateMachineDiagram", "StateTransition"],
+    ["AgentDiagram", "AgentStateTransition"],
+    ["UserDiagram", "UserModelLink"],
   ]
 
   it.each(cases)("maps %s to %s", (diagramType, expectedEdgeType) => {
@@ -1062,6 +1073,196 @@ describe("getDefaultEdgeType", () => {
     expect(
       getDefaultEdgeType("UnknownDiagram" as unknown as UMLDiagramType)
     ).toBe("ClassUnidirectional")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveAgentEdgeType — v3 supported-relationship intersection parity
+// (`uml-state-initial-node.ts` supports [AgentStateTransitionInit,
+// StateTransition]; `agent-state.ts` supports [AgentStateTransition,
+// AgentStateTransitionInit, Link]).
+// ---------------------------------------------------------------------------
+describe("resolveAgentEdgeType", () => {
+  const fallback = "AgentStateTransition" as const
+
+  it("returns AgentStateTransitionInit for initial node → AgentState", () => {
+    expect(resolveAgentEdgeType("StateInitialNode", "AgentState", fallback)).toBe(
+      "AgentStateTransitionInit"
+    )
+  })
+
+  it("returns AgentStateTransitionInit for AgentState → initial node (flipped)", () => {
+    expect(resolveAgentEdgeType("AgentState", "StateInitialNode", fallback)).toBe(
+      "AgentStateTransitionInit"
+    )
+  })
+
+  it("returns AgentStateTransitionInit for initial ↔ initial", () => {
+    expect(
+      resolveAgentEdgeType("StateInitialNode", "StateInitialNode", fallback)
+    ).toBe("AgentStateTransitionInit")
+  })
+
+  it("returns the fallback for AgentState ↔ AgentState", () => {
+    expect(resolveAgentEdgeType("AgentState", "AgentState", fallback)).toBe(
+      fallback
+    )
+  })
+
+  it("returns the fallback when the initial node connects to an intent", () => {
+    // v3: AgentIntent has no supportedRelationships, so the intersection
+    // is empty and the diagram default wins.
+    expect(
+      resolveAgentEdgeType("StateInitialNode", "AgentIntent", fallback)
+    ).toBe(fallback)
+    expect(
+      resolveAgentEdgeType("AgentIntent", "StateInitialNode", fallback)
+    ).toBe(fallback)
+  })
+
+  it("returns the fallback when endpoint types are unknown", () => {
+    expect(resolveAgentEdgeType(undefined, "AgentState", fallback)).toBe(
+      fallback
+    )
+    expect(resolveAgentEdgeType("AgentState", undefined, fallback)).toBe(
+      fallback
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getInitialEdgeData — default data scaffold for hand-drawn edges
+// ---------------------------------------------------------------------------
+describe("getInitialEdgeData", () => {
+  it("scaffolds a predefined when_intent_matched transition for AgentStateTransition", () => {
+    // v3 `agent-state-transition.ts` defaults: transitionType
+    // 'predefined', predefinedType 'when_intent_matched', empty intent.
+    expect(getInitialEdgeData("AgentStateTransition")).toEqual({
+      transitionType: "predefined",
+      predefined: { predefinedType: "when_intent_matched", intentName: "" },
+      custom: { condition: [] },
+      params: {},
+    })
+  })
+
+  it("scaffolds only params for AgentStateTransitionInit", () => {
+    expect(getInitialEdgeData("AgentStateTransitionInit")).toEqual({
+      params: {},
+    })
+  })
+
+  it("returns undefined for edge types without a scaffold", () => {
+    expect(getInitialEdgeData("StateTransition")).toBeUndefined()
+    expect(getInitialEdgeData("UserModelLink")).toBeUndefined()
+    expect(getInitialEdgeData("ClassBidirectional")).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// computeOclAutofillExpression — OCL context auto-fill (v3
+// `connectable-repository.ts` post-connect hook, adapted to the v4
+// palette seed which already carries a context clause)
+// ---------------------------------------------------------------------------
+describe("computeOclAutofillExpression", () => {
+  it("rewrites the palette seed's context class to the connected class", () => {
+    expect(
+      computeOclAutofillExpression("context Class inv: true", "Person")
+    ).toBe("context Person inv: true")
+  })
+
+  it("seeds a fresh context clause when the expression is empty", () => {
+    expect(computeOclAutofillExpression("", "Person")).toBe(
+      "context Person inv: "
+    )
+    expect(computeOclAutofillExpression(undefined, "Person")).toBe(
+      "context Person inv: "
+    )
+  })
+
+  it("overwrites text without a context clause (v3 behavior)", () => {
+    expect(computeOclAutofillExpression("OCL Constraint", "Person")).toBe(
+      "context Person inv: "
+    )
+  })
+
+  it("returns null when the context already references the class", () => {
+    expect(
+      computeOclAutofillExpression("context Person inv: self.age > 0", "Person")
+    ).toBeNull()
+  })
+
+  it("preserves the constraint body when swapping the context class", () => {
+    expect(
+      computeOclAutofillExpression(
+        "context Library inv: self.books->size() > 0",
+        "Book"
+      )
+    ).toBe("context Book inv: self.books->size() > 0")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyOclContextAutofill — node-array patch on ClassOCLLink creation
+// ---------------------------------------------------------------------------
+describe("applyOclContextAutofill", () => {
+  const makeNodes = (expression: string, className = "Person"): Node[] => [
+    {
+      id: "constraint-1",
+      type: "ClassOCLConstraint",
+      position: { x: 0, y: 0 },
+      data: { name: "constraint", expression },
+    },
+    {
+      id: "class-1",
+      type: "class",
+      position: { x: 300, y: 0 },
+      data: { name: className },
+    },
+    {
+      id: "class-2",
+      type: "class",
+      position: { x: 600, y: 0 },
+      data: { name: "Other" },
+    },
+  ]
+
+  it("patches the constraint when it is the edge source", () => {
+    const nodes = makeNodes("context Class inv: true")
+    const result = applyOclContextAutofill(nodes, "constraint-1", "class-1")
+    expect(result).not.toBeNull()
+    const constraint = result!.find((n) => n.id === "constraint-1")!
+    expect(constraint.data.expression).toBe("context Person inv: true")
+    // Untouched nodes are preserved by reference.
+    expect(result!.find((n) => n.id === "class-1")).toBe(nodes[1])
+  })
+
+  it("patches the constraint when it is the edge target", () => {
+    const nodes = makeNodes("context Class inv: true")
+    const result = applyOclContextAutofill(nodes, "class-1", "constraint-1")
+    expect(result).not.toBeNull()
+    const constraint = result!.find((n) => n.id === "constraint-1")!
+    expect(constraint.data.expression).toBe("context Person inv: true")
+  })
+
+  it("returns null when neither endpoint is a constraint", () => {
+    const nodes = makeNodes("context Class inv: true")
+    expect(applyOclContextAutofill(nodes, "class-1", "class-2")).toBeNull()
+  })
+
+  it("returns null when the class has no name", () => {
+    const nodes = makeNodes("context Class inv: true", "   ")
+    expect(applyOclContextAutofill(nodes, "constraint-1", "class-1")).toBeNull()
+  })
+
+  it("returns null when the context already references the class", () => {
+    const nodes = makeNodes("context Person inv: self.age > 0")
+    expect(applyOclContextAutofill(nodes, "constraint-1", "class-1")).toBeNull()
+  })
+
+  it("returns null when an endpoint id cannot be resolved", () => {
+    const nodes = makeNodes("context Class inv: true")
+    expect(applyOclContextAutofill(nodes, "constraint-1", "missing")).toBeNull()
+    expect(applyOclContextAutofill(nodes, null, "class-1")).toBeNull()
   })
 })
 

@@ -11,12 +11,16 @@ import {
 } from "@xyflow/react"
 import { useCallback, useRef } from "react"
 import {
+  applyOclContextAutofill,
   findClosestHandle,
   generateUUID,
   getDefaultEdgeType,
+  getInitialEdgeData,
+  resolveAgentEdgeType,
   resolveNNEdgeType,
 } from "@/utils"
 import { canConnectEndpoints } from "@/utils/bpmnConstraints"
+import { DiagramEdgeType } from "@/typings"
 import { DiagramNodeTypeRecord } from "@/nodes"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
@@ -31,8 +35,8 @@ import { useShallow } from "zustand/shallow"
 const resolveClassEdgeType = (
   sourceType: string | undefined,
   targetType: string | undefined,
-  defaultType: string
-): string => {
+  defaultType: DiagramEdgeType
+): DiagramEdgeType => {
   const isOcl = (t?: string) => t === "ClassOCLConstraint"
   const isClassEnd = (t?: string) =>
     t === "class" || t === "Enumeration" || t === "AbstractClass"
@@ -67,12 +71,13 @@ export const useConnect = () => {
   const connectionStartParams = useRef<OnConnectStartParams | null>(null)
   const { screenToFlowPosition, getIntersectingNodes, getInternalNode } =
     useReactFlow()
-  const { setEdges, addEdge, edges, nodes } = useDiagramStore(
+  const { setEdges, addEdge, edges, nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       setEdges: state.setEdges,
       addEdge: state.addEdge,
       edges: state.edges,
       nodes: state.nodes,
+      setNodes: state.setNodes,
     }))
   )
 
@@ -147,6 +152,8 @@ export const useConnect = () => {
       // the diagram default edge type. NNDiagram auto-detect:
       // Configuration ↔ NNContainer is a composition, Dataset ↔
       // NNContainer is an association; everything else uses NNNext.
+      // AgentDiagram auto-detect: initial node ↔ AgentState is the
+      // `AgentStateTransitionInit` marker edge.
       const sourceType = nodes.find((n) => n.id === connection.source)?.type
       const targetType = nodes.find((n) => n.id === connection.target)?.type
       let resolvedType: typeof defaultEdgeType
@@ -162,19 +169,41 @@ export const useConnect = () => {
           targetType,
           defaultEdgeType
         )
+      } else if (diagramType === "AgentDiagram") {
+        resolvedType = resolveAgentEdgeType(
+          sourceType,
+          targetType,
+          defaultEdgeType
+        )
       } else {
         resolvedType = defaultEdgeType
       }
+      const initialData = getInitialEdgeData(resolvedType)
       const newEdge: Edge = {
         ...connection,
         id: generateUUID(),
         type: resolvedType,
         selected: false,
+        ...(initialData ? { data: initialData } : {}),
       }
 
       addEdge(newEdge)
+
+      // OCL context auto-fill (v3 parity): linking a
+      // constraint to a class rewrites the constraint's context clause
+      // to reference the connected class.
+      if (resolvedType === "ClassOCLLink") {
+        setNodes(
+          (all) =>
+            applyOclContextAutofill(
+              all,
+              connection.source,
+              connection.target
+            ) ?? all
+        )
+      }
     },
-    [addEdge, defaultEdgeType, diagramType, nodes]
+    [addEdge, defaultEdgeType, diagramType, nodes, setNodes]
   )
 
   const onConnectEnd: OnConnectEnd = useCallback(
@@ -291,9 +320,16 @@ export const useConnect = () => {
               targetTypeOnEnd,
               defaultEdgeType
             )
+          } else if (diagramType === "AgentDiagram") {
+            resolvedTypeOnEnd = resolveAgentEdgeType(
+              sourceTypeOnEnd,
+              targetTypeOnEnd,
+              defaultEdgeType
+            )
           } else {
             resolvedTypeOnEnd = defaultEdgeType
           }
+          const initialDataOnEnd = getInitialEdgeData(resolvedTypeOnEnd)
           setEdges((eds) =>
             eds.concat({
               id: generateUUID(),
@@ -302,8 +338,17 @@ export const useConnect = () => {
               type: resolvedTypeOnEnd,
               sourceHandle: sourceHandleId,
               targetHandle,
+              ...(initialDataOnEnd ? { data: initialDataOnEnd } : {}),
             })
           )
+
+          // Same OCL context auto-fill as `onConnect`.
+          if (resolvedTypeOnEnd === "ClassOCLLink") {
+            setNodes(
+              (all) =>
+                applyOclContextAutofill(all, sourceNodeId, nodeOnTop.id) ?? all
+            )
+          }
         }
       }
       startEdge.current = null
@@ -319,6 +364,7 @@ export const useConnect = () => {
       isFourHandleNode,
       nodes,
       setEdges,
+      setNodes,
     ]
   )
 
