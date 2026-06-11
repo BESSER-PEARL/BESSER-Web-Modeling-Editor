@@ -1,14 +1,18 @@
 /**
- * Display-name helpers for class/object/agent attribute and method rows.
+ * Display-name and authoring helpers for class/object/agent attribute and
+ * method rows.
  *
  * Extracted from
  * `v3 source: common/uml-classifier/uml-classifier-member.ts`
- * (`parseLegacyNameFormat`, `displayName`/`displayNameER`).
+ * (`parseLegacyNameFormat`, `displayName`/`displayNameER`) and
+ * `uml-classifier-method-update.tsx` (def-line signature extraction).
  *
  * Pure functions, no React, no Redux. Used by the inline class-row
- * renderer and by JSON round-trip migrators.
+ * renderer, the class inspector authoring inputs, and JSON round-trip
+ * migrators.
  */
 
+import { v4 as uuidv4 } from "uuid"
 import {
   SYMBOL_TO_VISIBILITY,
   VISIBILITY_SYMBOLS,
@@ -30,6 +34,14 @@ export interface ClassifierMemberLike {
   isExternalId?: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultValue?: any
+  /**
+   * Structured method parameters. When present (method rows authored via
+   * the inspector store a bare `name` + `parameters[]` instead of the
+   * legacy fused "name(p: type)" string), the display formatter rebuilds
+   * the `(p: type, …)` segment so the canvas renders the full signature
+   * exactly like develop's fused-name `displayName` did.
+   */
+  parameters?: { name: string; parameterType?: string }[]
 }
 
 /**
@@ -145,8 +157,8 @@ export const formatDisplayName = (
     bareName = bareName.replace(/^[+\-#~]\s+/, "")
   }
   // Strip a legacy `: <Type>` suffix on attribute rows (no parentheses).
-  // Method rows preserve their `(…)` signature in `name` and only carry
-  // the return type via `attributeType`/`returnType`, so the regex
+  // Legacy method rows preserve their `(…)` signature in `name` and only
+  // carry the return type via `attributeType`/`returnType`, so the regex
   // explicitly excludes that case.
   if (
     member.attributeType &&
@@ -154,6 +166,22 @@ export const formatDisplayName = (
     /:\s*[^:]+$/.test(bareName)
   ) {
     bareName = bareName.replace(/\s*:\s*[^:]+$/, "")
+  }
+
+  // Method rows authored through the v4 inspector store a bare `name`
+  // plus structured `parameters[]` — rebuild the `(p: type, …)` segment
+  // so the canvas renders the full signature, matching develop where the
+  // fused name string ("notify(channel: str)") carried it implicitly.
+  // Legacy fused names (already containing `(`) are left untouched.
+  if (
+    member.parameters &&
+    member.parameters.length > 0 &&
+    !bareName.includes("(")
+  ) {
+    const paramList = member.parameters
+      .map((p) => (p.parameterType ? `${p.name}: ${p.parameterType}` : p.name))
+      .join(", ")
+    bareName = `${bareName}(${paramList})`
   }
 
   // Enumeration literals are bare names — no
@@ -189,3 +217,283 @@ export const formatDisplayName = (
   // Fallback to name for backward compatibility or simple display
   return bareName
 }
+
+/* -------------------------------------------------------------------------- */
+/* Authoring helpers (class inspector inputs)                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Strip everything that isn't a Python-identifier character. Mirrors the
+ * v3 rename sanitiser (`uml-classifier-update.tsx:475`). Applied to what
+ * remains of a name AFTER shorthand parsing — never to the raw input,
+ * which would destroy the `+ name: type` markers.
+ */
+export const sanitizeIdentifier = (raw: string): string =>
+  raw.replace(/[^a-zA-Z0-9_]/g, "")
+
+export interface ParsedAttributeInput {
+  /** Sanitized bare identifier left after shorthand parsing. */
+  name: string
+  /** Only set when the input carried a `+ - # ~` visibility prefix. */
+  visibility?: Visibility
+  /** Only set when the input carried a `: <type>` suffix (normalized). */
+  attributeType?: string
+}
+
+/**
+ * Parse the Apollon attribute shorthand (`"+ price: float"`) typed into
+ * the inspector's add-attribute input or a row name field. Mirrors v3
+ * `UMLClassifierMember.parseNameFormat` (`uml-classifier-member.ts:158`),
+ * but unlike the legacy parser it only reports `visibility` /
+ * `attributeType` when they are explicitly present in the input — so
+ * committing a plain identifier never clobbers the structured fields
+ * already stored on the row.
+ */
+export const parseAttributeInput = (raw: string): ParsedAttributeInput => {
+  const trimmed = raw.trim()
+  let visibility: Visibility | undefined
+  let rest = trimmed
+  const visibilityMatch = trimmed.match(/^([+\-#~])\s*/)
+  if (visibilityMatch) {
+    visibility = SYMBOL_TO_VISIBILITY[visibilityMatch[1]]
+    rest = trimmed.substring(visibilityMatch[0].length)
+  }
+  let name = rest
+  let attributeType: string | undefined
+  const typeMatch = rest.match(/^([^:]+):\s*(.+)$/)
+  if (typeMatch) {
+    name = typeMatch[1]
+    attributeType = normalizeType(typeMatch[2].trim())
+  }
+  return {
+    name: sanitizeIdentifier(name),
+    ...(visibility && { visibility }),
+    ...(attributeType !== undefined && { attributeType }),
+  }
+}
+
+export interface ParsedMethodParameter {
+  name: string
+  parameterType?: string
+}
+
+export interface ParsedMethodInput {
+  /** Sanitized bare identifier left after shorthand parsing. */
+  name: string
+  /** Only set when the input carried a `+ - # ~` visibility prefix. */
+  visibility?: Visibility
+  /**
+   * Only set when the input carried a `(...)` list — `[]` means the user
+   * typed explicit empty parens. Undefined ⇒ don't touch existing params.
+   */
+  parameters?: ParsedMethodParameter[]
+  /** Only set when the input carried a `: <type>` return suffix. */
+  returnType?: string
+}
+
+/**
+ * Split a `(`-delimited parameter list (`"self, a: int, b"`) into
+ * structured rows. `self` is dropped, mirroring the v3 def-line
+ * extraction (`uml-classifier-method-update.tsx:268-276`).
+ */
+const parseParameterList = (raw: string): ParsedMethodParameter[] =>
+  raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0 && p !== "self")
+    .map((p) => {
+      const colonIdx = p.indexOf(":")
+      if (colonIdx >= 0) {
+        const ptype = p.substring(colonIdx + 1).trim()
+        return {
+          name: sanitizeIdentifier(p.substring(0, colonIdx)),
+          ...(ptype && { parameterType: normalizeType(ptype) }),
+        }
+      }
+      return { name: sanitizeIdentifier(p) }
+    })
+    .filter((p) => p.name.length > 0)
+
+/**
+ * Parse the Apollon method shorthand (`"+ name(p: type): ret"`) typed
+ * into the inspector's add-method input or a method row name field.
+ * Mirrors v3 `UMLClassifierMember.parseNameFormat` (split at the colon
+ * AFTER the last `)` so parameter type colons aren't misinterpreted),
+ * with the signature exploded into structured `parameters[]` /
+ * `returnType` instead of being string-fused into the name.
+ */
+export const parseMethodInput = (raw: string): ParsedMethodInput => {
+  const trimmed = raw.trim()
+  let visibility: Visibility | undefined
+  let rest = trimmed
+  const visibilityMatch = trimmed.match(/^([+\-#~])\s*/)
+  if (visibilityMatch) {
+    visibility = SYMBOL_TO_VISIBILITY[visibilityMatch[1]]
+    rest = trimmed.substring(visibilityMatch[0].length)
+  }
+
+  if (rest.includes("(")) {
+    const openParen = rest.indexOf("(")
+    const lastParen = rest.lastIndexOf(")")
+    if (lastParen > openParen) {
+      const afterParen = rest.substring(lastParen + 1).trim()
+      const returnType = afterParen.startsWith(":")
+        ? normalizeType(afterParen.substring(1).trim())
+        : undefined
+      return {
+        name: sanitizeIdentifier(rest.substring(0, openParen)),
+        ...(visibility && { visibility }),
+        parameters: parseParameterList(
+          rest.substring(openParen + 1, lastParen)
+        ),
+        ...(returnType !== undefined && { returnType }),
+      }
+    }
+    // Has '(' but no ')' — malformed / mid-typing, treat as a bare name.
+    return {
+      name: sanitizeIdentifier(rest),
+      ...(visibility && { visibility }),
+    }
+  }
+
+  // No parens: attribute-style "name: type" maps the type onto the
+  // return type (v3 parsed it into `attributeType`, which is the method
+  // return type in the legacy shape).
+  const typeMatch = rest.match(/^([^:]+):\s*(.+)$/)
+  if (typeMatch) {
+    return {
+      name: sanitizeIdentifier(typeMatch[1]),
+      ...(visibility && { visibility }),
+      returnType: normalizeType(typeMatch[2].trim()),
+    }
+  }
+  return {
+    name: sanitizeIdentifier(rest),
+    ...(visibility && { visibility }),
+  }
+}
+
+export interface ExtractedMethodSignature {
+  name: string
+  parameters: ParsedMethodParameter[]
+  returnType?: string
+}
+
+/**
+ * Extract the method signature from the first python/BAL
+ * `def name(params) -> ret:` (or BAL `... -> ret {`) line of a
+ * code-implemented method body. Regexes ported verbatim from v3
+ * `uml-classifier-method-update.tsx:handleCodeChange` (260-276).
+ * Returns undefined when no `def <name>(...)` line is present.
+ */
+export const extractMethodSignatureFromCode = (
+  code: string
+): ExtractedMethodSignature | undefined => {
+  const methodMatch = code.match(/def\s+(\w+)\s*\(([^)]*)\)/)
+  if (!methodMatch || !methodMatch[1]) return undefined
+  const returnTypeMatch = code.match(
+    /def\s+\w+\s*\([^)]*\)\s*->\s*([^:{]+)\s*[:{]/
+  )
+  return {
+    name: methodMatch[1],
+    parameters: parseParameterList(methodMatch[2] ?? ""),
+    ...(returnTypeMatch && {
+      returnType: normalizeType(returnTypeMatch[1].trim()),
+    }),
+  }
+}
+
+/** Structural shape of `ClassifierMethodParameter` (avoids a `@/types` import). */
+export interface MethodParameterLike {
+  id: string
+  name: string
+  parameterType?: string
+  defaultValue?: unknown
+}
+
+/**
+ * Reconcile a parsed parameter list with the structured rows already on
+ * a method, preserving existing parameter ids (matched by name first,
+ * then by position) so Yjs sync and round-trips stay stable while the
+ * user retypes a signature.
+ */
+export const mergeParameterIds = (
+  existing: MethodParameterLike[],
+  parsed: ParsedMethodParameter[]
+): MethodParameterLike[] => {
+  const used = new Set<string>()
+  // Pass 1: reserve ids for exact name matches first, so an inserted /
+  // renamed parameter at an earlier position can't steal them.
+  const nameMatches = parsed.map((p) => {
+    const match = existing.find((e) => e.name === p.name && !used.has(e.id))
+    if (match) used.add(match.id)
+    return match
+  })
+  // Pass 2: positional fallback for the rest, fresh ids for new params.
+  return parsed.map((p, index) => {
+    let match = nameMatches[index]
+    if (!match) {
+      const positional = existing[index]
+      if (positional && !used.has(positional.id)) {
+        match = positional
+        used.add(positional.id)
+      }
+    }
+    return {
+      id: match?.id ?? uuidv4(),
+      name: p.name,
+      ...(p.parameterType !== undefined && {
+        parameterType: p.parameterType,
+      }),
+    }
+  })
+}
+
+/* -------------------------------------------------------------------------- */
+/* Default-value widget selection                                              */
+/* -------------------------------------------------------------------------- */
+
+export type DefaultValueWidget =
+  | "enum"
+  | "boolean"
+  | "numeric"
+  | "date"
+  | "datetime-local"
+  | "time"
+  | "text"
+
+/**
+ * Pick the default-value input widget for an attribute row. Mirrors v3
+ * `StylePane.renderDefaultValueInput` (`style-pane.tsx:145`):
+ * enumeration literals win over everything, then int/float (numeric),
+ * bool (true/false dropdown), date / datetime / time (native inputs),
+ * plain text otherwise.
+ */
+export const selectDefaultValueWidget = (
+  attributeType: string | undefined,
+  enumerationLiterals?: string[]
+): DefaultValueWidget => {
+  if (enumerationLiterals && enumerationLiterals.length > 0) return "enum"
+  switch (attributeType) {
+    case "int":
+    case "float":
+      return "numeric"
+    case "bool":
+      return "boolean"
+    case "date":
+      return "date"
+    case "datetime":
+      return "datetime-local"
+    case "time":
+      return "time"
+    default:
+      return "text"
+  }
+}
+
+/**
+ * v3 StylePane numeric default sanitiser — digits, decimal point and
+ * minus sign only (`style-pane.tsx:183`).
+ */
+export const sanitizeNumericDefault = (value: string): string =>
+  value.replace(/[^0-9.-]/g, "")

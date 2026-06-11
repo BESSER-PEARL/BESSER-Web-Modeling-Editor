@@ -43,7 +43,8 @@ const formatRow = (
     row.isDerived !== undefined ||
     row.isId !== undefined ||
     row.isExternalId !== undefined ||
-    row.defaultValue !== undefined
+    row.defaultValue !== undefined ||
+    row.parameters !== undefined
   const isEnumeration = stereotype === "Enumeration"
   if (!hasStructuredFields && !isEnumeration) return row
   const formatted = formatDisplayName(
@@ -56,6 +57,9 @@ const formatRow = (
       isId: row.isId,
       isExternalId: row.isExternalId,
       defaultValue: row.defaultValue,
+      // Method rows: rebuild the `(p: type, …)` signature segment from
+      // the structured parameters (bare-name + parameters[] storage).
+      parameters: row.parameters,
     },
     mode,
     stereotype ?? undefined

@@ -33,6 +33,15 @@ import {
   VISIBILITY_SYMBOLS,
   normalizeType,
 } from "@/utils/typeNormalization"
+import {
+  extractMethodSignatureFromCode,
+  mergeParameterIds,
+  parseAttributeInput,
+  parseMethodInput,
+  sanitizeIdentifier,
+  sanitizeNumericDefault,
+  selectDefaultValueWidget,
+} from "@/utils/classifierMemberDisplay"
 import { generateUUID } from "@/utils"
 import { diagramBridge } from "@/services/diagramBridge"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
@@ -147,10 +156,11 @@ const collectEnumerationNames = (): string[] => {
 /**
  * Sanitiser for identifier-like fields. Mirrors v3
  * `uml-classifier-update.tsx:475` (class name) and the attribute-name
- * sanitiser already used elsewhere in this panel.
+ * sanitiser already used elsewhere in this panel. Re-exported from the
+ * shared parsing helpers so the add/rename shorthand parsers and this
+ * panel share one definition.
  */
-const safeIdentifier = (raw: string): string =>
-  raw.replace(/[^a-zA-Z0-9_]/g, "")
+const safeIdentifier = sanitizeIdentifier
 
 /**
  * Primitive type catalogue, mirrored verbatim from the v3 fork
@@ -195,6 +205,22 @@ const IMPLEMENTATION_TYPES: {
 const CUSTOM_TYPE_SENTINEL = "__custom__"
 
 /**
+ * Seed template for code-based method implementations. Ported verbatim
+ * from v3 `uml-classifier-method-update.tsx:getCodeTemplate` — switching
+ * a method to `code` / `bal` with no body seeds a `def` line so the
+ * (locked) signature stays editable through the code editor.
+ */
+const getCodeTemplate = (
+  implType: ClassifierMethodImplementationType,
+  methodName: string
+): string => {
+  if (implType === "bal") {
+    return `def ${methodName}() -> nothing {\n    // Add your implementation here\n}\n`
+  }
+  return `def ${methodName}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`
+}
+
+/**
  * Hook helper: write a partial node update through Zustand. Used by every
  * row-level commit below.
  */
@@ -225,6 +251,12 @@ interface AttributeRowProps {
   classNames: string[]
   /** Enumeration names from sibling Enumerations. */
   enumerationNames: string[]
+  /**
+   * Literal values of the Enumeration matching this row's current
+   * `attributeType` (empty when the type is not an enumeration). Drives
+   * the enum-literal default-value dropdown (v3 StylePane parity).
+   */
+  enumerationLiterals: string[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
   /** Reorder gutter callbacks; undefined hides the button. */
@@ -242,6 +274,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   row,
   classNames,
   enumerationNames,
+  enumerationLiterals,
   onPatch,
   onDelete,
   onMoveUp,
@@ -254,6 +287,12 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   const [customTypeDraft, setCustomTypeDraft] = useState(
     isCustom ? attributeType : ""
   )
+  // Local draft so Apollon shorthand ("+ price: float") can be typed
+  // into the name field without the structured per-keystroke commits
+  // rewriting the visible text mid-typing. Mirrors the v3 Textfield's
+  // `currentValue` draft (`textfield.tsx:55`); blur falls back to the
+  // canonical bare name from the store.
+  const [nameDraft, setNameDraft] = useState<string | null>(null)
   // Collapse the four flag checkboxes (`isId`,
   // `isExternalId`, `isOptional`, `isDerived`) and the default-value
   // input behind a per-row settings toggle so the inline row is just
@@ -266,19 +305,48 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       (row.defaultValue !== undefined && row.defaultValue !== "")
   )
 
+  // v3 StylePane reset the default value whenever the attribute type
+  // changed (`style-pane.tsx:80-85` componentDidUpdate) — a stale
+  // default for the previous type would render in the wrong widget.
+  const commitAttributeType = (nextType: string) => {
+    onPatch({
+      attributeType: nextType,
+      ...(nextType !== attributeType && { defaultValue: undefined }),
+    })
+  }
+
   const handleTypeSelect = (value: string) => {
     if (value === CUSTOM_TYPE_SENTINEL) {
-      onPatch({ attributeType: customTypeDraft || attributeType })
+      commitAttributeType(customTypeDraft || attributeType)
       return
     }
-    onPatch({ attributeType: normalizeType(value) })
+    commitAttributeType(normalizeType(value))
   }
 
   const handleCustomTypeBlur = () => {
     if (customTypeDraft.trim()) {
-      onPatch({ attributeType: normalizeType(customTypeDraft.trim()) })
+      commitAttributeType(normalizeType(customTypeDraft.trim()))
     }
   }
+
+  // Metamodel rule (v3 `style-pane.tsx:264-270`): an attribute marked as
+  // an identifier (primary or external) cannot also be optional. Lock
+  // the conflicting checkbox on each side — bidirectional, like develop —
+  // instead of silently rewriting flags behind the user's back.
+  const optionalLockedByIdFlag = Boolean(row.isId || row.isExternalId)
+  const idLockedByOptional = Boolean(row.isOptional)
+
+  // Type-aware default-value widget (v3 `StylePane.renderDefaultValueInput`).
+  const defaultWidget = selectDefaultValueWidget(
+    attributeType,
+    enumerationLiterals
+  )
+  const defaultValueAsString =
+    row.defaultValue !== undefined && row.defaultValue !== null
+      ? String(row.defaultValue)
+      : ""
+  const commitDefaultValue = (value: string) =>
+    onPatch({ defaultValue: value === "" ? undefined : value })
 
   return (
     <Box
@@ -317,13 +385,30 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          placeholder={isEnumerationParent ? "literal name" : "attribute name"}
-          value={row.name}
-          onChange={(e) =>
-            onPatch({
-              name: e.target.value.replace(/[^a-zA-Z0-9_]/g, ""),
-            })
+          placeholder={
+            isEnumerationParent ? "literal name" : "+ attribute: type"
           }
+          value={nameDraft ?? row.name}
+          onChange={(e) => {
+            const raw = e.target.value
+            setNameDraft(raw)
+            if (isEnumerationParent) {
+              onPatch({ name: safeIdentifier(raw) })
+              return
+            }
+            // Apollon shorthand: "+ price: float" explodes into
+            // structured visibility / name / type (v3 parseNameFormat).
+            // Plain identifiers patch only the (sanitized) name.
+            const parsed = parseAttributeInput(raw)
+            onPatch({
+              name: parsed.name,
+              ...(parsed.visibility && { visibility: parsed.visibility }),
+              ...(parsed.attributeType !== undefined && {
+                attributeType: parsed.attributeType,
+              }),
+            })
+          }}
+          onBlur={() => setNameDraft(null)}
         />
         {/* Hide type dropdown for Enumeration
             literals — they don't carry an attribute type.
@@ -405,42 +490,53 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       {!isEnumerationParent && showSettings && (
         <>
           <Stack direction="row" spacing={1.5} flexWrap="wrap">
+            {/* Mutual-exclusion locks mirror v3 StylePane
+                (`optionalLockedByIdFlag` / `idLockedByOptional`): the
+                conflicting checkbox is disabled on each side so the
+                user can't save invalid state. */}
             <FormControlLabel
+              title={
+                idLockedByOptional
+                  ? "Optional attributes cannot be the identifier."
+                  : undefined
+              }
               control={
                 <Checkbox
                   size="small"
                   checked={!!row.isId}
-                  onChange={(e) =>
-                    onPatch({
-                      isId: e.target.checked,
-                      // Mutual-exclusion mirroring v3 metamodel constraint.
-                      isOptional: e.target.checked ? false : row.isOptional,
-                    })
-                  }
+                  disabled={idLockedByOptional}
+                  onChange={(e) => onPatch({ isId: e.target.checked })}
                 />
               }
               label={<Typography variant="caption">id</Typography>}
             />
             <FormControlLabel
+              title={
+                idLockedByOptional
+                  ? "Optional attributes cannot be the external identifier."
+                  : undefined
+              }
               control={
                 <Checkbox
                   size="small"
                   checked={!!row.isExternalId}
-                  onChange={(e) =>
-                    onPatch({
-                      isExternalId: e.target.checked,
-                      isOptional: e.target.checked ? false : row.isOptional,
-                    })
-                  }
+                  disabled={idLockedByOptional}
+                  onChange={(e) => onPatch({ isExternalId: e.target.checked })}
                 />
               }
               label={<Typography variant="caption">external id</Typography>}
             />
             <FormControlLabel
+              title={
+                optionalLockedByIdFlag
+                  ? "Identifier attributes cannot be optional."
+                  : undefined
+              }
               control={
                 <Checkbox
                   size="small"
                   checked={!!row.isOptional}
+                  disabled={optionalLockedByIdFlag}
                   onChange={(e) => onPatch({ isOptional: e.target.checked })}
                 />
               }
@@ -458,24 +554,72 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             />
           </Stack>
 
-          {/* Default value is always a plain string text
-              input — class attribute types aren't enforced at this
-              layer, so type-aware widgets are wrong here. (Object
-              diagram values keep their type-aware widget — see
-              `ObjectEditPanel`.) */}
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            fullWidth
-            type="text"
-            placeholder="default value (optional)"
-            value={row.defaultValue !== undefined ? String(row.defaultValue) : ""}
-            onChange={(e) =>
-              onPatch({
-                defaultValue: e.target.value === "" ? undefined : e.target.value,
-              })
-            }
-          />
+          {/* Type-aware default-value widget, ported from v3
+              `StylePane.renderDefaultValueInput` (`style-pane.tsx:145`):
+              enumeration-literal dropdown, true/false dropdown for bool,
+              numeric-sanitized input for int/float, native date /
+              datetime-local / time inputs, plain text otherwise. */}
+          {defaultWidget === "enum" ? (
+            <Select
+              size="small"
+              value={defaultValueAsString}
+              displayEmpty
+              onChange={(e) => commitDefaultValue(String(e.target.value))}
+              inputProps={{ "aria-label": "default value" }}
+            >
+              <MenuItem value="">(none)</MenuItem>
+              {enumerationLiterals.map((literal) => (
+                <MenuItem key={literal} value={literal}>
+                  {literal}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : defaultWidget === "boolean" ? (
+            <Select
+              size="small"
+              value={defaultValueAsString}
+              displayEmpty
+              onChange={(e) => commitDefaultValue(String(e.target.value))}
+              inputProps={{ "aria-label": "default value" }}
+            >
+              <MenuItem value="">(none)</MenuItem>
+              <MenuItem value="true">true</MenuItem>
+              <MenuItem value="false">false</MenuItem>
+            </Select>
+          ) : (
+            <MuiTextField
+              size="small"
+              variant="outlined"
+              fullWidth
+              type={
+                defaultWidget === "numeric" || defaultWidget === "text"
+                  ? "text"
+                  : defaultWidget
+              }
+              placeholder={
+                defaultWidget === "numeric"
+                  ? attributeType === "int"
+                    ? "Enter integer..."
+                    : "Enter number..."
+                  : defaultWidget === "date"
+                    ? "YYYY-MM-DD"
+                    : defaultWidget === "datetime-local"
+                      ? "YYYY-MM-DD HH:MM:SS"
+                      : defaultWidget === "time"
+                        ? "HH:MM:SS"
+                        : "default value (optional)"
+              }
+              value={defaultValueAsString}
+              onChange={(e) =>
+                commitDefaultValue(
+                  defaultWidget === "numeric"
+                    ? sanitizeNumericDefault(e.target.value)
+                    : e.target.value
+                )
+              }
+              inputProps={{ "aria-label": "default value" }}
+            />
+          )}
         </>
       )}
     </Box>
@@ -489,6 +633,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
 interface MethodRowProps {
   row: ClassNodeElement
   classNames: string[]
+  /** Enumeration names from sibling Enumerations (return-type picker). */
+  enumerationNames: string[]
   stateMachines: { id: string; name: string }[]
   quantumCircuits: { id: string; name: string }[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
@@ -500,6 +646,8 @@ interface MethodRowProps {
 
 const MethodRow: React.FC<MethodRowProps> = ({
   row,
+  classNames,
+  enumerationNames,
   stateMachines,
   quantumCircuits,
   onPatch,
@@ -511,11 +659,20 @@ const MethodRow: React.FC<MethodRowProps> = ({
   const implementationType: ClassifierMethodImplementationType =
     row.implementationType ?? "none"
   const parameters = row.parameters ?? []
+  // Return type rides on `returnType`, mirrored onto `attributeType`
+  // (legacy display + v3 export both read the latter). v3 exposed it as
+  // the `: returnType` suffix of the signature field — restored here as
+  // a dedicated dropdown (full method-signature authoring parity).
+  const returnType = row.returnType ?? row.attributeType ?? "any"
+  const isCustomReturn = !isPrimitiveType(returnType)
+  const [customReturnDraft, setCustomReturnDraft] = useState(
+    isCustomReturn ? returnType : ""
+  )
+  // Local draft so Apollon shorthand ("name(p: type): ret") can be typed
+  // into the name field — see the matching draft on `AttributeRow`.
+  const [nameDraft, setNameDraft] = useState<string | null>(null)
   // Collapse parameters + implementation type + code editor behind a
-  // per-row settings toggle so the inline row stays compact (visibility
-  // + name only — return type dropdown removed per user 2025-05; v3
-  // didn't expose it, return type rides on the underlying attributeType
-  // field defaulted to "any" and used only for round-trip).
+  // per-row settings toggle so the inline row stays compact.
   const [showSettings, setShowSettings] = useState(
     parameters.length > 0 ||
       implementationType !== "none" ||
@@ -524,9 +681,22 @@ const MethodRow: React.FC<MethodRowProps> = ({
       !!row.quantumCircuitId
   )
 
+  // v3 locked the whole signature when the method is implemented in
+  // code / BAL — the `def` line is the source of truth
+  // (`uml-classifier-method-update.tsx` `isSignatureLocked`).
+  const signatureLocked =
+    implementationType === "code" || implementationType === "bal"
+  const signatureLockTitle =
+    implementationType === "bal"
+      ? "Method defined in BESSER Action Language code"
+      : "Method defined in Python code"
+
   const patchParameters = (next: ClassifierMethodParameter[]) => {
     onPatch({ parameters: next })
   }
+
+  const commitReturnType = (nextType: string) =>
+    onPatch({ returnType: nextType, attributeType: nextType })
 
   return (
     <Box
@@ -544,6 +714,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
         <Select
           size="small"
           value={visibility}
+          disabled={signatureLocked}
           onChange={(e) =>
             onPatch({ visibility: e.target.value as ClassifierVisibility })
           }
@@ -559,16 +730,82 @@ const MethodRow: React.FC<MethodRowProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          placeholder="method name"
-          value={row.name}
-          // Method names are committed as Python
-          // identifiers (no spaces, no punctuation other than `_`).
-          // Mirrors the attribute-name sanitiser at the row above and
-          // v3 `uml-classifier-update.tsx:475`.
-          onChange={(e) =>
-            onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
-          }
+          placeholder="method(param: type): returnType"
+          value={nameDraft ?? row.name}
+          // When the method is implemented in code/BAL the signature is
+          // extracted from the `def` line and the field is read-only
+          // (v3 `isSignatureLocked`).
+          InputProps={{ readOnly: signatureLocked }}
+          title={signatureLocked ? signatureLockTitle : undefined}
+          onChange={(e) => {
+            const raw = e.target.value
+            setNameDraft(raw)
+            // Apollon shorthand: "name(p: type): ret" explodes into
+            // structured name / parameters / returnType (v3
+            // parseNameFormat behavior, persisted structurally). Plain
+            // identifiers patch only the (sanitized) name.
+            const parsed = parseMethodInput(raw)
+            const patch: Partial<ClassNodeElement> = { name: parsed.name }
+            if (parsed.visibility) patch.visibility = parsed.visibility
+            if (parsed.parameters) {
+              patch.parameters = mergeParameterIds(
+                parameters,
+                parsed.parameters
+              )
+            }
+            if (parsed.returnType !== undefined) {
+              patch.returnType = parsed.returnType
+              patch.attributeType = parsed.returnType
+            }
+            onPatch(patch)
+          }}
+          onBlur={() => setNameDraft(null)}
         />
+        {/* Return-type dropdown — restored v3 parity (the v3 signature
+            field carried `: returnType`; here it's the structured
+            `returnType`, mirrored onto `attributeType`). */}
+        <Select
+          size="small"
+          value={isCustomReturn ? CUSTOM_TYPE_SENTINEL : returnType}
+          disabled={signatureLocked}
+          onChange={(e) => {
+            const value = String(e.target.value)
+            if (value === CUSTOM_TYPE_SENTINEL) {
+              commitReturnType(customReturnDraft || returnType)
+              return
+            }
+            commitReturnType(normalizeType(value))
+          }}
+          sx={{ minWidth: 80 }}
+          inputProps={{ "aria-label": "return type" }}
+        >
+          {PRIMITIVE_TYPES.map((p) => (
+            <MenuItem key={p.value} value={p.value}>
+              {p.label}
+            </MenuItem>
+          ))}
+          {classNames.length > 0 && [
+            <MenuItem key="__divider__" disabled>
+              ── classes ──
+            </MenuItem>,
+            ...classNames.map((cn) => (
+              <MenuItem key={`class-${cn}`} value={cn}>
+                {cn}
+              </MenuItem>
+            )),
+          ]}
+          {enumerationNames.length > 0 && [
+            <MenuItem key="__edivider__" disabled>
+              ── enumerations ──
+            </MenuItem>,
+            ...enumerationNames.map((en) => (
+              <MenuItem key={`enum-${en}`} value={en}>
+                {en}
+              </MenuItem>
+            )),
+          ]}
+          <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
+        </Select>
         <Tooltip
           title={showSettings ? "Hide parameters & code" : "Parameters & code"}
         >
@@ -589,9 +826,21 @@ const MethodRow: React.FC<MethodRowProps> = ({
         </Tooltip>
       </Stack>
 
-      {/* Return-type dropdown intentionally removed (v3 parity). Return
-          type rides on the underlying `attributeType` field, defaulted
-          to "any". */}
+      {isCustomReturn && !signatureLocked && (
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          fullWidth
+          placeholder="custom return type (free-text)"
+          value={customReturnDraft || returnType}
+          onChange={(e) => setCustomReturnDraft(e.target.value)}
+          onBlur={() => {
+            if (customReturnDraft.trim()) {
+              commitReturnType(normalizeType(customReturnDraft.trim()))
+            }
+          }}
+        />
+      )}
 
       {/* Parameters + implementation type + code editor are
           collapsed behind the per-row settings toggle so the row stays
@@ -616,9 +865,11 @@ const MethodRow: React.FC<MethodRowProps> = ({
               variant="outlined"
               placeholder="name"
               value={p.name}
+              InputProps={{ readOnly: signatureLocked }}
+              title={signatureLocked ? signatureLockTitle : undefined}
               onChange={(e) => {
                 const next = [...parameters]
-                next[idx] = { ...p, name: e.target.value }
+                next[idx] = { ...p, name: safeIdentifier(e.target.value) }
                 patchParameters(next)
               }}
               sx={{ flex: 1 }}
@@ -628,6 +879,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
               variant="outlined"
               placeholder="type"
               value={p.parameterType ?? ""}
+              InputProps={{ readOnly: signatureLocked }}
+              title={signatureLocked ? signatureLockTitle : undefined}
               onChange={(e) => {
                 const next = [...parameters]
                 next[idx] = { ...p, parameterType: e.target.value }
@@ -645,6 +898,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
             />
             <IconButton
               size="small"
+              disabled={signatureLocked}
               onClick={() =>
                 patchParameters(parameters.filter((_, i) => i !== idx))
               }
@@ -653,25 +907,38 @@ const MethodRow: React.FC<MethodRowProps> = ({
             </IconButton>
           </Stack>
         ))}
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          placeholder="+ add parameter (Enter)"
-          fullWidth
-          sx={{ marginTop: 0.5 }}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === "Enter") {
-              const target = e.target as HTMLInputElement
-              const v = target.value.trim()
-              if (!v) return
-              patchParameters([
-                ...parameters,
-                { id: generateUUID(), name: v },
-              ])
-              target.value = ""
-            }
-          }}
-        />
+        {!signatureLocked && (
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            placeholder="+ add parameter (name: type, Enter)"
+            fullWidth
+            sx={{ marginTop: 0.5 }}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === "Enter") {
+                const target = e.target as HTMLInputElement
+                const v = target.value.trim()
+                if (!v) return
+                // "name: type" shorthand parses into structured fields
+                // (previously the raw string — colon included — was
+                // stored as the parameter name).
+                const parsed = parseAttributeInput(v)
+                if (!parsed.name) return
+                patchParameters([
+                  ...parameters,
+                  {
+                    id: generateUUID(),
+                    name: parsed.name,
+                    ...(parsed.attributeType !== undefined && {
+                      parameterType: parsed.attributeType,
+                    }),
+                  },
+                ])
+                target.value = ""
+              }
+            }}
+          />
+        )}
       </Box>
 
       {/* Implementation type and cross-diagram dropdowns */}
@@ -698,6 +965,13 @@ const MethodRow: React.FC<MethodRowProps> = ({
             } else {
               patch.stateMachineId = ""
               patch.quantumCircuitId = ""
+              // v3 seeded a def-line template when switching to a
+              // code-based implementation with no body yet
+              // (`getCodeTemplate`) — without it the locked signature
+              // could never change.
+              if (!row.code) {
+                patch.code = getCodeTemplate(next, row.name || "new_method")
+              }
             }
             onPatch(patch)
           }}
@@ -771,7 +1045,29 @@ const MethodRow: React.FC<MethodRowProps> = ({
           <CodeMirror
             value={row.code ?? ""}
             extensions={[python()]}
-            onChange={(value) => onPatch({ code: value })}
+            onChange={(value) => {
+              // v3 kept the (locked) signature in sync with the
+              // `def name(params) -> ret:` line — port of
+              // `uml-classifier-method-update.tsx:handleCodeChange`,
+              // persisting the extracted signature structurally
+              // (name / parameters[] / returnType) instead of fusing
+              // it into the display name.
+              const signature = extractMethodSignatureFromCode(value)
+              if (signature) {
+                onPatch({
+                  code: value,
+                  name: signature.name,
+                  parameters: mergeParameterIds(
+                    parameters,
+                    signature.parameters
+                  ),
+                  returnType: signature.returnType ?? "any",
+                  attributeType: signature.returnType ?? "any",
+                })
+              } else {
+                onPatch({ code: value })
+              }
+            }}
             basicSetup={{
               lineNumbers: true,
               tabSize: 4,
@@ -832,6 +1128,30 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
   // Enumeration list for the attribute-type picker (P12).
   const enumerationNames = useMemo(() => collectEnumerationNames(), [nodes])
+
+  // Enumeration name → literal values, sourced from the *live* nodes of
+  // this diagram. Drives the enum-literal default-value dropdown — v3's
+  // `renderDefaultValueInput` resolved `enumerationLiterals` from the
+  // same diagram's Enumeration elements (`uml-classifier-attribute-update.tsx:386-402`).
+  const enumerationLiteralsByName = useMemo(() => {
+    const m = new Map<string, string[]>()
+    for (const n of nodes) {
+      const data = n.data as Partial<ClassNodeProps> & { name?: string }
+      const isEnum =
+        (n.type === "class" && data?.stereotype === "Enumeration") ||
+        n.type === "Enumeration"
+      if (!isEnum) continue
+      const name = data?.name
+      if (typeof name !== "string" || name.length === 0) continue
+      m.set(
+        name,
+        (data?.attributes ?? [])
+          .map((a) => a?.name ?? "")
+          .filter((s) => s.length > 0)
+      )
+    }
+    return m
+  }, [nodes])
 
   const stateMachineDiagrams = diagramBridge.getStateMachineDiagrams()
   const quantumCircuitDiagrams = diagramBridge.getQuantumCircuitDiagrams()
@@ -920,16 +1240,21 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   const addAttribute = (rawName: string) => {
-    const sanitised = rawName.trim().replace(/[^a-zA-Z0-9_]/g, "")
+    // Apollon shorthand: "+ price: float" parses into structured
+    // visibility / name / type (v3 `create()` ran parseNameFormat on the
+    // add-input — `uml-classifier-update.tsx:448-453`). Plain
+    // identifiers keep working unchanged; the sanitiser only applies to
+    // what remains of the name AFTER parsing.
+    const parsed = parseAttributeInput(rawName)
     const data = (nodes.find((n) => n.id === elementId)?.data ??
       {}) as ClassNodeProps
     const attrName =
-      sanitised || nextAutoName(data.attributes ?? [], "attribute")
+      parsed.name || nextAutoName(data.attributes ?? [], "attribute")
     const newAttr: ClassNodeElement = {
       id: generateUUID(),
       name: attrName,
-      attributeType: "str",
-      visibility: "public",
+      attributeType: parsed.attributeType ?? "str",
+      visibility: parsed.visibility ?? "public",
     }
     setNodes((nodes) =>
       nodes.map((n) => {
@@ -995,20 +1320,29 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
 
   const addMethod = (rawName: string) => {
-    // Sanitise to Python identifier and
-    // fall back to `method1`, `method2`, … when the input is empty.
-    const sanitised = rawName.trim().replace(/[^a-zA-Z0-9_]/g, "")
+    // Apollon shorthand: "+ name(p: type): ret" parses into structured
+    // name / visibility / parameters[] / returnType (persisted
+    // structurally on node data — never string-fused into the name).
+    // Plain identifiers keep working unchanged, falling back to
+    // `method1`, `method2`, … when the input is empty.
+    const parsed = parseMethodInput(rawName)
     const data = (nodes.find((n) => n.id === elementId)?.data ??
       {}) as ClassNodeProps
     const methodName =
-      sanitised || nextAutoName(data.methods ?? [], "method")
+      parsed.name || nextAutoName(data.methods ?? [], "method")
     const newMethod: ClassNodeElement = {
       id: generateUUID(),
       name: methodName,
-      visibility: "public",
-      attributeType: "any",
-      returnType: "any",
-      parameters: [],
+      visibility: parsed.visibility ?? "public",
+      attributeType: parsed.returnType ?? "any",
+      returnType: parsed.returnType ?? "any",
+      parameters: (parsed.parameters ?? []).map((p) => ({
+        id: generateUUID(),
+        name: p.name,
+        ...(p.parameterType !== undefined && {
+          parameterType: p.parameterType,
+        }),
+      })),
       implementationType: "none",
     }
     setNodes((nodes) =>
@@ -1153,6 +1487,9 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           row={row}
           classNames={availableClassNames}
           enumerationNames={enumerationNames}
+          enumerationLiterals={
+            enumerationLiteralsByName.get(row.attributeType ?? "") ?? []
+          }
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
           onMoveUp={
@@ -1207,6 +1544,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               key={row.id}
               row={row}
               classNames={availableClassNames}
+              enumerationNames={enumerationNames}
               stateMachines={stateMachineDiagrams}
               quantumCircuits={quantumCircuitDiagrams}
               onPatch={(patch) => patchMethod(row.id, patch)}

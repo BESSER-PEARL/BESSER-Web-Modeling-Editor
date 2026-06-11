@@ -77,7 +77,8 @@ export const ClassSVG = ({
       row.isDerived !== undefined ||
       row.isId !== undefined ||
       row.isExternalId !== undefined ||
-      row.defaultValue !== undefined
+      row.defaultValue !== undefined ||
+      row.parameters !== undefined
     if (!hasStructuredFields && !isEnumerationStereotype) return row
     // Palette sidebar previews always render in UML mode so the visibility
     // symbol (`+`/`-`/`#`/`~`) is visible on the drag source regardless of
@@ -94,6 +95,9 @@ export const ClassSVG = ({
         isId: row.isId,
         isExternalId: row.isExternalId,
         defaultValue: row.defaultValue,
+        // Method rows: rebuild the `(p: type, …)` signature segment from
+        // the structured parameters (bare-name + parameters[] storage).
+        parameters: row.parameters,
       },
       isPalettePreview ? "UML" : classNotation,
       stereotype ?? undefined
