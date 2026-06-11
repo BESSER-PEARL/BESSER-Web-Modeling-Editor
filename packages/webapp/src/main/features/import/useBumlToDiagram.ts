@@ -56,6 +56,9 @@ export const useBumlToDiagram = () => {
         } else if (projectData.AgentDiagram) {
           diagramData = projectData.AgentDiagram;
           title = diagramData.title || 'Imported Agent Diagram';
+        } else if (projectData.BPMN) {
+          diagramData = projectData.BPMN;
+          title = diagramData.title || 'Imported BPMN Diagram';
         } else if (projectData.GUINoCodeDiagram) {
           // Check if GUI model is empty
           const guiModel = projectData.GUINoCodeDiagram.model;
@@ -114,6 +117,9 @@ export const useBumlToDiagram = () => {
           break;
         case 'ObjectDiagram':
           modelType = UMLDiagramType.ObjectDiagram;
+          break;
+        case 'BPMNDiagram':
+          modelType = UMLDiagramType.BPMN;
           break;
         case 'ClassDiagram':
         default:
