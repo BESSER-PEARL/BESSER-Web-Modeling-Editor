@@ -12,15 +12,9 @@ const flowNodes = new Set<UMLElementType>([
   UMLElementType.BPMNGateway,
 ]);
 
-const dataNodes = new Set<UMLElementType>([
-  UMLElementType.BPMNDataObject,
-  UMLElementType.BPMNDataStore,
-]);
+const dataNodes = new Set<UMLElementType>([UMLElementType.BPMNDataObject, UMLElementType.BPMNDataStore]);
 
-const artifactNodes = new Set<UMLElementType>([
-  UMLElementType.BPMNAnnotation,
-  UMLElementType.BPMNGroup,
-]);
+const artifactNodes = new Set<UMLElementType>([UMLElementType.BPMNAnnotation, UMLElementType.BPMNGroup]);
 
 const messageEligible = new Set<UMLElementType>([
   UMLElementType.BPMNTask,
@@ -43,10 +37,7 @@ export function getAllowedBpmnFlowTypes(source: UMLElementType, target: UMLEleme
     allowed.push('sequence');
   }
 
-  if (
-    (dataNodes.has(source) && flowNodes.has(target)) ||
-    (flowNodes.has(source) && dataNodes.has(target))
-  ) {
+  if ((dataNodes.has(source) && flowNodes.has(target)) || (flowNodes.has(source) && dataNodes.has(target))) {
     allowed.push('data association');
   }
 

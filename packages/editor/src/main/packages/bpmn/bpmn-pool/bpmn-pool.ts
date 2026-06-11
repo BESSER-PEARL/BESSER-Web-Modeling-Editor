@@ -25,7 +25,7 @@ export class BPMNPool extends UMLPackage {
   // Last synchronized content width (pool width minus header).
   // We use it to infer which side initiated a resize in the current frame.
   private syncedLaneContentWidth = BPMNPool.MIN_WIDTH - BPMNPool.HEADER_WIDTH;
-  
+
   hasSwimlanes = (children: ILayoutable[]): boolean =>
     children.some((child: ILayoutable & { type?: UMLElementType }) => child.type === BPMNElementType.BPMNSwimlane);
 
@@ -50,7 +50,7 @@ export class BPMNPool extends UMLPackage {
       return [this, ...children];
     }
 
-    // 2. The pool dictates the horizontal span. 
+    // 2. The pool dictates the horizontal span.
     // Calculate what the lane widths should be based on current pool width.
     // We also fix the reference for X and Y
     const expectedLaneWidth = this.bounds.width - BPMNPool.HEADER_WIDTH;
@@ -70,20 +70,27 @@ export class BPMNPool extends UMLPackage {
       lane.bounds.y = currentY;
       // Lock width strictly to the pool's remaining width
       lane.bounds.width = expectedLaneWidth;
-      
+
       // Placements bounds clamping
       if (lane.bounds.height < BPMNSwimlane.MIN_HEIGHT) {
         lane.bounds.height = BPMNSwimlane.MIN_HEIGHT;
       }
-      
+
       currentY += lane.bounds.height;
-      
+
       // Override layouter logic that offsets coordinates during active dragging
-      lane.resizeFrom = ResizeFrom.BOTTOMRIGHT; 
+      lane.resizeFrom = ResizeFrom.BOTTOMRIGHT;
     }
-    console.log('[pool.render] after-stack', orderedSwimlanes.map((s) => ({
-      id: s.id, x: s.bounds.x, y: s.bounds.y, w: s.bounds.width, h: s.bounds.height,
-    })));
+    console.log(
+      '[pool.render] after-stack',
+      orderedSwimlanes.map((s) => ({
+        id: s.id,
+        x: s.bounds.x,
+        y: s.bounds.y,
+        w: s.bounds.width,
+        h: s.bounds.height,
+      })),
+    );
 
     // 4. Force pool height to exactly fit lanes
     const totalHeight = currentY;

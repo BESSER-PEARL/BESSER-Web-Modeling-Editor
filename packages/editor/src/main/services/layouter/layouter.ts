@@ -102,7 +102,6 @@ export function* render(id: string): SagaIterator {
       width: update.bounds.width - original.bounds.width,
       height: update.bounds.height - original.bounds.height,
     };
-    
 
     if (Object.values(size).some((x) => x !== 0)) {
       yield put<ResizeAction>({

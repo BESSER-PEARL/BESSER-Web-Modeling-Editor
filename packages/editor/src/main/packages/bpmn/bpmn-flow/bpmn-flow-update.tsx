@@ -103,13 +103,17 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
 
     const flowTypeItems = [
       allowedTypes.includes('sequence') ? (
-        <Dropdown.Item value={'sequence'}>{this.props.translate('packages.BPMNDiagram.BPMNSequenceFlow')}</Dropdown.Item>
+        <Dropdown.Item value={'sequence'}>
+          {this.props.translate('packages.BPMNDiagram.BPMNSequenceFlow')}
+        </Dropdown.Item>
       ) : null,
       allowedTypes.includes('message') ? (
         <Dropdown.Item value={'message'}>{this.props.translate('packages.BPMNDiagram.BPMNMessageFlow')}</Dropdown.Item>
       ) : null,
       allowedTypes.includes('association') ? (
-        <Dropdown.Item value={'association'}>{this.props.translate('packages.BPMNDiagram.BPMNAssociationFlow')}</Dropdown.Item>
+        <Dropdown.Item value={'association'}>
+          {this.props.translate('packages.BPMNDiagram.BPMNAssociationFlow')}
+        </Dropdown.Item>
       ) : null,
       allowedTypes.includes('data association') ? (
         <Dropdown.Item value={'data association'}>

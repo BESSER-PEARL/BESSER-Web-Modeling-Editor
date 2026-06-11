@@ -17,10 +17,7 @@ export const useExportBpmnXml = () => {
 
       if (skipped.length > 0) {
         // eslint-disable-next-line no-console
-        console.warn(
-          `[BPMN XML export] Skipped ${skipped.length} element(s) not mapped to BPMN 2.0:`,
-          skipped,
-        );
+        console.warn(`[BPMN XML export] Skipped ${skipped.length} element(s) not mapped to BPMN 2.0:`, skipped);
       }
 
       const safeTitle = (diagramTitle || 'Diagram').trim() || 'Diagram';

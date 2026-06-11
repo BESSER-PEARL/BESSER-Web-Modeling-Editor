@@ -1,12 +1,25 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
 // Supported diagram types in projects
-export type SupportedDiagramType = 'ClassDiagram' | 'ObjectDiagram' | 'StateMachineDiagram' | 'AgentDiagram' | 'GUINoCodeDiagram' | 'QuantumCircuitDiagram' | 'BPMN';
+export type SupportedDiagramType =
+  | 'ClassDiagram'
+  | 'ObjectDiagram'
+  | 'StateMachineDiagram'
+  | 'AgentDiagram'
+  | 'GUINoCodeDiagram'
+  | 'QuantumCircuitDiagram'
+  | 'BPMN';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
 export const PROJECT_SCHEMA_VERSION = 3;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'BPMN'
+  'ClassDiagram',
+  'ObjectDiagram',
+  'StateMachineDiagram',
+  'AgentDiagram',
+  'GUINoCodeDiagram',
+  'QuantumCircuitDiagram',
+  'BPMN',
 ];
 
 // GrapesJS project data structure
@@ -18,7 +31,7 @@ export interface GrapesJSProjectData {
   version: string;
 }
 
-// Quantum Circuit data structure 
+// Quantum Circuit data structure
 export interface QuantumCircuitData {
   cols: any[][]; // Each column is an array where 1 = empty, strings = gate symbols
   gates: any[]; // Custom gates (optional)
@@ -34,7 +47,7 @@ export interface ProjectDiagram {
   model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
   lastUpdate: string;
   description?: string;
-  config?: Record<string, unknown>;  // agent LLM/platform/IC config
+  config?: Record<string, unknown>; // agent LLM/platform/IC config
   /** Per-diagram cross-references: maps a diagram type to the ID of the diagram this depends on.
    *  E.g. a GUINoCodeDiagram may reference a specific ClassDiagram and AgentDiagram by their UUID. */
   references?: Partial<Record<SupportedDiagramType, string>>;
@@ -96,7 +109,7 @@ export const getReferencedDiagram = (
   // Look up by ID (stable across deletions/reordering)
   const refId = fromDiagram?.references?.[refType];
   if (refId) {
-    const found = diagrams.find(d => d.id === refId);
+    const found = diagrams.find((d) => d.id === refId);
     if (found) return found;
     // Referenced diagram was deleted — fall through to default
   }
@@ -177,7 +190,7 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
     case 'QuantumCircuitDiagram':
       return null; // QuantumCircuitDiagram doesn't have a UML diagram type
     case 'BPMN':
-      return UMLDiagramType.BPMN; 
+      return UMLDiagramType.BPMN;
     default:
       return null;
   }
@@ -198,7 +211,11 @@ const generateUUID = (): string => {
 };
 
 // Default diagram factory
-export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
+export const createEmptyDiagram = (
+  title: string,
+  type: UMLDiagramType | null,
+  diagramKind?: 'gui' | 'quantum',
+): ProjectDiagram => {
   // For Quantum Circuit diagram
   if (diagramKind === 'quantum') {
     return {
@@ -209,7 +226,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
         gates: [],
         gateMetadata: {},
         initialStates: [],
-        version: '1.0.0'
+        version: '1.0.0',
       } as QuantumCircuitData,
       lastUpdate: new Date().toISOString(),
     };
@@ -239,20 +256,20 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
                     'background-repeat',
                     'background-attachment',
                     'background-position',
-                    'background-size'
+                    'background-size',
                   ],
                   components: [],
                   head: { type: 'head' },
-                  docEl: { tagName: 'html' }
-                }
-              }
-            ]
-          }
+                  docEl: { tagName: 'html' },
+                },
+              },
+            ],
+          },
         ],
         styles: [],
         assets: [],
         symbols: [],
-        version: '0.21.13'
+        version: '0.21.13',
       } as GrapesJSProjectData,
       lastUpdate: new Date().toISOString(),
     };
@@ -293,29 +310,25 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
                 'background-repeat',
                 'background-attachment',
                 'background-position',
-                'background-size'
+                'background-size',
               ],
               components: [],
               head: { type: 'head' },
-              docEl: { tagName: 'html' }
-            }
-          }
-        ]
-      }
+              docEl: { tagName: 'html' },
+            },
+          },
+        ],
+      },
     ],
     styles: [],
     assets: [],
     symbols: [],
-    version: '0.21.13'
+    version: '0.21.13',
   };
 };
 
 // Default project factory
-export const createDefaultProject = (
-  name: string,
-  description: string,
-  owner: string
-): BesserProject => {
+export const createDefaultProject = (name: string, description: string, owner: string): BesserProject => {
   const projectId = generateUUID();
 
   return {
@@ -335,7 +348,7 @@ export const createDefaultProject = (
       AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
-      BPMN: [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)], 
+      BPMN: [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)],
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -500,7 +513,6 @@ export const isQuantumCircuitData = (model: unknown): model is QuantumCircuitDat
   return Array.isArray(candidate.cols);
 };
 
-
 /** Check whether a single diagram has meaningful content (non-empty model). */
 export function diagramHasContent(diagram: ProjectDiagram): boolean {
   const model = diagram.model;
@@ -530,13 +542,13 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
 
 // Normalize any data to valid GrapesJS format
 export const normalizeToGrapesJSProjectData = (data: unknown): GrapesJSProjectData => {
-  const candidate = (data && typeof data === 'object') ? data as any : {};
+  const candidate = data && typeof data === 'object' ? (data as any) : {};
 
   return {
     pages: Array.isArray(candidate.pages) ? candidate.pages : [],
     styles: Array.isArray(candidate.styles) ? candidate.styles : [],
     assets: Array.isArray(candidate.assets) ? candidate.assets : [],
     symbols: Array.isArray(candidate.symbols) ? candidate.symbols : [],
-    version: typeof candidate.version === 'string' ? candidate.version : '0.21.13'
+    version: typeof candidate.version === 'string' ? candidate.version : '0.21.13',
   };
 };

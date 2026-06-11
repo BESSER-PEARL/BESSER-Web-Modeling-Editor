@@ -106,10 +106,7 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
           <Header>{this.props.translate('packages.BPMNDiagram.BPMNSwimlanes')}</Header>
           {swimlanes.reverse().map((swimlane, index) => (
             <SwimlaneRow key={swimlane.id}>
-              <Textfield
-                value={swimlane.name}
-                onChange={(value) => this.props.update(swimlane.id, { name: value })}
-              />
+              <Textfield value={swimlane.name} onChange={(value) => this.props.update(swimlane.id, { name: value })} />
               <Button color="link" tabIndex={-1} onClick={() => this.delete(swimlane.id)}>
                 <TrashIcon />
               </Button>
