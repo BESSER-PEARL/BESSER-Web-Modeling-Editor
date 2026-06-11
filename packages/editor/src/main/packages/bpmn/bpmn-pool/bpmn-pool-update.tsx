@@ -103,7 +103,7 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
         </section>
         <section>
           <Divider />
-          <Header>{this.props.translate('packages.BPMN.BPMNSwimlanes')}</Header>
+          <Header>{this.props.translate('packages.BPMNDiagram.BPMNSwimlanes')}</Header>
           {swimlanes.reverse().map((swimlane, index) => (
             <SwimlaneRow key={swimlane.id}>
               <Textfield
@@ -179,7 +179,7 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
     // and size the swimlane accordingly to fit all child elements.
     const swimlane = new BPMNSwimlane({
       id: uuid(),
-      name: name ?? this.props.translate('packages.BPMN.BPMNSwimlane'),
+      name: name ?? this.props.translate('packages.BPMNDiagram.BPMNSwimlane'),
       bounds: {
         x: BPMNPool.HEADER_WIDTH,
         width: this.props.element.bounds.width - BPMNPool.HEADER_WIDTH,

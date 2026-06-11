@@ -105,18 +105,18 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
         <section>
           <Dropdown value={element.gatewayType} onChange={this.changeGatewayType(element.id)}>
             <Dropdown.Item value={'exclusive'}>
-              {this.props.translate('packages.BPMN.BPMNExclusiveGateway')}
+              {this.props.translate('packages.BPMNDiagram.BPMNExclusiveGateway')}
             </Dropdown.Item>
             <Dropdown.Item value={'parallel'}>
-              {this.props.translate('packages.BPMN.BPMNParallelGateway')}
+              {this.props.translate('packages.BPMNDiagram.BPMNParallelGateway')}
             </Dropdown.Item>
             <Dropdown.Item value={'inclusive'}>
-              {this.props.translate('packages.BPMN.BPMNInclusiveGateway')}
+              {this.props.translate('packages.BPMNDiagram.BPMNInclusiveGateway')}
             </Dropdown.Item>
             <Dropdown.Item value={'event-based'}>
-              {this.props.translate('packages.BPMN.BPMNEventBasedGateway')}
+              {this.props.translate('packages.BPMNDiagram.BPMNEventBasedGateway')}
             </Dropdown.Item>
-            <Dropdown.Item value={'complex'}>{this.props.translate('packages.BPMN.BPMNComplexGateway')}</Dropdown.Item>
+            <Dropdown.Item value={'complex'}>{this.props.translate('packages.BPMNDiagram.BPMNComplexGateway')}</Dropdown.Item>
           </Dropdown>
         </section>
       </div>

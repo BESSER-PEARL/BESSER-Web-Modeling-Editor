@@ -103,17 +103,17 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
 
     const flowTypeItems = [
       allowedTypes.includes('sequence') ? (
-        <Dropdown.Item value={'sequence'}>{this.props.translate('packages.BPMN.BPMNSequenceFlow')}</Dropdown.Item>
+        <Dropdown.Item value={'sequence'}>{this.props.translate('packages.BPMNDiagram.BPMNSequenceFlow')}</Dropdown.Item>
       ) : null,
       allowedTypes.includes('message') ? (
-        <Dropdown.Item value={'message'}>{this.props.translate('packages.BPMN.BPMNMessageFlow')}</Dropdown.Item>
+        <Dropdown.Item value={'message'}>{this.props.translate('packages.BPMNDiagram.BPMNMessageFlow')}</Dropdown.Item>
       ) : null,
       allowedTypes.includes('association') ? (
-        <Dropdown.Item value={'association'}>{this.props.translate('packages.BPMN.BPMNAssociationFlow')}</Dropdown.Item>
+        <Dropdown.Item value={'association'}>{this.props.translate('packages.BPMNDiagram.BPMNAssociationFlow')}</Dropdown.Item>
       ) : null,
       allowedTypes.includes('data association') ? (
         <Dropdown.Item value={'data association'}>
-          {this.props.translate('packages.BPMN.BPMNDataAssociationFlow')}
+          {this.props.translate('packages.BPMNDiagram.BPMNDataAssociationFlow')}
         </Dropdown.Item>
       ) : null,
     ].filter((item): item is React.ReactElement => item !== null);
@@ -148,7 +148,7 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
                 color="primary"
               >
                 <Switch.Item value={'default'}>
-                  {this.props.translate('packages.BPMN.BPMNDefaultSequenceFlow')}
+                  {this.props.translate('packages.BPMNDiagram.BPMNDefaultSequenceFlow')}
                 </Switch.Item>
               </Switch>
             </section>
