@@ -15,6 +15,7 @@ interface IAgentStateMemberValues extends IUMLElement {
   dbQueryMode?: string;
   dbOperation?: string;
   dbSqlQuery?: string;
+  llm_name?: string;
 }
 
 export abstract class AgentStateMember extends UMLElement {
@@ -37,7 +38,8 @@ export abstract class AgentStateMember extends UMLElement {
   dbQueryMode: string = 'llm_query';
   dbOperation: string = 'any';
   dbSqlQuery: string = '';
-  
+  llm_name: string = '';
+
   constructor(values?: DeepPartial<IAgentStateMemberValues>) {
     super(values);
     assign<IUMLElement>(this, values);
@@ -58,6 +60,9 @@ export abstract class AgentStateMember extends UMLElement {
     }
     if (values?.dbSqlQuery !== undefined) {
       this.dbSqlQuery = values.dbSqlQuery ?? '';
+    }
+    if (values?.llm_name !== undefined) {
+      this.llm_name = values.llm_name ?? '';
     }
   }
 
@@ -90,6 +95,12 @@ export abstract class AgentStateMember extends UMLElement {
       serialized.dbSqlQuery = this.dbSqlQuery;
     }
 
+    // Always persist llm_name so a chosen LLM survives a temporary switch of
+    // reply type (e.g. llm -> text -> llm). The backend ignores it for reply
+    // types that do not consume an LLM, so emitting it unconditionally is safe
+    // and keeps serialize/deserialize symmetric.
+    serialized.llm_name = this.llm_name;
+
     return serialized;
   }
 
@@ -101,6 +112,7 @@ export abstract class AgentStateMember extends UMLElement {
       dbQueryMode?: string;
       dbOperation?: string;
       dbSqlQuery?: string;
+      llm_name?: string;
     }) {
       this.id = values.id;
       this.name = values.name;
@@ -119,6 +131,7 @@ export abstract class AgentStateMember extends UMLElement {
       this.dbQueryMode = values.dbQueryMode ?? 'llm_query';
       this.dbOperation = values.dbOperation ?? 'any';
       this.dbSqlQuery = values.dbSqlQuery ?? '';
+      this.llm_name = values.llm_name ?? '';
     }
 
   render(layer: ILayer): ILayoutable[] {

@@ -19,5 +19,6 @@ export const UMLDiagramType = {
   StateMachineDiagram: 'StateMachineDiagram',
   AgentDiagram: 'AgentDiagram',
   UserDiagram: 'UserDiagram',
+  NNDiagram: 'NNDiagram',
 } as const;
 export type UMLDiagramType = (typeof UMLDiagramType)[keyof typeof UMLDiagramType];

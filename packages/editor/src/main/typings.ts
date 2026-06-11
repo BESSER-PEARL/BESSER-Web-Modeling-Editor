@@ -73,6 +73,7 @@ export interface AgentModelElement extends UMLModelElement {
   dbQueryMode?: string;
   dbOperation?: string;
   dbSqlQuery?: string;
+  llm_name?: string;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -117,6 +118,8 @@ export type UMLClassifierMember = UMLElement & {
   quantumCircuitId?: string;
   isOptional?: boolean;
   isDerived?: boolean;
+  isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
 };
 

@@ -83,17 +83,36 @@ export const movable = (
     /** Synchronous pointer tracking — replaces the old async this.state.offset */
     private lastPointer = new Point();
 
+    // FIX (2026-04-14): slow drags were stuttering because each pointer-move delta
+    // was rounded to the nearest 10 px and any sub-5-px motion was dropped entirely.
+    // Now we accumulate raw (fractional) deltas in moveWindow, dispatch the integer
+    // part once per animation frame, and keep the remainder so sub-pixel motion
+    // adds up across frames instead of being discarded.
+    //
+    // OLD CODE (revert to this to restore 10-px grid snap during drag):
+    //   move = (x: number, y: number) => {
+    //     x = Math.round(x / 10) * 10;
+    //     y = Math.round(y / 10) * 10;
+    //     if (x === 0 && y === 0) return;
+    //     this.moveWindow = new Point(this.moveWindow.x + x, this.moveWindow.y + y);
+    //     if (!this.moveRaf) {
+    //       this.moveRaf = requestAnimationFrame(() => {
+    //         this.props.move({ x: this.moveWindow.x, y: this.moveWindow.y });
+    //         this.moveWindow = new Point();
+    //         this.moveRaf = null;
+    //       });
+    //     }
+    //   };
     move = (x: number, y: number) => {
-      x = Math.round(x / 10) * 10;
-      y = Math.round(y / 10) * 10;
-      if (x === 0 && y === 0) return;
-
-      // Batch Redux dispatches to one per animation frame to avoid flooding re-renders
       this.moveWindow = new Point(this.moveWindow.x + x, this.moveWindow.y + y);
       if (!this.moveRaf) {
         this.moveRaf = requestAnimationFrame(() => {
-          this.props.move({ x: this.moveWindow.x, y: this.moveWindow.y });
-          this.moveWindow = new Point();
+          const dx = Math.round(this.moveWindow.x);
+          const dy = Math.round(this.moveWindow.y);
+          if (dx !== 0 || dy !== 0) {
+            this.props.move({ x: dx, y: dy });
+            this.moveWindow = new Point(this.moveWindow.x - dx, this.moveWindow.y - dy);
+          }
           this.moveRaf = null;
         });
       }
