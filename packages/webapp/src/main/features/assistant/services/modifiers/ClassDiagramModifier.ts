@@ -21,6 +21,11 @@ import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { normalizeType } from '../shared/typeNormalization';
+import {
+  CLASS_NODE_TYPE,
+  buildClassNode as buildSharedClassNode,
+  recalculateClassNodeHeight,
+} from '../shared/v4Builders';
 
 /** v4 ClassifierMember row shape (subset; tolerant of extra fields). */
 type ClassifierMember = {
@@ -34,19 +39,6 @@ type ClassifierMember = {
   code?: string;
   implementationType?: string;
   [k: string]: unknown;
-};
-
-/** All v4 class-like node types live under `node.type === 'class'`. */
-const CLASS_NODE_TYPE = 'class';
-
-/** Map a stereotype string to the v3-era element-type label, used by tests/specs. */
-const stereotypeToLegacyType = (stereotype: string | null | undefined): string => {
-  switch (stereotype) {
-    case 'abstract': return 'AbstractClass';
-    case 'interface': return 'Interface';
-    case 'enumeration': return 'Enumeration';
-    default: return 'Class';
-  }
 };
 
 export class ClassDiagramModifier implements DiagramModifier {
@@ -166,21 +158,12 @@ export class ClassDiagramModifier implements DiagramModifier {
     return undefined;
   }
 
-  /** Compute a node's height from its row counts. Mirrors the v3 visual budget. */
+  /** Compute a node's height from its row counts (shared v4 builder). */
   private recalculateClassHeight(node: BesserNode): void {
-    const data: any = node.data || {};
-    const attrCount = Array.isArray(data.attributes) ? data.attributes.length : 0;
-    const methodCount = Array.isArray(data.methods) ? data.methods.length : 0;
-    const headerHeight = 50;
-    const rowHeight = 25;
-    const methodGap = methodCount > 0 ? 10 : 0;
-    const padding = 15;
-    const h = Math.max(90, headerHeight + attrCount * rowHeight + methodGap + methodCount * rowHeight + padding);
-    node.height = h;
-    node.measured = { width: node.width, height: h };
+    recalculateClassNodeHeight(node);
   }
 
-  /** Build a v4 class node. */
+  /** Build a v4 class node (shared v4 builder). */
   private buildClassNode(opts: {
     id: string;
     name: string;
@@ -191,26 +174,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     height?: number;
     extraData?: Record<string, unknown>;
   }): BesserNode {
-    const w = opts.width ?? 220;
-    const h = opts.height ?? 90;
-    const data: Record<string, unknown> = {
-      name: opts.name,
-      attributes: [],
-      methods: [],
-      ...(opts.extraData || {}),
-    };
-    if (opts.stereotype) {
-      data.stereotype = opts.stereotype;
-    }
-    return {
-      id: opts.id,
-      type: CLASS_NODE_TYPE as any,
-      position: { x: opts.x, y: opts.y },
-      width: w,
-      height: h,
-      measured: { width: w, height: h },
-      data,
-    };
+    return buildSharedClassNode(opts);
   }
 
   /** Find the rightmost class-node and return where to place a new class beside it. */
@@ -302,11 +266,6 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     this.recalculateClassHeight(node);
 
-    // Test-compat: tests rely on `node.type` mirroring the legacy element type
-    // (e.g. 'AbstractClass', 'Enumeration'). Keep it for back-compat during transition;
-    // canonical v4 reads still go through `data.stereotype`.
-    (node as any).type = stereotypeToLegacyType(stereotype);
-
     ModifierHelpers.addNode(model, node);
     return model;
   }
@@ -327,35 +286,31 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     if (changes.visibility) data.visibility = changes.visibility;
 
+    // v4 keeps `node.type === 'class'` for every classifier; only the
+    // `data.stereotype` discriminator (and italic render hint) changes.
     if (typeof changes.isAbstract === 'boolean') {
       data.italic = changes.isAbstract;
       if (changes.isAbstract) {
         data.stereotype = 'abstract';
-        (node as any).type = 'AbstractClass';
-      } else {
+      } else if (data.stereotype === 'abstract') {
         delete data.stereotype;
-        (node as any).type = 'Class';
       }
     }
     if (typeof changes.isEnumeration === 'boolean') {
       if (changes.isEnumeration) {
         data.stereotype = 'enumeration';
-        (node as any).type = 'Enumeration';
         delete data.italic;
-      } else if ((node as any).type === 'Enumeration' || data.stereotype === 'enumeration') {
+      } else if (data.stereotype === 'enumeration') {
         delete data.stereotype;
-        (node as any).type = 'Class';
       }
     }
     if (typeof changes.isInterface === 'boolean') {
       if (changes.isInterface) {
         data.stereotype = 'interface';
         data.italic = true;
-        (node as any).type = 'Interface';
-      } else if ((node as any).type === 'Interface' || data.stereotype === 'interface') {
+      } else if (data.stereotype === 'interface') {
         delete data.stereotype;
         delete data.italic;
-        (node as any).type = 'Class';
       }
     }
     if (changes.stereotype !== undefined) {
@@ -593,8 +548,8 @@ export class ClassDiagramModifier implements DiagramModifier {
       source: sourceNode!.id,
       target: targetNode!.id,
       type: relationshipType as any,
-      sourceHandle: 'Left',
-      targetHandle: 'Right',
+      sourceHandle: 'left',
+      targetHandle: 'right',
       data: {
         name: relationshipName,
         sourceMultiplicity,
@@ -1047,7 +1002,6 @@ export class ClassDiagramModifier implements DiagramModifier {
       attributeType: 'str',
       visibility: 'public',
     }));
-    (node as any).type = 'Enumeration';
     this.recalculateClassHeight(node);
     ModifierHelpers.addNode(model, node);
 
@@ -1099,8 +1053,8 @@ export class ClassDiagramModifier implements DiagramModifier {
       source: sourceId,
       target: targetId,
       type: relationshipType as any,
-      sourceHandle: 'Left',
-      targetHandle: 'Right',
+      sourceHandle: 'left',
+      targetHandle: 'right',
       data: {
         name,
         sourceMultiplicity: '1',

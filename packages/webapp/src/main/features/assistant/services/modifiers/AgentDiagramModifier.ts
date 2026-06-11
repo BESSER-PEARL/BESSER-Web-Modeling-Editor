@@ -10,7 +10,7 @@
  *     row arrays (`{id, name}` plus optional `replyType`, `code`, RAG
  *     fields). v3 AgentStateBody / AgentStateFallbackBody collapse into
  *     these rows.
- *   - `AgentIntent` has inline `data.bodies[]` (training phrases) plus
+ *   - `AgentIntent` has inline `data.training_phrases[]` rows plus
  *     `data.intent_description`. v3 AgentIntentBody / IntentDescription
  *     collapse into these rows.
  *   - `AgentRagElement` is its own node (no children to collapse).
@@ -22,6 +22,7 @@
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+import { estimateAgentNodeWidth } from '../shared/v4Builders';
 
 type BodyRow = {
   id: string;
@@ -122,11 +123,7 @@ export class AgentDiagramModifier implements DiagramModifier {
     const pos = this.nextPosition(model);
 
     const replies = changes.replies || [];
-    let stateWidth = 210;
-    for (const r of replies) {
-      const estimated = (r.text || '').length * 8 + 40;
-      if (estimated > stateWidth) stateWidth = estimated;
-    }
+    const stateWidth = estimateAgentNodeWidth(replies.map((r) => r.text), 210);
 
     const bodies: BodyRow[] = replies.map((reply) => {
       const row: BodyRow = {
@@ -167,18 +164,16 @@ export class AgentDiagramModifier implements DiagramModifier {
     const pos = this.nextPosition(model);
 
     const phrases = changes.trainingPhrases || [];
-    let intentWidth = 230;
-    for (const p of phrases) {
-      const estimated = (p || '').length * 8 + 40;
-      if (estimated > intentWidth) intentWidth = estimated;
-    }
+    const intentWidth = estimateAgentNodeWidth(phrases, 230);
 
-    const bodies: BodyRow[] = phrases.map((phrase) => ({
+    // Canonical v4: training phrases live on `data.training_phrases`
+    // (rendered inline by AgentIntent.tsx), not on `data.bodies`.
+    const trainingPhrases: BodyRow[] = phrases.map((phrase) => ({
       id: ModifierHelpers.generateUniqueId('intentBody'),
       name: phrase,
     }));
 
-    const totalHeight = Math.max(130, 41 + bodies.length * 30 + 10);
+    const totalHeight = Math.max(130, 41 + trainingPhrases.length * 30 + 10);
     const intentName = target.intentName || changes.intentName || changes.name || '';
 
     const intentId = ModifierHelpers.generateUniqueId('intent');
@@ -191,7 +186,7 @@ export class AgentDiagramModifier implements DiagramModifier {
       measured: { width: intentWidth, height: totalHeight },
       data: {
         name: intentName,
-        bodies,
+        training_phrases: trainingPhrases,
         intent_description: '',
       },
     };
@@ -221,14 +216,14 @@ export class AgentDiagramModifier implements DiagramModifier {
 
     // `text` is the LLM's idiom for "append a training phrase".
     if (modification.changes.text) {
-      const bodies: BodyRow[] = Array.isArray(data.bodies) ? data.bodies : [];
-      bodies.push({
+      const phrases: BodyRow[] = Array.isArray(data.training_phrases) ? data.training_phrases : [];
+      phrases.push({
         id: ModifierHelpers.generateUniqueId('intentBody'),
         name: modification.changes.text,
       });
-      data.bodies = bodies;
-      // Grow the node card visually so the new body row fits.
-      node.height = Math.max(130, 41 + bodies.length * 30 + 10);
+      data.training_phrases = phrases;
+      // Grow the node card visually so the new phrase row fits.
+      node.height = Math.max(130, 41 + phrases.length * 30 + 10);
       node.measured = { width: node.width, height: node.height };
     }
 
@@ -335,8 +330,8 @@ export class AgentDiagramModifier implements DiagramModifier {
       source: sourceNode.id,
       target: targetNode.id,
       type: (isInit ? 'AgentStateTransitionInit' : 'AgentStateTransition') as any,
-      sourceHandle: 'Right',
-      targetHandle: 'Left',
+      sourceHandle: 'right',
+      targetHandle: 'left',
       data: transitionData as any,
     };
 

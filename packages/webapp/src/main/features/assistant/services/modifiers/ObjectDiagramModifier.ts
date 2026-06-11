@@ -263,8 +263,8 @@ export class ObjectDiagramModifier implements DiagramModifier {
       type: 'ObjectLink' as any,
       source: sourceNode.id,
       target: targetNode.id,
-      sourceHandle: 'Right',
-      targetHandle: 'Left',
+      sourceHandle: 'right',
+      targetHandle: 'left',
       data: {
         name: modification.changes.name || '',
         points: [

@@ -6,33 +6,37 @@ import type { ModelModification } from '../modifiers/base';
 import type { BESSERModel } from '../UMLModelingService';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers (v4-native: models carry `nodes[]` / `edges[]` arrays)
 // ---------------------------------------------------------------------------
 
-// SA-7b.2: this test suite predates the v4-native modifier rewrite. It
-// constructs v3-shaped models (`elements`/`relationships` records) and
-// asserts on them; the modifiers now write v4 (`nodes`/`edges` arrays),
-// so most assertions fail at runtime. Casting BESSERModel → `any` here
-// keeps the TypeScript compiler happy until the test file is refactored
-// to walk v4 nodes/edges. The runtime failures are pre-existing —
-// SA-7b.1 already left ClassDiagram + StateMachine tests in this state
-// and SA-7b.2 inherits the same situation for ObjectDiagram + AgentDiagram.
 function makeEmptyModel(type = 'ClassDiagram'): any {
   return {
-    version: '3.0.0',
+    version: '4.0.0',
+    id: '',
+    title: '',
     type,
-    size: { width: 1000, height: 800 },
-    elements: {},
-    relationships: {},
-    interactive: { elements: {}, relationships: {} },
+    nodes: [],
+    edges: [],
     assessments: {},
   };
 }
 
-/** Return all element values from a model whose `type` matches. */
-function elementsByType(model: BESSERModel, type: string): any[] {
-  const elements: Record<string, any> = (model as any).elements ?? {};
-  return Object.values(elements).filter((el: any) => el.type === type);
+/** Return all nodes from a model whose `type` matches. */
+function nodesByType(model: BESSERModel, type: string): any[] {
+  return (((model as any).nodes ?? []) as any[]).filter((n: any) => n.type === type);
+}
+
+/** Build a minimal v4 class node. */
+function classNode(id: string, name: string, extraData: Record<string, unknown> = {}): any {
+  return {
+    id,
+    type: 'class',
+    position: { x: 0, y: 0 },
+    width: 220,
+    height: 90,
+    measured: { width: 220, height: 90 },
+    data: { name, attributes: [], methods: [], ...extraData },
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -45,7 +49,7 @@ describe('ClassDiagramModifier', () => {
   // ── add_class ───────────────────────────────────────────────────────────
 
   describe('add_class', () => {
-    it('creates an element with type "Class"', () => {
+    it('creates a node with type "class"', () => {
       const model = makeEmptyModel();
       const mod: ModelModification = {
         action: 'add_class',
@@ -55,14 +59,15 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const classes = elementsByType(result, 'Class');
+      const classes = nodesByType(result, 'class');
       expect(classes).toHaveLength(1);
-      expect(classes[0].name).toBe('Person');
-      expect(classes[0].attributes).toEqual([]);
-      expect(classes[0].methods).toEqual([]);
+      expect(classes[0].data.name).toBe('Person');
+      expect(classes[0].data.attributes).toEqual([]);
+      expect(classes[0].data.methods).toEqual([]);
+      expect(classes[0].data.stereotype).toBeUndefined();
     });
 
-    it('creates an "AbstractClass" when isAbstract is true', () => {
+    it('stamps stereotype "abstract" when isAbstract is true', () => {
       const model = makeEmptyModel();
       const mod: ModelModification = {
         action: 'add_class',
@@ -72,14 +77,14 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const abstracts = elementsByType(result, 'AbstractClass');
-      expect(abstracts).toHaveLength(1);
-      expect(abstracts[0].name).toBe('Shape');
-      expect(abstracts[0].italic).toBe(true);
-      expect(abstracts[0].stereotype).toBe('abstract');
+      const classes = nodesByType(result, 'class');
+      expect(classes).toHaveLength(1);
+      expect(classes[0].data.name).toBe('Shape');
+      expect(classes[0].data.italic).toBe(true);
+      expect(classes[0].data.stereotype).toBe('abstract');
     });
 
-    it('creates an "Enumeration" when isEnumeration is true', () => {
+    it('stamps stereotype "enumeration" when isEnumeration is true', () => {
       const model = makeEmptyModel();
       const mod: ModelModification = {
         action: 'add_class',
@@ -89,10 +94,10 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const enums = elementsByType(result, 'Enumeration');
-      expect(enums).toHaveLength(1);
-      expect(enums[0].name).toBe('Color');
-      expect(enums[0].stereotype).toBe('enumeration');
+      const classes = nodesByType(result, 'class');
+      expect(classes).toHaveLength(1);
+      expect(classes[0].data.name).toBe('Color');
+      expect(classes[0].data.stereotype).toBe('enumeration');
     });
   });
 
@@ -101,19 +106,11 @@ describe('ClassDiagramModifier', () => {
   describe('add_attribute', () => {
     function modelWithClass(): BESSERModel {
       const m = makeEmptyModel();
-      m.elements['cls1'] = {
-        id: 'cls1',
-        name: 'Order',
-        type: 'Class',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 220, height: 90 },
-        attributes: [],
-        methods: [],
-      };
+      m.nodes.push(classNode('cls1', 'Order'));
       return m;
     }
 
-    it('adds a ClassAttribute to the target class', () => {
+    it('adds an inline attribute row to the target class', () => {
       const model = modelWithClass();
       const mod: ModelModification = {
         action: 'add_attribute',
@@ -123,10 +120,10 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const attrs = elementsByType(result, 'ClassAttribute');
-      expect(attrs).toHaveLength(1);
-      expect(attrs[0].owner).toBe('cls1');
-      expect(attrs[0].attributeType).toBe('float');
+      const [order] = nodesByType(result, 'class');
+      expect(order.data.attributes).toHaveLength(1);
+      expect(order.data.attributes[0].name).toBe('total');
+      expect(order.data.attributes[0].attributeType).toBe('float');
     });
 
     it('sets isDerived when specified', () => {
@@ -139,9 +136,9 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const attrs = elementsByType(result, 'ClassAttribute');
-      expect(attrs).toHaveLength(1);
-      expect(attrs[0].isDerived).toBe(true);
+      const [order] = nodesByType(result, 'class');
+      expect(order.data.attributes).toHaveLength(1);
+      expect(order.data.attributes[0].isDerived).toBe(true);
     });
 
     it('sets defaultValue when specified', () => {
@@ -154,9 +151,9 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const attrs = elementsByType(result, 'ClassAttribute');
-      expect(attrs).toHaveLength(1);
-      expect(attrs[0].defaultValue).toBe('pending');
+      const [order] = nodesByType(result, 'class');
+      expect(order.data.attributes).toHaveLength(1);
+      expect(order.data.attributes[0].defaultValue).toBe('pending');
     });
   });
 
@@ -165,19 +162,11 @@ describe('ClassDiagramModifier', () => {
   describe('add_method', () => {
     function modelWithClass(): BESSERModel {
       const m = makeEmptyModel();
-      m.elements['cls1'] = {
-        id: 'cls1',
-        name: 'Service',
-        type: 'Class',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 220, height: 90 },
-        attributes: [],
-        methods: [],
-      };
+      m.nodes.push(classNode('cls1', 'Service'));
       return m;
     }
 
-    it('adds a ClassMethod to the target class', () => {
+    it('adds an inline method row to the target class', () => {
       const model = modelWithClass();
       const mod: ModelModification = {
         action: 'add_method',
@@ -187,11 +176,10 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const methods = elementsByType(result, 'ClassMethod');
-      expect(methods).toHaveLength(1);
-      expect(methods[0].owner).toBe('cls1');
-      expect(methods[0].name).toContain('execute');
-      expect(methods[0].name).toContain('bool');
+      const [service] = nodesByType(result, 'class');
+      expect(service.data.methods).toHaveLength(1);
+      expect(service.data.methods[0].name).toContain('execute');
+      expect(service.data.methods[0].attributeType).toBe('bool');
     });
 
     it('sets code and implementationType when code is provided', () => {
@@ -204,10 +192,10 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const methods = elementsByType(result, 'ClassMethod');
-      expect(methods).toHaveLength(1);
-      expect(methods[0].code).toBe('print("hello")');
-      expect(methods[0].implementationType).toBe('code');
+      const [service] = nodesByType(result, 'class');
+      expect(service.data.methods).toHaveLength(1);
+      expect(service.data.methods[0].code).toBe('print("hello")');
+      expect(service.data.methods[0].implementationType).toBe('code');
     });
 
     it('respects explicit implementationType over default', () => {
@@ -220,25 +208,17 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const methods = elementsByType(result, 'ClassMethod');
-      expect(methods[0].implementationType).toBe('action');
+      const [service] = nodesByType(result, 'class');
+      expect(service.data.methods[0].implementationType).toBe('action');
     });
   });
 
-  // ── findClassIdByName (via add_attribute targeting different types) ─────
+  // ── findClassNode (via add_attribute targeting stereotyped classifiers) ──
 
-  describe('findClassIdByName finds AbstractClass and Enumeration types', () => {
-    it('resolves AbstractClass by name', () => {
+  describe('findClassNode resolves stereotyped classifiers by name', () => {
+    it('resolves abstract classes by name', () => {
       const model = makeEmptyModel();
-      model.elements['abc1'] = {
-        id: 'abc1',
-        name: 'Vehicle',
-        type: 'AbstractClass',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 220, height: 90 },
-        attributes: [],
-        methods: [],
-      };
+      model.nodes.push(classNode('abc1', 'Vehicle', { stereotype: 'abstract', italic: true }));
 
       const mod: ModelModification = {
         action: 'add_attribute',
@@ -248,22 +228,14 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const attrs = elementsByType(result, 'ClassAttribute');
-      expect(attrs).toHaveLength(1);
-      expect(attrs[0].owner).toBe('abc1');
+      const vehicle = nodesByType(result, 'class').find((n) => n.id === 'abc1');
+      expect(vehicle.data.attributes).toHaveLength(1);
+      expect(vehicle.data.attributes[0].name).toBe('speed');
     });
 
-    it('resolves Enumeration by name', () => {
+    it('resolves enumerations by name', () => {
       const model = makeEmptyModel();
-      model.elements['enum1'] = {
-        id: 'enum1',
-        name: 'Status',
-        type: 'Enumeration',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 220, height: 90 },
-        attributes: [],
-        methods: [],
-      };
+      model.nodes.push(classNode('enum1', 'Status', { stereotype: 'enumeration' }));
 
       const mod: ModelModification = {
         action: 'add_attribute',
@@ -273,9 +245,9 @@ describe('ClassDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const attrs = elementsByType(result, 'ClassAttribute');
-      expect(attrs).toHaveLength(1);
-      expect(attrs[0].owner).toBe('enum1');
+      const status = nodesByType(result, 'class').find((n) => n.id === 'enum1');
+      expect(status.data.attributes).toHaveLength(1);
+      expect(status.data.attributes[0].name).toBe('ACTIVE');
     });
   });
 });
@@ -288,7 +260,7 @@ describe('StateMachineModifier', () => {
   const modifier = new StateMachineModifier();
 
   describe('add_state', () => {
-    it('creates a State element with bodies arrays', () => {
+    it('creates a State node with inline bodies arrays', () => {
       const model = makeEmptyModel('StateMachineDiagram');
       const mod: ModelModification = {
         action: 'add_state',
@@ -298,11 +270,11 @@ describe('StateMachineModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const states = elementsByType(result, 'State');
+      const states = nodesByType(result, 'State');
       expect(states).toHaveLength(1);
-      expect(states[0].name).toBe('Idle');
-      expect(states[0].bodies).toBeDefined();
-      expect(states[0].fallbackBodies).toBeDefined();
+      expect(states[0].data.name).toBe('Idle');
+      expect(states[0].data.bodies).toBeDefined();
+      expect(states[0].data.fallbackBodies).toBeDefined();
     });
 
     it('creates a StateInitialNode when stateType is "initial"', () => {
@@ -315,7 +287,7 @@ describe('StateMachineModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const initials = elementsByType(result, 'StateInitialNode');
+      const initials = nodesByType(result, 'StateInitialNode');
       expect(initials).toHaveLength(1);
     });
 
@@ -329,11 +301,11 @@ describe('StateMachineModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const finals = elementsByType(result, 'StateFinalNode');
+      const finals = nodesByType(result, 'StateFinalNode');
       expect(finals).toHaveLength(1);
     });
 
-    it('creates StateBody children for entry/do/exit actions', () => {
+    it('collapses entry/do/exit actions onto inline body rows', () => {
       const model = makeEmptyModel('StateMachineDiagram');
       const mod: ModelModification = {
         action: 'add_state',
@@ -348,20 +320,20 @@ describe('StateMachineModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const bodies = elementsByType(result, 'StateBody');
-      expect(bodies).toHaveLength(3);
-      expect(bodies.map((b: any) => b.name)).toEqual(
-        expect.arrayContaining([
-          'entry / logStart()',
-          'do / process()',
-          'exit / logEnd()',
-        ]),
-      );
+      // Bodies live inline on the parent State — never as separate nodes.
+      expect(nodesByType(result, 'StateBody')).toHaveLength(0);
+
+      const [state] = nodesByType(result, 'State');
+      expect(state.data.bodies.map((b: any) => b.name)).toEqual([
+        'entry / logStart()',
+        'do / process()',
+        'exit / logEnd()',
+      ]);
     });
   });
 
   describe('add_code_block', () => {
-    it('creates a StateCodeBlock element with code and language', () => {
+    it('creates a StateCodeBlock node with code and language', () => {
       const model = makeEmptyModel('StateMachineDiagram');
       const mod: ModelModification = {
         action: 'add_code_block',
@@ -371,33 +343,35 @@ describe('StateMachineModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const blocks = elementsByType(result, 'StateCodeBlock');
+      const blocks = nodesByType(result, 'StateCodeBlock');
       expect(blocks).toHaveLength(1);
-      expect(blocks[0].code).toBe('x = 1');
-      expect(blocks[0].language).toBe('python');
-      expect(blocks[0].name).toBe('MyBlock');
+      expect(blocks[0].data.code).toBe('x = 1');
+      expect(blocks[0].data.language).toBe('python');
+      expect(blocks[0].data.name).toBe('MyBlock');
     });
   });
 
   describe('add_transition', () => {
     it('finds StateInitialNode as source', () => {
       const model = makeEmptyModel('StateMachineDiagram');
-      model.elements['init1'] = {
+      model.nodes.push({
         id: 'init1',
-        name: '',
         type: 'StateInitialNode',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 45, height: 45 },
-      };
-      model.elements['s1'] = {
+        position: { x: 0, y: 0 },
+        width: 45,
+        height: 45,
+        measured: { width: 45, height: 45 },
+        data: { name: '' },
+      });
+      model.nodes.push({
         id: 's1',
-        name: 'Running',
         type: 'State',
-        owner: null,
-        bounds: { x: 100, y: 0, width: 160, height: 100 },
-        bodies: [],
-        fallbackBodies: [],
-      };
+        position: { x: 100, y: 0 },
+        width: 160,
+        height: 100,
+        measured: { width: 160, height: 100 },
+        data: { name: 'Running', bodies: [], fallbackBodies: [] },
+      });
 
       const mod: ModelModification = {
         action: 'add_transition',
@@ -407,11 +381,14 @@ describe('StateMachineModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const transitions: any[] = Object.values((result as any).relationships ?? {});
-      expect(transitions).toHaveLength(1);
-      expect(transitions[0].type).toBe('StateTransition');
-      expect(transitions[0].source.element).toBe('init1');
-      expect(transitions[0].target.element).toBe('s1');
+      const edges: any[] = (result as any).edges ?? [];
+      expect(edges).toHaveLength(1);
+      expect(edges[0].type).toBe('StateTransition');
+      expect(edges[0].source).toBe('init1');
+      expect(edges[0].target).toBe('s1');
+      // Handle ids must use the lowercase v4 HandleId values.
+      expect(edges[0].sourceHandle).toBe('right');
+      expect(edges[0].targetHandle).toBe('left');
     });
   });
 });
@@ -424,7 +401,7 @@ describe('ObjectDiagramModifier', () => {
   const modifier = new ObjectDiagramModifier();
 
   describe('add_object', () => {
-    it('creates an ObjectName element with ObjectAttribute children', () => {
+    it('creates an objectName node with inline attribute rows', () => {
       const model = makeEmptyModel('ObjectDiagram');
       const mod: ModelModification = {
         action: 'add_object',
@@ -441,17 +418,19 @@ describe('ObjectDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const objects = elementsByType(result, 'ObjectName');
+      const objects = nodesByType(result, 'objectName');
       expect(objects).toHaveLength(1);
-      expect(objects[0].name).toBe('order1: Order');
+      expect(objects[0].data.name).toBe('order1: Order');
 
-      const attrs = elementsByType(result, 'ObjectAttribute');
+      const attrs = objects[0].data.attributes;
       expect(attrs).toHaveLength(2);
       expect(attrs[0].name).toBe('id = 42');
+      expect(attrs[0].value).toBe('42');
       expect(attrs[1].name).toBe('total = 99.9');
+      expect(attrs[1].value).toBe('99.9');
     });
 
-    it('creates an ObjectName with empty attributes when none provided', () => {
+    it('creates an objectName node with empty attributes when none provided', () => {
       const model = makeEmptyModel('ObjectDiagram');
       const mod: ModelModification = {
         action: 'add_object',
@@ -461,10 +440,10 @@ describe('ObjectDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const objects = elementsByType(result, 'ObjectName');
+      const objects = nodesByType(result, 'objectName');
       expect(objects).toHaveLength(1);
-      expect(objects[0].name).toBe('empty1: Foo');
-      expect(objects[0].attributes).toEqual([]);
+      expect(objects[0].data.name).toBe('empty1: Foo');
+      expect(objects[0].data.attributes).toEqual([]);
     });
   });
 });
@@ -477,7 +456,7 @@ describe('AgentDiagramModifier', () => {
   const modifier = new AgentDiagramModifier();
 
   describe('add_state', () => {
-    it('creates an AgentState with AgentStateBody children', () => {
+    it('creates an AgentState with inline body rows', () => {
       const model = makeEmptyModel('AgentDiagram');
       const mod: ModelModification = {
         action: 'add_state',
@@ -493,11 +472,13 @@ describe('AgentDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const states = elementsByType(result, 'AgentState');
+      const states = nodesByType(result, 'AgentState');
       expect(states).toHaveLength(1);
-      expect(states[0].name).toBe('Greeting');
+      expect(states[0].data.name).toBe('Greeting');
 
-      const bodies = elementsByType(result, 'AgentStateBody');
+      // Bodies live inline on the parent AgentState — never as separate nodes.
+      expect(nodesByType(result, 'AgentStateBody')).toHaveLength(0);
+      const bodies = states[0].data.bodies;
       expect(bodies).toHaveLength(2);
       expect(bodies[0].name).toBe('Hello!');
       expect(bodies[0].replyType).toBe('text');
@@ -506,7 +487,7 @@ describe('AgentDiagramModifier', () => {
   });
 
   describe('add_intent', () => {
-    it('creates an AgentIntent with AgentIntentBody children', () => {
+    it('creates an AgentIntent with inline training_phrases rows', () => {
       const model = makeEmptyModel('AgentDiagram');
       const mod: ModelModification = {
         action: 'add_intent',
@@ -519,14 +500,17 @@ describe('AgentDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const intents = elementsByType(result, 'AgentIntent');
+      const intents = nodesByType(result, 'AgentIntent');
       expect(intents).toHaveLength(1);
-      expect(intents[0].name).toBe('BookFlight');
+      expect(intents[0].data.name).toBe('BookFlight');
 
-      const bodies = elementsByType(result, 'AgentIntentBody');
-      expect(bodies).toHaveLength(2);
-      expect(bodies[0].name).toBe('I want to book a flight');
-      expect(bodies[1].name).toBe('Book me a ticket');
+      // Training phrases live on `data.training_phrases` (rendered inline
+      // by AgentIntent.tsx) — never as separate nodes.
+      expect(nodesByType(result, 'AgentIntentBody')).toHaveLength(0);
+      const phrases = intents[0].data.training_phrases;
+      expect(phrases).toHaveLength(2);
+      expect(phrases[0].name).toBe('I want to book a flight');
+      expect(phrases[1].name).toBe('Book me a ticket');
     });
   });
 
@@ -541,9 +525,9 @@ describe('AgentDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const rags = elementsByType(result, 'AgentRagElement');
+      const rags = nodesByType(result, 'AgentRagElement');
       expect(rags).toHaveLength(1);
-      expect(rags[0].name).toBe('KnowledgeBase');
+      expect(rags[0].data.name).toBe('KnowledgeBase');
     });
   });
 });

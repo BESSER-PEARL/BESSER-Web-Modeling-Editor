@@ -317,9 +317,29 @@ export function useModelInjection({
                   applied = true;
                 }
               } else {
+                // v4-native fallback when the modeling service isn't ready:
+                // merge the converted {nodes, edges} fragment into the
+                // current model. (Dispatching the bare fragment as a whole
+                // model would blank the canvas.)
                 const { ConverterFactory } = await import('../services/converters');
                 const converter = ConverterFactory.getConverter(targetDiagramType as any);
-                newModel = converter.convertSingleElement(command.element);
+                const fragment = converter.convertSingleElement(command.element);
+                const base = currentModel
+                  ? JSON.parse(JSON.stringify(currentModel))
+                  : {
+                      version: '4.0.0',
+                      id: '',
+                      title: '',
+                      type: targetDiagramType,
+                      nodes: [],
+                      edges: [],
+                      assessments: {},
+                    };
+                newModel = {
+                  ...base,
+                  nodes: [...(Array.isArray(base.nodes) ? base.nodes : []), ...(fragment?.nodes ?? [])],
+                  edges: [...(Array.isArray(base.edges) ? base.edges : []), ...(fragment?.edges ?? [])],
+                };
               }
             } else if (command.element) {
               throw new Error(

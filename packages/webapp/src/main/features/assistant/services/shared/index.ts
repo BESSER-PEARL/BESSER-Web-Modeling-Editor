@@ -12,3 +12,12 @@ export {
   LAYOUT_START_Y,
   calculateGridPosition,
 } from './layoutUtils';
+export {
+  CLASS_NODE_TYPE,
+  buildClassNode,
+  classNodeHeight,
+  createEmptyV4Model,
+  directionToHandle,
+  estimateAgentNodeWidth,
+  recalculateClassNodeHeight,
+} from './v4Builders';

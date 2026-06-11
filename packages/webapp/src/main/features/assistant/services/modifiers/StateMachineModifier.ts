@@ -153,8 +153,8 @@ export class StateMachineModifier implements DiagramModifier {
       source: sourceNode.id,
       target: targetNode.id,
       type: 'StateTransition' as any,
-      sourceHandle: 'Right',
-      targetHandle: 'Left',
+      sourceHandle: 'right',
+      targetHandle: 'left',
       data: {
         name: modification.changes.label || modification.changes.name || '',
         params: {},

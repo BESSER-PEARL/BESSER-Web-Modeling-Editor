@@ -1,9 +1,32 @@
 /**
- * Object Diagram Converter
- * Converts simplified object specifications to BESSER WME format
+ * Object Diagram Converter (v4-native)
+ *
+ * Converts simplified object specifications straight into the canonical v4
+ * shape ({version: '4.0.0', nodes[], edges[]}). Node/edge shapes are
+ * identical to what the editor produces:
+ *   - `objectName` is the only node type; attribute rows live inline on
+ *     `node.data.attributes` ({id, name, value, attributeType,
+ *     attributeId?}) — there is no separate ObjectAttribute node,
+ *   - links are `ObjectLink` edges.
+ *
+ * Display name format: `data.name` is just the instance name (no
+ * "instanceName: ClassName" suffix) when `classId` links the object to a
+ * class — the inspector resolves the className via the bridge. Without a
+ * classId we embed "instance: Class" in `data.name` so the canvas still
+ * shows something useful (same convention as ObjectDiagramModifier).
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
+import { createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
+
+type ObjectAttributeRow = {
+  id: string;
+  name: string;
+  value?: unknown;
+  attributeType?: string;
+  attributeId?: string;
+};
 
 export class ObjectDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -12,14 +35,13 @@ export class ObjectDiagramConverter implements DiagramConverter {
     return 'ObjectDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }) {
+  convertSingleElement(
+    spec: any,
+    position?: { x: number; y: number },
+  ): { nodes: BesserNode[]; edges: BesserEdge[] } {
     const pos = position || this.positionGenerator.getNextPosition();
     const objectId = generateUniqueId('object');
-    
-    const baseHeight = 80;
-    const attrHeight = (spec.attributes?.length || 0) * 30;
-    const totalHeight = baseHeight + attrHeight;
-    
+
     // Sanitize objectName: strip any ": ClassName" suffix the LLM may have included
     let objectName = spec.objectName || 'object';
     if (objectName.includes(':')) {
@@ -29,114 +51,99 @@ export class ObjectDiagramConverter implements DiagramConverter {
       objectName = `${spec.className.charAt(0).toLowerCase()}${spec.className.slice(1)}1`;
     }
 
-    // When classId is set, the ObjectName component (uml-object-name-component.tsx)
-    // automatically appends " : ClassName" from diagramBridge.getClassById(), so
-    // `.name` must hold ONLY the instance name. Embedding the suffix here would
-    // double-render as "author2: Author : Author". Fall back to the explicit
-    // suffix when there's no classId so the label is still meaningful.
-    const objectElement: any = {
-      type: "ObjectName",
-      id: objectId,
-      name: spec.classId ? objectName : `${objectName}: ${spec.className}`,
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 240, height: totalHeight },
-      attributes: [] as string[],
-      methods: []
-    };
+    const attributes = this.createAttributeRows(spec);
 
-    // Add classId reference if provided
-    if (spec.classId) {
-      objectElement.classId = spec.classId;
-    }
-    
-    const attributes = this.createAttributes(spec, objectId, pos.y + 60, pos.x);
-    objectElement.attributes = Object.keys(attributes);
-    
+    const baseHeight = 80;
+    const totalHeight = baseHeight + attributes.length * 30;
+
+    const data: Record<string, unknown> = {
+      // When classId is set the inspector resolves " : ClassName" from the
+      // class-diagram bridge, so `.name` must hold ONLY the instance name.
+      name: spec.classId ? objectName : (spec.className ? `${objectName}: ${spec.className}` : objectName),
+      attributes,
+    };
+    if (spec.classId) data.classId = spec.classId;
+    if (spec.className) data.className = spec.className;
+
     return {
-      object: objectElement,
-      attributes
+      nodes: [{
+        id: objectId,
+        type: 'objectName' as any,
+        position: { x: pos.x, y: pos.y },
+        width: 240,
+        height: totalHeight,
+        measured: { width: 240, height: totalHeight },
+        data,
+      }],
+      edges: [],
     };
   }
 
   convertCompleteSystem(systemSpec: any) {
     this.positionGenerator.reset();
-    const allElements: Record<string, any> = {};
-    const allRelationships: Record<string, any> = {};
+    const model = createEmptyV4Model('ObjectDiagram', systemSpec.systemName || '');
+    const nodes: BesserNode[] = model.nodes;
+    const edges: BesserEdge[] = model.edges;
     const objectIdMap: Record<string, string> = {};
-    
+
     systemSpec.objects?.forEach((objectSpec: any) => {
       const position = objectSpec.position || this.positionGenerator.getNextPosition();
-      const completeElement = this.convertSingleElement(objectSpec, position);
-      objectIdMap[objectSpec.objectName] = completeElement.object.id;
-      
-      allElements[completeElement.object.id] = completeElement.object;
-      Object.assign(allElements, completeElement.attributes);
+      const { nodes: objectNodes } = this.convertSingleElement(objectSpec, position);
+      const objectNode = objectNodes[0];
+      objectIdMap[objectSpec.objectName] = objectNode.id;
+      nodes.push(objectNode);
     });
-    
+
     systemSpec.links?.forEach((link: any) => {
       const sourceId = objectIdMap[link.source];
       const targetId = objectIdMap[link.target];
-      
+
       if (sourceId && targetId) {
         const linkId = generateUniqueId('link');
-        
-        allRelationships[linkId] = {
+        const linkName = link.relationshipType || '';
+
+        edges.push({
           id: linkId,
-          type: "ObjectLink",
-          source: {
-            element: sourceId,
-            direction: link.sourceDirection || 'Left',
-            bounds: { x: 0, y: 0, width: 0, height: 0 }
+          source: sourceId,
+          target: targetId,
+          type: 'ObjectLink' as any,
+          sourceHandle: directionToHandle(link.sourceDirection, 'Left'),
+          targetHandle: directionToHandle(link.targetDirection, 'Right'),
+          data: {
+            label: linkName,
+            ...(linkName && { name: linkName }),
+            isManuallyLayouted: false,
+            points: [
+              { x: 100, y: 10 },
+              { x: 0, y: 10 },
+            ],
           },
-          target: {
-            element: targetId,
-            direction: link.targetDirection || 'Right',
-            bounds: { x: 0, y: 0, width: 0, height: 0 }
-          },
-          bounds: { x: 0, y: 0, width: 0, height: 0 },
-          name: link.relationshipType || '',
-          path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
-          isManuallyLayouted: false
-        };
+        });
       }
     });
-    
-    return {
-      version: "3.0.0",
-      type: "ObjectDiagram",
-      size: { width: 1400, height: 740 },
-      elements: allElements,
-      relationships: allRelationships,
-      interactive: { elements: {}, relationships: {} },
-      assessments: {}
-    };
+
+    return model;
   }
 
-  private createAttributes(spec: any, objectId: string, startY: number, startX: number) {
-    const attributes: Record<string, any> = {};
-    let currentY = startY;
-    
+  private createAttributeRows(spec: any): ObjectAttributeRow[] {
+    const rows: ObjectAttributeRow[] = [];
+
     spec.attributes?.forEach((attr: any) => {
-      const attrId = generateUniqueId('attr');
-      
-      const attributeElement: any = {
-        id: attrId,
-        name: `${attr.name} = ${attr.value}`,
-        type: "ObjectAttribute",
-        owner: objectId,
-        bounds: { x: startX + 1, y: currentY, width: 238, height: 30 },
-        attributeType: attr.type || 'str'
+      const row: ObjectAttributeRow = {
+        id: generateUniqueId('attr'),
+        name: attr.name,
+        attributeType: attr.type || 'str',
       };
+      if (attr.value !== undefined) row.value = attr.value;
 
       // Add attributeId reference if provided (links to class diagram attribute)
       if (attr.attributeId) {
-        attributeElement.attributeId = attr.attributeId;
+        row.attributeId = attr.attributeId;
       }
-      
-      attributes[attrId] = attributeElement;
-      currentY += 30;
+
+      rows.push(row);
     });
-    
-    return attributes;
+
+    return rows;
   }
 }

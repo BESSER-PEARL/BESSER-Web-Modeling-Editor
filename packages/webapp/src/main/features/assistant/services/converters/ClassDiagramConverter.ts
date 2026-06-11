@@ -1,10 +1,32 @@
 /**
- * Class Diagram Converter
- * Converts simplified class specifications to BESSER WME format
+ * Class Diagram Converter (v4-native)
+ *
+ * Converts simplified class specifications straight into the canonical v4
+ * shape ({version: '4.0.0', nodes[], edges[]}) — no v3 detour. Node/edge
+ * shapes are identical to what the editor produces:
+ *   - all classifiers are `node.type === 'class'` with `data.stereotype`
+ *     discriminating Class / AbstractClass / Interface / Enumeration,
+ *   - attributes / methods are inline ClassifierMember rows on
+ *     `node.data.attributes` / `node.data.methods`,
+ *   - relationships are edges with role / multiplicity on `edge.data`.
  */
 
+import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { normalizeType } from '../shared/typeNormalization';
+import { buildClassNode, classNodeHeight, createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
+
+type ClassifierMemberRow = {
+  id: string;
+  name: string;
+  attributeType?: string;
+  visibility?: string;
+  isDerived?: boolean;
+  defaultValue?: unknown;
+  isOptional?: boolean;
+  code?: string;
+  implementationType?: string;
+};
 
 export class ClassDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -13,59 +35,46 @@ export class ClassDiagramConverter implements DiagramConverter {
     return 'ClassDiagram' as const;
   }
 
-  convertSingleElement(spec: any, position?: { x: number; y: number }, classNames?: Set<string>) {
+  convertSingleElement(
+    spec: any,
+    position?: { x: number; y: number },
+    classNames?: Set<string>,
+  ): { nodes: BesserNode[]; edges: BesserEdge[] } {
     const pos = position || this.positionGenerator.getNextPosition();
     const classId = generateUniqueId('class');
-    
-    const baseHeight = 60;
-    const attrHeight = (spec.attributes?.length || 0) * 25 + (spec.attributes?.length > 0 ? 10 : 0);
-    const methodHeight = (spec.methods?.length || 0) * 25 + (spec.methods?.length > 0 ? 10 : 0);
-    const totalHeight = baseHeight + attrHeight + methodHeight;
-    
-    const classElement: any = {
-      type: "Class",
+
+    let stereotype: string | null = null;
+    if (spec.isAbstract) stereotype = 'abstract';
+    else if (spec.isEnumeration) stereotype = 'enumeration';
+    else if (spec.isInterface) stereotype = 'interface';
+
+    const attributes = this.createAttributeRows(spec, classNames);
+    const methods = this.createMethodRows(spec);
+
+    const node = buildClassNode({
       id: classId,
       name: spec.className,
-      owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 220, height: totalHeight },
-      attributes: [] as string[],
-      methods: [] as string[]
-    };
+      stereotype,
+      x: pos.x,
+      y: pos.y,
+      width: 220,
+      height: classNodeHeight(attributes.length, methods.length),
+      extraData: {
+        attributes,
+        methods,
+        // Italic is a render-time hint for abstract classes / interfaces.
+        ...(stereotype === 'abstract' || stereotype === 'interface' ? { italic: true } : {}),
+      },
+    });
 
-    if (spec.isAbstract) {
-      classElement.type = 'AbstractClass';
-      classElement.italic = true;
-      classElement.stereotype = 'abstract';
-    }
-
-    if (spec.isEnumeration) {
-      classElement.type = 'Enumeration';
-      classElement.stereotype = 'enumeration';
-    }
-
-    if (spec.isInterface) {
-      classElement.type = 'Interface';
-      classElement.italic = true;
-      classElement.stereotype = 'interface';
-    }
-    
-    const { attributes, endY: attrEndY } = this.createAttributes(spec, classId, pos.y + 50, pos.x, classNames);
-    const { methods } = this.createMethods(spec, classId, attrEndY, pos.x);
-    
-    classElement.attributes = Object.keys(attributes);
-    classElement.methods = Object.keys(methods);
-    
-    return {
-      class: classElement,
-      attributes,
-      methods
-    };
+    return { nodes: [node], edges: [] };
   }
 
   convertCompleteSystem(systemSpec: any) {
     this.positionGenerator.reset();
-    const allElements: Record<string, any> = {};
-    const allRelationships: Record<string, any> = {};
+    const model = createEmptyV4Model('ClassDiagram', systemSpec.systemName || '');
+    const nodes: BesserNode[] = model.nodes;
+    const edges: BesserEdge[] = model.edges;
     const classIdMap: Record<string, string> = {};
 
     // Collect all class/enum names so attribute types can reference them
@@ -74,139 +83,103 @@ export class ClassDiagramConverter implements DiagramConverter {
 
     systemSpec.classes?.forEach((classSpec: any) => {
       const position = classSpec.position || this.positionGenerator.getNextPosition();
-      const completeElement = this.convertSingleElement(classSpec, position, allClassNames);
-      classIdMap[classSpec.className] = completeElement.class.id;
-
-      allElements[completeElement.class.id] = completeElement.class;
-      Object.assign(allElements, completeElement.attributes);
-      Object.assign(allElements, completeElement.methods);
+      const { nodes: classNodes } = this.convertSingleElement(classSpec, position, allClassNames);
+      const classNode = classNodes[0];
+      classIdMap[classSpec.className] = classNode.id;
+      nodes.push(classNode);
     });
-    
+
     systemSpec.relationships?.forEach((rel: any) => {
       const sourceId = classIdMap[rel.sourceClass || rel.source];
       const targetId = classIdMap[rel.targetClass || rel.target];
-      
+
       if (sourceId && targetId) {
         const relId = generateUniqueId('rel');
         const relationshipType = this.getRelationshipType(rel.type);
-        
-        allRelationships[relId] = {
+        const relationshipName = rel.name || '';
+
+        edges.push({
           id: relId,
-          type: relationshipType,
-          source: { 
-            element: sourceId,
-            direction: rel.sourceDirection || 'Left',
-            multiplicity: rel.sourceMultiplicity || '1',
-            role: '',
-            bounds: { x: 0, y: 0, width: 0, height: 0 }
+          source: sourceId,
+          target: targetId,
+          type: relationshipType as any,
+          sourceHandle: directionToHandle(rel.sourceDirection, 'Left'),
+          targetHandle: directionToHandle(rel.targetDirection, 'Right'),
+          data: {
+            label: relationshipName,
+            ...(relationshipName && { name: relationshipName }),
+            sourceMultiplicity: rel.sourceMultiplicity || '1',
+            targetMultiplicity: rel.targetMultiplicity || '1',
+            sourceRole: '',
+            targetRole: relationshipName,
+            isManuallyLayouted: false,
+            points: [
+              { x: 100, y: 10 },
+              { x: 0, y: 10 },
+            ],
           },
-          target: { 
-            element: targetId,
-            direction: rel.targetDirection || 'Right',
-            multiplicity: rel.targetMultiplicity || '1',
-            role: rel.name || '',
-            bounds: { x: 0, y: 0, width: 0, height: 0 }
-          },
-          bounds: { x: 0, y: 0, width: 0, height: 0 },
-          name: rel.name || '',
-          path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
-          isManuallyLayouted: false
-        };
+        });
       }
     });
-    
-    return {
-      version: "3.0.0",
-      type: "ClassDiagram",
-      size: { width: 1400, height: 740 },
-      elements: allElements,
-      relationships: allRelationships,
-      interactive: { elements: {}, relationships: {} },
-      assessments: {}
-    };
+
+    return model;
   }
 
-  private createAttributes(spec: any, classId: string, startY: number, startX: number, classNames?: Set<string>) {
-    const attributes: Record<string, any> = {};
-    let currentY = startY;
+  private createAttributeRows(spec: any, classNames?: Set<string>): ClassifierMemberRow[] {
+    const rows: ClassifierMemberRow[] = [];
 
     spec.attributes?.forEach((attr: any) => {
-      const attrId = generateUniqueId('attr');
-      const visibility = attr.visibility || 'public';
-      const normalizedType = normalizeType(attr.type, classNames);
-      
-      const attrElement: any = {
-        id: attrId,
+      const row: ClassifierMemberRow = {
+        id: generateUniqueId('attr'),
         name: attr.name,
-        type: "ClassAttribute",
-        owner: classId,
-        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 },
-        visibility: visibility,
-        attributeType: normalizedType,
+        attributeType: normalizeType(attr.type, classNames),
+        visibility: attr.visibility || 'public',
       };
 
-      if (attr.isDerived) {
-        attrElement.isDerived = true;
-      }
+      if (attr.isDerived) row.isDerived = true;
       if (attr.defaultValue !== undefined && attr.defaultValue !== null) {
-        attrElement.defaultValue = attr.defaultValue;
+        row.defaultValue = attr.defaultValue;
       }
-      if (attr.isOptional) {
-        attrElement.isOptional = true;
-      }
+      if (attr.isOptional) row.isOptional = true;
 
-      attributes[attrId] = attrElement;
-      
-      currentY += 25;
+      rows.push(row);
     });
-    
-    return { attributes, endY: currentY };
+
+    return rows;
   }
 
-  private createMethods(spec: any, classId: string, startY: number, startX: number) {
-    const methods: Record<string, any> = {};
-    let currentY = startY + ((spec.attributes?.length || 0) > 0 ? 10 : 0);
-    
+  private createMethodRows(spec: any): ClassifierMemberRow[] {
+    const rows: ClassifierMemberRow[] = [];
+
     spec.methods?.forEach((method: any) => {
-      const methodId = generateUniqueId('method');
-      const visibilitySymbol = method.visibility === 'public' ? '+' : 
-                             method.visibility === 'private' ? '-' : '#';
-      
       const paramStr = method.parameters?.map((p: any) => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
       const rawReturn = (method.returnType || 'void').replace(/^:+/, '');  // Strip leading colons
       const normalizedReturnType = normalizeType(rawReturn);
       // Strip any signature artifacts from the method name (LLM sometimes embeds params/return in name)
       const cleanMethodName = (method.name || 'method').replace(/\(.*\).*$/, '').trim();
 
-      // Use explicit new-format fields so the WME deserializer doesn't
-      // need to parse the signature string (which splits at the wrong colon).
-      const methodElement: any = {
-        id: methodId,
+      const row: ClassifierMemberRow = {
+        id: generateUniqueId('method'),
         name: `${cleanMethodName}(${paramStr})`,
-        type: "ClassMethod",
-        owner: classId,
-        bounds: { x: startX + 1, y: currentY, width: 218, height: 25 },
-        visibility: method.visibility || 'public',
         attributeType: normalizedReturnType,
+        visibility: method.visibility || 'public',
       };
 
       if (method.code) {
-        methodElement.code = method.code;
+        row.code = method.code;
         if (!method.implementationType) {
-          methodElement.implementationType = 'code';
+          row.implementationType = 'code';
         }
       }
 
       if (method.implementationType) {
-        methodElement.implementationType = method.implementationType;
+        row.implementationType = method.implementationType;
       }
 
-      methods[methodId] = methodElement;
-      
-      currentY += 25;
+      rows.push(row);
     });
-    
-    return { methods, endY: currentY };
+
+    return rows;
   }
 
   private getRelationshipType(type: string): string {

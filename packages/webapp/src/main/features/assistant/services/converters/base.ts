@@ -14,7 +14,17 @@ export interface DiagramPosition {
 }
 
 /**
- * Base interface for all diagram converters
+ * Base interface for all diagram converters.
+ *
+ * UML converters (Class / Object / StateMachine / Agent) are v4-native:
+ *  - `convertSingleElement` returns a partial `{nodes: BesserNode[],
+ *    edges: BesserEdge[]}` fragment accepted by
+ *    `UMLModelingService.mergeElementIntoModel`,
+ *  - `convertCompleteSystem` returns a full canonical v4 model
+ *    (`{version: '4.0.0', type, nodes[], edges[], assessments}`) that
+ *    passes the webapp's `isUMLModel` guard and loads directly into the
+ *    editor.
+ * GUI / quantum converters keep their editor-specific shapes.
  */
 export interface DiagramConverter {
   getDiagramType(): DiagramType;

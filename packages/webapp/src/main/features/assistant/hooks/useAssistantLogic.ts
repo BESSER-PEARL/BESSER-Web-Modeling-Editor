@@ -717,8 +717,9 @@ export function useAssistantLogic({
 
       // Analytics
       const activeModel = modelSnapshot as any;
-      // Accept either v3 (elements/relationships) or v3 (nodes/edges) shape — the
-      // assistant's getCurrentModel returns v3, but context.activeModel may be v4.
+      // Accept either v4 (nodes/edges) or legacy v3 (elements/relationships)
+      // shape — everything is v4-native now, but stale stored models may
+      // still be v3 until the storage migration touches them.
       const elementsCount = Array.isArray(activeModel?.nodes)
         ? activeModel.nodes.length
         : activeModel?.elements
