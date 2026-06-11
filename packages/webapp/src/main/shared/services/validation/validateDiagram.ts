@@ -2,6 +2,8 @@ import { toast } from 'react-toastify';
 import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constants/constant';
 import { BesserEditor } from '@besser/wme';
+import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
+import { withReferenceDiagramData } from './validationPayload';
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -39,13 +41,18 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     };
 
     // Get model data from editor or use provided modelData (for quantum circuits)
-    const model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
+    let model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
     if (model && model._suppressToasts) delete model._suppressToasts;
 
     if (!model) {
       if (!suppressToasts) toast.error('No diagram to validate');
       return { isValid: false, errors: ['No diagram available'] };
     }
+
+    // Object diagrams must carry their linked ClassDiagram as
+    // `model.referenceDiagramData` — the backend builds the domain model from
+    // it before validating the object instances against it.
+    model = withReferenceDiagramData(model, ProjectStorageRepository.getCurrentProject());
 
     const hasNodes = Array.isArray(model.nodes) && model.nodes.length > 0;
     const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;

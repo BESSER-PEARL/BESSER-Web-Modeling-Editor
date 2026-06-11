@@ -12,7 +12,11 @@ const webappSrc = path.resolve(__dirname, 'src');
 // packages/library, and the webapp src/ otherwise.
 import fs from 'node:fs';
 function resolveAtPath(source: string, importer?: string): string {
-  const inLibrary = importer && importer.includes(`${path.sep}packages${path.sep}library${path.sep}`);
+  // Vite hands importer paths in posix form even on Windows — normalize
+  // before checking, otherwise every library-internal `@/` import would
+  // mis-resolve against the webapp src/ on Windows machines.
+  const normalizedImporter = importer?.replace(/\\/g, '/');
+  const inLibrary = normalizedImporter && normalizedImporter.includes('/packages/library/');
   const base = inLibrary ? libraryLib : webappSrc;
   const target = path.join(base, source);
   // 1) literal file
