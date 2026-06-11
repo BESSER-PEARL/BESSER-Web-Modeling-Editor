@@ -114,3 +114,6 @@ packages/webapp2/dist/*
 /packages/webapp2/playwright-report/
 /packages/webapp2/blob-report/
 /packages/webapp2/test-results/
+
+# Personal
+.claude/
