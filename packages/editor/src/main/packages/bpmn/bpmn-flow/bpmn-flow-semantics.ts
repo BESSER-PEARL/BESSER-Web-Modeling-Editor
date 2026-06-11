@@ -30,6 +30,10 @@ const messageEligible = new Set<UMLElementType>([
   UMLElementType.BPMNStartEvent,
   UMLElementType.BPMNIntermediateEvent,
   UMLElementType.BPMNEndEvent,
+  // BPMN 2.0.2 § 10.6: message flows go between participants (pools). Allow
+  // dragging directly between pool boundaries so the user doesn't have to
+  // draw an association first and switch its type to `message`.
+  UMLElementType.BPMNPool,
 ]);
 
 export function getAllowedBpmnFlowTypes(source: UMLElementType, target: UMLElementType): BPMNFlowType[] {
