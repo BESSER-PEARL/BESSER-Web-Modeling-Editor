@@ -411,7 +411,18 @@ interface OwnProps {
   element: UMLObjectName;
 }
 
-type StateProps = {};
+// Subscribe to ``state.elements`` so the popup re-renders whenever a child
+// attribute's ``name`` (or any other field) changes in the store. Without
+// this subscription, the popup only receives the initial element snapshot
+// from ``UpdatePane`` and keeps passing a stale ``value`` prop into each
+// attribute's ``Textfield`` — so on Enter, the Textfield resets its local
+// draft and falls back to the stale (empty) prop, making the just-typed
+// value visually disappear even though Redux already has it. The
+// ``UMLClassifierUpdate`` popup subscribes to ``state.elements`` for the
+// same reason.
+type StateProps = {
+  elements: ModelState['elements'];
+};
 
 interface DispatchProps {
   create: typeof UMLElementRepository.create;
@@ -424,12 +435,15 @@ type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-    create: UMLElementRepository.create,
-    update: UMLElementRepository.update,
-    delete: UMLElementRepository.delete,
-    getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
-  }),
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(
+    (state) => ({ elements: state.elements }),
+    {
+      create: UMLElementRepository.create,
+      update: UMLElementRepository.update,
+      delete: UMLElementRepository.delete,
+      getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
+    },
+  ),
 );
 
 export const UMLObjectNameUpdate = enhance(ObjectNameComponent);

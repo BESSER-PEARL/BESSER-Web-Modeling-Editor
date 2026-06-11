@@ -143,7 +143,7 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     iconSize: { width: number; height: number },
     y: number,
   ) {
-    const text = element.name + (element.className ? ': ' + element.className : '');
+    const text = element.className || element.name;
     const textWidth = Text.size(layer, text).width + 40;
 
     element.bounds.width = Math.max(element.bounds.width, iconSize.width + 10, textWidth);
@@ -196,12 +196,12 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
         iconSize = UMLUserModelName.setupIconBounds(icon, this.bounds.height, 50, 50);
         UMLUserModelName.finalizeBounds(this, layer, icon, iconSize, y);
       } catch (error) {
-        const text = this.name + (this.className ? ': ' + this.className : '');
+        const text = this.className || this.name;
         const textWidth = Text.size(layer, text).width + 40;
         this.bounds.width = Math.max(this.bounds.width, textWidth, 50);
       }
     } else {
-      const text = this.name + (this.className ? ': ' + this.className : '');
+      const text = this.className || this.name;
       const textWidth = Text.size(layer, text).width + 40;
       this.bounds.width = Math.max(this.bounds.width, textWidth, 50);
     }

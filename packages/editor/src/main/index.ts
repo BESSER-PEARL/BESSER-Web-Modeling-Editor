@@ -31,6 +31,16 @@ export * from './services/diagram-bridge';
 // Provides configuration management for standalone applications
 export * from './services/settings/settings-service';
 
+// Export the multiplicity helpers used by the ER-notation rendering
+// (parseMultiplicity / toERCardinality). Pure functions, safe to import
+// from tests and from consumer webapps.
+export * from './packages/common/uml-association/multiplicity';
+
+// Export the agent-model normalizer (flat → canonical nested transition shape).
+// Pure function, used by the webapp to normalize models that bypass the editor
+// (e.g. agentBaseModels snapshots written straight to localStorage).
+export { normalizeAgentModel } from './packages/agent-state-diagram/normalize-agent-model';
+
 // Export only the Patch type (not the implementation) for type safety
 // Used when working with patching operations in TypeScript
 export type { Patch } from './services/patcher';

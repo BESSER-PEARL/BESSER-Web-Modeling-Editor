@@ -99,6 +99,18 @@ export const ThemedEllipse = styled.ellipse.withConfig({
   stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};
 `;
 
+export const ThemedPolygon = styled.polygon.withConfig({
+  shouldForwardProp: shouldForwardThemedProp as any,
+}).attrs(
+  (props: { fillColor: string | undefined; strokeColor: string | undefined }) => ({
+    stroke: props.strokeColor || 'black',
+    fill: props.fillColor || 'white',
+  }),
+)`
+  fill: ${(props) => props.fillColor || props.theme.color.background};
+  stroke: ${(props) => props.strokeColor || props.theme.color.primaryContrast};
+`;
+
 export const ThemedLine = styled.line.withConfig({
   shouldForwardProp: (prop: string) => prop !== 'strokeColor',
 } as any).attrs((props: { strokeColor: string | undefined }) => ({

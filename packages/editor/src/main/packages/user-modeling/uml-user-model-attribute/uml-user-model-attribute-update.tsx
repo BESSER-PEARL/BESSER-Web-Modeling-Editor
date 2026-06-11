@@ -95,9 +95,42 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
     return '';
   };
 
+  const getRawAttributeType = (): string => {
+    const attr = getAttributeDefinition();
+    if (attr && typeof attr.attributeType === 'string') {
+      return attr.attributeType;
+    }
+    return '';
+  };
+
   const isIntegerType = () => {
     const t = getAttributeType();
     return t === 'int' || t === 'integer' || t === 'number';
+  };
+
+  const getEnumerationValues = (): string[] => {
+    const enumTypeName = getRawAttributeType();
+    if (!enumTypeName) {
+      return [];
+    }
+
+    const classDiagramData = diagramBridge.getClassDiagramData();
+    if (!classDiagramData) {
+      return [];
+    }
+
+    const enumeration = Object.values(classDiagramData.elements || {}).find(
+      (candidate: any) => candidate?.type === 'Enumeration' && candidate?.name === enumTypeName,
+    ) as any;
+
+    if (!enumeration) {
+      return [];
+    }
+
+    return (enumeration.attributes || [])
+      .map((attributeId: string) => classDiagramData.elements[attributeId])
+      .filter((attribute: any) => attribute?.name)
+      .map((attribute: any) => attribute.name);
   };
 
   const parseAttributeValue = (fullValue: string): { name: string; comparator: Comparator; value: string } => {
@@ -152,6 +185,8 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
 
   const handleDelete = () => onDelete(id)();
   const renderComparatorInput = Boolean(baseAttributeName) && isIntegerType();
+  const enumValues = getEnumerationValues();
+  const isEnumerationType = enumValues.length > 0;
 
   const labelText = resolvedAttributeName || attributeName;
 
@@ -176,14 +211,24 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
                 ))}
               </ComparatorDropdown>
             )}
-            <ValueTextfield
-              ref={onRefChange}
-              gutter
-              value={attributeValue}
-              onChange={handleValueChange}
-              onSubmitKeyUp={onSubmitKeyUp}
-              placeholder="value"
-            />
+            {isEnumerationType ? (
+              <Dropdown value={attributeValue} onChange={handleValueChange} placeholder="" size="sm">
+                {enumValues.map((enumValue) => (
+                  <Dropdown.Item key={enumValue} value={enumValue}>
+                    {enumValue}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown>
+            ) : (
+              <ValueTextfield
+                ref={onRefChange}
+                gutter
+                value={attributeValue}
+                onChange={handleValueChange}
+                onSubmitKeyUp={onSubmitKeyUp}
+                placeholder="value"
+              />
+            )}
           </AttributeInputContainer>
           <ColorButton onClick={toggleColor} />
           <Button color="link" tabIndex={-1} onClick={handleDelete}>

@@ -2,9 +2,23 @@ import React, { FunctionComponent } from 'react';
 import { Text } from '../../../components/controls/text/text';
 import { UMLClassifier } from './uml-classifier';
 import { ThemedPath, ThemedRect } from '../../../components/theme/themedComponents';
+import { settingsService } from '../../../services/settings/settings-service';
+import { ClassElementType } from '../../uml-class-diagram';
+
+// Classifier types that map to ER entities and can thus be rendered with
+// ER flavor (no methods compartment). Enumerations and interfaces have no
+// ER equivalent — interfaces in particular define an operation contract,
+// which is the exact opposite of an entity.
+const ER_CAPABLE_CLASSIFIER_TYPES: ReadonlyArray<string> = [
+  ClassElementType.Class,
+  ClassElementType.AbstractClass,
+];
 
 export const UMLClassifierComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const clipId = `clip-${element.id}`;
+  const isERClassifier =
+    settingsService.getClassNotation() === 'ER' &&
+    ER_CAPABLE_CLASSIFIER_TYPES.includes(element.type);
   return (
     <g>
       {/* Clip all content to the element's bounding box so text doesn't overflow */}
@@ -61,7 +75,7 @@ export const UMLClassifierComponent: FunctionComponent<Props> = ({ element, chil
       {element.hasAttributes && (
         <ThemedPath d={`M 0 ${element.headerHeight} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
       )}
-      {element.hasMethods && element.stereotype !== 'enumeration' && (
+      {element.hasMethods && element.stereotype !== 'enumeration' && !isERClassifier && (
         <ThemedPath d={`M 0 ${element.deviderPosition} H ${element.bounds.width}`} strokeColor={element.strokeColor} />
       )}
     </g>
