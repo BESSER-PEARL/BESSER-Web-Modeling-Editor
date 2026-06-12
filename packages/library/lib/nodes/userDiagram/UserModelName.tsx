@@ -122,7 +122,12 @@ export function UserModelName({
   )
 
   useEffect(() => {
-    if (height && height <= minHeight) {
+    // Icon view is fixed-height (maxHeight === minHeight), so the node
+    // height must equal minHeight exactly. Clamp in BOTH directions:
+    // a too-tall persisted height (e.g. sized by attribute count at drop
+    // time) leaves an invisible selection box below the drawn card, and
+    // a too-short one clips it.
+    if (height && height !== minHeight) {
       setNodes((prev) =>
         prev.map((node) =>
           node.id === id
@@ -158,7 +163,7 @@ export function UserModelName({
   return (
     <DefaultNodeWrapper
       width={width}
-      height={height}
+      height={minHeight}
       elementId={id}
       className="horizontally-not-resizable"
     >
