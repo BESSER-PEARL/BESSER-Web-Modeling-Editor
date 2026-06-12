@@ -47,18 +47,63 @@ const buildElkHierarchy = (nodes: Node[]): ElkNode[] => {
   return roots
 }
 
+/** Absolute centre of a node, accounting for parentId nesting. */
+const absoluteCenter = (
+  node: Node,
+  byId: ReadonlyMap<string, Node>,
+): { x: number; y: number } => {
+  let x = node.position.x
+  let y = node.position.y
+  const seen = new Set<string>([node.id])
+  let parentId = node.parentId
+  while (parentId && !seen.has(parentId)) {
+    seen.add(parentId)
+    const parent = byId.get(parentId)
+    if (!parent) break
+    x += parent.position.x
+    y += parent.position.y
+    parentId = parent.parentId
+  }
+  const { width, height } = nodeSize(node)
+  return { x: x + width / 2, y: y + height / 2 }
+}
+
 /**
- * Computes new positions for every node using ELK's layered algorithm.
- * Edge-anchored edges (e.g. ClassLinkRel pointing at an association edge id)
- * are excluded from the graph — ELK only understands node endpoints.
- * Returns a NEW nodes array; data, dimensions and everything else preserved.
+ * Picks the facing handle pair for an edge from the relative position of its
+ * two endpoints, so a vertically stacked pair connects bottom→top (and a
+ * side-by-side pair connects right→left) instead of wrapping around the boxes.
+ * Returns the centre handle ids ("top"/"right"/"bottom"/"left").
+ */
+export const chooseFacingHandles = (
+  sourceCenter: { x: number; y: number },
+  targetCenter: { x: number; y: number },
+): { sourceHandle: string; targetHandle: string } => {
+  const dx = targetCenter.x - sourceCenter.x
+  const dy = targetCenter.y - sourceCenter.y
+  if (Math.abs(dy) >= Math.abs(dx)) {
+    return dy >= 0
+      ? { sourceHandle: "bottom", targetHandle: "top" }
+      : { sourceHandle: "top", targetHandle: "bottom" }
+  }
+  return dx >= 0
+    ? { sourceHandle: "right", targetHandle: "left" }
+    : { sourceHandle: "left", targetHandle: "right" }
+}
+
+/**
+ * Computes new positions for every node using ELK's layered algorithm, and
+ * reassigns each edge's source/target handle to the facing sides of the
+ * laid-out nodes. Edge-anchored edges (e.g. ClassLinkRel pointing at an
+ * association edge id) are excluded from the graph — ELK only understands
+ * node endpoints — and their handles are left untouched.
+ * Returns NEW nodes and edges arrays; all other data is preserved.
  */
 export const computeAutoLayout = async (
   nodes: Node[],
   edges: Edge[],
   diagramType: string,
-): Promise<Node[]> => {
-  if (nodes.length === 0) return nodes
+): Promise<{ nodes: Node[]; edges: Edge[] }> => {
+  if (nodes.length === 0) return { nodes, edges }
 
   const nodeIds = new Set(nodes.map((n) => n.id))
   const elkEdges: ElkExtendedEdge[] = edges
@@ -95,7 +140,7 @@ export const computeAutoLayout = async (
   }
   collect(layouted)
 
-  return nodes.map((node) => {
+  const layoutedNodes = nodes.map((node) => {
     const position = positionById.get(node.id)
     if (!position) return node
     const size = nodeSize(node)
@@ -107,6 +152,24 @@ export const computeAutoLayout = async (
         : {}
     return { ...node, position, ...resized }
   })
+
+  // Reassign each node-to-node edge to the facing handles of the new layout.
+  const layoutedById = new Map(layoutedNodes.map((n) => [n.id, n]))
+  const layoutedEdges = edges.map((edge) => {
+    const source = layoutedById.get(edge.source)
+    const target = layoutedById.get(edge.target)
+    if (!source || !target) return edge // edge-anchored / dangling — leave as-is
+    const { sourceHandle, targetHandle } = chooseFacingHandles(
+      absoluteCenter(source, layoutedById),
+      absoluteCenter(target, layoutedById),
+    )
+    if (edge.sourceHandle === sourceHandle && edge.targetHandle === targetHandle) {
+      return edge
+    }
+    return { ...edge, sourceHandle, targetHandle }
+  })
+
+  return { nodes: layoutedNodes, edges: layoutedEdges }
 }
 
 const findElkNode = (root: ElkNode, id: string): ElkNode | undefined => {

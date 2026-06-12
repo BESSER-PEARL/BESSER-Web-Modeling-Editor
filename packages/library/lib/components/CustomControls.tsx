@@ -14,7 +14,7 @@ export const CustomControls = () => {
   const zoomLevelPercent = Math.round(zoomLevel * 100)
   const [isLayouting, setIsLayouting] = useState(false)
 
-  const { canUndo, canRedo, undo, redo, undoManagerExist, nodes, edges, setNodes } = useDiagramStore(
+  const { canUndo, canRedo, undo, redo, undoManagerExist, nodes, edges, setNodesAndEdges } = useDiagramStore(
     useShallow((state) => ({
       canUndo: state.canUndo,
       canRedo: state.canRedo,
@@ -23,7 +23,7 @@ export const CustomControls = () => {
       undoManagerExist: state.undoManager !== null,
       nodes: state.nodes,
       edges: state.edges,
-      setNodes: state.setNodes,
+      setNodesAndEdges: state.setNodesAndEdges,
     }))
   )
   const diagramType = useMetadataStore(useShallow((state) => state.diagramType))
@@ -41,7 +41,7 @@ export const CustomControls = () => {
     setIsLayouting(true)
     try {
       const layouted = await computeAutoLayout(nodes, edges, diagramType)
-      setNodes(layouted)
+      setNodesAndEdges(layouted.nodes, layouted.edges)
       window.requestAnimationFrame(() => fitView({ duration: 300, padding: 0.1 }))
     } finally {
       setIsLayouting(false)

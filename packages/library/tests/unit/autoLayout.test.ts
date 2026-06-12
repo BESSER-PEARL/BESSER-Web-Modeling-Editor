@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Edge, Node } from "@xyflow/react"
-import { computeAutoLayout, getLayoutDirection } from "../../lib/utils/autoLayout"
+import { chooseFacingHandles, computeAutoLayout, getLayoutDirection } from "../../lib/utils/autoLayout"
 import { UMLDiagramType } from "../../lib/types"
 
 const node = (id: string, overrides: Partial<Node> = {}): Node => ({
@@ -28,16 +28,17 @@ describe("getLayoutDirection", () => {
 })
 
 describe("computeAutoLayout", () => {
-  it("returns the same array for an empty diagram", async () => {
+  it("returns the same arrays for an empty diagram", async () => {
     const nodes: Node[] = []
-    expect(await computeAutoLayout(nodes, [], UMLDiagramType.ClassDiagram)).toBe(nodes)
+    const result = await computeAutoLayout(nodes, [], UMLDiagramType.ClassDiagram)
+    expect(result.nodes).toBe(nodes)
   })
 
   it("assigns distinct, non-overlapping positions to connected nodes", async () => {
     const nodes = [node("a"), node("b"), node("c")]
     const edges = [edge("e1", "a", "b"), edge("e2", "a", "c")]
 
-    const layouted = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram)
+    const { nodes: layouted } = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram)
 
     expect(layouted).toHaveLength(3)
     const positions = layouted.map((n) => `${n.position.x},${n.position.y}`)
@@ -52,7 +53,7 @@ describe("computeAutoLayout", () => {
     const nodes = [node("start"), node("middle"), node("end")]
     const edges = [edge("t1", "start", "middle"), edge("t2", "middle", "end")]
 
-    const layouted = await computeAutoLayout(nodes, edges, UMLDiagramType.StateMachineDiagram)
+    const { nodes: layouted } = await computeAutoLayout(nodes, edges, UMLDiagramType.StateMachineDiagram)
 
     const x = (id: string) => layouted.find((n) => n.id === id)!.position.x
     expect(x("middle")).toBeGreaterThan(x("start"))
@@ -67,7 +68,7 @@ describe("computeAutoLayout", () => {
     ]
     const edges = [edge("n1", "layer1", "layer2")]
 
-    const layouted = await computeAutoLayout(nodes, edges, UMLDiagramType.NNDiagram)
+    const { nodes: layouted } = await computeAutoLayout(nodes, edges, UMLDiagramType.NNDiagram)
 
     const layer1 = layouted.find((n) => n.id === "layer1")!
     const layer2 = layouted.find((n) => n.id === "layer2")!
@@ -82,14 +83,82 @@ describe("computeAutoLayout", () => {
     const nodes = [node("a"), node("b")]
     const edges = [edge("assoc", "a", "b"), edge("linkrel", "assoc", "a")]
 
-    const layouted = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram)
+    const { nodes: layouted, edges: layoutedEdges } = await computeAutoLayout(
+      nodes,
+      edges,
+      UMLDiagramType.ClassDiagram,
+    )
     expect(layouted).toHaveLength(2)
+    // the edge-anchored link keeps its original (no) handles
+    const linkRel = layoutedEdges.find((e) => e.id === "linkrel")!
+    expect(linkRel.sourceHandle ?? null).toBeNull()
   })
 
   it("preserves node data and ids", async () => {
     const nodes = [node("a", { data: { name: "A", attributes: [{ id: "x", name: "attr" }] } })]
-    const layouted = await computeAutoLayout(nodes, [], UMLDiagramType.ClassDiagram)
+    const { nodes: layouted } = await computeAutoLayout(nodes, [], UMLDiagramType.ClassDiagram)
     expect(layouted[0].id).toBe("a")
     expect(layouted[0].data).toEqual(nodes[0].data)
+  })
+
+  it("reassigns edge handles to the facing sides of a vertical layout", async () => {
+    const nodes = [node("parent"), node("child")]
+    // child inherits parent -> edge source=child, target=parent
+    const edges = [edge("inh", "child", "parent")]
+
+    const { nodes: layouted, edges: layoutedEdges } = await computeAutoLayout(
+      nodes,
+      edges,
+      UMLDiagramType.ClassDiagram,
+    )
+    const child = layouted.find((n) => n.id === "child")!
+    const parent = layouted.find((n) => n.id === "parent")!
+    const e = layoutedEdges[0]
+    // whichever ends up higher connects from its bottom to the other's top
+    if (child.position.y < parent.position.y) {
+      expect(e.sourceHandle).toBe("bottom")
+      expect(e.targetHandle).toBe("top")
+    } else {
+      expect(e.sourceHandle).toBe("top")
+      expect(e.targetHandle).toBe("bottom")
+    }
+  })
+})
+
+describe("chooseFacingHandles", () => {
+  it("connects bottom→top when the source is above the target", () => {
+    expect(chooseFacingHandles({ x: 0, y: 0 }, { x: 0, y: 200 })).toEqual({
+      sourceHandle: "bottom",
+      targetHandle: "top",
+    })
+  })
+
+  it("connects top→bottom when the source is below the target", () => {
+    expect(chooseFacingHandles({ x: 0, y: 200 }, { x: 0, y: 0 })).toEqual({
+      sourceHandle: "top",
+      targetHandle: "bottom",
+    })
+  })
+
+  it("connects right→left when the source is left of the target", () => {
+    expect(chooseFacingHandles({ x: 0, y: 0 }, { x: 200, y: 0 })).toEqual({
+      sourceHandle: "right",
+      targetHandle: "left",
+    })
+  })
+
+  it("connects left→right when the source is right of the target", () => {
+    expect(chooseFacingHandles({ x: 200, y: 0 }, { x: 0, y: 0 })).toEqual({
+      sourceHandle: "left",
+      targetHandle: "right",
+    })
+  })
+
+  it("prefers the dominant axis on a diagonal", () => {
+    // mostly-vertical separation -> vertical handles
+    expect(chooseFacingHandles({ x: 0, y: 0 }, { x: 30, y: 200 })).toEqual({
+      sourceHandle: "bottom",
+      targetHandle: "top",
+    })
   })
 })
