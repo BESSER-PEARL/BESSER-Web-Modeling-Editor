@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef } from "react"
 import { useShallow } from "zustand/shallow"
 import { ThemeProvider } from "@mui/material/styles"
-import { useDiagramStore, useMetadataStore } from "@/store/context"
+import { useDiagramStore, useMetadataStore, usePopoverStore } from "@/store/context"
 import { BesserMode } from "@/typings"
 import { useResizable } from "./useResizable"
 import { getInspector, InspectorKind } from "../inspectors/registry"
+import { CrossIcon } from "../Icon/CrossIcon"
 // Approach B — keep MUI primitives but theme them to
 // match the webapp's Tailwind/Radix design tokens. The override file
 // maps borderRadius, font, padding, and focus rings to the same look as
@@ -43,11 +44,22 @@ export const PropertiesPanel: React.FC = () => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const { width, onResizeStart } = useResizable()
 
-  const { nodes, edges, selectedElementIds } = useDiagramStore(
+  const { nodes, edges } = useDiagramStore(
     useShallow((s) => ({
       nodes: s.nodes,
       edges: s.edges,
-      selectedElementIds: s.selectedElementIds,
+    }))
+  )
+
+  // The panel opens for an EXPLICIT edit target only — set by double-click
+  // or the edit (pencil) button (both go through `setPopOverElementId`),
+  // never by plain selection or a palette drop. This is the same signal the
+  // floating popover uses; the two surfaces are mutually exclusive
+  // (PopoverManager bails out when the properties panel is the active mode).
+  const { popoverElementId, setPopOverElementId } = usePopoverStore(
+    useShallow((s) => ({
+      popoverElementId: s.popoverElementId,
+      setPopOverElementId: s.setPopOverElementId,
     }))
   )
 
@@ -55,7 +67,7 @@ export const PropertiesPanel: React.FC = () => {
     useShallow((s) => ({ mode: s.mode, readonly: s.readonly }))
   )
 
-  const selectedId = selectedElementIds?.[0] ?? null
+  const selectedId = popoverElementId ?? null
 
   // Resolve the type of the selected element by walking nodes then edges.
   const selectedType = useMemo<string | null>(() => {
@@ -167,6 +179,26 @@ export const PropertiesPanel: React.FC = () => {
             >
               {typeLabel}
             </span>
+            <button
+              type="button"
+              aria-label="Close editor"
+              title="Close editor"
+              onClick={() => setPopOverElementId(null)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                padding: 4,
+                borderRadius: 4,
+                color: "var(--besser-primary-contrast, #0f172a)",
+                flexShrink: 0,
+              }}
+            >
+              <CrossIcon width={14} height={14} />
+            </button>
           </div>
           <div
             className="besser-properties-panel__body"

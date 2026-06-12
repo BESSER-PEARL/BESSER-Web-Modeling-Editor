@@ -2,7 +2,6 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { useHandleDelete } from "@/hooks/useHandleDelete"
 import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
 import { usePopoverStore } from "@/store"
-import { useUsePropertiesPanel } from "@/store/settingsStore"
 import { Box } from "@mui/material"
 import { Position, NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react"
 import { FC } from "react"
@@ -21,12 +20,13 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
 
   const isDiagramModifiable = useDiagramModifiable()
   const selected = useIsOnlyThisElementSelected(elementId)
-  // When the right-side properties panel is the
-  // active editing surface (`usePropertiesPanel=true`), the floating
-  // pencil affordance becomes redundant — the panel auto-shows on
-  // selection. Hide the pencil to avoid the duplicate-UI confusion.
-  const usePropertiesPanel = useUsePropertiesPanel()
-  const showEditButton = showEdit && !usePropertiesPanel
+  // The edit (pencil) button opens the inspector for this element — it is
+  // the explicit affordance the user expects, alongside double-click. It
+  // works in both editing modes: in popover mode it opens the floating
+  // popover, in properties-panel mode it opens the right-side panel (both
+  // via `setPopOverElementId`). The panel no longer auto-opens on selection,
+  // so the pencil must stay visible.
+  const showEditButton = showEdit
 
   return (
     <ReactFlowNodeToolbar

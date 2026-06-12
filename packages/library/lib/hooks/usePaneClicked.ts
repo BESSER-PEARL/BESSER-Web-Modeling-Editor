@@ -2,6 +2,7 @@ import {
   useAssessmentSelectionStore,
   useDiagramStore,
   useMetadataStore,
+  usePopoverStore,
 } from "@/store"
 import { useShallow } from "zustand/shallow"
 import { BesserMode } from "@/typings"
@@ -38,6 +39,12 @@ export const usePaneClicked = () => {
     }))
   )
 
+  // Clicking empty canvas also closes the inspector (it only opens via
+  // double-click or the edit button now).
+  const setPopOverElementId = usePopoverStore(
+    useShallow((state) => state.setPopOverElementId)
+  )
+
   // Auto-enable assessment selection mode when in readonly assessment mode
   useEffect(() => {
     const shouldEnableAssessmentMode =
@@ -51,6 +58,7 @@ export const usePaneClicked = () => {
     if (isAssessmentSelectionMode) {
       clearSelection()
     }
+    setPopOverElementId(null)
     setSelectedElementsId([])
     const updatedExistingNodes = nodes.map((node) => ({
       ...node,
@@ -68,6 +76,7 @@ export const usePaneClicked = () => {
   }, [
     isAssessmentSelectionMode,
     clearSelection,
+    setPopOverElementId,
     setSelectedElementsId,
     nodes,
     edges,
