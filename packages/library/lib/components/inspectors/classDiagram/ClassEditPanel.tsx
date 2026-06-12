@@ -303,7 +303,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
       !!row.isExternalId ||
       !!row.isOptional ||
       !!row.isDerived ||
-      (row.defaultValue !== undefined && row.defaultValue !== "")
+      (row.defaultValue !== undefined && row.defaultValue !== "") ||
+      !!row.fillColor ||
+      !!row.textColor
   )
 
   // v3 StylePane reset the default value whenever the attribute type
@@ -449,36 +451,30 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
           </Select>
         )}
-        {!isEnumerationParent && (
-          <Tooltip title={showSettings ? "Hide flags" : "Show flags & default"}>
-            <IconButton
-              size="small"
-              onClick={() => setShowSettings((s) => !s)}
-              sx={{
-                color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
-              }}
-            >
-              <EditIcon width={14} height={14} />
-            </IconButton>
-          </Tooltip>
-        )}
-        {/* Per-row fill / text color swatches — develop colored every
-            attribute, method AND enum-literal row (ColorButton +
-            StylePane with `fillColor textColor`), so they render for
-            literals too. `strokeColor` is intentionally not exposed
-            per-row (develop's member StylePane omitted lineColor). */}
-        <RowColorSwatch
-          label="Row fill color"
-          value={row.fillColor}
-          fallbackCss="var(--besser-background, #fff)"
-          onChange={(color) => onPatch({ fillColor: color })}
-        />
-        <RowColorSwatch
-          label="Row text color"
-          value={row.textColor}
-          fallbackCss="var(--besser-primary-contrast, #000)"
-          onChange={(color) => onPatch({ textColor: color })}
-        />
+        {/* Per-row options (flags + default + colors) collapse behind
+            this gear toggle so the always-visible row stays compact.
+            Shown for enum literals too — they carry no flags/default but
+            still expose colors (develop colored literals). */}
+        <Tooltip
+          title={
+            showSettings
+              ? "Hide options"
+              : isEnumerationParent
+                ? "Show colors"
+                : "Show flags, default & colors"
+          }
+        >
+          <IconButton
+            size="small"
+            aria-label="Attribute row options"
+            onClick={() => setShowSettings((s) => !s)}
+            sx={{
+              color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
+            }}
+          >
+            <EditIcon width={14} height={14} />
+          </IconButton>
+        </Tooltip>
         <Tooltip title={isEnumerationParent ? "Delete literal" : "Delete attribute"}>
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
@@ -505,8 +501,10 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           default value, so the gear icon is hidden and the panel must
           not render even if `showSettings` is initially true (legacy
           fixtures may have stamped flags on enum literals). */}
-      {!isEnumerationParent && showSettings && (
+      {showSettings && (
         <>
+          {!isEnumerationParent && (
+          <>
           <Stack direction="row" spacing={1.5} flexWrap="wrap">
             {/* Mutual-exclusion locks mirror v3 StylePane
                 (`optionalLockedByIdFlag` / `idLockedByOptional`): the
@@ -638,6 +636,29 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
               inputProps={{ "aria-label": "default value" }}
             />
           )}
+          </>
+          )}
+          {/* Per-row fill / text colors live inside the gear section so
+              the always-visible row stays compact (develop colored every
+              attribute, method AND enum-literal row). `strokeColor` is
+              intentionally not exposed per-row. */}
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="caption" sx={{ minWidth: 44 }}>
+              Colors
+            </Typography>
+            <RowColorSwatch
+              label="Row fill color"
+              value={row.fillColor}
+              fallbackCss="var(--besser-background, #fff)"
+              onChange={(color) => onPatch({ fillColor: color })}
+            />
+            <RowColorSwatch
+              label="Row text color"
+              value={row.textColor}
+              fallbackCss="var(--besser-primary-contrast, #000)"
+              onChange={(color) => onPatch({ textColor: color })}
+            />
+          </Stack>
         </>
       )}
     </Box>
@@ -696,7 +717,9 @@ const MethodRow: React.FC<MethodRowProps> = ({
       implementationType !== "none" ||
       !!row.code ||
       !!row.stateMachineId ||
-      !!row.quantumCircuitId
+      !!row.quantumCircuitId ||
+      !!row.fillColor ||
+      !!row.textColor
   )
 
   // v3 locked the whole signature when the method is implemented in
@@ -825,10 +848,11 @@ const MethodRow: React.FC<MethodRowProps> = ({
           <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
         </Select>
         <Tooltip
-          title={showSettings ? "Hide parameters & code" : "Parameters & code"}
+          title={showSettings ? "Hide parameters, code & colors" : "Parameters, code & colors"}
         >
           <IconButton
             size="small"
+            aria-label="Method row options"
             onClick={() => setShowSettings((s) => !s)}
             sx={{
               color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
@@ -837,21 +861,6 @@ const MethodRow: React.FC<MethodRowProps> = ({
             <EditIcon width={14} height={14} />
           </IconButton>
         </Tooltip>
-        {/* Per-row fill / text color swatches — mirrors the
-            AttributeRow pair (develop's per-method ColorButton +
-            StylePane with `fillColor textColor`). */}
-        <RowColorSwatch
-          label="Row fill color"
-          value={row.fillColor}
-          fallbackCss="var(--besser-background, #fff)"
-          onChange={(color) => onPatch({ fillColor: color })}
-        />
-        <RowColorSwatch
-          label="Row text color"
-          value={row.textColor}
-          fallbackCss="var(--besser-primary-contrast, #000)"
-          onChange={(color) => onPatch({ textColor: color })}
-        />
         <Tooltip title="Delete method">
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
@@ -1168,6 +1177,25 @@ const MethodRow: React.FC<MethodRowProps> = ({
           </div>
         </Box>
       )}
+      {/* Per-method fill / text colors, inside the gear section to keep
+          the always-visible row compact (mirrors the AttributeRow pair). */}
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography variant="caption" sx={{ minWidth: 44 }}>
+          Colors
+        </Typography>
+        <RowColorSwatch
+          label="Row fill color"
+          value={row.fillColor}
+          fallbackCss="var(--besser-background, #fff)"
+          onChange={(color) => onPatch({ fillColor: color })}
+        />
+        <RowColorSwatch
+          label="Row text color"
+          value={row.textColor}
+          fallbackCss="var(--besser-primary-contrast, #000)"
+          onChange={(color) => onPatch({ textColor: color })}
+        />
+      </Stack>
         </>
       )}
     </Box>

@@ -420,6 +420,9 @@ describe("ClassEditPanel — per-row color swatches", () => {
         ],
       }),
     ])
+    // Colors now live inside the per-row gear section to keep the
+    // always-visible row compact.
+    fireEvent.click(screen.getByLabelText("Attribute row options"))
     const fillInput = screen.getByLabelText("Row fill color")
     fireEvent.change(fillInput, { target: { value: "#ffee00" } })
     expect(getAttr(store).fillColor).toBe("#ffee00")
@@ -439,6 +442,7 @@ describe("ClassEditPanel — per-row color swatches", () => {
         ],
       }),
     ])
+    // Row starts with a textColor, so the gear section is already open.
     const textInput = screen.getByLabelText("Row text color")
     fireEvent.change(textInput, { target: { value: "#445566" } })
     expect(getAttr(store).textColor).toBe("#445566")
@@ -455,8 +459,9 @@ describe("ClassEditPanel — per-row color swatches", () => {
         methods: [],
       }),
     ])
-    // Literal rows hide visibility/type but keep both swatches
-    // (develop colored literals via the same ColorButton + StylePane).
+    // Literal rows hide visibility/type/flags but still expose colors
+    // via the gear (develop colored literals via ColorButton + StylePane).
+    fireEvent.click(screen.getByLabelText("Attribute row options"))
     const fillInput = screen.getByLabelText("Row fill color")
     fireEvent.change(fillInput, { target: { value: "#aa0000" } })
     expect(getAttr(store).fillColor).toBe("#aa0000")
@@ -479,6 +484,7 @@ describe("ClassEditPanel — per-row color swatches", () => {
         ],
       }),
     ])
+    fireEvent.click(screen.getByLabelText("Method row options"))
     const fillInput = screen.getByLabelText("Row fill color")
     fireEvent.change(fillInput, { target: { value: "#00ddee" } })
     expect(getMethod(store).fillColor).toBe("#00ddee")
