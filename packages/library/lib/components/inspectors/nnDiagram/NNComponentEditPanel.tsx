@@ -25,6 +25,7 @@ import {
   LIST_STRICT_REGEX,
   NN_ATTRIBUTE_DEFAULTS,
 } from "@/nodes/nnDiagram/nnValidationDefaults"
+import { computeNNPredecessors } from "@/utils/nnPredecessors"
 
 /**
  * Generic NN inspector.
@@ -132,18 +133,168 @@ function filterDatasetOptionals(
 }
 
 /* -------------------------------------------------------------------------- */
+/* Discriminator-change pruning (develop's monitor, made synchronous)          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Develop's `cleanupHiddenOptionalAttributes`
+ * (`nn-association-monitor.tsx` 225-282) ran on every store update and
+ * **deleted** attributes invalid for the current discriminator; v4
+ * applies the same prune synchronously in the `setNodes` call that
+ * writes the new discriminator. The functions below return a pruned
+ * copy of the attributes dict. Exported for unit tests.
+ */
+
+/** TensorOp: keep only the `*_dim` attr matching `tns_type`
+ *  (`layers_of_tensors` is never auto-deleted). */
+export function pruneTensorOpAttributes(
+  attributes: Record<string, unknown>,
+  tnsType: string
+): Record<string, unknown> {
+  const keepBytype: Record<string, string | undefined> = {
+    reshape: "reshape_dim",
+    concatenate: "concatenate_dim",
+    transpose: "transpose_dim",
+    permute: "permute_dim",
+    // multiply / matmultiply keep none.
+  }
+  const keep = keepBytype[tnsType]
+  const next = { ...attributes }
+  for (const slug of [
+    "reshape_dim",
+    "concatenate_dim",
+    "transpose_dim",
+    "permute_dim",
+  ]) {
+    if (slug !== keep) delete next[slug]
+  }
+  return next
+}
+
+/** Pooling: `global_*` drops kernel/stride/padding/output_dim;
+ *  `adaptive_*` drops kernel/stride/padding; `average`/`max` drop
+ *  output_dim. (`pooling.dimension` is never auto-deleted.) */
+export function prunePoolingAttributes(
+  attributes: Record<string, unknown>,
+  poolingType: string
+): Record<string, unknown> {
+  let doomed: string[] = []
+  if (poolingType === "global_average" || poolingType === "global_max") {
+    doomed = [
+      "kernel_dim",
+      "stride_dim",
+      "padding_amount",
+      "padding_type",
+      "output_dim",
+    ]
+  } else if (
+    poolingType === "adaptive_average" ||
+    poolingType === "adaptive_max"
+  ) {
+    doomed = ["kernel_dim", "stride_dim", "padding_amount", "padding_type"]
+  } else if (poolingType === "average" || poolingType === "max") {
+    doomed = ["output_dim"]
+  }
+  const next = { ...attributes }
+  for (const slug of doomed) delete next[slug]
+  return next
+}
+
+/** Datasets: non-image input formats drop `shape` / `normalize`. */
+export function pruneDatasetAttributes(
+  attributes: Record<string, unknown>,
+  inputFormat: string
+): Record<string, unknown> {
+  if (inputFormat === "images") return attributes
+  const next = { ...attributes }
+  delete next.shape
+  delete next.normalize
+  return next
+}
+
+/**
+ * Pooling dimension sync (develop `handleDimensionChange`,
+ * `nn-attribute-update.tsx` 165-238 — wired ONLY for the Pooling
+ * dimension; BatchNorm uses the plain write path): rewrite
+ * `kernel_dim` / `stride_dim` / `output_dim` to the new dimension's
+ * arity **iff the key is currently present**. Values come from
+ * `getListExpectation` (`[3]`/`[1]`/`[16]` × arity).
+ */
+export function syncPoolingDimensionAttributes(
+  attributes: Record<string, unknown>,
+  dimension: string
+): Record<string, unknown> {
+  const next = { ...attributes }
+  for (const slug of ["kernel_dim", "stride_dim", "output_dim"]) {
+    if (next[slug] === undefined) continue
+    next[slug] = getListExpectation("PoolingLayer", slug, dimension).example
+  }
+  return next
+}
+
+/* -------------------------------------------------------------------------- */
+/* Metrics multiselect (de)serialization                                       */
+/* -------------------------------------------------------------------------- */
+
+/** Parse the canonical bracketed metrics string (`"[accuracy, mae]"` or
+ *  the bare legacy `"accuracy, mae"`) into the selected list — develop
+ *  `nn-attribute-update.tsx` 267-272. Exported for unit tests. */
+export function parseMetricsValue(value: string): string[] {
+  return value
+    .replace(/^\[|\]$/g, "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+/** Serialize back to the canonical bracketed form; empty selection
+ *  stores `""` (develop parity). */
+export function formatMetricsValue(selected: string[]): string {
+  return selected.length > 0 ? `[${selected.join(", ")}]` : ""
+}
+
+/* -------------------------------------------------------------------------- */
+/* layers_of_tensors (de)serialization                                         */
+/* -------------------------------------------------------------------------- */
+
+/** Parse develop's wire form `"['layerA', 'layerB']"` (brackets +
+ *  single quotes) into the two selections — develop
+ *  `optional-attribute-row.tsx::parseLayersOfTensors` 135-142. */
+export function parseLayersOfTensors(value: string): string[] {
+  return value
+    .replace(/^\[|\]$/g, "")
+    .split(",")
+    .map((s) => s.trim().replace(/^'|'$/g, ""))
+    .filter(Boolean)
+}
+
+/** Serialize the two selections back to develop's wire form. Only
+ *  meaningful when both are chosen (`formatLayersOfTensors` 144-149). */
+export function formatLayersOfTensors(first: string, second: string): string {
+  return `['${first}', '${second}']`
+}
+
+/* -------------------------------------------------------------------------- */
 /* Component                                                                   */
 /* -------------------------------------------------------------------------- */
 
 export const NNComponentEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
-  const { nodes, setNodes } = useDiagramStore(
+  const { nodes, edges, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
+      edges: state.edges,
       setNodes: state.setNodes,
     }))
   )
+
+  // UI-only "armed" rows: develop's `handleCheckboxChange` early-returned
+  // for `predecessor` / `layers_of_tensors` widgets — ticking the
+  // checkbox shows the dropdowns WITHOUT creating the attribute (it is
+  // only persisted once a selection is made). Keyed by element so a
+  // panel reused across nodes doesn't leak armed state.
+  const [armedRows, setArmedRows] = React.useState<Record<string, boolean>>({})
 
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
@@ -153,22 +304,15 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
   const data = node.data as NNLayerNodeProps
   const attributes = data.attributes ?? {}
 
-  // Build the predecessor candidate list once — for `predecessor` /
-  // `layers_of_tensors` widgets. Candidates are sibling layer nodes
-  // sharing the same `parentId` (i.e. inside the same NNContainer).
-  const predecessorCandidates = nodes
-    .filter(
-      (n) =>
-        n.id !== elementId &&
-        n.parentId &&
-        n.parentId === node.parentId &&
-        typeof n.type === "string" &&
-        n.type.endsWith("Layer")
-    )
-    .map((n) => ({
-      id: n.id,
-      name: (n.data as { name?: string }).name ?? n.id,
-    }))
+  // Predecessor candidates for the `predecessor` / `layers_of_tensors`
+  // widgets — graph-aware upstream walk over incoming `NNNext` edges
+  // (develop `_computePredecessors`): TensorOps / NNReferences
+  // included, no container filter, nearest-first order.
+  const predecessorCandidates = computeNNPredecessors(
+    nodes,
+    edges,
+    elementId
+  )
 
   /* ─────────────────────────── State helpers ────────────────────────── */
 
@@ -197,10 +341,27 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
 
   const updateAttribute = (slug: string, value: unknown) => {
     const key = COLLIDING_SLUGS.has(slug) ? qualifySlug(layerKind, slug) : slug
-    updateAttributes({
+    let next: Record<string, unknown> = {
       ...((node.data as NNLayerNodeProps).attributes ?? {}),
       [key]: value,
-    })
+    }
+    // Discriminator-change pruning + pooling dimension sync — ONE
+    // attributes patch per write (replaces develop's post-hoc monitor).
+    if (layerKind === "TensorOp" && slug === "tns_type") {
+      next = pruneTensorOpAttributes(next, String(value))
+    } else if (layerKind === "PoolingLayer" && slug === "pooling_type") {
+      next = prunePoolingAttributes(next, String(value))
+    } else if (
+      (layerKind === "TrainingDataset" || layerKind === "TestDataset") &&
+      slug === "input_format"
+    ) {
+      next = pruneDatasetAttributes(next, String(value))
+    } else if (layerKind === "PoolingLayer" && slug === "dimension") {
+      // BatchNorm dimension deliberately takes the plain write path —
+      // develop only wired the sibling sync for DimensionAttributePooling.
+      next = syncPoolingDimensionAttributes(next, String(value))
+    }
+    updateAttributes(next)
   }
 
   const removeAttribute = (slug: string) => {
@@ -231,40 +392,61 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
     return attributes[slug]
   }
 
-  /* ─────────────────────────── #30 mandatory auto-fill ─────────────── */
+  /* ──────────── #30 mandatory auto-fill + legacy normalization ────── */
 
   // Run once per node — populate mandatory attribute keys with defaults
   // when the layer was just dropped from the palette and `data.attributes`
-  // is missing them.
+  // is missing them. Additionally (Wave-3 NN-9, mirroring develop's
+  // popup-mount rewrites at `nn-attribute-update.tsx` 133-162 +
+  // `optional-attribute-row.tsx` 81-102): any dropdown value outside the
+  // current whitelist rewrites to the schema default — covers
+  // `cross_entropy` → `crossentropy`, `zeros` → `valid` and numeric
+  // dimensions → `2D` already stored on v4 documents.
   React.useEffect(() => {
     if (schema.length === 0) return
-    const missing: Record<string, unknown> = {}
+    const patch: Record<string, unknown> = {}
     for (const f of schema) {
-      if (!f.mandatory) continue
       const key = COLLIDING_SLUGS.has(f.slug)
         ? qualifySlug(layerKind, f.slug)
         : f.slug
       const stored = readAttribute(f.slug)
+
+      // One-shot dropdown whitelist normalization (booleans were
+      // coerced to JS booleans by the migrator and are skipped;
+      // `multiselect` metrics are never normalized — develop parity).
+      if (
+        f.widget === "dropdown" &&
+        f.options &&
+        typeof stored === "string" &&
+        stored !== "" &&
+        !(f.options as readonly string[]).includes(stored) &&
+        f.defaultValue !== undefined
+      ) {
+        patch[key] = f.defaultValue
+        continue
+      }
+
+      if (!f.mandatory) continue
       if (stored !== undefined && stored !== null && stored !== "") continue
       // Provide a default. For `name`, derive from the node's `name`
       // field (mirrors v3's `createMandatoryAttributes`); for fixed-
       // option dropdowns use `defaultValue`; otherwise reach into
       // NN_ATTRIBUTE_DEFAULTS.
       if (f.slug === "name") {
-        missing[key] = data.name ?? ""
+        patch[key] = data.name ?? ""
         continue
       }
       if (f.defaultValue !== undefined) {
-        missing[key] = f.defaultValue
+        patch[key] = f.defaultValue
         continue
       }
       const fallback = NN_ATTRIBUTE_DEFAULTS[f.slug]
       if (fallback !== undefined) {
-        missing[key] = fallback
+        patch[key] = fallback
       }
     }
-    if (Object.keys(missing).length > 0) {
-      updateAttributes({ ...attributes, ...missing })
+    if (Object.keys(patch).length > 0) {
+      updateAttributes({ ...attributes, ...patch })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elementId])
@@ -365,7 +547,13 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
           <DividerLine width="100%" />
           <InspectorSectionHeader>optional attributes</InspectorSectionHeader>
           {optionalFields.map((field) => {
-            const enabled = readAttribute(field.slug) !== undefined
+            const armedKey = `${elementId}:${field.slug}`
+            const isSelectionWidget =
+              field.widget === "predecessor" ||
+              field.widget === "layers_of_tensors"
+            const enabled =
+              readAttribute(field.slug) !== undefined ||
+              (isSelectionWidget && armedRows[armedKey] === true)
             return (
               <NNAttributeRow
                 key={`o-${field.slug}`}
@@ -374,11 +562,52 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
                 predecessorCandidates={predecessorCandidates}
                 layerKind={layerKind}
                 poolingDimension={poolingDimension}
-                onChange={(v) => updateAttribute(field.slug, v)}
+                onChange={(v) => {
+                  // Predecessor: the empty item REMOVES the attribute
+                  // (develop deleted it on `(select predecessor)`);
+                  // `layers_of_tensors` commits `null` when either
+                  // dropdown is cleared — same removal semantics. The
+                  // row stays armed so the dropdowns remain visible
+                  // (develop's checkbox stayed ticked).
+                  if (isSelectionWidget && (v === "" || v === null)) {
+                    removeAttribute(field.slug)
+                    setArmedRows((prev) => ({ ...prev, [armedKey]: true }))
+                    return
+                  }
+                  updateAttribute(field.slug, v)
+                }}
                 enabled={enabled}
                 onEnabledChange={(next) => {
                   if (!next) {
                     removeAttribute(field.slug)
+                    setArmedRows((prev) => ({ ...prev, [armedKey]: false }))
+                    return
+                  }
+                  // Develop parity: enabling a predecessor /
+                  // layers_of_tensors row must NOT create the attribute
+                  // until a selection is made (`handleCheckboxChange`
+                  // early-returns for these widgets).
+                  if (isSelectionWidget) {
+                    setArmedRows((prev) => ({ ...prev, [armedKey]: true }))
+                    return
+                  }
+                  // Pooling list fields seed the dimension-aware example
+                  // (develop's `getInitialValue` via `getListExpectation`)
+                  // instead of an empty string / static default.
+                  if (
+                    layerKind === "PoolingLayer" &&
+                    (field.slug === "kernel_dim" ||
+                      field.slug === "stride_dim" ||
+                      field.slug === "output_dim")
+                  ) {
+                    updateAttribute(
+                      field.slug,
+                      getListExpectation(
+                        layerKind,
+                        field.slug,
+                        poolingDimension
+                      ).example
+                    )
                     return
                   }
                   // Enable: store the schema default (if any).
@@ -479,6 +708,47 @@ const NNAttributeRow: React.FC<NNAttributeRowProps> = ({
         </Stack>
       )
     }
+    case "multiselect": {
+      // Metrics-style checkbox multi-select (develop
+      // `nn-attribute-update.tsx` 555-589 + `handleMetricsToggle`).
+      const opts = field.options ?? []
+      const selected = parseMetricsValue(
+        typeof value === "string" ? value : ""
+      ).filter((m) => (opts as readonly string[]).includes(m))
+      return (
+        <Stack direction="row" alignItems="center" spacing={0.5}>
+          {checkbox}
+          <Typography variant="caption" sx={{ minWidth: 100 }}>
+            {field.label ?? field.slug}
+          </Typography>
+          <Select
+            multiple
+            displayEmpty
+            size="small"
+            value={selected}
+            onChange={(e) => {
+              const next =
+                typeof e.target.value === "string"
+                  ? e.target.value.split(",").map((s) => s.trim())
+                  : e.target.value
+              onChange(formatMetricsValue(next))
+            }}
+            renderValue={(picked) =>
+              picked.length > 0 ? `[${picked.join(", ")}]` : "Select metrics"
+            }
+            sx={{ flex: 1, ...disabledStyle }}
+            disabled={!enabled}
+          >
+            {opts.map((o) => (
+              <MenuItem key={o} value={o}>
+                <Checkbox size="small" checked={selected.includes(o)} />
+                {o}
+              </MenuItem>
+            ))}
+          </Select>
+        </Stack>
+      )
+    }
     case "predecessor": {
       const current = typeof value === "string" ? value : ""
       return (
@@ -506,23 +776,16 @@ const NNAttributeRow: React.FC<NNAttributeRowProps> = ({
       )
     }
     case "layers_of_tensors": {
-      // v3 stored a comma-joined list of two predecessor names.
-      const current = typeof value === "string" ? value : ""
       return (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          {checkbox}
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            fullWidth
-            label={field.label ?? field.slug}
-            value={current}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="layerA, layerB"
-            disabled={!enabled}
-            sx={{ flex: 1, ...disabledStyle }}
-          />
-        </Stack>
+        <LayersOfTensorsRow
+          label={field.label ?? field.slug}
+          value={typeof value === "string" ? value : ""}
+          predecessorCandidates={predecessorCandidates}
+          enabled={enabled}
+          checkbox={checkbox}
+          disabledStyle={disabledStyle}
+          onCommit={onChange}
+        />
       )
     }
     case "text":
@@ -560,4 +823,95 @@ const NNAttributeRow: React.FC<NNAttributeRowProps> = ({
       )
     }
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* layers_of_tensors — dual predecessor dropdowns                              */
+/* -------------------------------------------------------------------------- */
+
+interface LayersOfTensorsRowProps {
+  label: string
+  /** Stored wire value, e.g. `"['layerA', 'layerB']"` (or `""`). */
+  value: string
+  predecessorCandidates: { id: string; name: string }[]
+  enabled: boolean
+  checkbox: React.ReactNode
+  disabledStyle: Record<string, unknown>
+  /** `"['a', 'b']"` when both chosen; `null` when either is cleared
+   *  (the parent removes the attribute — develop `handleTensorChange`
+   *  deleted it). */
+  onCommit: (value: string | null) => void
+}
+
+/**
+ * Develop parity (`optional-attribute-row.tsx` 435-477): TWO labelled
+ * `1st:` / `2nd:` dropdowns fed by the predecessor list. Partial
+ * selections live in component state (develop kept `tensor1/tensor2`
+ * in state); the attribute is only persisted once BOTH are chosen, and
+ * removed when either is cleared.
+ */
+const LayersOfTensorsRow: React.FC<LayersOfTensorsRowProps> = ({
+  label,
+  value,
+  predecessorCandidates,
+  enabled,
+  checkbox,
+  disabledStyle,
+  onCommit,
+}) => {
+  // Initialize from the stored value once (develop's constructor); the
+  // local state stays authoritative for partial picks because a commit
+  // of `null` clears the stored attribute.
+  const [selection, setSelection] = React.useState<[string, string]>(() => {
+    const parsed = parseLayersOfTensors(value)
+    return [parsed[0] ?? "", parsed[1] ?? ""]
+  })
+
+  const handlePick = (which: 0 | 1, picked: string) => {
+    const next: [string, string] = [...selection] as [string, string]
+    next[which] = picked
+    setSelection(next)
+    if (next[0] !== "" && next[1] !== "") {
+      onCommit(formatLayersOfTensors(next[0], next[1]))
+    } else {
+      onCommit(null)
+    }
+  }
+
+  const renderSelect = (which: 0 | 1, slotLabel: string) => (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={0.5}
+      sx={{ flex: 1 }}
+    >
+      <Typography variant="caption">{slotLabel}</Typography>
+      <Select
+        size="small"
+        value={selection[which]}
+        onChange={(e) => handlePick(which, String(e.target.value))}
+        displayEmpty
+        sx={{ flex: 1, ...disabledStyle }}
+        disabled={!enabled}
+      >
+        <MenuItem value="">— none —</MenuItem>
+        {predecessorCandidates.map((p) => (
+          <MenuItem key={p.id} value={p.name}>
+            {p.name}
+          </MenuItem>
+        ))}
+      </Select>
+    </Stack>
+  )
+
+  return (
+    <Stack direction="row" alignItems="center" spacing={0.5}>
+      {checkbox}
+      <Typography variant="caption" sx={{ minWidth: 100 }}>
+        {label}
+      </Typography>
+      {renderSelect(0, "1st:")}
+      {renderSelect(1, "2nd:")}
+    </Stack>
+  )
 }

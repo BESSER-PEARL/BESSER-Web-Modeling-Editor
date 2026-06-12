@@ -8,20 +8,19 @@ import {
   Select,
   Stack,
   TextField as MuiTextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
   Typography as MuiTypography,
 } from "@mui/material"
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import {
   UserModelAttributeRow,
   UserModelNameNodeProps,
 } from "@/types"
-import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
+import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { DeleteIcon } from "@/components/Icon"
+import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
 import { PopoverProps } from "@/components/popovers/types"
 import { normalizeType } from "@/utils/typeNormalization"
 import { generateUUID } from "@/utils"
@@ -131,12 +130,115 @@ interface AttrRowProps {
   onDelete: () => void
 }
 
+/**
+ * Per-row style controls — v3 parity with the `ColorButton` +
+ * `StylePane showIcon fillColor textColor` block every
+ * `UMLUserModelAttributeUpdate` row carried
+ * (`uml-user-model-attribute-update.tsx:233-238`). Fill / text swatches
+ * patch `row.fillColor` / `row.textColor` (painted by
+ * `RowBlockSection` when the attributes view renders); the Icon field
+ * patches `row.icon`. Right-click on a swatch resets that color.
+ */
+const UserRowStyleControls: React.FC<{
+  row: Pick<UserModelAttributeRow, "fillColor" | "textColor" | "icon">
+  onPatch: (patch: Partial<UserModelAttributeRow>) => void
+}> = ({ row, onPatch }) => {
+  const swatch = (
+    label: string,
+    key: "fillColor" | "textColor",
+    fallback: string,
+    pickerDefault: string
+  ) => (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <MuiTypography variant="caption" sx={{ minWidth: 70 }}>
+        {label}
+      </MuiTypography>
+      <Tooltip title={`${label} (right-click to reset)`}>
+        <Box
+          component="label"
+          sx={{
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            border: "1px solid var(--besser-gray, #ccc)",
+            backgroundColor: row[key] || fallback,
+            cursor: "pointer",
+            display: "inline-block",
+            flexShrink: 0,
+            overflow: "hidden",
+          }}
+          onContextMenu={(e: React.MouseEvent) => {
+            e.preventDefault()
+            onPatch({ [key]: undefined })
+          }}
+        >
+          <input
+            type="color"
+            value={
+              typeof row[key] === "string" && row[key]
+                ? (row[key] as string)
+                : pickerDefault
+            }
+            onChange={(e) => onPatch({ [key]: e.target.value })}
+            style={{
+              opacity: 0,
+              width: "100%",
+              height: "100%",
+              cursor: "pointer",
+              border: "none",
+              padding: 0,
+            }}
+          />
+        </Box>
+      </Tooltip>
+    </Stack>
+  )
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.5,
+        padding: "2px 0 4px 4px",
+      }}
+    >
+      <Stack direction="row" spacing={2}>
+        {swatch(
+          "Fill Color",
+          "fillColor",
+          "var(--besser-background, #fff)",
+          "#ffffff"
+        )}
+        {swatch(
+          "Text Color",
+          "textColor",
+          "var(--besser-text, #000)",
+          "#000000"
+        )}
+      </Stack>
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        label="Icon"
+        placeholder="Enter icon name..."
+        value={row.icon ?? ""}
+        onChange={(e) =>
+          onPatch({ icon: e.target.value === "" ? undefined : e.target.value })
+        }
+      />
+    </Box>
+  )
+}
+
 const AttrRow: React.FC<AttrRowProps> = ({
   row,
   metaCtx,
   onPatch,
   onDelete,
 }) => {
+  const [styleOpen, setStyleOpen] = useState(false)
   // Look up linked meta-class attribute (when this row was seeded from
   // a meta-class). v3's `getAttributeDefinition` walked the bridge; we
   // walk our pre-built classes list.
@@ -257,54 +359,25 @@ const AttrRow: React.FC<AttrRowProps> = ({
           </Select>
         )}
 
-        {/* Per-row text-color picker — mirrors v3
-            `uml-user-model-attribute-update.tsx:233-238` ColorButton +
-            StylePane workflow. Uses a native color input as a
-            lightweight stand-in for the v3 popover; the swatch reflects
-            the current `textColor`, click opens the OS picker.
-            "Reset" resorts to no-color (uses theme default). */}
-        <Tooltip title="Row text color (right-click to reset)">
-          <Box
-            component="label"
-            sx={{
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              border: "1px solid var(--besser-gray, #ccc)",
-              backgroundColor: row.textColor || "var(--besser-text, #000)",
-              cursor: "pointer",
-              display: "inline-block",
-              flexShrink: 0,
-              overflow: "hidden",
-            }}
-            onContextMenu={(e: React.MouseEvent) => {
-              e.preventDefault()
-              onPatch({ textColor: undefined })
-            }}
+        {/* Per-row style toggle — v3 ColorButton +
+            StylePane (`showIcon fillColor textColor`) workflow. Opens
+            the fill / text swatches plus the per-row Icon field
+            below the row. */}
+        <Tooltip title="Row style (colors + icon)">
+          <IconButton
+            size="small"
+            aria-label="Row style"
+            onClick={() => setStyleOpen((open) => !open)}
           >
-            <input
-              type="color"
-              value={
-                typeof row.textColor === "string" && row.textColor
-                  ? row.textColor
-                  : "#000000"
-              }
-              onChange={(e) => onPatch({ textColor: e.target.value })}
-              style={{
-                opacity: 0,
-                width: "100%",
-                height: "100%",
-                cursor: "pointer",
-                border: "none",
-                padding: 0,
-              }}
-            />
-          </Box>
+            <PaintRollerIcon width={14} height={14} />
+          </IconButton>
         </Tooltip>
         <IconButton size="small" onClick={onDelete}>
           <DeleteIcon width={14} height={14} />
         </IconButton>
       </Stack>
+
+      {styleOpen && <UserRowStyleControls row={row} onPatch={onPatch} />}
 
       {/* Type-aware value widget — v3 parity. */}
       {isEnumeration ? (
@@ -363,21 +436,6 @@ const AttrRow: React.FC<AttrRowProps> = ({
     </Box>
   )
 }
-
-const PRIMITIVE_TYPE_NAMES = new Set([
-  "str",
-  "string",
-  "int",
-  "integer",
-  "float",
-  "double",
-  "bool",
-  "boolean",
-  "date",
-  "datetime",
-  "time",
-  "any",
-])
 
 export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
   elementId,

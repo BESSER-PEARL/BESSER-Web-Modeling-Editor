@@ -11,6 +11,10 @@ import {
 } from "@/components/inspectors/agentDiagram"
 import { StateMachineDiagramEdgeEditPanel } from "@/components/inspectors/stateMachineDiagram"
 import { ObjectLinkEditPanel } from "@/components/inspectors/objectDiagram/ObjectLinkEditPanel"
+import {
+  CommentEditPanel,
+  CommentLinkEditPanel,
+} from "@/components/inspectors/common"
 
 // ---------------------------------------------------------------------------
 // Edge inspector registration — hand-drawn edges on the BESSER
@@ -40,5 +44,12 @@ describe("edge inspector registration", () => {
     expect(getInspector("StateTransition", "edit")).toBe(
       StateMachineDiagramEdgeEditPanel
     )
+  })
+
+  it("registers the comment sticky-note + CommentLink tether panels", () => {
+    // Registry resolution lights up BOTH surfaces (PropertiesPanel and
+    // PopoverManager) from this single registration.
+    expect(getInspector("comment", "edit")).toBe(CommentEditPanel)
+    expect(getInspector("CommentLink", "edit")).toBe(CommentLinkEditPanel)
   })
 })

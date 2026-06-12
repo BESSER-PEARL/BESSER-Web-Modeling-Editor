@@ -33,11 +33,12 @@ const defaultEdgeTypes = {
   // ClassLinkRel draws as a plain solid line.
   ClassOCLLink: ClassDiagramEdge,
   ClassLinkRel: ClassDiagramEdge,
-  // CommentLink placeholder. v3 supported a dashed
-  // dependency-style arrow from a Comment to any element; the full
-  // inspector port is TODO, but exposing the type here lets users at
-  // least anchor a link from the now-visible Comment handles. The visual
-  // is the dashed-arrow `getEdgeMarkerStyles("CommentLink")` style.
+  // CommentLink — v3 `GeneralRelationshipType.Link`, a
+  // dashed tether from a Comment to any element. Creation is
+  // auto-detected in `useConnect` (`resolveCommentEdgeType`), the visual
+  // is the dashed-arrow `getEdgeMarkerStyles("CommentLink")` style, and
+  // the stroke-styling inspector is
+  // `inspectors/common/CommentLinkEditPanel`.
   CommentLink: ClassDiagramEdge,
 
   ActivityControlFlow: ActivityDiagramEdge,
@@ -117,7 +118,7 @@ export const edgeConfig = {
   // line (no markers, no roles).
   ClassOCLLink: { allowMidpointDragging: true },
   ClassLinkRel: { allowMidpointDragging: true },
-  // Placeholder Comment→element dashed link.
+  // Comment→element dashed tether.
   CommentLink: { allowMidpointDragging: true },
 
   // Activity edges - allow midpoint dragging
@@ -219,9 +220,11 @@ export const edgeConfig = {
   // UserDiagram link — same handling as ObjectLink (which it aliases).
   UserModelLink: { allowMidpointDragging: true },
 
-  // NNDiagram edges. All allow midpoint dragging; relationship
-  // labels are off by default (NN edges carry no label in v3).
-  NNNext: { allowMidpointDragging: true, showRelationshipLabels: false },
+  // NNDiagram edges. All allow midpoint dragging. `NNNext` always
+  // shows its label — develop rendered `name || 'next'` unconditionally
+  // (`nn-association-component.tsx`:60); composition / association
+  // lines carry no label in v3.
+  NNNext: { allowMidpointDragging: true, showRelationshipLabels: true },
   NNComposition: { allowMidpointDragging: true, showRelationshipLabels: false },
   NNAssociation: {
     allowMidpointDragging: true,

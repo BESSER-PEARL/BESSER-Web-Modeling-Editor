@@ -9,12 +9,19 @@ import {
   Tooltip,
   Typography as MuiTypography,
 } from "@mui/material"
-import React, { useMemo, useState, ChangeEvent, KeyboardEvent } from "react"
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  ChangeEvent,
+  KeyboardEvent,
+} from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { ObjectNodeAttribute, ObjectNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { DeleteIcon } from "@/components/Icon"
+import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
 import { PopoverProps } from "@/components/popovers/types"
 import { generateUUID } from "@/utils"
 import { diagramBridge, IClassInfo } from "@/services/diagramBridge"
@@ -29,6 +36,96 @@ interface ObjectAttrRowProps {
   enumLiterals: Map<string, string[]>
   onPatch: (patch: Partial<ObjectNodeAttribute>) => void
   onDelete: () => void
+  /**
+   * Receives the row's value `<input>` so the panel can drive
+   * Enter-to-next-slot navigation (v3 `onSubmitKeyUp` parity —
+   * `uml-object-name-update.tsx` focused the next attribute Textfield
+   * or fell through to the add field). `null` is reported for widget
+   * types without a focusable text input (bool switch / enum select).
+   */
+  valueInputRef?: (el: HTMLInputElement | null) => void
+  /** Fired when Enter is pressed inside the row's value input. */
+  onEnter?: () => void
+}
+
+/**
+ * Per-attribute-slot fill / text color controls — v3 parity with the
+ * `ColorButton` + `StylePane fillColor textColor` block that every
+ * `UMLObjectAttributeUpdate` row carried
+ * (`uml-object-attribute-update.tsx`). The paint-roller toggles a
+ * two-swatch panel; right-click on a swatch resets that color to the
+ * theme default. The canvas side (`RowBlockSection`) already paints
+ * per-row `fillColor` / `textColor`, so the patch repaints live.
+ */
+const SlotColorControls: React.FC<{
+  row: Pick<ObjectNodeAttribute, "fillColor" | "textColor">
+  onPatch: (patch: Partial<ObjectNodeAttribute>) => void
+}> = ({ row, onPatch }) => {
+  const swatch = (
+    label: string,
+    key: "fillColor" | "textColor",
+    fallback: string
+  ) => (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      <MuiTypography variant="caption" sx={{ minWidth: 70 }}>
+        {label}
+      </MuiTypography>
+      <Tooltip title={`${label} (right-click to reset)`}>
+        <Box
+          component="label"
+          sx={{
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            border: "1px solid var(--besser-gray, #ccc)",
+            backgroundColor: row[key] || fallback,
+            cursor: "pointer",
+            display: "inline-block",
+            flexShrink: 0,
+            overflow: "hidden",
+          }}
+          onContextMenu={(e: React.MouseEvent) => {
+            e.preventDefault()
+            onPatch({ [key]: undefined })
+          }}
+        >
+          <input
+            type="color"
+            value={
+              typeof row[key] === "string" && row[key]
+                ? (row[key] as string)
+                : key === "fillColor"
+                  ? "#ffffff"
+                  : "#000000"
+            }
+            onChange={(e) => onPatch({ [key]: e.target.value })}
+            style={{
+              opacity: 0,
+              width: "100%",
+              height: "100%",
+              cursor: "pointer",
+              border: "none",
+              padding: 0,
+            }}
+          />
+        </Box>
+      </Tooltip>
+    </Stack>
+  )
+
+  return (
+    <Stack
+      direction="row"
+      spacing={2}
+      sx={{
+        padding: "2px 0 4px 0",
+        marginLeft: "4px",
+      }}
+    >
+      {swatch("Fill Color", "fillColor", "var(--besser-background, #fff)")}
+      {swatch("Text Color", "textColor", "var(--besser-text, #000)")}
+    </Stack>
+  )
 }
 
 const INT_TYPES = new Set(["int", "integer", "number"])
@@ -63,9 +160,25 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
   enumLiterals,
   onPatch,
   onDelete,
+  valueInputRef,
+  onEnter,
 }) => {
+  const [colorOpen, setColorOpen] = useState(false)
   const valueAsString =
     row.value !== undefined && row.value !== null ? String(row.value) : ""
+
+  // Shared wiring for every text-input-based value widget:
+  // expose the input element for slot navigation and translate Enter
+  // into the panel-level `onEnter` callback (v3 `onSubmitKeyUp`).
+  const navigationProps = {
+    inputRef: (el: HTMLInputElement | null) => valueInputRef?.(el),
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault()
+        onEnter?.()
+      }
+    },
+  }
 
   // Resolve the canonical type-string to lower-case for matching. The
   // raw type (preserving case, e.g. `GenderEnum`) is used as the enum
@@ -115,6 +228,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         value={valueAsString}
         onChange={(e) => commitValue(e.target.value)}
         sx={{ flex: 1 }}
+        {...navigationProps}
       />
     )
   } else if (isDate || isDatetime || isTime) {
@@ -130,6 +244,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         onChange={(e) => commitValue(e.target.value)}
         sx={{ flex: 1 }}
         InputLabelProps={{ shrink: true }}
+        {...navigationProps}
       />
     )
   } else if (isEnum) {
@@ -158,58 +273,70 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         value={valueAsString}
         onChange={(e) => commitValue(e.target.value)}
         sx={{ flex: 1 }}
+        {...navigationProps}
       />
     )
   }
 
   return (
-    <Stack
-      direction="row"
-      spacing={0.5}
-      alignItems="center"
+    <Box
       sx={{
+        display: "flex",
+        flexDirection: "column",
         padding: "4px 0",
         borderBottom: "1px solid var(--besser-gray, #e9ecef)",
       }}
     >
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        placeholder="name"
-        value={row.name}
-        onChange={(e) =>
-          onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
-        }
-        sx={{ flex: 1 }}
-      />
-      <MuiTypography
-        component="span"
-        sx={{ px: 0.5, fontWeight: 500, userSelect: "none" }}
-      >
-        =
-      </MuiTypography>
-      {valueWidget}
-      {displayType && (
-        <Tooltip title={`type inherited from class: ${displayType}`}>
-          <MuiTypography
-            variant="caption"
-            sx={{
-              minWidth: 40,
-              color: "var(--besser-text-muted, #6c757d)",
-              fontStyle: "italic",
-              userSelect: "none",
-            }}
+      <Stack direction="row" spacing={0.5} alignItems="center">
+        <MuiTextField
+          size="small"
+          variant="outlined"
+          placeholder="name"
+          value={row.name}
+          onChange={(e) =>
+            onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
+          }
+          sx={{ flex: 1 }}
+        />
+        <MuiTypography
+          component="span"
+          sx={{ px: 0.5, fontWeight: 500, userSelect: "none" }}
+        >
+          =
+        </MuiTypography>
+        {valueWidget}
+        {displayType && (
+          <Tooltip title={`type inherited from class: ${displayType}`}>
+            <MuiTypography
+              variant="caption"
+              sx={{
+                minWidth: 40,
+                color: "var(--besser-text-muted, #6c757d)",
+                fontStyle: "italic",
+                userSelect: "none",
+              }}
+            >
+              : {displayType}
+            </MuiTypography>
+          </Tooltip>
+        )}
+        <Tooltip title="Row colors">
+          <IconButton
+            size="small"
+            aria-label="Row colors"
+            onClick={() => setColorOpen((open) => !open)}
           >
-            : {displayType}
-          </MuiTypography>
+            <PaintRollerIcon width={14} height={14} />
+          </IconButton>
         </Tooltip>
-      )}
-      <Tooltip title="Delete attribute">
-        <IconButton size="small" onClick={onDelete}>
-          <DeleteIcon width={14} height={14} />
-        </IconButton>
-      </Tooltip>
-    </Stack>
+        <Tooltip title="Delete attribute">
+          <IconButton size="small" onClick={onDelete}>
+            <DeleteIcon width={14} height={14} />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+      {colorOpen && <SlotColorControls row={row} onPatch={onPatch} />}
+    </Box>
   )
 }
 
@@ -236,6 +363,14 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }))
   )
   const node = nodes.find((n) => n.id === elementId)
+
+  // Enter-to-next-slot navigation (v3 `onSubmitKeyUp` parity).
+  // `valueRefs` is re-populated on every render by the rows' `inputRef`
+  // callbacks; rows whose value widget has no text input (bool switch,
+  // enum select) simply leave a hole and are skipped.
+  const valueRefs = useRef<(HTMLInputElement | null)[]>([])
+  const addFieldRef = useRef<HTMLInputElement | null>(null)
+  valueRefs.current = []
 
   const availableClasses = useMemo<IClassInfo[]>(() => {
     try {
@@ -340,6 +475,8 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         ...d,
         classId: undefined,
         className: undefined,
+        // The icon mirrors the linked class — unlinking drops it.
+        icon: undefined,
         attributes: [],
       }))
       return
@@ -374,6 +511,11 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             ...data,
             classId: selected.id,
             className: selected.name,
+            // Inherit the linked class's icon (develop's per-class
+            // palette instances copied `classInfo.icon`; the inspector
+            // class-picker must match). Cleared when the new class has
+            // no icon so the node never shows a stale glyph.
+            icon: selected.icon || undefined,
             attributes: newRows,
             ...(shouldRename && {
               name: `${selected.name.toLowerCase()}Instance`,
@@ -510,7 +652,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <DividerLine width="100%" />
 
       <InspectorSectionHeader>Attributes</InspectorSectionHeader>
-      {nodeData.attributes.map((row) => (
+      {nodeData.attributes.map((row, index) => (
         <ObjectAttrRow
           key={row.id}
           row={row}
@@ -518,6 +660,27 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           enumLiterals={enumLiterals}
           onPatch={(patch) => patchAttribute(row.id, patch)}
           onDelete={() => deleteAttribute(row.id)}
+          valueInputRef={(el) => {
+            valueRefs.current[index] = el
+          }}
+          onEnter={() => {
+            // Focus the next slot's value input; when this was the
+            // last slot, fall through to the add-attribute field (v3
+            // focused `newAttributeField` at the end of the list).
+            for (
+              let i = index + 1;
+              i < valueRefs.current.length;
+              i++
+            ) {
+              const el = valueRefs.current[i]
+              if (el) {
+                el.focus()
+                el.select?.()
+                return
+              }
+            }
+            addFieldRef.current?.focus()
+          }}
         />
       ))}
       {/* Hide the free-form "Add attribute" input when
@@ -534,6 +697,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           value={newAttrName}
           onChange={onAttrChange}
           onKeyDown={onAttrKey}
+          inputRef={addFieldRef}
           onBlur={() => {
             if (newAttrName.trim()) {
               addAttribute(newAttrName)

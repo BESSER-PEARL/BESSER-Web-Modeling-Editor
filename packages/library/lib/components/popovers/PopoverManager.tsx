@@ -196,9 +196,11 @@ type EdgePopoverType =
   | "NNNext"
   | "NNComposition"
   | "NNAssociation"
-  // Placeholder CommentLink (dashed dependency
-  // arrow from a Comment to any element). No inspector body yet — the
-  // edit/give/see-feedback registry treats this as "no popover".
+  // CommentLink — dashed tether from a Comment to any
+  // element (v3 `GeneralRelationshipType.Link`). Registry pattern —
+  // type widening only; the stroke-styling body
+  // (`inspectors/common/CommentLinkEditPanel`) resolves via
+  // `getInspector(type, kind)`.
   | "CommentLink"
 
 type PopoverType = NodePopoverType | EdgePopoverType

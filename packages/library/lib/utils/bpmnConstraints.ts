@@ -5,7 +5,18 @@
  * zero-dependency boolean rules consumed by event handlers — keeping
  * them together avoids dragging React Flow types into the import
  * graph of pure-helper tests.
+ *
+ * Diagram-scoped rules (object-link association
+ * availability; NN endpoint/singleton rules) live in
+ * `services/connectionRules` and are consulted at the end of
+ * `canConnectEndpoints` — the rule modules stay out of this file so it
+ * remains a thin shared pipeline.
  */
+import {
+  evaluateConnectionRules,
+  type MinimalRuleEdge,
+} from "@/services/connectionRules"
+
 export interface MinimalNodeForConnect {
   id?: string
   type?: string
@@ -37,13 +48,17 @@ export const canConnectEndpoints = (
   source: string | null | undefined,
   target: string | null | undefined,
   getId: (n: MinimalNodeForConnect) => string | undefined = (n) =>
-    (n as { id?: string }).id
+    (n as { id?: string }).id,
+  // Existing-edge topology for rules that need it (NN Configuration
+  // singleton). Optional so endpoint-only callers stay unchanged.
+  edges: readonly MinimalRuleEdge[] = []
 ): boolean => {
   const sourceNode = nodes.find((n) => getId(n) === source)
   const targetNode = nodes.find((n) => getId(n) === target)
   if (isEnumerationClassNode(sourceNode)) return false
   if (isEnumerationClassNode(targetNode)) return false
-  return true
+  // Diagram-scoped rules (registered in `services/connectionRules`).
+  return evaluateConnectionRules({ nodes, sourceNode, targetNode, edges })
 }
 
 /**

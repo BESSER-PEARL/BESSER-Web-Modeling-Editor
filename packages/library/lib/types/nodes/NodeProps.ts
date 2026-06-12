@@ -334,6 +334,14 @@ export type StateBodyNodeProps = DefaultNodeProps
 export type StateBodyRow = {
   id: string
   name?: string
+  /**
+   * Optional per-row fill / text colors — develop parity:
+   * `uml-state-body-update.tsx` gave every body / fallback-body row a
+   * ColorButton + StylePane (fillColor, textColor). Mirrors
+   * `AgentStateBodyRow`.
+   */
+  fillColor?: string
+  textColor?: string
 }
 
 /**
@@ -679,6 +687,9 @@ export type AgentWorkspaceNodeProps = DefaultNodeProps & {
  *   Defaults to `'=='`.
  * - `attributeId` — link to a class attribute id in a sibling
  *   ClassDiagram, when known.
+ * - `icon` — per-row icon reference (v3 `StylePane showIcon` on
+ *   `UMLUserModelAttributeUpdate` exposed an icon field per attribute
+ *   row; stored on the element and round-tripped verbatim).
  */
 export type UserModelAttributeRow = ClassNodeElement & {
   attributeId?: string
@@ -686,6 +697,8 @@ export type UserModelAttributeRow = ClassNodeElement & {
   defaultValue?: unknown
   /** Runtime / constraint comparison value bound to this attribute. */
   value?: unknown
+  /** Optional per-row icon name / SVG reference (v3 parity). */
+  icon?: string
 }
 
 /**

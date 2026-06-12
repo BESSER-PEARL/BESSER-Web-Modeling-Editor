@@ -16,9 +16,12 @@ import {
   getEdgeMarkerStyles,
   getInitialEdgeData,
   getMarkerSegmentPath,
+  normalizeNNCompositionEndpoints,
   parseSvgPath,
   removeDuplicatePoints,
   resolveAgentEdgeType,
+  resolveCommentEdgeType,
+  resolveNNEdgeType,
   simplifyPoints,
   simplifySvgPath,
 } from "@/utils/edgeUtils"
@@ -1131,6 +1134,57 @@ describe("resolveAgentEdgeType", () => {
 })
 
 // ---------------------------------------------------------------------------
+// resolveCommentEdgeType — diagram-agnostic comment tethering (v3
+// `Comments.supportedRelationships = [GeneralRelationshipType.Link]`,
+// emitted as the v4 `CommentLink` wire type). Uniform v4 rule: ANY
+// non-Enumeration endpoint can be tethered — Enumeration blocking
+// happens upstream in `isValidConnection` / `canConnectEndpoints`, not
+// here.
+// ---------------------------------------------------------------------------
+describe("resolveCommentEdgeType", () => {
+  it("returns CommentLink for comment → class", () => {
+    expect(resolveCommentEdgeType("comment", "class")).toBe("CommentLink")
+  })
+
+  it("returns CommentLink for class → comment (flipped)", () => {
+    expect(resolveCommentEdgeType("class", "comment")).toBe("CommentLink")
+  })
+
+  it("returns CommentLink for comment → comment (v3: Link ∩ Link)", () => {
+    expect(resolveCommentEdgeType("comment", "comment")).toBe("CommentLink")
+  })
+
+  it("returns CommentLink on behavioral diagrams too (comment → AgentState)", () => {
+    // Comments sit in every diagram's palette, so the resolver must be
+    // diagram-agnostic — not just a ClassDiagram special case.
+    expect(resolveCommentEdgeType("comment", "AgentState")).toBe("CommentLink")
+    expect(resolveCommentEdgeType("State", "comment")).toBe("CommentLink")
+  })
+
+  it("tethers endpoints develop mistyped (AbstractClass / Interface / OCL)", () => {
+    // Develop bug-fix superset: these endpoints fell through to the
+    // mistyped diagram default (e.g. ClassBidirectional) on develop.
+    expect(resolveCommentEdgeType("comment", "AbstractClass")).toBe(
+      "CommentLink"
+    )
+    expect(resolveCommentEdgeType("comment", "ClassOCLConstraint")).toBe(
+      "CommentLink"
+    )
+  })
+
+  it("returns null when no comment endpoint is involved", () => {
+    expect(resolveCommentEdgeType("class", "class")).toBeNull()
+    expect(resolveCommentEdgeType("AgentState", "AgentState")).toBeNull()
+  })
+
+  it("returns null for unknown endpoint types", () => {
+    expect(resolveCommentEdgeType(undefined, undefined)).toBeNull()
+    expect(resolveCommentEdgeType(undefined, "class")).toBeNull()
+    expect(resolveCommentEdgeType("class", undefined)).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
 // getInitialEdgeData — default data scaffold for hand-drawn edges
 // ---------------------------------------------------------------------------
 describe("getInitialEdgeData", () => {
@@ -1151,10 +1205,112 @@ describe("getInitialEdgeData", () => {
     })
   })
 
+  it("seeds name 'next' for hand-drawn NNNext edges", () => {
+    // v3 `nn-unidirectional.ts` constructor default; serialized verbatim.
+    expect(getInitialEdgeData("NNNext")).toEqual({ name: "next" })
+    // Composition / association resolutions carry no name.
+    expect(getInitialEdgeData("NNComposition")).toBeUndefined()
+    expect(getInitialEdgeData("NNAssociation")).toBeUndefined()
+  })
+
   it("returns undefined for edge types without a scaffold", () => {
     expect(getInitialEdgeData("StateTransition")).toBeUndefined()
     expect(getInitialEdgeData("UserModelLink")).toBeUndefined()
     expect(getInitialEdgeData("ClassBidirectional")).toBeUndefined()
+    // CommentLink carries no roles / multiplicities / labels — the wire
+    // shape is plain `{id, source, target, handles?, data:{points?}}`.
+    expect(getInitialEdgeData("CommentLink")).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveNNEdgeType + normalizeNNCompositionEndpoints — NN endpoint
+// auto-detect (v3 `nn-container.ts` supportedRelationships =
+// [NNComposition, NNAssociation]) and the data-level replacement for
+// develop's render-time composition path reversal
+// (`nn-composition-component.tsx`).
+// ---------------------------------------------------------------------------
+describe("resolveNNEdgeType", () => {
+  const fallback = "NNNext" as const
+
+  it("resolves container ↔ container to NNComposition", () => {
+    expect(resolveNNEdgeType("NNContainer", "NNContainer", fallback)).toBe(
+      "NNComposition"
+    )
+  })
+
+  it("resolves config ↔ container to NNComposition (both directions)", () => {
+    expect(resolveNNEdgeType("Configuration", "NNContainer", fallback)).toBe(
+      "NNComposition"
+    )
+    expect(resolveNNEdgeType("NNContainer", "Configuration", fallback)).toBe(
+      "NNComposition"
+    )
+  })
+
+  it("resolves dataset ↔ container to NNAssociation", () => {
+    expect(resolveNNEdgeType("TrainingDataset", "NNContainer", fallback)).toBe(
+      "NNAssociation"
+    )
+    expect(resolveNNEdgeType("NNContainer", "TestDataset", fallback)).toBe(
+      "NNAssociation"
+    )
+  })
+
+  it("falls back to NNNext for layer ↔ layer", () => {
+    expect(resolveNNEdgeType("Conv2DLayer", "PoolingLayer", fallback)).toBe(
+      fallback
+    )
+  })
+})
+
+describe("normalizeNNCompositionEndpoints", () => {
+  const connection = {
+    source: "s",
+    target: "t",
+    sourceHandle: "right",
+    targetHandle: "left",
+  }
+
+  it("keeps config → container (diamond already at the container)", () => {
+    expect(
+      normalizeNNCompositionEndpoints(connection, "Configuration", "NNContainer")
+    ).toEqual(connection)
+  })
+
+  it("swaps container → config", () => {
+    expect(
+      normalizeNNCompositionEndpoints(connection, "NNContainer", "Configuration")
+    ).toEqual({
+      source: "t",
+      target: "s",
+      sourceHandle: "left",
+      targetHandle: "right",
+    })
+  })
+
+  it("swaps containerA → containerB (diamond at the drag source)", () => {
+    expect(
+      normalizeNNCompositionEndpoints(connection, "NNContainer", "NNContainer")
+    ).toEqual({
+      source: "t",
+      target: "s",
+      sourceHandle: "left",
+      targetHandle: "right",
+    })
+  })
+
+  it("no-ops for non-composition endpoint pairs", () => {
+    expect(
+      normalizeNNCompositionEndpoints(connection, "Conv2DLayer", "PoolingLayer")
+    ).toEqual(connection)
+    expect(
+      normalizeNNCompositionEndpoints(
+        connection,
+        "TrainingDataset",
+        "NNContainer"
+      )
+    ).toEqual(connection)
   })
 })
 

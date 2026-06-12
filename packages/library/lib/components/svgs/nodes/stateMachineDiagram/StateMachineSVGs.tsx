@@ -1,4 +1,5 @@
 import { SVGComponentProps } from "@/types/SVG"
+import { StateBodyRow } from "@/types"
 
 /**
  * Lightweight palette previews for StateMachineDiagram. Mirror the
@@ -7,14 +8,38 @@ import { SVGComponentProps } from "@/types/SVG"
  * wrappers per the brief.
  */
 
-export const StateSVG: React.FC<SVGComponentProps> = ({
+type StateSVGProps = SVGComponentProps & {
+  /**
+   * Optional palette `defaultData` (Sidebar passes it through). Develop
+   * parity (`state-preview.ts` `stateWithBody` / `stateWithBothBodies`):
+   * pre-populated variants render their body rows and — when both
+   * sections are present — the dashed fallback divider.
+   */
+  data?: {
+    name?: string
+    bodies?: StateBodyRow[]
+    fallbackBodies?: StateBodyRow[]
+  }
+}
+
+const STATE_HEADER_HEIGHT = 40
+const STATE_ROW_HEIGHT = 30
+
+export const StateSVG: React.FC<StateSVGProps> = ({
   width,
   height,
   SIDEBAR_PREVIEW_SCALE,
   svgAttributes,
+  data,
 }) => {
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const stateName = data?.name ?? "State"
+  const bodies = data?.bodies ?? []
+  const fallbackBodies = data?.fallbackBodies ?? []
+  const fallbackDividerY =
+    STATE_HEADER_HEIGHT + bodies.length * STATE_ROW_HEIGHT
+  const hasFallbackDivider = fallbackBodies.length > 0 && bodies.length > 0
   return (
     <svg
       width={scaledWidth}
@@ -42,15 +67,50 @@ export const StateSVG: React.FC<SVGComponentProps> = ({
         fontWeight="600"
         fill="var(--besser-primary-contrast, #000)"
       >
-        State
+        {stateName}
       </text>
       <line
         x1={0}
         x2={width}
-        y1={40}
-        y2={40}
+        y1={STATE_HEADER_HEIGHT}
+        y2={STATE_HEADER_HEIGHT}
         stroke="var(--besser-primary-contrast, #000)"
       />
+      {bodies.map((b, i) => (
+        <text
+          key={b.id}
+          x={10}
+          y={STATE_HEADER_HEIGHT + i * STATE_ROW_HEIGHT + 19}
+          fontSize={12}
+          fill="var(--besser-primary-contrast, #000)"
+        >
+          {b.name ?? ""}
+        </text>
+      ))}
+      {hasFallbackDivider && (
+        <line
+          x1={0}
+          x2={width}
+          y1={fallbackDividerY}
+          y2={fallbackDividerY}
+          stroke="var(--besser-primary-contrast, #000)"
+          strokeWidth={1}
+          strokeDasharray="3 2"
+          opacity={0.6}
+        />
+      )}
+      {fallbackBodies.map((b, i) => (
+        <text
+          key={b.id}
+          x={10}
+          y={fallbackDividerY + i * STATE_ROW_HEIGHT + 19}
+          fontSize={12}
+          fontStyle="italic"
+          fill="var(--besser-primary-contrast, #000)"
+        >
+          {b.name ?? ""}
+        </text>
+      ))}
     </svg>
   )
 }

@@ -94,37 +94,17 @@ export function nextUniqueNNLayerName(
   return `${baseName}${i}`
 }
 
-export interface NNLayerBaseProps {
-  id: string
-  width?: number
-  height?: number
-  data: NNLayerNodeProps
-  parentId?: string
-  /** v4 node-type string surfaced in the popover registry. */
-  nodeType: string
-  /** Visible kind label (rendered as a stereotype-style header). */
-  kindLabel: string
-  /** Optional fill colour override (defaults to white/#fff). */
-  defaultFill?: string
-}
-
-export function NNLayerBase({
-  id,
-  width,
-  height,
-  data,
-  parentId,
-  nodeType,
-  kindLabel,
-  defaultFill,
-}: NNLayerBaseProps) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
-  const { onResize } = useHandleOnResize(parentId)
+/**
+ * First-mount auto-name dedupe, shared by `NNLayerBase` and
+ * `NNContainer` (Wave-3 NN-7 — develop's
+ * `nn-association-monitor.tsx:193-219` suffixed `2,3,…` onto newly
+ * added NNContainers colliding with an existing container's name; the
+ * backend resolves containers **by name**, so duplicates silently drop
+ * a whole NN). Runs once per node id; the store check inside the
+ * effect guarantees we only rename when there is an actual collision.
+ */
+export function useUniqueNNName(id: string, nodeType: string) {
   const isDiagramModifiable = useDiagramModifiable()
-
-  // Dedupe auto-name against existing sibling layers
-  // of the same kind. Runs once per node id; the store check inside the
-  // effect guarantees we only rename when there is an actual collision.
   const setNodes = useDiagramStore(
     useShallow((state) => state.setNodes)
   )
@@ -153,6 +133,38 @@ export function NNLayerBase({
     // mandatory-attribute auto-fill in `NNComponentEditPanel`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+}
+
+export interface NNLayerBaseProps {
+  id: string
+  width?: number
+  height?: number
+  data: NNLayerNodeProps
+  parentId?: string
+  /** v4 node-type string surfaced in the popover registry. */
+  nodeType: string
+  /** Visible kind label (rendered as a stereotype-style header). */
+  kindLabel: string
+  /** Optional fill colour override (defaults to white/#fff). */
+  defaultFill?: string
+}
+
+export function NNLayerBase({
+  id,
+  width,
+  height,
+  data,
+  parentId,
+  nodeType,
+  kindLabel,
+  defaultFill,
+}: NNLayerBaseProps) {
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const { onResize } = useHandleOnResize(parentId)
+  const isDiagramModifiable = useDiagramModifiable()
+
+  // Dedupe auto-name against existing sibling layers of the same kind.
+  useUniqueNNName(id, nodeType)
 
   if (!width || !height) return null
 

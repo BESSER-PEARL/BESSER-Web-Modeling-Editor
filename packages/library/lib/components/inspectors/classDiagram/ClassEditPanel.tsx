@@ -3,6 +3,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Box,
+  Button,
   Checkbox,
   FormControlLabel,
   IconButton,
@@ -44,7 +45,7 @@ import {
 } from "@/utils/classifierMemberDisplay"
 import { generateUUID } from "@/utils"
 import { diagramBridge } from "@/services/diagramBridge"
-import { InspectorSectionHeader, AddRowButton } from "../_shared"
+import { InspectorSectionHeader, AddRowButton, RowColorSwatch } from "../_shared"
 
 /**
  * Tiny up/down arrow glyphs used by the row reorder
@@ -461,6 +462,23 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             </IconButton>
           </Tooltip>
         )}
+        {/* Per-row fill / text color swatches — develop colored every
+            attribute, method AND enum-literal row (ColorButton +
+            StylePane with `fillColor textColor`), so they render for
+            literals too. `strokeColor` is intentionally not exposed
+            per-row (develop's member StylePane omitted lineColor). */}
+        <RowColorSwatch
+          label="Row fill color"
+          value={row.fillColor}
+          fallbackCss="var(--besser-background, #fff)"
+          onChange={(color) => onPatch({ fillColor: color })}
+        />
+        <RowColorSwatch
+          label="Row text color"
+          value={row.textColor}
+          fallbackCss="var(--besser-primary-contrast, #000)"
+          onChange={(color) => onPatch({ textColor: color })}
+        />
         <Tooltip title={isEnumerationParent ? "Delete literal" : "Delete attribute"}>
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
@@ -819,6 +837,21 @@ const MethodRow: React.FC<MethodRowProps> = ({
             <EditIcon width={14} height={14} />
           </IconButton>
         </Tooltip>
+        {/* Per-row fill / text color swatches — mirrors the
+            AttributeRow pair (develop's per-method ColorButton +
+            StylePane with `fillColor textColor`). */}
+        <RowColorSwatch
+          label="Row fill color"
+          value={row.fillColor}
+          fallbackCss="var(--besser-background, #fff)"
+          onChange={(color) => onPatch({ fillColor: color })}
+        />
+        <RowColorSwatch
+          label="Row text color"
+          value={row.textColor}
+          fallbackCss="var(--besser-primary-contrast, #000)"
+          onChange={(color) => onPatch({ textColor: color })}
+        />
         <Tooltip title="Delete method">
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
@@ -1029,10 +1062,62 @@ const MethodRow: React.FC<MethodRowProps> = ({
             overflow: "hidden",
             "& .cm-editor": {
               fontSize: "13px",
-              minHeight: 80,
+              height: "100%",
+              minHeight: 150,
             },
           }}
         >
+          {/* Editor header — `{BAL|Python} Implementation` caption +
+              "Clear Code" action, visible only while there is code to
+              clear. Port of develop's `CodeEditorHeader` / `clearCode`
+              (`uml-classifier-method-update.tsx:217-221, 459-473`).
+              Develop's extra `setCodeEditorOpen(false)` maps to the
+              per-row gear toggle here, which deliberately stays open. */}
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{
+              px: 1,
+              py: 0.25,
+              borderBottom: "1px solid var(--besser-gray, #e9ecef)",
+            }}
+          >
+            <Typography variant="caption" sx={{ fontWeight: 600 }}>
+              {implementationType === "bal"
+                ? "BESSER Action Language"
+                : "Python"}{" "}
+              Implementation
+            </Typography>
+            {(row.code ?? "").trim().length > 0 && (
+              <Button
+                size="small"
+                variant="text"
+                onClick={() => onPatch({ code: "" })}
+                sx={{
+                  minWidth: 0,
+                  padding: "0 6px",
+                  textTransform: "none",
+                }}
+              >
+                Clear Code
+              </Button>
+            )}
+          </Stack>
+          {/* Drag-resizable wrapper — develop's
+              `ResizableCodeMirrorWrapper` (`resize: both; overflow:
+              auto; min/max-height 150/400`); `height="100%"` below is
+              the CM6 equivalent of `.CodeMirror { height: 100% }`. */}
+          <div
+            data-testid="code-editor-resizable"
+            style={{
+              resize: "both",
+              overflow: "auto",
+              minHeight: 150,
+              maxHeight: 400,
+              boxSizing: "border-box",
+            }}
+          >
           {/*
            * CodeMirror port — replaces the plain MUI multiline
            * TextField for `code` / `bal` implementation types so the v3
@@ -1044,6 +1129,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
            */}
           <CodeMirror
             value={row.code ?? ""}
+            height="100%"
             extensions={[python()]}
             onChange={(value) => {
               // v3 kept the (locked) signature in sync with the
@@ -1079,6 +1165,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
                 : "Python method body…"
             }
           />
+          </div>
         </Box>
       )}
         </>

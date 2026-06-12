@@ -43,9 +43,11 @@ import {
 } from "../types/nodes/NodeProps"
 import { MessageData } from "@/edges/EdgeProps"
 import { parseLegacyNameFormat } from "./classifierMemberDisplay"
+import { normalizeNNCompositionEndpoints } from "./edgeUtils"
 import {
   COLLIDING_SLUGS,
   V3_ATTRIBUTE_TYPE_TO_SLUG,
+  getLayerSchema,
   qualifySlug,
   v3AttributeTypeFor,
 } from "@/nodes/nnDiagram/nnAttributeWidgetConfig"
@@ -409,6 +411,12 @@ export function convertV3EdgeTypeToV4(
     ClassOCLLink: "ClassOCLLink",
     ClassLinkRel: "ClassLinkRel",
 
+    // v3 `GeneralRelationshipType.Link` — the diagram-agnostic comment
+    // tether (Comments.supportedRelationships = [Link]). v4 spells it
+    // `CommentLink`; without this entry the generic 'Link' fell through
+    // unmapped to an unregistered edge type and never rendered.
+    Link: "CommentLink",
+
     // Activity Diagram
     ActivityControlFlow: "ActivityControlFlow",
 
@@ -667,17 +675,65 @@ function extractOCLConstraint(
 }
 
 /**
+ * Normalize a legacy v3 dropdown value to the current whitelist
+ * (Wave-3 NN-9). Develop persisted these one-shot rewrites on popup
+ * mount (`nn-attribute-update.tsx::componentDidMount` 133-162 +
+ * `optional-attribute-row.tsx::componentDidMount` 81-102); the
+ * migrator applies them once at import time instead. The explicit
+ * develop table:
+ *
+ *  | v3 attribute element type                     | legacy | new     |
+ *  |-----------------------------------------------|--------|---------|
+ *  | `PaddingTypeAttribute{Conv1D,2D,3D,Pooling}`  | zeros  | valid   |
+ *  | `LossFunctionAttributeConfiguration`          | cross_entropy | crossentropy |
+ *  | `DimensionAttribute{Pooling,BatchNorm}`       | ∉ {1D,2D,3D} (e.g. `'2'`) | 2D |
+ *
+ * plus develop's generic rule: any `widget: 'dropdown'` value outside
+ * the options list rewrites to the schema default. The generic rule
+ * subsumes the explicit table because each listed field is a dropdown
+ * whose `defaultValue` matches the rewrite target (`padding_type` →
+ * 'valid', `loss_function` → 'crossentropy', `dimension` → '2D').
+ *
+ * Known deliberate deviation (per the Wave-3 brief): the migration
+ * schema's defaults differ from develop's widget-config for
+ * `return_type` ('full' here vs develop 'last') and `batch_first`
+ * ('true' here vs develop 'false') — out-of-whitelist values normalize
+ * to the **migration schema's** `defaultValue`.
+ *
+ * Boolean-typed dropdowns are excluded here — the caller coerces
+ * `'true'`/`'false'` to JS booleans BEFORE this rule runs, so
+ * boolean-options fields are never clobbered. `metrics` is a
+ * `multiselect` widget and is correctly skipped (develop never
+ * normalized metrics).
+ */
+function normalizeLegacyNNDropdownValue(
+  layerKind: string,
+  slug: string,
+  raw: string
+): string {
+  if (raw === "") return raw
+  const field = getLayerSchema(layerKind).find((f) => f.slug === slug)
+  if (!field || field.widget !== "dropdown" || !field.options) return raw
+  if ((field.options as readonly string[]).includes(raw)) return raw
+  return field.defaultValue ?? raw
+}
+
+/**
  * Collapse all v3 attribute child elements owned by a layer into
  * a flat `Record<string, unknown>` keyed by the v4 slug. Booleans
  * (`'true'` / `'false'`) are normalized to JS booleans per the brief;
- * everything else (numeric strings, free-text, list literals like
- * `'[3, 3]'`) is preserved as a string so the Python codegen can keep
- * its current `int(...)` / `float(...)` parsing behaviour.
+ * legacy dropdown values outside the current whitelists rewrite to the
+ * schema default (`normalizeLegacyNNDropdownValue`); everything else
+ * (numeric strings, free-text, list literals like `'[3, 3]'`) is
+ * preserved as a string so the Python codegen can keep its current
+ * `int(...)` / `float(...)` parsing behaviour.
  *
  * disambiguation: when the v3 element type's mapped
  * slug appears in `COLLIDING_SLUGS`, the result key is qualified with
  * the layer-kind prefix (e.g. `pooling.dimension`). Backend
- * (`nn_diagram_processor.py`) already does the same.
+ * (`nn_diagram_processor.py`) already does the same. (The dropdown
+ * normalization runs on the plain slug, before qualification — the
+ * schema is keyed unqualified.)
  */
 function collapseV3LayerAttributes(
   layerId: string,
@@ -696,8 +752,17 @@ function collapseV3LayerAttributes(
         ? (child as { value?: unknown }).value
         : child.name
     let coerced: unknown = raw
+    // Boolean coercion FIRST so boolean-options dropdowns are never
+    // routed through (and clobbered by) the whitelist normalization.
     if (raw === "true") coerced = true
     else if (raw === "false") coerced = false
+    else if (typeof raw === "string") {
+      const normalized = normalizeLegacyNNDropdownValue(layerKind, slug, raw)
+      // A normalization that lands on a boolean default (defensive —
+      // no current schema does) still coerces like a wire boolean.
+      coerced =
+        normalized === "true" ? true : normalized === "false" ? false : normalized
+    }
     const key = COLLIDING_SLUGS.has(slug) ? qualifySlug(layerKind, slug) : slug
     out[key] = coerced
   }
@@ -1035,6 +1100,15 @@ function convertV3NodeDataToV4(
       const v3RowToV4 = (row: V3UMLElement): StateBodyRow => ({
         id: row.id,
         ...(row.name && { name: row.name }),
+        // Develop's `uml-state-body-update.tsx` styled each row with
+        // fillColor / textColor — preserve them (mirrors the
+        // AgentStateBody collapse below).
+        ...((row.fillColor as string | undefined) && {
+          fillColor: row.fillColor,
+        }),
+        ...((row.textColor as string | undefined) && {
+          textColor: row.textColor,
+        }),
       })
       const collectByOrder = (
         orderedIds: string[] | undefined,
@@ -2017,14 +2091,16 @@ function convertV3RelationshipToV4Edge(
   }
 
   // StateTransition carries `params` + `guard` alongside the generic
-  // edge data (v3 BESSER fork: `params` is a single free-text string,
-  // `guard` is an optional boolean expression). v4 keeps `params` as a
-  // string for parity with the v3 spec; legacy fixtures may also ship
-  // an array or `{[id]: string}` dict (older deserializer at
-  // `v3 source: uml-state-transition.ts:14`) which we coerce
-  // back to a single string. The migrator does NOT carry over
-  // `code` / `eventName` — those were schema-creep in earlier ports
-  // and have no v3 source.
+  // edge data. v3 (develop `uml-state-transition.ts`) persisted params
+  // as a `{[id]: string}` dict and serialized it as
+  // `undefined | string | string[]` (richest form per arity); the dict
+  // was a React-keying artifact. v4 canonicalizes `params` to an
+  // **ordered string array**:
+  //   - wire string  → one-element array (never split on commas — a
+  //     single v3 param like `"{60}"` may legally contain them),
+  //   - wire array   → kept (non-string entries dropped),
+  //   - wire dict    → values in key order (develop's popup ordering).
+  // `guard` stays a plain string.
   //
   // ObjectLink carries `associationId` at the v3 relationship root
   // level (see `v3 source: uml-object-link.ts:9`). Pull it
@@ -2036,17 +2112,21 @@ function convertV3RelationshipToV4Edge(
     guard?: string
     associationId?: string
   }
-  let normalizedParams: string | undefined
-  if (typeof r.params === "string") {
-    normalizedParams = r.params
-  } else if (Array.isArray(r.params)) {
-    const joined = r.params.filter((p) => typeof p === "string").join(", ")
-    if (joined.length > 0) normalizedParams = joined
-  } else if (r.params && typeof r.params === "object") {
-    const values = Object.values(r.params).filter(
-      (v): v is string => typeof v === "string" && v.length > 0
-    )
-    if (values.length > 0) normalizedParams = values.join(", ")
+  let normalizedParams: string[] | undefined
+  if (relationship.type === "StateTransition") {
+    if (typeof r.params === "string") {
+      if (r.params.length > 0) normalizedParams = [r.params]
+    } else if (Array.isArray(r.params)) {
+      const values = r.params.filter((p): p is string => typeof p === "string")
+      if (values.length > 0) normalizedParams = values
+    } else if (r.params && typeof r.params === "object") {
+      const dict = r.params
+      const values = Object.keys(dict)
+        .sort()
+        .map((k) => dict[k])
+        .filter((v): v is string => typeof v === "string" && v.length > 0)
+      if (values.length > 0) normalizedParams = values
+    }
   }
 
   const edge: BesserEdge = {
@@ -2070,8 +2150,10 @@ function convertV3RelationshipToV4Edge(
       // Preserve flowType for BPMN edges
       ...(relationship.flowType && { flowType: relationship.flowType }),
       // StateTransition-specific data — v3 parity: `name` + `params`
-      // (string) + optional `guard`. No `code`, no `eventName`.
-      ...(normalizedParams !== undefined && { params: normalizedParams }),
+      // (ordered string array) + optional `guard`. No `code`, no
+      // `eventName`.
+      ...(normalizedParams !== undefined &&
+        normalizedParams.length > 0 && { params: normalizedParams }),
       ...(r.guard && { guard: r.guard }),
       // ObjectLink-only field. Living on the same generic edge
       // data shape is fine because the v3 source-of-truth puts it at
@@ -2841,9 +2923,11 @@ const invertNodeType = (v4Type: string): string => {
  *
  * Edge data round-trip:
  *  - `name`, `guard` pass through verbatim,
- *  - `params` dict is emitted in its richest form (object) — the v3
- *    deserializer accepts string / array / object, so this is the
- *    cleanest form for round-tripping,
+ *  - `params` (canonical v4 ordered array) is emitted in develop's
+ *    richest wire form (`uml-state-transition.ts::serialize()`):
+ *    plain string for one value, `string[]` for several. Legacy v4
+ *    docs that still carry a single string or a `{[id]: string}` dict
+ *    are emitted verbatim — the v3 deserializer accepts all three,
  *  - `code` and `eventName` (BESSER additions per the brief) are
  *    preserved on the relationship element.
  */
@@ -2897,6 +2981,43 @@ export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
       case "State": {
         const data = node.data as StateNodeProps
         const slot = childrenByParent[node.id]
+
+        // Canonical v4 stores body / fallback rows INLINE on
+        // `data.bodies` / `data.fallbackBodies` (the importer collapses
+        // legacy child nodes onto them). Re-expand them into top-level
+        // v3 `UMLStateBody` / `UMLStateFallbackBody` elements with their
+        // original ids — mirroring the AgentState emitter — including
+        // the per-row fillColor / textColor styling (develop
+        // `uml-state-body-update.tsx`). Legacy child-node fixtures that
+        // bypass the normalizer still contribute via `childrenByParent`.
+        const bodyIds: string[] = [...(slot?.bodies ?? [])]
+        const fallbackIds: string[] = [...(slot?.fallbackBodies ?? [])]
+        const emitInlineRow = (row: StateBodyRow, isFallback: boolean) => {
+          // Skip rows that also exist as legacy child NODES (partially
+          // normalized fixtures): the child-node case emits the element
+          // and `childrenByParent` already recorded the id.
+          if (
+            elements[row.id] ||
+            bodyIds.includes(row.id) ||
+            fallbackIds.includes(row.id)
+          ) {
+            return
+          }
+          elements[row.id] = {
+            id: row.id,
+            name: row.name ?? "",
+            type: isFallback ? "StateFallbackBody" : "StateBody",
+            owner: node.id,
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+            ...(row.fillColor && { fillColor: row.fillColor }),
+            ...(row.textColor && { textColor: row.textColor }),
+          } as V3UMLElement
+          if (isFallback) fallbackIds.push(row.id)
+          else bodyIds.push(row.id)
+        }
+        for (const row of data.bodies ?? []) emitInlineRow(row, false)
+        for (const row of data.fallbackBodies ?? []) emitInlineRow(row, true)
+
         const stateOut = {
           ...baseV3,
           ...(data.stereotype !== undefined && {
@@ -2904,10 +3025,10 @@ export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
           }),
           ...(data.italic !== undefined && { italic: data.italic }),
           ...(data.underline !== undefined && { underline: data.underline }),
-          bodies: slot?.bodies ?? [],
-          fallbackBodies: slot?.fallbackBodies ?? [],
-          hasBody: (slot?.bodies.length ?? 0) > 0,
-          hasFallbackBody: (slot?.fallbackBodies.length ?? 0) > 0,
+          bodies: bodyIds,
+          fallbackBodies: fallbackIds,
+          hasBody: bodyIds.length > 0,
+          hasFallbackBody: fallbackIds.length > 0,
         } as unknown as V3UMLElement
         elements[node.id] = stateOut
         break
@@ -2975,7 +3096,31 @@ export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
     const points = (data.points as { x: number; y: number }[]) ?? []
     const minX = points.length ? Math.min(...points.map((p) => p.x)) : 0
     const minY = points.length ? Math.min(...points.map((p) => p.y)) : 0
-    const params = (data.params as { [k: string]: string } | undefined) ?? {}
+    const rawParams = data.params as
+      | string[]
+      | string
+      | { [k: string]: string }
+      | undefined
+    let paramsOut: string | string[] | { [k: string]: string } | undefined
+    if (Array.isArray(rawParams)) {
+      const values = rawParams.filter(
+        (p): p is string => typeof p === "string"
+      )
+      paramsOut =
+        values.length === 0
+          ? undefined
+          : values.length === 1
+            ? values[0]
+            : values
+    } else if (typeof rawParams === "string") {
+      paramsOut = rawParams.length > 0 ? rawParams : undefined
+    } else if (
+      rawParams &&
+      typeof rawParams === "object" &&
+      Object.keys(rawParams).length > 0
+    ) {
+      paramsOut = rawParams
+    }
     relationships[edge.id] = {
       id: edge.id,
       name: (data.name as string) ?? (data.label as string) ?? "",
@@ -2991,7 +3136,7 @@ export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
         element: edge.target,
         direction: invertHandle(edge.targetHandle),
       },
-      ...(Object.keys(params).length > 0 && { params }),
+      ...(paramsOut !== undefined && { params: paramsOut }),
       ...(typeof data.guard === "string" && data.guard && {
         guard: data.guard,
       }),
@@ -3000,7 +3145,7 @@ export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
         eventName: data.eventName,
       }),
     } as V3UMLRelationship & {
-      params?: { [k: string]: string }
+      params?: string | string[] | { [k: string]: string }
       guard?: string
       code?: string
       eventName?: string
@@ -3673,6 +3818,27 @@ export function migrateNNDiagramV3ToV4(
       `migrateNNDiagramV3ToV4: expected NNDiagram, got ${v4.type}`
     )
   }
+  // One-time NNComposition endpoint normalization: v3 kept whichever
+  // source/target order the drag produced and reversed the *rendered*
+  // path when the container was the source
+  // (`nn-composition-component.tsx`). v4 normalizes the data instead —
+  // NNContainer at the target end, rhombus on `markerEnd` (see
+  // `normalizeNNCompositionEndpoints`).
+  const nodeTypeById = new Map(v4.nodes.map((n) => [n.id, n.type as string]))
+  v4.edges = v4.edges.map((edge) => {
+    if ((edge.type as string) !== "NNComposition") return edge
+    const normalized = normalizeNNCompositionEndpoints(
+      {
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+      },
+      nodeTypeById.get(edge.source),
+      nodeTypeById.get(edge.target)
+    )
+    return normalized.source === edge.source ? edge : { ...edge, ...normalized }
+  })
   return v4
 }
 
@@ -4210,6 +4376,47 @@ function normalizeOCLConstraintNodes(model: UMLModel): UMLModel {
 }
 
 /**
+ * Canonicalise the casing of the three reserved class stereotypes
+ * (`Abstract` / `Interface` / `Enumeration`). Older backend exports
+ * (and third-party fixtures) emitted lowercase `"abstract"` /
+ * `"enumeration"`, but every frontend comparison site
+ * (`ClassSVG`, `HeaderSection`, `isEnumerationClassNode`, the type
+ * pickers, …) compares case-sensitively against the `ClassType` enum —
+ * lowercase imports rendered enums as plain classes and lost abstract
+ * italics. Freeform stereotypes (e.g. `"entity"`) are user content and
+ * pass through untouched.
+ *
+ * Defense-in-depth: the companion backend now emits canonical casing
+ * itself; this pass keeps already-saved exports and older backends
+ * rendering correctly.
+ */
+function normalizeClassStereotypeCase(model: UMLModel): UMLModel {
+  const CANONICAL: Record<string, ClassType> = {
+    abstract: ClassType.Abstract,
+    interface: ClassType.Interface,
+    enumeration: ClassType.Enumeration,
+  }
+
+  let touched = 0
+  const normalizedNodes = model.nodes.map((n) => {
+    if (n.type !== "class") return n
+    const d = (n.data ?? {}) as Record<string, unknown>
+    if (typeof d.stereotype !== "string") return n
+    const canonical = CANONICAL[d.stereotype.trim().toLowerCase()]
+    if (canonical === undefined || d.stereotype === canonical) return n
+    touched += 1
+    return { ...n, data: { ...d, stereotype: canonical } } as BesserNode
+  })
+
+  if (touched === 0) return model
+  log.warn(
+    `normalizeClassStereotypeCase: canonicalised ${touched} class ` +
+      `stereotype value(s) to ClassType casing.`
+  )
+  return { ...model, nodes: normalizedNodes }
+}
+
+/**
  * Unconditional v4 normalization pass.
  *
  * Runs on EVERY model load — including `version: "4.0.0"` templates and
@@ -4226,6 +4433,9 @@ function normalizeOCLConstraintNodes(model: UMLModel): UMLModel {
  *  3. `normalizeOCLConstraintNodes` — canonicalise the OCL node /
  *     edge type names (lowercase → PascalCase) and re-key legacy
  *     `constraint` field onto `expression`.
+ *  4. `normalizeClassStereotypeCase` — case-fold the reserved class
+ *     stereotypes (`abstract` → `Abstract`, …) emitted lowercase by
+ *     older backends; freeform stereotypes untouched.
  */
 export function normalizeV4Model(model: UMLModel): UMLModel {
   let m = model
@@ -4234,6 +4444,7 @@ export function normalizeV4Model(model: UMLModel): UMLModel {
   m = normalizeAgentIntentChildren(m)
   m = normalizeAgentReasoningPrimitiveDefaults(m)
   m = normalizeOCLConstraintNodes(m)
+  m = normalizeClassStereotypeCase(m)
   m = normalizeStateBodyNodesInline(m)
   return m
 }

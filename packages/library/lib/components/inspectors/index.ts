@@ -32,8 +32,9 @@ import "./userDiagram"
 // bodies. The generic `NNComponentEditPanel` is bound to all 17
 // layer-style kinds; `NNContainer` / `NNReference` get dedicated panels.
 import "./nnDiagram"
-// Shared / cross-diagram inspectors (currently the
-// free-form sticky-note `comment` node ported from v3 `common/comments`).
+// Shared / cross-diagram inspectors: the free-form
+// sticky-note `comment` node (ported from v3 `common/comments`) and its
+// dashed `CommentLink` tether edge.
 import "./common"
 
 registerInspector("class", "edit", ClassEditPanel)

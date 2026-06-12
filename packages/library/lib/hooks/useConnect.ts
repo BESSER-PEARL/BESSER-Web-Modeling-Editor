@@ -16,7 +16,9 @@ import {
   generateUUID,
   getDefaultEdgeType,
   getInitialEdgeData,
+  normalizeNNCompositionEndpoints,
   resolveAgentEdgeType,
+  resolveCommentEdgeType,
   resolveNNEdgeType,
 } from "@/utils"
 import { canConnectEndpoints } from "@/utils/bpmnConstraints"
@@ -58,13 +60,15 @@ const resolveClassEdgeType = (
  * `canConnectEndpoints` predicate (in `@/utils/bpmnConstraints`).
  * Keeping the rule in a zero-dependency file lets the regression test
  * import it without dragging React Flow / zustand into the test
- * graph.
+ * graph. `edges` feeds the topology-aware rules (NN Configuration
+ * singleton in `services/connectionRules/nnDiagramRules`).
  */
 const isConnectionAllowed = (
   nodes: Node[],
+  edges: Edge[],
   source: string | null | undefined,
   target: string | null | undefined
-): boolean => canConnectEndpoints(nodes, source, target, (n) => n.id)
+): boolean => canConnectEndpoints(nodes, source, target, (n) => n.id, edges)
 
 export const useConnect = () => {
   const startEdge = useRef<Edge | null>(null)
@@ -144,10 +148,22 @@ export const useConnect = () => {
       // Flow runs `isValidConnection` first, callers may invoke
       // `onConnect` directly (programmatic edge creation). Reject any
       // connection touching an Enumeration class node.
-      if (!isConnectionAllowed(nodes, connection.source, connection.target)) {
+      if (
+        !isConnectionAllowed(nodes, edges, connection.source, connection.target)
+      ) {
         return
       }
-      // ClassDiagram-only auto-detect: if either endpoint
+      // Comment tethering first, then per-diagram auto-detect.
+      // Comments sit in EVERY diagram's palette, so the comment check
+      // runs before the per-diagram switch (StateMachine / Agent /
+      // Object / User / … included, not just ClassDiagram) — and a
+      // comment endpoint can never be an OCL / association-class
+      // endpoint, so the ordering is unambiguous. Uniform rule: any
+      // non-Enumeration node can be tethered (see
+      // `resolveCommentEdgeType` for the develop-parity rationale);
+      // Enumerations stay blocked upstream by `isValidConnection`.
+      //
+      // ClassDiagram auto-detect: if either endpoint
       // is an OCL constraint node, force `ClassOCLLink`; otherwise use
       // the diagram default edge type. NNDiagram auto-detect:
       // Configuration ↔ NNContainer is a composition, Dataset ↔
@@ -156,8 +172,11 @@ export const useConnect = () => {
       // `AgentStateTransitionInit` marker edge.
       const sourceType = nodes.find((n) => n.id === connection.source)?.type
       const targetType = nodes.find((n) => n.id === connection.target)?.type
+      const commentEdgeType = resolveCommentEdgeType(sourceType, targetType)
       let resolvedType: typeof defaultEdgeType
-      if (diagramType === "ClassDiagram") {
+      if (commentEdgeType) {
+        resolvedType = commentEdgeType
+      } else if (diagramType === "ClassDiagram") {
         resolvedType = resolveClassEdgeType(
           sourceType,
           targetType,
@@ -179,8 +198,15 @@ export const useConnect = () => {
         resolvedType = defaultEdgeType
       }
       const initialData = getInitialEdgeData(resolvedType)
+      // NNComposition endpoint normalization — the NNContainer always
+      // lands at the target end so the rhombus (markerEnd) sits on the
+      // container, replacing develop's render-time path reversal.
+      const normalizedConnection =
+        resolvedType === "NNComposition"
+          ? normalizeNNCompositionEndpoints(connection, sourceType, targetType)
+          : connection
       const newEdge: Edge = {
-        ...connection,
+        ...normalizedConnection,
         id: generateUUID(),
         type: resolvedType,
         selected: false,
@@ -273,7 +299,9 @@ export const useConnect = () => {
 
           // Refuse to reroute an existing edge
           // onto / off of an Enumeration class node.
-          if (!isConnectionAllowed(nodes, newEdge.source, newEdge.target)) {
+          if (
+            !isConnectionAllowed(nodes, edges, newEdge.source, newEdge.target)
+          ) {
             startEdge.current = null
             connectionStartParams.current = null
             return
@@ -298,17 +326,25 @@ export const useConnect = () => {
 
           // Refuse to create a new edge whose
           // source or target is an Enumeration class node.
-          if (!isConnectionAllowed(nodes, sourceNodeId, nodeOnTop.id)) {
+          if (!isConnectionAllowed(nodes, edges, sourceNodeId, nodeOnTop.id)) {
             startEdge.current = null
             connectionStartParams.current = null
             return
           }
 
-          // Same auto-detect logic as `onConnect`.
+          // Same auto-detect logic as `onConnect` —
+          // comment tethering first (diagram-agnostic), then the
+          // per-diagram switch.
           const sourceTypeOnEnd = nodes.find((n) => n.id === sourceNodeId)?.type
           const targetTypeOnEnd = nodeOnTop.type
+          const commentEdgeTypeOnEnd = resolveCommentEdgeType(
+            sourceTypeOnEnd,
+            targetTypeOnEnd
+          )
           let resolvedTypeOnEnd: typeof defaultEdgeType
-          if (diagramType === "ClassDiagram") {
+          if (commentEdgeTypeOnEnd) {
+            resolvedTypeOnEnd = commentEdgeTypeOnEnd
+          } else if (diagramType === "ClassDiagram") {
             resolvedTypeOnEnd = resolveClassEdgeType(
               sourceTypeOnEnd,
               targetTypeOnEnd,
@@ -330,14 +366,30 @@ export const useConnect = () => {
             resolvedTypeOnEnd = defaultEdgeType
           }
           const initialDataOnEnd = getInitialEdgeData(resolvedTypeOnEnd)
+          // Same NNComposition endpoint normalization as `onConnect`.
+          const endpointsOnEnd =
+            resolvedTypeOnEnd === "NNComposition"
+              ? normalizeNNCompositionEndpoints(
+                  {
+                    source: sourceNodeId,
+                    target: nodeOnTop.id,
+                    sourceHandle: sourceHandleId,
+                    targetHandle,
+                  },
+                  sourceTypeOnEnd,
+                  targetTypeOnEnd
+                )
+              : {
+                  source: sourceNodeId,
+                  target: nodeOnTop.id,
+                  sourceHandle: sourceHandleId,
+                  targetHandle,
+                }
           setEdges((eds) =>
             eds.concat({
               id: generateUUID(),
-              source: sourceNodeId,
-              target: nodeOnTop.id,
+              ...endpointsOnEnd,
               type: resolvedTypeOnEnd,
-              sourceHandle: sourceHandleId,
-              targetHandle,
               ...(initialDataOnEnd ? { data: initialDataOnEnd } : {}),
             })
           )
@@ -381,8 +433,8 @@ export const useConnect = () => {
    */
   const isValidConnection: IsValidConnection = useCallback(
     (connection) =>
-      isConnectionAllowed(nodes, connection.source, connection.target),
-    [nodes]
+      isConnectionAllowed(nodes, edges, connection.source, connection.target),
+    [nodes, edges]
   )
 
   return {

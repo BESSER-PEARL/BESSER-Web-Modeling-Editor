@@ -999,3 +999,305 @@ describe("OCL constraint v4 template normalization", () => {
     expect(data.expression).toBe("inv: true")
   })
 })
+
+// ---------------------------------------------------------------------------
+// Wave-3 `[class stereotype case]`: older backends emitted lowercase
+// stereotypes ("abstract" / "enumeration" / "oclConstraint") while the
+// frontend compares case-sensitively against the ClassType enum.
+// `normalizeClassStereotypeCase` (registered in `normalizeV4Model`)
+// folds the three reserved words to canonical casing; freeform
+// stereotypes are user content and pass through untouched.
+// ---------------------------------------------------------------------------
+describe("class stereotype case normalization", () => {
+  const classFixture = (
+    stereotype: string | undefined,
+    type = "class"
+  ) => ({
+    id: "tpl",
+    version: "4.0.0",
+    title: "stereotype case",
+    type: "ClassDiagram",
+    nodes: [
+      {
+        id: "class-1",
+        width: 160,
+        height: 130,
+        type,
+        position: { x: 0, y: 0 },
+        data: {
+          name: "Team",
+          attributes: [],
+          methods: [],
+          ...(stereotype !== undefined && { stereotype }),
+        },
+      },
+    ],
+    edges: [],
+  })
+
+  const normalizedStereotype = (fixture: unknown): string | undefined =>
+    (
+      normalizeV4Model(fixture as never).nodes[0].data as {
+        stereotype?: string
+      }
+    ).stereotype
+
+  it.each([
+    ["abstract", "Abstract"],
+    ["enumeration", "Enumeration"],
+    ["interface", "Interface"],
+    ["ABSTRACT", "Abstract"],
+    [" Abstract ", "Abstract"],
+  ])("folds %j to %j", (input, expected) => {
+    expect(normalizedStereotype(classFixture(input))).toBe(expected)
+  })
+
+  it("leaves freeform stereotypes untouched", () => {
+    expect(normalizedStereotype(classFixture("entity"))).toBe("entity")
+  })
+
+  it("ignores non-class node types", () => {
+    const fixture = classFixture("abstract", "package")
+    expect(normalizedStereotype(fixture)).toBe("abstract")
+  })
+
+  it("returns the same reference for already-canonical models", () => {
+    const fixture = classFixture("Enumeration")
+    expect(normalizeV4Model(fixture as never)).toBe(fixture)
+  })
+
+  it("returns the same reference when no stereotype is present", () => {
+    const fixture = classFixture(undefined)
+    expect(normalizeV4Model(fixture as never)).toBe(fixture)
+  })
+
+  it("renders-ready after importDiagram of a backend-shaped v4 export", () => {
+    // Older companion-backend exports carried lowercase "enumeration";
+    // `importDiagram` routes every v4 load through `normalizeV4Model`.
+    const backendShaped = {
+      version: "4.0.0",
+      type: "ClassDiagram",
+      title: "BUML import",
+      nodes: [
+        {
+          id: "enum-1",
+          type: "class",
+          position: { x: 0, y: 0 },
+          width: 160,
+          height: 100,
+          data: {
+            name: "Color",
+            stereotype: "enumeration",
+            attributes: [{ id: "l1", name: "RED" }],
+            methods: [],
+          },
+        },
+      ],
+      edges: [],
+    }
+    const result = importDiagram(backendShaped as never)
+    const data = result.nodes[0].data as { stereotype?: string }
+    expect(data.stereotype).toBe("Enumeration")
+    expect(isEnumerationClassNode(result.nodes[0] as never)).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Wave-3 `[association-class-link]`: the backend-canonical edge-anchored
+// ClassLinkRel (source = association EDGE id, sourceHandle "Center",
+// targetHandle "Up") must flow through normalization and the v4→v3
+// exporter without drops or endpoint rewrites.
+// ---------------------------------------------------------------------------
+describe("edge-anchored ClassLinkRel wire-shape preservation", () => {
+  const v4WithLink = () => ({
+    id: "m1",
+    version: "4.0.0",
+    title: "association class",
+    type: "ClassDiagram",
+    nodes: [
+      {
+        id: "class-a",
+        type: "class",
+        position: { x: 0, y: 0 },
+        width: 160,
+        height: 100,
+        data: { name: "Student", attributes: [], methods: [] },
+      },
+      {
+        id: "class-b",
+        type: "class",
+        position: { x: 400, y: 0 },
+        width: 160,
+        height: 100,
+        data: { name: "Course", attributes: [], methods: [] },
+      },
+      {
+        id: "class-ac",
+        type: "class",
+        position: { x: 200, y: 200 },
+        width: 160,
+        height: 100,
+        data: { name: "Enrollment", attributes: [], methods: [] },
+      },
+    ],
+    edges: [
+      {
+        id: "assoc-1",
+        source: "class-a",
+        sourceHandle: "right",
+        target: "class-b",
+        targetHandle: "left",
+        type: "ClassBidirectional",
+        data: { name: "enrols", points: [] },
+      },
+      {
+        // Backend emission shape (`class_diagram_converter.py`).
+        id: "link-1",
+        source: "assoc-1",
+        sourceHandle: "Center",
+        target: "class-ac",
+        targetHandle: "Up",
+        type: "ClassLinkRel",
+        data: { points: [] },
+      },
+    ],
+  })
+
+  it("normalizeV4Model preserves the link untouched (identity)", () => {
+    const fixture = v4WithLink()
+    const result = normalizeV4Model(fixture as never)
+    expect(result).toBe(fixture)
+    const link = result.edges.find((e) => e.id === "link-1")!
+    expect(link.source).toBe("assoc-1")
+    expect(link.target).toBe("class-ac")
+  })
+
+  it("convertV4ToV3Class emits the link with the association id endpoint", () => {
+    const v3 = convertV4ToV3Class(v4WithLink() as never)
+    const rel = (
+      v3.relationships as Record<
+        string,
+        {
+          type?: string
+          source: { element: string; direction?: string }
+          target: { element: string; direction?: string }
+        }
+      >
+    )["link-1"]
+    expect(rel).toBeDefined()
+    expect(rel.type).toBe("ClassLinkRel")
+    // No endpoint rewrite: source stays the association EDGE id with
+    // the v3 Center direction semantics; target stays the class node.
+    expect(rel.source.element).toBe("assoc-1")
+    expect(rel.source.direction).toBe("Center")
+    expect(rel.target.element).toBe("class-ac")
+    expect(rel.target.direction).toBe("Up")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Wave-3 `[attribute-per-row-color]`: per-member fill/text colors must
+// survive v3 → v4 → v3 (the editing surface writes `row.fillColor` /
+// `row.textColor`, which the exporters re-emit).
+// ---------------------------------------------------------------------------
+describe("per-member color round-trip", () => {
+  const v3WithMemberColors = () => ({
+    version: "3.0.0",
+    type: "ClassDiagram",
+    size: { width: 800, height: 600 },
+    interactive: { elements: {}, relationships: {} },
+    elements: {
+      "node-Team": {
+        id: "node-Team",
+        name: "Team",
+        type: "Class",
+        owner: null,
+        bounds: { x: 0, y: 0, width: 200, height: 100 },
+        attributes: ["attr-1"],
+        methods: ["method-1"],
+      },
+      "attr-1": {
+        id: "attr-1",
+        name: "name",
+        type: "ClassAttribute",
+        owner: "node-Team",
+        bounds: { x: 0, y: 30, width: 200, height: 30 },
+        attributeType: "str",
+        visibility: "public",
+        fillColor: "#ffeebb",
+        textColor: "#112233",
+      },
+      "method-1": {
+        id: "method-1",
+        name: "play",
+        type: "ClassMethod",
+        owner: "node-Team",
+        bounds: { x: 0, y: 60, width: 200, height: 30 },
+        fillColor: "#ddeeff",
+        textColor: "#445566",
+      },
+      "node-Color": {
+        id: "node-Color",
+        name: "Color",
+        type: "Enumeration",
+        owner: null,
+        bounds: { x: 300, y: 0, width: 160, height: 70 },
+        attributes: ["lit-1"],
+        methods: [],
+      },
+      "lit-1": {
+        id: "lit-1",
+        name: "RED",
+        type: "ClassAttribute",
+        owner: "node-Color",
+        bounds: { x: 300, y: 30, width: 160, height: 30 },
+        fillColor: "#aa0000",
+        textColor: "#ffffff",
+      },
+    },
+    relationships: {},
+    assessments: {},
+  })
+
+  it("carries attribute/method/enum-literal colors into v4 rows", () => {
+    const v4 = migrateClassDiagramV3ToV4(v3WithMemberColors() as never)
+    const team = v4.nodes.find((n) => n.id === "node-Team")!
+    const teamData = team.data as ClassNodeProps
+    expect(teamData.attributes[0]).toMatchObject({
+      fillColor: "#ffeebb",
+      textColor: "#112233",
+    })
+    expect(teamData.methods[0]).toMatchObject({
+      fillColor: "#ddeeff",
+      textColor: "#445566",
+    })
+    const literal = (
+      v4.nodes.find((n) => n.id === "node-Color")!.data as ClassNodeProps
+    ).attributes[0]
+    expect(literal).toMatchObject({
+      fillColor: "#aa0000",
+      textColor: "#ffffff",
+    })
+  })
+
+  it("re-emits the colors on v4 → v3 (round-trip identity for colors)", () => {
+    const v4 = migrateClassDiagramV3ToV4(v3WithMemberColors() as never)
+    const v3Round = convertV4ToV3Class(v4)
+    const els = v3Round.elements as Record<
+      string,
+      { fillColor?: string; textColor?: string }
+    >
+    expect(els["attr-1"]).toMatchObject({
+      fillColor: "#ffeebb",
+      textColor: "#112233",
+    })
+    expect(els["method-1"]).toMatchObject({
+      fillColor: "#ddeeff",
+      textColor: "#445566",
+    })
+    expect(els["lit-1"]).toMatchObject({
+      fillColor: "#aa0000",
+      textColor: "#ffffff",
+    })
+  })
+})

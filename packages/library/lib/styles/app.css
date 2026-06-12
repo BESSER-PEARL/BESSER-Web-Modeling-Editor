@@ -416,3 +416,12 @@ svg.react-flow__connectionline {
     opacity: 1;
   }
 }
+
+/* Association-class linking mode: the canvas waits for the user to pick
+   the class node that completes a pending ClassLinkRel (armed via the
+   association midpoint toolbar). Crosshair signals "pick a target". */
+.besser-container--linking,
+.besser-container--linking .react-flow__pane,
+.besser-container--linking .react-flow__node {
+  cursor: crosshair !important;
+}

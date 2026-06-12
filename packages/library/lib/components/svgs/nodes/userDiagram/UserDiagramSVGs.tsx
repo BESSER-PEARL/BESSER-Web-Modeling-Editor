@@ -368,6 +368,13 @@ function makeUserModelPaletteSVG(
  */
 export interface UserModelPaletteEntry {
   type: "UserModelName"
+  /**
+   * Meta-model class node id (stable — baked into `usermetamodel.json`).
+   * Dropped nodes carry it as `data.classId` so
+   * `diagramBridge.getAvailableAssociations(classId)` resolves — v3's
+   * per-metaclass palette instances carried the same binding.
+   */
+  classId: string
   className: string
   attributes: { id: string; name: string; attributeType: string }[]
   svg: FC<SVGComponentProps>
@@ -383,6 +390,7 @@ export function getUserModelNamePaletteEntries(): UserModelPaletteEntry[] {
   const classes: UserMetaModelClass[] = getUserMetaModelClasses()
   return classes.map((c) => ({
     type: "UserModelName" as const,
+    classId: c.id,
     className: c.name,
     attributes: c.attributes,
     svg: makeUserModelPaletteSVG(

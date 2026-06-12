@@ -19,6 +19,7 @@ import {
   pruneInteractiveElements,
   toggleInteractiveRecord,
 } from "@/utils/interactiveUtils"
+import { pruneDanglingLinkRels } from "@/utils/associationClassLink"
 import { log } from "../logger"
 
 /**
@@ -347,8 +348,17 @@ export const createDiagramStore = (
         },
 
         setEdges: (payload) => {
-          const edges =
+          const rawEdges =
             typeof payload === "function" ? payload(get().edges) : payload
+          // Cascade: drop ClassLinkRel edges whose association edge or
+          // class node endpoint no longer exists. React Flow only
+          // auto-cascades edges it renders; edge-anchored association-
+          // class links live only in the store (see
+          // `associationClassLink.ts`), so the store prunes them itself.
+          const edges = pruneDanglingLinkRels(
+            rawEdges,
+            new Set(get().nodes.map((n) => n.id))
+          )
 
           if (deepEqual(get().edges, edges)) {
             return
@@ -376,10 +386,16 @@ export const createDiagramStore = (
           )
         },
 
-        setNodesAndEdges: (rawNodes, edges) => {
+        setNodesAndEdges: (rawNodes, rawEdges) => {
           // Scrub floating Agent body nodes before
           // they reach the Yjs map / store.
           const nodes = dropFloatingAgentBodies(rawNodes)
+          // Same ClassLinkRel cascade as `setEdges` — evaluated against
+          // the incoming node set so full model loads stay atomic.
+          const edges = pruneDanglingLinkRels(
+            rawEdges,
+            new Set(nodes.map((n) => n.id))
+          )
           ydoc.transact(() => {
             getNodesMap(ydoc).clear()
             getEdgesMap(ydoc).clear()
@@ -486,6 +502,21 @@ export const createDiagramStore = (
                   connectedEdges.forEach((edge) =>
                     getEdgesMap(ydoc).delete(edge.id)
                   )
+                  // Second-order cascade: deleting the node took its
+                  // association edges with it — drop any edge-anchored
+                  // ClassLinkRel that referenced one of those edges.
+                  const removedEdgeIds = new Set(
+                    connectedEdges.map((edge) => edge.id)
+                  )
+                  get().edges.forEach((edge) => {
+                    if (
+                      edge.type === "ClassLinkRel" &&
+                      (removedEdgeIds.has(edge.source) ||
+                        removedEdgeIds.has(edge.target))
+                    ) {
+                      getEdgesMap(ydoc).delete(edge.id)
+                    }
+                  })
                 }
               } else {
                 const node = nextNodes.find((n) => n.id === change.id)
@@ -562,7 +593,23 @@ export const createDiagramStore = (
           if (changesWithoutSelect.length === 0) return
 
           const currentEdges = get().edges
-          const nextEdges = applyEdgeChanges(changesWithoutSelect, currentEdges)
+          const appliedEdges = applyEdgeChanges(
+            changesWithoutSelect,
+            currentEdges
+          )
+          // Cascade: removing an association edge must also remove the
+          // edge-anchored ClassLinkRel referencing it (React Flow never
+          // sees those links, so it cannot cascade them itself).
+          const nextEdges = pruneDanglingLinkRels(
+            appliedEdges,
+            new Set(get().nodes.map((n) => n.id))
+          )
+          const cascadeRemovedIds =
+            nextEdges === appliedEdges
+              ? []
+              : appliedEdges
+                  .filter((e) => !nextEdges.includes(e))
+                  .map((e) => e.id)
           if (deepEqual(currentEdges, nextEdges)) {
             return
           }
@@ -584,6 +631,9 @@ export const createDiagramStore = (
                 getEdgesMap(ydoc).delete(change.id)
               }
             }
+            cascadeRemovedIds.forEach((edgeId) =>
+              getEdgesMap(ydoc).delete(edgeId)
+            )
           }, "store")
           const prunedInteractive = pruneInteractiveElements(
             {

@@ -21,9 +21,10 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
  * inspector's colour swatches (these flow through `DefaultNodeProps`
  * fillColor / strokeColor / textColor).
  *
- * The node intentionally does NOT expose connection handles — comments
- * are untethered notes (per the brief: "comments float
- * as untethered sticky notes; binding to elements can be added later").
+ * The node exposes the standard connection handles — dragging a
+ * connection from/to a comment creates a dashed `CommentLink` tether
+ * (v3 `Comments.supportedRelationships = [GeneralRelationshipType.Link]`;
+ * see `resolveCommentEdgeType` in `utils/edgeUtils.ts`).
  */
 const MIN_WIDTH = 120
 const MIN_HEIGHT = 50
@@ -97,10 +98,11 @@ export function Comment({
   const maxLines = Math.max(1, Math.floor(innerHeight / 14))
   const lines = wrapText(data.name || "", charsPerLine, maxLines)
 
-  // Make Comment handles visible so the user can
-  // anchor a CommentLink dependency arrow to any element. Full CommentLink
-  // inspector port is TODO — for now the placeholder edge type is registered
-  // in `edges/edgeTypes/index.ts` and uses the dashed dependency style.
+  // Comment handles are visible so the user can anchor
+  // a CommentLink tether to any element. The dashed edge type is
+  // registered in `edges/types.tsx`, creation is auto-detected in
+  // `useConnect` via `resolveCommentEdgeType`, and the stroke-styling
+  // inspector is `inspectors/common/CommentLinkEditPanel`.
   return (
     <DefaultNodeWrapper
       width={w}

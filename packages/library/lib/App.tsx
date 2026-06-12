@@ -4,8 +4,9 @@ import {
   ConnectionMode,
   ReactFlow,
   SelectionMode,
+  type Node,
 } from "@xyflow/react"
-import { useCallback } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 import {
   CustomBackground,
   CustomControls,
@@ -35,6 +36,10 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts"
 import { usePaneClicked } from "./hooks/usePaneClicked"
 import { BesserMode } from "./typings"
 import { getConnectionLineType } from "./utils/edgeUtils"
+import { isEdgeAnchoredLinkRel } from "./utils/associationClassLink"
+import { isEnumerationClassNode } from "./utils/bpmnConstraints"
+import { useEdgeLinkingStore } from "./store/edgeLinkingStore"
+import { generateUUID } from "./utils"
 import { PropertiesPanel } from "./components/propertiesPanel/PropertiesPanel"
 import { useUsePropertiesPanel } from "./store/settingsStore"
 // Side-effect import: seed BESSER inspector overrides into the shared
@@ -51,7 +56,7 @@ const proOptions = { hideAttribution: true }
 function App({ onReactFlowInit }: AppProps) {
   useKeyboardShortcuts()
 
-  const { nodes, onNodesChange, edges, onEdgesChange, diagramId } =
+  const { nodes, onNodesChange, edges, onEdgesChange, diagramId, addEdge } =
     useDiagramStore(
       useShallow((state) => ({
         nodes: state.nodes,
@@ -59,6 +64,7 @@ function App({ onReactFlowInit }: AppProps) {
         edges: state.edges,
         onEdgesChange: state.onEdgesChange,
         diagramId: state.diagramId,
+        addEdge: state.addEdge,
       }))
     )
 
@@ -102,6 +108,71 @@ function App({ onReactFlowInit }: AppProps) {
     [onReactFlowInit]
   )
 
+  // Edge-anchored ClassLinkRel edges (association-class links whose
+  // endpoint is an association EDGE id) cannot be rendered by React
+  // Flow — filter them from the edges prop. They stay in
+  // `diagramStore.edges` (Yjs) so model getters / exports round-trip
+  // them untouched; `ClassDiagramEdge` draws them as a dashed overlay.
+  const nodeIdSet = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes])
+  const renderableEdges = useMemo(() => {
+    const filtered = edges.filter((e) => !isEdgeAnchoredLinkRel(e, nodeIdSet))
+    return filtered.length === edges.length ? edges : filtered
+  }, [edges, nodeIdSet])
+
+  // Association-class authoring (click-to-pick): "Attach association
+  // class" on an association's midpoint toolbar arms
+  // `pendingAssociationEdgeId`; clicking a (non-Enumeration) class node
+  // completes the link with the backend's canonical orientation
+  // (source = association edge id, sourceHandle "Center").
+  const { pendingAssociationEdgeId, cancelLinking } = useEdgeLinkingStore(
+    useShallow((state) => ({
+      pendingAssociationEdgeId: state.pendingAssociationEdgeId,
+      cancelLinking: state.cancelLinking,
+    }))
+  )
+
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      if (!pendingAssociationEdgeId) return
+      // Stale-id guard: the pending association must still exist in
+      // THIS diagram's edges (the linking store is module-level).
+      const associationExists = edges.some(
+        (e) => e.id === pendingAssociationEdgeId
+      )
+      const isLinkableClass =
+        node.type === "class" && !isEnumerationClassNode(node)
+      if (associationExists && isLinkableClass) {
+        addEdge({
+          id: generateUUID(),
+          source: pendingAssociationEdgeId,
+          sourceHandle: "Center",
+          target: node.id,
+          targetHandle: "top",
+          type: "ClassLinkRel",
+          selected: false,
+          data: { points: [] },
+        })
+      }
+      cancelLinking()
+    },
+    [pendingAssociationEdgeId, edges, addEdge, cancelLinking]
+  )
+
+  // Escape cancels a pending association-class link pick.
+  useEffect(() => {
+    if (!pendingAssociationEdgeId) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cancelLinking()
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [pendingAssociationEdgeId, cancelLinking])
+
+  const handlePaneClicked = useCallback(() => {
+    cancelLinking()
+    onPaneClicked()
+  }, [cancelLinking, onPaneClicked])
+
   return (
     <div
       className={`besser-editor ${readonly ? "besser-editor--readonly" : ""}`}
@@ -117,11 +188,13 @@ function App({ onReactFlowInit }: AppProps) {
       {mode === BesserMode.Modelling && !readonly && <Sidebar />}
       <ReactFlow
         id={`react-flow-library-${diagramId}`}
-        className="besser-container"
+        className={`besser-container${
+          pendingAssociationEdgeId ? " besser-container--linking" : ""
+        }`}
         nodeTypes={diagramNodeTypes}
         edgeTypes={diagramEdgeTypes}
         nodes={nodes}
-        edges={edges}
+        edges={renderableEdges}
         onDragOver={onDragOver}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -144,10 +217,11 @@ function App({ onReactFlowInit }: AppProps) {
         maxZoom={CANVAS.MAX_SCALE_TO_ZOOM_IN}
         snapToGrid
         snapGrid={[CANVAS.SNAP_TO_GRID_PX, CANVAS.SNAP_TO_GRID_PX]}
+        onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
         onBeforeDelete={onBeforeDelete}
-        onPaneClick={onPaneClicked}
+        onPaneClick={handlePaneClicked}
         proOptions={proOptions}
         edgesReconnectable={isDiagramModifiable}
         nodesConnectable={isDiagramModifiable}
@@ -160,6 +234,9 @@ function App({ onReactFlowInit }: AppProps) {
         selectionOnDrag
         selectionMode={SelectionMode.Partial}
         panOnDrag={[1, 2]}
+        // Develop (Apollon) toggled multi-select with Shift+click; React Flow
+        // defaults to Meta/Control only — accept all three for parity.
+        multiSelectionKeyCode={["Shift", "Meta", "Control"]}
       >
         <CustomBackground />
         <CustomMiniMap />

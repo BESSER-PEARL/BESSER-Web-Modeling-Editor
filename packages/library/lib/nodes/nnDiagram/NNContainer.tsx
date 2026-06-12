@@ -9,6 +9,7 @@ import { useDiagramStore } from "@/store/context"
 import { NNContainerNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { useUniqueNNName } from "./_NNLayerBase"
 
 /**
  * `NNContainer` — UML-package-style parent node for a sequential layer
@@ -29,6 +30,11 @@ export function NNContainer({
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
+
+  // First-mount unique naming (Wave-3 NN-7): the backend resolves
+  // containers by name, so two 'Neural_Network' containers silently
+  // drop a whole NN. Same dedupe as layer cards.
+  useUniqueNNName(id, "NNContainer")
 
   if (!width || !height) return null
 

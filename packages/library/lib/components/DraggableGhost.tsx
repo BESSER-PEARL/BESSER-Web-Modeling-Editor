@@ -28,6 +28,38 @@ const enableScroll = () => {
 }
 
 /* ========================================================================
+   Palette template row re-iding
+   ======================================================================== */
+/**
+ * Clone a palette entry's `defaultData` and assign fresh ids to any
+ * template row arrays (`methods` / `attributes` / `bodies` /
+ * `fallbackBodies`). Row ids become top-level v3 element ids on export
+ * (e.g. `convertV4ToV3Agent` emits `elements[row.id]`), so two drops of
+ * the same pre-populated palette card would collide without this.
+ *
+ * NN-layer palette entries store `attributes` as a slug→value dict
+ * (e.g. `{"pooling.dimension": "2D"}`) — non-array shapes are left
+ * untouched; their keys are stable, no ids needed.
+ *
+ * Exported for tests (palette-drop unique-id guarantees).
+ */
+export const cloneDefaultDataWithFreshRowIds = (
+  configDefaultData: Record<string, unknown> | undefined
+): Record<string, unknown> => {
+  const defaultData = structuredClone(configDefaultData ?? {})
+  for (const key of ["methods", "attributes", "bodies", "fallbackBodies"]) {
+    const rows = defaultData[key]
+    if (Array.isArray(rows)) {
+      defaultData[key] = (rows as Array<object>).map((row) => ({
+        ...row,
+        id: generateUUID(),
+      }))
+    }
+  }
+  return defaultData
+}
+
+/* ========================================================================
    DraggableGhost Component
    Wraps a child element with drag & drop behavior and drop logic.
    ======================================================================== */
@@ -87,29 +119,12 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         return
       }
 
-      // Deep clone defaultData to avoid mutating the original config
-      const defaultData = structuredClone(dropElementConfig.defaultData ?? {})
-
-      // Assign new IDs to methods and attributes — only when shaped as
-      // arrays. NN-layer palette entries store `attributes` as a slug→value
-      // dict (e.g. `{"pooling.dimension": "2D"}`), which would crash the
-      // .map() call below. Skip those; their keys are stable, no IDs needed.
-      if (Array.isArray(defaultData.methods)) {
-        defaultData.methods = (defaultData.methods as Array<object>).map(
-          (method) => ({
-            ...method,
-            id: generateUUID(),
-          })
-        )
-      }
-      if (Array.isArray(defaultData.attributes)) {
-        defaultData.attributes = (defaultData.attributes as Array<object>).map(
-          (attribute) => ({
-            ...attribute,
-            id: generateUUID(),
-          })
-        )
-      }
+      // Deep clone defaultData (avoids mutating the original config) and
+      // assign fresh ids to template rows — see
+      // `cloneDefaultDataWithFreshRowIds` for the why.
+      const defaultData = cloneDefaultDataWithFreshRowIds(
+        dropElementConfig.defaultData as Record<string, unknown> | undefined
+      )
 
       // Prepare the drop data including offset adjustments
       const dropData: DropNodeData = {

@@ -406,6 +406,145 @@ describe("ClassEditPanel — flag locks (optional ↔ id)", () => {
   })
 })
 
+describe("ClassEditPanel — per-row color swatches", () => {
+  it("patches fillColor on the attribute row through the fill swatch", () => {
+    const { store } = renderPanel([
+      classNode({
+        attributes: [
+          {
+            id: "a1",
+            name: "age",
+            attributeType: "int",
+            visibility: "public",
+          },
+        ],
+      }),
+    ])
+    const fillInput = screen.getByLabelText("Row fill color")
+    fireEvent.change(fillInput, { target: { value: "#ffee00" } })
+    expect(getAttr(store).fillColor).toBe("#ffee00")
+  })
+
+  it("patches textColor and resets it on right-click", () => {
+    const { store } = renderPanel([
+      classNode({
+        attributes: [
+          {
+            id: "a1",
+            name: "age",
+            attributeType: "int",
+            visibility: "public",
+            textColor: "#112233",
+          },
+        ],
+      }),
+    ])
+    const textInput = screen.getByLabelText("Row text color")
+    fireEvent.change(textInput, { target: { value: "#445566" } })
+    expect(getAttr(store).textColor).toBe("#445566")
+
+    fireEvent.contextMenu(textInput.parentElement as HTMLElement)
+    expect(getAttr(store).textColor).toBeUndefined()
+  })
+
+  it("renders the swatches on enumeration literal rows too", () => {
+    const { store } = renderPanel([
+      classNode({
+        stereotype: "Enumeration",
+        attributes: [{ id: "l1", name: "RED" }],
+        methods: [],
+      }),
+    ])
+    // Literal rows hide visibility/type but keep both swatches
+    // (develop colored literals via the same ColorButton + StylePane).
+    const fillInput = screen.getByLabelText("Row fill color")
+    fireEvent.change(fillInput, { target: { value: "#aa0000" } })
+    expect(getAttr(store).fillColor).toBe("#aa0000")
+    expect(screen.getByLabelText("Row text color")).toBeInTheDocument()
+  })
+
+  it("patches fillColor on a method row through its fill swatch", () => {
+    const { store } = renderPanel([
+      classNode({
+        methods: [
+          {
+            id: "m1",
+            name: "run",
+            visibility: "public",
+            attributeType: "any",
+            returnType: "any",
+            parameters: [],
+            implementationType: "none",
+          },
+        ],
+      }),
+    ])
+    const fillInput = screen.getByLabelText("Row fill color")
+    fireEvent.change(fillInput, { target: { value: "#00ddee" } })
+    expect(getMethod(store).fillColor).toBe("#00ddee")
+  })
+})
+
+describe("ClassEditPanel — Clear Code + editor chrome", () => {
+  const codeMethod = (code: string) =>
+    classNode({
+      methods: [
+        {
+          id: "m1",
+          name: "run",
+          visibility: "public",
+          attributeType: "any",
+          returnType: "any",
+          parameters: [],
+          implementationType: "code" as const,
+          code,
+        },
+      ],
+    })
+
+  it("shows 'Clear Code' while code exists and clears it on click", () => {
+    const { store } = renderPanel([codeMethod("def run(self):\n    pass\n")])
+    const button = screen.getByRole("button", { name: "Clear Code" })
+    fireEvent.click(button)
+    expect(getMethod(store).code).toBe("")
+  })
+
+  it("hides 'Clear Code' when the body is empty/whitespace", () => {
+    renderPanel([codeMethod("   \n")])
+    expect(
+      screen.queryByRole("button", { name: "Clear Code" })
+    ).toBeNull()
+  })
+
+  it("labels the editor header by implementation type", () => {
+    renderPanel([
+      classNode({
+        methods: [
+          {
+            id: "m1",
+            name: "run",
+            visibility: "public",
+            attributeType: "any",
+            returnType: "any",
+            parameters: [],
+            implementationType: "bal" as const,
+            code: "def run() -> nothing {}\n",
+          },
+        ],
+      }),
+    ])
+    expect(
+      screen.getByText(/BESSER Action Language\s+Implementation/)
+    ).toBeInTheDocument()
+  })
+
+  it("wraps CodeMirror in a drag-resizable container (develop parity)", () => {
+    renderPanel([codeMethod("def run(self):\n    pass\n")])
+    const wrapper = screen.getByTestId("code-editor-resizable")
+    expect(wrapper).toHaveStyle({ resize: "both", overflow: "auto" })
+  })
+})
+
 describe("ClassEditPanel — type-aware default-value widgets", () => {
   it("renders a true/false dropdown for bool attributes", () => {
     const { store } = renderPanel([

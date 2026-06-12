@@ -239,9 +239,10 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
     case "ComponentDependency":
     case "ClassDependency":
     case "DeploymentDependency":
-    // CommentLink placeholder — render the
-    // dashed-dependency style so comment-to-element anchors look like
-    // their v3 counterpart. TODO: full inspector port (label, kind, etc).
+    // CommentLink — render the dashed-dependency style
+    // so comment tethers look like their v3 `Link` counterpart (drawn
+    // dashed by the association component). Created via
+    // `resolveCommentEdgeType`; styled via `CommentLinkEditPanel`.
     case "CommentLink":
       return {
         markerPadding: EDGES.MARKER_PADDING,
@@ -884,9 +885,13 @@ export const getDefaultEdgeType = (
 /**
  * Auto-detect the NNDiagram edge type from its endpoints. Configuration
  * → NNContainer is a composition (diamond on the Configuration side, v3
- * `NNComposition`); TrainingDataset / TestDataset → NNContainer is the
- * association line (`NNAssociation`); everything else (layer → layer,
- * TensorOp → layer) is the standard `NNNext` flow arrow.
+ * `NNComposition`); NNContainer ↔ NNContainer is also a composition
+ * (sub-network reuse — develop `nn-container.ts`
+ * `supportedRelationships = [NNComposition, NNAssociation]`, first
+ * entry wins in the connectable intersection); TrainingDataset /
+ * TestDataset → NNContainer is the association line (`NNAssociation`);
+ * everything else (layer → layer, TensorOp → layer) is the standard
+ * `NNNext` flow arrow.
  */
 export const resolveNNEdgeType = (
   sourceType: string | undefined,
@@ -894,6 +899,9 @@ export const resolveNNEdgeType = (
   fallback: DiagramEdgeType
 ): DiagramEdgeType => {
   if (!sourceType || !targetType) return fallback
+  if (sourceType === "NNContainer" && targetType === "NNContainer") {
+    return "NNComposition"
+  }
   const containerTouching =
     sourceType === "NNContainer" || targetType === "NNContainer"
   if (!containerTouching) return fallback
@@ -905,6 +913,47 @@ export const resolveNNEdgeType = (
     return "NNAssociation"
   }
   return fallback
+}
+
+/**
+ * Normalize `NNComposition` endpoint order at creation time so the
+ * NNContainer always sits at the **target** end — where the filled
+ * rhombus rides (`getEdgeMarkerStyles('NNComposition')` puts it on
+ * `markerEnd`). Develop achieved the same visual by reversing the
+ * rendered path whenever the *source* was the container
+ * (`nn-composition-component.tsx` 33-60); v4 normalizes the data
+ * instead so exports carry the canonical direction.
+ *
+ * Truth table:
+ *  - config → container: no swap (diamond already at the container),
+ *  - container → config: swap,
+ *  - containerA → containerB: swap — diamond lands on the drag-source
+ *    container, matching develop's render-time reversal semantics.
+ *
+ * Non-composition pairs are returned unchanged.
+ */
+export const normalizeNNCompositionEndpoints = <
+  T extends {
+    source: string
+    target: string
+    sourceHandle?: string | null
+    targetHandle?: string | null
+  },
+>(
+  connection: T,
+  sourceType: string | undefined,
+  targetType: string | undefined
+): T => {
+  const resolved = resolveNNEdgeType(sourceType, targetType, "NNNext")
+  if (resolved !== "NNComposition") return connection
+  if (sourceType !== "NNContainer") return connection
+  return {
+    ...connection,
+    source: connection.target,
+    sourceHandle: connection.targetHandle,
+    target: connection.source,
+    targetHandle: connection.sourceHandle,
+  }
 }
 
 /**
@@ -941,6 +990,35 @@ export const resolveAgentEdgeType = (
 }
 
 /**
+ * Diagram-agnostic comment tethering. Drawing a connection where either
+ * endpoint is the free-form `comment` sticky note produces a dashed
+ * `CommentLink` edge — the v4 spelling of v3's
+ * `GeneralRelationshipType.Link` (`uml-link.ts`, rendered dashed by the
+ * association component). comment ↔ comment also links: on develop,
+ * `Comments.supportedRelationships = [Link]` on both ends intersected
+ * to Link.
+ *
+ * Decision (parity superset, recorded here on purpose): develop only
+ * tethered cleanly to elements that listed `GeneralRelationshipType.Link`
+ * (UMLClass, ObjectName, State, AgentState, AgentReasoningState,
+ * UserModelName, Comments). Endpoints WITHOUT it (AbstractClass,
+ * Interface, OCL constraint) fell through to the mistyped diagram
+ * default (e.g. `ClassBidirectional`) — a develop bug, not a
+ * capability. The v4 rule is uniform: ANY non-Enumeration node can be
+ * tethered. Enumerations stay blocked upstream by `isValidConnection` /
+ * `canConnectEndpoints` (`bpmnConstraints.ts`), exact develop parity
+ * (`uml-enumeration.ts` set `features.connectable: false`).
+ *
+ * Returns `null` when no comment endpoint is involved so callers fall
+ * through to their per-diagram resolution.
+ */
+export const resolveCommentEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined
+): "CommentLink" | null =>
+  sourceType === "comment" || targetType === "comment" ? "CommentLink" : null
+
+/**
  * Default `data` payload for a freshly hand-drawn edge. Mirrors what a
  * v3 relationship instance serialized on creation so the inspector and
  * the backend processors see the same canonical shape:
@@ -951,6 +1029,10 @@ export const resolveAgentEdgeType = (
  *     { predefinedType: 'when_intent_matched', intentName: '' }`,
  *     `custom: { condition: [] }`, `params: {}`).
  *   - `AgentStateTransitionInit` — pure marker, only `params`.
+ *   - `NNNext` — v3 `nn-unidirectional.ts` seeds `name = 'next'` in the
+ *     constructor and serializes it verbatim. (`resolveNNEdgeType` may
+ *     instead resolve NNComposition / NNAssociation — those carry no
+ *     name.)
  *
  * Everything else returns `undefined` (no data key on the new edge),
  * matching the previous behavior for class / object / … edges whose
@@ -969,6 +1051,8 @@ export const getInitialEdgeData = (
       }
     case "AgentStateTransitionInit":
       return { params: {} }
+    case "NNNext":
+      return { name: "next" }
     default:
       return undefined
   }

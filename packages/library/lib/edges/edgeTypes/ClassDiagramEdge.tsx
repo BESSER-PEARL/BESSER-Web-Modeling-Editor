@@ -10,13 +10,47 @@ import { useStepPathEdge } from "@/hooks/useStepPathEdge"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { useToolbar } from "@/hooks"
-import { useRef } from "react"
+import { useMemo, useRef } from "react"
 import { EDGES } from "@/constants"
 import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
 import { AssessmentSelectableWrapper } from "@/components"
 import { getCustomColorsFromDataForEdge } from "@/utils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { useSettingsStore } from "@/store/settingsStore"
+import { useEdgeLinkingStore } from "@/store/edgeLinkingStore"
+import {
+  ASSOCIATION_CLASS_CAPABLE_TYPES,
+  computeAnchorOnNodeBoundary,
+  getAbsoluteNodePosition,
+  getLinkRelForAssociation,
+  isEdgeAnchoredLinkRel,
+  resolveLinkRelClassNodeId,
+} from "@/utils/associationClassLink"
+
+/**
+ * Association kinds that draw an edge-anchored `ClassLinkRel` overlay.
+ * Authoring is limited to `ASSOCIATION_CLASS_CAPABLE_TYPES`; rendering
+ * additionally tolerates Aggregation so legacy/third-party fixtures
+ * with a link on an aggregation stay visible.
+ */
+const ASSOCIATION_CLASS_RENDER_TYPES: ReadonlySet<string> = new Set([
+  ...ASSOCIATION_CLASS_CAPABLE_TYPES,
+  "ClassAggregation",
+])
+
+/**
+ * Stable "no link" selector result — `useShallow` compares values, but
+ * sharing one object keeps the no-link case allocation-free.
+ */
+const NO_LINK_INFO = {
+  hasLink: false,
+  linkId: null as string | null,
+  strokeColor: null as string | null,
+  nodeX: 0,
+  nodeY: 0,
+  nodeW: 0,
+  nodeH: 0,
+}
 
 export const ClassDiagramEdge = ({
   id,
@@ -61,9 +95,67 @@ export const ClassDiagramEdge = ({
     }))
   )
 
+  const { setNodes, setEdges, setSelectedElementsId } = useDiagramStore(
+    useShallow((state) => ({
+      setNodes: state.setNodes,
+      setEdges: state.setEdges,
+      setSelectedElementsId: state.setSelectedElementsId,
+    }))
+  )
+
   const setPopOverElementId = usePopoverStore(
     useShallow((state) => state.setPopOverElementId)
   )
+
+  // Edge-anchored ClassLinkRel (association class) attached to THIS
+  // association. The link edge lives only in the store (App filters it
+  // out of React Flow), so this renderer draws it as a computed dashed
+  // overlay from the association midpoint to the class-node boundary.
+  const linkInfo = useDiagramStore(
+    useShallow((state) => {
+      if (!ASSOCIATION_CLASS_RENDER_TYPES.has(type as string)) {
+        return NO_LINK_INFO
+      }
+      const link = getLinkRelForAssociation(state.edges, id)
+      if (!link) return NO_LINK_INFO
+      const nodeIds = new Set(state.nodes.map((n) => n.id))
+      if (!isEdgeAnchoredLinkRel(link, nodeIds)) {
+        // Node-to-node link that happens to reference this edge id is
+        // impossible; an already-rendered RF link still blocks a second
+        // attach (one association class per association).
+        return { ...NO_LINK_INFO, hasLink: true }
+      }
+      const classNodeId = resolveLinkRelClassNodeId(link, nodeIds)
+      const classNode = classNodeId
+        ? state.nodes.find((n) => n.id === classNodeId)
+        : undefined
+      if (!classNode) return { ...NO_LINK_INFO, hasLink: true }
+      const abs = getAbsoluteNodePosition(
+        classNode,
+        new Map(state.nodes.map((n) => [n.id, n]))
+      )
+      return {
+        hasLink: true,
+        linkId: link.id,
+        strokeColor:
+          (link.data as { strokeColor?: string } | undefined)?.strokeColor ??
+          null,
+        nodeX: abs.x,
+        nodeY: abs.y,
+        nodeW: classNode.measured?.width ?? classNode.width ?? 0,
+        nodeH: classNode.measured?.height ?? classNode.height ?? 0,
+      }
+    })
+  )
+
+  const linkSelected = useDiagramStore(
+    (state) =>
+      linkInfo.linkId !== null &&
+      state.selectedElementIds.length === 1 &&
+      state.selectedElementIds[0] === linkInfo.linkId
+  )
+
+  const startLinking = useEdgeLinkingStore((state) => state.startLinking)
 
   const {
     pathRef,
@@ -101,6 +193,61 @@ export const ClassDiagramEdge = ({
   })
 
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
+
+  // ----- Association-class link overlay (edge-anchored ClassLinkRel) -----
+
+  const linkAnchorRef = useRef<SVGSVGElement | null>(null)
+
+  const linkRender = useMemo(() => {
+    if (!linkInfo.linkId) return null
+    const mid = edgeData.pathMiddlePosition
+    const anchor = computeAnchorOnNodeBoundary(
+      { x: linkInfo.nodeX, y: linkInfo.nodeY },
+      { width: linkInfo.nodeW, height: linkInfo.nodeH },
+      mid
+    )
+    return {
+      path: `M ${mid.x} ${mid.y} L ${anchor.x} ${anchor.y}`,
+      middle: { x: (mid.x + anchor.x) / 2, y: (mid.y + anchor.y) / 2 },
+    }
+  }, [
+    linkInfo.linkId,
+    linkInfo.nodeX,
+    linkInfo.nodeY,
+    linkInfo.nodeW,
+    linkInfo.nodeH,
+    edgeData.pathMiddlePosition,
+  ])
+
+  const handleLinkClick = () => {
+    const linkId = linkInfo.linkId
+    if (!linkId) return
+    // Clear React-Flow-side selection flags (the link itself was never
+    // handed to React Flow), then select the link — drives the midpoint
+    // toolbar + the properties panel / popover.
+    setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)))
+    setEdges((es) => es.map((e) => (e.selected ? { ...e, selected: false } : e)))
+    setSelectedElementsId([linkId])
+    setPopOverElementId(linkId)
+  }
+
+  const handleLinkDelete = () => {
+    const linkId = linkInfo.linkId
+    if (!linkId) return
+    // React Flow's deleteElements can't see this edge — delete straight
+    // from the store (Yjs-backed via setEdges).
+    setEdges((es) => es.filter((e) => e.id !== linkId))
+    setSelectedElementsId((ids) => ids.filter((sid) => sid !== linkId))
+  }
+
+  // "Attach association class" appears on the midpoint toolbar of
+  // attachable association kinds while no link exists yet (one
+  // association class per association — the backend warns and uses the
+  // first anyway).
+  const canAttachAssociationClass =
+    isDiagramModifiable &&
+    ASSOCIATION_CLASS_CAPABLE_TYPES.has(type as string) &&
+    !linkInfo.hasLink
 
   // Wire `showAssociationNames` to the rendered
   // edge. v3 stored the user-typed association name on `data.name`
@@ -298,7 +445,52 @@ export const ClassDiagramEdge = ({
           handleDelete={handleDelete}
           setPopOverElementId={setPopOverElementId}
           type={type}
+          onAttachAssociationClass={
+            canAttachAssociationClass ? () => startLinking(id) : undefined
+          }
         />
+
+        {/* Edge-anchored ClassLinkRel overlay: dashed tether from the
+            association midpoint to the association-class node boundary,
+            with its own click target, midpoint toolbar and inspector
+            routing (the link edge is invisible to React Flow). */}
+        {linkRender && linkInfo.linkId && (
+          <g data-testid="association-class-link">
+            <path
+              d={linkRender.path}
+              fill="none"
+              strokeDasharray="5 5"
+              strokeWidth={linkSelected ? 2 : 1.5}
+              stroke={
+                linkInfo.strokeColor ||
+                "var(--besser-primary-contrast, #000)"
+              }
+              pointerEvents="none"
+            />
+            <path
+              d={linkRender.path}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={EDGES.EDGE_HIGHLIGHT_STROKE_WIDTH}
+              pointerEvents="stroke"
+              style={{ cursor: "pointer" }}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleLinkClick()
+              }}
+            />
+            <CommonEdgeElements
+              id={linkInfo.linkId}
+              pathMiddlePosition={linkRender.middle}
+              isDiagramModifiable={isDiagramModifiable}
+              assessments={assessments}
+              anchorRef={linkAnchorRef}
+              handleDelete={handleLinkDelete}
+              setPopOverElementId={setPopOverElementId}
+              type="ClassLinkRel"
+            />
+          </g>
+        )}
       </FeedbackDropzone>
     </AssessmentSelectableWrapper>
   )

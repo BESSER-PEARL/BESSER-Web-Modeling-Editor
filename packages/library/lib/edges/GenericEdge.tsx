@@ -180,6 +180,7 @@ export const CommonEdgeElements = ({
   handleDelete,
   setPopOverElementId,
   type,
+  onAttachAssociationClass,
 }: {
   id: string
   pathMiddlePosition: IPoint
@@ -189,6 +190,8 @@ export const CommonEdgeElements = ({
   handleDelete: () => void
   setPopOverElementId: (id: string) => void
   type: string
+  /** Association-class authoring action (ClassDiagramEdge only). */
+  onAttachAssociationClass?: () => void
 }) => {
   const nodeScore = assessments[id]?.score
   // Same rationale as the node toolbar — when the
@@ -205,6 +208,7 @@ export const CommonEdgeElements = ({
         showEdit={!usePropertiesPanel}
         onEditClick={() => setPopOverElementId(id)}
         onDeleteClick={handleDelete}
+        onAttachAssociationClass={onAttachAssociationClass}
       />
 
       {!isDiagramModifiable && (

@@ -37,7 +37,10 @@ const renderRow = (
     <div
       style={{
         fontSize: LAYOUT.NAME_FONT_SIZE - 2,
-        color: textColor,
+        // Develop parity (`uml-state-body-update.tsx`): every body /
+        // fallback row carries optional fillColor / textColor.
+        color: row.textColor || textColor,
+        backgroundColor: row.fillColor || undefined,
         padding: "0 10px",
         height: ROW_HEIGHT,
         lineHeight: `${ROW_HEIGHT}px`,
@@ -67,7 +70,11 @@ export function State({
 
   const mainBodies = data.bodies ?? []
   const fallbackBodies = data.fallbackBodies ?? []
-  const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
+  // v3 parity (`uml-state-component.tsx`): a set stereotype grows the
+  // header 40 → 50 px to fit the «stereotype» line above the name.
+  const headerHeight = data.stereotype
+    ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
+    : LAYOUT.DEFAULT_HEADER_HEIGHT
   const hasAnyBody = mainBodies.length + fallbackBodies.length > 0
   const fallbackDividerY = headerHeight + mainBodies.length * ROW_HEIGHT
   const hasFallbackDivider =
@@ -102,7 +109,8 @@ export function State({
   if (!width || !height) return null
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const { name, italic, underline } = data
+  const { name, stereotype, italic, underline } = data
+  const showStereotype = !!stereotype
   const cornerRadius = 8
 
   return (
@@ -133,18 +141,44 @@ export function State({
             stroke={strokeColor}
             strokeWidth={LAYOUT.LINE_WIDTH}
           />
-          <text
-            x={width / 2}
-            y={26}
-            textAnchor="middle"
-            fontSize={LAYOUT.NAME_FONT_SIZE}
-            fontStyle={italic ? "italic" : undefined}
-            textDecoration={underline ? "underline" : undefined}
-            fontWeight="600"
-            fill={textColor}
-          >
-            {name}
-          </text>
+          {showStereotype ? (
+            <>
+              <text
+                x={width / 2}
+                y={18}
+                textAnchor="middle"
+                fontSize={LAYOUT.STEREOTYPE_LINE_HEIGHT}
+                fill={textColor}
+              >
+                {`«${stereotype}»`}
+              </text>
+              <text
+                x={width / 2}
+                y={38}
+                textAnchor="middle"
+                fontSize={LAYOUT.NAME_FONT_SIZE}
+                fontStyle={italic ? "italic" : undefined}
+                textDecoration={underline ? "underline" : undefined}
+                fontWeight="600"
+                fill={textColor}
+              >
+                {name}
+              </text>
+            </>
+          ) : (
+            <text
+              x={width / 2}
+              y={26}
+              textAnchor="middle"
+              fontSize={LAYOUT.NAME_FONT_SIZE}
+              fontStyle={italic ? "italic" : undefined}
+              textDecoration={underline ? "underline" : undefined}
+              fontWeight="600"
+              fill={textColor}
+            >
+              {name}
+            </text>
+          )}
           {hasAnyBody && (
             <line
               x1={0}

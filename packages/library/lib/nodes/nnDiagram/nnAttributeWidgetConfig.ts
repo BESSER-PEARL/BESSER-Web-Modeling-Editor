@@ -20,7 +20,12 @@
  * matching backend disambiguation — this module mirrors that contract.
  */
 
-export type WidgetType = "text" | "dropdown" | "predecessor" | "layers_of_tensors"
+export type WidgetType =
+  | "text"
+  | "dropdown"
+  | "multiselect"
+  | "predecessor"
+  | "layers_of_tensors"
 
 export interface AttributeWidgetConfig {
   /** v4 slug stored on `node.data.attributes` (or qualified slug when
@@ -73,6 +78,23 @@ export const POOLING_TYPE_OPTIONS = [
 ] as const
 export const POOLING_DIMENSION_OPTIONS = ["1D", "2D", "3D"] as const
 export const BATCHNORM_DIMENSION_OPTIONS = ["1D", "2D", "3D"] as const
+// Configuration whitelists — single source of truth is the backend
+// (`nn_diagram_processor.py` `_ALLOWED_OPTIMIZERS` /
+// `_ALLOWED_LOSS_FUNCTIONS` / `_ALLOWED_METRICS`), identical to
+// develop's frontend lists in `nn-attribute-update.tsx`.
+export const OPTIMIZER_OPTIONS = ["sgd", "adam", "adamW", "adagrad"] as const
+export const LOSS_FUNCTION_OPTIONS = [
+  "crossentropy",
+  "binary_crossentropy",
+  "mse",
+] as const
+export const METRICS_OPTIONS = [
+  "accuracy",
+  "precision",
+  "recall",
+  "f1-score",
+  "mae",
+] as const
 
 /**
  * Slugs that collide across layer kinds. Lookup goes through the
@@ -479,21 +501,27 @@ const CONFIGURATION_FIELDS: AttributeWidgetConfig[] = [
   },
   {
     slug: "optimizer",
-    widget: "text",
+    widget: "dropdown",
+    options: OPTIMIZER_OPTIONS,
     label: "optimizer",
     mandatory: true,
     defaultValue: "adam",
   },
   {
     slug: "loss_function",
-    widget: "text",
+    widget: "dropdown",
+    options: LOSS_FUNCTION_OPTIONS,
     label: "loss_function",
     mandatory: true,
     defaultValue: "crossentropy",
   },
+  // Stored value uses the canonical bracketed form (`[accuracy, mae]`)
+  // emitted by the backend `_fmt_value` and parsed by
+  // `create_configuration`.
   {
     slug: "metrics",
-    widget: "text",
+    widget: "multiselect",
+    options: METRICS_OPTIONS,
     label: "metrics",
     mandatory: true,
     defaultValue: "[accuracy]",

@@ -10,9 +10,39 @@ import AssessmentIcon from "../../AssessmentIcon"
 import { SVGComponentProps } from "@/types/SVG"
 import { StyledRect } from "@/components"
 import { getCustomColorsFromData } from "@/utils"
+import { diagramBridge } from "@/services/diagramBridge"
 
 interface Props extends SVGComponentProps {
   data: ObjectNodeProps
+}
+
+/**
+ * Resolve the canvas header label for an object instance — v3 parity
+ * with `uml-object-name-component.tsx`:
+ *
+ *   `${element.name}${className ? ` : ${className}` : ''}`
+ *
+ * The class name resolves **live** from the diagram bridge (so a class
+ * rename in the sibling ClassDiagram is reflected the next time the
+ * object diagram renders), falling back to the cached `data.className`
+ * when the bridge has no data for the linked id (e.g. standalone
+ * diagrams imported without their ClassDiagram).
+ */
+export function resolveObjectHeaderLabel(data: {
+  name: string
+  classId?: string
+  className?: string
+}): string {
+  let className: string | undefined
+  if (data.classId) {
+    try {
+      className = diagramBridge.getClassById(data.classId)?.name
+    } catch {
+      className = undefined
+    }
+  }
+  className = className ?? data.className
+  return className ? `${data.name} : ${className}` : data.name
 }
 
 export const ObjectNameSVG = ({
@@ -24,7 +54,7 @@ export const ObjectNameSVG = ({
   svgAttributes,
   showAssessmentResults = false,
 }: Props) => {
-  const { name, attributes, icon, stereotype } = data
+  const { attributes, icon, stereotype } = data
   // V3 ObjectName extends UMLClassifier and renders a
   // `«stereotype»` band above the underlined name when set (see
   // `uml-object-name-component.tsx:104-120`). Falsy => no band.
@@ -45,24 +75,15 @@ export const ObjectNameSVG = ({
   const hasIcon = typeof icon === "string" && icon.trim() !== ""
   const iconViewActive = showIconView && hasIcon
 
-  // Wire `showInstancedObjects` — v3's "preview
-  // instances" toggle. When the setting is off we suppress the
-  // attribute rows so the node renders as just the name band. The
-  // header (with the underlined object name) is always kept so the
-  // object remains identifiable on the canvas; turning the toggle off
-  // collapses the body, mirroring the v3 instance-preview behaviour.
-  // Object instances never render a methods
-  // section — UML object diagrams show data values, not types.
-  // `showInstancedObjects` is a *palette-preview only*
-  // toggle in v3. On the actual canvas, attributes are always shown
-  // when present. Detect palette context via `SIDEBAR_PREVIEW_SCALE`,
-  // which is only set by the sidebar/preview wrappers.
-  const showInstancedObjects = useSettingsStore(
-    (s) => s.showInstancedObjects
-  )
-  const isPalettePreview = SIDEBAR_PREVIEW_SCALE !== undefined
-  const showAttributes =
-    attributes.length > 0 && (!isPalettePreview || showInstancedObjects)
+  // `showInstancedObjects` is a *palette composition*
+  // toggle in v3 (`object-preview.ts` gates which cards the sidebar
+  // composes) — it never hides rows on an already-rendered card.
+  // The palette gate now lives in `objectDiagramPalette.ts`
+  // (`getObjectDiagramPaletteEntries`), restoring the setting's
+  // original meaning; attribute rows render whenever present. Object
+  // instances never render a methods section — UML object diagrams
+  // show data values, not types.
+  const showAttributes = attributes.length > 0
 
   const processElements = (elements: ClassNodeElement[]) =>
     elements.map((el) => {
@@ -95,14 +116,16 @@ export const ObjectNameSVG = ({
           stroke={strokeColor}
         />
 
-        {/* Header Section - Object name with underline. Stereotype band
-            renders only when `data.stereotype` is set. The
+        {/* Header Section - Object name with underline, shown as
+            `name : ClassName` when the instance links a class (v3
+            `uml-object-name-component.tsx` displayLabel). Stereotype
+            band renders only when `data.stereotype` is set. The
             HeaderSection prop expects ClassType, but v3 stored arbitrary
             string stereotypes on object instances — cast through. */}
         <HeaderSection
           showStereotype={hasStereotype}
           stereotype={hasStereotype ? (stereotype as unknown as ClassType) : undefined}
-          name={name}
+          name={resolveObjectHeaderLabel(data)}
           width={width}
           headerHeight={headerHeight}
           isUnderlined={true}

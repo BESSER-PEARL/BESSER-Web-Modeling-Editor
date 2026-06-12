@@ -1,6 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
-import { ObjectNameSVG } from "@/components"
+import { ObjectNameSVG, resolveObjectHeaderLabel } from "@/components"
 import { useEffect, useMemo, useRef } from "react"
 import { ClassNodeElement, ObjectNodeAttribute, ObjectNodeProps } from "@/types"
 import { useDiagramStore } from "@/store/context"
@@ -40,7 +40,7 @@ export function ObjectName({
   height,
   data,
 }: NodeProps<Node<ObjectNodeProps>>) {
-  const { attributes, name, stereotype } = data
+  const { attributes, stereotype } = data
   const displayAttributes = useMemo(
     () => attributes.map(formatObjectAttribute),
     [attributes]
@@ -71,12 +71,15 @@ export function ObjectName({
   // stereotype label doesn't get clipped. object
   // instances don't carry methods (UML object diagrams show data
   // values, not types — methods are owned by the class), so the width
-  // budget excludes any method row.
+  // budget excludes any method row. The header renders as
+  // `name : ClassName` for linked instances (v3 displayLabel), so the
+  // width budget measures the full label, not just the bare name.
+  const headerLabel = resolveObjectHeaderLabel(data)
   const maxTextWidth = useMemo(() => {
     const stereotypeWidth = stereotype
       ? measureTextWidth(`«${stereotype}»`, font)
       : 0
-    const headerTextWidth = measureTextWidth(name, font)
+    const headerTextWidth = measureTextWidth(headerLabel, font)
     const attributesTextWidths = displayAttributes.map(
       (attr: { name: string }) => measureTextWidth(attr.name, font)
     )
@@ -88,7 +91,7 @@ export function ObjectName({
 
     const result = Math.max(...allTextWidths, 0)
     return result
-  }, [stereotype, name, displayAttributes, font])
+  }, [stereotype, headerLabel, displayAttributes, font])
 
   const minWidth = useMemo(() => {
     const result = calculateMinWidth(maxTextWidth, padding)

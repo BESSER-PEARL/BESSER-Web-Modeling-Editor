@@ -105,6 +105,21 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       setNodes: state.setNodes,
     }))
   )
+
+  // Rapid-entry keyboard flow (develop agent-state popup parity, same
+  // pattern as StateEditPanel): per-section always-present "+ add text
+  // body (Enter)" fields plus Enter-chaining across existing text rows.
+  const [newTextBody, setNewTextBody] = React.useState<
+    Record<Section, string>
+  >({ main: "", fallback: "" })
+  const textRowRefs = React.useRef<
+    Record<Section, (HTMLInputElement | null)[]>
+  >({ main: [], fallback: [] })
+  textRowRefs.current = { main: [], fallback: [] }
+  const addTextFieldRefs = React.useRef<
+    Record<Section, HTMLInputElement | null>
+  >({ main: null, fallback: null })
+
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
 
@@ -219,6 +234,22 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     replaceSection(section, (rows) => rows.filter((r) => !predicate(r)))
   }
 
+  /** Enter inside text row `idx`: focus the next row, else the add field. */
+  const focusNextTextRow = (section: Section, idx: number) => {
+    const next = textRowRefs.current[section]
+      .slice(idx + 1)
+      .find((el): el is HTMLInputElement => !!el)
+    ;(next ?? addTextFieldRefs.current[section])?.focus()
+  }
+
+  /** Commit the add field's text as a new text row; keep focus for the next. */
+  const commitNewTextBody = (section: Section) => {
+    const value = newTextBody[section]
+    if (!value.trim()) return
+    addRow(section, { name: value.trim(), replyType: "text" })
+    setNewTextBody((prev) => ({ ...prev, [section]: "" }))
+  }
+
   const setMode = (section: Section, next: ReplyMode) => {
     const rows = sectionRows(section)
     if (next === "text") {
@@ -280,7 +311,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       const textRows = rows.filter((r) => r.replyType === "text")
       return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-          {textRows.map((b) => (
+          {textRows.map((b, idx) => (
             <Stack
               key={b.id}
               direction="row"
@@ -294,6 +325,15 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
                 placeholder="reply text"
                 value={b.name ?? ""}
                 onChange={(e) => updateRow(b.id, { name: e.target.value })}
+                inputRef={(el: HTMLInputElement | null) => {
+                  textRowRefs.current[section][idx] = el
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    focusNextTextRow(section, idx)
+                  }
+                }}
               />
               <IconButton
                 size="small"
@@ -304,6 +344,29 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               </IconButton>
             </Stack>
           ))}
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            placeholder="+ add text body (Enter)"
+            value={newTextBody[section]}
+            inputRef={(el: HTMLInputElement | null) => {
+              addTextFieldRefs.current[section] = el
+            }}
+            onChange={(e) =>
+              setNewTextBody((prev) => ({
+                ...prev,
+                [section]: e.target.value,
+              }))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                commitNewTextBody(section)
+              }
+            }}
+            onBlur={() => commitNewTextBody(section)}
+          />
           <Box sx={{ alignSelf: "flex-start" }}>
             <AddRowButton
               label="add text body"

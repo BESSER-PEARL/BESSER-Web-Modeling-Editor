@@ -31,7 +31,6 @@ import {
   DeploymentInterfaceSVG,
   SyntaxTreeNonterminalNodeSVG,
   SyntaxTreeTerminalNodeSVG,
-  ObjectNameSVG,
   CommunicationObjectNameSVG,
   PetriNetPlaceSVG,
   PetriNetTransitionSVG,
@@ -75,6 +74,10 @@ import {
   UserModelStaticPreviewSVG,
   getUserModelNamePaletteEntries,
 } from "@/components/svgs/nodes/userDiagram"
+// Dynamic ObjectDiagram palette provider (v3 `composeObjectPreview`
+// parity). Function declaration import — invoked lazily per sidebar
+// render via the dynamic-provider registry at the bottom of this file.
+import { getObjectDiagramPaletteEntries } from "@/components/svgs/nodes/objectDiagram"
 // NNDiagram palette previews. Inlined alongside the other BESSER
 // SVGs per pattern (avoids the TDZ cycle that direct
 // `registerPaletteEntry` side-effects would trigger).
@@ -108,7 +111,9 @@ import { v4 as uuidv4 } from "uuid"
 /* -------------------------------------------------------------------------- */
 export const CANVAS = Object.freeze({
   MIN_SCALE_TO_ZOOM_OUT: 0.4,
-  MAX_SCALE_TO_ZOOM_IN: 2.5,
+  // Develop (Apollon) allowed zooming to 500% — keep parity (0.4 min is a
+  // strict superset of develop's 0.5).
+  MAX_SCALE_TO_ZOOM_IN: 5.0,
   MOUSE_UP_OFFSET_PX: 5,
   SNAP_TO_GRID_PX: 5,
   EXTRA_SPACE_FOR_EXTENSION: 10,
@@ -518,19 +523,13 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: ClassOCLConstraintSVG,
     },
   ],
-  [UMLDiagramType.ObjectDiagram]: [
-    {
-      type: "objectName",
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 70,
-      defaultData: {
-        name: "Object",
-        attributes: [{ id: generateUUID(), name: "attribute = value" }],
-        methods: [],
-      },
-      svg: ObjectNameSVG,
-    },
-  ],
+  // The ObjectDiagram palette is fully dynamic — composed per
+  // sidebar render by `getObjectDiagramPaletteEntries()` (registered as
+  // a dynamic palette provider at the bottom of this file). v3 parity:
+  // the generic "Object" card plus one pre-wired instance card per
+  // class in the sibling ClassDiagram, gated by the
+  // "Show Instanced Objects" setting (`object-preview.ts`).
+  [UMLDiagramType.ObjectDiagram]: [],
   [UMLDiagramType.ActivityDiagram]: [
     {
       type: "activity",
@@ -872,6 +871,38 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: StateSVG,
     },
     {
+      // Develop palette parity (`state-preview.ts` `stateWithBody`):
+      // second State preview carrying one pre-populated body row. Row
+      // ids are template placeholders — `DraggableGhost` re-ids
+      // body/fallback rows on drop (same treatment as the AgentState
+      // palette variants).
+      type: "State" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 130,
+      defaultData: {
+        name: "State",
+        bodies: [{ id: "state-template-body", name: "body" }],
+      },
+      svg: StateSVG,
+    },
+    {
+      // Develop palette parity (`state-preview.ts`
+      // `stateWithBothBodies`): third State preview with one body row
+      // plus one fallback row so the dashed fallback divider is visible
+      // straight from the sidebar.
+      type: "State" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 160,
+      defaultData: {
+        name: "State",
+        bodies: [{ id: "state-template-body", name: "body" }],
+        fallbackBodies: [
+          { id: "state-template-fallback-body", name: "fallback body" },
+        ],
+      },
+      svg: StateSVG,
+    },
+    {
       type: "StateInitialNode" as never,
       width: 45,
       height: 45,
@@ -946,6 +977,36 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
           {
             id: "agentstate-template-body-text",
             name: "Hello world",
+            replyType: "text",
+          },
+        ],
+      },
+      svg: AgentStateSVG,
+    },
+    {
+      // Develop palette parity (`agent-state-preview.ts`
+      // `stateWithBothBodies`): third AgentState preview carrying one
+      // body row plus one fallback row so the dashed fallback divider
+      // is visible straight from the sidebar. Row ids are template
+      // placeholders — `DraggableGhost` re-ids body/fallback rows on
+      // drop (same treatment as class `attributes` / `methods`).
+      type: "AgentState" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 160,
+      defaultData: {
+        name: "AgentState",
+        replyType: "text",
+        bodies: [
+          {
+            id: "agentstate-template-body",
+            name: "Body",
+            replyType: "text",
+          },
+        ],
+        fallbackBodies: [
+          {
+            id: "agentstate-template-fallback-body",
+            name: "Fallback Body",
             replyType: "text",
           },
         ],
@@ -1056,6 +1117,10 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       height: 100,
       defaultData: {
         name: `${entry.className.charAt(0).toLowerCase() + entry.className.slice(1)}_1`,
+        // Meta-model class binding: without it
+        // `diagramBridge.getAvailableAssociations(classId)` returns []
+        // and the link inspector's association dropdown stays empty.
+        classId: entry.classId,
         className: entry.className,
         attributes: entry.attributes.map((a) => ({
           id: a.id,
@@ -1343,18 +1408,60 @@ export const registerPaletteEntry = (
 }
 
 /**
+ * Dynamic palette providers — recomputed on every
+ * `dropElementConfigs[diagramType]` access (i.e. per sidebar render)
+ * instead of frozen at module load. Used by palettes whose entries
+ * depend on live application state: the ObjectDiagram palette reads
+ * `settingsService` (Show Instanced Objects / icon view) and
+ * `diagramBridge` (sibling ClassDiagram classes) at composition time —
+ * mirroring v3's `composePreview` model where the sidebar recomposed
+ * previews on render.
+ */
+const _dynamicPaletteProviders: Record<
+  string,
+  () => ReadonlyArray<DropElementConfig>
+> = {}
+
+/**
+ * Register (or replace) the dynamic palette provider for a diagram
+ * type. Provider results are appended after any static entries
+ * registered for the same diagram type.
+ */
+export const registerDynamicPaletteProvider = (
+  diagramType: string,
+  provider: () => ReadonlyArray<DropElementConfig>
+): void => {
+  _dynamicPaletteProviders[diagramType] = provider
+}
+
+/**
  * The merged palette registry. Read sites:
  *   `dropElementConfigs[diagramType].map(...)`
  * Tolerates unknown diagram types by returning an empty array.
+ * Static entries come first, then any dynamic-provider entries.
  */
 export const dropElementConfigs: Readonly<
   Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>
 > = new Proxy(_paletteRegistry, {
   get(target, prop: string) {
-    if (prop in target) return target[prop]
-    return [] as ReadonlyArray<DropElementConfig>
+    const staticEntries =
+      prop in target ? target[prop] : ([] as ReadonlyArray<DropElementConfig>)
+    const provider = _dynamicPaletteProviders[prop]
+    if (!provider) return staticEntries
+    return [...staticEntries, ...provider()]
   },
 }) as Readonly<Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>>
+
+// ObjectDiagram palette is fully dynamic (see provider docs above).
+// Registered as a thunk — NOT the bare imported binding — so the
+// function reference resolves at *call* time. When module init enters
+// through `components/svgs/nodes/objectDiagram` the import cycle hands
+// this file a partial namespace whose `getObjectDiagramPaletteEntries`
+// getter is still undefined at registration time; deferring the read
+// to invocation (sidebar render) sidesteps the cycle entirely.
+registerDynamicPaletteProvider(UMLDiagramType.ObjectDiagram, () =>
+  getObjectDiagramPaletteEntries()
+)
 
 /**
  * Lightweight palette preview for the free-form Comment

@@ -103,10 +103,18 @@ export const NNNext = ({
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
+  // Develop parity (`nn-association-component.tsx`:60): the NNNext
+  // renderer displays `name || 'next'` UNCONDITIONALLY — an explicitly
+  // cleared name (and legacy/imported edges without one) still shows
+  // "next" on canvas. The fallback is scoped to the `NNNext` type
+  // because `NNComposition` / `NNAssociation` alias this component and
+  // carry no label (develop rendered those through separate
+  // components without one).
+  const dataAny = data as { name?: string; label?: string } | null
   const label =
-    (data as { name?: string; label?: string } | null)?.name ??
-    (data as { label?: string } | null)?.label ??
-    ""
+    dataAny?.name ||
+    dataAny?.label ||
+    (type === "NNNext" ? "next" : "")
 
   return (
     <AssessmentSelectableWrapper elementId={id} asElement="g">

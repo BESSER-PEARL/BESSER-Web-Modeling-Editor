@@ -130,7 +130,11 @@ describe("NNDiagram v3 → v4 round-trip", () => {
     expect(attrs["epochs"]).toBe("20")
     expect(attrs["learning_rate"]).toBe("0.001")
     expect(attrs["optimizer"]).toBe("adam")
-    expect(attrs["loss_function"]).toBe("cross_entropy")
+    // Wave-3 NN-9: the legacy v3 spelling `cross_entropy` normalizes to
+    // the backend whitelist value at migration time (develop persisted
+    // the same rewrite on popup mount).
+    expect(attrs["loss_function"]).toBe("crossentropy")
+    // `metrics` is a multiselect — never normalized (develop parity).
     expect(attrs["metrics"]).toBe("accuracy")
   })
 
@@ -793,5 +797,291 @@ describe("SA-FIX-NN-ATTRS: NNContainer / NNReference / Dataset / Configuration",
     // The schema lookup for these returns `[]` (renderless).
     expect(getLayerSchema("NNContainer")).toEqual([])
     expect(getLayerSchema("NNReference")).toEqual([])
+  })
+})
+
+/**
+ * Wave-3 NN-9 — v3 → v4 legacy value normalization. Develop persisted
+ * these rewrites on popup mount (`nn-attribute-update.tsx` 133-162,
+ * `optional-attribute-row.tsx` 81-102); the migrator now applies them
+ * once at import time so every v4 document stays within the backend
+ * whitelists.
+ */
+
+/** Minimal v3 NN model: one element of `layerType` with the given
+ *  attribute children (`[v3AttrType, value]`). */
+const v3WithLayer = (
+  layerType: string,
+  attrs: Array<[string, string]>
+) => ({
+  version: "3.0.0",
+  type: "NNDiagram",
+  size: { width: 800, height: 600 },
+  interactive: { elements: {}, relationships: {} },
+  elements: {
+    "layer-1": {
+      id: "layer-1",
+      name: "Layer1",
+      type: layerType,
+      owner: null,
+      bounds: { x: 0, y: 0, width: 240, height: 60 },
+    },
+    ...Object.fromEntries(
+      attrs.map(([attrType, value], i) => [
+        `attr-${i}`,
+        {
+          id: `attr-${i}`,
+          name: attrType,
+          type: attrType,
+          owner: "layer-1",
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+          value,
+        },
+      ])
+    ),
+  },
+  relationships: {},
+  assessments: {},
+})
+
+const migratedAttrs = (
+  layerType: string,
+  attrs: Array<[string, string]>
+): Record<string, unknown> => {
+  const v4 = migrateNNDiagramV3ToV4(v3WithLayer(layerType, attrs) as never)
+  return (v4.nodes.find((n) => n.id === "layer-1")!.data as NNLayerNodeProps)
+    .attributes
+}
+
+describe("Wave-3 NN-9: legacy value normalization on v3 → v4 lift", () => {
+  it("rewrites legacy 'zeros' padding to 'valid'", () => {
+    expect(
+      migratedAttrs("Conv2DLayer", [["PaddingTypeAttributeConv2D", "zeros"]])[
+        "padding_type"
+      ]
+    ).toBe("valid")
+    expect(
+      migratedAttrs("PoolingLayer", [["PaddingTypeAttributePooling", "zeros"]])[
+        "padding_type"
+      ]
+    ).toBe("valid")
+  })
+
+  it("rewrites a numeric pooling dimension to '2D' under the qualified key", () => {
+    const attrs = migratedAttrs("PoolingLayer", [
+      ["DimensionAttributePooling", "2"],
+    ])
+    expect(attrs["pooling.dimension"]).toBe("2D")
+    expect("dimension" in attrs).toBe(false)
+  })
+
+  it("rewrites an out-of-whitelist BatchNorm dimension to '2D'", () => {
+    expect(
+      migratedAttrs("BatchNormalizationLayer", [
+        ["DimensionAttributeBatchNormalization", "3"],
+      ])["batch_normalization.dimension"]
+    ).toBe("2D")
+  })
+
+  it("rewrites 'cross_entropy' to 'crossentropy'", () => {
+    expect(
+      migratedAttrs("Configuration", [
+        ["LossFunctionAttributeConfiguration", "cross_entropy"],
+      ])["loss_function"]
+    ).toBe("crossentropy")
+  })
+
+  it("rewrites legacy return_type 'output' to the migration default 'full'", () => {
+    // Known deliberate deviation from develop's widget-config default
+    // ('last') — the migration schema default wins (see the Wave-3
+    // brief / `normalizeLegacyNNDropdownValue`).
+    expect(
+      migratedAttrs("RNNLayer", [["ReturnTypeAttributeRNN", "output"]])[
+        "return_type"
+      ]
+    ).toBe("full")
+  })
+
+  it("keeps whitelisted values untouched", () => {
+    expect(
+      migratedAttrs("Configuration", [
+        ["LossFunctionAttributeConfiguration", "mse"],
+      ])["loss_function"]
+    ).toBe("mse")
+    expect(
+      migratedAttrs("PoolingLayer", [["DimensionAttributePooling", "3D"]])[
+        "pooling.dimension"
+      ]
+    ).toBe("3D")
+  })
+
+  it("never normalizes the metrics multiselect", () => {
+    expect(
+      migratedAttrs("Configuration", [
+        ["MetricsAttributeConfiguration", "accuracy"],
+      ])["metrics"]
+    ).toBe("accuracy")
+  })
+
+  it("still lifts wire 'true'/'false' to JS booleans (gotcha regression)", () => {
+    const attrs = migratedAttrs("RNNLayer", [
+      ["BidirectionalAttributeRNN", "true"],
+      ["BatchFirstAttributeRNN", "false"],
+    ])
+    expect(attrs["bidirectional"]).toBe(true)
+    expect(attrs["batch_first"]).toBe(false)
+  })
+
+  it("is idempotent across a v3 → v4 → v3 → v4 cycle", () => {
+    const v3 = v3WithLayer("Configuration", [
+      ["LossFunctionAttributeConfiguration", "cross_entropy"],
+      ["OptimizerAttributeConfiguration", "adam"],
+    ])
+    const v4 = migrateNNDiagramV3ToV4(v3 as never)
+    const v4Again = migrateNNDiagramV3ToV4(convertV4ToV3NN(v4))
+    const a = (v4.nodes[0].data as NNLayerNodeProps).attributes
+    const b = (v4Again.nodes[0].data as NNLayerNodeProps).attributes
+    expect(b).toEqual(a)
+  })
+})
+
+/**
+ * Wave-3 NN-4/5/6 — NNNext label seed export + NNComposition endpoint
+ * normalization on import.
+ */
+describe("Wave-3 NN edges: label + composition endpoint normalization", () => {
+  it("exports a drawn NNNext edge with its seeded name 'next'", () => {
+    const v4 = migrateNNDiagramV3ToV4(nnV3 as never)
+    const next1 = v4.edges.find((e) => e.id === "next-1")!
+    next1.data = { ...(next1.data ?? {}), name: "next" }
+    const v3Round = convertV4ToV3NN(v4)
+    expect(v3Round.relationships["next-1"].name).toBe("next")
+  })
+
+  const v3WithComposition = (
+    sourceId: string,
+    targetId: string
+  ) => ({
+    version: "3.0.0",
+    type: "NNDiagram",
+    size: { width: 800, height: 600 },
+    interactive: { elements: {}, relationships: {} },
+    elements: {
+      "container-a": {
+        id: "container-a",
+        name: "NN_A",
+        type: "NNContainer",
+        owner: null,
+        bounds: { x: 0, y: 0, width: 400, height: 300 },
+      },
+      "container-b": {
+        id: "container-b",
+        name: "NN_B",
+        type: "NNContainer",
+        owner: null,
+        bounds: { x: 500, y: 0, width: 400, height: 300 },
+      },
+      "config-1": {
+        id: "config-1",
+        name: "Cfg",
+        type: "Configuration",
+        owner: null,
+        bounds: { x: 0, y: 400, width: 240, height: 60 },
+      },
+    },
+    relationships: {
+      "comp-1": {
+        id: "comp-1",
+        name: "",
+        type: "NNComposition",
+        owner: null,
+        bounds: { x: 0, y: 0, width: 0, height: 0 },
+        path: [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+        ],
+        source: { element: sourceId, direction: "Right" },
+        target: { element: targetId, direction: "Left" },
+      },
+    },
+    assessments: {},
+  })
+
+  it("keeps config → container compositions as-is (diamond at container)", () => {
+    const v4 = migrateNNDiagramV3ToV4(
+      v3WithComposition("config-1", "container-a") as never
+    )
+    const edge = v4.edges.find((e) => e.id === "comp-1")!
+    expect(edge.source).toBe("config-1")
+    expect(edge.target).toBe("container-a")
+  })
+
+  it("swaps container → config compositions so the container is the target", () => {
+    const v4 = migrateNNDiagramV3ToV4(
+      v3WithComposition("container-a", "config-1") as never
+    )
+    const edge = v4.edges.find((e) => e.id === "comp-1")!
+    expect(edge.source).toBe("config-1")
+    expect(edge.target).toBe("container-a")
+  })
+
+  it("swaps container → container compositions (diamond at the drag source)", () => {
+    const v4 = migrateNNDiagramV3ToV4(
+      v3WithComposition("container-a", "container-b") as never
+    )
+    const edge = v4.edges.find((e) => e.id === "comp-1")!
+    expect(edge.source).toBe("container-b")
+    expect(edge.target).toBe("container-a")
+  })
+})
+
+/**
+ * Wave-3 NN-7 — NNContainer auto-unique naming. Develop's
+ * `nn-association-monitor.tsx:193-219` suffixed `2,3,…` onto newly added
+ * containers; the same pure helper that dedupes layer cards handles
+ * containers (the backend resolves containers BY NAME — duplicates
+ * silently drop a whole NN).
+ */
+describe("Wave-3 NN-7: NNContainer unique naming", () => {
+  const container = (id: string, name: string) => ({
+    id,
+    type: "NNContainer",
+    data: { name },
+  })
+
+  it("suffixes 2 when a second 'Neural_Network' container appears", () => {
+    expect(
+      nextUniqueNNLayerName(
+        "Neural_Network",
+        "NNContainer",
+        [container("c1", "Neural_Network")],
+        "c2"
+      )
+    ).toBe("Neural_Network2")
+  })
+
+  it("walks to the next free suffix ('Neural_Network3')", () => {
+    expect(
+      nextUniqueNNLayerName(
+        "Neural_Network",
+        "NNContainer",
+        [
+          container("c1", "Neural_Network"),
+          container("c2", "Neural_Network2"),
+        ],
+        "c3"
+      )
+    ).toBe("Neural_Network3")
+  })
+
+  it("does not collide with non-container node names", () => {
+    expect(
+      nextUniqueNNLayerName(
+        "Neural_Network",
+        "NNContainer",
+        [{ id: "l1", type: "Conv2DLayer", data: { name: "Neural_Network" } }],
+        "c1"
+      )
+    ).toBe("Neural_Network")
   })
 })

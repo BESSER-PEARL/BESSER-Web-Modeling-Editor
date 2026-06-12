@@ -151,3 +151,132 @@ describe("StateMachineDiagram v3 → v4 round-trip", () => {
     )
   })
 })
+
+/* ───────────── transition params / guard (Wave-3 SM-1) ───────────── */
+
+/** Minimal v3 model with a single State→State transition carrying the
+ *  given extra relationship fields. */
+const v3WithTransition = (extra: Record<string, unknown>) => ({
+  version: "3.0.0",
+  type: "StateMachineDiagram",
+  size: { width: 800, height: 600 },
+  interactive: { elements: {}, relationships: {} },
+  elements: {
+    "s-a": {
+      id: "s-a",
+      name: "A",
+      type: "State",
+      owner: null,
+      bounds: { x: 0, y: 0, width: 200, height: 80 },
+    },
+    "s-b": {
+      id: "s-b",
+      name: "B",
+      type: "State",
+      owner: null,
+      bounds: { x: 400, y: 0, width: 200, height: 80 },
+    },
+  },
+  relationships: {
+    "t-1": {
+      id: "t-1",
+      name: "go",
+      type: "StateTransition",
+      owner: null,
+      bounds: { x: 200, y: 40, width: 200, height: 0 },
+      path: [
+        { x: 0, y: 0 },
+        { x: 200, y: 0 },
+      ],
+      source: { element: "s-a", direction: "Right" },
+      target: { element: "s-b", direction: "Left" },
+      ...extra,
+    },
+  },
+  assessments: {},
+})
+
+const transitionData = (m: ReturnType<typeof migrateStateMachineDiagramV3ToV4>) =>
+  m.edges.find((e) => e.id === "t-1")!.data as {
+    params?: string[] | string | Record<string, string>
+    guard?: string
+  }
+
+describe("StateTransition params / guard lift (v3 → v4)", () => {
+  it("lifts a v3 params array + guard to an ordered array and string", () => {
+    const v4 = migrateStateMachineDiagramV3ToV4(
+      v3WithTransition({ params: ["a", "b"], guard: "x > 1" }) as never
+    )
+    expect(transitionData(v4).params).toEqual(["a", "b"])
+    expect(transitionData(v4).guard).toBe("x > 1")
+  })
+
+  it("lifts a v3 single-string params to a one-element array, unsplit", () => {
+    // A single v3 param may legally contain commas — never split.
+    const v4 = migrateStateMachineDiagramV3ToV4(
+      v3WithTransition({ params: "{60}" }) as never
+    )
+    expect(transitionData(v4).params).toEqual(["{60}"])
+
+    const v4Commas = migrateStateMachineDiagramV3ToV4(
+      v3WithTransition({ params: "a, b" }) as never
+    )
+    expect(transitionData(v4Commas).params).toEqual(["a, b"])
+  })
+
+  it("lifts a v3 params dict in key order", () => {
+    const v4 = migrateStateMachineDiagramV3ToV4(
+      v3WithTransition({ params: { "1": "b", "0": "a" } }) as never
+    )
+    expect(transitionData(v4).params).toEqual(["a", "b"])
+  })
+
+  it("round-trips multi-params and guard through v4 → v3 → v4", () => {
+    const v4 = migrateStateMachineDiagramV3ToV4(
+      v3WithTransition({ params: ["a", "b"], guard: "x > 1" }) as never
+    )
+    const v4Again = migrateStateMachineDiagramV3ToV4(
+      convertV4ToV3StateMachine(v4)
+    )
+    expect(transitionData(v4Again).params).toEqual(["a", "b"])
+    expect(transitionData(v4Again).guard).toBe("x > 1")
+  })
+
+  it("emits develop's richest wire form on v4 → v3 export", () => {
+    // n params → string[]; 1 param → plain string; 0 params → omitted
+    // (mirrors develop `uml-state-transition.ts::serialize()`).
+    const exportParams = (params?: string[]) => {
+      const v4 = migrateStateMachineDiagramV3ToV4(
+        v3WithTransition(params ? { params } : {}) as never
+      )
+      const v3 = convertV4ToV3StateMachine(v4)
+      return (
+        v3.relationships["t-1"] as unknown as {
+          params?: string | string[]
+        }
+      ).params
+    }
+    expect(exportParams(["a", "b"])).toEqual(["a", "b"])
+    expect(exportParams(["{60}"])).toBe("{60}")
+    expect(exportParams(undefined)).toBeUndefined()
+  })
+})
+
+/* ───────────── state stereotype display data (Wave-3 SM-2) ───────────── */
+
+describe("State stereotype round-trip", () => {
+  it("survives v3 → v4 → v3", () => {
+    const v3 = v3WithTransition({})
+    ;(v3.elements["s-a"] as Record<string, unknown>).stereotype = "active"
+
+    const v4 = migrateStateMachineDiagramV3ToV4(v3 as never)
+    const sA = v4.nodes.find((n) => n.id === "s-a")!
+    expect((sA.data as StateNodeProps).stereotype).toBe("active")
+
+    const v3Round = convertV4ToV3StateMachine(v4)
+    expect(
+      (v3Round.elements["s-a"] as unknown as { stereotype?: string })
+        .stereotype
+    ).toBe("active")
+  })
+})
