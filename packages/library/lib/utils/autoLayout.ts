@@ -68,26 +68,59 @@ const absoluteCenter = (
   return { x: x + width / 2, y: y + height / 2 }
 }
 
+export type HandleSide = "top" | "bottom" | "left" | "right"
+
 /**
- * Picks the facing handle pair for an edge from the relative position of its
- * two endpoints, so a vertically stacked pair connects bottom→top (and a
- * side-by-side pair connects right→left) instead of wrapping around the boxes.
- * Returns the centre handle ids ("top"/"right"/"bottom"/"left").
+ * The connectable handles on each side, ordered along the side's axis
+ * (left→right for top/bottom, top→bottom for left/right). These are the three
+ * visible handles per side (at 20% / 50% / 80%); spreading edges across them
+ * stops multiple relationships from piling onto a single centre point.
+ */
+export const SIDE_HANDLES: Record<HandleSide, readonly string[]> = {
+  top: ["top-left", "top", "top-right"],
+  bottom: ["bottom-left", "bottom", "bottom-right"],
+  left: ["left-top", "left", "left-bottom"],
+  right: ["right-top", "right", "right-bottom"],
+}
+
+/**
+ * Picks the facing side pair for an edge from the relative position of its two
+ * endpoints, so a vertically stacked pair connects bottom→top (and a
+ * side-by-side pair right→left) instead of wrapping around the boxes.
+ */
+export const chooseFacingSides = (
+  sourceCenter: { x: number; y: number },
+  targetCenter: { x: number; y: number },
+): { sourceSide: HandleSide; targetSide: HandleSide } => {
+  const dx = targetCenter.x - sourceCenter.x
+  const dy = targetCenter.y - sourceCenter.y
+  if (Math.abs(dy) >= Math.abs(dx)) {
+    return dy >= 0
+      ? { sourceSide: "bottom", targetSide: "top" }
+      : { sourceSide: "top", targetSide: "bottom" }
+  }
+  return dx >= 0
+    ? { sourceSide: "right", targetSide: "left" }
+    : { sourceSide: "left", targetSide: "right" }
+}
+
+/**
+ * Back-compat: the centre handle of each facing side. Used where a single
+ * representative handle is enough (handle distribution refines this).
  */
 export const chooseFacingHandles = (
   sourceCenter: { x: number; y: number },
   targetCenter: { x: number; y: number },
 ): { sourceHandle: string; targetHandle: string } => {
-  const dx = targetCenter.x - sourceCenter.x
-  const dy = targetCenter.y - sourceCenter.y
-  if (Math.abs(dy) >= Math.abs(dx)) {
-    return dy >= 0
-      ? { sourceHandle: "bottom", targetHandle: "top" }
-      : { sourceHandle: "top", targetHandle: "bottom" }
-  }
-  return dx >= 0
-    ? { sourceHandle: "right", targetHandle: "left" }
-    : { sourceHandle: "left", targetHandle: "right" }
+  const { sourceSide, targetSide } = chooseFacingSides(sourceCenter, targetCenter)
+  return { sourceHandle: sourceSide, targetHandle: targetSide }
+}
+
+/** Even, centred slot index into an N-handle side for the i-th of `count` edges. */
+const slotIndex = (i: number, count: number, slots: number): number => {
+  if (count <= 1) return Math.floor((slots - 1) / 2) // single edge → centre
+  const idx = Math.round((i * (slots - 1)) / (count - 1))
+  return Math.min(slots - 1, Math.max(0, idx))
 }
 
 /**
@@ -153,20 +186,60 @@ export const computeAutoLayout = async (
     return { ...node, position, ...resized }
   })
 
-  // Reassign each node-to-node edge to the facing handles of the new layout.
+  // Reassign each node-to-node edge to the facing handles of the new layout,
+  // distributing edges that share a side across that side's handles so they
+  // don't pile onto a single centre point.
   const layoutedById = new Map(layoutedNodes.map((n) => [n.id, n]))
-  const layoutedEdges = edges.map((edge) => {
+  const centerById = new Map(
+    layoutedNodes.map((n) => [n.id, absoluteCenter(n, layoutedById)]),
+  )
+
+  // Collect, per (node, side), the edge ends that land there, with the
+  // coordinate of the opposite endpoint along the side's axis (x for
+  // top/bottom, y for left/right) used to order them and avoid crossings.
+  type EndRef = { edgeId: string; end: "source" | "target"; along: number }
+  const groups = new Map<string, EndRef[]>()
+  const sideByEdgeEnd = new Map<string, { sourceSide: HandleSide; targetSide: HandleSide }>()
+
+  for (const edge of edges) {
     const source = layoutedById.get(edge.source)
     const target = layoutedById.get(edge.target)
-    if (!source || !target) return edge // edge-anchored / dangling — leave as-is
-    const { sourceHandle, targetHandle } = chooseFacingHandles(
-      absoluteCenter(source, layoutedById),
-      absoluteCenter(target, layoutedById),
-    )
-    if (edge.sourceHandle === sourceHandle && edge.targetHandle === targetHandle) {
+    if (!source || !target) continue // edge-anchored / dangling — leave as-is
+    const sc = centerById.get(source.id)!
+    const tc = centerById.get(target.id)!
+    const { sourceSide, targetSide } = chooseFacingSides(sc, tc)
+    sideByEdgeEnd.set(edge.id, { sourceSide, targetSide })
+
+    const sKey = `${source.id}|${sourceSide}`
+    const tKey = `${target.id}|${targetSide}`
+    const sAlong = sourceSide === "top" || sourceSide === "bottom" ? tc.x : tc.y
+    const tAlong = targetSide === "top" || targetSide === "bottom" ? sc.x : sc.y
+    ;(groups.get(sKey) ?? groups.set(sKey, []).get(sKey)!).push({ edgeId: edge.id, end: "source", along: sAlong })
+    ;(groups.get(tKey) ?? groups.set(tKey, []).get(tKey)!).push({ edgeId: edge.id, end: "target", along: tAlong })
+  }
+
+  // Assign a concrete handle id to every edge end.
+  const assigned = new Map<string, { sourceHandle?: string; targetHandle?: string }>()
+  for (const [key, ends] of groups) {
+    const side = key.slice(key.indexOf("|") + 1) as HandleSide
+    const handles = SIDE_HANDLES[side]
+    ends.sort((a, b) => a.along - b.along)
+    ends.forEach((ref, i) => {
+      const handle = handles[slotIndex(i, ends.length, handles.length)]
+      const slot = assigned.get(ref.edgeId) ?? {}
+      if (ref.end === "source") slot.sourceHandle = handle
+      else slot.targetHandle = handle
+      assigned.set(ref.edgeId, slot)
+    })
+  }
+
+  const layoutedEdges = edges.map((edge) => {
+    const a = assigned.get(edge.id)
+    if (!a) return edge
+    if (edge.sourceHandle === a.sourceHandle && edge.targetHandle === a.targetHandle) {
       return edge
     }
-    return { ...edge, sourceHandle, targetHandle }
+    return { ...edge, sourceHandle: a.sourceHandle, targetHandle: a.targetHandle }
   })
 
   return { nodes: layoutedNodes, edges: layoutedEdges }

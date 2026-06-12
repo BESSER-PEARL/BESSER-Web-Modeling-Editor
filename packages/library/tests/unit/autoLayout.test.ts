@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Edge, Node } from "@xyflow/react"
-import { chooseFacingHandles, computeAutoLayout, getLayoutDirection } from "../../lib/utils/autoLayout"
+import { chooseFacingHandles, chooseFacingSides, computeAutoLayout, getLayoutDirection } from "../../lib/utils/autoLayout"
 import { UMLDiagramType } from "../../lib/types"
 
 const node = (id: string, overrides: Partial<Node> = {}): Node => ({
@@ -101,6 +101,37 @@ describe("computeAutoLayout", () => {
     expect(layouted[0].data).toEqual(nodes[0].data)
   })
 
+  it("distributes multiple edges sharing a side across that side's handles", async () => {
+    // One parent with three children below it: all three inheritance edges
+    // land on the parent's bottom side and must not collapse onto one handle.
+    const nodes = [node("parent"), node("c1"), node("c2"), node("c3")]
+    const edges = [
+      edge("e1", "c1", "parent"),
+      edge("e2", "c2", "parent"),
+      edge("e3", "c3", "parent"),
+    ]
+
+    const { edges: layoutedEdges } = await computeAutoLayout(
+      nodes,
+      edges,
+      UMLDiagramType.ClassDiagram,
+    )
+    // The parent end of each edge (whichever end points at "parent").
+    const parentHandles = layoutedEdges.map((e) =>
+      e.source === "parent" ? e.sourceHandle : e.targetHandle,
+    )
+    const ALL_HANDLES = [
+      "top-left", "top", "top-right",
+      "bottom-left", "bottom", "bottom-right",
+      "left-top", "left", "left-bottom",
+      "right-top", "right", "right-bottom",
+    ]
+    // No collision: the three edges resolve to three distinct handles
+    // (the anti-overlap goal), each a real connectable handle id.
+    expect(new Set(parentHandles).size).toBe(3)
+    parentHandles.forEach((h) => expect(ALL_HANDLES).toContain(h))
+  })
+
   it("reassigns edge handles to the facing sides of a vertical layout", async () => {
     const nodes = [node("parent"), node("child")]
     // child inherits parent -> edge source=child, target=parent
@@ -159,6 +190,19 @@ describe("chooseFacingHandles", () => {
     expect(chooseFacingHandles({ x: 0, y: 0 }, { x: 30, y: 200 })).toEqual({
       sourceHandle: "bottom",
       targetHandle: "top",
+    })
+  })
+})
+
+describe("chooseFacingSides", () => {
+  it("returns side keys, not handle ids", () => {
+    expect(chooseFacingSides({ x: 0, y: 0 }, { x: 0, y: 200 })).toEqual({
+      sourceSide: "bottom",
+      targetSide: "top",
+    })
+    expect(chooseFacingSides({ x: 0, y: 0 }, { x: 200, y: 0 })).toEqual({
+      sourceSide: "right",
+      targetSide: "left",
     })
   })
 })
