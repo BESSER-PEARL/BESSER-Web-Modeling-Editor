@@ -1,4 +1,4 @@
-import { FC } from "react"
+import { FC, useId } from "react"
 import { ClassType } from "@/types"
 import { CustomText } from "./CustomText"
 import { LAYOUT } from "@/constants"
@@ -30,6 +30,8 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
 }) => {
   // Falls back to stereotype-derived italic when caller doesn't pass the flag.
   const italic = isItalic ?? stereotype === ClassType.Abstract
+  // SVG ids must not contain the colons React's useId emits.
+  const clipId = `header-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
   return (
     <>
       <rect
@@ -39,7 +41,19 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
         height={headerHeight - LAYOUT.LINE_WIDTH / 2}
         fill={fill}
       />
+      {/* Long names (e.g. "instance : SomeVeryLongClassName" palette
+          previews) must mask at the box edge instead of spilling out —
+          the root svg renders with overflow="visible" for handles. */}
+      <clipPath id={clipId}>
+        <rect
+          x={LAYOUT.LINE_WIDTH / 2}
+          y={LAYOUT.LINE_WIDTH / 2}
+          width={width - LAYOUT.LINE_WIDTH}
+          height={headerHeight - LAYOUT.LINE_WIDTH / 2}
+        />
+      </clipPath>
       <CustomText
+        clipPath={`url(#${clipId})`}
         x={width / 2}
         y={headerHeight / 2}
         dominantBaseline="middle"
