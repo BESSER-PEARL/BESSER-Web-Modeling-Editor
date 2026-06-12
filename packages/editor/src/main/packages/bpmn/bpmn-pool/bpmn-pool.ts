@@ -3,7 +3,7 @@ import { UMLElementType } from '../../uml-element-type';
 import { ILayer } from '../../../services/layouter/layer';
 import { ILayoutable } from '../../../services/layouter/layoutable';
 import { UMLElementFeatures } from '../../../services/uml-element/uml-element-features';
-import { ResizeFrom, UMLElement } from '../../../services/uml-element/uml-element';
+import { IUMLElement, ResizeFrom, UMLElement } from '../../../services/uml-element/uml-element';
 import { UMLPackage } from '../../common/uml-package/uml-package';
 import { BPMNSwimlane } from '../bpmn-swimlane/bpmn-swimlane';
 
@@ -31,6 +31,15 @@ export class BPMNPool extends UMLPackage {
 
   hasSwimlanes = (children: ILayoutable[]): boolean =>
     children.some((child: ILayoutable & { type?: UMLElementType }) => child.type === BPMNElementType.BPMNSwimlane);
+
+  // Swimlanes must paint before non-lane children so their background rect sits
+  // behind tasks/events. SVG renders later elements on top; putting lanes first
+  // in ownedElements ensures tasks always appear above lane backgrounds. (Guide 16.)
+  reorderChildren(children: IUMLElement[]): string[] {
+    const lanes = children.filter((c) => c.type === BPMNElementType.BPMNSwimlane);
+    const rest = children.filter((c) => c.type !== BPMNElementType.BPMNSwimlane);
+    return [...lanes, ...rest].map((c) => c.id);
+  }
 
   render(layer: ILayer, children: UMLElement[] = [], calculateWithoutChildren?: boolean): UMLElement[] {
     console.log('[pool.render] id=' + this.id + ' children=' + children.length, {
@@ -96,6 +105,15 @@ export class BPMNPool extends UMLPackage {
         h: s.bounds.height,
       })),
     );
+
+    // 4a. If the stacked lane total is shorter than the pool's current height
+    // (e.g. first lane dropped on a tall empty pool), expand the last lane to
+    // fill instead of snapping the pool down. (Guide 16.)
+    if (currentY < this.bounds.height && orderedSwimlanes.length > 0) {
+      const lastLane = orderedSwimlanes[orderedSwimlanes.length - 1];
+      lastLane.bounds.height += this.bounds.height - currentY;
+      currentY = this.bounds.height;
+    }
 
     // 4. Force pool height to exactly fit lanes. With features.resizable === true
     // the pool also accepts vertical drags, but a laned pool's height is fully
