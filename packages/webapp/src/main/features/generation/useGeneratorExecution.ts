@@ -934,6 +934,14 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     const llmBlock = diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
       ? (diagramConfig.llm as Record<string, any>)
       : null;
+    // The Runtime tab can drive the LLM either via a named definition
+    // (`llm: { name }` + top-level `default_llm_name`, the multi-LLM path) or
+    // the legacy inline `llm: { provider, model }`. Detect the named shape and
+    // forward it verbatim so standalone agent generation emits the same
+    // wire-shape the BAF backend reads (parity with the personalization path).
+    const namedLlm = typeof llmBlock?.name === 'string' && llmBlock.name.trim() !== ''
+      ? llmBlock.name.trim()
+      : (typeof diagramConfig?.default_llm_name === 'string' ? diagramConfig.default_llm_name.trim() : '');
     const agentConfig = diagramConfig
       ? normalizeAgentRuntimeConfig({
         agentPlatform: typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
@@ -948,14 +956,16 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     const systemConfig: AgentConfig = {
       agentPlatform: agentConfig.agentPlatform,
       intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
-      ...(agentConfig.agentLlmProvider
-        ? {
-          llm: {
-            provider: agentConfig.agentLlmProvider,
-            ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
-          },
-        }
-        : {}),
+      ...(namedLlm
+        ? { llm: { name: namedLlm }, default_llm_name: namedLlm }
+        : agentConfig.agentLlmProvider
+          ? {
+            llm: {
+              provider: agentConfig.agentLlmProvider,
+              ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
+            },
+          }
+          : {}),
     };
 
     let baseConfig: AgentConfig = {
