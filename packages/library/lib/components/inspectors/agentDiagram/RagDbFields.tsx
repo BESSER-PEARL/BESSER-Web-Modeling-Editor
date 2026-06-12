@@ -30,6 +30,8 @@ export type RagDbFieldsValue = {
   dbQueryMode?: string
   dbOperation?: string
   dbSqlQuery?: string
+  /** Registered `AgentLLM` name; empty = "(use default)". */
+  llm_name?: string
 }
 
 interface RagDbFieldsProps {
@@ -38,6 +40,11 @@ interface RagDbFieldsProps {
   /** Available RAG database names sourced from sibling AgentRagElement
    * nodes. Empty list disables the dropdown and shows a helper line. */
   ragDatabaseOptions?: string[]
+  /** Registered `AgentLLM` names for the DB-action "LLM query" picker.
+   * Develop parity (`agent-state-update.tsx` `renderLlmNameField` in
+   * `renderDbReplyEditor`): the picker renders "(use default)" plus
+   * these names whenever `dbQueryMode === 'llm_query'`. */
+  llmNameOptions?: string[]
   /** Render the RAG-side fields (database name picker). */
   showRag?: boolean
   /** Render the DB-action fields (selection / queryMode / operation /
@@ -67,12 +74,20 @@ export const RagDbFields: React.FC<RagDbFieldsProps> = ({
   value,
   onChange,
   ragDatabaseOptions,
+  llmNameOptions,
   showRag = true,
   showDb = true,
 }) => {
   const dbSelectionType = value.dbSelectionType ?? "default"
   const dbQueryMode = value.dbQueryMode ?? "llm_query"
   const dbOperation = value.dbOperation ?? "any"
+  // Keep a non-registry current value selectable so opening the
+  // inspector never silently drops a loaded `llm_name`.
+  const llmNames = [...(llmNameOptions ?? [])]
+  const currentLlm = value.llm_name ?? ""
+  if (currentLlm && !llmNames.includes(currentLlm)) {
+    llmNames.push(currentLlm)
+  }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -239,9 +254,30 @@ export const RagDbFields: React.FC<RagDbFieldsProps> = ({
           )}
 
           {dbQueryMode === "llm_query" && (
-            <Typography variant="caption" sx={{ opacity: 0.7 }}>
-              Answer will be generated with LLM during runtime.
-            </Typography>
+            <>
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                Answer will be generated with LLM during runtime.
+              </Typography>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <Typography variant="caption" sx={{ minWidth: 110 }}>
+                  LLM
+                </Typography>
+                <Select
+                  size="small"
+                  displayEmpty
+                  value={currentLlm}
+                  onChange={(e) => onChange({ llm_name: String(e.target.value) })}
+                  sx={{ flex: 1 }}
+                >
+                  <MenuItem value="">(use default)</MenuItem>
+                  {llmNames.map((name) => (
+                    <MenuItem key={name} value={name}>
+                      {name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Stack>
+            </>
           )}
         </>
       )}

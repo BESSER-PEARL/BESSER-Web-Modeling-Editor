@@ -25,6 +25,10 @@ export interface AgentLLMConfiguration {
   model: string;
 }
 
+export interface AgentLLMNameConfiguration {
+  name: string;
+}
+
 export interface AgentConfigurationPayload {
   agentLanguage: string;
   inputModalities: string[];
@@ -32,7 +36,7 @@ export interface AgentConfigurationPayload {
   agentPlatform: string;
   responseTiming: string;
   agentStyle: string;
-  llm: AgentLLMConfiguration | Record<string, never>;
+  llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never>;
   languageComplexity: AgentLanguageComplexity;
   sentenceLength: AgentSentenceLength;
   interfaceStyle: InterfaceStyleSetting;

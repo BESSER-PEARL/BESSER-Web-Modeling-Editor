@@ -17,12 +17,21 @@ import { registerInspector } from "../registry"
 import { AgentStateEditPanel } from "./AgentStateEditPanel"
 import { AgentIntentEditPanel } from "./AgentIntentEditPanel"
 import { AgentRagElementEditPanel } from "./AgentRagElementEditPanel"
+import { AgentReasoningStateEditPanel } from "./AgentReasoningStateEditPanel"
+import { AgentToolEditPanel } from "./AgentToolEditPanel"
+import { AgentSkillEditPanel } from "./AgentSkillEditPanel"
+import { AgentWorkspaceEditPanel } from "./AgentWorkspaceEditPanel"
 import { AgentDiagramEdgeEditPanel } from "./AgentDiagramEdgeEditPanel"
 import { AgentDiagramInitEdgeEditPanel } from "./AgentDiagramInitEdgeEditPanel"
 
 registerInspector("AgentState", "edit", AgentStateEditPanel)
 registerInspector("AgentIntent", "edit", AgentIntentEditPanel)
 registerInspector("AgentRagElement", "edit", AgentRagElementEditPanel)
+// Reasoning primitives (develop parity).
+registerInspector("AgentReasoningState", "edit", AgentReasoningStateEditPanel)
+registerInspector("AgentTool", "edit", AgentToolEditPanel)
+registerInspector("AgentSkill", "edit", AgentSkillEditPanel)
+registerInspector("AgentWorkspace", "edit", AgentWorkspaceEditPanel)
 registerInspector("AgentStateTransition", "edit", AgentDiagramEdgeEditPanel)
 registerInspector(
   "AgentStateTransitionInit",
@@ -33,5 +42,9 @@ registerInspector(
 export * from "./AgentStateEditPanel"
 export * from "./AgentIntentEditPanel"
 export * from "./AgentRagElementEditPanel"
+export * from "./AgentReasoningStateEditPanel"
+export * from "./AgentToolEditPanel"
+export * from "./AgentSkillEditPanel"
+export * from "./AgentWorkspaceEditPanel"
 export * from "./AgentDiagramEdgeEditPanel"
 export * from "./AgentDiagramInitEdgeEditPanel"

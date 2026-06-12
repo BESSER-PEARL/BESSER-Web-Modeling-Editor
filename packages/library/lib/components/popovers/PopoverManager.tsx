@@ -132,6 +132,13 @@ type NodePopoverType =
   | "AgentState"
   | "AgentIntent"
   | "AgentRagElement"
+  // Reasoning primitives (develop parity). Registry pattern —
+  // type widening only; inspector bodies resolve via
+  // `getInspector(type, kind)`.
+  | "AgentReasoningState"
+  | "AgentTool"
+  | "AgentSkill"
+  | "AgentWorkspace"
   | "UserModelName"
   | "UserModelAttribute"
   | "UserModelIcon"

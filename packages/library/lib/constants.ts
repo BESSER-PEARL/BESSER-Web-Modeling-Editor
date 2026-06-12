@@ -66,6 +66,10 @@ import {
   AgentStateSVG,
   AgentIntentSVG,
   AgentRagElementSVG,
+  AgentReasoningStateSVG,
+  AgentToolSVG,
+  AgentSkillSVG,
+  AgentWorkspaceSVG,
 } from "@/components/svgs/nodes/agentDiagram"
 import {
   UserModelStaticPreviewSVG,
@@ -904,7 +908,25 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
   // body / fallback / intent body / description child nodes are NOT
   // included — they're inserted automatically inside the parent
   // container, mirroring v3 behaviour.
+  // Develop visual section order — Flow → Reasoning →
+  // Knowledge → Capabilities. Section labels mirror develop
+  // `agent-state-diagram/agent-state-preview.ts` (`sectionTitle(...)`
+  // entries); the `sectionLabel` field on a group's first entry tells
+  // `Sidebar.tsx` to prepend a divider + heading (same mechanism as
+  // the NN palette).
   [UMLDiagramType.AgentDiagram]: [
+    // Per user (2025-05): AgentDiagram palette only carries the initial
+    // state marker. The final-state marker was removed because the
+    // BESSER agent metamodel doesn't have a final-state concept (an
+    // agent loops on user input rather than terminating).
+    {
+      type: "StateInitialNode" as never,
+      width: 45,
+      height: 45,
+      defaultData: { name: "" },
+      svg: StateInitialNodeSVG,
+      sectionLabel: "Flow",
+    },
     {
       type: "AgentState" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
@@ -931,11 +953,32 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: AgentStateSVG,
     },
     {
+      // Autonomous reasoning-loop state. Default data mirrors the
+      // develop element defaults (`agent-reasoning-state.ts`):
+      // max_steps 8, planning + streaming on, empty llm_name = "(use
+      // default)".
+      type: "AgentReasoningState" as never,
+      width: 200,
+      height: 80,
+      defaultData: {
+        name: "ReasoningState",
+        llm_name: "",
+        max_steps: 8,
+        enable_task_planning: true,
+        stream_steps: true,
+        system_prompt: "",
+        fallback_message: "",
+      },
+      svg: AgentReasoningStateSVG,
+      sectionLabel: "Reasoning",
+    },
+    {
       type: "AgentIntent" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 100,
       defaultData: { name: "Intent", intent_description: "" },
       svg: AgentIntentSVG,
+      sectionLabel: "Knowledge",
     },
     // `AgentIntentObjectComponent` removed from the
     // palette — it's a child-of-AgentIntent slot row (added via the
@@ -952,16 +995,41 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "RAG" },
       svg: AgentRagElementSVG,
     },
-    // Per user (2025-05): AgentDiagram palette only carries the initial
-    // state marker. The final-state marker was removed because the
-    // BESSER agent metamodel doesn't have a final-state concept (an
-    // agent loops on user input rather than terminating).
     {
-      type: "StateInitialNode" as never,
-      width: 45,
-      height: 45,
-      defaultData: { name: "" },
-      svg: StateInitialNodeSVG,
+      type: "AgentTool" as never,
+      width: 160,
+      height: 80,
+      defaultData: {
+        name: "tool_name",
+        description: "What this tool does",
+        code: "",
+      },
+      svg: AgentToolSVG,
+      sectionLabel: "Capabilities",
+    },
+    {
+      type: "AgentSkill" as never,
+      width: 160,
+      height: 80,
+      defaultData: {
+        name: "skill_name",
+        description: "What this skill teaches",
+        content: "",
+      },
+      svg: AgentSkillSVG,
+    },
+    {
+      type: "AgentWorkspace" as never,
+      width: 160,
+      height: 80,
+      defaultData: {
+        name: "workspace_name",
+        path: "/path/to/dir",
+        description: "",
+        writable: true,
+        max_read_bytes: 200000,
+      },
+      svg: AgentWorkspaceSVG,
     },
   ],
   // BESSER UserDiagram palette. v3 generated one

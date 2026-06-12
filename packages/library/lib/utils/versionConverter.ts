@@ -336,6 +336,14 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     AgentIntentDescription: "AgentIntentDescription",
     AgentIntentObjectComponent: "AgentIntentObjectComponent",
     AgentRagElement: "AgentRagElement",
+    // Reasoning primitives (develop parity) — top-level elements,
+    // no child folding; PascalCase passthrough.
+    AgentReasoningState: "AgentReasoningState",
+    AgentTool: "AgentTool",
+    AgentSkill: "AgentSkill",
+    AgentWorkspace: "AgentWorkspace",
+    // Data-only LLM definition (multi-LLM wave) — passthrough.
+    AgentLLM: "AgentLLM",
 
     // UserDiagram — collapsed shape for `UserModelName`
     // (attributes folded onto `data.attributes`). `UserModelAttribute`
@@ -1145,6 +1153,7 @@ function convertV3NodeDataToV4(
       const v3RowToV4 = (row: V3UMLElement) => {
         const r = row as V3UMLElement & {
           replyType?: string
+          llm_name?: string
           ragDatabaseName?: string
           dbSelectionType?: string
           dbCustomName?: string
@@ -1157,6 +1166,9 @@ function convertV3NodeDataToV4(
           id: r.id,
           name: r.name,
           ...(r.replyType !== undefined && { replyType: r.replyType }),
+          // v3 `AgentStateMember` always persists `llm_name` (default
+          // ''). Pass it through verbatim; empty = "(use default)".
+          ...(r.llm_name !== undefined && { llm_name: r.llm_name }),
           ...(r.ragDatabaseName !== undefined && {
             ragDatabaseName: r.ragDatabaseName,
           }),
@@ -1274,6 +1286,7 @@ function convertV3NodeDataToV4(
         dbOperation?: string
         dbSqlQuery?: string
         ragType?: string
+        llm_name?: string
       }
       return {
         ...baseData,
@@ -1288,6 +1301,106 @@ function convertV3NodeDataToV4(
         ...(e.dbOperation !== undefined && { dbOperation: e.dbOperation }),
         ...(e.dbSqlQuery !== undefined && { dbSqlQuery: e.dbSqlQuery }),
         ...(e.ragType !== undefined && { ragType: e.ragType }),
+        // Registered LLM reference (multi-LLM wave); empty = default.
+        ...(e.llm_name !== undefined && { llm_name: e.llm_name }),
+      }
+    }
+
+    case "AgentLLM": {
+      // Data-only LLM definition. Develop `agent-llm.ts` deserialize
+      // defaults: provider 'openai', parameters {}, 1 previous
+      // message, empty global context.
+      const e = element as {
+        provider?: string
+        parameters?: Record<string, unknown>
+        num_previous_messages?: number
+        global_context?: string | null
+      }
+      return {
+        ...baseData,
+        provider: ["openai", "huggingface", "huggingface_api", "replicate"].includes(
+          e.provider as string
+        )
+          ? e.provider
+          : "openai",
+        parameters:
+          e.parameters && typeof e.parameters === "object" && !Array.isArray(e.parameters)
+            ? e.parameters
+            : {},
+        num_previous_messages:
+          typeof e.num_previous_messages === "number"
+            ? e.num_previous_messages
+            : 1,
+        global_context: e.global_context == null ? "" : String(e.global_context),
+      }
+    }
+
+    case "AgentReasoningState": {
+      // Develop `agent-reasoning-state.ts` deserialize defaults:
+      // initial false, llm_name '', max_steps 8, planning + streaming
+      // true, empty prompt / fallback message.
+      const e = element as {
+        initial?: boolean
+        llm_name?: string
+        max_steps?: number
+        enable_task_planning?: boolean
+        stream_steps?: boolean
+        system_prompt?: string | null
+        fallback_message?: string | null
+      }
+      return {
+        ...baseData,
+        initial: e.initial !== undefined ? !!e.initial : false,
+        llm_name: e.llm_name || "",
+        max_steps: e.max_steps !== undefined ? e.max_steps : 8,
+        enable_task_planning:
+          e.enable_task_planning !== undefined
+            ? !!e.enable_task_planning
+            : true,
+        stream_steps: e.stream_steps !== undefined ? !!e.stream_steps : true,
+        system_prompt: e.system_prompt || "",
+        fallback_message: e.fallback_message || "",
+      }
+    }
+
+    case "AgentTool": {
+      // Develop `agent-tool.ts` deserialize defaults: empty
+      // description / code.
+      const e = element as { description?: string; code?: string }
+      return {
+        ...baseData,
+        description: e.description || "",
+        code: e.code || "",
+      }
+    }
+
+    case "AgentSkill": {
+      // Develop `agent-skill.ts` deserialize defaults: empty
+      // content / description.
+      const e = element as { content?: string; description?: string }
+      return {
+        ...baseData,
+        content: e.content || "",
+        description: e.description || "",
+      }
+    }
+
+    case "AgentWorkspace": {
+      // Develop `agent-workspace.ts` deserialize defaults:
+      // writable true, max_read_bytes 200000.
+      const e = element as {
+        path?: string
+        description?: string
+        writable?: boolean
+        max_read_bytes?: number
+      }
+      return {
+        ...baseData,
+        path: e.path || "",
+        description: e.description || "",
+        writable: e.writable !== undefined ? !!e.writable : true,
+        max_read_bytes:
+          e.max_read_bytes !== undefined ? e.max_read_bytes : 200000,
       }
     }
 
@@ -2684,6 +2797,11 @@ const invertNodeType = (v4Type: string): string => {
     AgentIntentDescription: "AgentIntentDescription",
     AgentIntentObjectComponent: "AgentIntentObjectComponent",
     AgentRagElement: "AgentRagElement",
+    AgentReasoningState: "AgentReasoningState",
+    AgentTool: "AgentTool",
+    AgentSkill: "AgentSkill",
+    AgentWorkspace: "AgentWorkspace",
+    AgentLLM: "AgentLLM",
     UserModelName: "UserModelName",
     UserModelAttribute: "UserModelAttribute",
     UserModelIcon: "UserModelIcon",
@@ -2997,6 +3115,7 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           name?: string
           code?: string
           replyType?: string
+          llm_name?: string
           ragDatabaseName?: string
           dbSelectionType?: string
           dbCustomName?: string
@@ -3023,6 +3142,10 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
             owner: node.id,
             bounds: { x: 0, y: 0, width: 0, height: 0 },
             ...(row.replyType !== undefined && { replyType: row.replyType }),
+            // v3 `AgentStateMember.serialize` always persists
+            // `llm_name`; emit it back verbatim when the row carries
+            // one (older fixtures without the field stay untouched).
+            ...(row.llm_name !== undefined && { llm_name: row.llm_name }),
             ...(row.ragDatabaseName !== undefined && {
               ragDatabaseName: row.ragDatabaseName,
             }),
@@ -3179,6 +3302,86 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
             dbSqlQuery: data.dbSqlQuery,
           }),
           ...(data.ragType !== undefined && { ragType: data.ragType }),
+          ...(data.llm_name !== undefined && { llm_name: data.llm_name }),
+        } as V3UMLElement
+        break
+      }
+      case "AgentLLM": {
+        // Emit the develop wire form (`agent-llm.ts` serialize()):
+        // every field present with its deserialize default applied.
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          provider: ["openai", "huggingface", "huggingface_api", "replicate"].includes(
+            data.provider as string
+          )
+            ? (data.provider as string)
+            : "openai",
+          parameters:
+            data.parameters &&
+            typeof data.parameters === "object" &&
+            !Array.isArray(data.parameters)
+              ? (data.parameters as Record<string, unknown>)
+              : {},
+          num_previous_messages:
+            typeof data.num_previous_messages === "number"
+              ? (data.num_previous_messages as number)
+              : 1,
+          global_context:
+            data.global_context == null ? "" : String(data.global_context),
+        } as V3UMLElement
+        break
+      }
+      case "AgentReasoningState": {
+        // Emit the develop wire form (`agent-reasoning-state.ts`
+        // serialize()): every field present with its default applied.
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          initial: data.initial !== undefined ? !!data.initial : false,
+          llm_name: (data.llm_name as string) || "",
+          max_steps:
+            data.max_steps !== undefined ? (data.max_steps as number) : 8,
+          enable_task_planning:
+            data.enable_task_planning !== undefined
+              ? !!data.enable_task_planning
+              : true,
+          stream_steps:
+            data.stream_steps !== undefined ? !!data.stream_steps : true,
+          system_prompt: (data.system_prompt as string) || "",
+          fallback_message: (data.fallback_message as string) || "",
+        } as V3UMLElement
+        break
+      }
+      case "AgentTool": {
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          description: (data.description as string) || "",
+          code: (data.code as string) || "",
+        } as V3UMLElement
+        break
+      }
+      case "AgentSkill": {
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          content: (data.content as string) || "",
+          description: (data.description as string) || "",
+        } as V3UMLElement
+        break
+      }
+      case "AgentWorkspace": {
+        const data = node.data as Record<string, unknown>
+        elements[node.id] = {
+          ...baseV3,
+          path: (data.path as string) || "",
+          description: (data.description as string) || "",
+          writable: data.writable !== undefined ? !!data.writable : true,
+          max_read_bytes:
+            data.max_read_bytes !== undefined
+              ? (data.max_read_bytes as number)
+              : 200000,
         } as V3UMLElement
         break
       }
@@ -4029,9 +4232,75 @@ export function normalizeV4Model(model: UMLModel): UMLModel {
   m = normalizeAgentBodies(m)
   m = normalizeAgentBodyKindToArrays(m)
   m = normalizeAgentIntentChildren(m)
+  m = normalizeAgentReasoningPrimitiveDefaults(m)
   m = normalizeOCLConstraintNodes(m)
   m = normalizeStateBodyNodesInline(m)
   return m
+}
+
+/**
+ * Seed develop's deserialize defaults on the agent reasoning-primitive
+ * nodes (`AgentReasoningState` / `AgentTool` / `AgentSkill` /
+ * `AgentWorkspace`). Mirrors the v3 `deserialize()` methods
+ * (`agent-reasoning-state.ts`, `agent-tool.ts`, `agent-skill.ts`,
+ * `agent-workspace.ts`): templates or hand-written v4 fixtures that
+ * omit a field surface in the editor with the same value v3 would have
+ * applied (max_steps 8, planning/streaming/writable true,
+ * max_read_bytes 200000, empty strings elsewhere).
+ */
+function normalizeAgentReasoningPrimitiveDefaults(model: UMLModel): UMLModel {
+  const DEFAULTS: Record<string, Record<string, unknown>> = {
+    AgentReasoningState: {
+      initial: false,
+      llm_name: "",
+      max_steps: 8,
+      enable_task_planning: true,
+      stream_steps: true,
+      system_prompt: "",
+      fallback_message: "",
+    },
+    AgentTool: { description: "", code: "" },
+    AgentSkill: { content: "", description: "" },
+    AgentWorkspace: {
+      path: "",
+      description: "",
+      writable: true,
+      max_read_bytes: 200000,
+    },
+    // Data-only LLM definition — develop `agent-llm.ts` deserialize
+    // defaults. `parameters` is intentionally seeded per-node below
+    // (fresh object each time) to avoid sharing one mutable reference.
+    AgentLLM: {
+      provider: "openai",
+      num_previous_messages: 1,
+      global_context: "",
+    },
+  }
+  let touched = 0
+  const nodes = model.nodes.map((n) => {
+    const defaults = typeof n.type === "string" ? DEFAULTS[n.type] : undefined
+    if (!defaults) return n
+    const data = (n.data ?? {}) as Record<string, unknown>
+    const missing = Object.keys(defaults).filter(
+      (key) => data[key] === undefined
+    )
+    // AgentLLM `parameters` default needs a fresh `{}` per node (a
+    // shared reference in DEFAULTS would alias across nodes).
+    const needsParameters =
+      (n.type as string) === "AgentLLM" && data.parameters === undefined
+    if (missing.length === 0 && !needsParameters) return n
+    touched += 1
+    const patch: Record<string, unknown> = {}
+    for (const key of missing) patch[key] = defaults[key]
+    if (needsParameters) patch.parameters = {}
+    return { ...n, data: { ...data, ...patch } } as BesserNode
+  })
+  if (touched === 0) return model
+  log.warn(
+    `normalizeAgentReasoningPrimitiveDefaults: seeded missing defaults on ` +
+      `${touched} reasoning-primitive node(s).`
+  )
+  return { ...model, nodes }
 }
 
 /**

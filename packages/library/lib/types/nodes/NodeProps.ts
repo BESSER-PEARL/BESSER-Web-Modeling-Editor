@@ -419,6 +419,13 @@ export type AgentStateBodyRow = {
   code?: string
   /** v3 `AgentStateMember.replyType`. */
   replyType?: string
+  /**
+   * Registered `AgentLLM` name used by `llm` replies and `db_reply`
+   * rows in LLM-query mode. Empty string / undefined means "(use
+   * default)" — the agent's default LLM resolves at codegen time.
+   * Mirrors v3 `AgentStateMember.llm_name`.
+   */
+  llm_name?: string
   ragDatabaseName?: string
   dbSelectionType?: string
   dbCustomName?: string
@@ -559,8 +566,106 @@ export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
  * an `AgentRagElement`, the versionConverter still preserves them on
  * the v3 wire form via passthrough (the migrator never relied on
  * reading them from this typed shape).
+ *
+ * `llm_name` references a registered `AgentLLM` definition by name;
+ * empty / undefined means "(use default)". Develop source:
+ * `agent-state-diagram/agent-rag-element/agent-rag-element-update.tsx`.
  */
-export type AgentRagElementNodeProps = DefaultNodeProps
+export type AgentRagElementNodeProps = DefaultNodeProps & {
+  /** Registered LLM name; empty = use the agent default. */
+  llm_name?: string
+}
+
+/**
+ * `AgentLLM` — registered LLM definition. A **data-only** node: it is
+ * never rendered on the canvas (the node component returns `null`,
+ * matching develop's `AgentLLMNoopComponent`) and is managed
+ * exclusively from the webapp's Agent Customization panel (LLMs card).
+ * Develop source: `agent-state-diagram/agent-llm/agent-llm.ts`.
+ *
+ * The `name` (inherited from `DefaultNodeProps`) is the registry key
+ * that `llm_name` references on RAG elements, LLM replies, and
+ * reasoning states resolve against; the diagram config's
+ * `default_llm_name` points at one of these names.
+ */
+export type AgentLLMNodeProps = DefaultNodeProps & {
+  /** v3 `AgentLLMProviderType`. Defaults to `'openai'`. */
+  provider?: "openai" | "huggingface" | "huggingface_api" | "replicate"
+  /** Free-form constructor parameters (e.g. `{ "model": "gpt-4o" }`). */
+  parameters?: Record<string, unknown>
+  /** Chat-history window handed to the wrapper. v3 default 1. */
+  num_previous_messages?: number
+  /** System-level context appended to every prompt. */
+  global_context?: string
+}
+
+/**
+ * `AgentReasoningState` — autonomous reasoning-loop state (purple
+ * rounded rectangle with a `▷ «reasoning»` header). Develop source:
+ * `agent-state-diagram/agent-reasoning-state/agent-reasoning-state.ts`.
+ *
+ * `llm_name` references a registered `AgentLLM` definition by name; an
+ * empty string means "(use default)" — the agent's default LLM resolves
+ * at codegen time. The AgentLLM definitions themselves arrive with the
+ * multi-LLM wave; until then the inspector offers "(use default)" plus
+ * any AgentLLM nodes present in the model (none yet).
+ */
+export type AgentReasoningStateNodeProps = DefaultNodeProps & {
+  /** Mirrors v3 `initial` — set when the init edge targets this state. */
+  initial?: boolean
+  /** Registered LLM name; empty = use the agent default. */
+  llm_name?: string
+  /** Reasoning loop budget. v3 default 8. */
+  max_steps?: number
+  /** v3 default true. */
+  enable_task_planning?: boolean
+  /** v3 default true. */
+  stream_steps?: boolean
+  /** Optional system-prompt prefix for this state. */
+  system_prompt?: string
+  /** Message returned if the reasoning loop fails. */
+  fallback_message?: string
+}
+
+/**
+ * `AgentTool` — Python callable exposed to the reasoning LLM (blue
+ * hexagon, `🔧 «tool»`). Develop source:
+ * `agent-state-diagram/agent-tool/agent-tool.ts`.
+ */
+export type AgentToolNodeProps = DefaultNodeProps & {
+  /** Short description shown to the LLM. */
+  description?: string
+  /** Python source — must contain a top-level `def` matching `name`. */
+  code?: string
+}
+
+/**
+ * `AgentSkill` — markdown playbook the reasoning LLM can load (green
+ * folded-corner card, `💡 «skill»`). Develop source:
+ * `agent-state-diagram/agent-skill/agent-skill.ts`.
+ */
+export type AgentSkillNodeProps = DefaultNodeProps & {
+  /** Markdown instructions. */
+  content?: string
+  /** Optional short description. */
+  description?: string
+}
+
+/**
+ * `AgentWorkspace` — filesystem root the reasoning LLM may browse
+ * (amber folder silhouette, `📁 «workspace»`). Develop source:
+ * `agent-state-diagram/agent-workspace/agent-workspace.ts`.
+ */
+export type AgentWorkspaceNodeProps = DefaultNodeProps & {
+  /** Filesystem path of the workspace root. */
+  path?: string
+  /** Optional description. */
+  description?: string
+  /** v3 default true. */
+  writable?: boolean
+  /** v3 default 200000. */
+  max_read_bytes?: number
+}
 
 /* -------------------------------------------------------------------------- */
 /* UserDiagram (BESSER)                                                 */

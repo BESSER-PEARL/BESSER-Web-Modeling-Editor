@@ -914,7 +914,11 @@ export const resolveNNEdgeType = (
  * supports `[AgentStateTransitionInit, StateTransition]` and AgentState
  * supports `[AgentStateTransition, AgentStateTransitionInit, Link]`, so
  * initial ↔ AgentState (either direction) intersects to
- * `AgentStateTransitionInit`. Everything else (state ↔ state, anything
+ * `AgentStateTransitionInit`. `AgentReasoningState` declares the same
+ * supported relationships as `AgentState` (develop
+ * `agent-reasoning-state.ts` `supportedRelationships`), so reasoning
+ * states participate in transitions identically — including being the
+ * initial-edge target. Everything else (state ↔ state, anything
  * touching intents / RAG elements) falls back to the diagram default
  * `AgentStateTransition`.
  */
@@ -924,7 +928,8 @@ export const resolveAgentEdgeType = (
   fallback: DiagramEdgeType
 ): DiagramEdgeType => {
   const isInitial = (t?: string) => t === "StateInitialNode"
-  const isAgentState = (t?: string) => t === "AgentState"
+  const isAgentState = (t?: string) =>
+    t === "AgentState" || t === "AgentReasoningState"
   if (
     (isInitial(sourceType) &&
       (isAgentState(targetType) || isInitial(targetType))) ||

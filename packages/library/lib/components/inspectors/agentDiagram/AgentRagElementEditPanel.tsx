@@ -1,25 +1,29 @@
 import {
   Box,
+  MenuItem,
+  Select,
   TextField as MuiTextField,
 } from "@mui/material"
 import React from "react"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { AgentRagElementNodeProps } from "@/types"
-import { DividerLine, NodeStyleEditor } from "@/components/ui"
+import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 
 /**
  * Inspector for `AgentRagElement`.
  *
- * The standalone RAG cylinder is now a name-only element: the
- * DB/RAG selection fields (`ragDatabaseName`, `dbCustomName`,
- * `dbSelectionType`, `dbQueryMode`, `dbOperation`, `dbSqlQuery`) were
- * moved off this inspector — they belong to the AgentState `db_reply`
- * reply mode (see `AgentStateEditPanel.tsx`). Keeping this panel
- * focused on `name` matches the underlying typed shape
- * (`AgentRagElementNodeProps = DefaultNodeProps`) and the v3 visual
- * (cylinder showing a single label).
+ * The standalone RAG cylinder carries its display name plus an
+ * `llm_name` reference: the DB/RAG selection fields (`ragDatabaseName`,
+ * `dbCustomName`, `dbSelectionType`, `dbQueryMode`, `dbOperation`,
+ * `dbSqlQuery`) were moved off this inspector — they belong to the
+ * AgentState `db_reply` reply mode (see `AgentStateEditPanel.tsx`).
+ *
+ * The LLM picker mirrors develop's
+ * `agent-rag-element-update.tsx`: "Name of RAG DB" text field plus an
+ * "LLM" dropdown offering "(use default)" and the names of registered
+ * `AgentLLM` definition nodes.
  */
 export const AgentRagElementEditPanel: React.FC<PopoverProps> = ({
   elementId,
@@ -34,6 +38,22 @@ export const AgentRagElementEditPanel: React.FC<PopoverProps> = ({
   if (!node) return null
 
   const data = node.data as AgentRagElementNodeProps
+
+  // Names of registered AgentLLM definitions. Keep a non-registry
+  // current value selectable so opening the inspector never silently
+  // drops a loaded `llm_name`.
+  const llmNames = Array.from(
+    new Set(
+      nodes
+        .filter((n) => (n.type as string) === "AgentLLM")
+        .map((n) => ((n.data as { name?: string }).name ?? "").trim())
+        .filter((name) => name.length > 0)
+    )
+  )
+  const currentLlm = data.llm_name ?? ""
+  if (currentLlm && !llmNames.includes(currentLlm)) {
+    llmNames.push(currentLlm)
+  }
 
   const update = (patch: Partial<AgentRagElementNodeProps>) => {
     setNodes((all) =>
@@ -63,6 +83,22 @@ export const AgentRagElementEditPanel: React.FC<PopoverProps> = ({
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
       />
+
+      <Typography variant="caption">LLM</Typography>
+      <Select
+        size="small"
+        fullWidth
+        displayEmpty
+        value={currentLlm}
+        onChange={(e) => update({ llm_name: String(e.target.value) })}
+      >
+        <MenuItem value="">(use default)</MenuItem>
+        {llmNames.map((name) => (
+          <MenuItem key={name} value={name}>
+            {name}
+          </MenuItem>
+        ))}
+      </Select>
     </Box>
   )
 }

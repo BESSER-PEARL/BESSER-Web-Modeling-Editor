@@ -407,7 +407,7 @@ const sections: GuideSection[] = [
         },
       },
       {
-        title: 'Agent Configuration',
+        title: 'Agent Customization',
         body: (
           <div className="space-y-2">
             <p>

@@ -20,13 +20,33 @@ import { registerNodeTypes } from "../types"
 import { AgentState } from "./AgentState"
 import { AgentIntent } from "./AgentIntent"
 import { AgentRagElement } from "./AgentRagElement"
+import { AgentReasoningState } from "./AgentReasoningState"
+import { AgentTool } from "./AgentTool"
+import { AgentSkill } from "./AgentSkill"
+import { AgentWorkspace } from "./AgentWorkspace"
+import { AgentLLM } from "./AgentLLM"
 
 registerNodeTypes({
   AgentState,
   AgentIntent,
   AgentRagElement,
+  // Reasoning primitives (develop parity — Reasoning / Capabilities
+  // palette sections).
+  AgentReasoningState,
+  AgentTool,
+  AgentSkill,
+  AgentWorkspace,
+  // Data-only LLM definition (renders null; no palette entry —
+  // managed from the webapp's Agent Customization panel).
+  AgentLLM,
 })
 
 export * from "./AgentState"
 export * from "./AgentIntent"
 export * from "./AgentRagElement"
+export * from "./AgentReasoningState"
+export * from "./AgentTool"
+export * from "./AgentSkill"
+export * from "./AgentWorkspace"
+export * from "./AgentLLM"
+export * from "./agentPrimitiveColors"

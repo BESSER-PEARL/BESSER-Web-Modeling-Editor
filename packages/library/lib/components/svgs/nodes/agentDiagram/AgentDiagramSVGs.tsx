@@ -1,5 +1,9 @@
 import { SVGComponentProps } from "@/types/SVG"
 import { AgentStateBodyRow, AgentStateNodeProps } from "@/types"
+import {
+  AGENT_PRIMITIVE_COLORS,
+  truncatePrimitiveSubtitle,
+} from "@/nodes/agentDiagram/agentPrimitiveColors"
 
 /**
  * Lightweight palette previews for AgentDiagram. Mirror the
@@ -216,6 +220,281 @@ export const AgentRagElementSVG: React.FC<SVGComponentProps> = ({
       >
         RAG
       </text>
+    </svg>
+  )
+}
+
+type PrimitiveSVGProps = SVGComponentProps & {
+  data?: { name?: string; description?: string; path?: string; llm_name?: string }
+}
+
+/**
+ * Palette preview for `AgentReasoningState` — purple rounded rect with
+ * the `▷ «reasoning»` header and the "(use default)" LLM line, mirroring
+ * the canvas node (develop `agent-state-preview.ts` reasoning entry).
+ */
+export const AgentReasoningStateSVG: React.FC<PrimitiveSVGProps> = ({
+  width,
+  height,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+  data,
+}) => {
+  const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const accent = AGENT_PRIMITIVE_COLORS.reasoning.accent
+  const headerHeight = 50
+  const llmLabel = data?.llm_name ? `LLM: ${data.llm_name}` : "LLM: (use default)"
+  return (
+    <svg
+      width={sw}
+      height={sh}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      <rect
+        x={0}
+        y={0}
+        width={width}
+        height={height}
+        rx={8}
+        ry={8}
+        fill="var(--besser-background, white)"
+        stroke={accent}
+        strokeWidth={2}
+      />
+      <text
+        x={width / 2}
+        y={20}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight="bold"
+        fill={accent}
+      >
+        {"▷ «reasoning»"}
+      </text>
+      <text
+        x={width / 2}
+        y={40}
+        textAnchor="middle"
+        fontSize={14}
+        fontWeight="600"
+        fill="var(--besser-primary-contrast, #000)"
+      >
+        {data?.name ?? "ReasoningState"}
+      </text>
+      <line
+        x1={0}
+        x2={width}
+        y1={headerHeight}
+        y2={headerHeight}
+        stroke={accent}
+        strokeWidth={1}
+      />
+      <text
+        x={width / 2}
+        y={headerHeight + 19}
+        textAnchor="middle"
+        fontSize={12}
+        fill="var(--besser-primary-contrast, #000)"
+      >
+        {llmLabel}
+      </text>
+    </svg>
+  )
+}
+
+/**
+ * Palette preview for `AgentTool` — blue hexagon (develop's "module"
+ * silhouette).
+ */
+export const AgentToolSVG: React.FC<PrimitiveSVGProps> = ({
+  width,
+  height,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+  data,
+}) => {
+  const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const { accent, tint, icon } = AGENT_PRIMITIVE_COLORS.tool
+  const subtitle = truncatePrimitiveSubtitle(data?.description)
+  const notch = Math.min(18, width / 6)
+  const hexPath =
+    `M ${notch} 0 H ${width - notch} L ${width} ${height / 2} ` +
+    `L ${width - notch} ${height} H ${notch} L 0 ${height / 2} Z`
+  return (
+    <svg
+      width={sw}
+      height={sh}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      <path d={hexPath} fill={tint} stroke={accent} strokeWidth={1.5} />
+      <text
+        x={width / 2}
+        y={24}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight="bold"
+        fill={accent}
+      >
+        {`${icon} «tool»`}
+      </text>
+      <text
+        x={width / 2}
+        y={44}
+        textAnchor="middle"
+        fontSize={14}
+        fontWeight="600"
+        fill="var(--besser-primary-contrast, #000)"
+      >
+        {data?.name ?? "tool_name"}
+      </text>
+      {subtitle ? (
+        <text
+          x={width / 2}
+          y={height - 16}
+          textAnchor="middle"
+          fontSize={12}
+          fill="var(--besser-primary-contrast, #000)"
+        >
+          {subtitle}
+        </text>
+      ) : null}
+    </svg>
+  )
+}
+
+/**
+ * Palette preview for `AgentSkill` — green folded-corner card
+ * (develop's "note" silhouette).
+ */
+export const AgentSkillSVG: React.FC<PrimitiveSVGProps> = ({
+  width,
+  height,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+  data,
+}) => {
+  const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const { accent, tint, icon } = AGENT_PRIMITIVE_COLORS.skill
+  const subtitle = truncatePrimitiveSubtitle(data?.description)
+  const fold = Math.min(16, width / 6)
+  const cardPath = `M 0 0 H ${width - fold} L ${width} ${fold} V ${height} H 0 Z`
+  const foldPath = `M ${width - fold} 0 L ${width} ${fold} L ${width - fold} ${fold} Z`
+  return (
+    <svg
+      width={sw}
+      height={sh}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      <path d={cardPath} fill={tint} stroke={accent} strokeWidth={1.5} />
+      <path
+        d={foldPath}
+        fill={accent}
+        fillOpacity={0.45}
+        stroke={accent}
+        strokeWidth={1}
+      />
+      <text
+        x={width / 2}
+        y={24}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight="bold"
+        fill={accent}
+      >
+        {`${icon} «skill»`}
+      </text>
+      <text
+        x={width / 2}
+        y={44}
+        textAnchor="middle"
+        fontSize={14}
+        fontWeight="600"
+        fill="var(--besser-primary-contrast, #000)"
+      >
+        {data?.name ?? "skill_name"}
+      </text>
+      {subtitle ? (
+        <text
+          x={width / 2}
+          y={height - 16}
+          textAnchor="middle"
+          fontSize={12}
+          fill="var(--besser-primary-contrast, #000)"
+        >
+          {subtitle}
+        </text>
+      ) : null}
+    </svg>
+  )
+}
+
+/**
+ * Palette preview for `AgentWorkspace` — amber folder silhouette.
+ */
+export const AgentWorkspaceSVG: React.FC<PrimitiveSVGProps> = ({
+  width,
+  height,
+  SIDEBAR_PREVIEW_SCALE,
+  svgAttributes,
+  data,
+}) => {
+  const sw = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const sh = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
+  const { accent, tint, icon } = AGENT_PRIMITIVE_COLORS.workspace
+  const subtitle = truncatePrimitiveSubtitle(data?.path || data?.description)
+  const tabW = Math.min(70, width * 0.45)
+  const tabH = Math.min(16, height * 0.22)
+  const slope = 10
+  const folderPath = `M 0 0 H ${tabW} L ${tabW + slope} ${tabH} H ${width} V ${height} H 0 Z`
+  return (
+    <svg
+      width={sw}
+      height={sh}
+      viewBox={`0 0 ${width} ${height}`}
+      overflow="visible"
+      {...svgAttributes}
+    >
+      <path d={folderPath} fill={tint} stroke={accent} strokeWidth={1.5} />
+      <text
+        x={width / 2}
+        y={tabH + 16}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight="bold"
+        fill={accent}
+      >
+        {`${icon} «workspace»`}
+      </text>
+      <text
+        x={width / 2}
+        y={tabH + 34}
+        textAnchor="middle"
+        fontSize={14}
+        fontWeight="600"
+        fill="var(--besser-primary-contrast, #000)"
+      >
+        {data?.name ?? "workspace_name"}
+      </text>
+      {subtitle ? (
+        <text
+          x={width / 2}
+          y={height - 12}
+          textAnchor="middle"
+          fontSize={12}
+          fill="var(--besser-primary-contrast, #000)"
+        >
+          {subtitle}
+        </text>
+      ) : null}
     </svg>
   )
 }

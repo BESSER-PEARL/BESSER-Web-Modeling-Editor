@@ -158,6 +158,21 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     )
   }, [nodes])
 
+  // Registered AgentLLM definition names — sourced from sibling
+  // `AgentLLM` data-only nodes (managed in the webapp's Agent
+  // Customization panel). Develop parity: `agent-state-update.tsx`
+  // builds the same list for its `renderLlmNameField` pickers.
+  const llmNameOptions = React.useMemo(() => {
+    return Array.from(
+      new Set(
+        nodes
+          .filter((n) => (n.type as string) === "AgentLLM")
+          .map((n) => ((n.data as { name?: string }).name ?? "").trim())
+          .filter((s) => s.length > 0)
+      )
+    )
+  }, [nodes])
+
   const sectionRows = (section: Section): AgentStateBodyRow[] =>
     section === "fallback" ? fallbackBodies : mainBodies
 
@@ -306,17 +321,45 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           <Typography variant="caption">Initialising LLM body…</Typography>
         )
       }
+      // Keep a non-registry current value selectable so opening the
+      // inspector never silently drops a loaded `llm_name`.
+      const rowLlmNames = [...llmNameOptions]
+      const currentRowLlm = llmRow.llm_name ?? ""
+      if (currentRowLlm && !rowLlmNames.includes(currentRowLlm)) {
+        rowLlmNames.push(currentRowLlm)
+      }
       return (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          multiline
-          minRows={3}
-          label="System prompt"
-          value={llmRow.name ?? ""}
-          onChange={(e) => updateRow(llmRow.id, { name: e.target.value })}
-        />
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <MuiTextField
+            size="small"
+            variant="outlined"
+            fullWidth
+            multiline
+            minRows={3}
+            label="System prompt"
+            value={llmRow.name ?? ""}
+            onChange={(e) => updateRow(llmRow.id, { name: e.target.value })}
+          />
+          {/* Develop parity: `renderLlmNameField(llmBody, …)` — pick
+              which registered LLM answers; empty = agent default. */}
+          <Typography variant="caption">LLM</Typography>
+          <Select
+            size="small"
+            fullWidth
+            displayEmpty
+            value={currentRowLlm}
+            onChange={(e) =>
+              updateRow(llmRow.id, { llm_name: String(e.target.value) })
+            }
+          >
+            <MenuItem value="">(use default)</MenuItem>
+            {rowLlmNames.map((name) => (
+              <MenuItem key={name} value={name}>
+                {name}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
       )
     }
 
@@ -415,6 +458,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               ),
             })
           }}
+          llmNameOptions={llmNameOptions}
           showRag={false}
           showDb
         />
