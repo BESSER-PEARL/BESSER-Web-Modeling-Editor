@@ -16,7 +16,10 @@ export class BPMNPool extends UMLPackage {
     ...UMLElement.features,
     droppable: true,
     movable: true,
-    resizable: 'WIDTH',
+    // Both axes allowed at the gesture level; the real constraint is enforced
+    // per-instance in render(): an empty pool resizes vertically, a laned pool
+    // stays lane-driven (its height delta is rejected). See guide 15.
+    resizable: true,
     connectable: true,
   };
 
@@ -41,12 +44,14 @@ export class BPMNPool extends UMLPackage {
     if (this.bounds.width < MIN_POOL_WIDTH) {
       this.bounds.width = MIN_POOL_WIDTH;
     }
-    // if (this.bounds.height < BPMNPool.MIN_HEIGHT) {
-    //   this.bounds.height = BPMNPool.MIN_HEIGHT;
-    // }
-
     const swimlanes = children.filter((child): child is BPMNSwimlane => child.type === BPMNElementType.BPMNSwimlane);
     if (swimlanes.length === 0) {
+      // No lanes: nothing drives the pool's height, so the pool itself is the
+      // vertically resizable element (features.resizable === true). Respect the
+      // user's dragged height; only enforce a sensible floor. (Guide 15.)
+      if (this.bounds.height < BPMNPool.MIN_HEIGHT) {
+        this.bounds.height = BPMNPool.MIN_HEIGHT;
+      }
       return [this, ...children];
     }
 
@@ -92,9 +97,19 @@ export class BPMNPool extends UMLPackage {
       })),
     );
 
-    // 4. Force pool height to exactly fit lanes
+    // 4. Force pool height to exactly fit lanes. With features.resizable === true
+    // the pool also accepts vertical drags, but a laned pool's height is fully
+    // lane-driven, so any height delta is spurious. A top-edge drag (TOPLEFT /
+    // TOPRIGHT) additionally shifted the pool's y by the same delta (see
+    // ResizingReducer.getUpdatedPosition); undo that shift so rejecting the
+    // height change doesn't drift the pool upward. Bottom-edge drags change
+    // height only — y is untouched, so no correction there. (Guide 15.)
     const totalHeight = currentY;
-    this.bounds.height = Math.max(totalHeight, BPMNPool.MIN_HEIGHT);
+    const desiredHeight = Math.max(totalHeight, BPMNPool.MIN_HEIGHT);
+    if (this.resizeFrom === ResizeFrom.TOPLEFT || this.resizeFrom === ResizeFrom.TOPRIGHT) {
+      this.bounds.y += this.bounds.height - desiredHeight;
+    }
+    this.bounds.height = desiredHeight;
 
     return [this, ...orderedSwimlanes, ...children.filter((child) => child.type !== BPMNElementType.BPMNSwimlane)];
   }
