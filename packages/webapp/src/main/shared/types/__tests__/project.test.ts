@@ -429,3 +429,111 @@ describe('migrateProjectToV5 atomicity', () => {
     expect(result.schemaVersion).toBe(5);
   });
 });
+
+describe('retrofitAgentVariantSnapshots (via ensureProjectMigrated)', () => {
+  const v3AgentVariantModel = () => ({
+    version: '3.0.0',
+    type: 'AgentDiagram',
+    size: { width: 100, height: 100 },
+    elements: {},
+    interactive: { elements: {}, relationships: {} },
+    relationships: {
+      r1: {
+        id: 'r1',
+        name: '',
+        type: 'AgentStateTransition',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 1, height: 1 },
+        source: { element: 'r1-src', direction: 'Right' },
+        target: { element: 'r1-tgt', direction: 'Left' },
+        path: [{ x: 0, y: 0 }],
+        isManuallyLayouted: false,
+        condition: 'when_intent_matched',
+        conditionValue: 'Greeting_intent',
+      },
+    },
+    assessments: {},
+  });
+
+  const variantSnapshot = (model: unknown) => ({
+    id: 'variant-1',
+    profileId: 'profile-1',
+    profileName: 'Teenager',
+    configurationId: 'config-1',
+    configurationName: 'CoolConfig',
+    createdAt: new Date().toISOString(),
+    model,
+  });
+
+  it('lifts v3 personalizedVariants models even at schemaVersion 5', async () => {
+    const { readAgentVariants } = await import('../../services/agent-variants/agent-variants-service');
+
+    const project = createDefaultProject('Variants', 'desc', 'owner');
+    expect(project.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
+    project.diagrams.AgentDiagram[0].config = {
+      personalizedVariants: [variantSnapshot(v3AgentVariantModel())],
+      activePersonalizedVariantId: null,
+    };
+
+    // Before the retrofit, the v4 isUMLModel guard drops the v3 snapshot.
+    expect(readAgentVariants(project.diagrams.AgentDiagram[0])).toHaveLength(0);
+
+    ensureProjectMigrated(project);
+
+    const variants = readAgentVariants(project.diagrams.AgentDiagram[0]);
+    expect(variants).toHaveLength(1);
+    expect((variants[0].model as any).version).toBe('4.0.0');
+    const edge = (variants[0].model as any).edges.find((e: any) => e.id === 'r1');
+    expect(edge.data.transitionType).toBe('predefined');
+    expect(edge.data.predefined.intentName).toBe('Greeting_intent');
+  });
+
+  it('leaves canonical v4 variant snapshots untouched (idempotent)', async () => {
+    const { readAgentVariants } = await import('../../services/agent-variants/agent-variants-service');
+
+    const v4Model = {
+      version: '4.0.0',
+      id: 'm1',
+      title: 'Agent',
+      type: UMLDiagramType.AgentDiagram,
+      nodes: [],
+      edges: [],
+      assessments: {},
+    };
+    const project = createDefaultProject('Variants', 'desc', 'owner');
+    project.diagrams.AgentDiagram[0].config = {
+      personalizedVariants: [variantSnapshot(structuredClone(v4Model))],
+      activePersonalizedVariantId: null,
+    };
+
+    ensureProjectMigrated(project);
+
+    const variants = readAgentVariants(project.diagrams.AgentDiagram[0]);
+    expect(variants).toHaveLength(1);
+    expect(variants[0].model).toEqual(v4Model);
+  });
+
+  it('exposes both gym-template variants once the project is migrated', async () => {
+    const { readAgentVariants } = await import('../../services/agent-variants/agent-variants-service');
+    const gymTemplate = (await import('../../../templates/pattern/project/personalized_gym_agent.json')) as any;
+
+    // The shipped template bundles the personalization state alongside the project.
+    expect(gymTemplate.agentConfigurations).toHaveLength(2);
+    expect(gymTemplate.userProfiles).toHaveLength(2);
+    expect(gymTemplate.agentProfileMappings).toHaveLength(2);
+    expect(gymTemplate.activeAgentConfigurationId).toBeNull();
+    expect(Object.keys(gymTemplate.agentBaseModels)).toEqual(['7ac41ba3-7e2b-44bd-9e47-46c377a9d757']);
+
+    const project = structuredClone(gymTemplate.project) as BesserProject;
+    ensureProjectMigrated(project);
+
+    const agentDiagram = project.diagrams.AgentDiagram[0];
+    expect(agentDiagram.id).toBe('7ac41ba3-7e2b-44bd-9e47-46c377a9d757');
+
+    const variants = readAgentVariants(agentDiagram);
+    expect(variants).toHaveLength(2);
+    for (const variant of variants) {
+      expect((variant.model as any).version).toBe('4.0.0');
+    }
+  });
+});

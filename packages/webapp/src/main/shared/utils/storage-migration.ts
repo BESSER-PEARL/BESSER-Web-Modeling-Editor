@@ -1,7 +1,7 @@
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
 
 const STORAGE_VERSION_KEY = 'besser_storage_version';
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 interface Migration {
   version: number;
@@ -79,6 +79,20 @@ const migrations: Migration[] = [
     migrate: () => {
       LocalStorageRepository.migrateToV3();
       console.info('[storage-migration] v3: Removed deprecated besser_systemConfig key');
+    },
+  },
+  // v4: Lift stored personalization snapshots to the canonical v4 model
+  // shape. Projects imported before this fix wrote their bundled
+  // `agentBaseModels` / `userProfiles` / `agentConfigs` snapshots in the
+  // develop-era v3 shape (`elements`/`relationships` records, flat agent
+  // transitions), which the v4 backend cannot consume and the variant
+  // dropdown silently drops. Idempotent: canonical v4 snapshots round-trip
+  // unchanged, and empty stores are a no-op.
+  {
+    version: 4,
+    migrate: () => {
+      LocalStorageRepository.migrateToV4();
+      console.info('[storage-migration] v4: Lifted personalization snapshots to the v4 model shape');
     },
   },
 ];

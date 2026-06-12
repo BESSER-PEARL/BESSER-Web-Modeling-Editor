@@ -13,6 +13,10 @@ import {
   migrateAgentDiagramV3ToV4,
   migrateUserDiagramV3ToV4,
   migrateNNDiagramV3ToV4,
+  convertV3ToV4,
+  isV3Format,
+  isV4Format,
+  normalizeV4Model,
   type UMLModel,
 } from '@besser/wme';
 
@@ -44,6 +48,32 @@ type SupportedDiagramType =
  * Returns a fresh v4 model. Throws if the migration fails — callers should
  * wrap in try/catch and keep the v3 model on failure.
  */
+/**
+ * Normalize a UML model *snapshot* — one that bypasses the editor on its way
+ * to persistence (agent base models in ``besser_agentBaseModels``, saved
+ * configuration snapshots in ``besser_agentConfigs``, user-profile models in
+ * ``besser_userProfiles``, inline ``config.personalizedVariants[].model``
+ * entries, and bundled models in imported project envelopes).
+ *
+ * Every snapshot must be canonical v4 at rest:
+ *  - v4 input → ``normalizeV4Model`` (idempotent canonicalization);
+ *  - v3 input (develop-era exports / pre-migration localStorage) →
+ *    ``convertV3ToV4`` then ``normalizeV4Model``, which lifts legacy flat
+ *    agent transitions (top-level ``condition``/``conditionValue``) into the
+ *    nested ``edge.data.transitionType`` + ``predefined``/``custom`` shape;
+ *  - anything else passes through untouched (null-safe, mirrors the
+ *    develop-branch ``normalizeAgentModel`` behavior).
+ *
+ * Pure: never mutates its input. Works for any UML diagram type — the v4
+ * equivalent of develop's agent-only ``normalizeAgentModel``.
+ */
+export function normalizeUmlModelSnapshot<T>(model: T): T {
+  if (!model || typeof model !== 'object') return model;
+  if (isV4Format(model)) return normalizeV4Model(model) as T;
+  if (isV3Format(model)) return normalizeV4Model(convertV3ToV4(model as any)) as T;
+  return model;
+}
+
 export function migrateUMLModelV3ToV4(
   model: any,
   diagramType?: SupportedDiagramType,

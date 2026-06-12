@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { BesserEditor, UMLDiagramType } from '@besser/wme';
+import { BesserEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../app/store/hooks';
@@ -27,6 +27,7 @@ import {
   useGenerateCode,
   DjangoConfig,
   SQLConfig,
+  SupabaseConfig,
   SQLAlchemyConfig,
   JSONSchemaConfig,
   AgentConfig,
@@ -371,6 +372,10 @@ export interface GeneratorConfigState {
   // ── SQL ──────────────────────────────────────────────────────────────────
   sqlDialect: SQLConfig['dialect'];
 
+  // ── Supabase ─────────────────────────────────────────────────────────────
+  /** Class name that maps to auth.users (default: "User"). Empty = no auth. */
+  supabaseUserRoot: string;
+
   // ── SQLAlchemy ───────────────────────────────────────────────────────────
   sqlAlchemyDbms: SQLAlchemyConfig['dbms'];
 
@@ -410,6 +415,7 @@ export interface GeneratorConfigState {
   onDjangoAppNameChange: (v: string) => void;
   onUseDockerChange: (v: boolean) => void;
   onSqlDialectChange: (v: SQLConfig['dialect']) => void;
+  onSupabaseUserRootChange: (v: string) => void;
   onSqlAlchemyDbmsChange: (v: SQLAlchemyConfig['dbms']) => void;
   onJsonSchemaModeChange: (v: JSONSchemaConfig['mode']) => void;
   onSourceLanguageChange: (v: string) => void;
@@ -431,6 +437,7 @@ export interface GeneratorConfigState {
   onDjangoGenerate: () => void;
   onDjangoDeploy: () => void;
   onSqlGenerate: () => void;
+  onSupabaseGenerate: () => void;
   onSqlAlchemyGenerate: () => void;
   onJsonSchemaGenerate: () => void;
   onAgentGenerate: () => void;
@@ -489,6 +496,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
   const [djangoAppName, setDjangoAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
   const [sqlDialect, setSqlDialect] = useState<SQLConfig['dialect']>('sqlite');
+  const [supabaseUserRoot, setSupabaseUserRoot] = useState<string>('User');
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<SQLAlchemyConfig['dbms']>('sqlite');
   const [jsonSchemaMode, setJsonSchemaMode] = useState<JSONSchemaConfig['mode']>('regular');
   const [sourceLanguage, setSourceLanguage] = useState('none');
@@ -620,7 +628,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean },
+      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel },
     ): Promise<GenerationResult> => {
       if (!currentProject) {
         toast.error('Create or load a project before generating code.');
@@ -729,6 +737,9 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
           case 'sql':
             result = await generateCode(editor, 'sql', activeDiagramTitle, config as SQLConfig);
             break;
+          case 'supabase':
+            result = await generateCode(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
+            break;
           case 'sqlalchemy':
             result = await generateCode(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
             break;
@@ -736,7 +747,14 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent':
-            result = await generateCode(editor, 'agent', activeDiagramTitle, config as AgentConfig);
+            result = await generateCode(
+              editor,
+              'agent',
+              activeDiagramTitle,
+              config as AgentConfig,
+              undefined,
+              options?.agentModelOverride,
+            );
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
@@ -891,6 +909,11 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     setConfigDialog('none');
   }, [sqlDialect, executeGenerator]);
 
+  const handleSupabaseGenerate = useCallback(async () => {
+    await executeGenerator('supabase', { user_root: supabaseUserRoot.trim() } as SupabaseConfig);
+    setConfigDialog('none');
+  }, [supabaseUserRoot, executeGenerator]);
+
   const handleSqlAlchemyGenerate = useCallback(async () => {
     await executeGenerator('sqlalchemy', { dbms: sqlAlchemyDbms } as SQLAlchemyConfig);
     setConfigDialog('none');
@@ -947,6 +970,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     }
 
     let finalConfig: AgentConfig = baseConfig;
+    let agentModelOverride: UMLModel | undefined;
 
     if (agentGenerationMode === 'personalization') {
       const localProfiles = LocalStorageRepository.getUserProfiles();
@@ -1004,10 +1028,36 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
         ...baseConfig,
         personalizationMapping,
       };
+
+      // Personalization codegen rebuilds every variant on top of the model the
+      // backend receives. Send the un-personalized base from localStorage so
+      // generation is deterministic — without this, whichever variant is
+      // active in the editor would silently become the new "base" each variant
+      // is layered onto.
+      const baseAgentDiagramId = activeAgentDiagram?.id;
+      const storedBase = baseAgentDiagramId
+        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
+        : null;
+      if (storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram) {
+        agentModelOverride = storedBase;
+      } else {
+        // No stored base resolved — generation falls back to the active editor
+        // model, which may be a personalized variant rather than the
+        // un-personalized base. Surface it instead of silently shipping the
+        // wrong base.
+        console.warn(
+          '[generation] Personalization mode could not resolve a stored agent base model; ' +
+            'falling back to the active diagram. Save & Apply at least once to capture the base.',
+        );
+      }
     }
 
     const shouldSendConfig = Object.keys(finalConfig).length > 0;
-    await executeGenerator('agent', shouldSendConfig ? finalConfig : undefined);
+    await executeGenerator(
+      'agent',
+      shouldSendConfig ? finalConfig : undefined,
+      agentModelOverride ? { agentModelOverride } : undefined,
+    );
     setConfigDialog('none');
   }, [
     currentProject,
@@ -1046,6 +1096,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     djangoAppName,
     useDocker,
     sqlDialect,
+    supabaseUserRoot,
     sqlAlchemyDbms,
     jsonSchemaMode,
     sourceLanguage,
@@ -1066,6 +1117,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
     onSqlDialectChange: setSqlDialect,
+    onSupabaseUserRootChange: setSupabaseUserRoot,
     onSqlAlchemyDbmsChange: setSqlAlchemyDbms,
     onJsonSchemaModeChange: setJsonSchemaMode,
     onSourceLanguageChange: setSourceLanguage,
@@ -1080,6 +1132,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError('Django generation')); },
     onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError('Django deployment')); },
     onSqlGenerate: () => { handleSqlGenerate().catch(notifyError('SQL generation')); },
+    onSupabaseGenerate: () => { handleSupabaseGenerate().catch(notifyError('Supabase generation')); },
     onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(notifyError('SQLAlchemy generation')); },
     onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(notifyError('JSON Schema generation')); },
     onAgentGenerate: () => { handleAgentGenerate().catch(notifyError('Agent generation')); },

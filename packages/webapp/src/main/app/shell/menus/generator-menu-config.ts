@@ -35,6 +35,7 @@ const CLASS_GENERATORS: GeneratorMenuEntry[] = [
     label: 'Database',
     actions: [
       { kind: 'action', label: 'SQL DDL', generator: 'sql' },
+      { kind: 'action', label: 'Supabase', generator: 'supabase' },
       { kind: 'action', label: 'SQLAlchemy DDL', generator: 'sqlalchemy' },
     ],
   },

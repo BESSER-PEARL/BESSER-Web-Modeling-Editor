@@ -1,5 +1,5 @@
 import { UMLDiagramType, UMLModel, getUserMetaModelClasses } from '@besser/wme';
-import { migrateUMLModelV3ToV4 } from '../services/storage/migrate-uml-v3-to-v4';
+import { migrateUMLModelV3ToV4, normalizeUmlModelSnapshot } from '../services/storage/migrate-uml-v3-to-v4';
 // Supported diagram types in projects
 export type SupportedDiagramType =
   | 'ClassDiagram'
@@ -593,6 +593,15 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // "wrong schema".
   retrofitEmptyUserDiagrams(obj);
 
+  // Retrofit v3 personalized-variant snapshots. `migrateProjectToV5` walks
+  // only each diagram's `model`, never `config.personalizedVariants[].model`
+  // — and the shipped gym-agent template stamps `schemaVersion: 5` while
+  // carrying v3 variant snapshots, so a gated migration would never see
+  // them. `readAgentVariants` filters via the v4 `isUMLModel`, silently
+  // dropping v3 snapshots from the variant dropdown. Un-gated: idempotent
+  // and cheap on canonical v4 data.
+  retrofitAgentVariantSnapshots(obj);
+
   return obj;
 };
 
@@ -619,6 +628,34 @@ const retrofitEmptyUserDiagrams = (project: BesserProject): void => {
         // Best-effort: a failed retrofit must not block the load.
         // eslint-disable-next-line no-console
         console.error('[retrofitEmptyUserDiagrams] seeding failed', d.id, err);
+      }
+    }
+  }
+};
+
+/**
+ * Walk every AgentDiagram's inline `config.personalizedVariants` and lift any
+ * v3 variant snapshot to the canonical v4 shape. Mutates in place; returns
+ * nothing. Best-effort: a failed lift must never block the project load — the
+ * v3 snapshot stays in place (and stays invisible to the variant dropdown,
+ * exactly as before).
+ */
+const retrofitAgentVariantSnapshots = (project: BesserProject): void => {
+  const agentDiagrams = project.diagrams?.AgentDiagram ?? [];
+  for (const d of agentDiagrams) {
+    const config = d?.config as Record<string, unknown> | undefined;
+    const variants = config?.personalizedVariants;
+    if (!Array.isArray(variants)) continue;
+    for (const variant of variants) {
+      if (!variant || typeof variant !== 'object') continue;
+      const candidate = variant as { model?: unknown };
+      if (candidate.model && isV3UMLModel(candidate.model)) {
+        try {
+          candidate.model = normalizeUmlModelSnapshot(candidate.model);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('[retrofitAgentVariantSnapshots] lift failed', d.id, err);
+        }
       }
     }
   }

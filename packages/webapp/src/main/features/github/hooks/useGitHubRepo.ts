@@ -198,7 +198,12 @@ export const useGitHubRepo = () => {
         // and ship it alongside the deploy payload, so the backend can drop it
         // into the repo as `diagrams.json` and the file stays re-importable via
         // the editor's "Import Project" action.
-        const projectExport = buildProjectExportEnvelope(projectForBackend);
+        // Skip bundled personalization here — saved configurations and user
+        // profiles are local user state, not something we want pushed into a
+        // (potentially public) GitHub repo on every deploy.
+        const projectExport = buildProjectExportEnvelope(projectForBackend, undefined, {
+          includePersonalization: false,
+        });
 
         const requestBody = {
           ...projectForBackend,

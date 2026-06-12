@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { BesserEditor } from '@besser/wme';
+import { BesserEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
@@ -27,6 +27,11 @@ export interface SQLConfig {
 
 export interface SQLAlchemyConfig {
   dbms: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
+}
+
+export interface SupabaseConfig {
+  /** Class name that maps to auth.users. Empty string skips auth integration. */
+  user_root: string;
 }
 
 export interface JSONSchemaConfig {
@@ -61,6 +66,7 @@ export interface AgentConfig {
 export type GeneratorConfig = {
   django: DjangoConfig;
   sql: SQLConfig;
+  supabase: SupabaseConfig;
   sqlalchemy: SQLAlchemyConfig;
   jsonschema: JSONSchemaConfig;
   qiskit: QiskitConfig;
@@ -190,6 +196,7 @@ export const useGenerateCode = () => {
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
+      modelOverride?: UMLModel,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
@@ -222,10 +229,14 @@ export const useGenerateCode = () => {
         return { ok: false, error: validationResult.message || 'Validation failed' };
       }
 
-      // Prepare body for single diagram generation
+      // Prepare body for single diagram generation. modelOverride is used by
+      // agent personalization to ship the un-personalized base instead of
+      // whatever variant happens to be active in the editor — see
+      // handleAgentGenerate in useGeneratorExecution. Validation above still
+      // runs against the live editor model.
       const body: any = {
         title: diagramTitle,
-        model: editor.model,
+        model: modelOverride ?? editor.model,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

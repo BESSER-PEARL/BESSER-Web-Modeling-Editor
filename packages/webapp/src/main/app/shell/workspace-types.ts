@@ -3,6 +3,7 @@ export type GeneratorType =
   | 'backend'
   | 'web_app'
   | 'sql'
+  | 'supabase'
   | 'sqlalchemy'
   | 'python'
   | 'java'

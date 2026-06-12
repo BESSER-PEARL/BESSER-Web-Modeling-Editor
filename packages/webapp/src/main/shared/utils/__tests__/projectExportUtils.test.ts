@@ -1,10 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import {
   buildExportableProjectPayload,
   buildProjectExportEnvelope,
   ExportableProjectPayload,
 } from '../projectExportUtils';
+import { LocalStorageRepository } from '../../services/storage/local-storage-repository';
 import {
   createDefaultProject,
   createEmptyDiagram,
@@ -412,5 +413,85 @@ describe('buildProjectExportEnvelope', () => {
     // Sanity: filter actually applied
     expect(env.project.diagrams['ClassDiagram']).toBeDefined();
     expect(env.project.diagrams['StateMachineDiagram']).toBeUndefined();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// buildProjectExportEnvelope — personalization bundling
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('buildProjectExportEnvelope personalization bundling', () => {
+  const v4AgentModel = (id: string) => ({
+    version: '4.0.0',
+    id,
+    title: 'Agent',
+    type: 'AgentDiagram',
+    nodes: [],
+    edges: [],
+    assessments: {},
+  });
+
+  const seedPersonalization = () => {
+    LocalStorageRepository.saveAgentBaseModel('agent-diagram-1', v4AgentModel('base') as any);
+    LocalStorageRepository.saveUserProfile('Teen', {
+      version: '4.0.0',
+      id: 'profile-model',
+      title: 'Teen',
+      type: 'UserDiagram',
+      nodes: [],
+      edges: [],
+      assessments: {},
+    } as any);
+    const config = LocalStorageRepository.saveAgentConfiguration('Config', {} as any);
+    LocalStorageRepository.setActiveAgentConfigurationId(config.id);
+    const [profile] = LocalStorageRepository.getUserProfiles();
+    LocalStorageRepository.saveAgentProfileConfigurationMapping(profile, config);
+    return config;
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('attaches the five personalization fields when localStorage is populated', () => {
+    const config = seedPersonalization();
+    const project = createDefaultProject('Bundled', 'desc', 'owner');
+
+    const env = buildProjectExportEnvelope(project);
+
+    expect(env.agentConfigurations).toHaveLength(1);
+    expect(env.userProfiles).toHaveLength(1);
+    expect(env.agentProfileMappings).toHaveLength(1);
+    expect(env.activeAgentConfigurationId).toBe(config.id);
+    // agentBaseModels is keyed by AgentDiagram id.
+    expect(Object.keys(env.agentBaseModels!)).toEqual(['agent-diagram-1']);
+  });
+
+  it('omits every personalization field when localStorage is empty', () => {
+    const project = createDefaultProject('Empty', 'desc', 'owner');
+
+    const env = buildProjectExportEnvelope(project);
+
+    expect(env.agentConfigurations).toBeUndefined();
+    expect(env.userProfiles).toBeUndefined();
+    expect(env.agentProfileMappings).toBeUndefined();
+    expect(env.activeAgentConfigurationId).toBeUndefined();
+    expect(env.agentBaseModels).toBeUndefined();
+  });
+
+  it('omits personalization with includePersonalization: false (GitHub deploy privacy opt-out)', () => {
+    seedPersonalization();
+    const project = createDefaultProject('OptOut', 'desc', 'owner');
+
+    const env = buildProjectExportEnvelope(project, undefined, { includePersonalization: false });
+
+    expect(env.agentConfigurations).toBeUndefined();
+    expect(env.userProfiles).toBeUndefined();
+    expect(env.agentProfileMappings).toBeUndefined();
+    expect(env.activeAgentConfigurationId).toBeUndefined();
+    expect(env.agentBaseModels).toBeUndefined();
+    // The project payload itself is unaffected by the opt-out.
+    expect(env.project).toBeDefined();
+    expect(env.version).toBe('2.0.0');
   });
 });
