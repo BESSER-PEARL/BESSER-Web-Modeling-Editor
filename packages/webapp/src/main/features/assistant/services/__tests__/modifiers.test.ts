@@ -531,3 +531,95 @@ describe('AgentDiagramModifier', () => {
     });
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Edge handle casing — every modifier-produced edge must carry lowercase v4
+// HandleId values from the DefaultNodeWrapper handle-id set. xyflow matches
+// handle ids exactly: a capitalized 'Left'/'Right' renders an invisible edge.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+describe('modifier-produced edges use lowercase v4 handle ids', () => {
+  const VALID_HANDLE_IDS = ['top', 'right', 'bottom', 'left'];
+
+  function expectLowercaseHandles(model: BESSERModel) {
+    const edges = ((model as any).edges ?? []) as any[];
+    expect(edges.length).toBeGreaterThan(0);
+    for (const edge of edges) {
+      expect(VALID_HANDLE_IDS).toContain(edge.sourceHandle);
+      expect(VALID_HANDLE_IDS).toContain(edge.targetHandle);
+    }
+  }
+
+  it('ClassDiagramModifier.add_relationship', () => {
+    const model = makeEmptyModel();
+    model.nodes.push(classNode('c1', 'Person'), classNode('c2', 'Address'));
+
+    const result = new ClassDiagramModifier().applyModification(model, {
+      action: 'add_relationship',
+      target: { sourceClass: 'Person', targetClass: 'Address' },
+      changes: { relationshipType: 'Association' },
+    });
+
+    expectLowercaseHandles(result);
+  });
+
+  it('ObjectDiagramModifier.add_link', () => {
+    const model = makeEmptyModel('ObjectDiagram');
+    model.nodes.push(
+      {
+        id: 'o1',
+        type: 'objectName',
+        position: { x: 0, y: 0 },
+        width: 200,
+        height: 70,
+        data: { name: 'alice', attributes: [] },
+      },
+      {
+        id: 'o2',
+        type: 'objectName',
+        position: { x: 300, y: 0 },
+        width: 200,
+        height: 70,
+        data: { name: 'home', attributes: [] },
+      },
+    );
+
+    const result = new ObjectDiagramModifier().applyModification(model, {
+      action: 'add_link',
+      target: {},
+      changes: { source: 'alice', target: 'home' } as any,
+    });
+
+    expectLowercaseHandles(result);
+  });
+
+  it('AgentDiagramModifier.add_transition', () => {
+    const model = makeEmptyModel('AgentDiagram');
+    model.nodes.push(
+      {
+        id: 'a1',
+        type: 'AgentState',
+        position: { x: 0, y: 0 },
+        width: 200,
+        height: 100,
+        data: { name: 'Greeting', bodies: [], fallbackBodies: [] },
+      },
+      {
+        id: 'a2',
+        type: 'AgentState',
+        position: { x: 300, y: 0 },
+        width: 200,
+        height: 100,
+        data: { name: 'Farewell', bodies: [], fallbackBodies: [] },
+      },
+    );
+
+    const result = new AgentDiagramModifier().applyModification(model, {
+      action: 'add_transition',
+      target: {},
+      changes: { source: 'Greeting', target: 'Farewell' },
+    });
+
+    expectLowercaseHandles(result);
+  });
+});

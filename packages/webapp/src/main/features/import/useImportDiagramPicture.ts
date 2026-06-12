@@ -3,11 +3,10 @@ import { toast } from 'react-toastify';
 import { useCallback } from 'react';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
-import { uuid } from '../../shared/utils/uuid';
 import { displayError } from '../../app/store/errorManagementSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { isUMLModel, toSupportedDiagramType } from '../../shared/types/project';
 import { loadProjectThunk } from '../../app/store/workspaceSlice';
+import { applyImportedDiagramToProject } from './applyImportedDiagram';
 
 // Hook to import diagram from image file and API key
 export const useImportDiagramPictureFromImage = () => {
@@ -48,19 +47,8 @@ export const useImportDiagramPictureFromImage = () => {
       }
 
       const data = await response.json();
-      if (!data || !data.model || !data.model.type) {
+      if (!data || !data.model) {
         throw new Error('Invalid diagram returned from backend');
-      }
-
-      // Enforce v4 shape on the backend's response.
-      // The image-to-model endpoint returns v4 (`version: "4.0.0"` with
-      // nodes/edges arrays), but a partial / malformed LLM response
-      // could land here and silently corrupt the active project. Reject
-      // upfront so the user sees a toast instead of an empty canvas.
-      if (!isUMLModel(data.model)) {
-        const msg = 'Imported model is not a valid v4 UMLModel (missing nodes/edges arrays).';
-        toast.error(msg);
-        throw new Error(msg);
       }
 
       const currentProject = ProjectStorageRepository.getCurrentProject();
@@ -68,41 +56,18 @@ export const useImportDiagramPictureFromImage = () => {
         throw new Error('No project is currently open. Please create or open a project first.');
       }
 
-      const diagramType = toSupportedDiagramType(data.model.type);
-      const newId = uuid();
-      const importedDiagram = {
-        ...data,
-        id: newId,
-        title: data.title || file.name,
-        lastUpdate: new Date().toISOString(),
-        description: data.description || `Imported ${diagramType} diagram from image`,
-      };
-
-      // Update the active diagram in the array (preserving the array structure)
-      const existingDiagrams = currentProject.diagrams[diagramType] ?? [];
-      const activeIndex = currentProject.currentDiagramIndices?.[diagramType] ?? 0;
-      const updatedDiagrams = [...existingDiagrams];
-      const newDiagram = {
-        id: newId,
-        title: importedDiagram.title,
-        model: importedDiagram.model,
-        lastUpdate: importedDiagram.lastUpdate,
-        description: importedDiagram.description,
-      };
-
-      if (updatedDiagrams.length === 0) {
-        updatedDiagrams.push(newDiagram);
-      } else {
-        updatedDiagrams[Math.min(activeIndex, updatedDiagrams.length - 1)] = newDiagram;
-      }
-
-      const updatedProject = {
-        ...currentProject,
-        diagrams: {
-          ...currentProject.diagrams,
-          [diagramType]: updatedDiagrams,
-        }
-      };
+      // Enforce v4 shape on the backend's response (lifting v3 payloads
+      // first) and replace the active diagram in the array, preserving the
+      // ProjectDiagram[] array structure. A partial / malformed LLM
+      // response is rejected with a toast instead of an empty canvas.
+      const { project: updatedProject, diagramType, diagramTitle } = applyImportedDiagramToProject(
+        currentProject,
+        data,
+        {
+          fallbackTitle: file.name,
+          source: 'image',
+        },
+      );
 
       // Save to localStorage and reload the project into Redux to keep them in sync
       ProjectStorageRepository.saveProject(updatedProject);
@@ -111,7 +76,7 @@ export const useImportDiagramPictureFromImage = () => {
       return {
         success: true,
         diagramType,
-        diagramTitle: importedDiagram.title,
+        diagramTitle,
         message: `${diagramType} diagram imported successfully from image and added to project "${currentProject.name}".`
       };
     } catch (error) {

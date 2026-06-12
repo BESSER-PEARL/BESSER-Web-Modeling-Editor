@@ -32,6 +32,7 @@ import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../a
 export const ProjectSettingsPanel: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
+  const [showIconView, setShowIconView] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
   const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
   const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
@@ -69,6 +70,7 @@ export const ProjectSettingsPanel: React.FC = () => {
 
   useEffect(() => {
     setShowInstancedObjects(settingsService.shouldShowInstancedObjects());
+    setShowIconView(settingsService.shouldShowIconView());
     setShowAssociationNames(settingsService.shouldShowAssociationNames());
     setUsePropertiesPanel(settingsService.shouldUsePropertiesPanel());
     setClassNotation(settingsService.getClassNotation());
@@ -230,7 +232,9 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
                   <div>
                     <p className="text-sm font-medium">Show Instanced Objects</p>
-                    <p className="text-xs text-muted-foreground">Toggle object instance visibility</p>
+                    <p className="text-xs text-muted-foreground">
+                      Show one draggable instance per class in the Object Diagram palette
+                    </p>
                   </div>
                   <input
                     type="checkbox"
@@ -240,6 +244,25 @@ export const ProjectSettingsPanel: React.FC = () => {
                       setShowInstancedObjects(event.target.checked);
                       settingsService.updateSetting('showInstancedObjects', event.target.checked);
                       // toast.success(`Instanced objects ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                    }}
+                  />
+                </label>
+                <Separator />
+                <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">Icon View</p>
+                    <p className="text-xs text-muted-foreground">
+                      Render objects with their class icon instead of the attribute table
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-brand"
+                    checked={showIconView}
+                    data-testid="display-toggle-icon-view"
+                    onChange={(event) => {
+                      setShowIconView(event.target.checked);
+                      settingsService.updateSetting('showIconView', event.target.checked);
                     }}
                   />
                 </label>

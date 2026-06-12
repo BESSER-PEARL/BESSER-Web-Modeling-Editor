@@ -1,3 +1,4 @@
+import { toast } from 'react-toastify';
 import {
   BesserProject,
   ProjectDiagram,
@@ -6,7 +7,9 @@ import {
   createDefaultPerspectives,
   createEmptyDiagram,
   getActiveDiagram,
+  isV3UMLModel,
 } from '../../types/project';
+import { migrateUMLModelV3ToV4 } from '../storage/migrate-uml-v3-to-v4';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../storage/local-storage-repository';
 import {
@@ -65,11 +68,27 @@ function migrateOldWebappProject(data: any): BesserProject {
   const project = data.project;
   const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+  // Lift legacy v3 UML models ({elements, relationships}) to v4 at import
+  // time: the project built below is stamped with the current
+  // PROJECT_SCHEMA_VERSION, so the load-time migrator (`migrateProjectToV5`)
+  // early-returns and would never repair them — the editor would refuse to
+  // render and the diagrams would stay permanently blank. GUI ({pages}) and
+  // quantum ({cols}) models fail isV3UMLModel and pass through untouched.
+  // A migrator throw deliberately propagates so the import is rejected
+  // loudly instead of storing a project that lies about its schema.
+  let liftedV3Count = 0;
+  const liftV3Model = (diagram: any, diagramType: SupportedDiagramType): void => {
+    if (diagram && isV3UMLModel(diagram.model)) {
+      diagram.model = migrateUMLModelV3ToV4(diagram.model, diagramType);
+      liftedV3Count += 1;
+    }
+  };
+
   // Build diagram arrays from single diagram objects
   const migratedDiagrams: any = {};
   const allTypes: SupportedDiagramType[] = [
     'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
-    'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+    'AgentDiagram', 'NNDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
   ];
 
   for (const diagramType of allTypes) {
@@ -78,8 +97,14 @@ function migrateOldWebappProject(data: any): BesserProject {
       // Single diagram object → wrap in array
       if (!existing.id) existing.id = `${diagramType}_${Date.now()}`;
       if (!existing.lastUpdate) existing.lastUpdate = new Date().toISOString();
+      liftV3Model(existing, diagramType);
       migratedDiagrams[diagramType] = [existing];
     } else if (Array.isArray(existing)) {
+      // Mixed legacy files may carry arrays alongside single objects —
+      // their entries need the same v3 → v4 lift.
+      for (const d of existing) {
+        liftV3Model(d, diagramType);
+      }
       migratedDiagrams[diagramType] = existing;
     } else {
       migratedDiagrams[diagramType] = [createEmptyDiagram(
@@ -90,6 +115,10 @@ function migrateOldWebappProject(data: any): BesserProject {
         diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined
       )];
     }
+  }
+
+  if (liftedV3Count > 0) {
+    toast.info('Diagram(s) migrated from v3 schema to v4 on import.', { autoClose: 4000 });
   }
 
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
@@ -407,9 +436,21 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           const supportedType = (diagramType in UMLDiagramType ? diagramType : 'ClassDiagram') as SupportedDiagramType;
           const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+          // Bare v3 exports must be lifted to v4 before being stored under
+          // the current PROJECT_SCHEMA_VERSION (the load-time migrator
+          // early-returns on schemaVersion >= 5 and would never repair
+          // them). v4 bare diagrams pass through untouched. A migrator
+          // throw propagates to the catch below so the import is rejected
+          // instead of stored broken.
+          let bareModel = jsonData.model;
+          if (isV3UMLModel(bareModel)) {
+            bareModel = migrateUMLModelV3ToV4(bareModel, supportedType);
+            toast.info('Diagram migrated from v3 schema to v4 on import.', { autoClose: 4000 });
+          }
+
           const allTypes: SupportedDiagramType[] = [
             'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
-            'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+            'AgentDiagram', 'NNDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
           ];
 
           const diagrams: any = {};
@@ -418,7 +459,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
               diagrams[t] = [{
                 id: jsonData.id || `${t}_${Date.now()}`,
                 title: jsonData.title || t.replace(/([A-Z])/g, ' $1').trim(),
-                model: jsonData.model,
+                model: bareModel,
                 lastUpdate: jsonData.lastUpdate || new Date().toISOString(),
               }];
             } else {
@@ -461,7 +502,10 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
       } catch (error) {
         console.error('JSON import failed:', error);
-        reject(new Error('Failed to import project: Invalid JSON format'));
+        // Surface the underlying error (e.g. a v3 → v4 migration failure)
+        // instead of blaming the JSON syntax for every rejection.
+        const detail = error instanceof Error && error.message ? error.message : 'Invalid JSON format';
+        reject(new Error(`Failed to import project: ${detail}`));
       }
     };
 

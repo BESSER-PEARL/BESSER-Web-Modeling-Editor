@@ -3,20 +3,14 @@ import { toast } from 'react-toastify';
 import { useCallback } from 'react';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
-import { uuid } from '../../shared/utils/uuid';
-import { bumpEditorRevision } from '../../app/store/workspaceSlice';
 import { displayError } from '../../app/store/errorManagementSlice';
+import { loadProjectThunk } from '../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType } from '../../shared/types/project';
-import { useBumlToDiagram } from './useBumlToDiagram';
+import { applyImportedDiagramToProject } from './applyImportedDiagram';
 
-
-
-// Helper function to import a single diagram JSON and add it to the current project
 // Hook to import diagram from kg file and API key
 export const useImportDiagramFromKG = () => {
   const dispatch = useAppDispatch();
-  const convertBumlToDiagram = useBumlToDiagram();
 
   const importDiagramFromKG = useCallback(async (file: File, apiKey: string) => {
     try {
@@ -39,7 +33,7 @@ export const useImportDiagramFromKG = () => {
 
       const data = await response.json();
       // Should be a diagram JSON
-      if (!data || !data.model || !data.model.type) {
+      if (!data || !data.model) {
         throw new Error('Invalid diagram returned from backend');
       }
 
@@ -48,36 +42,27 @@ export const useImportDiagramFromKG = () => {
       if (!currentProject) {
         throw new Error('No project is currently open. Please create or open a project first.');
       }
-      const diagramType = toSupportedDiagramType(data.model.type);
-      const newId = uuid();
-      const importedDiagram = {
-        ...data,
-        id: newId,
-        title: data.title || file.name,
-        lastUpdate: new Date().toISOString(),
-        description: data.description || `Imported ${diagramType} diagram from Knowledge Graph`,
-      };
-      const updatedProject = {
-        ...currentProject,
-        diagrams: {
-          ...currentProject.diagrams,
-          [diagramType]: {
-            id: newId,
-            title: importedDiagram.title,
-            model: importedDiagram.model,
-            lastUpdate: importedDiagram.lastUpdate,
-            description: importedDiagram.description,
-          }
-        }
-      };
+
+      // Validates the model (v4 shape, lifting v3 payloads first) and
+      // replaces the active diagram of that type while preserving the
+      // ProjectDiagram[] array invariant.
+      const { project: updatedProject, diagramType, diagramTitle } = applyImportedDiagramToProject(
+        currentProject,
+        data,
+        {
+          fallbackTitle: file.name,
+          source: 'Knowledge Graph',
+        },
+      );
+
+      // Save to localStorage and reload the project into Redux to keep them in sync
       ProjectStorageRepository.saveProject(updatedProject);
-      if (diagramType === currentProject.currentDiagramType) {
-        dispatch(bumpEditorRevision());
-      }
+      await dispatch(loadProjectThunk(currentProject.id));
+
       return {
         success: true,
         diagramType,
-        diagramTitle: importedDiagram.title,
+        diagramTitle,
         message: `${diagramType} diagram imported successfully from Knowledge Graph and added to project "${currentProject.name}".`
       };
     } catch (error) {
@@ -85,9 +70,7 @@ export const useImportDiagramFromKG = () => {
       dispatch(displayError('Import failed', `Could not import diagram from Knowledge Graph: ${errorMessage}`));
       throw error;
     }
-  }, [dispatch, convertBumlToDiagram]);
+  }, [dispatch]);
 
   return importDiagramFromKG;
 };
-
-

@@ -25,6 +25,7 @@ vi.mock('@besser/wme', async (importOriginal) => {
     ...actual,
     settingsService: {
       shouldShowInstancedObjects: vi.fn(() => false),
+      shouldShowIconView: vi.fn(() => false),
       shouldShowAssociationNames: vi.fn(() => false),
       shouldUsePropertiesPanel: vi.fn(() => false),
       getClassNotation: vi.fn(() => 'UML'),
@@ -250,5 +251,41 @@ describe('ProjectSettingsPanel', () => {
     setupUseProject({ currentProject: project });
     renderWithStore(project);
     expect(screen.getByText('Export Project')).toBeInTheDocument();
+  });
+
+  it('renders the Icon View toggle initialized from settingsService', async () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    const { settingsService } = await import('@besser/wme');
+    expect(settingsService.shouldShowIconView).toHaveBeenCalled();
+    const toggle = screen.getByTestId('display-toggle-icon-view') as HTMLInputElement;
+    expect(toggle).toBeInTheDocument();
+    expect(toggle.checked).toBe(false);
+  });
+
+  it('persists the Icon View toggle through settingsService.updateSetting', async () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    const toggle = screen.getByTestId('display-toggle-icon-view') as HTMLInputElement;
+    fireEvent.click(toggle);
+
+    const { settingsService } = await import('@besser/wme');
+    expect(settingsService.updateSetting).toHaveBeenCalledWith('showIconView', true);
+    expect(toggle.checked).toBe(true);
+  });
+
+  it('describes Show Instanced Objects as the Object Diagram palette toggle', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    expect(screen.getByText('Show Instanced Objects')).toBeInTheDocument();
+    expect(
+      screen.getByText('Show one draggable instance per class in the Object Diagram palette'),
+    ).toBeInTheDocument();
   });
 });

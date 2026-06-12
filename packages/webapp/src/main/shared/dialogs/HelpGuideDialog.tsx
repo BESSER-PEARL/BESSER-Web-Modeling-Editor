@@ -149,8 +149,10 @@ const sections: GuideSection[] = [
         title: 'Association Class',
         body: (
           <p>
-            Create an association class by linking a class element to an existing association center point.
-            You can define attributes like a regular class. Note: current generators do not support association classes.
+            Create an association class by selecting an association, choosing the attach-association-class
+            action from its floating toolbar, and then clicking the class to attach (press Escape to cancel).
+            The link renders as a dashed line to the association&apos;s midpoint, and the attached class can
+            define attributes like a regular class. Note: current generators do not support association classes.
           </p>
         ),
         image: {
