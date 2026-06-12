@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import { BPMNTask, BPMNTaskType } from './bpmn-task';
+import { BPMNTask, BPMNTaskType, TASK_ICON_SIDE_INSET } from './bpmn-task';
 import { ThemedRect } from '../../../components/theme/themedComponents';
 import { Multiline } from '../../../utils/svg/multiline';
 import { BPMNMessageIcon } from '../common/icons/bpmn-message-icon';
@@ -61,6 +61,12 @@ export const BPMNTaskComponent: FunctionComponent<Props> = ({ element, fillColor
     }
   };
 
+  // Tasks that draw a top-left type icon wrap the centred name within an inset
+  // width so a long name can't slide under the icon; default tasks (no icon)
+  // stay full-width. (Guide 14.)
+  const hasTypeIcon = element.taskType !== 'default';
+  const textWidth = hasTypeIcon ? Math.max(1, element.bounds.width - 2 * TASK_ICON_SIDE_INSET) : element.bounds.width;
+
   return (
     <g>
       <ThemedRect
@@ -74,7 +80,7 @@ export const BPMNTaskComponent: FunctionComponent<Props> = ({ element, fillColor
       <Multiline
         x={element.bounds.width / 2}
         y={element.bounds.height / 2}
-        width={element.bounds.width}
+        width={textWidth}
         height={element.bounds.height}
         fontWeight="bold"
         fill={textColor || element.textColor}
