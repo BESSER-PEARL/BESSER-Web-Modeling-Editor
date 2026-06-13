@@ -322,6 +322,16 @@ export function useModelInjection({
             break;
 
           case 'modify_model':
+            // elementFound: false = agent refusal (no matching element).
+            // Surface the message as a text reply without touching the model.
+            if (
+              Array.isArray(command.modifications) &&
+              command.modifications.length === 0 &&
+              (command as any).elementFound === false
+            ) {
+              applied = true;
+              break;
+            }
             if (Array.isArray(command.modifications) && command.modifications.length > 0) {
               const { ModifierFactory } = await import('../services/modifiers/factory');
               const modifier = ModifierFactory.getModifier(targetDiagramType as any);
