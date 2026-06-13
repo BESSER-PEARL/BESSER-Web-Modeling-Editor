@@ -27,6 +27,10 @@ export interface ModificationTarget {
   objectId?: string;
   objectName?: string;
   name?: string;
+  // BPMN
+  nodeId?: string;
+  nodeName?: string;
+  flowId?: string;
 }
 
 export interface ModificationChanges {
@@ -59,6 +63,11 @@ export interface ModificationChanges {
   entryAction?: string;
   exitAction?: string;
   doActivity?: string;
+  // BPMN add_task / add_gateway / add_event / modify_node fields
+  // (source / target / label / name reused from above for add_flow)
+  taskType?: string;
+  gatewayType?: string;
+  eventKind?: string;
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
@@ -102,7 +111,13 @@ export interface ModelModification {
     | 'add_enum'
     | 'add_code_block'
     | 'add_rag_element'
-    | 'add_ocl_constraint';
+    | 'add_ocl_constraint'
+    | 'add_task'
+    | 'add_gateway'
+    | 'add_event'
+    | 'add_flow'
+    | 'modify_node'
+    | 'remove_flow';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;

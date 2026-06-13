@@ -34,6 +34,7 @@ const UML_DIAGRAM_TYPES = new Set([
   'ObjectDiagram',
   'StateMachineDiagram',
   'AgentDiagram',
+  'BPMN',
 ]);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
 
@@ -266,7 +267,8 @@ export function useModelInjection({
                 command.systemSpec.classes ??
                   command.systemSpec.states ??
                   command.systemSpec.objects ??
-                  command.systemSpec.intents,
+                  command.systemSpec.intents ??
+                  command.systemSpec.nodes,
               )
             ) {
               const { ConverterFactory } = await import('../services/converters');
