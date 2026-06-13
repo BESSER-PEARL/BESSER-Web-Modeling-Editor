@@ -130,7 +130,13 @@ class EditorComponent extends Component<Props, State> {
     if (this.state.isMobile) {
       return (
         <div ref={this.zoomContainer} style={{ width: '100%', overflow: scale > 1.0 ? 'auto' : 'hidden' }}>
-          <StyledEditor ref={this.editor} {...props} onTouchMove={this.customScrolling} $scale={scale} />
+          <StyledEditor
+            ref={this.editor}
+            {...props}
+            onTouchMove={this.customScrolling}
+            $scale={scale}
+            data-editor-scroll="1"
+          />
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
@@ -143,7 +149,7 @@ class EditorComponent extends Component<Props, State> {
     } else {
       return (
         <div ref={this.zoomContainer} style={{ width: '100%', overflow: scale > 1.0 ? 'auto' : 'hidden' }}>
-          <StyledEditor ref={this.editor} {...props} $scale={scale} />
+          <StyledEditor ref={this.editor} {...props} $scale={scale} data-editor-scroll="1" />
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}

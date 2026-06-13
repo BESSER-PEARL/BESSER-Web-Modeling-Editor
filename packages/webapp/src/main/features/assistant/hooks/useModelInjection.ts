@@ -29,13 +29,33 @@ import { stopTimer, startTimer } from './useStreamingResponse';
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-const UML_DIAGRAM_TYPES = new Set([
-  'ClassDiagram',
-  'ObjectDiagram',
-  'StateMachineDiagram',
-  'AgentDiagram',
-  'BPMN',
-]);
+/**
+ * Scroll the editor canvas so the content bounding-box centre is visible.
+ * The editor's inner SVG places model coordinate (0,0) at exactly
+ * (scrollWidth/2, scrollHeight/2) of the StyledEditor scroll container
+ * (tagged data-editor-scroll="1").  For content centred near the origin
+ * (all AI-generated models after the §1.1 centering fix) this keeps the
+ * diagram in view without a manual pan.
+ */
+function centerEditorViewport(model: any, delayMs = 200): void {
+  setTimeout(() => {
+    const sc = document.querySelector('[data-editor-scroll="1"]') as HTMLElement | null;
+    if (!sc) return;
+    const elements = Object.values((model?.elements || {}) as Record<string, any>);
+    let cx = 0;
+    let cy = 0;
+    if (elements.length) {
+      const xs = elements.flatMap((e: any) => [e.bounds?.x ?? 0, (e.bounds?.x ?? 0) + (e.bounds?.width ?? 0)]);
+      const ys = elements.flatMap((e: any) => [e.bounds?.y ?? 0, (e.bounds?.y ?? 0) + (e.bounds?.height ?? 0)]);
+      cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    }
+    sc.scrollLeft = Math.max(0, (sc.scrollWidth - sc.clientWidth) / 2 + cx);
+    sc.scrollTop = Math.max(0, (sc.scrollHeight - sc.clientHeight) / 2 + cy);
+  }, delayMs);
+}
+
+const UML_DIAGRAM_TYPES = new Set(['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'BPMN']);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
 
 const createMessageId = (): string => {
@@ -49,10 +69,7 @@ const toKitMessage = (
   role: 'user' | 'assistant',
   content: string,
   extras?: Partial<
-    Pick<
-      ChatKitMessage,
-      'isProgress' | 'progressStep' | 'progressTotal' | 'isError' | 'isStreaming' | 'injectionType'
-    >
+    Pick<ChatKitMessage, 'isProgress' | 'progressStep' | 'progressTotal' | 'isError' | 'isStreaming' | 'injectionType'>
   >,
 ): ChatKitMessage => ({
   id: createMessageId(),
@@ -62,8 +79,7 @@ const toKitMessage = (
   ...extras,
 });
 
-const sanitizeForDisplay = (text: string): string =>
-  text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const sanitizeForDisplay = (text: string): string => text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 const waitForSwitchRender = (): Promise<void> =>
   new Promise((resolve) => {
@@ -133,10 +149,7 @@ export function useModelInjection({
     return diagrams.findIndex((d: ProjectDiagram) => d.id === diagramId);
   };
 
-  const ensureTargetDiagramReady = async (
-    targetType?: string,
-    targetDiagramId?: string,
-  ): Promise<boolean> => {
+  const ensureTargetDiagramReady = async (targetType?: string, targetDiagramId?: string): Promise<boolean> => {
     // Step 1: switch diagram type if needed
     if (targetType && targetType !== currentDiagramTypeRef.current) {
       const switched = await switchDiagramRef.current(targetType);
@@ -149,8 +162,7 @@ export function useModelInjection({
       const tabIndex = findDiagramIndexById(targetType, targetDiagramId);
       if (tabIndex >= 0) {
         const project = currentProjectRef.current;
-        const currentIndex =
-          project?.currentDiagramIndices?.[targetType as SupportedDiagramType] ?? 0;
+        const currentIndex = project?.currentDiagramIndices?.[targetType as SupportedDiagramType] ?? 0;
         if (tabIndex !== currentIndex) {
           try {
             await dispatch(
@@ -199,8 +211,7 @@ export function useModelInjection({
   const handleInjection = async (command: InjectionCommand) => {
     try {
       startTimer('injection', 'Model injection');
-      const targetDiagramType =
-        command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
+      const targetDiagramType = command.diagramType || currentDiagramTypeRef.current || 'ClassDiagram';
 
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
@@ -238,14 +249,9 @@ export function useModelInjection({
       }
 
       if (!applied) {
-        const diagramReady = await ensureTargetDiagramReady(
-          command.diagramType,
-          command.diagramId,
-        );
+        const diagramReady = await ensureTargetDiagramReady(command.diagramType, command.diagramId);
         if (!diagramReady) {
-          throw new Error(
-            `Could not switch to ${command.diagramType || 'the target diagram'}`,
-          );
+          throw new Error(`Could not switch to ${command.diagramType || 'the target diagram'}`);
         }
       }
 
@@ -283,9 +289,7 @@ export function useModelInjection({
               const converter = ConverterFactory.getConverter(targetDiagramType as any);
               newModel = converter.convertCompleteSystem(command.systemSpec);
             } else if (command.systemSpec) {
-              throw new Error(
-                'inject_complete_system payload is missing a valid classes/states/objects/intents array',
-              );
+              throw new Error('inject_complete_system payload is missing a valid classes/states/objects/intents array');
             }
             break;
 
@@ -313,9 +317,7 @@ export function useModelInjection({
                 newModel = converter.convertSingleElement(command.element);
               }
             } else if (command.element) {
-              throw new Error(
-                'inject_element payload is missing a recognizable element specification',
-              );
+              throw new Error('inject_element payload is missing a recognizable element specification');
             }
             break;
 
@@ -323,23 +325,16 @@ export function useModelInjection({
             if (Array.isArray(command.modifications) && command.modifications.length > 0) {
               const { ModifierFactory } = await import('../services/modifiers/factory');
               const modifier = ModifierFactory.getModifier(targetDiagramType as any);
-              let modifiedModel = currentModel
-                ? JSON.parse(JSON.stringify(currentModel))
-                : {};
+              let modifiedModel = currentModel ? JSON.parse(JSON.stringify(currentModel)) : {};
               const appliedActions: string[] = [];
               for (const mod of command.modifications) {
                 if (!mod || !mod.action) {
                   throw new Error('modify_model contains a modification with no action');
                 }
                 if (!modifier.canHandle(mod.action)) {
-                  throw new Error(
-                    `Unsupported modification action '${mod.action}' for ${targetDiagramType}`,
-                  );
+                  throw new Error(`Unsupported modification action '${mod.action}' for ${targetDiagramType}`);
                 }
-                modifiedModel = modifier.applyModification(
-                  modifiedModel,
-                  mod as ModelModification,
-                );
+                modifiedModel = modifier.applyModification(modifiedModel, mod as ModelModification);
                 appliedActions.push(mod.action);
               }
               if (appliedActions.length === 0) {
@@ -359,21 +354,12 @@ export function useModelInjection({
                   `Unsupported modification action '${command.modification.action}' for ${targetDiagramType}`,
                 );
               }
-              const modifiedModel = currentModel
-                ? JSON.parse(JSON.stringify(currentModel))
-                : {};
-              newModel = modifier.applyModification(
-                modifiedModel,
-                command.modification as ModelModification,
-              );
+              const modifiedModel = currentModel ? JSON.parse(JSON.stringify(currentModel)) : {};
+              newModel = modifier.applyModification(modifiedModel, command.modification as ModelModification);
             } else if (command.modification) {
-              throw new Error(
-                'modify_model payload is missing required action or target fields',
-              );
+              throw new Error('modify_model payload is missing required action or target fields');
             } else {
-              throw new Error(
-                'modify_model payload is missing modifications or modification field',
-              );
+              throw new Error('modify_model payload is missing modifications or modification field');
             }
             break;
 
@@ -400,6 +386,7 @@ export function useModelInjection({
             dispatch(bumpEditorRevision());
           }
           applied = true;
+          centerEditorViewport(newModel);
         }
       }
 
@@ -429,9 +416,7 @@ export function useModelInjection({
           }
           applied = true;
         } else {
-          const result = await dispatch(
-            updateDiagramModelThunk({ model: command.model as any }),
-          );
+          const result = await dispatch(updateDiagramModelThunk({ model: command.model as any }));
           if (updateDiagramModelThunk.rejected.match(result)) {
             throw new Error(result.error.message || 'Failed to persist assistant model update');
           }
@@ -458,8 +443,7 @@ export function useModelInjection({
         injectionType: command.action,
       });
       setMessages((prev) => [...prev, injMsg]);
-      const diagramLabel =
-        command.diagramType || currentDiagramTypeRef.current || 'Diagram';
+      const diagramLabel = command.diagramType || currentDiagramTypeRef.current || 'Diagram';
       attachMetaFromPayload(
         injMsg.id,
         command as unknown as Record<string, unknown>,
@@ -470,16 +454,11 @@ export function useModelInjection({
       // Show timing summary after injection
       if (injectionTiming || totalTiming) {
         const timingText = [injectionTiming, totalTiming].filter(Boolean).join(' \u00b7 ');
-        setMessages((prev) => [
-          ...prev,
-          toKitMessage('assistant', timingText, { isProgress: true }),
-        ]);
+        setMessages((prev) => [...prev, toKitMessage('assistant', timingText, { isProgress: true })]);
       }
     } catch (error) {
       setProgressMessage('');
-      const errorMessage = sanitizeForDisplay(
-        error instanceof Error ? error.message : 'Unknown error',
-      );
+      const errorMessage = sanitizeForDisplay(error instanceof Error ? error.message : 'Unknown error');
       toast.error(`Could not apply assistant update: ${errorMessage}`);
       const errMsg = toKitMessage(
         'assistant',
@@ -503,10 +482,7 @@ export function useModelInjection({
       }
       dispatch(updateDiagramModelThunk({ model: snapshot.model }));
 
-      setMessages((prev) => [
-        ...prev,
-        toKitMessage('assistant', `Undone: ${snapshot.description}`),
-      ]);
+      setMessages((prev) => [...prev, toKitMessage('assistant', `Undone: ${snapshot.description}`)]);
     } catch (error) {
       console.error('[useModelInjection] Undo failed:', error);
     }
