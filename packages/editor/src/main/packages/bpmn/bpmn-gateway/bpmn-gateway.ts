@@ -12,7 +12,7 @@ import { UMLContainer } from '../../../services/uml-container/uml-container';
 export type BPMNGatewayType = 'complex' | 'event-based' | 'exclusive' | 'inclusive' | 'parallel';
 
 export class BPMNGateway extends UMLContainer {
-  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false };
+  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false, droppable: false };
   static defaultGatewayType: BPMNGatewayType = 'exclusive';
   static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
 

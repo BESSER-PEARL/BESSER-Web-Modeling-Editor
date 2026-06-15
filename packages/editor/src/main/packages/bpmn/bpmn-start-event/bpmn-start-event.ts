@@ -22,7 +22,7 @@ export type BPMNStartEventType =
 
 export class BPMNStartEvent extends UMLContainer {
   static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
-  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false };
+  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false, droppable: false };
   static defaultEventType: BPMNStartEventType = 'default';
 
   type: UMLElementType = BPMNElementType.BPMNStartEvent;

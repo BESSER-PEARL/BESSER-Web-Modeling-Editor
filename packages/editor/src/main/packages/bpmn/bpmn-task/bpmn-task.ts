@@ -19,6 +19,7 @@ export const TASK_ICON_SIDE_INSET = 26;
 export type BPMNTaskType = 'default' | 'user' | 'service' | 'send' | 'receive' | 'manual' | 'business-rule' | 'script';
 
 export class BPMNTask extends UMLContainer {
+  static features = { ...UMLContainer.features, droppable: false };
   static defaultTaskType: BPMNTaskType = 'default';
   static defaultMarker: BPMNMarkerType = 'none';
   static supportedRelationships = [BPMNRelationshipType.BPMNFlow];

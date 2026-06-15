@@ -6,14 +6,73 @@ import { UMLElements } from '../../packages/uml-elements';
 import { run } from '../../utils/actions/sagas';
 import { ILayer } from '../layouter/layer';
 import { render } from '../layouter/layouter';
-import { MovableActionTypes, MoveEndAction } from '../uml-element/movable/movable-types';
+import { MovableActionTypes, MoveEndAction, MoveStartAction } from '../uml-element/movable/movable-types';
 import { UMLElementState } from '../uml-element/uml-element-types';
 import { UMLContainer } from './uml-container';
 import { UMLContainerRepository } from './uml-container-repository';
 import { AppendAction, RemoveAction, UMLContainerActionTypes } from './uml-container-types';
+import { UMLElementCommonRepository } from '../uml-element/uml-element-common-repository';
+
+/** Bounds captured at each drag-start, consumed by revertOnSiblingOverlap on drag-end. */
+const moveBoundsCache: { [id: string]: { x: number; y: number; width: number; height: number } } = {};
+
+function boundsOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  // 1 px inset so touching edges don't trigger a revert
+  return a.x + 1 < b.x + b.width && a.x + a.width - 1 > b.x && a.y + 1 < b.y + b.height && a.y + a.height - 1 > b.y;
+}
+
+function* recordBoundsOnStart(): SagaIterator {
+  const startAction: MoveStartAction = yield take(MovableActionTypes.START);
+  const { elements }: ModelState = yield select();
+  for (const id of startAction.payload.ids) {
+    if (elements[id]) {
+      const { x, y, width, height } = elements[id].bounds;
+      moveBoundsCache[id] = { x, y, width, height };
+    }
+  }
+}
+
+function* revertOnSiblingOverlap(): SagaIterator {
+  const endAction: MoveEndAction = yield take(MovableActionTypes.END);
+  if (endAction.payload.keyboard) return;
+
+  // One frame: lets appendAfterMove (reparent) and renderAfterMove (layout) finish first
+  yield delay(16);
+
+  const { elements, diagram }: ModelState = yield select();
+  const ownersToRerender: string[] = [];
+
+  for (const id of endAction.payload.ids) {
+    const movedEl = elements[id];
+    const origBounds = moveBoundsCache[id];
+    delete moveBoundsCache[id];
+    if (!movedEl || !origBounds) continue;
+
+    const hasSiblingOverlap = Object.values(elements).some(
+      (el) =>
+        el.id !== id &&
+        el.owner === movedEl.owner &&
+        !('path' in el) && // exclude relationships
+        boundsOverlap(movedEl.bounds, el.bounds),
+    );
+
+    if (hasSiblingOverlap) {
+      yield put(UMLElementCommonRepository.update(id, { bounds: origBounds }));
+      const owner = movedEl.owner || diagram.id;
+      if (!ownersToRerender.includes(owner)) ownersToRerender.push(owner);
+    }
+  }
+
+  for (const owner of ownersToRerender) {
+    yield call(render, owner);
+  }
+}
 
 export function* UMLContainerSaga(): SagaIterator {
-  yield run([append, remove, appendAfterMove, renderAfterMove]);
+  yield run([append, remove, appendAfterMove, renderAfterMove, recordBoundsOnStart, revertOnSiblingOverlap]);
 }
 
 function* append(): SagaIterator {

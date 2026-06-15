@@ -35,6 +35,17 @@ const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
   { forwardRef: true },
 );
 
+function isInsideCollapsedSubprocess(elementId: string, elements: UMLElementState): boolean {
+  const el = elements[elementId];
+  if (!el || !el.owner) return false;
+  const owner = elements[el.owner];
+  if (!owner) return false;
+  return (
+    (owner.type === 'BPMNSubprocess' || owner.type === 'BPMNTransaction') &&
+    !(owner as any).isExpanded
+  );
+}
+
 export class CanvasComponent extends Component<Props> implements Omit<ILayer, 'layer'> {
   layer: RefObject<SVGSVGElement> = createRef();
 
@@ -94,9 +105,18 @@ export class CanvasComponent extends Component<Props> implements Omit<ILayer, 'l
                 {diagram.ownedElements.map((element) => (
                   <UMLElementComponent key={element} id={element} />
                 ))}
-                {diagram.ownedRelationships.map((relationship) => (
-                  <UMLElementComponent key={relationship} id={relationship} />
-                ))}
+                {diagram.ownedRelationships
+                  .filter((relId) => {
+                    const rel = elements[relId];
+                    if (!rel || !UMLRelationship.isUMLRelationship(rel)) return true;
+                    return (
+                      !isInsideCollapsedSubprocess(rel.source.element, elements) &&
+                      !isInsideCollapsedSubprocess(rel.target.element, elements)
+                    );
+                  })
+                  .map((relationship) => (
+                    <UMLElementComponent key={relationship} id={relationship} />
+                  ))}
                 <ConnectionPreview />
               </svg>
             )}

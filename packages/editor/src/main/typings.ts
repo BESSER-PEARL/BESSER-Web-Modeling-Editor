@@ -248,6 +248,18 @@ export type BPMNTask = UMLElement & {
   marker: BPMNMarkerType;
 };
 
+export type BPMNSubprocess = UMLElement & {
+  isExpanded: boolean;
+};
+
+export type BPMNTransaction = UMLElement & {
+  isExpanded: boolean;
+};
+
+export type BPMNCallActivity = UMLElement & {
+  calledElement: string;
+};
+
 export type BPMNGateway = UMLElement & {
   gatewayType: BPMNGatewayType;
 };

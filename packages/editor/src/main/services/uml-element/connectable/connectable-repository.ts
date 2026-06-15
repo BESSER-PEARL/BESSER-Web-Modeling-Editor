@@ -132,6 +132,21 @@ export const Connectable = {
             continue;
           }
 
+          // 5. Block connections that cross a BPMNSubprocess/BPMNTransaction boundary
+          const sourceOwner = (sourceElement as any).owner as string | null;
+          const targetOwner = (targetElement as any).owner as string | null;
+          if (sourceOwner !== targetOwner) {
+            const sourceOwnerEl = sourceOwner ? dispatch(UMLElementCommonRepository.getById(sourceOwner)) : null;
+            const targetOwnerEl = targetOwner ? dispatch(UMLElementCommonRepository.getById(targetOwner)) : null;
+            const sourceInSubprocess =
+              sourceOwnerEl?.type === 'BPMNSubprocess' || sourceOwnerEl?.type === 'BPMNTransaction';
+            const targetInSubprocess =
+              targetOwnerEl?.type === 'BPMNSubprocess' || targetOwnerEl?.type === 'BPMNTransaction';
+            if (sourceInSubprocess || targetInSubprocess) {
+              continue;
+            }
+          }
+
           // console.debug('[Connection] Valid connection pair', {
           //   source: { id: port.element, dir: port.direction, type: sourceElement.type },
           //   target: { id: connectionTarget.element, dir: connectionTarget.direction, type: targetElement.type },

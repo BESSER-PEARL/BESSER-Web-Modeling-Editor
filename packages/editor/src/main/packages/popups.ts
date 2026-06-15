@@ -38,6 +38,9 @@ import { BPMNIntermediateEventUpdate } from './bpmn/bpmn-intermediate-event/bpmn
 import { BPMNStartEventUpdate } from './bpmn/bpmn-start-event/bpmn-start-event-update';
 import { BPMNEndEventUpdate } from './bpmn/bpmn-end-event/bpmn-end-event-update';
 import { BPMNTaskUpdate } from './bpmn/bpmn-task/bpmn-task-update';
+import { BPMNSubprocessUpdate } from './bpmn/bpmn-subprocess/bpmn-subprocess-update';
+import { BPMNTransactionUpdate } from './bpmn/bpmn-transaction/bpmn-transaction-update';
+import { BPMNCallActivityUpdate } from './bpmn/bpmn-call-activity/bpmn-call-activity-update';
 import { ClassOCLConstraintUpdate } from './uml-class-diagram/uml-class-ocl/uml-class-ocl-constraint-update';
 import { UMLStateMergeNodeUpdate } from './uml-state-diagram/uml-state-merge-node/uml-state-merge-node-update';
 import { UMLStateTransitionUpdate } from './uml-state-diagram/uml-state-transition/uml-state-transition-update';
@@ -117,9 +120,9 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   // (e.g. Subprocess.isExpanded, CallActivity.calledElement — see
   // 04-bpmn-construct-gaps-guide.md §A.3), give it a custom popup then.
   [UMLElementType.BPMNTask]: BPMNTaskUpdate,
-  [UMLElementType.BPMNSubprocess]: DefaultPopup,
-  [UMLElementType.BPMNTransaction]: DefaultPopup,
-  [UMLElementType.BPMNCallActivity]: DefaultPopup,
+  [UMLElementType.BPMNSubprocess]: BPMNSubprocessUpdate,
+  [UMLElementType.BPMNTransaction]: BPMNTransactionUpdate,
+  [UMLElementType.BPMNCallActivity]: BPMNCallActivityUpdate,
   [UMLElementType.BPMNAnnotation]: DefaultPopup,
   [UMLElementType.BPMNStartEvent]: BPMNStartEventUpdate,
   [UMLElementType.BPMNIntermediateEvent]: BPMNIntermediateEventUpdate,

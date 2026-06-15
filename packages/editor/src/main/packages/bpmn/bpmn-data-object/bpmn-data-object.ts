@@ -6,7 +6,7 @@ import { UMLElementFeatures } from '../../../services/uml-element/uml-element-fe
 import { UMLContainer } from '../../../services/uml-container/uml-container';
 
 export class BPMNDataObject extends UMLContainer {
-  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false };
+  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false, droppable: false };
   static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
 
   type: UMLElementType = BPMNElementType.BPMNDataObject;
