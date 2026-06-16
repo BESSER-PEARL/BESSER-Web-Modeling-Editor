@@ -74,6 +74,23 @@ export class BPMNPool extends UMLPackage {
     // 3. Sort lanes top-to-bottom to preserve order
     const orderedSwimlanes = [...swimlanes].sort((a, b) => a.bounds.y - b.bounds.y);
 
+    // 3a. If the user is dragging the bottom edge up (pool wants to be shorter
+    // than its current lanes), shrink the last lane to absorb the delta.
+    // Gated on bottom-edge ResizeFrom so the top-edge y-shift path (phase 4,
+    // lines 113-115) is not disturbed — a top-edge drag also produces
+    // this.bounds.height < currentTotalHeight but already has its own handler.
+    if (
+      (this.resizeFrom === ResizeFrom.BOTTOMRIGHT || this.resizeFrom === ResizeFrom.BOTTOMLEFT) &&
+      orderedSwimlanes.length > 0
+    ) {
+      const currentTotalHeight = orderedSwimlanes.reduce((sum, l) => sum + l.bounds.height, 0);
+      if (this.bounds.height < currentTotalHeight) {
+        const lastLane = orderedSwimlanes[orderedSwimlanes.length - 1];
+        const shrinkBy = currentTotalHeight - this.bounds.height;
+        lastLane.bounds.height = Math.max(lastLane.bounds.height - shrinkBy, BPMNSwimlane.MIN_HEIGHT);
+      }
+    }
+
     let currentY = 0;
 
     // 3. Force exact local positioning for all lanes
