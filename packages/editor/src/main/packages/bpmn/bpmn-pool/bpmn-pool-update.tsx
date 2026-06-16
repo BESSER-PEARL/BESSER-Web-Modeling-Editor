@@ -10,12 +10,13 @@ import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { styled } from '../../../components/theme/styles';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
+import { UMLElementActionTypes } from '../../../services/uml-element/uml-element-types';
+import { LayouterRepository } from '../../../services/layouter/layouter-repository';
 import { BPMNSwimlane } from '../bpmn-swimlane/bpmn-swimlane';
 import { BPMNPool } from './bpmn-pool';
 import { uuid } from '../../../utils/uuid';
 import { notEmpty } from '../../../utils/not-empty';
 import { UMLElement } from '../../../services/uml-element/uml-element';
-import { AsyncDispatch } from '../../../utils/actions/actions';
 import { BPMNElementType } from '../index';
 import { Header } from '../../../components/controls/typography/typography';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
@@ -27,23 +28,37 @@ interface OwnProps {
 
 type StateProps = {};
 
+type IBounds = { x: number; y: number; width: number; height: number };
 interface DispatchProps {
   create: typeof UMLElementRepository.create;
   update: typeof UMLElementRepository.update;
   delete: typeof UMLElementRepository.delete;
   getById: (id: string) => UMLElement | null;
+  swapLaneBounds: (idA: string, boundsA: IBounds, idB: string, boundsB: IBounds) => void;
 }
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-    create: UMLElementRepository.create,
-    update: UMLElementRepository.update,
-    delete: UMLElementRepository.delete,
-    getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
-  }),
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(
+    null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (dispatch: any) => ({
+      create: (element: any, owner?: any) => dispatch(UMLElementRepository.create(element, owner)),
+      update: (id: any, values: any) => dispatch(UMLElementRepository.update(id, values)),
+      delete: (id?: any) => dispatch(UMLElementRepository.delete(id)),
+      getById: (id: string) => dispatch(UMLElementRepository.getById(id)),
+      swapLaneBounds: (idA: string, boundsA: IBounds, idB: string, boundsB: IBounds) => {
+        dispatch({
+          type: UMLElementActionTypes.UPDATE,
+          payload: { values: [{ id: idA, bounds: boundsA }, { id: idB, bounds: boundsB }] },
+          undoable: false,
+        });
+        dispatch(LayouterRepository.layout());
+      },
+    }),
+  ),
 );
 
 const Flex = styled.div`
@@ -78,7 +93,8 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
     const swimlanes = element.ownedElements
       .map((id) => getById(id))
       .filter(notEmpty)
-      .filter((element) => element.type === BPMNElementType.BPMNSwimlane);
+      .filter((el) => el.type === BPMNElementType.BPMNSwimlane)
+      .sort((a, b) => a.bounds.y - b.bounds.y);
 
     return (
       <div>
@@ -104,9 +120,25 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
         <section>
           <Divider />
           <Header>{this.props.translate('packages.BPMNDiagram.BPMNSwimlanes')}</Header>
-          {swimlanes.reverse().map((swimlane, index) => (
+          {swimlanes.map((swimlane, index) => (
             <SwimlaneRow key={swimlane.id}>
               <Textfield value={swimlane.name} onChange={(value) => this.props.update(swimlane.id, { name: value })} />
+              <Button
+                color="link"
+                tabIndex={-1}
+                onClick={() => this.swapLanes(swimlane, swimlanes[index - 1])}
+                disabled={index === 0}
+              >
+                ▲
+              </Button>
+              <Button
+                color="link"
+                tabIndex={-1}
+                onClick={() => this.swapLanes(swimlane, swimlanes[index + 1])}
+                disabled={index === swimlanes.length - 1}
+              >
+                ▼
+              </Button>
               <Button color="link" tabIndex={-1} onClick={() => this.delete(swimlane.id)}>
                 <TrashIcon />
               </Button>
@@ -139,6 +171,13 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
       </div>
     );
   }
+
+  private swapLanes = (laneA: UMLElement, laneB: UMLElement) => {
+    this.props.swapLaneBounds(
+      laneA.id, { ...laneA.bounds, y: laneB.bounds.y },
+      laneB.id, { ...laneB.bounds, y: laneA.bounds.y },
+    );
+  };
 
   /**
    * Rename the gateway
