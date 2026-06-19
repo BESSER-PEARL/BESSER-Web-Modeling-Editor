@@ -42,13 +42,6 @@ export class BPMNPool extends UMLPackage {
   }
 
   render(layer: ILayer, children: UMLElement[] = [], calculateWithoutChildren?: boolean): UMLElement[] {
-    console.log('[pool.render] id=' + this.id + ' children=' + children.length, {
-      ownedElements: this.ownedElements,
-      childrenIds: children.map((c) => c.id),
-      swimlaneYs: children
-        .filter((c) => (c as any).type === BPMNElementType.BPMNSwimlane)
-        .map((c) => ({ id: c.id, y: c.bounds.y, x: c.bounds.x })),
-    });
     const MIN_POOL_WIDTH = BPMNPool.HEADER_WIDTH + BPMNSwimlane.MIN_WIDTH;
     if (this.bounds.width < MIN_POOL_WIDTH) {
       this.bounds.width = MIN_POOL_WIDTH;
@@ -112,16 +105,6 @@ export class BPMNPool extends UMLPackage {
       // Override layouter logic that offsets coordinates during active dragging
       lane.resizeFrom = ResizeFrom.BOTTOMRIGHT;
     }
-    console.log(
-      '[pool.render] after-stack',
-      orderedSwimlanes.map((s) => ({
-        id: s.id,
-        x: s.bounds.x,
-        y: s.bounds.y,
-        w: s.bounds.width,
-        h: s.bounds.height,
-      })),
-    );
 
     // 4a. If the stacked lane total is shorter than the pool's current height
     // (e.g. first lane dropped on a tall empty pool), expand the last lane to
