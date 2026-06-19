@@ -183,6 +183,65 @@ describe('BPMNDiagramModifier', () => {
       };
       expect(() => modifier.applyModification(model, mod)).toThrow();
     });
+
+    it('accepts BPMNCallActivity as a flow source/target', () => {
+      const model = makeEmptyBPMNModel();
+      model.elements['ca1'] = {
+        id: 'ca1',
+        type: 'BPMNCallActivity',
+        name: 'OrderProcess',
+        owner: null,
+        bounds: { x: 200, y: 0, width: 140, height: 60 },
+      } as any;
+      model.elements['task1'] = {
+        id: 'task1',
+        type: 'BPMNTask',
+        name: 'Confirm',
+        owner: null,
+        bounds: { x: 400, y: 0, width: 140, height: 60 },
+        taskType: 'default',
+        marker: 'none',
+      };
+      const mod: ModelModification = {
+        action: 'add_flow',
+        target: {},
+        changes: { source: 'ca1', target: 'task1' },
+      };
+      const result = modifier.applyModification(model, mod);
+      const flows = Object.values(result.relationships) as any[];
+      expect(flows).toHaveLength(1);
+      expect(flows[0].source.element).toBe('ca1');
+      expect(flows[0].target.element).toBe('task1');
+    });
+
+    it('accepts BPMNSubprocess as a flow endpoint by id', () => {
+      const model = makeEmptyBPMNModel();
+      model.elements['sp1'] = {
+        id: 'sp1',
+        type: 'BPMNSubprocess',
+        name: 'InnerFlow',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 140, height: 80 },
+      } as any;
+      model.elements['task2'] = {
+        id: 'task2',
+        type: 'BPMNTask',
+        name: 'Next',
+        owner: null,
+        bounds: { x: 200, y: 0, width: 140, height: 60 },
+        taskType: 'default',
+        marker: 'none',
+      };
+      const mod: ModelModification = {
+        action: 'add_flow',
+        target: {},
+        changes: { source: 'sp1', target: 'task2' },
+      };
+      const result = modifier.applyModification(model, mod);
+      const flows = Object.values(result.relationships) as any[];
+      expect(flows).toHaveLength(1);
+      expect(flows[0].source.element).toBe('sp1');
+    });
   });
 
   // ── resolveNode (id beats name) ───────────────────────────────────────────

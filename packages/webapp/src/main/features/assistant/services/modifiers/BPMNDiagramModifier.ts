@@ -11,7 +11,16 @@
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 
-const BPMN_NODE_TYPES = ['BPMNTask', 'BPMNStartEvent', 'BPMNEndEvent', 'BPMNIntermediateEvent', 'BPMNGateway'];
+const BPMN_NODE_TYPES = [
+  'BPMNTask',
+  'BPMNStartEvent',
+  'BPMNEndEvent',
+  'BPMNIntermediateEvent',
+  'BPMNGateway',
+  'BPMNCallActivity',
+  'BPMNSubprocess',
+  'BPMNTransaction',
+];
 const EVENT_ELEMENT_TYPES = new Set(['BPMNStartEvent', 'BPMNEndEvent', 'BPMNIntermediateEvent']);
 const TASK_TYPES = new Set(['default', 'user', 'service', 'send', 'receive', 'manual', 'business-rule', 'script']);
 const GATEWAY_TYPES = new Set(['exclusive', 'parallel', 'inclusive', 'event-based', 'complex']);
