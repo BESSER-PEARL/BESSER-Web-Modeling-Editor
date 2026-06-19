@@ -84,11 +84,20 @@ export const sessionStorageSmartGenProvider = localStoragePrefix + 'smart_gen_pr
 // the backend default for this provider" (gpt-4o for openai,
 // claude-sonnet-4-6 for anthropic).
 export const sessionStorageSmartGenLlmModel = localStoragePrefix + 'smart_gen_llm_model';
+// User-chosen run budget (NOT secret — still session-scoped so it sits
+// next to the key/model it applies to). Values are plain numbers
+// serialised as strings: USD for cost, whole seconds for runtime.
+export const sessionStorageSmartGenMaxCostUsd = localStoragePrefix + 'smart_gen_max_cost_usd';
+export const sessionStorageSmartGenMaxRuntimeSeconds =
+  localStoragePrefix + 'smart_gen_max_runtime_seconds';
 
 // Smart Generator backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/smart-generate`;
+export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/smart-gen/config`;
 export const smartGenDownloadUrl = (runId: string): string =>
   `${BACKEND_URL}/download-smart/${runId}`;
+export const cancelSmartGenUrl = (runId: string): string =>
+  `${BACKEND_URL}/cancel-smart-gen/${runId}`;
 
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';

@@ -24,9 +24,14 @@
  *      annotate the stream but wait for the `done` event (with a
  *      failsafe timeout in case the backend never sends `done`).
  *
- * Concurrency: only ONE smart-gen run is allowed at a time. A second
- * `handleTrigger` call while a run is active appends a warning message
- * and returns without starting anything.
+ * Concurrency: only ONE smart-gen run is allowed at a time — GLOBALLY,
+ * across all mounted hook instances (AssistantWidget and
+ * AssistantWorkspaceDrawer both mount one). The per-instance
+ * `isRunningRef` is backed by `smartGenerator.runStatus` in the store,
+ * claimed/consumed synchronously via the `tryClaimRunSlot` /
+ * `consumePendingTrigger` thunks. A second `handleTrigger` call while a
+ * run is active appends a warning message and returns without starting
+ * anything.
  *
  * Non-goals:
  *   - The hook never touches the WebSocket, the modeling agent, or any
@@ -44,23 +49,24 @@ import type {
 } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { BesserProject } from '../../../shared/types/project';
-import { smartGenDownloadUrl } from '../../../shared/constants/constant';
-import { downloadFile } from '../../../shared/utils/download';
+import { fetchAndSaveSmartGenArtifact } from '../../../shared/utils/smartGenDownload';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 
 import {
   beginRun,
-  clearPendingTrigger,
-  closeByokDialog,
   completeRun,
+  consumePendingTrigger,
+  isSmartGenRunActive,
   openByokDialog,
+  releaseRunSlot,
   resetRun,
   setApiKeyPresent,
   setRunError,
+  tryClaimRunSlot,
   updateCost,
   updatePhase,
 } from '../state/smartGeneratorSlice';
-import { clearSessionKey, readSessionKey } from '../storage';
+import { clearSessionKey, readSessionBudget, readSessionKey } from '../storage';
 import {
   startSmartGenRun,
   type StartSmartGenRunParams,
@@ -128,10 +134,30 @@ const isValidProvider = (value: unknown): value is SmartGenProvider =>
 const isValidPhase = (value: unknown): value is SmartGenPhase =>
   typeof value === 'string' && VALID_PHASES.has(value as SmartGenPhase);
 
+/**
+ * Terminal outcome of a smart-gen run, reported exactly once per run
+ * via `onRunFinished` — used by the assistant orchestrator to close
+ * the agent loop (`generator_result` frontend event).
+ */
+export interface SmartGenRunResult {
+  ok: boolean;
+  runId?: string;
+  errorCode?: string;
+  fileName?: string;
+  costUsd?: number;
+  generatorUsed?: string;
+}
+
 export interface UseSmartGenTriggerOptions {
   currentProjectRef: React.MutableRefObject<BesserProject | null | undefined>;
   setMessages: React.Dispatch<React.SetStateAction<ChatKitMessage[]>>;
   setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>;
+  /**
+   * Invoked EXACTLY ONCE per run at its terminal point: after the
+   * download attempt on `done` (ok = download success), on a terminal
+   * error event, or on user abort (errorCode 'CANCELLED').
+   */
+  onRunFinished?: (result: SmartGenRunResult) => void;
 }
 
 export interface UseSmartGenTriggerReturn {
@@ -161,6 +187,29 @@ export function useSmartGenTrigger(
   // the `done` event finally arrives, or when the stream finishes
   // naturally, or on abort.
   const failsafeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ---- onRunFinished bookkeeping ----
+  // The callback is kept in a ref so an inline arrow passed by the
+  // caller doesn't thrash the useCallback dep chains below.
+  const onRunFinishedRef = useRef(options.onRunFinished);
+  onRunFinishedRef.current = options.onRunFinished;
+  // `true` until a run starts, then flipped back to `true` at the first
+  // terminal report — guaranteeing exactly-once semantics even when
+  // overlapping terminal paths fire (e.g. abortActive + AbortError catch).
+  const runFinishedReportedRef = useRef(true);
+  // Latest runId / cost observed on the stream, for terminal reports.
+  const currentRunIdRef = useRef<string | undefined>(undefined);
+  const lastCostRef = useRef<number | undefined>(undefined);
+
+  const reportRunFinished = useCallback((result: SmartGenRunResult) => {
+    if (runFinishedReportedRef.current) return;
+    runFinishedReportedRef.current = true;
+    try {
+      onRunFinishedRef.current?.(result);
+    } catch (err) {
+      console.error('[useSmartGenTrigger] onRunFinished callback failed', err);
+    }
+  }, []);
 
   // Track mount state so we can bail out if the user navigates away
   // mid-stream and avoid setState-on-unmounted warnings.
@@ -267,11 +316,11 @@ export function useSmartGenTrigger(
   }, []);
 
   /**
-   * Download the generated output as a blob and trigger a browser
-   * save via the existing `downloadFile` util. Prefers the response's
-   * `Content-Type`, falls back to `application/zip` when the backend
-   * explicitly marked the result as a zip, and finally to
-   * `application/octet-stream`.
+   * Download the generated output and trigger a browser save. The
+   * actual blob fetch/save lives in the shared
+   * `fetchAndSaveSmartGenArtifact` helper (also used by the
+   * SmartGenCard "Download again" button); this wrapper only resolves
+   * the runId.
    *
    * Returns an object describing the outcome:
    *   - ``{ ok: true, sizeBytes }`` on success, so the caller can render
@@ -283,44 +332,15 @@ export function useSmartGenTrigger(
       downloadUrl: string,
       fileName: string,
       isZip: boolean,
+      explicitRunId?: string,
     ): Promise<{ ok: true; sizeBytes: number } | { ok: false }> => {
-      const runId = extractRunId(downloadUrl);
+      // Newer backends carry the run id on the done event itself; the
+      // regex over downloadUrl stays as a fallback for older backends.
+      const runId = explicitRunId || extractRunId(downloadUrl);
       if (!runId) {
         return { ok: false };
       }
-      const fullUrl = smartGenDownloadUrl(runId);
-      let response: Response;
-      try {
-        response = await fetch(fullUrl);
-      } catch (err) {
-        console.error('[useSmartGenTrigger] download fetch failed', err);
-        return { ok: false };
-      }
-      if (!response.ok) {
-        console.error('[useSmartGenTrigger] download status', response.status);
-        return { ok: false };
-      }
-      let blob: Blob;
-      try {
-        blob = await response.blob();
-      } catch (err) {
-        console.error('[useSmartGenTrigger] download blob decode failed', err);
-        return { ok: false };
-      }
-      // For explicit zip results, trust the backend's flag over the
-      // response header — some proxies drop or rewrite Content-Type.
-      const mime = isZip
-        ? 'application/zip'
-        : response.headers.get('Content-Type') ||
-          blob.type ||
-          'application/octet-stream';
-      try {
-        downloadFile(blob, fileName, mime);
-      } catch (err) {
-        console.error('[useSmartGenTrigger] downloadFile failed', err);
-        return { ok: false };
-      }
-      return { ok: true, sizeBytes: blob.size };
+      return fetchAndSaveSmartGenArtifact(runId, fileName, isZip);
     },
     [],
   );
@@ -345,12 +365,15 @@ export function useSmartGenTrigger(
           if (!isValidProvider(event.provider)) {
             console.warn('[useSmartGenTrigger] start event with invalid provider', event);
           }
+          currentRunIdRef.current = event.runId;
           dispatch(beginRun({ runId: event.runId }));
           updateSmartGen(streamingId, (s) => ({
             ...s,
             runId: event.runId,
             provider: event.provider,
             model: event.llmModel,
+            maxCost: event.maxCost,
+            maxRuntime: event.maxRuntime,
           }));
           return;
         }
@@ -448,11 +471,23 @@ export function useSmartGenTrigger(
         }
         case 'cost': {
           dispatch(updateCost({ usd: event.usd, elapsedSeconds: event.elapsedSeconds }));
+          lastCostRef.current = event.usd;
+          // Mirror onto the chat card so the user sees a live
+          // `$spent / $budget · elapsed / max` meter while the run burns
+          // their BYOK budget.
+          updateSmartGen(streamingId, (s) => ({
+            ...s,
+            costUsd: event.usd,
+            elapsedSeconds: event.elapsedSeconds,
+          }));
           return;
         }
         case 'done': {
           clearFailsafeTimer();
           if (abortRequestedRef.current) return;
+          const doneRunId =
+            event.runId || extractRunId(event.downloadUrl) || undefined;
+          if (doneRunId) currentRunIdRef.current = doneRunId;
           dispatch(
             completeRun({
               downloadUrl: event.downloadUrl,
@@ -460,15 +495,28 @@ export function useSmartGenTrigger(
               isZip: event.isZip,
             }),
           );
-          finalizeStreamingMessage(streamingId);
-          // Attempt the download. Render success or error exactly
+          // Persist the artifact coordinates on the card BEFORE the
+          // download attempt — the backend keeps the file for ~30 min
+          // and allows re-downloads, so "Download again" must work even
+          // when the first attempt fails.
+          updateSmartGen(streamingId, (s) => ({
+            ...s,
+            runId: doneRunId ?? s.runId,
+            downloadUrl: event.downloadUrl,
+            fileName: event.fileName,
+            isZip: event.isZip,
+          }));
+          // Attempt the download. Only finalize the card to green
+          // 'done' AFTER it succeeds; render success or error exactly
           // once based on the outcome — never both.
           const result = await fetchAndSaveDownload(
             event.downloadUrl,
             event.fileName,
             event.isZip,
+            event.runId,
           );
           if (result.ok) {
+            finalizeStreamingMessage(streamingId);
             // Prefer the open project's name over the backend-generated
             // UUID-suffixed zip filename. Falls back to the raw filename
             // when we don't have a project (defensive — shouldn't happen
@@ -483,11 +531,33 @@ export function useSmartGenTrigger(
             );
             toast.success(`Downloaded ${event.fileName}`);
           } else {
-            appendErrorToChat(
-              `Vibe-Driven Generator finished but the download failed. You may need to regenerate.`,
+            // Generation succeeded — only the local save failed. The
+            // artifact stays on the server (~30 min TTL), so mark the
+            // card with `downloadFailed` and let its "Download again"
+            // button retry instead of telling the user to regenerate.
+            updateSmartGen(
+              streamingId,
+              (s) => ({ ...s, status: 'done', downloadFailed: true }),
+              { stopStreaming: true },
             );
-            toast.error('Vibe-Driven Generator download failed');
+            appendErrorToChat(
+              'Vibe-Driven Generator finished but the download failed. The generated file ' +
+                'is still available for about 30 minutes — use "Download again" on the run card to retry.',
+            );
+            toast.error('Vibe-Driven Generator download failed — retry from the run card');
           }
+          const generatorUsed =
+            typeof event.recipe?.generator_used === 'string'
+              ? event.recipe.generator_used
+              : undefined;
+          reportRunFinished({
+            ok: result.ok,
+            runId: doneRunId,
+            fileName: event.fileName,
+            costUsd: lastCostRef.current,
+            generatorUsed,
+            errorCode: result.ok ? undefined : 'DOWNLOAD_FAILED',
+          });
           return;
         }
         case 'error': {
@@ -496,14 +566,20 @@ export function useSmartGenTrigger(
             // Warning — stream continues; the `done` event will follow.
             // But if the backend hangs and never sends `done`, the
             // failsafe timer finalises the run ourselves after 45s.
-            updateSmartGen(streamingId, (s) => ({
-              ...s,
-              warnings: [
-                ...s.warnings,
-                { code: event.code, message: event.message },
-              ],
-            }));
+            // COST_CAP is handled silently: its message quotes dollar
+            // estimates we don't consider reliable enough to show
+            // (product decision) — the run still finalises normally.
+            if (event.code === 'TIMEOUT') {
+              updateSmartGen(streamingId, (s) => ({
+                ...s,
+                warnings: [
+                  ...s.warnings,
+                  { code: event.code, message: event.message },
+                ],
+              }));
+            }
             if (failsafeTimerRef.current === null) {
+              const warningCode = event.code;
               failsafeTimerRef.current = setTimeout(() => {
                 if (!isRunningRef.current || abortRequestedRef.current) return;
                 finalizeStreamingMessage(streamingId);
@@ -513,6 +589,12 @@ export function useSmartGenTrigger(
                     `with a larger budget.`,
                 );
                 toast.error('Vibe-Driven Generator cap reached — no response');
+                reportRunFinished({
+                  ok: false,
+                  runId: currentRunIdRef.current,
+                  errorCode: warningCode,
+                  costUsd: lastCostRef.current,
+                });
                 abortActiveInternal();
               }, COST_TIMEOUT_FAILSAFE_MS);
             }
@@ -542,6 +624,12 @@ export function useSmartGenTrigger(
             `❌ Vibe-Driven Generator error (${event.code}): ${event.message}`,
           );
           toast.error(`Vibe-Driven Generator: ${event.code}`);
+          reportRunFinished({
+            ok: false,
+            runId: currentRunIdRef.current,
+            errorCode: event.code,
+            costUsd: lastCostRef.current,
+          });
           return;
         }
         default: {
@@ -565,6 +653,7 @@ export function useSmartGenTrigger(
       dispatch,
       fetchAndSaveDownload,
       finalizeStreamingMessage,
+      reportRunFinished,
       updateSmartGen,
     ],
   );
@@ -586,7 +675,11 @@ export function useSmartGenTrigger(
    */
   const startRun = useCallback(
     async (payload: TriggerSmartGeneratorPayload) => {
-      if (isRunningRef.current) {
+      // Guard against BOTH a re-entrant call on this instance
+      // (isRunningRef) and a run owned by the OTHER mounted hook
+      // instance (global runStatus, read synchronously from the live
+      // store — a useAppSelector value could be stale in this commit).
+      if (isRunningRef.current || dispatch(isSmartGenRunActive())) {
         appendErrorToChat(
           'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
         );
@@ -632,6 +725,18 @@ export function useSmartGenTrigger(
       }
       const provider: SmartGenProvider = rawProvider;
 
+      // Point of no return: atomically claim the GLOBAL run slot. All
+      // code from the guard at the top of this function down to here is
+      // synchronous, so two instances racing in the same commit resolve
+      // deterministically — the first dispatch claims, the second sees
+      // 'running' and backs off.
+      if (!dispatch(tryClaimRunSlot())) {
+        appendErrorToChat(
+          'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
+        );
+        return;
+      }
+
       const introText =
         typeof payload.message === 'string' && payload.message.trim().length > 0
           ? payload.message
@@ -641,6 +746,9 @@ export function useSmartGenTrigger(
 
       isRunningRef.current = true;
       abortRequestedRef.current = false;
+      runFinishedReportedRef.current = false;
+      currentRunIdRef.current = undefined;
+      lastCostRef.current = undefined;
       setIsGenerating(true);
 
       // Route the project through the same normaliser the existing
@@ -670,12 +778,19 @@ export function useSmartGenTrigger(
             : payload.llmModel;
       }
 
+      // User-chosen run budget from the BYOK dialog (sessionStorage).
+      // When absent the fields stay undefined and the backend applies
+      // its own defaults — the SSE client only serialises set values.
+      const budget = readSessionBudget();
+
       const runParams: StartSmartGenRunParams = {
         project: normalisedProject,
         instructions: payload.instructions,
         provider,
         apiKey: key.apiKey,
         llmModel,
+        maxCostUsd: budget?.maxCostUsd,
+        maxRuntimeSeconds: budget?.maxRuntimeSeconds,
       };
 
       let handle;
@@ -689,6 +804,8 @@ export function useSmartGenTrigger(
         toast.error('Vibe-Driven Generator failed to start');
         isRunningRef.current = false;
         setIsGenerating(false);
+        dispatch(releaseRunSlot());
+        reportRunFinished({ ok: false, errorCode: 'INTERNAL' });
         return;
       }
 
@@ -711,15 +828,31 @@ export function useSmartGenTrigger(
         finalizeStreamingMessage(streamingId);
         if (isAbort) {
           appendAssistantMessage('⏹ Vibe-Driven Generator run stopped by user.');
+          reportRunFinished({
+            ok: false,
+            runId: currentRunIdRef.current,
+            errorCode: 'CANCELLED',
+            costUsd: lastCostRef.current,
+          });
         } else {
           appendErrorToChat(`Vibe-Driven Generator stream error: ${msg}`);
           toast.error('Vibe-Driven Generator stream error');
           dispatch(setRunError({ code: 'INTERNAL', message: msg }));
+          reportRunFinished({
+            ok: false,
+            runId: currentRunIdRef.current,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          });
         }
       } finally {
         abortRef.current = null;
         isRunningRef.current = false;
         clearFailsafeTimer();
+        // Release the global run slot in EVERY exit path — including a
+        // stream that simply ends without a `done` event (backend
+        // closed early), which dispatches nothing else.
+        dispatch(releaseRunSlot());
         if (mountedRef.current) setIsGenerating(false);
       }
     },
@@ -731,6 +864,7 @@ export function useSmartGenTrigger(
       dispatch,
       finalizeStreamingMessage,
       handleSseEvent,
+      reportRunFinished,
       setIsGenerating,
     ],
   );
@@ -741,7 +875,9 @@ export function useSmartGenTrigger(
    */
   const handleTrigger = useCallback(
     async (payload: TriggerSmartGeneratorPayload) => {
-      if (isRunningRef.current) {
+      // Check the per-instance ref AND the global run flag (fresh from
+      // the store) — the run may be owned by the other mounted instance.
+      if (isRunningRef.current || dispatch(isSmartGenRunActive())) {
         appendErrorToChat(
           'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
         );
@@ -761,14 +897,22 @@ export function useSmartGenTrigger(
    * If there's a pending trigger AND the user just saved a key (the
    * dialog is closed and `apiKeyInStore` flipped to true), resume the
    * run automatically.
+   *
+   * BOTH always-mounted hook instances (AssistantWidget +
+   * AssistantWorkspaceDrawer) run this effect in the same React commit
+   * with the same closure-captured `pendingTrigger`. Consumption MUST
+   * therefore go through `consumePendingTrigger`, which reads the LIVE
+   * store state and clears the trigger in one synchronous dispatch —
+   * only the first instance gets a non-null trigger, so only one paid
+   * run can ever start.
    */
   useEffect(() => {
     if (!pendingTrigger) return;
     if (byokDialogOpen) return;
     if (!apiKeyInStore) return;
     if (isRunningRef.current) return;
-    const trigger = pendingTrigger;
-    dispatch(clearPendingTrigger());
+    const trigger = dispatch(consumePendingTrigger());
+    if (!trigger) return;
     void startRun(trigger);
   }, [pendingTrigger, apiKeyInStore, byokDialogOpen, dispatch, startRun]);
 
@@ -791,8 +935,17 @@ export function useSmartGenTrigger(
       isRunningRef.current = false;
       setIsGenerating(false);
       dispatch(resetRun());
+      // User-initiated stop is a terminal outcome — report it (the
+      // exactly-once guard in reportRunFinished absorbs the AbortError
+      // catch in startRun firing right after this).
+      reportRunFinished({
+        ok: false,
+        runId: currentRunIdRef.current,
+        errorCode: 'CANCELLED',
+        costUsd: lastCostRef.current,
+      });
     }
-  }, [clearFailsafeTimer, dispatch, setIsGenerating]);
+  }, [clearFailsafeTimer, dispatch, reportRunFinished, setIsGenerating]);
 
   // Wire up the internal ref so the failsafe timer callback can
   // invoke the same abort logic without circular deps.

@@ -7,14 +7,18 @@ import {
   CheckCircle2,
   ChevronRight,
   Code2,
+  Download,
   Loader2,
   Sparkles,
+  Square,
   Terminal,
   Wrench,
   XCircle,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { cancelSmartGenUrl } from "@/main/shared/constants/constant"
+import { fetchAndSaveSmartGenArtifact } from "@/main/shared/utils/smartGenDownload"
 import {
   Collapsible,
   CollapsibleContent,
@@ -168,6 +172,25 @@ export interface SmartGenMessageState {
   warnings: SmartGenWarningView[]
   text: string
   status: "running" | "done" | "error"
+  /** Live spend so far in USD (from the backend's 2s cost events). */
+  costUsd?: number
+  /** Elapsed run time in seconds (from the backend's 2s cost events). */
+  elapsedSeconds?: number
+  /** Cost budget for this run in USD (from the start event). */
+  maxCost?: number
+  /** Runtime budget for this run in seconds (from the start event). */
+  maxRuntime?: number
+  /** Backend download URL carried by the done event. */
+  downloadUrl?: string
+  /** Artifact filename carried by the done event. */
+  fileName?: string
+  /** Whether the artifact is a zip (done event). */
+  isZip?: boolean
+  /**
+   * Generation succeeded but the browser download failed. The artifact
+   * stays on the server (~30 min TTL) so "Download again" can retry.
+   */
+  downloadFailed?: boolean
 }
 
 export interface Message {
@@ -649,14 +672,92 @@ function SmartGenPhaseRow({
   )
 }
 
+/** `3m 10s` / `45s` / `10m` — compact duration for the runtime meter. */
+function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.round(totalSeconds))
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  if (m === 0) return `${rem}s`
+  if (rem === 0) return `${m}m`
+  return `${m}m ${rem}s`
+}
+
 function SmartGenCard({
   smartGen,
   isStreaming,
+  onStop,
 }: {
   smartGen: SmartGenMessageState
   isStreaming: boolean
+  /**
+   * Optional override for the Stop action — defaults to a self-contained
+   * fire-and-forget POST to the backend cancel endpoint. The backend
+   * then terminates the SSE stream with a CANCELLED event which the
+   * run's existing error handling renders. Deliberately independent of
+   * the chat's `isGenerating` flag (which auto-clears after 120s and on
+   * any incoming WS message — long before a smart-gen run finishes).
+   */
+  onStop?: (runId: string) => void
 }) {
-  const { runId, provider, model, phases, warnings, text, status } = smartGen
+  // Note: costUsd/maxCost exist on the state (the hook still tracks them
+  // for the agent outcome report) but are deliberately NOT rendered —
+  // the estimate is too rough to show users as if it were a bill.
+  const {
+    runId,
+    provider,
+    model,
+    phases,
+    warnings,
+    text,
+    status,
+    elapsedSeconds,
+    maxRuntime,
+    fileName,
+    isZip,
+    downloadFailed,
+  } = smartGen
+
+  const [stopRequested, setStopRequested] = useState(false)
+  const [redownloadState, setRedownloadState] = useState<
+    "idle" | "busy" | "failed"
+  >("idle")
+
+  const handleStop = () => {
+    if (!runId || stopRequested) return
+    setStopRequested(true)
+    if (onStop) {
+      onStop(runId)
+      return
+    }
+    // Fire-and-forget — no body needed. Errors are swallowed: if the
+    // cancel request itself fails the run simply keeps streaming and
+    // the user can hit Stop again after the button re-enables.
+    void fetch(cancelSmartGenUrl(runId), { method: "POST" }).catch(() => {
+      setStopRequested(false)
+    })
+  }
+
+  const handleRedownload = async () => {
+    if (!runId || !fileName || redownloadState === "busy") return
+    setRedownloadState("busy")
+    const result = await fetchAndSaveSmartGenArtifact(
+      runId,
+      fileName,
+      isZip === true
+    )
+    setRedownloadState(result.ok ? "idle" : "failed")
+  }
+
+  const showMeter =
+    (status === "running" || status === "done") &&
+    typeof elapsedSeconds === "number"
+  const showStop = status === "running" && typeof runId === "string"
+  const canRedownload =
+    status === "done" &&
+    typeof runId === "string" &&
+    typeof fileName === "string"
+  const showFooter = showMeter || showStop || canRedownload
+
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
       {/* Header */}
@@ -721,6 +822,65 @@ function SmartGenCard({
         <div className="border-t border-border/60 bg-background/40 px-3 py-2">
           <MarkdownRenderer>{text}</MarkdownRenderer>
           {isStreaming ? <StreamingCursor /> : null}
+        </div>
+      ) : null}
+
+      {/* Download failed — artifact still retrievable from the server */}
+      {downloadFailed ? (
+        <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+          <span>
+            The download failed, but the generated file is still available on
+            the server for about 30 minutes. Use &ldquo;Download again&rdquo;
+            to retry.
+          </span>
+        </div>
+      ) : null}
+
+      {/* Footer: live cost/runtime meter + run controls */}
+      {showFooter ? (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/60 bg-muted/60 px-3 py-1.5 text-xs">
+          {showMeter ? (
+            <span className="font-mono tabular-nums text-muted-foreground">
+              {formatDuration(elapsedSeconds ?? 0)}
+              {typeof maxRuntime === "number"
+                ? ` / ${formatDuration(maxRuntime)}`
+                : ""}
+            </span>
+          ) : null}
+          <span className="ml-auto flex items-center gap-2">
+            {redownloadState === "failed" ? (
+              <span className="text-[11px] text-red-600 dark:text-red-400">
+                Retry failed
+              </span>
+            ) : null}
+            {canRedownload ? (
+              <button
+                type="button"
+                onClick={() => void handleRedownload()}
+                disabled={redownloadState === "busy"}
+                className="inline-flex items-center gap-1 rounded border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {redownloadState === "busy" ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3" />
+                )}
+                Download again
+              </button>
+            ) : null}
+            {showStop ? (
+              <button
+                type="button"
+                onClick={handleStop}
+                disabled={stopRequested}
+                className="inline-flex items-center gap-1 rounded border border-red-200 bg-background px-2 py-0.5 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800/40 dark:text-red-400 dark:hover:bg-red-950/30"
+              >
+                <Square className="h-3 w-3" />
+                {stopRequested ? "Stopping…" : "Stop"}
+              </button>
+            ) : null}
+          </span>
         </div>
       ) : null}
     </div>

@@ -1,14 +1,20 @@
+import { configureStore } from '@reduxjs/toolkit';
 import { describe, expect, it } from 'vitest';
 import {
   beginRun,
+  claimRunSlot,
   closeByokDialog,
   completeRun,
+  consumePendingTrigger,
+  isSmartGenRunActive,
   openByokDialog,
+  releaseRunSlot,
   resetRun,
   setApiKeyPresent,
   setProvider,
   setRunError,
   smartGeneratorReducer,
+  tryClaimRunSlot,
   updateCost,
   updatePhase,
 } from '../smartGeneratorSlice';
@@ -20,7 +26,19 @@ const INITIAL: SmartGeneratorState = {
   apiKeyInStore: false,
   pendingTrigger: null,
   activeRun: null,
+  runStatus: 'idle',
 };
+
+const PENDING = {
+  action: 'trigger_smart_generator' as const,
+  instructions: 'build a thing',
+};
+
+function makeStore() {
+  return configureStore({
+    reducer: { smartGenerator: smartGeneratorReducer },
+  });
+}
 
 describe('smartGeneratorSlice', () => {
   it('has the expected initial state', () => {
@@ -113,5 +131,88 @@ describe('smartGeneratorSlice', () => {
     let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
     state = smartGeneratorReducer(state, resetRun());
     expect(state.activeRun).toBeNull();
+  });
+});
+
+describe('smartGeneratorSlice — global runStatus guard', () => {
+  it('beginRun flips runStatus to running', () => {
+    const state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
+    expect(state.runStatus).toBe('running');
+  });
+
+  it('claimRunSlot / releaseRunSlot toggle runStatus', () => {
+    let state = smartGeneratorReducer(INITIAL, claimRunSlot());
+    expect(state.runStatus).toBe('running');
+    state = smartGeneratorReducer(state, releaseRunSlot());
+    expect(state.runStatus).toBe('idle');
+  });
+
+  it('completeRun and resetRun release the slot', () => {
+    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
+    state = smartGeneratorReducer(
+      state,
+      completeRun({ downloadUrl: '/dl/abc', fileName: 'x.zip', isZip: true }),
+    );
+    expect(state.runStatus).toBe('idle');
+
+    state = smartGeneratorReducer(state, beginRun({ runId: 'def' }));
+    state = smartGeneratorReducer(state, resetRun());
+    expect(state.runStatus).toBe('idle');
+  });
+
+  it('terminal setRunError releases the slot, COST_CAP/TIMEOUT warnings do NOT', () => {
+    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
+    // Non-terminal warning — stream continues, slot stays claimed.
+    state = smartGeneratorReducer(
+      state,
+      setRunError({ code: 'COST_CAP', message: 'cap reached' }),
+    );
+    expect(state.runStatus).toBe('running');
+    state = smartGeneratorReducer(
+      state,
+      setRunError({ code: 'TIMEOUT', message: 'time cap reached' }),
+    );
+    expect(state.runStatus).toBe('running');
+    // Terminal error — slot released.
+    state = smartGeneratorReducer(
+      state,
+      setRunError({ code: 'INTERNAL', message: 'boom' }),
+    );
+    expect(state.runStatus).toBe('idle');
+  });
+});
+
+describe('smartGeneratorSlice — atomic thunks', () => {
+  it('consumePendingTrigger returns the trigger once and null afterwards', () => {
+    const store = makeStore();
+    store.dispatch(openByokDialog(PENDING));
+
+    const first = store.dispatch(consumePendingTrigger());
+    expect(first).toEqual(PENDING);
+    expect(store.getState().smartGenerator.pendingTrigger).toBeNull();
+
+    // Second consumer (the other mounted hook instance) gets nothing.
+    const second = store.dispatch(consumePendingTrigger());
+    expect(second).toBeNull();
+  });
+
+  it('consumePendingTrigger returns null while a run is active and keeps the trigger', () => {
+    const store = makeStore();
+    store.dispatch(openByokDialog(PENDING));
+    store.dispatch(claimRunSlot());
+
+    expect(store.dispatch(consumePendingTrigger())).toBeNull();
+    // Trigger remains pending for after the active run finishes.
+    expect(store.getState().smartGenerator.pendingTrigger).toEqual(PENDING);
+  });
+
+  it('tryClaimRunSlot claims exactly once until released', () => {
+    const store = makeStore();
+    expect(store.dispatch(tryClaimRunSlot())).toBe(true);
+    expect(store.dispatch(tryClaimRunSlot())).toBe(false);
+    expect(store.dispatch(isSmartGenRunActive())).toBe(true);
+    store.dispatch(releaseRunSlot());
+    expect(store.dispatch(isSmartGenRunActive())).toBe(false);
+    expect(store.dispatch(tryClaimRunSlot())).toBe(true);
   });
 });

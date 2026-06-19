@@ -16,7 +16,7 @@
  * that AssistantWidget and AssistantWorkspaceDrawer require zero changes.
  */
 
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
@@ -93,6 +93,14 @@ export interface UseAssistantLogicReturn {
 
   /* refs */
   messageListContainerRef: React.RefObject<HTMLDivElement>;
+
+  /* scroll-follow state */
+  /** True when the user has scrolled up — surfaces render a
+   * "scroll to bottom" affordance instead of being force-scrolled. */
+  showScrollToBottom: boolean;
+  /** Smooth-scroll the message list to the bottom and re-enable
+   * auto-follow. */
+  scrollMessagesToBottom: () => void;
 
   /* actions */
   handleSubmit: (
@@ -269,13 +277,47 @@ export function useAssistantLogic({
     }
   }, [activeDiagram, modelingService]);
 
-  /* ---- auto-scroll on new messages ---- */
+  /* ---- auto-scroll on new messages (only while following the bottom) ---- */
+
+  // Streaming runs mutate `messages` on every SSE/WS delta; forcing
+  // scrollTop on each one made it impossible to scroll up and read
+  // while a generation was running. Follow the bottom only while the
+  // user is already there (within a small tolerance); otherwise leave
+  // their position alone and surface a "scroll to bottom" button.
+  const isAtBottomRef = useRef(true);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  // The surfaces (widget / drawer) attach the container ref in their
+  // own JSX, possibly after mount — so the scroll listener is attached
+  // lazily from the messages effect, re-attaching if the element changes.
+  const scrollListenerTargetRef = useRef<HTMLDivElement | null>(null);
+
+  const ensureScrollListener = useCallback(() => {
+    const el = messageListContainerRef.current;
+    if (!el || scrollListenerTargetRef.current === el) return;
+    scrollListenerTargetRef.current = el;
+    const onScroll = () => {
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 40;
+      isAtBottomRef.current = atBottom;
+      setShowScrollToBottom(!atBottom);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+  }, []);
+
+  const scrollMessagesToBottom = useCallback(() => {
+    const el = messageListContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    isAtBottomRef.current = true;
+    setShowScrollToBottom(false);
+  }, []);
 
   useEffect(() => {
-    if (messageListContainerRef.current) {
-      messageListContainerRef.current.scrollTop = messageListContainerRef.current.scrollHeight;
+    ensureScrollListener();
+    const el = messageListContainerRef.current;
+    if (el && isAtBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, ensureScrollListener]);
 
   /* ================================================================ */
   /*  Sub-hooks                                                        */
@@ -303,10 +345,39 @@ export function useAssistantLogic({
   // Pass stable React state setters directly — wrapping them in an
   // arrow function creates a new identity on every render, thrashing
   // the downstream useCallback deps in `useSmartGenTrigger`.
+  // (`onRunFinished` is exempt: the hook stores it in a ref, so the
+  // inline arrow's changing identity is harmless.)
   const smartGen = useSmartGenTrigger({
     currentProjectRef,
     setMessages,
     setIsGenerating: streaming.setIsGenerating,
+    onRunFinished: (result) => {
+      // Close the agent loop: report the smart-gen outcome back to the
+      // modeling agent exactly like the deterministic trigger_generator
+      // path does, so the agent can react ("the build failed because…")
+      // instead of staying blind to the run's outcome.
+      try {
+        if (!assistantClient) return;
+        const messageText = result.ok
+          ? `Vibe-Driven Generator finished successfully${result.fileName ? ` — ${result.fileName} downloaded` : ''}.`
+          : result.errorCode === 'CANCELLED'
+            ? 'Vibe-Driven Generator run was cancelled by the user.'
+            : `Vibe-Driven Generator failed (${result.errorCode ?? 'UNKNOWN'}).`;
+        assistantClient.sendFrontendEvent('generator_result', {
+          ok: result.ok,
+          message: messageText,
+          metadata: {
+            smart: true,
+            runId: result.runId,
+            costUsd: result.costUsd,
+            generator_used: result.generatorUsed,
+            errorCode: result.errorCode,
+          },
+        });
+      } catch (error) {
+        console.error('[useAssistantLogic] failed to report smart-gen result', error);
+      }
+    },
   });
 
   /* ---- workspace context builder ---- */
@@ -872,6 +943,8 @@ export function useAssistantLogic({
     lastSentMessage,
     streamingMessageId: streaming.streamingMessageId,
     messageListContainerRef: messageListContainerRef as React.RefObject<HTMLDivElement>,
+    showScrollToBottom,
+    scrollMessagesToBottom,
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,

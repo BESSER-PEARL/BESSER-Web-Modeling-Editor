@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings } from 'lucide-react';
+import { ArrowDown, ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -164,6 +164,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     progressMessage,
     lastSentMessage,
     messageListContainerRef,
+    showScrollToBottom,
+    scrollMessagesToBottom,
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
@@ -635,23 +637,37 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             /* ================================================================ */
             <>
               {/* Messages — kept at max-w-4xl (896px) for readability */}
-              <div ref={messageListContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
-                <div className="mx-auto w-full max-w-4xl">
-                  <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
+              <div className="relative min-h-0 flex-1">
+                <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
+                  <div className="mx-auto w-full max-w-4xl">
+                    <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
 
-                  {/* Progress indicator */}
-                  {progressMessage && (
-                    <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                      <Loader2 className="size-3 animate-spin" />
-                      <span>{progressMessage}</span>
-                    </div>
-                  )}
+                    {/* Progress indicator */}
+                    {progressMessage && (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
+                        <Loader2 className="size-3 animate-spin" />
+                        <span>{progressMessage}</span>
+                      </div>
+                    )}
 
-                  {/* Quick actions after last assistant message */}
-                  {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
-                    <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
-                  )}
+                    {/* Quick actions after last assistant message */}
+                    {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
+                      <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+                    )}
+                  </div>
                 </div>
+                {/* Scroll-to-bottom — shown while the user has scrolled up;
+                    streaming no longer force-follows their position */}
+                {showScrollToBottom && (
+                  <button
+                    type="button"
+                    aria-label="Scroll to bottom"
+                    onClick={scrollMessagesToBottom}
+                    className="absolute bottom-4 right-6 z-10 rounded-full border border-border/60 bg-background/95 p-2 text-muted-foreground shadow-md backdrop-blur transition-colors hover:bg-muted hover:text-foreground animate-in fade-in-0 slide-in-from-bottom-1"
+                  >
+                    <ArrowDown className="size-4" />
+                  </button>
+                )}
               </div>
 
               {/* Bottom bar — kept at max-w-4xl (896px) to match messages */}

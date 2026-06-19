@@ -42,6 +42,47 @@ type QueuedMessage =
   };
 
 const SESSION_STORAGE_KEY = 'besser-assistant-session-id';
+const USER_ID_STORAGE_KEY = 'besser_assistant_user_id';
+
+const getStableUserId = (): string => {
+  // BAF's websocket platform keys backend sessions on the `user_id`
+  // query param; without a stable id every reconnect creates a brand-new
+  // backend session, wiping conversation memory and pending flow state
+  // (and re-running the greeting). Persisted in localStorage so the id
+  // survives tab and browser restarts (create once, reuse forever).
+  try {
+    const existing = localStorage.getItem(USER_ID_STORAGE_KEY);
+    if (existing) return existing;
+  } catch {
+    // localStorage unavailable (e.g. iframe sandbox) — fall through
+  }
+
+  const id =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
+  try {
+    localStorage.setItem(USER_ID_STORAGE_KEY, id);
+  } catch {
+    // best-effort
+  }
+  return id;
+};
+
+const withStableUserParam = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    if (!parsed.searchParams.has('user_id')) {
+      parsed.searchParams.set('user_id', getStableUserId());
+    }
+    return parsed.toString();
+  } catch {
+    // Non-absolute/invalid URL — append conservatively
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}user_id=${encodeURIComponent(getStableUserId())}`;
+  }
+};
 
 const createSessionId = (): string => {
   // Reuse the session ID within the same browser tab so that closing
@@ -312,7 +353,9 @@ export class AssistantClient {
     this.shouldReconnect = true;
     this.connectingPromise = new Promise((resolve, reject) => {
       try {
-        this.ws = new WebSocket(this.url);
+        // Stable per-browser user id → BAF reuses the same backend
+        // session across reconnects (memory and pending flows survive).
+        this.ws = new WebSocket(withStableUserParam(this.url));
         this.ws.onopen = () => {
           this.isConnected = true;
           this.reconnectAttempts = 0;

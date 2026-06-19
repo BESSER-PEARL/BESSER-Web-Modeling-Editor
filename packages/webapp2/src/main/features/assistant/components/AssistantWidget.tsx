@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Check, CircleHelp, Code, Loader2, Settings, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Loader2, Settings, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -113,6 +113,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     progressMessage,
     lastSentMessage,
     messageListContainerRef,
+    showScrollToBottom,
+    scrollMessagesToBottom,
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
@@ -240,7 +242,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           </div>
 
           {/* Message list */}
-          <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
+          <div className="relative min-h-0 flex-1">
+          <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
             {messages.length === 0 && !isGenerating ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
@@ -298,6 +301,19 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
               <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
             )}
+          </div>
+          {/* Scroll-to-bottom — shown while the user has scrolled up;
+              streaming no longer force-follows their position */}
+          {showScrollToBottom && (
+            <button
+              type="button"
+              aria-label="Scroll to bottom"
+              onClick={scrollMessagesToBottom}
+              className="absolute bottom-3 right-4 z-10 rounded-full border border-border/60 bg-background/95 p-2 text-muted-foreground shadow-md backdrop-blur transition-colors hover:bg-muted hover:text-foreground animate-in fade-in-0 slide-in-from-bottom-1"
+            >
+              <ArrowDown className="size-4" />
+            </button>
+          )}
           </div>
 
           {/* Input + status */}

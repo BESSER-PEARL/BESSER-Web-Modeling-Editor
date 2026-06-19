@@ -29,13 +29,20 @@ import { Provider } from 'react-redux';
 import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { smartGeneratorReducer } from '../../state/smartGeneratorSlice';
+import {
+  closeByokDialog,
+  openByokDialog,
+  setApiKeyPresent,
+  smartGeneratorReducer,
+} from '../../state/smartGeneratorSlice';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { useSmartGenTrigger } from '../useSmartGenTrigger';
+import { useSmartGenTrigger, type SmartGenRunResult } from '../useSmartGenTrigger';
 import type { SmartGenEvent, TriggerSmartGeneratorPayload } from '../../types';
 import {
   sessionStorageSmartGenApiKey,
+  sessionStorageSmartGenMaxCostUsd,
+  sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
 } from '../../../../shared/constants/constant';
 
@@ -99,7 +106,11 @@ interface HarnessAPI {
   getIsGenerating: () => boolean;
 }
 
-function Harness(props: { apiRef: { current: HarnessAPI | null }; hasProject?: boolean }) {
+function Harness(props: {
+  apiRef: { current: HarnessAPI | null };
+  hasProject?: boolean;
+  onRunFinished?: (result: SmartGenRunResult) => void;
+}) {
   const [messages, setMessages] = React.useState<any[]>([]);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const currentProjectRef = React.useRef<any>(
@@ -116,6 +127,7 @@ function Harness(props: { apiRef: { current: HarnessAPI | null }; hasProject?: b
     currentProjectRef,
     setMessages,
     setIsGenerating,
+    onRunFinished: props.onRunFinished,
   });
   // Expose via ref so tests can call without clicks.
   props.apiRef.current = {
@@ -127,15 +139,42 @@ function Harness(props: { apiRef: { current: HarnessAPI | null }; hasProject?: b
   return <div data-testid="msgs">{JSON.stringify(messages.length)}</div>;
 }
 
-function renderHarness(opts: { hasProject?: boolean } = {}) {
+function renderHarness(
+  opts: {
+    hasProject?: boolean;
+    onRunFinished?: (result: SmartGenRunResult) => void;
+  } = {},
+) {
   const store = makeStore();
   const apiRef: { current: HarnessAPI | null } = { current: null };
   const result = render(
     <Provider store={store}>
-      <Harness apiRef={apiRef} hasProject={opts.hasProject} />
+      <Harness
+        apiRef={apiRef}
+        hasProject={opts.hasProject}
+        onRunFinished={opts.onRunFinished}
+      />
     </Provider>,
   );
   return { store, apiRef, ...result };
+}
+
+/**
+ * Render TWO independent hook instances against ONE store — mirroring
+ * production, where AssistantWidget and AssistantWorkspaceDrawer are
+ * both always mounted and each instantiates useSmartGenTrigger.
+ */
+function renderDualHarness() {
+  const store = makeStore();
+  const apiRefA: { current: HarnessAPI | null } = { current: null };
+  const apiRefB: { current: HarnessAPI | null } = { current: null };
+  const result = render(
+    <Provider store={store}>
+      <Harness apiRef={apiRefA} />
+      <Harness apiRef={apiRefB} />
+    </Provider>,
+  );
+  return { store, apiRefA, apiRefB, ...result };
 }
 
 const PAYLOAD: TriggerSmartGeneratorPayload = {
@@ -157,6 +196,10 @@ function clearSessionKeyManual() {
   // Also clear the optional model key so prior tests don't leak
   // ``llmModel=o1`` into tests that expect the agent hint to win.
   window.sessionStorage.removeItem('besser_smart_gen_llm_model');
+  // And the run budget — tests that don't set one expect the
+  // maxCostUsd / maxRuntimeSeconds params to stay undefined.
+  window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
+  window.sessionStorage.removeItem(sessionStorageSmartGenMaxRuntimeSeconds);
 }
 
 beforeEach(() => {
@@ -181,10 +224,11 @@ const HAPPY_EVENTS: SmartGenEvent[] = [
   { event: 'cost', usd: 0.05, turns: 1, elapsedSeconds: 12.3 },
   {
     event: 'done',
+    runId: 'a'.repeat(32),
     downloadUrl: `/besser_api/download-smart/${'a'.repeat(32)}`,
     fileName: 'besser_smart_output.zip',
     isZip: true,
-    recipe: { instructions: 'build a thing' },
+    recipe: { instructions: 'build a thing', generator_used: 'fastapi_backend' },
   },
 ];
 
@@ -292,6 +336,71 @@ describe('useSmartGenTrigger — download failure', () => {
     const msgs = apiRef.current!.getMessages() as any[];
     expect(msgs.some((m) => m.content?.includes('✅'))).toBe(false);
     expect(msgs.some((m) => m.isError === true)).toBe(true);
+  });
+
+  it('keeps the artifact retrievable: marks downloadFailed and points at "Download again"', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response('boom', { status: 500 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.some((m) => m.isError === true)).toBe(true);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    // The artifact stays on the server for ~30 min — the message must
+    // say so instead of telling the user to regenerate.
+    const errMsg = msgs.find((m) => m.isError === true);
+    expect(errMsg.content).toMatch(/still available/i);
+    expect(errMsg.content).toMatch(/download again/i);
+    expect(errMsg.content).not.toMatch(/regenerate/i);
+
+    // The smart-gen card carries everything "Download again" needs.
+    const card = msgs.find((m) => m.smartGen);
+    expect(card).toBeTruthy();
+    expect(card.smartGen.downloadFailed).toBe(true);
+    expect(card.smartGen.runId).toBe('a'.repeat(32));
+    expect(card.smartGen.fileName).toBe('besser_smart_output.zip');
+    expect(card.smartGen.isZip).toBe(true);
+    expect(card.smartGen.status).toBe('done');
+  });
+
+  it('finalizes the card to done only AFTER a successful download', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    const card = msgs.find((m) => m.smartGen);
+    expect(card.smartGen.status).toBe('done');
+    expect(card.smartGen.downloadFailed).toBeFalsy();
+    expect(card.smartGen.runId).toBe('a'.repeat(32));
+    expect(card.smartGen.fileName).toBe('besser_smart_output.zip');
   });
 });
 
@@ -514,6 +623,325 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
   });
 });
 
+
+describe('useSmartGenTrigger — double-instance race (the double-paid-run bug)', () => {
+  it('starts exactly ONE run when two hook instances resume the same pending trigger', async () => {
+    // Production setup: AssistantWidget AND AssistantWorkspaceDrawer are
+    // both always mounted; each instantiates useSmartGenTrigger against
+    // the same store. When the user saves a BYOK key, BOTH resume
+    // effects fire in the same commit with the same closure-captured
+    // pendingTrigger. Without atomic consumption this started TWO
+    // parallel paid runs on the user's key.
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+
+    const { store, apiRefA, apiRefB } = renderDualHarness();
+    expect(apiRefA.current).not.toBeNull();
+    expect(apiRefB.current).not.toBeNull();
+
+    // Simulate the BYOK flow: trigger arrives with no key (stashed in
+    // Redux), the user saves a key, the dialog closes.
+    await act(async () => {
+      store.dispatch(openByokDialog(PAYLOAD));
+    });
+    setSessionKey();
+    await act(async () => {
+      store.dispatch(closeByokDialog());
+      store.dispatch(setApiKeyPresent(true));
+    });
+
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
+
+    await waitFor(() => {
+      expect(startSmartGenRunMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Let everything settle (stream + download), then re-assert: the
+    // second instance must never have started a duplicate run.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(startSmartGenRunMock).toHaveBeenCalledTimes(1);
+    expect(store.getState().smartGenerator.pendingTrigger).toBeNull();
+  });
+
+  it('rejects a handleTrigger on instance B while instance A is mid-run', async () => {
+    setSessionKey();
+    // Hanging stream: a generator that never yields keeps instance A
+    // "running" for the duration of the test.
+    let releaseStream: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
+    startSmartGenRunMock.mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {},
+      events: (async function* () {
+        await gate;
+      })() as AsyncGenerator<SmartGenEvent, void, void>,
+    }));
+
+    const { apiRefA, apiRefB } = renderDualHarness();
+
+    // Instance A starts a run (fire-and-forget — it hangs on the gate).
+    let firstRun: Promise<void> = Promise.resolve();
+    await act(async () => {
+      firstRun = apiRefA.current!.handleTrigger(PAYLOAD);
+      await Promise.resolve();
+    });
+
+    // Instance B must be refused by the GLOBAL guard (its own
+    // isRunningRef is false — only the store knows about A's run).
+    await act(async () => {
+      await apiRefB.current!.handleTrigger(PAYLOAD);
+    });
+
+    const msgsB = apiRefB.current!.getMessages() as any[];
+    const refusal = msgsB.find((m) => m.content?.includes('already running'));
+    expect(refusal).toBeTruthy();
+    expect(refusal.isError).toBe(true);
+    expect(startSmartGenRunMock).toHaveBeenCalledTimes(1);
+
+    releaseStream();
+    await act(async () => {
+      await firstRun;
+    });
+  });
+});
+
+describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
+  it('reports ok:true with runId / fileName / generatorUsed exactly once on success', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        runId: 'a'.repeat(32),
+        fileName: 'besser_smart_output.zip',
+        generatorUsed: 'fastapi_backend',
+        costUsd: 0.05,
+      }),
+    );
+
+    // Abort after completion must NOT produce a second report.
+    act(() => {
+      apiRef.current!.abortActive();
+    });
+    expect(onRunFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports ok:false with the errorCode on a terminal error', async () => {
+    setSessionKey();
+    _mockController.events = [
+      { event: 'start', runId: 'b'.repeat(32), provider: 'anthropic', llmModel: 'claude-sonnet-4-6', maxCost: 1.0, maxRuntime: 600 },
+      { event: 'error', code: 'UPSTREAM_LLM', message: 'provider exploded' },
+    ];
+    globalThis.fetch = vi.fn();
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: false,
+        errorCode: 'UPSTREAM_LLM',
+        runId: 'b'.repeat(32),
+      }),
+    );
+  });
+
+  it('reports ok:false / DOWNLOAD_FAILED when generation succeeds but the download fails', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response('boom', { status: 500 }),
+    );
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: false,
+        errorCode: 'DOWNLOAD_FAILED',
+        runId: 'a'.repeat(32),
+        fileName: 'besser_smart_output.zip',
+      }),
+    );
+  });
+
+  it('reports ok:false / CANCELLED exactly once on user abort mid-run', async () => {
+    setSessionKey();
+    // Hanging stream so the run is still active when we abort.
+    let releaseStream: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
+    startSmartGenRunMock.mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {},
+      events: (async function* () {
+        yield {
+          event: 'start',
+          runId: 'c'.repeat(32),
+          provider: 'anthropic',
+          llmModel: 'claude-sonnet-4-6',
+          maxCost: 1.0,
+          maxRuntime: 600,
+        } as SmartGenEvent;
+        await gate;
+      })() as AsyncGenerator<SmartGenEvent, void, void>,
+    }));
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      apiRef.current!.abortActive();
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: false,
+        errorCode: 'CANCELLED',
+        runId: 'c'.repeat(32),
+      }),
+    );
+
+    releaseStream();
+    await act(async () => {
+      await run;
+    });
+    // The AbortError / loop-exit path must not double-report.
+    expect(onRunFinished).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useSmartGenTrigger — run budget from sessionStorage', () => {
+  it('passes the saved maxCostUsd / maxRuntimeSeconds to the SSE client', async () => {
+    setSessionKey();
+    window.sessionStorage.setItem(sessionStorageSmartGenMaxCostUsd, '1.5');
+    window.sessionStorage.setItem(sessionStorageSmartGenMaxRuntimeSeconds, '300');
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
+    expect(startSmartGenRunMock).toHaveBeenCalled();
+    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    expect(callArgs.maxCostUsd).toBe(1.5);
+    expect(callArgs.maxRuntimeSeconds).toBe(300);
+  });
+
+  it('omits the budget params when nothing is saved', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
+    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    expect(callArgs.maxCostUsd).toBeUndefined();
+    expect(callArgs.maxRuntimeSeconds).toBeUndefined();
+  });
+});
+
+describe('useSmartGenTrigger — live cost meter state', () => {
+  it('mirrors start budgets and cost events onto the smart-gen card state', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.some((m) => m.smartGen)).toBe(true);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    const card = msgs.find((m) => m.smartGen);
+    expect(card.smartGen.maxCost).toBe(1.0);
+    expect(card.smartGen.maxRuntime).toBe(600);
+    expect(card.smartGen.costUsd).toBeCloseTo(0.05);
+    expect(card.smartGen.elapsedSeconds).toBeCloseTo(12.3);
+  });
+});
 
 describe('useSmartGenTrigger — abort', () => {
   it('abortActive after a completed run is a safe no-op', async () => {

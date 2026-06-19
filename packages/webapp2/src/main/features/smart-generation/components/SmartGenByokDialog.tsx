@@ -25,7 +25,18 @@ import {
 
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { RootState } from '../../../app/store/store';
-import { clearSessionKey, readSessionKey, writeSessionKey } from '../storage';
+import {
+  clearSessionKey,
+  readSessionBudget,
+  readSessionKey,
+  writeSessionBudget,
+  writeSessionKey,
+} from '../storage';
+import {
+  FALLBACK_SMART_GEN_CONFIG,
+  getSmartGenConfig,
+  type SmartGenConfig,
+} from '../services/smartGenConfig';
 import {
   clearPendingTrigger,
   closeByokDialog,
@@ -150,6 +161,22 @@ function _providerLabel(provider: SmartGenProvider | null): string {
   return found ? found.label : 'the other provider';
 }
 
+/** Render a number for an `<input type="number">` without float noise. */
+function _formatBudgetNumber(value: number): string {
+  return String(Math.round(value * 100) / 100);
+}
+
+/** Clamp `value` into `[min, max]`; fall back to `fallback` when unusable. */
+function _clampBudget(
+  value: number,
+  min: number,
+  max: number,
+  fallback: number,
+): number {
+  const v = Number.isFinite(value) && value > 0 ? value : fallback;
+  return Math.min(Math.max(v, min), max);
+}
+
 export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySaved }) => {
   const dispatch = useAppDispatch();
   const open = useAppSelector((s: RootState) => s.smartGenerator.byokDialogOpen);
@@ -178,6 +205,15 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
   ));
   const [customModel, setCustomModel] = useState<string>('');
 
+  // Backend run-budget configuration (caps + defaults). Fetched once per
+  // page load (module-level cache in smartGenConfig); the fallback keeps
+  // the inputs usable while the request is in flight or failing.
+  const [config, setConfig] = useState<SmartGenConfig>(FALLBACK_SMART_GEN_CONFIG);
+  // Budget inputs as raw strings (so the user can clear/retype freely);
+  // parsed + clamped on save. Runtime is edited in MINUTES, stored in seconds.
+  const [maxCostInput, setMaxCostInput] = useState<string>('');
+  const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>('');
+
   useEffect(() => {
     if (open) {
       setApiKey('');
@@ -196,6 +232,26 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
       setCustomModel(classified.custom);
     }
   }, [open, storedProvider, pendingTrigger]);
+
+  // Prefill the budget inputs whenever the dialog opens: previously saved
+  // values win, otherwise the backend's defaults from /smart-gen/config.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void getSmartGenConfig().then((cfg) => {
+      if (cancelled) return;
+      setConfig(cfg);
+      const saved = readSessionBudget();
+      const costUsd = saved?.maxCostUsd ?? cfg.caps.default_max_cost_usd;
+      const runtimeSeconds =
+        saved?.maxRuntimeSeconds ?? cfg.caps.default_max_runtime_seconds;
+      setMaxCostInput(_formatBudgetNumber(costUsd));
+      setMaxRuntimeMinInput(_formatBudgetNumber(runtimeSeconds / 60));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   // When the provider changes (either by auto-detect or manual pick),
   // reset the model choice to that provider's default. This prevents a
@@ -315,6 +371,28 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
       );
       return;
     }
+    // Persist the run budget alongside the key. Clamped to the backend's
+    // hard caps — the server enforces them anyway, but clamping here
+    // means the user never sees a request silently downgraded.
+    const caps = config.caps;
+    const clampedCostUsd = _clampBudget(
+      Number.parseFloat(maxCostInput),
+      0.01,
+      caps.max_cost_usd_hard_cap,
+      caps.default_max_cost_usd,
+    );
+    const clampedRuntimeSeconds = Math.round(
+      _clampBudget(
+        Number.parseFloat(maxRuntimeMinInput) * 60,
+        30,
+        caps.max_runtime_seconds_hard_cap,
+        caps.default_max_runtime_seconds,
+      ),
+    );
+    writeSessionBudget({
+      maxCostUsd: clampedCostUsd,
+      maxRuntimeSeconds: clampedRuntimeSeconds,
+    });
     setSaveError(null);
     dispatch(setProvider(provider));
     dispatch(setApiKeyPresent(true));
@@ -448,6 +526,46 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
             </p>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="smart-gen-max-cost">Max cost (USD)</Label>
+              <Input
+                id="smart-gen-max-cost"
+                type="number"
+                inputMode="decimal"
+                min={0.01}
+                step={0.1}
+                max={config.caps.max_cost_usd_hard_cap}
+                value={maxCostInput}
+                onChange={(e) => {
+                  setMaxCostInput(e.target.value);
+                  setSaveError(null);
+                }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="smart-gen-max-runtime">Max runtime (min)</Label>
+              <Input
+                id="smart-gen-max-runtime"
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                max={Math.ceil(config.caps.max_runtime_seconds_hard_cap / 60)}
+                value={maxRuntimeMinInput}
+                onChange={(e) => {
+                  setMaxRuntimeMinInput(e.target.value);
+                  setSaveError(null);
+                }}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            The run stops automatically when either budget is reached
+            (server caps: ${_formatBudgetNumber(config.caps.max_cost_usd_hard_cap)} /{' '}
+            {_formatBudgetNumber(config.caps.max_runtime_seconds_hard_cap / 60)} min).
+          </p>
+
           {apiKeyPresent && (
             <button
               type="button"
@@ -468,7 +586,9 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
             disabled={!canSave}
             className="bg-brand text-brand-foreground hover:bg-brand-dark"
           >
-            Save & Start
+            {/* Saving only STARTS a run when a trigger is pending — when
+                opened from Settings (openByokDialog(null)) it just saves. */}
+            {pendingTrigger ? 'Save & Start' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>

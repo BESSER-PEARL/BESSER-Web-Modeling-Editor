@@ -13,8 +13,8 @@
 import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { smartGeneratorReducer, openByokDialog, setApiKeyPresent } from '../../state/smartGeneratorSlice';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
@@ -22,8 +22,21 @@ import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { SmartGenByokDialog } from '../SmartGenByokDialog';
 import {
   sessionStorageSmartGenApiKey,
+  sessionStorageSmartGenMaxCostUsd,
+  sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
 } from '../../../../shared/constants/constant';
+
+// Mock the config service so dialog tests never hit the network. The
+// fallback object mirrors the backend literals (caps 2.0 USD / 900 s,
+// defaults 1.0 USD / 600 s).
+vi.mock('../../services/smartGenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../services/smartGenConfig')>();
+  return {
+    ...mod,
+    getSmartGenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
+  };
+});
 
 function makeStore(preopen = true) {
   const store = configureStore({
@@ -55,9 +68,15 @@ function renderDialog(preopen = true) {
   return { store, ...result };
 }
 
-beforeEach(() => {
+function clearSmartGenSessionStorage() {
   window.sessionStorage.removeItem(sessionStorageSmartGenApiKey);
   window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
+  window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
+  window.sessionStorage.removeItem(sessionStorageSmartGenMaxRuntimeSeconds);
+}
+
+beforeEach(() => {
+  clearSmartGenSessionStorage();
 });
 
 afterEach(() => {
@@ -65,8 +84,7 @@ afterEach(() => {
   // clean up the DOM. Without this, `getByLabelText` sees stale
   // elements from prior tests and fails with "multiple elements found".
   cleanup();
-  window.sessionStorage.removeItem(sessionStorageSmartGenApiKey);
-  window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
+  clearSmartGenSessionStorage();
 });
 
 describe('SmartGenByokDialog — visibility', () => {
@@ -243,14 +261,122 @@ describe('SmartGenByokDialog — model selector', () => {
 
     const refreshed = (document.getElementById('smart-gen-model') as HTMLSelectElement);
     // The dropdown should now show OpenAI presets. The default is
-    // whatever ``MODEL_PRESETS.openai[0]`` is — currently gpt-5.4.
+    // whatever ``MODEL_PRESETS.openai[0]`` is — currently gpt-5.5.
     // Just assert it's one of the known OpenAI presets, not a specific
     // model name, so bumping the default doesn't break this test.
-    const validOpenaiPresets = ['gpt-5.4', 'gpt-5', 'o1', 'o1-mini', 'gpt-4o', 'gpt-4o-mini'];
+    const validOpenaiPresets = ['gpt-5.5', 'gpt-5.4', 'gpt-5', 'o1', 'o1-mini', 'gpt-4o', 'gpt-4o-mini'];
     expect(validOpenaiPresets).toContain(refreshed.value);
     // And it must NOT still be the Anthropic model that was selected
     // before the provider swap.
     expect(refreshed.value).not.toBe('claude-opus-4-6');
+  });
+});
+
+describe('SmartGenByokDialog — budget controls', () => {
+  it('prefills the budget inputs from the config defaults', async () => {
+    renderDialog(true);
+    const costInput = document.getElementById('smart-gen-max-cost') as HTMLInputElement;
+    const runtimeInput = document.getElementById('smart-gen-max-runtime') as HTMLInputElement;
+    expect(costInput).toBeTruthy();
+    expect(runtimeInput).toBeTruthy();
+    // Defaults from the (mocked) config: 1.0 USD / 600 s → 10 min.
+    await waitFor(() => {
+      expect(costInput.value).toBe('1');
+      expect(runtimeInput.value).toBe('10');
+    });
+  });
+
+  it('prefers previously saved budget values over the config defaults', async () => {
+    window.sessionStorage.setItem(sessionStorageSmartGenMaxCostUsd, '1.5');
+    window.sessionStorage.setItem(sessionStorageSmartGenMaxRuntimeSeconds, '300');
+    renderDialog(true);
+    const costInput = document.getElementById('smart-gen-max-cost') as HTMLInputElement;
+    const runtimeInput = document.getElementById('smart-gen-max-runtime') as HTMLInputElement;
+    await waitFor(() => {
+      expect(costInput.value).toBe('1.5');
+      expect(runtimeInput.value).toBe('5');
+    });
+  });
+
+  it('persists the budget on save (runtime converted minutes → seconds)', async () => {
+    renderDialog(true);
+    await waitFor(() => {
+      expect((document.getElementById('smart-gen-max-cost') as HTMLInputElement).value).toBe('1');
+    });
+
+    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-budget-test' },
+    });
+    fireEvent.change(document.getElementById('smart-gen-max-cost') as HTMLInputElement, {
+      target: { value: '1.25' },
+    });
+    fireEvent.change(document.getElementById('smart-gen-max-runtime') as HTMLInputElement, {
+      target: { value: '5' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd)).toBe('1.25');
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds)).toBe('300');
+  });
+
+  it('clamps the budget to the config hard caps on save', async () => {
+    renderDialog(true);
+    await waitFor(() => {
+      expect((document.getElementById('smart-gen-max-cost') as HTMLInputElement).value).toBe('1');
+    });
+
+    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-budget-test' },
+    });
+    // Way over the hard caps (2.0 USD / 900 s = 15 min).
+    fireEvent.change(document.getElementById('smart-gen-max-cost') as HTMLInputElement, {
+      target: { value: '99' },
+    });
+    fireEvent.change(document.getElementById('smart-gen-max-runtime') as HTMLInputElement, {
+      target: { value: '120' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd)).toBe('2');
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds)).toBe('900');
+  });
+
+  it('falls back to the defaults when the inputs are emptied', async () => {
+    renderDialog(true);
+    await waitFor(() => {
+      expect((document.getElementById('smart-gen-max-cost') as HTMLInputElement).value).toBe('1');
+    });
+
+    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-budget-test' },
+    });
+    fireEvent.change(document.getElementById('smart-gen-max-cost') as HTMLInputElement, {
+      target: { value: '' },
+    });
+    fireEvent.change(document.getElementById('smart-gen-max-runtime') as HTMLInputElement, {
+      target: { value: '' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd)).toBe('1');
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds)).toBe('600');
+  });
+});
+
+describe('SmartGenByokDialog — footer label', () => {
+  it('shows "Save & Start" when a trigger is pending', () => {
+    renderDialog(true); // preopen stashes a pendingTrigger
+    expect(screen.getByRole('button', { name: /save & start/i })).toBeTruthy();
+  });
+
+  it('shows plain "Save" when opened without a pending trigger (Settings flow)', () => {
+    const { store } = renderDialog(false);
+    act(() => {
+      store.dispatch(openByokDialog(null));
+    });
+    const saveBtn = screen.getByRole('button', { name: /^save$/i });
+    expect(saveBtn).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /save & start/i })).toBeNull();
   });
 });
 

@@ -83,6 +83,9 @@ export interface CostEvent {
 
 export interface DoneEvent {
   event: 'done';
+  /** Run id carried explicitly by newer backends; older backends only
+   * encode it inside `downloadUrl` (see the regex fallback). */
+  runId?: string;
   downloadUrl: string;
   fileName: string;
   isZip: boolean;

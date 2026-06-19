@@ -15,6 +15,8 @@
 import {
   sessionStorageSmartGenApiKey,
   sessionStorageSmartGenLlmModel,
+  sessionStorageSmartGenMaxCostUsd,
+  sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
 } from '../../shared/constants/constant';
 import type { SmartGenProvider } from './types';
@@ -94,4 +96,73 @@ export function clearSessionKey(): void {
 /** Quick "do we have a key at all?" check that avoids exposing the value. */
 export function hasSessionKey(): boolean {
   return readSessionKey() !== null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Run budget (max cost / max runtime)                                 */
+/* ------------------------------------------------------------------ */
+
+export interface SessionBudget {
+  /** Per-run cost budget in USD. */
+  maxCostUsd?: number;
+  /** Per-run runtime budget in whole seconds. */
+  maxRuntimeSeconds?: number;
+}
+
+/**
+ * Read the user's saved run budget, or `null` when none is stored /
+ * the stored values are unusable. The budget is NOT a secret — it
+ * still lives in sessionStorage so it travels with the key/model it
+ * applies to and resets on tab close, matching the BYOK lifecycle.
+ *
+ * Intentionally NOT cleared by `clearSessionKey` (an INVALID_KEY error
+ * wipes the key, but the user's budget preference should survive the
+ * re-entry of a corrected key).
+ */
+export function readSessionBudget(): SessionBudget | null {
+  if (!_hasSessionStorage()) return null;
+  try {
+    const rawCost = window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd);
+    const rawRuntime = window.sessionStorage.getItem(
+      sessionStorageSmartGenMaxRuntimeSeconds,
+    );
+    const budget: SessionBudget = {};
+    if (rawCost !== null) {
+      const cost = Number.parseFloat(rawCost);
+      if (Number.isFinite(cost) && cost > 0) budget.maxCostUsd = cost;
+    }
+    if (rawRuntime !== null) {
+      const runtime = Number.parseFloat(rawRuntime);
+      if (Number.isFinite(runtime) && runtime > 0) {
+        budget.maxRuntimeSeconds = Math.round(runtime);
+      }
+    }
+    if (budget.maxCostUsd === undefined && budget.maxRuntimeSeconds === undefined) {
+      return null;
+    }
+    return budget;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the user's run budget. Returns true on success. */
+export function writeSessionBudget(budget: {
+  maxCostUsd: number;
+  maxRuntimeSeconds: number;
+}): boolean {
+  if (!_hasSessionStorage()) return false;
+  try {
+    window.sessionStorage.setItem(
+      sessionStorageSmartGenMaxCostUsd,
+      String(budget.maxCostUsd),
+    );
+    window.sessionStorage.setItem(
+      sessionStorageSmartGenMaxRuntimeSeconds,
+      String(Math.round(budget.maxRuntimeSeconds)),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
