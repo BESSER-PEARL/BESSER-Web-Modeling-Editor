@@ -155,6 +155,13 @@ const enhance = compose<ComponentClass<OwnProps>>(
   ),
 );
 
+function boundsOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
 class CreatePaneComponent extends Component<Props, State> {
   state = getInitialState(this.props);
 
@@ -297,7 +304,79 @@ class CreatePaneComponent extends Component<Props, State> {
       return;
     }
     const elements = clone(preview, this.state.previews);
-    this.props.create(elements, owner);
+    const dropped = elements[0];
+
+    // BPMNPool must live at root level; a pool's Droppable would otherwise capture
+    // the event and set owner to the existing pool's id, nesting the new pool inside it.
+    const effectiveOwner = preview.type === BPMNElementType.BPMNPool ? undefined : owner;
+
+    // Elements are stored in parent-local coordinates. The drop position from
+    // DraggableLayer is canvas-absolute, so we subtract the accumulated owner chain
+    // offsets to get a localBounds comparable to sibling.bounds in the same space.
+    const localBounds = { ...dropped.bounds };
+    if (effectiveOwner) {
+      let curId: string | null = effectiveOwner;
+      let depth = 0;
+      while (curId && this.props.elements[curId] && depth < 20) {
+        const el = this.props.elements[curId];
+        localBounds.x -= el.bounds.x;
+        localBounds.y -= el.bounds.y;
+        curId = el.owner;
+        depth++;
+      }
+    }
+
+    const GAP = 20;
+    const MAX_ITERS = 50;
+    const siblings = Object.values(this.props.elements).filter(
+      (el) => (el.owner ?? null) === (effectiveOwner ?? null) && el.bounds.width > 0 && el.bounds.height > 0,
+    );
+    let iter = 0;
+    while (iter < MAX_ITERS && siblings.some((sib) => boundsOverlap(localBounds, sib.bounds))) {
+      localBounds.x += GAP;
+      dropped.bounds.x += GAP;
+      iter++;
+    }
+
+    // If the nudged position overflows the BPMN container, widen it to fit rather
+    // than letting the element escape the pool/lane boundary.
+    if (effectiveOwner) {
+      const ownerEl = this.props.elements[effectiveOwner];
+      if (ownerEl) {
+        const PADDING = 10;
+        const rightEdge = localBounds.x + dropped.bounds.width + PADDING;
+
+        if (rightEdge > ownerEl.bounds.width) {
+          const newOwnerWidth = rightEdge;
+
+          if (ownerEl.type === BPMNElementType.BPMNSwimlane) {
+            this.props.update(effectiveOwner, { bounds: { ...ownerEl.bounds, width: newOwnerWidth } });
+            if (ownerEl.owner) {
+              const poolEl = this.props.elements[ownerEl.owner];
+              if (poolEl && poolEl.type === BPMNElementType.BPMNPool) {
+                this.props.update(ownerEl.owner, {
+                  bounds: { ...poolEl.bounds, width: newOwnerWidth + BPMNPool.HEADER_WIDTH },
+                });
+                const ownedIds =
+                  'ownedElements' in poolEl ? (poolEl as { ownedElements: string[] }).ownedElements : [];
+                for (const sibId of ownedIds) {
+                  if (sibId !== effectiveOwner) {
+                    const sibEl = this.props.elements[sibId];
+                    if (sibEl && sibEl.type === BPMNElementType.BPMNSwimlane) {
+                      this.props.update(sibId, { bounds: { ...sibEl.bounds, width: newOwnerWidth } });
+                    }
+                  }
+                }
+              }
+            }
+          } else if (ownerEl.type === BPMNElementType.BPMNPool) {
+            this.props.update(effectiveOwner, { bounds: { ...ownerEl.bounds, width: newOwnerWidth } });
+          }
+        }
+      }
+    }
+
+    this.props.create(elements, effectiveOwner);
   };
 }
 
