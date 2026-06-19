@@ -23,20 +23,26 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   'Llm': <Wand2 className="size-3" />,
 };
 
-function getIcon(label: string): React.ReactNode {
-  const lower = label.toLowerCase();
+function getIcon(label?: string): React.ReactNode {
+  const lower = (label ?? '').toLowerCase();
   for (const [key, icon] of Object.entries(ACTION_ICONS)) {
-    if (lower.includes(key)) return icon;
+    if (lower.includes(key.toLowerCase())) return icon;
   }
   return <Zap className="size-3" />;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction }) => {
-  if (!actions || actions.length === 0) return null;
+  // Defensive: a single malformed action (missing label/prompt) must never
+  // crash the whole assistant. Drop anything without the required strings.
+  const validActions = (actions ?? []).filter(
+    (a): a is QuickAction =>
+      !!a && typeof a.label === 'string' && typeof a.prompt === 'string',
+  );
+  if (validActions.length === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-1.5 mt-2">
-      {actions.map((action, i) => (
+      {validActions.map((action, i) => (
         <button
           key={i}
           type="button"
