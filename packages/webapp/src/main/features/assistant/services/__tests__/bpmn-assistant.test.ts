@@ -34,10 +34,10 @@ describe('BPMNDiagramConverter', () => {
     it('creates elements for each node with correct Apollon types', () => {
       const result = converter.convertCompleteSystem({
         nodes: [
-          { id: 'n0', type: 'startEvent',        name: 'Start' },
-          { id: 'n1', type: 'task',              name: 'Do Work', taskType: 'user' },
-          { id: 'n2', type: 'gateway',           name: 'Decision', gatewayType: 'exclusive' },
-          { id: 'n3', type: 'endEvent',          name: 'End' },
+          { id: 'n0', type: 'startEvent', name: 'Start' },
+          { id: 'n1', type: 'task', name: 'Do Work', taskType: 'user' },
+          { id: 'n2', type: 'gateway', name: 'Decision', gatewayType: 'exclusive' },
+          { id: 'n3', type: 'endEvent', name: 'End' },
         ],
         flows: [
           { source: 'n0', target: 'n1' },
@@ -57,13 +57,13 @@ describe('BPMNDiagramConverter', () => {
       const result = converter.convertCompleteSystem({
         nodes: [
           { id: 't1', type: 'task', name: 'ValidTask', taskType: 'service' },
-          { id: 't2', type: 'task', name: 'BadTask',   taskType: 'invalid' },
+          { id: 't2', type: 'task', name: 'BadTask', taskType: 'invalid' },
         ],
         flows: [],
       });
       const tasks = elementsByType(result, 'BPMNTask') as any[];
       const valid = tasks.find((t) => t.name === 'ValidTask');
-      const bad   = tasks.find((t) => t.name === 'BadTask');
+      const bad = tasks.find((t) => t.name === 'BadTask');
       expect(valid?.taskType).toBe('service');
       expect(bad?.taskType).toBe('default');
     });
@@ -124,18 +124,28 @@ describe('BPMNDiagramModifier', () => {
   function modelWithNodes(): BESSERModel {
     const m = makeEmptyBPMNModel();
     m.elements['task1'] = {
-      id: 'task1', type: 'BPMNTask', name: 'Review',
-      owner: null, bounds: { x: 0, y: 0, width: 140, height: 60 },
-      taskType: 'default', marker: 'none',
+      id: 'task1',
+      type: 'BPMNTask',
+      name: 'Review',
+      owner: null,
+      bounds: { x: 0, y: 0, width: 140, height: 60 },
+      taskType: 'default',
+      marker: 'none',
     };
     m.elements['gw1'] = {
-      id: 'gw1', type: 'BPMNGateway', name: 'Branch',
-      owner: null, bounds: { x: 200, y: 0, width: 40, height: 40 },
+      id: 'gw1',
+      type: 'BPMNGateway',
+      name: 'Branch',
+      owner: null,
+      bounds: { x: 200, y: 0, width: 40, height: 40 },
       gatewayType: 'exclusive',
     };
     m.elements['evt1'] = {
-      id: 'evt1', type: 'BPMNStartEvent', name: 'Start',
-      owner: null, bounds: { x: -100, y: 0, width: 40, height: 40 },
+      id: 'evt1',
+      type: 'BPMNStartEvent',
+      name: 'Start',
+      owner: null,
+      bounds: { x: -100, y: 0, width: 40, height: 40 },
       eventType: 'default',
     };
     return m;
@@ -251,9 +261,13 @@ describe('BPMNDiagramModifier', () => {
       const model = modelWithNodes();
       // Add a task whose display name happens to be 'gw1' (same as the gateway's id).
       model.elements['other'] = {
-        id: 'other', type: 'BPMNTask', name: 'gw1',
-        owner: null, bounds: { x: 400, y: 0, width: 140, height: 60 },
-        taskType: 'default', marker: 'none',
+        id: 'other',
+        type: 'BPMNTask',
+        name: 'gw1',
+        owner: null,
+        bounds: { x: 400, y: 0, width: 140, height: 60 },
+        taskType: 'default',
+        marker: 'none',
       };
       const mod: ModelModification = {
         action: 'add_flow',

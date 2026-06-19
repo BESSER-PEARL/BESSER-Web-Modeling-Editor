@@ -37,7 +37,7 @@ export interface ModificationChanges {
   name?: string;
   type?: string;
   visibility?: 'public' | 'private' | 'protected';
-  parameters?: Array<{ name: string; type: string; }>;
+  parameters?: Array<{ name: string; type: string }>;
   returnType?: string;
   relationshipType?: string;
   sourceClass?: string;
@@ -57,7 +57,12 @@ export interface ModificationChanges {
   className?: string;
   classId?: string;
   attributes?: Array<{ name: string; type?: string; visibility?: string; value?: string; attributeId?: string }>;
-  methods?: Array<{ name: string; returnType?: string; visibility?: string; parameters?: Array<{ name: string; type: string }> }>;
+  methods?: Array<{
+    name: string;
+    returnType?: string;
+    visibility?: string;
+    parameters?: Array<{ name: string; type: string }>;
+  }>;
   // add_state fields
   stateType?: string;
   entryAction?: string;
@@ -128,7 +133,11 @@ export interface ModelModification {
   newClass?: string;
   attributes?: string[];
   relationshipType?: string;
-  newClasses?: Array<{ name: string; attributes: Array<{ name: string; type: string; visibility?: string }>; methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }> }>;
+  newClasses?: Array<{
+    name: string;
+    attributes: Array<{ name: string; type: string; visibility?: string }>;
+    methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }>;
+  }>;
   inheritFrom?: string;
   classes?: string[];
   targetName?: string;
@@ -218,7 +227,7 @@ export class ModifierHelpers {
     if (!element) return model;
 
     // Remove child elements (attributes, methods, bodies, etc.)
-    ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach(childProp => {
+    ['attributes', 'methods', 'bodies', 'fallbackBodies'].forEach((childProp) => {
       const children = element[childProp];
       if (Array.isArray(children)) {
         children.forEach((childId: string) => {
@@ -232,7 +241,7 @@ export class ModifierHelpers {
 
     // Remove related relationships
     if (model.relationships) {
-      Object.keys(model.relationships).forEach(relId => {
+      Object.keys(model.relationships).forEach((relId) => {
         const rel = model.relationships[relId];
         if (rel.source?.element === elementId || rel.target?.element === elementId) {
           delete model.relationships[relId];

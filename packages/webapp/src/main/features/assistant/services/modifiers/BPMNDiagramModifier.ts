@@ -156,8 +156,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const kind = String(m.changes.eventKind || '').toLowerCase();
     const type =
       kind === 'start' ? 'BPMNStartEvent' : kind === 'intermediate' ? 'BPMNIntermediateEvent' : 'BPMNEndEvent';
-    const eventType =
-      typeof m.changes.eventType === 'string' && m.changes.eventType ? m.changes.eventType : 'default';
+    const eventType = typeof m.changes.eventType === 'string' && m.changes.eventType ? m.changes.eventType : 'default';
     model.elements[id] = {
       id,
       type,

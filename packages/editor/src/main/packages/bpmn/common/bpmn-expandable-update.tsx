@@ -85,11 +85,7 @@ class BPMNExpandableUpdateComponent extends Component<Props, State> {
         </section>
         <section>
           <Divider />
-          <Button
-            block
-            color={element.isExpanded ? 'secondary' : 'primary'}
-            onClick={this.toggleExpanded(element.id)}
-          >
+          <Button block color={element.isExpanded ? 'secondary' : 'primary'} onClick={this.toggleExpanded(element.id)}>
             {element.isExpanded ? `Collapse ${expandLabel}` : `Expand ${expandLabel}`}
           </Button>
         </section>
