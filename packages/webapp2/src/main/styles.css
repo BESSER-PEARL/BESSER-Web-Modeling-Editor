@@ -274,6 +274,24 @@ select {
   animation-delay: var(--float-delay, 0s);
 }
 
+/* ---- Respect reduced-motion ----
+   The drawer's gradient orbs and the input glow loop forever, and the
+   welcome content animates in. Users who ask for less motion get none of
+   it: the looping animations stop and the entrance renders at rest.
+   ``fade-up`` uses fill-mode "both" (its 0% keyframe is opacity:0), so we
+   drop the animation entirely rather than freeze it — otherwise the
+   content would be stuck invisible. */
+@media (prefers-reduced-motion: reduce) {
+  .drawer-orb-1,
+  .drawer-orb-2,
+  .drawer-orb-3,
+  .input-card-glow::before,
+  .floating-card,
+  .animate-fade-up {
+    animation: none !important;
+  }
+}
+
 /* ---- Capability card subtle hover ---- */
 .capability-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
