@@ -289,7 +289,7 @@ export function useModelInjection({
               const converter = ConverterFactory.getConverter(targetDiagramType as any);
               newModel = converter.convertCompleteSystem(command.systemSpec);
             } else if (command.systemSpec) {
-              throw new Error('inject_complete_system payload is missing a valid classes/states/objects/intents array');
+              throw new Error('inject_complete_system payload is missing a valid classes/states/objects/intents/nodes array');
             }
             break;
 

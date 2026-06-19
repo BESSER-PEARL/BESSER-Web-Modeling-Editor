@@ -68,6 +68,7 @@ export interface ModificationChanges {
   taskType?: string;
   gatewayType?: string;
   eventKind?: string;
+  eventType?: string;
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];

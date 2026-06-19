@@ -12,8 +12,26 @@ import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 
 const BPMN_NODE_TYPES = ['BPMNTask', 'BPMNStartEvent', 'BPMNEndEvent', 'BPMNIntermediateEvent', 'BPMNGateway'];
+const EVENT_ELEMENT_TYPES = new Set(['BPMNStartEvent', 'BPMNEndEvent', 'BPMNIntermediateEvent']);
 const TASK_TYPES = new Set(['default', 'user', 'service', 'send', 'receive', 'manual', 'business-rule', 'script']);
 const GATEWAY_TYPES = new Set(['exclusive', 'parallel', 'inclusive', 'event-based', 'complex']);
+
+type BPMNNodeRecord = {
+  id: string;
+  type: string;
+  name: string;
+  owner: null;
+  bounds: { x: number; y: number; width: number; height: number };
+  taskType?: string;
+  gatewayType?: string;
+  eventType?: string;
+  marker?: string;
+};
+
+type BPMNFlowRecord = {
+  source: { element: string };
+  target: { element: string };
+};
 
 export class BPMNDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -61,9 +79,9 @@ export class BPMNDiagramModifier implements DiagramModifier {
     let maxRight = 0;
     let sumY = 0;
     let count = 0;
-    for (const el of Object.values(model.elements)) {
-      if (!BPMN_NODE_TYPES.includes((el as any).type)) continue;
-      const b = (el as any).bounds || {};
+    for (const el of Object.values(model.elements) as BPMNNodeRecord[]) {
+      if (!BPMN_NODE_TYPES.includes(el.type)) continue;
+      const b = el.bounds || ({} as BPMNNodeRecord['bounds']);
       maxRight = Math.max(maxRight, (b.x || 0) + (b.width || 0));
       sumY += b.y || 0;
       count += 1;
@@ -84,7 +102,8 @@ export class BPMNDiagramModifier implements DiagramModifier {
   private resolveNode(model: BESSERModel, ref?: string): string | null {
     if (!ref) return null;
     // Direct id hit (the agent now emits stable ids).
-    if (model.elements[ref] && BPMN_NODE_TYPES.includes((model.elements[ref] as any).type)) {
+    const candidate = model.elements[ref] as BPMNNodeRecord | undefined;
+    if (candidate && BPMN_NODE_TYPES.includes(candidate.type)) {
       return ref;
     }
     // Fallback: match by display name (user phrasing).
@@ -128,13 +147,15 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const kind = String(m.changes.eventKind || '').toLowerCase();
     const type =
       kind === 'start' ? 'BPMNStartEvent' : kind === 'intermediate' ? 'BPMNIntermediateEvent' : 'BPMNEndEvent';
+    const eventType =
+      typeof m.changes.eventType === 'string' && m.changes.eventType ? m.changes.eventType : 'default';
     model.elements[id] = {
       id,
       type,
       name: m.target.nodeName || m.changes.name || '',
       owner: null,
       bounds: { x, y, width: 40, height: 40 },
-      eventType: 'default',
+      eventType,
     };
     return model;
   }
@@ -168,13 +189,16 @@ export class BPMNDiagramModifier implements DiagramModifier {
   private modifyNode(model: BESSERModel, m: ModelModification): BESSERModel {
     const id = this.resolveNode(model, m.target.nodeId) ?? this.resolveNode(model, m.target.nodeName);
     if (id && model.elements[id]) {
-      const el = model.elements[id] as any;
+      const el = model.elements[id] as BPMNNodeRecord;
       if (m.changes.name) el.name = m.changes.name;
       if (m.changes.taskType && el.type === 'BPMNTask' && TASK_TYPES.has(m.changes.taskType)) {
         el.taskType = m.changes.taskType;
       }
       if (m.changes.gatewayType && el.type === 'BPMNGateway' && GATEWAY_TYPES.has(m.changes.gatewayType)) {
         el.gatewayType = m.changes.gatewayType;
+      }
+      if (m.changes.eventType && EVENT_ELEMENT_TYPES.has(el.type)) {
+        el.eventType = m.changes.eventType;
       }
     }
     return model;
@@ -186,12 +210,11 @@ export class BPMNDiagramModifier implements DiagramModifier {
       delete model.relationships[flowId];
       return model;
     }
-    // Fall back to matching by endpoint node names or ids.
     const src = this.resolveNode(model, m.changes.source);
     const tgt = this.resolveNode(model, m.changes.target);
     if (src && tgt && model.relationships) {
-      for (const [rid, rel] of Object.entries(model.relationships)) {
-        if ((rel as any).source?.element === src && (rel as any).target?.element === tgt) {
+      for (const [rid, rel] of Object.entries(model.relationships) as [string, BPMNFlowRecord][]) {
+        if (rel.source?.element === src && rel.target?.element === tgt) {
           delete model.relationships[rid];
           break;
         }
