@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings, Flag } from 'lucide-react';
+import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings, Flag } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -17,6 +17,7 @@ import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
 import { QuickActions } from './QuickActions';
+import { ProgressSteps } from './ProgressSteps';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { openByokDialog } from '../../smart-generation/state/smartGeneratorSlice';
 
@@ -161,7 +162,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     connectionStatus,
     rateLimitStatus,
     messageMeta,
-    progressMessage,
+    progressSteps,
     lastSentMessage,
     messageListContainerRef,
     showScrollToBottom,
@@ -350,12 +351,16 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   /* ---- Render helpers ---- */
 
+  // Composer for both the welcome screen and the chat view. Mirrors the
+  // widget's MessageInput wiring exactly so voice recording + transcription
+  // behaves identically here (mic button is gated on `onVoiceSend`).
   const renderComposer = (className: string) => (
     <ChatForm className={className} isPending={isGenerating} handleSubmit={handleSubmit}>
       {({ files, setFiles }) => (
         <MessageInput
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
+          placeholder="Describe what you want to create or modify..."
           onVoiceSend={(blob) => sendVoiceMessage(blob)}
           allowAttachments
           files={files}
@@ -643,13 +648,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <div className="mx-auto w-full max-w-4xl">
                     <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
 
-                    {/* Progress indicator */}
-                    {progressMessage && (
-                      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                        <Loader2 className="size-3 animate-spin" />
-                        <span>{progressMessage}</span>
-                      </div>
-                    )}
+                    {/* Progress indicator — evolving step list so long
+                        operations (diagram + codegen) visibly show motion.
+                        Clears automatically when the operation finishes. */}
+                    <ProgressSteps steps={progressSteps} />
 
                     {/* Quick actions after last assistant message */}
                     {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (

@@ -94,6 +94,12 @@ export interface UseAssistantLogicReturn {
   messageMeta: Record<string, MessageMeta>;
   /** Transient progress status from the assistant (e.g. "Generating code..."). */
   progressMessage: string;
+  /**
+   * Recent sequence of progress steps (most-recent last, capped to the last
+   * few). Surfaces render this as an evolving step list so long operations
+   * feel responsive. Clears automatically when the operation finishes.
+   */
+  progressSteps: string[];
   /** The last user-sent message text (for input recall via Up arrow). */
   lastSentMessage: string;
   /** The id of the message currently being streamed, or null when idle. */
@@ -1048,6 +1054,7 @@ export function useAssistantLogic({
     rateLimitStatus,
     messageMeta,
     progressMessage: streaming.progressMessage,
+    progressSteps: streaming.progressSteps,
     lastSentMessage,
     streamingMessageId: streaming.streamingMessageId,
     messageListContainerRef: messageListContainerRef as React.RefObject<HTMLDivElement>,

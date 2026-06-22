@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, Loader2, Settings, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, Settings, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -27,6 +27,7 @@ import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
 import { QuickActions } from './QuickActions';
+import { ProgressSteps } from './ProgressSteps';
 import { Z_INDEX } from '../../../shared/constants/z-index';
 
 /* ------------------------------------------------------------------ */
@@ -110,7 +111,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     connectionStatus,
     rateLimitStatus,
     messageMeta,
-    progressMessage,
+    progressSteps,
     lastSentMessage,
     messageListContainerRef,
     showScrollToBottom,
@@ -301,13 +302,9 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             />
             )}
 
-            {/* Progress indicator */}
-            {progressMessage && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                <Loader2 className="size-3 animate-spin" />
-                <span>{progressMessage}</span>
-              </div>
-            )}
+            {/* Progress indicator — evolving step list so long operations
+                visibly show motion. Clears automatically on completion. */}
+            <ProgressSteps steps={progressSteps} />
 
             {/* Quick actions after last assistant message */}
             {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (

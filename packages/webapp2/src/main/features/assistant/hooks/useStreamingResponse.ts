@@ -14,6 +14,9 @@ import { useEffect, useState } from 'react';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AssistantActionPayload } from '../services';
 
+/** How many recent progress steps to keep visible during a long operation. */
+const MAX_PROGRESS_STEPS = 4;
+
 /* ------------------------------------------------------------------ */
 /*  Debug timing (shared with orchestrator)                            */
 /* ------------------------------------------------------------------ */
@@ -86,6 +89,13 @@ export interface UseStreamingResponseReturn {
   progressMessage: string;
   setProgressMessage: React.Dispatch<React.SetStateAction<string>>;
   /**
+   * The recent sequence of progress steps (most-recent last), capped to the
+   * last few. Surfaces render these as an evolving step list so long
+   * operations visibly show motion instead of a single flickering line.
+   * Clears automatically when `progressMessage` is cleared.
+   */
+  progressSteps: string[];
+  /**
    * Handle streaming-related action payloads (stream_start, stream_chunk,
    * stream_done, progress). Returns `true` if the payload was handled,
    * `false` if it should be processed by the orchestrator.
@@ -108,6 +118,25 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState('');
+  const [progressSteps, setProgressSteps] = useState<string[]>([]);
+
+  /* ---- progress-step accumulation ----
+   * Mirror `progressMessage` into a short, capped list so the user sees the
+   * SEQUENCE of steps ("Thinking… → Generating classes… → Building
+   * attributes…") rather than one line that vanishes the instant the next
+   * arrives. Driven off `progressMessage` so EVERY clear site (stream_done,
+   * onMessage, stopGenerating, clearConversation, the task-queue error path,
+   * and injections) resets the steps for free — no extra wiring needed. */
+  useEffect(() => {
+    if (!progressMessage) {
+      setProgressSteps((prev) => (prev.length === 0 ? prev : []));
+      return;
+    }
+    setProgressSteps((prev) => {
+      if (prev[prev.length - 1] === progressMessage) return prev; // ignore repeats
+      return [...prev, progressMessage].slice(-MAX_PROGRESS_STEPS);
+    });
+  }, [progressMessage]);
 
   /* ---- isGenerating timeout safety net ---- */
 
@@ -224,6 +253,7 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     setStreamingMessageId,
     progressMessage,
     setProgressMessage,
+    progressSteps,
     handleStreamingAction,
     registerTypingHandler,
   };
