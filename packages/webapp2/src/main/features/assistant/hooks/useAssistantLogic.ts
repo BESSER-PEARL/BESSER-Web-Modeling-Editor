@@ -236,6 +236,17 @@ export function useAssistantLogic({
   const operationQueueRef = useRef<Promise<void>>(Promise.resolve());
   const isSendingRef = useRef(false);
 
+  /**
+   * Id of the optimistic "🎤 Transcribing…" user bubble appended the moment a
+   * voice message is sent. It exists so the drawer's welcome→chat split (gated
+   * on `messages.length > 0`) flips to the chat view immediately, exactly like
+   * the text path does. When the agent's transcription echo (an incoming
+   * `isUser` message carrying the spoken text) arrives, we replace this bubble
+   * in place rather than appending a second one — see the onMessage handler.
+   * Null when no voice message is awaiting its transcription echo.
+   */
+  const voicePlaceholderIdRef = useRef<string | null>(null);
+
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
   const { editor } = useContext(ApollonEditorContext);
@@ -641,8 +652,18 @@ export function useAssistantLogic({
       const suggestedRecovery = typeof (payload as any).suggestedRecovery === 'string' ? (payload as any).suggestedRecovery as string : undefined;
       const retryable = (payload as any).retryable === true;
 
+      // If a voice transcription was still pending, the run failed before the
+      // echo arrived — drop the stuck "🎤 Transcribing…" placeholder bubble.
+      const stuckVoicePlaceholderId = voicePlaceholderIdRef.current;
+      voicePlaceholderIdRef.current = null;
+
       const errMsg = toKitMessage('assistant', errorMsg, { isError: true });
-      setMessages((prev) => [...prev, errMsg]);
+      setMessages((prev) => {
+        const cleaned = stuckVoicePlaceholderId
+          ? prev.filter((m) => m.id !== stuckVoicePlaceholderId)
+          : prev;
+        return [...cleaned, errMsg];
+      });
 
       const meta: MessageMeta = { badge: 'error', badgeLabel: errorCode ? `Error: ${errorCode}` : 'Error' };
       if (retryable && suggestedRecovery) {
@@ -726,6 +747,48 @@ export function useAssistantLogic({
       const totalTiming = stopTimer('total');
 
       const role = message.isUser ? 'user' : 'assistant';
+
+      // Voice transcription echo: the backend transcribes the audio (whisper)
+      // and sends it back as an incoming USER message. If we optimistically
+      // added a "🎤 Transcribing…" placeholder in sendVoiceMessage, replace it
+      // in place with the real transcribed text instead of appending a second
+      // user bubble (which would leave a duplicate). This keeps exactly ONE
+      // user bubble for the voice message.
+      if (message.isUser && voicePlaceholderIdRef.current) {
+        const placeholderId = voicePlaceholderIdRef.current;
+        voicePlaceholderIdRef.current = null;
+        const transcribedText = toAssistantText(message.message);
+        setMessages((prev) => {
+          let replaced = false;
+          const next = prev.map((m) => {
+            if (m.id === placeholderId) {
+              replaced = true;
+              return { ...m, content: transcribedText };
+            }
+            return m;
+          });
+          // Defensive: if the placeholder was cleared (e.g. New Chat) before
+          // the echo arrived, fall back to appending so the user still sees
+          // their transcription rather than losing it silently.
+          return replaced ? next : [...next, toKitMessage(role, transcribedText)];
+        });
+        return;
+      }
+
+      // Voice placeholder is still pending but an ASSISTANT error/timeout
+      // arrived (no transcription echo is coming). Drop the stuck
+      // "🎤 Transcribing…" bubble so the user isn't left with a frozen
+      // placeholder — the error message itself explains what happened.
+      if (
+        !message.isUser &&
+        voicePlaceholderIdRef.current &&
+        (message as unknown as { action?: string }).action === 'agent_error'
+      ) {
+        const placeholderId = voicePlaceholderIdRef.current;
+        voicePlaceholderIdRef.current = null;
+        setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+      }
+
       const kitMsg = toKitMessage(role, toAssistantText(message.message));
       setMessages((prev) => [...prev, kitMsg]);
 
@@ -885,6 +948,14 @@ export function useAssistantLogic({
     }
   };
 
+  /** Remove the optimistic voice placeholder bubble (failure/cleanup paths). */
+  const removeVoicePlaceholder = () => {
+    const placeholderId = voicePlaceholderIdRef.current;
+    if (!placeholderId) return;
+    voicePlaceholderIdRef.current = null;
+    setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+  };
+
   const sendVoiceMessage = async (audioBlob: Blob): Promise<void> => {
     if (isSendingRef.current || streaming.isGenerating) return;
 
@@ -899,8 +970,16 @@ export function useAssistantLogic({
 
       const audioBase64 = await readBlobAsBase64(audioBlob);
 
+      // Optimistically append a placeholder user bubble so the drawer's
+      // welcome->chat split (gated on messages.length > 0) flips to the chat
+      // view immediately, matching the text path. The transcription echo
+      // replaces this bubble in place (see onMessage). Cleaned up on the
+      // error path below so a failed send doesn't leave it lingering.
+      const voicePlaceholder = toKitMessage('user', '\ud83c\udfa4 Transcribing\u2026');
+      voicePlaceholderIdRef.current = voicePlaceholder.id;
+      setMessages((prev) => [...prev, voicePlaceholder]);
+
       const context = buildWorkspaceContext();
-      const modelSnapshot = modelingServiceRef.current?.getCurrentModel() || context.activeModel;
       const mimeType = audioBlob.type || 'audio/wav';
       const sendResult = assistantClient.sendVoiceMessage(
         audioBase64,
@@ -912,14 +991,19 @@ export function useAssistantLogic({
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
 
       if (sendResult === 'queued') {
+        // Keep the placeholder: the message will be sent on reconnect and its
+        // transcription echo will replace the bubble in place.
         toast.info('Reconnecting to the assistant \u2014 your voice message will be sent automatically.');
         connection.setConnectionStatus('connecting');
         assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
+        // Send failed outright - no echo is coming, so drop the placeholder.
+        removeVoicePlaceholder();
         toast.error('Could not send your voice message \u2014 please try again.');
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
+      removeVoicePlaceholder();
       toast.error('Could not process your voice message. Please try again.');
     } finally {
       isSendingRef.current = false;
@@ -948,6 +1032,10 @@ export function useAssistantLogic({
     // the message-lookup-by-id silently no-ops and the user's BYOK
     // budget keeps draining.
     smartGen.abortActive();
+    // Drop any pending voice placeholder tracking — the bubble is wiped with
+    // the rest of the list, so a late transcription echo should append fresh
+    // rather than try to replace a now-gone id.
+    voicePlaceholderIdRef.current = null;
     setMessages([]);
     streaming.setIsGenerating(false);
     setInputValue('');
