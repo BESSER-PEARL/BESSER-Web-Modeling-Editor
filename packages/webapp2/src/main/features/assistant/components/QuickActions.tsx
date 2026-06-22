@@ -41,7 +41,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction })
   if (validActions.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 mt-2">
+    <div className="flex flex-col items-start gap-1.5 mt-2">
       {validActions.map((action, i) => (
         <button
           key={i}

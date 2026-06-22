@@ -495,68 +495,54 @@ export function useSmartGenTrigger(
               isZip: event.isZip,
             }),
           );
-          // Persist the artifact coordinates on the card BEFORE the
-          // download attempt — the backend keeps the file for ~30 min
-          // and allows re-downloads, so "Download again" must work even
-          // when the first attempt fails.
-          updateSmartGen(streamingId, (s) => ({
-            ...s,
-            runId: doneRunId ?? s.runId,
-            downloadUrl: event.downloadUrl,
-            fileName: event.fileName,
-            isZip: event.isZip,
-          }));
-          // Attempt the download. Only finalize the card to green
-          // 'done' AFTER it succeeds; render success or error exactly
-          // once based on the outcome — never both.
-          const result = await fetchAndSaveDownload(
-            event.downloadUrl,
-            event.fileName,
-            event.isZip,
-            event.runId,
+          // We deliberately do NOT auto-save the file to the user's disk
+          // here — testers reported the webapp being downloaded "without
+          // consent". Instead the card surfaces an explicit Download
+          // button (`needsDownload`) the user clicks when ready. The
+          // backend keeps the file for ~30 min and allows repeated
+          // downloads, so the button works whenever the user is ready.
+          updateSmartGen(
+            streamingId,
+            (s) => ({
+              ...s,
+              runId: doneRunId ?? s.runId,
+              downloadUrl: event.downloadUrl,
+              fileName: event.fileName,
+              isZip: event.isZip,
+              status: 'done',
+              needsDownload: true,
+            }),
+            { stopStreaming: true },
           );
-          if (result.ok) {
-            finalizeStreamingMessage(streamingId);
+          finalizeStreamingMessage(streamingId);
+          {
             // Prefer the open project's name over the backend-generated
             // UUID-suffixed zip filename. Falls back to the raw filename
-            // when we don't have a project (defensive — shouldn't happen
+            // when we don't have a project (defensive -- shouldn't happen
             // since the run is guarded on an open project).
             const projectName = currentProjectRef.current?.name?.trim();
             const niceLabel = projectName ? `**${projectName}**` : `\`${event.fileName}\``;
-            const sizeText = _formatBytes(result.sizeBytes);
-            const sizeSuffix = sizeText ? ` (${sizeText})` : '';
             appendAssistantMessage(
-              `✅ Smart generator finished — downloaded ${niceLabel}${sizeSuffix}.\n\n` +
-                `\u00A0\u00A0Saved as \`${event.fileName}\``,
+              `✅ Smart generator finished building ${niceLabel}.
+
+` +
+                `  Click **Download** on the run card to save \`${event.fileName}\` to your device.`,
             );
-            toast.success(`Downloaded ${event.fileName}`);
-          } else {
-            // Generation succeeded — only the local save failed. The
-            // artifact stays on the server (~30 min TTL), so mark the
-            // card with `downloadFailed` and let its "Download again"
-            // button retry instead of telling the user to regenerate.
-            updateSmartGen(
-              streamingId,
-              (s) => ({ ...s, status: 'done', downloadFailed: true }),
-              { stopStreaming: true },
-            );
-            appendErrorToChat(
-              'Vibe-Driven Generator finished but the download failed. The generated file ' +
-                'is still available for about 30 minutes — use "Download again" on the run card to retry.',
-            );
-            toast.error('Vibe-Driven Generator download failed — retry from the run card');
+            toast.success('Vibe-Driven Generator finished -- ready to download');
           }
           const generatorUsed =
             typeof event.recipe?.generator_used === 'string'
               ? event.recipe.generator_used
               : undefined;
+          // The run itself succeeded; the user simply hasn't saved the
+          // file yet. Report ok so the modeling agent sees a successful
+          // build -- download is now a user-driven step, not part of the run.
           reportRunFinished({
-            ok: result.ok,
+            ok: true,
             runId: doneRunId,
             fileName: event.fileName,
             costUsd: lastCostRef.current,
             generatorUsed,
-            errorCode: result.ok ? undefined : 'DOWNLOAD_FAILED',
           });
           return;
         }

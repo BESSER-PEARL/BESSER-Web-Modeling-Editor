@@ -249,10 +249,10 @@ export function useAssistantLogic({
   const [rateLimiter] = useState(
     () =>
       new RateLimiterService({
-        maxRequestsPerMinute: 8,
+        maxRequestsPerMinute: 15,
         maxRequestsPerHour: 250,
         maxMessageLength: 1000,
-        cooldownPeriodMs: 3000,
+        cooldownPeriodMs: 1000,
       }),
   );
 
@@ -359,7 +359,7 @@ export function useAssistantLogic({
       try {
         if (!assistantClient) return;
         const messageText = result.ok
-          ? `Vibe-Driven Generator finished successfully${result.fileName ? ` — ${result.fileName} downloaded` : ''}.`
+          ? `Vibe-Driven Generator finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
           : result.errorCode === 'CANCELLED'
             ? 'Vibe-Driven Generator run was cancelled by the user.'
             : `Vibe-Driven Generator failed (${result.errorCode ?? 'UNKNOWN'}).`;
@@ -910,7 +910,16 @@ export function useAssistantLogic({
     // Also abort any in-flight Smart Generator run so the SSE stream
     // disconnects and the user stops paying for LLM tokens.
     smartGen.abortActive();
+    // Reliably tear down the whole "generating/processing" UI state so a
+    // stuck modeling-agent op (e.g. lingering "Updating model…") can be
+    // dismissed by the user. We can't truly cancel an in-flight WebSocket
+    // op on the backend, but we stop the UI from waiting on it: clear the
+    // generating flag, the progress label, and any in-progress streaming
+    // message id. Any late server response still lands in the chat
+    // normally (onMessage re-clears these), so this is safe to call.
     streaming.setIsGenerating(false);
+    streaming.setProgressMessage('');
+    streaming.setStreamingMessageId(null);
   };
 
   const clearConversation = () => {
@@ -926,6 +935,30 @@ export function useAssistantLogic({
     streaming.setProgressMessage('');
     streaming.setStreamingMessageId(null);
   };
+
+  /* ================================================================ */
+  /*  Reset conversation when the active project changes               */
+  /* ================================================================ */
+
+  // Each project gets its own fresh conversation. When the user creates
+  // or switches to a different project, wipe the previous project's chat
+  // so it doesn't bleed across projects. Gate on an actual id change via
+  // a ref so this never fires on unrelated re-renders. We seed the ref on
+  // first run (prevId === undefined) so the very first project does NOT
+  // clear an already-empty conversation.
+  const prevProjectIdRef = useRef<string | undefined>(currentProject?.id);
+  useEffect(() => {
+    const projectId = currentProject?.id;
+    if (prevProjectIdRef.current === undefined) {
+      prevProjectIdRef.current = projectId;
+      return;
+    }
+    if (projectId !== prevProjectIdRef.current) {
+      prevProjectIdRef.current = projectId;
+      clearConversation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject?.id]);
 
   /* ================================================================ */
   /*  Public API (unchanged)                                           */

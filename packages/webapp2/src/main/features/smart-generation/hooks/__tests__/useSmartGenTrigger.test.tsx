@@ -234,11 +234,12 @@ const HAPPY_EVENTS: SmartGenEvent[] = [
 
 
 describe('useSmartGenTrigger — happy path', () => {
-  it('runs the full stream and triggers download on done event', async () => {
+  it('runs the full stream and surfaces a Download action on done (no auto-save)', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
 
-    // Mock the download fetch to succeed
+    // The run must NOT auto-download anymore (consent fix). If the hook
+    // tried to save, it would call fetch — assert it never does.
     const _fetchMock = vi.fn().mockResolvedValue(
       new Response(new Blob(['fake zip']), {
         status: 200,
@@ -253,17 +254,23 @@ describe('useSmartGenTrigger — happy path', () => {
       await apiRef.current!.handleTrigger(PAYLOAD);
     });
 
-    // Wait for state to settle (for await loop + async download)
+    // Wait for state to settle (for await loop)
     await waitFor(() => {
       const msgs = apiRef.current!.getMessages();
       expect(msgs.length).toBeGreaterThanOrEqual(3);
     });
 
     const msgs = apiRef.current!.getMessages() as any[];
-    // Expected messages: intro, streaming-message-with-events, "✅ complete"
+    // Expected messages: intro, streaming-card-with-events, "✅ complete"
     expect(msgs.some((m) => m.content?.includes('I will build this for you'))).toBe(true);
     expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
-    expect(_fetchMock).toHaveBeenCalled();
+    // The card is finished and flagged as awaiting a user-initiated save.
+    const card = msgs.find((m) => m.smartGen);
+    expect(card.smartGen.status).toBe('done');
+    expect(card.smartGen.needsDownload).toBe(true);
+    expect(card.smartGen.fileName).toBe('besser_smart_output.zip');
+    // No file was written to disk without consent.
+    expect(_fetchMock).not.toHaveBeenCalled();
     expect(apiRef.current!.getIsGenerating()).toBe(false);
   });
 });
@@ -312,14 +319,18 @@ describe('useSmartGenTrigger — invalid key error handling', () => {
 });
 
 
-describe('useSmartGenTrigger — download failure', () => {
-  it('does NOT render a ✅ success bubble when the download fetch fails', async () => {
+describe('useSmartGenTrigger — done event (consent-based download)', () => {
+  it('does NOT auto-save the artifact: no download fetch fires on done', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
-    // Download fetch fails with 500
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response('boom', { status: 500 }),
+    // If the hook auto-downloaded it would call fetch; assert it doesn't.
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
     );
+    globalThis.fetch = fetchMock;
 
     const { apiRef } = renderHarness();
 
@@ -329,52 +340,17 @@ describe('useSmartGenTrigger — download failure', () => {
 
     await waitFor(() => {
       const msgs = apiRef.current!.getMessages() as any[];
-      // Should contain an error message, not a success bubble.
-      return msgs.some((m) => m.isError === true);
+      expect(msgs.some((m) => m.smartGen?.status === 'done')).toBe(true);
     });
 
+    expect(fetchMock).not.toHaveBeenCalled();
     const msgs = apiRef.current!.getMessages() as any[];
-    expect(msgs.some((m) => m.content?.includes('✅'))).toBe(false);
-    expect(msgs.some((m) => m.isError === true)).toBe(true);
+    // A success bubble is still shown; no error bubble.
+    expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
+    expect(msgs.some((m) => m.isError === true)).toBe(false);
   });
 
-  it('keeps the artifact retrievable: marks downloadFailed and points at "Download again"', async () => {
-    setSessionKey();
-    _mockController.events = HAPPY_EVENTS;
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response('boom', { status: 500 }),
-    );
-
-    const { apiRef } = renderHarness();
-
-    await act(async () => {
-      await apiRef.current!.handleTrigger(PAYLOAD);
-    });
-
-    await waitFor(() => {
-      const msgs = apiRef.current!.getMessages() as any[];
-      expect(msgs.some((m) => m.isError === true)).toBe(true);
-    });
-
-    const msgs = apiRef.current!.getMessages() as any[];
-    // The artifact stays on the server for ~30 min — the message must
-    // say so instead of telling the user to regenerate.
-    const errMsg = msgs.find((m) => m.isError === true);
-    expect(errMsg.content).toMatch(/still available/i);
-    expect(errMsg.content).toMatch(/download again/i);
-    expect(errMsg.content).not.toMatch(/regenerate/i);
-
-    // The smart-gen card carries everything "Download again" needs.
-    const card = msgs.find((m) => m.smartGen);
-    expect(card).toBeTruthy();
-    expect(card.smartGen.downloadFailed).toBe(true);
-    expect(card.smartGen.runId).toBe('a'.repeat(32));
-    expect(card.smartGen.fileName).toBe('besser_smart_output.zip');
-    expect(card.smartGen.isZip).toBe(true);
-    expect(card.smartGen.status).toBe('done');
-  });
-
-  it('finalizes the card to done only AFTER a successful download', async () => {
+  it('finalizes the card to done with needsDownload and persisted artifact coords', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -396,11 +372,17 @@ describe('useSmartGenTrigger — download failure', () => {
     });
 
     const msgs = apiRef.current!.getMessages() as any[];
+    // The card is finished and carries everything the Download button needs.
     const card = msgs.find((m) => m.smartGen);
     expect(card.smartGen.status).toBe('done');
+    expect(card.smartGen.needsDownload).toBe(true);
     expect(card.smartGen.downloadFailed).toBeFalsy();
     expect(card.smartGen.runId).toBe('a'.repeat(32));
     expect(card.smartGen.fileName).toBe('besser_smart_output.zip');
+    expect(card.smartGen.isZip).toBe(true);
+    // The completion message points the user at the Download action.
+    const doneMsg = msgs.find((m) => m.content?.includes('✅'));
+    expect(doneMsg.content).toMatch(/download/i);
   });
 });
 
@@ -782,12 +764,14 @@ describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
     );
   });
 
-  it('reports ok:false / DOWNLOAD_FAILED when generation succeeds but the download fails', async () => {
+  it('reports ok:true on done even though the file is not saved yet (user-initiated download)', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response('boom', { status: 500 }),
-    );
+    // No download is attempted by the hook anymore; the user saves via
+    // the card's Download button. The run outcome is purely "did the
+    // build succeed", so the agent loop sees ok:true.
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
     const onRunFinished = vi.fn();
 
     const { apiRef } = renderHarness({ onRunFinished });
@@ -801,12 +785,13 @@ describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
     });
     expect(onRunFinished).toHaveBeenCalledWith(
       expect.objectContaining({
-        ok: false,
-        errorCode: 'DOWNLOAD_FAILED',
+        ok: true,
         runId: 'a'.repeat(32),
         fileName: 'besser_smart_output.zip',
       }),
     );
+    // Crucially, nothing was written to disk during the run.
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('reports ok:false / CANCELLED exactly once on user abort mid-run', async () => {

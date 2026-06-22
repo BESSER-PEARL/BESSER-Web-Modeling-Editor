@@ -195,4 +195,45 @@ describe('SmartGenCard — Download again', () => {
     renderCard(baseSmartGen({ costUsd: 0.1, maxCost: 2.0 }));
     expect(screen.queryByRole('button', { name: /download again/i })).toBeNull();
   });
+
+  it('shows a primary "Download" button (not yet saved) when needsDownload is set', () => {
+    renderCard(
+      baseSmartGen({
+        status: 'done',
+        needsDownload: true,
+        fileName: 'besser_smart_output.zip',
+        isZip: true,
+      }),
+      false,
+    );
+    // Before the first save the label is "Download", not "Download again".
+    expect(screen.getByRole('button', { name: /^download$/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /download again/i })).toBeNull();
+  });
+
+  it('switches the label to "Download again" after a successful first save', async () => {
+    renderCard(
+      baseSmartGen({
+        status: 'done',
+        needsDownload: true,
+        fileName: 'besser_smart_output.zip',
+        isZip: true,
+      }),
+      false,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^download$/i }));
+
+    await waitFor(() => {
+      expect(fetchAndSaveSmartGenArtifact).toHaveBeenCalledWith(
+        RUN_ID,
+        'besser_smart_output.zip',
+        true,
+      );
+    });
+    // The save succeeded (mock resolves ok) → button becomes "Download again".
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /download again/i })).toBeTruthy();
+    });
+  });
 });

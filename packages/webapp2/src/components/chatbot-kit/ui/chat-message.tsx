@@ -191,6 +191,12 @@ export interface SmartGenMessageState {
    * stays on the server (~30 min TTL) so "Download again" can retry.
    */
   downloadFailed?: boolean
+  /**
+   * Generation succeeded and the artifact is ready, but it has NOT been
+   * saved to the user's disk yet. The run no longer auto-downloads —
+   * the user must click "Download" on the card to consent to the save.
+   */
+  needsDownload?: boolean
 }
 
 export interface Message {
@@ -715,12 +721,17 @@ function SmartGenCard({
     fileName,
     isZip,
     downloadFailed,
+    needsDownload,
   } = smartGen
 
   const [stopRequested, setStopRequested] = useState(false)
   const [redownloadState, setRedownloadState] = useState<
     "idle" | "busy" | "failed"
   >("idle")
+  // The run no longer auto-saves the artifact (consent fix). Track
+  // whether the user has saved it yet so the button reads "Download"
+  // before the first save and "Download again" afterwards.
+  const [hasDownloaded, setHasDownloaded] = useState(false)
 
   const handleStop = () => {
     if (!runId || stopRequested) return
@@ -746,6 +757,7 @@ function SmartGenCard({
       isZip === true
     )
     setRedownloadState(result.ok ? "idle" : "failed")
+    if (result.ok) setHasDownloaded(true)
   }
 
   const showMeter =
@@ -855,19 +867,34 @@ function SmartGenCard({
               </span>
             ) : null}
             {canRedownload ? (
-              <button
-                type="button"
-                onClick={() => void handleRedownload()}
-                disabled={redownloadState === "busy"}
-                className="inline-flex items-center gap-1 rounded border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted disabled:opacity-50"
-              >
-                {redownloadState === "busy" ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Download className="h-3 w-3" />
-                )}
-                Download again
-              </button>
+              (() => {
+                // First save vs. re-download. Before the user has saved
+                // the artifact (the run no longer auto-downloads), show a
+                // prominent primary "Download" button to signal the
+                // pending action; afterwards fall back to a subtle
+                // "Download again".
+                const isFirstSave = needsDownload === true && !hasDownloaded
+                return (
+                  <button
+                    type="button"
+                    onClick={() => void handleRedownload()}
+                    disabled={redownloadState === "busy"}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium disabled:opacity-50",
+                      isFirstSave
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "border border-border/60 bg-background text-foreground hover:bg-muted"
+                    )}
+                  >
+                    {redownloadState === "busy" ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Download className="h-3 w-3" />
+                    )}
+                    {isFirstSave ? "Download" : "Download again"}
+                  </button>
+                )
+              })()
             ) : null}
             {showStop ? (
               <button

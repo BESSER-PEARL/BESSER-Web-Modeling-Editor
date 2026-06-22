@@ -527,7 +527,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
                   >
                     <Sparkles className="size-3" />
-                    Powered with BAF
+                    Powered by BAF
                   </a>
                 </div>
 
