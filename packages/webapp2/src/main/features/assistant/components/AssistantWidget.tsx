@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Loader2, Settings, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, Loader2, Settings, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -118,6 +118,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
+    reportIssue,
   } = useAssistantLogic({
     isActive: isVisible,
     switchDiagram,
@@ -225,6 +226,17 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 aria-label="Vibe-Driven Generator settings"
               >
                 <Settings className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                onClick={() => reportIssue()}
+                title="Report an issue — export this conversation and context for the BESSER team"
+                aria-label="Report an issue"
+              >
+                <Flag className="size-3.5" />
               </Button>
               <Button
                 type="button"

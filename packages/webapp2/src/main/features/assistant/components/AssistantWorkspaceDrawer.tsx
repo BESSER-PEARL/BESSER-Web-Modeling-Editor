@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings } from 'lucide-react';
+import { ArrowDown, ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings, Flag } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -170,6 +170,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     sendVoiceMessage,
     stopGenerating,
     clearConversation,
+    reportIssue,
   } = useAssistantLogic({
     isActive: open,
     switchDiagram,
@@ -689,6 +690,16 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       >
                         <Settings className="size-3.5" />
                         Settings
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
+                        onClick={() => reportIssue()}
+                        title="Export this conversation and context to report a problem to the BESSER team"
+                      >
+                        <Flag className="size-3.5" />
+                        Report issue
                       </Button>
                       <Button
                         variant="outline"

@@ -41,6 +41,14 @@ import { useStreamingResponse, startTimer, stopTimer } from './useStreamingRespo
 import { useModelInjection } from './useModelInjection';
 import { useSmartGenTrigger } from '../../smart-generation/hooks/useSmartGenTrigger';
 import type { TriggerSmartGeneratorPayload } from '../../smart-generation/types';
+import { downloadFile, copyToClipboard } from '../../../shared/utils/download';
+import { appVersion } from '../../../shared/constants/application-constants';
+import {
+  buildIssueReport,
+  buildIssueReportMarkdown,
+  issueReportFilename,
+  type IssueReportContext,
+} from './buildIssueReport';
 
 /* ------------------------------------------------------------------ */
 /*  Types  (re-exported so consumers keep importing from here)         */
@@ -110,6 +118,12 @@ export interface UseAssistantLogicReturn {
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
+  /**
+   * Build a privacy-safe issue report (conversation + non-secret workspace
+   * context) and deliver it: downloads a Markdown transcript and copies it to
+   * the clipboard, with a toast confirmation. NEVER includes the BYOK API key.
+   */
+  reportIssue: () => Promise<void>;
   /** Undo the last assistant-driven model change using the undo stack. */
   handleUndo: () => void;
   /** Whether an undo action is available. */
@@ -937,6 +951,67 @@ export function useAssistantLogic({
   };
 
   /* ================================================================ */
+  /*  reportIssue — export conversation + context for the team         */
+  /* ================================================================ */
+
+  // Builds the non-secret context block. Reuses buildWorkspaceContext but
+  // DELIBERATELY drops the heavy/sensitive parts (activeModel,
+  // projectSnapshot) — we only keep diagram-type counts, the project name,
+  // and the active diagram type. The BYOK API key lives in the
+  // smart-generation Redux state / localStorage and is never touched here.
+  const buildIssueReportContext = (): IssueReportContext => {
+    const project = currentProjectRef.current;
+    const activeType = currentDiagramTypeRef.current || undefined;
+
+    const diagramCounts: Record<string, number> = {};
+    if (project) {
+      for (const [type, arr] of Object.entries(project.diagrams)) {
+        if (Array.isArray(arr) && arr.length > 0) diagramCounts[type] = arr.length;
+      }
+    }
+    const diagramTypes = Object.keys(diagramCounts);
+    const totalDiagrams = Object.values(diagramCounts).reduce((sum, n) => sum + n, 0);
+
+    return {
+      activeDiagramType: activeType,
+      projectName: project?.name,
+      diagramTypes: diagramTypes.length > 0 ? diagramTypes : undefined,
+      totalDiagrams: project ? totalDiagrams : undefined,
+      diagramCounts: diagramTypes.length > 0 ? diagramCounts : undefined,
+    };
+  };
+
+  const reportIssue = async (): Promise<void> => {
+    try {
+      const report = buildIssueReport({
+        messages,
+        messageMeta,
+        connectionStatus: connection.connectionStatus,
+        context: buildIssueReportContext(),
+        appVersion: typeof appVersion === 'string' ? appVersion : undefined,
+      });
+
+      const markdown = buildIssueReportMarkdown(report);
+
+      // Must-have #1: download a readable Markdown transcript.
+      downloadFile(markdown, issueReportFilename('md'), 'text/markdown');
+
+      // Must-have #2: copy the transcript to the clipboard so the user can
+      // paste it straight into a chat/ticket without opening the file.
+      const copied = await copyToClipboard(markdown);
+
+      toast.success(
+        copied
+          ? 'Issue report downloaded and copied to clipboard. Send it to the BESSER team.'
+          : 'Issue report downloaded. Attach the file when you contact the BESSER team.',
+      );
+    } catch (error) {
+      console.error('[useAssistantLogic] failed to build issue report', error);
+      toast.error('Could not build the issue report. Please try again.');
+    }
+  };
+
+  /* ================================================================ */
   /*  Reset conversation when the active project changes               */
   /* ================================================================ */
 
@@ -982,6 +1057,7 @@ export function useAssistantLogic({
     sendVoiceMessage,
     stopGenerating,
     clearConversation,
+    reportIssue,
     handleUndo: injection.handleUndo,
     canUndo: injection.undoAvailable,
     assistantClient,
