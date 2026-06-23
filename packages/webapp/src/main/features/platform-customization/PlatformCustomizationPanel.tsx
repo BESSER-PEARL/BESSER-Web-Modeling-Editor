@@ -72,6 +72,7 @@ function extractClasses(model: UMLModel): ClassInfo[] {
   const byName = new Map<string, ClassInfo>();
   for (const el of Object.values(model.elements ?? {})) {
     if ((el as any)?.owner !== null) continue;
+    if ((el as any)?.type === 'Enumeration' || (el as any)?.type === 'AbstractClass') continue;
     if (typeof el?.name !== 'string' || el.name.trim() === '') continue;
     const icon = typeof (el as any)?.icon === 'string' ? (el as any).icon : undefined;
     // Last write wins if the diagram somehow has two classes with the same name —
