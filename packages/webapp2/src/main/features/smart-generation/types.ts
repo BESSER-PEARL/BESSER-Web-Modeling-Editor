@@ -28,6 +28,9 @@ export type SmartGenErrorCode =
   | 'UPSTREAM_LLM'
   | 'COST_CAP'
   | 'TIMEOUT'
+  // Non-terminal warning: the run produced output but the customization
+  // loop was cut short (provider rate-limit / turn cap). `done` follows.
+  | 'INCOMPLETE'
   | 'INTERNAL'
   | 'BAD_REQUEST'
   | 'CANCELLED';
@@ -90,6 +93,10 @@ export interface DoneEvent {
   fileName: string;
   isZip: boolean;
   recipe: Record<string, unknown>;
+  /** True when output was produced but the customization loop did not
+   * finish cleanly — the download may be missing requested changes. */
+  incomplete?: boolean;
+  incompleteReason?: string;
 }
 
 export interface SmartGenErrorEvent {

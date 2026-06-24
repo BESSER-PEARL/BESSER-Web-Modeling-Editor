@@ -390,7 +390,9 @@ export function useAssistantLogic({
       try {
         if (!assistantClient) return;
         const messageText = result.ok
-          ? `Vibe-Driven Generator finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
+          ? result.incomplete
+            ? `Vibe-Driven Generator produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
+            : `Vibe-Driven Generator finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
           : result.errorCode === 'CANCELLED'
             ? 'Vibe-Driven Generator run was cancelled by the user.'
             : `Vibe-Driven Generator failed (${result.errorCode ?? 'UNKNOWN'}).`;
@@ -403,6 +405,8 @@ export function useAssistantLogic({
             costUsd: result.costUsd,
             generator_used: result.generatorUsed,
             errorCode: result.errorCode,
+            incomplete: result.incomplete,
+            incompleteReason: result.incompleteReason,
           },
         });
       } catch (error) {

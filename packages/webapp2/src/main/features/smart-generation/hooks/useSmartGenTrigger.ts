@@ -147,6 +147,11 @@ export interface SmartGenRunResult {
   fileName?: string;
   costUsd?: number;
   generatorUsed?: string;
+  /** Set on a successful run that was nonetheless cut short — the output
+   * may be missing requested changes. Carried so the modeling agent can
+   * report the outcome honestly instead of an unqualified success. */
+  incomplete?: boolean;
+  incompleteReason?: string;
 }
 
 export interface UseSmartGenTriggerOptions {
@@ -524,9 +529,13 @@ export function useSmartGenTrigger(
             const projectName = currentProjectRef.current?.name?.trim();
             const niceLabel = projectName ? `**${projectName}**` : `\`${event.fileName}\``;
             appendAssistantMessage(
-              `✅ Smart generator finished building ${niceLabel}.
+              (event.incomplete
+                ? `⚠️ Smart generator finished building ${niceLabel}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``} You can resume the run to finish the remaining changes.
 
-` +
+`
+                : `✅ Smart generator finished building ${niceLabel}.
+
+`) +
                 `  Click **Download** on the run card to save \`${event.fileName}\` to your device.`,
             );
             toast.success('Vibe-Driven Generator finished -- ready to download');
@@ -544,19 +553,26 @@ export function useSmartGenTrigger(
             fileName: event.fileName,
             costUsd: lastCostRef.current,
             generatorUsed,
+            incomplete: event.incomplete,
+            incompleteReason: event.incompleteReason,
           });
           return;
         }
         case 'error': {
           dispatch(setRunError({ code: event.code, message: event.message }));
-          if (event.code === 'COST_CAP' || event.code === 'TIMEOUT') {
+          if (
+            event.code === 'COST_CAP' ||
+            event.code === 'TIMEOUT' ||
+            event.code === 'INCOMPLETE'
+          ) {
             // Warning — stream continues; the `done` event will follow.
             // But if the backend hangs and never sends `done`, the
             // failsafe timer finalises the run ourselves after 45s.
             // COST_CAP is handled silently: its message quotes dollar
             // estimates we don't consider reliable enough to show
             // (product decision) — the run still finalises normally.
-            if (event.code === 'TIMEOUT') {
+            // TIMEOUT / INCOMPLETE surface a warning on the run card.
+            if (event.code === 'TIMEOUT' || event.code === 'INCOMPLETE') {
               updateSmartGen(streamingId, (s) => ({
                 ...s,
                 warnings: [
