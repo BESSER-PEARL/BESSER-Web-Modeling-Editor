@@ -1,0 +1,210 @@
+{
+  "views": {
+    "modelling": "Modelléierung",
+    "exporting": "Interaktiv",
+    "highlight": "Interaktiv Elementer uweisen"
+  },
+  "sidebar": {
+    "classAttribute": "attribut",
+    "classMethod": "+ methode()",
+    "enumAttribute": "Wäert",
+    "objectAttribute": "attribut = wäert"
+  },
+  "popup": {
+    "attributes": "Attributer",
+    "methods": "Methoden",
+    "relationship": "Bezéiung",
+    "association": "Associatioun",
+    "multiplicity": "Multiplizitéit",
+    "role": "Roll",
+    "messages": "Noriichten",
+    "condition": "Bedéngungen",
+    "tokens": "Token",
+    "capacity": "Kapazitéit",
+    "intent_name": "Intent-Numm",
+    "training_sentences": "Trainingssätz",
+    "objectLink": "Objet-Link",
+    "linkDetails": "Link-Detailer",
+    "noAssociation": "Keng Associatioun",
+    "noAssociationsAvailable": "Keng Associatioune verfügbar fir déi verbonne Objetklassen"
+  },
+  "assessment": {
+    "assessment": "Bewäertung fir",
+    "score": "Punkten",
+    "feedback": "Feedback",
+    "feedbackPlaceholder": "Dir kënnt hei Feedback aginn...",
+    "additionalFeedbackPlaceholder": "Dir kënnt hei zousätzleche Feedback aginn..."
+  },
+  "packages": {
+    "ClassDiagram": {
+      "Package": "Package",
+      "Class": "Klass",
+      "AbstractClass": "Abstrakt",
+      "Interface": "Interface",
+      "Enumeration": "Opzielung",
+      "ClassAttribute": "Attribut",
+      "ClassMethod": "Methode",
+      "ClassAggregation": "Aggregatioun",
+      "ClassBidirectional": "Associatioun (bidirektional)",
+      "ClassComposition": "Kompositioun",
+      "ClassDependency": "Ofhängegkeet",
+      "ClassInheritance": "Generaliséierung",
+      "ClassRealization": "Realiséierung",
+      "ClassUnidirectional": "Associatioun (unidirektional)",
+      "ClassOCLConstraint": "OCL-Aschränkung"
+    },
+    "ObjectDiagram": {
+      "ObjectName": "Objet",
+      "ObjectAttribute": "Attribut",
+      "ObjectMethod": "Methode",
+      "ObjectLink": "Bezéiung"
+    },
+    "ActivityDiagram": {
+      "Activity": "Aktivitéit",
+      "ActivityActionNode": "Aktioun",
+      "ActivityFinalNode": "Endknued",
+      "ActivityForkNode": "Verzweigungsknued",
+      "ActivityInitialNode": "Ufanksknued",
+      "ActivityMergeNode": "Bedéngung",
+      "ActivityObjectNode": "Objet",
+      "ActivityControlFlow": "Kontrollfloss"
+    },
+    "UseCaseDiagram": {
+      "UseCase": "Notzungsfall",
+      "UseCaseActor": "Akteur",
+      "UseCaseSystem": "System",
+      "UseCaseAssociation": "Associatioun",
+      "UseCaseExtend": "Erweideren",
+      "UseCaseGeneralization": "Generaliséierung",
+      "UseCaseInclude": "Includéieren"
+    },
+    "CommunicationDiagram": {
+      "ObjectName": "Objet",
+      "ObjectAttribute": "Attribut",
+      "ObjectMethod": "Methode",
+      "CommunicationLink": "Kommunikatiounslink"
+    },
+    "ComponentDiagram": {
+      "Component": "Komponent",
+      "Subsystem": "Subsystem",
+      "ComponentDependency": "Ofhängegkeet",
+      "ComponentInterface": "Interface",
+      "ComponentInterfaceProvided": "Bereetgestallt Interface",
+      "ComponentInterfaceRequired": "Erfuerderlech Interface"
+    },
+    "DeploymentDiagram": {
+      "DeploymentNode": "Knued",
+      "DeploymentComponent": "Komponent",
+      "DeploymentArtifact": "Artefakt",
+      "DeploymentInterface": "Interface",
+      "DeploymentInterfaceProvided": "Bereetgestallt Interface",
+      "DeploymentInterfaceRequired": "Erfuerderlech Interface",
+      "DeploymentAssociation": "Deployment-Associatioun",
+      "DeploymentDependency": "Deployment-Ofhängegkeet"
+    },
+    "PetriNet": {
+      "PetriNetPlace": "Plaz",
+      "PetriNetTransition": "Transitioun"
+    },
+    "ReachabilityGraph": {
+      "ReachabilityGraphIsInitialMarking": "Ass Ufanksmarkéierung",
+      "ReachabilityGraphMarking": "Markéierung"
+    },
+    "SyntaxTree": {
+      "SyntaxTreeTerminal": "Terminal",
+      "SyntaxTreeNonterminal": "Net-Terminal",
+      "SyntaxTreeLink": "Link"
+    },
+    "Flowchart": {
+      "FlowchartTerminal": "Terminal",
+      "FlowchartDecision": "Entscheedung",
+      "FlowchartProcess": "Prozess",
+      "FlowchartFunctionCall": "Funktiounsopruff",
+      "FlowchartInputOutput": "Input/Output",
+      "FlowchartFlowline": "Flosslinn"
+    },
+    "ColorLegend": {
+      "ColorLegend": "Faarwebeschreiwung"
+    },
+    "BPMN": {
+      "BPMNTask": "Aufgab",
+      "BPMNUserTask": "Benotzeraufgab",
+      "BPMNSendTask": "Sendaufgab",
+      "BPMNReceiveTask": "Empfangsaufgab",
+      "BPMNManualTask": "Manuell Aufgab",
+      "BPMNBusinessRuleTask": "Geschäftsregel-Aufgab",
+      "BPMNScriptTask": "Skript-Aufgab",
+      "BPMNSubprocess": "Subprozess",
+      "BPMNTransaction": "Transaktioun",
+      "BPMNCallActivity": "Opruff-Aktivitéit",
+      "BPMNAnnotation": "Annotatioun",
+      "BPMNStartEvent": "Startevenement",
+      "BPMNMessageStartEvent": "Message-Startevenement",
+      "BPMNTimerStartEvent": "Timer-Startevenement",
+      "BPMNConditionalStartEvent": "Bedéngt Startevenement",
+      "BPMNSignalStartEvent": "Signal-Startevenement",
+      "BPMNIntermediateEvent": "Zwëschenevenement",
+      "BPMNMessageIntermediateCatchEvent": "Message-Zwëschenevenement (Empfang)",
+      "BPMNMessageIntermediateThrowEvent": "Message-Zwëschenevenement (Sennen)",
+      "BPMNTimerIntermediateCatchEvent": "Timer-Zwëschenevenement (Empfang)",
+      "BPMNEscalationIntermediateThrowEvent": "Eskalatioun-Zwëschenevenement (Sennen)",
+      "BPMNConditionalIntermediateCatchEvent": "Bedéngt Zwëschenevenement (Empfang)",
+      "BPMNLinkIntermediateCatchEvent": "Link-Zwëschenevenement (Empfang)",
+      "BPMNLinkIntermediateThrowEvent": "Link-Zwëschenevenement (Sennen)",
+      "BPMNCompensationIntermediateThrowEvent": "Kompensatioun-Zwëschenevenement (Sennen)",
+      "BPMNSignalIntermediateCatchEvent": "Signal-Zwëschenevenement (Empfang)",
+      "BPMNSignalIntermediateThrowEvent": "Signal-Zwëschenevenement (Sennen)",
+      "BPMNEndEvent": "Endevenement",
+      "BPMNMessageEndEvent": "Message-Endevenement",
+      "BPMNEscalationEndEvent": "Eskalatioun-Endevenement",
+      "BPMNErrorEndEvent": "Feeler-Endevenement",
+      "BPMNCompensationEndEvent": "Kompensatioun-Endevenement",
+      "BPMNSignalEndEvent": "Signal-Endevenement",
+      "BPMNTerminateEndEvent": "Ofbroch-Endevenement",
+      "BPMNGateway": "Gateway",
+      "BPMNComplexGateway": "Komplex",
+      "BPMNEventBasedGateway": "Evenementbaséiert",
+      "BPMNInclusiveGateway": "Inklusiv",
+      "BPMNExclusiveGateway": "Exklusiv",
+      "BPMNParallelGateway": "Parallel",
+      "BPMNConversation": "Konversatioun",
+      "BPMNCallConversation": "Opruff-Konversatioun",
+      "BPMNSequenceFlow": "Sequenz",
+      "BPMNMessageFlow": "Message",
+      "BPMNAssociationFlow": "Associatioun",
+      "BPMNDataAssociationFlow": "Datenassociatioun",
+      "BPMNDataObject": "Datenobjet",
+      "BPMNPool": "Pool",
+      "BPMNSwimlane": "Bunn",
+      "BPMNSwimlanes": "Bunnen",
+      "BPMNGroup": "Grupp"
+    },
+    "NNDiagram": {
+      "NNContainer": "Neural_Network",
+      "NNReference": "Sub-NN-Referenz",
+      "SelectNN": "Neuronaalt Netz auswielen",
+      "SelectNNPlaceholder": "-- NN auswielen --",
+      "Conv1DLayer": "Conv1D-Schicht",
+      "Conv2DLayer": "Conv2D-Schicht",
+      "Conv3DLayer": "Conv3D-Schicht",
+      "PoolingLayer": "Pooling-Schicht",
+      "RNNLayer": "RNN-Schicht",
+      "LSTMLayer": "LSTM-Schicht",
+      "GRULayer": "GRU-Schicht",
+      "LinearLayer": "Linear Schicht",
+      "FlattenLayer": "Flatten-Schicht",
+      "EmbeddingLayer": "Embedding-Schicht",
+      "DropoutLayer": "Dropout-Schicht",
+      "LayerNormalizationLayer": "Layer-Normalization-Schicht",
+      "BatchNormalizationLayer": "Batch-Normalization-Schicht",
+      "TensorOp": "Tensor-Operatioun",
+      "Configuration": "Konfiguratioun",
+      "TrainingDataset": "Trainingsdatesaz",
+      "TestDataset": "Testdatesaz",
+      "Datasets": "NN-Datesätz"
+    },
+    "OCLConstraint": {
+      "Constraint": "OCL-Aschränkung"
+    }
+  }
+}

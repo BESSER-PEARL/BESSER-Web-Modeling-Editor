@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { Download, FolderKanban, Layers3, Monitor, Settings, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
 import {
@@ -30,6 +31,7 @@ import { useAppDispatch } from '../../app/store/hooks';
 import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../app/store/workspaceSlice';
 
 export const ProjectSettingsPanel: React.FC = () => {
+  const { t } = useTranslation();
   const [isExporting, setIsExporting] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
@@ -50,10 +52,10 @@ export const ProjectSettingsPanel: React.FC = () => {
       dispatch(setPerspectiveEnabledThunk({ type, enabled }))
         .unwrap()
         .catch((err: unknown) => {
-          toast.error(err instanceof Error ? err.message : 'Failed to update perspective');
+          toast.error(err instanceof Error ? err.message : t('project.settings.toast.updatePerspectiveFailed'));
         });
     },
-    [dispatch],
+    [dispatch, t],
   );
 
   const handleApplyPreset = useCallback(
@@ -61,10 +63,10 @@ export const ProjectSettingsPanel: React.FC = () => {
       dispatch(applyPerspectivePresetThunk({ diagrams: preset.diagrams }))
         .unwrap()
         .catch((err: unknown) => {
-          toast.error(err instanceof Error ? err.message : 'Failed to apply preset');
+          toast.error(err instanceof Error ? err.message : t('project.settings.toast.applyPresetFailed'));
         });
     },
-    [dispatch],
+    [dispatch, t],
   );
 
   useEffect(() => {
@@ -115,9 +117,9 @@ export const ProjectSettingsPanel: React.FC = () => {
       }
 
       await exportProject(currentProject.id, true);
-      toast.success('Project exported successfully.');
+      toast.success(t('project.settings.toast.exported'));
     } catch (exportError) {
-      toast.error(`Failed to export project: ${exportError instanceof Error ? exportError.message : 'Unknown error'}`);
+      toast.error(t('project.settings.toast.exportFailed', { error: exportError instanceof Error ? exportError.message : t('project.settings.unknownError') }));
     } finally {
       setIsExporting(false);
     }
@@ -126,7 +128,7 @@ export const ProjectSettingsPanel: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <p className="text-sm text-muted-foreground">Loading project...</p>
+        <p className="text-sm text-muted-foreground">{t('project.settings.loadingProject')}</p>
       </div>
     );
   }
@@ -142,7 +144,7 @@ export const ProjectSettingsPanel: React.FC = () => {
   if (!currentProject) {
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <p className="text-sm text-muted-foreground">Open or create a project to edit settings.</p>
+        <p className="text-sm text-muted-foreground">{t('project.settings.noProject')}</p>
       </div>
     );
   }
@@ -157,13 +159,13 @@ export const ProjectSettingsPanel: React.FC = () => {
               <Settings className="size-4" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">Project Settings</h1>
-              <p className="text-sm text-muted-foreground">Manage metadata, diagrams, and display preferences</p>
+              <h1 className="text-lg font-semibold tracking-tight">{t('project.settings.title')}</h1>
+              <p className="text-sm text-muted-foreground">{t('project.settings.subtitle')}</p>
             </div>
           </div>
           <Button onClick={handleExportProject} disabled={isExporting} variant="outline" className="gap-2">
             <Download className="size-4" />
-            {isExporting ? 'Exporting...' : 'Export Project'}
+            {isExporting ? t('project.settings.exporting') : t('project.settings.exportProject')}
           </Button>
         </div>
       </div>
@@ -179,12 +181,12 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <FolderKanban className="size-4 text-brand" />
-                  <CardTitle className="text-base">General</CardTitle>
+                  <CardTitle className="text-base">{t('project.settings.general.title')}</CardTitle>
                 </div>
-                <CardDescription>Basic project information</CardDescription>
+                <CardDescription>{t('project.settings.general.description')}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                <FormField label="Project Name" htmlFor="settings-name" required error={settingsValidation.getError('name')}>
+                <FormField label={t('project.settings.general.projectName')} htmlFor="settings-name" required error={settingsValidation.getError('name')}>
                   <Input
                     id="settings-name"
                     value={currentProject.name}
@@ -193,10 +195,10 @@ export const ProjectSettingsPanel: React.FC = () => {
                     className={settingsValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                   />
                 </FormField>
-                <FormField label="Owner" htmlFor="settings-owner">
+                <FormField label={t('project.field.owner')} htmlFor="settings-owner">
                   <Input id="settings-owner" value={currentProject.owner} onChange={(event) => handleProjectField('owner', event.target.value)} />
                 </FormField>
-                <FormField label="Description" htmlFor="settings-description">
+                <FormField label={t('project.field.description')} htmlFor="settings-description">
                   <Textarea
                     id="settings-description"
                     value={currentProject.description}
@@ -206,11 +208,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </FormField>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Created</p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('project.settings.general.created')}</p>
                     <p className="mt-1 text-sm">{new Date(currentProject.createdAt).toLocaleString()}</p>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Active Editor</p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('project.settings.general.activeEditor')}</p>
                     <p className="mt-1 text-sm">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
                   </div>
                 </div>
@@ -222,15 +224,15 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <Monitor className="size-4 text-brand" />
-                  <CardTitle className="text-base">Display</CardTitle>
+                  <CardTitle className="text-base">{t('project.settings.display.title')}</CardTitle>
                 </div>
-                <CardDescription>Configure how diagrams are rendered</CardDescription>
+                <CardDescription>{t('project.settings.display.description')}</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-1">
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
                   <div>
-                    <p className="text-sm font-medium">Show Instanced Objects</p>
-                    <p className="text-xs text-muted-foreground">Toggle object instance visibility</p>
+                    <p className="text-sm font-medium">{t('project.settings.display.showInstancedObjects')}</p>
+                    <p className="text-xs text-muted-foreground">{t('project.settings.display.showInstancedObjectsDesc')}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -246,8 +248,8 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <Separator />
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
                   <div>
-                    <p className="text-sm font-medium">Show Association Names</p>
-                    <p className="text-xs text-muted-foreground">Toggle association name visibility</p>
+                    <p className="text-sm font-medium">{t('project.settings.display.showAssociationNames')}</p>
+                    <p className="text-xs text-muted-foreground">{t('project.settings.display.showAssociationNamesDesc')}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -263,8 +265,8 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <Separator />
                 <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors hover:bg-muted/30">
                   <div>
-                    <p className="text-sm font-medium">Properties Panel</p>
-                    <p className="text-xs text-muted-foreground">Use right-side panel instead of floating popover</p>
+                    <p className="text-sm font-medium">{t('project.settings.display.propertiesPanel')}</p>
+                    <p className="text-xs text-muted-foreground">{t('project.settings.display.propertiesPanelDesc')}</p>
                   </div>
                   <input
                     type="checkbox"
@@ -279,13 +281,13 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <Separator />
                 <div className="flex items-center justify-between gap-4 rounded-lg px-1 py-3">
                   <div>
-                    <p className="text-sm font-medium">Class Diagram Notation</p>
+                    <p className="text-sm font-medium">{t('project.settings.display.classNotation')}</p>
                     <p className="text-xs text-muted-foreground">
-                      UML (default) shows standard UML classes; ER shows a Chen-style entity/relationship rendering
+                      {t('project.settings.display.classNotationDesc')}
                     </p>
                   </div>
                   <RadioGroup
-                    aria-label="Class diagram notation"
+                    aria-label={t('project.settings.display.classNotation')}
                     value={classNotation}
                     onValueChange={(value) => {
                       const next = value as ClassNotation;
@@ -314,12 +316,12 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <Layers3 className="size-4 text-brand" />
-                  <CardTitle className="text-base">Diagrams</CardTitle>
+                  <CardTitle className="text-base">{t('project.settings.diagrams.title')}</CardTitle>
                 </div>
                 <CardDescription>
                   {diagrams.length > 0
-                    ? `${diagrams.length} diagram${diagrams.length !== 1 ? 's' : ''} with content`
-                    : 'No diagrams with content yet'}
+                    ? t('project.settings.diagrams.countWithContent', { count: diagrams.length })
+                    : t('project.settings.diagrams.noneWithContent')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -328,13 +330,13 @@ export const ProjectSettingsPanel: React.FC = () => {
                     <div key={`${type}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3 transition-colors hover:bg-muted/30">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">{diagram.title}</p>
-                        <p className="text-xs text-muted-foreground">Updated {new Date(diagram.lastUpdate).toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">{t('project.settings.diagrams.updated', { date: new Date(diagram.lastUpdate).toLocaleString() })}</p>
                       </div>
                       <Badge className={DIAGRAM_TYPE_BADGE[type]}>{type.replace('Diagram', '')}</Badge>
                     </div>
                   ))}
                   {diagrams.length === 0 && (
-                    <p className="py-6 text-center text-sm text-muted-foreground">Start editing a diagram to see it here</p>
+                    <p className="py-6 text-center text-sm text-muted-foreground">{t('project.settings.diagrams.empty')}</p>
                   )}
                 </div>
               </CardContent>
@@ -345,12 +347,10 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="size-4 text-brand" />
-                  <CardTitle className="text-base">Modeling Perspectives</CardTitle>
+                  <CardTitle className="text-base">{t('project.settings.perspectives.title')}</CardTitle>
                 </div>
                 <CardDescription>
-                  Hide perspectives you don't need. Use a preset to flip several at once, or toggle each individually
-                  below. Disabled perspectives are removed from the sidebar; existing models are preserved and restored
-                  on re-enable. Generators remain available regardless.
+                  {t('project.settings.perspectives.description')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
@@ -358,7 +358,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     <Sparkles className="size-3.5" />
-                    <span>Quick presets</span>
+                    <span>{t('project.settings.perspectives.quickPresets')}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {PERSPECTIVES.map((preset) => {
@@ -397,7 +397,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                           className={`flex items-center justify-between gap-4 rounded-lg px-1 py-3 transition-colors ${
                             isLastEnabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer hover:bg-muted/30'
                           }`}
-                          title={isLastEnabled ? 'At least one perspective must be enabled.' : undefined}
+                          title={isLastEnabled ? t('project.settings.perspectives.lastEnabledTitle') : undefined}
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -416,7 +416,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                             className="size-4 accent-brand"
                             checked={checked}
                             disabled={isLastEnabled}
-                            aria-label={`Toggle ${PERSPECTIVE_LABELS[type]} visibility`}
+                            aria-label={t('project.settings.perspectives.toggleAria', { label: PERSPECTIVE_LABELS[type] })}
                             data-testid={`perspective-toggle-${type}`}
                             onChange={(event) =>
                               handlePerspectiveToggle(type, event.target.checked)

@@ -1,0 +1,210 @@
+{
+  "views": {
+    "modelling": "Modelatge",
+    "exporting": "Interactiu",
+    "highlight": "Mostra els elements interactius"
+  },
+  "sidebar": {
+    "classAttribute": "atribut",
+    "classMethod": "+ mètode()",
+    "enumAttribute": "Valor",
+    "objectAttribute": "atribut = valor"
+  },
+  "popup": {
+    "attributes": "Atributs",
+    "methods": "Mètodes",
+    "relationship": "Relació",
+    "association": "Associació",
+    "multiplicity": "Multiplicitat",
+    "role": "Rol",
+    "messages": "Missatges",
+    "condition": "Condicions",
+    "tokens": "Tokens",
+    "capacity": "Capacitat",
+    "intent_name": "Nom de la intenció",
+    "training_sentences": "Frases d'entrenament",
+    "objectLink": "Enllaç d'objecte",
+    "linkDetails": "Detalls de l'enllaç",
+    "noAssociation": "Cap associació",
+    "noAssociationsAvailable": "No hi ha associacions disponibles per a les classes d'objectes connectades"
+  },
+  "assessment": {
+    "assessment": "Avaluació de",
+    "score": "Punts",
+    "feedback": "Comentaris",
+    "feedbackPlaceholder": "Podeu introduir comentaris aquí...",
+    "additionalFeedbackPlaceholder": "Podeu introduir comentaris addicionals aquí..."
+  },
+  "packages": {
+    "ClassDiagram": {
+      "Package": "Paquet",
+      "Class": "Classe",
+      "AbstractClass": "Abstracta",
+      "Interface": "Interfície",
+      "Enumeration": "Enumeració",
+      "ClassAttribute": "Atribut",
+      "ClassMethod": "Mètode",
+      "ClassAggregation": "Agregació",
+      "ClassBidirectional": "Associació (bidireccional)",
+      "ClassComposition": "Composició",
+      "ClassDependency": "Dependència",
+      "ClassInheritance": "Generalització",
+      "ClassRealization": "Realització",
+      "ClassUnidirectional": "Associació (unidireccional)",
+      "ClassOCLConstraint": "Restricció OCL"
+    },
+    "ObjectDiagram": {
+      "ObjectName": "Objecte",
+      "ObjectAttribute": "Atribut",
+      "ObjectMethod": "Mètode",
+      "ObjectLink": "Relació"
+    },
+    "ActivityDiagram": {
+      "Activity": "Activitat",
+      "ActivityActionNode": "Acció",
+      "ActivityFinalNode": "Node final",
+      "ActivityForkNode": "Node de bifurcació",
+      "ActivityInitialNode": "Node inicial",
+      "ActivityMergeNode": "Condició",
+      "ActivityObjectNode": "Objecte",
+      "ActivityControlFlow": "Flux de control"
+    },
+    "UseCaseDiagram": {
+      "UseCase": "Cas d'ús",
+      "UseCaseActor": "Actor",
+      "UseCaseSystem": "Sistema",
+      "UseCaseAssociation": "Associació",
+      "UseCaseExtend": "Extensió",
+      "UseCaseGeneralization": "Generalització",
+      "UseCaseInclude": "Inclusió"
+    },
+    "CommunicationDiagram": {
+      "ObjectName": "Objecte",
+      "ObjectAttribute": "Atribut",
+      "ObjectMethod": "Mètode",
+      "CommunicationLink": "Enllaç de comunicació"
+    },
+    "ComponentDiagram": {
+      "Component": "Component",
+      "Subsystem": "Subsistema",
+      "ComponentDependency": "Dependència",
+      "ComponentInterface": "Interfície",
+      "ComponentInterfaceProvided": "Interfície proporcionada",
+      "ComponentInterfaceRequired": "Interfície requerida"
+    },
+    "DeploymentDiagram": {
+      "DeploymentNode": "Node",
+      "DeploymentComponent": "Component",
+      "DeploymentArtifact": "Artefacte",
+      "DeploymentInterface": "Interfície",
+      "DeploymentInterfaceProvided": "Interfície proporcionada",
+      "DeploymentInterfaceRequired": "Interfície requerida",
+      "DeploymentAssociation": "Associació de desplegament",
+      "DeploymentDependency": "Dependència de desplegament"
+    },
+    "PetriNet": {
+      "PetriNetPlace": "Lloc",
+      "PetriNetTransition": "Transició"
+    },
+    "ReachabilityGraph": {
+      "ReachabilityGraphIsInitialMarking": "És el marcatge inicial",
+      "ReachabilityGraphMarking": "Marcatge"
+    },
+    "SyntaxTree": {
+      "SyntaxTreeTerminal": "Terminal",
+      "SyntaxTreeNonterminal": "No terminal",
+      "SyntaxTreeLink": "Enllaç"
+    },
+    "Flowchart": {
+      "FlowchartTerminal": "Terminal",
+      "FlowchartDecision": "Decisió",
+      "FlowchartProcess": "Procés",
+      "FlowchartFunctionCall": "Crida a funció",
+      "FlowchartInputOutput": "Entrada/Sortida",
+      "FlowchartFlowline": "Línia de flux"
+    },
+    "ColorLegend": {
+      "ColorLegend": "Descripció de colors"
+    },
+    "BPMN": {
+      "BPMNTask": "Tasca",
+      "BPMNUserTask": "Tasca d'usuari",
+      "BPMNSendTask": "Tasca d'enviament",
+      "BPMNReceiveTask": "Tasca de recepció",
+      "BPMNManualTask": "Tasca manual",
+      "BPMNBusinessRuleTask": "Tasca de regla de negoci",
+      "BPMNScriptTask": "Tasca de script",
+      "BPMNSubprocess": "Subprocés",
+      "BPMNTransaction": "Transacció",
+      "BPMNCallActivity": "Activitat de crida",
+      "BPMNAnnotation": "Anotació",
+      "BPMNStartEvent": "Esdeveniment d'inici",
+      "BPMNMessageStartEvent": "Esdeveniment d'inici per missatge",
+      "BPMNTimerStartEvent": "Esdeveniment d'inici per temporitzador",
+      "BPMNConditionalStartEvent": "Esdeveniment d'inici condicional",
+      "BPMNSignalStartEvent": "Esdeveniment d'inici per senyal",
+      "BPMNIntermediateEvent": "Esdeveniment intermedi",
+      "BPMNMessageIntermediateCatchEvent": "Esdeveniment intermedi de recepció de missatge",
+      "BPMNMessageIntermediateThrowEvent": "Esdeveniment intermedi d'emissió de missatge",
+      "BPMNTimerIntermediateCatchEvent": "Esdeveniment intermedi de recepció per temporitzador",
+      "BPMNEscalationIntermediateThrowEvent": "Esdeveniment intermedi d'emissió per escalada",
+      "BPMNConditionalIntermediateCatchEvent": "Esdeveniment intermedi de recepció condicional",
+      "BPMNLinkIntermediateCatchEvent": "Esdeveniment intermedi de recepció per enllaç",
+      "BPMNLinkIntermediateThrowEvent": "Esdeveniment intermedi d'emissió per enllaç",
+      "BPMNCompensationIntermediateThrowEvent": "Esdeveniment intermedi d'emissió per compensació",
+      "BPMNSignalIntermediateCatchEvent": "Esdeveniment intermedi de recepció per senyal",
+      "BPMNSignalIntermediateThrowEvent": "Esdeveniment intermedi d'emissió per senyal",
+      "BPMNEndEvent": "Esdeveniment de fi",
+      "BPMNMessageEndEvent": "Esdeveniment de fi per missatge",
+      "BPMNEscalationEndEvent": "Esdeveniment de fi per escalada",
+      "BPMNErrorEndEvent": "Esdeveniment de fi per error",
+      "BPMNCompensationEndEvent": "Esdeveniment de fi per compensació",
+      "BPMNSignalEndEvent": "Esdeveniment de fi per senyal",
+      "BPMNTerminateEndEvent": "Esdeveniment de fi de terminació",
+      "BPMNGateway": "Passarel·la",
+      "BPMNComplexGateway": "Complexa",
+      "BPMNEventBasedGateway": "Basada en esdeveniments",
+      "BPMNInclusiveGateway": "Inclusiva",
+      "BPMNExclusiveGateway": "Exclusiva",
+      "BPMNParallelGateway": "Paral·lela",
+      "BPMNConversation": "Conversa",
+      "BPMNCallConversation": "Conversa de crida",
+      "BPMNSequenceFlow": "Seqüència",
+      "BPMNMessageFlow": "Missatge",
+      "BPMNAssociationFlow": "Associació",
+      "BPMNDataAssociationFlow": "Associació de dades",
+      "BPMNDataObject": "Objecte de dades",
+      "BPMNPool": "Pool",
+      "BPMNSwimlane": "Carril",
+      "BPMNSwimlanes": "Carrils",
+      "BPMNGroup": "Grup"
+    },
+    "NNDiagram": {
+      "NNContainer": "Neural_Network",
+      "NNReference": "Referència sub-XN",
+      "SelectNN": "Selecciona la xarxa neuronal",
+      "SelectNNPlaceholder": "-- Selecciona XN --",
+      "Conv1DLayer": "Capa Conv1D",
+      "Conv2DLayer": "Capa Conv2D",
+      "Conv3DLayer": "Capa Conv3D",
+      "PoolingLayer": "Capa de pooling",
+      "RNNLayer": "Capa RNN",
+      "LSTMLayer": "Capa LSTM",
+      "GRULayer": "Capa GRU",
+      "LinearLayer": "Capa lineal",
+      "FlattenLayer": "Capa d'aplanament",
+      "EmbeddingLayer": "Capa d'embedding",
+      "DropoutLayer": "Capa de dropout",
+      "LayerNormalizationLayer": "Capa de normalització de capa",
+      "BatchNormalizationLayer": "Capa de normalització per lots",
+      "TensorOp": "Operació tensorial",
+      "Configuration": "Configuració",
+      "TrainingDataset": "Conjunt de dades d'entrenament",
+      "TestDataset": "Conjunt de dades de prova",
+      "Datasets": "Conjunts de dades XN"
+    },
+    "OCLConstraint": {
+      "Constraint": "Restricció OCL"
+    }
+  }
+}

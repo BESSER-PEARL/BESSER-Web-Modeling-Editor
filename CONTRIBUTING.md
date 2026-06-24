@@ -85,8 +85,10 @@ include:
   suggesting workarounds.
 - **Feedback** — sharing how you use the editor, what is missing, what is
   confusing. Open an issue or discussion.
-- **Translations** — adding or improving locale files in
-  `packages/editor/src/main/i18n/`.
+- **Translations** — adding or improving a language. The editor is multilingual
+  (English, Luxembourgish, German, French, Spanish, Catalan); you can fix a few
+  strings or add a whole new language. No coding required — see
+  **[docs/TRANSLATING.md](docs/TRANSLATING.md)** for the step-by-step workflow.
 
 If you are looking for a starting point, browse issues labeled
 [`good first issue`](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/labels/good%20first%20issue)
@@ -195,6 +197,7 @@ python besser/utilities/web_modeling_editor/backend/backend.py
 | `npm run lint`                                  | ESLint across workspaces                           |
 | `npm run prettier:check` / `prettier:write`     | Check / auto-format with Prettier                  |
 | `npm run test`                                  | Vitest unit tests (webapp)                        |
+| `npm run i18n:check`                            | Translation key parity + coverage per language     |
 | `npm run test:e2e`                              | Playwright end-to-end tests                        |
 | `npm run test:e2e:ui`                           | Playwright with interactive UI                     |
 

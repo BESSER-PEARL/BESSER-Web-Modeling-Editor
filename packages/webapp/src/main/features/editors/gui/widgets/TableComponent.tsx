@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface TableColumn {
   field: string;
@@ -31,6 +32,7 @@ export const TableComponent: React.FC<TableComponentProps> = ({
   actionButtons = true,
   dataBinding,
 }) => {
+  const { t } = useTranslation();
   const headerColor = useMemo(() => {
     if (typeof color === 'string' && color.trim().length > 0) {
       return color;
@@ -48,10 +50,10 @@ export const TableComponent: React.FC<TableComponentProps> = ({
       }));
     }
     return [
-      { field: 'label', label: 'Label' },
-      { field: 'value', label: 'Value' },
+      { field: 'label', label: t('editors.table.columnLabel') },
+      { field: 'value', label: t('editors.table.columnValue') },
     ];
-  }, [columns]);
+  }, [columns, t]);
 
   const placeholderRows = useMemo(() => {
     const sampleRowCount = Math.max(3, resolvedColumns.length || 1);
@@ -76,7 +78,7 @@ export const TableComponent: React.FC<TableComponentProps> = ({
 
   // Get class/entity name for Add button
   const entityName = typeof dataBinding?.entity === 'string' && dataBinding.entity ? dataBinding.entity : '';
-  const addButtonText = entityName ? `Add ${entityName}` : 'Add Register';
+  const addButtonText = entityName ? t('editors.table.addEntity', { entity: entityName }) : t('editors.table.addRegister');
 
   return (
     <div
@@ -103,7 +105,7 @@ export const TableComponent: React.FC<TableComponentProps> = ({
           {title}
         </h3>
         <p style={{ margin: 0, color: '#666', fontSize: '13px', fontFamily: 'Arial, sans-serif' }}>
-          Data preview only. Configure bindings to connect table rows to your domain model.
+          {t('editors.table.previewDescription')}
         </p>
       </div>
 
@@ -206,8 +208,8 @@ export const TableComponent: React.FC<TableComponentProps> = ({
                           alignItems: 'center',
                         }}
                         type="button"
-                        title="Edit"
-                        aria-label="Edit row"
+                        title={t('editors.table.edit')}
+                        aria-label={t('editors.table.editRow')}
                         onClick={() => {}}
                       >
                         {/* Modern pencil icon */}
@@ -223,8 +225,8 @@ export const TableComponent: React.FC<TableComponentProps> = ({
                           alignItems: 'center',
                         }}
                         type="button"
-                        title="Remove"
-                        aria-label="Remove row"
+                        title={t('editors.table.remove')}
+                        aria-label={t('editors.table.removeRow')}
                         onClick={() => {}}
                       >
                         {/* Modern trash icon */}
@@ -252,9 +254,9 @@ export const TableComponent: React.FC<TableComponentProps> = ({
           }}
         >
           <span>
-            Showing {visibleRows.length} of {sourceRows.length} rows
+            {t('editors.table.showingRows', { visible: visibleRows.length, total: sourceRows.length })}
           </span>
-          <span>Rows per page: {pageSize}</span>
+          <span>{t('editors.table.rowsPerPage', { count: pageSize })}</span>
         </div>
       )}
     </div>

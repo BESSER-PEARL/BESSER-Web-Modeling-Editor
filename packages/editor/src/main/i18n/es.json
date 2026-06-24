@@ -1,0 +1,210 @@
+{
+  "views": {
+    "modelling": "Modelado",
+    "exporting": "Interactivo",
+    "highlight": "Mostrar elementos interactivos"
+  },
+  "sidebar": {
+    "classAttribute": "atributo",
+    "classMethod": "+ método()",
+    "enumAttribute": "Valor",
+    "objectAttribute": "atributo = valor"
+  },
+  "popup": {
+    "attributes": "Atributos",
+    "methods": "Métodos",
+    "relationship": "Relación",
+    "association": "Asociación",
+    "multiplicity": "Multiplicidad",
+    "role": "Rol",
+    "messages": "Mensajes",
+    "condition": "Condiciones",
+    "tokens": "Tokens",
+    "capacity": "Capacidad",
+    "intent_name": "Nombre de la intención",
+    "training_sentences": "Frases de entrenamiento",
+    "objectLink": "Enlace de objeto",
+    "linkDetails": "Detalles del enlace",
+    "noAssociation": "Sin asociación",
+    "noAssociationsAvailable": "No hay asociaciones disponibles para las clases de objetos conectadas"
+  },
+  "assessment": {
+    "assessment": "Evaluación de",
+    "score": "Puntos",
+    "feedback": "Comentarios",
+    "feedbackPlaceholder": "Puede introducir comentarios aquí...",
+    "additionalFeedbackPlaceholder": "Puede introducir comentarios adicionales aquí..."
+  },
+  "packages": {
+    "ClassDiagram": {
+      "Package": "Paquete",
+      "Class": "Clase",
+      "AbstractClass": "Abstracta",
+      "Interface": "Interfaz",
+      "Enumeration": "Enumeración",
+      "ClassAttribute": "Atributo",
+      "ClassMethod": "Método",
+      "ClassAggregation": "Agregación",
+      "ClassBidirectional": "Asociación (bidireccional)",
+      "ClassComposition": "Composición",
+      "ClassDependency": "Dependencia",
+      "ClassInheritance": "Generalización",
+      "ClassRealization": "Realización",
+      "ClassUnidirectional": "Asociación (unidireccional)",
+      "ClassOCLConstraint": "Restricción OCL"
+    },
+    "ObjectDiagram": {
+      "ObjectName": "Objeto",
+      "ObjectAttribute": "Atributo",
+      "ObjectMethod": "Método",
+      "ObjectLink": "Relación"
+    },
+    "ActivityDiagram": {
+      "Activity": "Actividad",
+      "ActivityActionNode": "Acción",
+      "ActivityFinalNode": "Nodo final",
+      "ActivityForkNode": "Nodo de bifurcación",
+      "ActivityInitialNode": "Nodo inicial",
+      "ActivityMergeNode": "Condición",
+      "ActivityObjectNode": "Objeto",
+      "ActivityControlFlow": "Flujo de control"
+    },
+    "UseCaseDiagram": {
+      "UseCase": "Caso de uso",
+      "UseCaseActor": "Actor",
+      "UseCaseSystem": "Sistema",
+      "UseCaseAssociation": "Asociación",
+      "UseCaseExtend": "Extender",
+      "UseCaseGeneralization": "Generalización",
+      "UseCaseInclude": "Incluir"
+    },
+    "CommunicationDiagram": {
+      "ObjectName": "Objeto",
+      "ObjectAttribute": "Atributo",
+      "ObjectMethod": "Método",
+      "CommunicationLink": "Enlace de comunicación"
+    },
+    "ComponentDiagram": {
+      "Component": "Componente",
+      "Subsystem": "Subsistema",
+      "ComponentDependency": "Dependencia",
+      "ComponentInterface": "Interfaz",
+      "ComponentInterfaceProvided": "Interfaz proporcionada",
+      "ComponentInterfaceRequired": "Interfaz requerida"
+    },
+    "DeploymentDiagram": {
+      "DeploymentNode": "Nodo",
+      "DeploymentComponent": "Componente",
+      "DeploymentArtifact": "Artefacto",
+      "DeploymentInterface": "Interfaz",
+      "DeploymentInterfaceProvided": "Interfaz proporcionada",
+      "DeploymentInterfaceRequired": "Interfaz requerida",
+      "DeploymentAssociation": "Asociación de despliegue",
+      "DeploymentDependency": "Dependencia de despliegue"
+    },
+    "PetriNet": {
+      "PetriNetPlace": "Lugar",
+      "PetriNetTransition": "Transición"
+    },
+    "ReachabilityGraph": {
+      "ReachabilityGraphIsInitialMarking": "Es el marcado inicial",
+      "ReachabilityGraphMarking": "Marcado"
+    },
+    "SyntaxTree": {
+      "SyntaxTreeTerminal": "Terminal",
+      "SyntaxTreeNonterminal": "No terminal",
+      "SyntaxTreeLink": "Enlace"
+    },
+    "Flowchart": {
+      "FlowchartTerminal": "Terminal",
+      "FlowchartDecision": "Decisión",
+      "FlowchartProcess": "Proceso",
+      "FlowchartFunctionCall": "Llamada a función",
+      "FlowchartInputOutput": "Entrada/Salida",
+      "FlowchartFlowline": "Línea de flujo"
+    },
+    "ColorLegend": {
+      "ColorLegend": "Descripción de colores"
+    },
+    "BPMN": {
+      "BPMNTask": "Tarea",
+      "BPMNUserTask": "Tarea de usuario",
+      "BPMNSendTask": "Tarea de envío",
+      "BPMNReceiveTask": "Tarea de recepción",
+      "BPMNManualTask": "Tarea manual",
+      "BPMNBusinessRuleTask": "Tarea de regla de negocio",
+      "BPMNScriptTask": "Tarea de script",
+      "BPMNSubprocess": "Subproceso",
+      "BPMNTransaction": "Transacción",
+      "BPMNCallActivity": "Actividad de llamada",
+      "BPMNAnnotation": "Anotación",
+      "BPMNStartEvent": "Evento de inicio",
+      "BPMNMessageStartEvent": "Evento de inicio por mensaje",
+      "BPMNTimerStartEvent": "Evento de inicio por temporizador",
+      "BPMNConditionalStartEvent": "Evento de inicio condicional",
+      "BPMNSignalStartEvent": "Evento de inicio por señal",
+      "BPMNIntermediateEvent": "Evento intermedio",
+      "BPMNMessageIntermediateCatchEvent": "Evento intermedio de recepción de mensaje",
+      "BPMNMessageIntermediateThrowEvent": "Evento intermedio de emisión de mensaje",
+      "BPMNTimerIntermediateCatchEvent": "Evento intermedio de recepción por temporizador",
+      "BPMNEscalationIntermediateThrowEvent": "Evento intermedio de emisión por escalada",
+      "BPMNConditionalIntermediateCatchEvent": "Evento intermedio de recepción condicional",
+      "BPMNLinkIntermediateCatchEvent": "Evento intermedio de recepción por enlace",
+      "BPMNLinkIntermediateThrowEvent": "Evento intermedio de emisión por enlace",
+      "BPMNCompensationIntermediateThrowEvent": "Evento intermedio de emisión por compensación",
+      "BPMNSignalIntermediateCatchEvent": "Evento intermedio de recepción por señal",
+      "BPMNSignalIntermediateThrowEvent": "Evento intermedio de emisión por señal",
+      "BPMNEndEvent": "Evento de fin",
+      "BPMNMessageEndEvent": "Evento de fin por mensaje",
+      "BPMNEscalationEndEvent": "Evento de fin por escalada",
+      "BPMNErrorEndEvent": "Evento de fin por error",
+      "BPMNCompensationEndEvent": "Evento de fin por compensación",
+      "BPMNSignalEndEvent": "Evento de fin por señal",
+      "BPMNTerminateEndEvent": "Evento de fin de terminación",
+      "BPMNGateway": "Compuerta",
+      "BPMNComplexGateway": "Compleja",
+      "BPMNEventBasedGateway": "Basada en eventos",
+      "BPMNInclusiveGateway": "Inclusiva",
+      "BPMNExclusiveGateway": "Exclusiva",
+      "BPMNParallelGateway": "Paralela",
+      "BPMNConversation": "Conversación",
+      "BPMNCallConversation": "Conversación de llamada",
+      "BPMNSequenceFlow": "Secuencia",
+      "BPMNMessageFlow": "Mensaje",
+      "BPMNAssociationFlow": "Asociación",
+      "BPMNDataAssociationFlow": "Asociación de datos",
+      "BPMNDataObject": "Objeto de datos",
+      "BPMNPool": "Pool",
+      "BPMNSwimlane": "Carril",
+      "BPMNSwimlanes": "Carriles",
+      "BPMNGroup": "Grupo"
+    },
+    "NNDiagram": {
+      "NNContainer": "Neural_Network",
+      "NNReference": "Referencia sub-RN",
+      "SelectNN": "Seleccionar red neuronal",
+      "SelectNNPlaceholder": "-- Seleccionar RN --",
+      "Conv1DLayer": "Capa Conv1D",
+      "Conv2DLayer": "Capa Conv2D",
+      "Conv3DLayer": "Capa Conv3D",
+      "PoolingLayer": "Capa de pooling",
+      "RNNLayer": "Capa RNN",
+      "LSTMLayer": "Capa LSTM",
+      "GRULayer": "Capa GRU",
+      "LinearLayer": "Capa lineal",
+      "FlattenLayer": "Capa de aplanamiento",
+      "EmbeddingLayer": "Capa de embedding",
+      "DropoutLayer": "Capa de dropout",
+      "LayerNormalizationLayer": "Capa de normalización de capa",
+      "BatchNormalizationLayer": "Capa de normalización por lotes",
+      "TensorOp": "Operación tensorial",
+      "Configuration": "Configuración",
+      "TrainingDataset": "Conjunto de datos de entrenamiento",
+      "TestDataset": "Conjunto de datos de prueba",
+      "Datasets": "Conjuntos de datos RN"
+    },
+    "OCLConstraint": {
+      "Constraint": "Restricción OCL"
+    }
+  }
+}

@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FolderKanban } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { CommunityMenu } from './menus/CommunityMenu';
+import { LanguageSelector } from './LanguageSelector';
 import { DeployMenu } from './menus/DeployMenu';
 import { FileMenu } from './menus/FileMenu';
 import { GenerateMenu } from './menus/GenerateMenu';
@@ -61,6 +62,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onProjectNameDraftChange,
   onProjectRename,
 }) => {
+  const { t } = useTranslation();
   return (
     <header className={`relative z-20 animate-slide-in-down px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
       <div className="flex items-center justify-between gap-3">
@@ -68,7 +70,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           <button
             type="button"
             onClick={onOpenProjectHub}
-            aria-label="Open project hub"
+            aria-label={t('topbar.openProjectHub')}
             className="group flex shrink-0 items-center p-0 text-left transition-opacity hover:opacity-85"
           >
             <img
@@ -89,12 +91,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
                 }
               }}
               className="h-7 w-36 border-none bg-transparent px-1 py-0 text-sm font-medium shadow-none focus-visible:ring-0"
-              placeholder="Project name"
+              placeholder={t('topbar.projectName')}
             />
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center gap-1 xl:gap-2">
+        <div className="flex min-w-0 items-center gap-1 xl:gap-1.5">
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}
@@ -121,17 +123,15 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogin={onGitHubLogin}
             onOpenDeployDialog={onOpenDeployDialog}
           />
-          <CommunityMenu
-            outlineButtonClass={outlineButtonClass}
-            onOpenFeedback={onOpenFeedback}
-          />
           <HelpMenu
             outlineButtonClass={outlineButtonClass}
             onOpenHelpDialog={onOpenHelpDialog}
             onOpenAboutDialog={onOpenAboutDialog}
             onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
             onShowWelcomeGuide={onShowWelcomeGuide}
+            onOpenFeedback={onOpenFeedback}
           />
+          <span aria-hidden="true" className="mx-0.5 hidden h-6 w-px bg-border/60 sm:block" />
           <TopBarUtilities
             showQualityCheck={showQualityCheck}
             outlineButtonClass={outlineButtonClass}
@@ -153,6 +153,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onOpenGitHubSidebar={onOpenGitHubSidebar}
             onToggleStar={onToggleStar}
           />
+          <LanguageSelector outlineButtonClass={outlineButtonClass} />
         </div>
       </div>
       <MobileNavigation

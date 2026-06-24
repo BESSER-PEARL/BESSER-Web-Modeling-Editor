@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { apiClient, ApiError } from '../../../shared/api/api-client';
 import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
@@ -96,6 +97,7 @@ const toGitHubRepoResult = (
  * This can be used independently for any GitHub repo operations.
  */
 export const useGitHubRepo = () => {
+  const { t } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
   const [repoResult, setRepoResult] = useState<GitHubRepoResult | null>(null);
 
@@ -111,11 +113,11 @@ export const useGitHubRepo = () => {
       options: CreateRepoOptions
     ): Promise<GitHubRepoResult | null> => {
       if (!projectData) {
-        toast.error('No project to deploy.');
+        toast.error(t('github.toasts.noProjectToDeploy'));
         return null;
       }
       if (!options.githubSession) {
-        toast.error('Not signed in to GitHub.');
+        toast.error(t('github.toasts.notSignedIn'));
         return null;
       }
 
@@ -250,11 +252,11 @@ export const useGitHubRepo = () => {
         if (repoResult.success) {
           toast.success(
             useExisting
-              ? `Repository updated: ${repoResult.repo_name}`
-              : `Repository created: ${repoResult.repo_name}`
+              ? t('github.toasts.repoUpdated', { name: repoResult.repo_name })
+              : t('github.toasts.repoCreated', { name: repoResult.repo_name })
           );
         } else {
-          toast.error('Deployment failed');
+          toast.error(t('github.toasts.deploymentFailed'));
         }
 
         return repoResult;
@@ -264,7 +266,7 @@ export const useGitHubRepo = () => {
             ? error.message
             : error instanceof Error
               ? error.message
-              : 'Repository creation failed';
+              : t('github.toasts.repoCreationFailed');
         toast.error(errorMessage);
         console.error('GitHub repository creation error:', error);
         return null;
@@ -272,7 +274,7 @@ export const useGitHubRepo = () => {
         setIsCreating(false);
       }
     },
-    []
+    [t]
   );
 
   return {

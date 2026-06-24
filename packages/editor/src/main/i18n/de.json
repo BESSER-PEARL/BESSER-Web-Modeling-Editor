@@ -1,0 +1,210 @@
+{
+  "views": {
+    "modelling": "Modellierung",
+    "exporting": "Interaktiv",
+    "highlight": "Interaktive Elemente anzeigen"
+  },
+  "sidebar": {
+    "classAttribute": "attribut",
+    "classMethod": "+ methode()",
+    "enumAttribute": "Wert",
+    "objectAttribute": "attribut = wert"
+  },
+  "popup": {
+    "attributes": "Attribute",
+    "methods": "Methoden",
+    "relationship": "Beziehung",
+    "association": "Assoziation",
+    "multiplicity": "Multiplizität",
+    "role": "Rolle",
+    "messages": "Nachrichten",
+    "condition": "Bedingungen",
+    "tokens": "Token",
+    "capacity": "Kapazität",
+    "intent_name": "Intent-Name",
+    "training_sentences": "Trainingssätze",
+    "objectLink": "Objektverknüpfung",
+    "linkDetails": "Verknüpfungsdetails",
+    "noAssociation": "Keine Assoziation",
+    "noAssociationsAvailable": "Keine Assoziationen für die verbundenen Objektklassen verfügbar"
+  },
+  "assessment": {
+    "assessment": "Bewertung für",
+    "score": "Punkte",
+    "feedback": "Feedback",
+    "feedbackPlaceholder": "Sie können hier Feedback eingeben...",
+    "additionalFeedbackPlaceholder": "Sie können hier zusätzliches Feedback eingeben..."
+  },
+  "packages": {
+    "ClassDiagram": {
+      "Package": "Paket",
+      "Class": "Klasse",
+      "AbstractClass": "Abstrakt",
+      "Interface": "Schnittstelle",
+      "Enumeration": "Aufzählung",
+      "ClassAttribute": "Attribut",
+      "ClassMethod": "Methode",
+      "ClassAggregation": "Aggregation",
+      "ClassBidirectional": "Assoziation (bidirektional)",
+      "ClassComposition": "Komposition",
+      "ClassDependency": "Abhängigkeit",
+      "ClassInheritance": "Generalisierung",
+      "ClassRealization": "Realisierung",
+      "ClassUnidirectional": "Assoziation (unidirektional)",
+      "ClassOCLConstraint": "OCL-Einschränkung"
+    },
+    "ObjectDiagram": {
+      "ObjectName": "Objekt",
+      "ObjectAttribute": "Attribut",
+      "ObjectMethod": "Methode",
+      "ObjectLink": "Beziehung"
+    },
+    "ActivityDiagram": {
+      "Activity": "Aktivität",
+      "ActivityActionNode": "Aktion",
+      "ActivityFinalNode": "Endknoten",
+      "ActivityForkNode": "Verzweigungsknoten",
+      "ActivityInitialNode": "Startknoten",
+      "ActivityMergeNode": "Bedingung",
+      "ActivityObjectNode": "Objekt",
+      "ActivityControlFlow": "Kontrollfluss"
+    },
+    "UseCaseDiagram": {
+      "UseCase": "Anwendungsfall",
+      "UseCaseActor": "Akteur",
+      "UseCaseSystem": "System",
+      "UseCaseAssociation": "Assoziation",
+      "UseCaseExtend": "Erweitern",
+      "UseCaseGeneralization": "Generalisierung",
+      "UseCaseInclude": "Einschließen"
+    },
+    "CommunicationDiagram": {
+      "ObjectName": "Objekt",
+      "ObjectAttribute": "Attribut",
+      "ObjectMethod": "Methode",
+      "CommunicationLink": "Kommunikationsverbindung"
+    },
+    "ComponentDiagram": {
+      "Component": "Komponente",
+      "Subsystem": "Subsystem",
+      "ComponentDependency": "Abhängigkeit",
+      "ComponentInterface": "Schnittstelle",
+      "ComponentInterfaceProvided": "Bereitgestellte Schnittstelle",
+      "ComponentInterfaceRequired": "Benötigte Schnittstelle"
+    },
+    "DeploymentDiagram": {
+      "DeploymentNode": "Knoten",
+      "DeploymentComponent": "Komponente",
+      "DeploymentArtifact": "Artefakt",
+      "DeploymentInterface": "Schnittstelle",
+      "DeploymentInterfaceProvided": "Bereitgestellte Schnittstelle",
+      "DeploymentInterfaceRequired": "Benötigte Schnittstelle",
+      "DeploymentAssociation": "Deployment-Assoziation",
+      "DeploymentDependency": "Deployment-Abhängigkeit"
+    },
+    "PetriNet": {
+      "PetriNetPlace": "Stelle",
+      "PetriNetTransition": "Transition"
+    },
+    "ReachabilityGraph": {
+      "ReachabilityGraphIsInitialMarking": "Ist Anfangsmarkierung",
+      "ReachabilityGraphMarking": "Markierung"
+    },
+    "SyntaxTree": {
+      "SyntaxTreeTerminal": "Terminal",
+      "SyntaxTreeNonterminal": "Nichtterminal",
+      "SyntaxTreeLink": "Verknüpfung"
+    },
+    "Flowchart": {
+      "FlowchartTerminal": "Terminal",
+      "FlowchartDecision": "Entscheidung",
+      "FlowchartProcess": "Prozess",
+      "FlowchartFunctionCall": "Funktionsaufruf",
+      "FlowchartInputOutput": "Ein-/Ausgabe",
+      "FlowchartFlowline": "Flusslinie"
+    },
+    "ColorLegend": {
+      "ColorLegend": "Farbbeschreibung"
+    },
+    "BPMN": {
+      "BPMNTask": "Aufgabe",
+      "BPMNUserTask": "Benutzeraufgabe",
+      "BPMNSendTask": "Sendeaufgabe",
+      "BPMNReceiveTask": "Empfangsaufgabe",
+      "BPMNManualTask": "Manuelle Aufgabe",
+      "BPMNBusinessRuleTask": "Geschäftsregelaufgabe",
+      "BPMNScriptTask": "Skriptaufgabe",
+      "BPMNSubprocess": "Teilprozess",
+      "BPMNTransaction": "Transaktion",
+      "BPMNCallActivity": "Aufrufaktivität",
+      "BPMNAnnotation": "Anmerkung",
+      "BPMNStartEvent": "Startereignis",
+      "BPMNMessageStartEvent": "Nachrichten-Startereignis",
+      "BPMNTimerStartEvent": "Timer-Startereignis",
+      "BPMNConditionalStartEvent": "Bedingtes Startereignis",
+      "BPMNSignalStartEvent": "Signal-Startereignis",
+      "BPMNIntermediateEvent": "Zwischenereignis",
+      "BPMNMessageIntermediateCatchEvent": "Nachrichten-Zwischenereignis (Eingang)",
+      "BPMNMessageIntermediateThrowEvent": "Nachrichten-Zwischenereignis (Ausgang)",
+      "BPMNTimerIntermediateCatchEvent": "Timer-Zwischenereignis (Eingang)",
+      "BPMNEscalationIntermediateThrowEvent": "Eskalations-Zwischenereignis (Ausgang)",
+      "BPMNConditionalIntermediateCatchEvent": "Bedingtes Zwischenereignis (Eingang)",
+      "BPMNLinkIntermediateCatchEvent": "Verknüpfungs-Zwischenereignis (Eingang)",
+      "BPMNLinkIntermediateThrowEvent": "Verknüpfungs-Zwischenereignis (Ausgang)",
+      "BPMNCompensationIntermediateThrowEvent": "Kompensations-Zwischenereignis (Ausgang)",
+      "BPMNSignalIntermediateCatchEvent": "Signal-Zwischenereignis (Eingang)",
+      "BPMNSignalIntermediateThrowEvent": "Signal-Zwischenereignis (Ausgang)",
+      "BPMNEndEvent": "Endereignis",
+      "BPMNMessageEndEvent": "Nachrichten-Endereignis",
+      "BPMNEscalationEndEvent": "Eskalations-Endereignis",
+      "BPMNErrorEndEvent": "Fehler-Endereignis",
+      "BPMNCompensationEndEvent": "Kompensations-Endereignis",
+      "BPMNSignalEndEvent": "Signal-Endereignis",
+      "BPMNTerminateEndEvent": "Abbruch-Endereignis",
+      "BPMNGateway": "Gateway",
+      "BPMNComplexGateway": "Komplex",
+      "BPMNEventBasedGateway": "Ereignisbasiert",
+      "BPMNInclusiveGateway": "Inklusiv",
+      "BPMNExclusiveGateway": "Exklusiv",
+      "BPMNParallelGateway": "Parallel",
+      "BPMNConversation": "Konversation",
+      "BPMNCallConversation": "Aufruf-Konversation",
+      "BPMNSequenceFlow": "Sequenz",
+      "BPMNMessageFlow": "Nachricht",
+      "BPMNAssociationFlow": "Assoziation",
+      "BPMNDataAssociationFlow": "Datenassoziation",
+      "BPMNDataObject": "Datenobjekt",
+      "BPMNPool": "Pool",
+      "BPMNSwimlane": "Bahn",
+      "BPMNSwimlanes": "Bahnen",
+      "BPMNGroup": "Gruppe"
+    },
+    "NNDiagram": {
+      "NNContainer": "Neural_Network",
+      "NNReference": "Sub-NN-Referenz",
+      "SelectNN": "Neuronales Netz auswählen",
+      "SelectNNPlaceholder": "-- NN auswählen --",
+      "Conv1DLayer": "Conv1D-Schicht",
+      "Conv2DLayer": "Conv2D-Schicht",
+      "Conv3DLayer": "Conv3D-Schicht",
+      "PoolingLayer": "Pooling-Schicht",
+      "RNNLayer": "RNN-Schicht",
+      "LSTMLayer": "LSTM-Schicht",
+      "GRULayer": "GRU-Schicht",
+      "LinearLayer": "Lineare Schicht",
+      "FlattenLayer": "Flatten-Schicht",
+      "EmbeddingLayer": "Embedding-Schicht",
+      "DropoutLayer": "Dropout-Schicht",
+      "LayerNormalizationLayer": "Layer-Normalization-Schicht",
+      "BatchNormalizationLayer": "Batch-Normalization-Schicht",
+      "TensorOp": "Tensor-Operation",
+      "Configuration": "Konfiguration",
+      "TrainingDataset": "Trainingsdatensatz",
+      "TestDataset": "Testdatensatz",
+      "Datasets": "NN-Datensätze"
+    },
+    "OCLConstraint": {
+      "Constraint": "OCL-Einschränkung"
+    }
+  }
+}

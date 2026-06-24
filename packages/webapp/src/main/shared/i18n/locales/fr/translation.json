@@ -1,0 +1,1522 @@
+{
+  "common": {
+    "connecting": "Connexion...",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "confirm": "Confirmer",
+    "loading": "Chargement...",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "topbar": {
+    "language": "Langue",
+    "openProjectHub": "Ouvrir le hub de projet",
+    "projectName": "Nom du projet",
+    "diagramTitle": "Titre du diagramme",
+    "noDiagram": "Aucun diagramme",
+    "variant": "Variante",
+    "selectAgentVariant": "Sélectionner la variante du modèle d'agent",
+    "baseAgentModel": "Modèle d'agent de base",
+    "switchToLight": "Passer en mode clair",
+    "switchToDark": "Passer en mode sombre",
+    "star": "Star",
+    "starBesser": "Mettre une étoile à BESSER sur GitHub",
+    "githubAccount": "Compte GitHub : {{name}}",
+    "signOut": "Se déconnecter",
+    "githubVersionControl": "Contrôle de version GitHub",
+    "toggleGithubPanel": "Afficher/masquer le panneau de contrôle de version GitHub",
+    "sync": "Sync",
+    "connectGithub": "Connecter GitHub",
+    "quality": {
+      "title": "Contrôle qualité",
+      "validated": "Validé",
+      "issues": "Problèmes",
+      "needsRecheck": "À revérifier",
+      "notValidated": "Non validé"
+    }
+  },
+  "nav": {
+    "editors": "Éditeurs",
+    "collapseSidebar": "Réduire la barre latérale",
+    "expandSidebar": "Développer la barre latérale",
+    "diagram": {
+      "class": "Classe",
+      "object": "Objet",
+      "state": "État",
+      "agent": "Agent",
+      "user": "Utilisateur",
+      "neuralNet": "Réseau de neurones",
+      "gui": "GUI",
+      "quantum": "Quantique"
+    },
+    "route": {
+      "settings": "Paramètres",
+      "agentCustomization": "Personnalisation de l'agent",
+      "agentPersonalization": "Personnalisation avancée de l'agent",
+      "agentMappings": "Correspondances d'agent"
+    }
+  },
+  "menu": {
+    "file": {
+      "title": "Fichier",
+      "projectActions": "Actions du projet",
+      "newOpenImport": "Nouveau / Ouvrir / Importer un projet",
+      "loadTemplate": "Charger un modèle",
+      "exportProject": "Exporter le projet",
+      "importClassDiagramFrom": "Importer un diagramme de classes depuis",
+      "imageToProject": "Image vers projet",
+      "kgToProject": "KG vers projet",
+      "previewProject": "Aperçu du projet"
+    },
+    "generate": {
+      "title": "Générer",
+      "generating": "Génération...",
+      "codeGeneration": "Génération de code",
+      "goToClassDiagram": "Aller au diagramme de classes",
+      "groups": {
+        "web": "Web",
+        "database": "Base de données",
+        "oop": "POO",
+        "schema": "Schéma",
+        "data": "Données"
+      },
+      "actions": {
+        "djangoProject": "Projet Django",
+        "fullBackend": "Backend complet",
+        "webApplication": "Application web",
+        "pythonClasses": "Classes Python",
+        "javaClasses": "Classes Java",
+        "pydanticModels": "Modèles Pydantic",
+        "besserAgent": "Agent BESSER",
+        "jsonObjectExport": "Export d'objet JSON",
+        "userProfileJson": "JSON de profil utilisateur",
+        "qiskitCode": "Code Qiskit"
+      },
+      "notices": {
+        "statemachine": "Les machines à états sont utilisées comme implémentations de méthodes dans les diagrammes de classes. Générez le code à partir du diagramme de classes.",
+        "unavailable": "Pas encore disponible pour ce diagramme"
+      }
+    },
+    "deploy": {
+      "title": "Déployer",
+      "deployment": "Déploiement",
+      "connectGitHub": "Connecter GitHub pour déployer",
+      "publishToRender": "Publier sur Render"
+    },
+    "community": {
+      "title": "Communauté",
+      "contribute": "Contribuer",
+      "githubRepository": "Dépôt GitHub",
+      "sendFeedback": "Envoyer un retour",
+      "userSurvey": "Enquête utilisateur",
+      "reportProblem": "Signaler un problème"
+    },
+    "help": {
+      "title": "Aide",
+      "howItWorks": "Comment fonctionne cet éditeur ?",
+      "userStudyPdf": "Ouvrir les instructions de l'étude utilisateur (PDF)",
+      "startTutorial": "Démarrer le tutoriel",
+      "keyboardShortcuts": "Raccourcis clavier",
+      "aboutBesser": "À propos de BESSER"
+    }
+  },
+  "agentConfig": {
+    "loadingTitle": "Traitement en cours...",
+    "loadingTitle_comment": "",
+    "loading": {
+      "preparing": "Préparation de votre configuration...",
+      "rules": "Application de la correspondance prédéfinie basée sur la littérature pour recommander une configuration adaptée.",
+      "llm": "Cela peut prendre un moment pour concocter la meilleure configuration basée sur un LLM pour le profil utilisateur sélectionné.",
+      "transform": "Cela peut prendre un moment pour concocter la meilleure configuration d'agent transformée et l'appliquer à votre diagramme."
+    },
+    "title": "Personnalisation de l'agent",
+    "subtitle": "Adaptez votre agent à un profil utilisateur spécifique du User Diagram. Ajustez sa façon de parler, son apparence et son comportement pour correspondre à ce public, puis enregistrez le résultat sous forme de configuration nommée entre lesquelles vous pourrez basculer plus tard.",
+    "tabsAriaLabel": "Sections de la configuration de l'agent",
+    "tab": {
+      "runtime": "Exécution de l'agent",
+      "personalization": "Personnalisation"
+    },
+    "loadSavedLabel": "Charger une personnalisation enregistrée",
+    "activeBadgeTitleFallback": "Personnalisation sans nom",
+    "activeLabel": "Active : {{name}}",
+    "unnamedShort": "Sans nom",
+    "selectAriaLabel": "Charger une personnalisation enregistrée",
+    "noSavedYet": "Aucune personnalisation enregistrée pour l'instant",
+    "selectSaved": "Sélectionner une personnalisation enregistrée",
+    "load": "Charger",
+    "section": {
+      "show": "Afficher",
+      "hide": "Masquer"
+    },
+    "profileMapping": {
+      "title": "Association de profil utilisateur",
+      "description": "Sélectionnez le profil utilisateur qui doit guider la personnalisation et les propositions de configuration automatiques.",
+      "label": "Association de profil utilisateur",
+      "noTabs": "Aucun onglet User Diagram avec des modèles disponible pour l'instant",
+      "selectProfile": "Sélectionner un profil utilisateur",
+      "createFirst": "Créez ou chargez d'abord un onglet User Diagram.",
+      "statusLine": "Statut du User Diagram du projet actuel : {{status}}.",
+      "statusAvailable": "disponible",
+      "statusMissing": "manquant"
+    },
+    "propose": {
+      "rules": "Proposer automatiquement une configuration à l'aide de règles prédéfinies",
+      "llm": "Proposer automatiquement une configuration à l'aide de LLM",
+      "rag": "Proposer automatiquement une configuration basée sur RAG"
+    },
+    "recommendation": {
+      "title": "Dernière recommandation basée sur des règles prédéfinies",
+      "matched_one": "{{count}} règle basée sur la littérature correspond.",
+      "matched_other": "{{count}} règles basées sur la littérature correspondent.",
+      "none": "Aucune règle de littérature spécifique ne correspond. Les valeurs par défaut de référence ont été conservées.",
+      "signals": "Signaux détectés : âge {{age}}, langues {{languages}}, multilingue {{multilingual}}.",
+      "na": "s. o.",
+      "matchedRuleFallback": "Règle correspondante"
+    },
+    "runtime": {
+      "title": "Exécution de l'agent",
+      "description": "Paramètres d'exécution du diagramme d'agent actif (plateforme, reconnaissance d'intention, fournisseur/modèle LLM). Ces valeurs sont stockées sur le diagramme d'agent lui-même, et non dans le stockage global.",
+      "platform": "Plateforme",
+      "intent": "Reconnaissance d'intention",
+      "intentClassical": "Classique",
+      "intentLlmBased": "Basée sur LLM",
+      "llm": "LLM",
+      "useDefault": "(utiliser la valeur par défaut)",
+      "defineLlmHint": "Définissez un LLM dans la section LLMs ci-dessous pour l'utiliser ici."
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "LLMs disponibles pour l'agent.",
+      "empty": "Aucun LLM défini pour l'instant. Cliquez sur \"Ajouter un LLM\" pour en créer un.",
+      "add": "Ajouter un LLM"
+    },
+    "row": {
+      "default": "Par défaut",
+      "name": "Nom",
+      "namePlaceholder": "par ex. gpt-4o-mini",
+      "provider": "Fournisseur",
+      "numPrevMessages": "Nombre de messages précédents",
+      "parameters": "Paramètres (JSON)",
+      "globalContext": "Contexte global (facultatif)",
+      "globalContextPlaceholder": "Contexte au niveau système ajouté à chaque invite",
+      "setDefault": "Définir par défaut",
+      "remove": "Supprimer",
+      "unnamedLlm": "(LLM sans nom)",
+      "errors": {
+        "notObject": "Les paramètres doivent être un objet JSON",
+        "invalidJson": "JSON non valide"
+      }
+    },
+    "overview": {
+      "title": "Aperçu de la personnalisation",
+      "description": "Ouvrez une section à la fois pour conserver le même flux d'édition ciblé que dans la version précédente."
+    },
+    "presentation": {
+      "title": "Présentation",
+      "subtitle": "Langue, style, lisibilité, voix et avatar."
+    },
+    "field": {
+      "language": "Langue",
+      "style": "Style",
+      "languageComplexity": "Complexité du langage",
+      "sentenceLength": "Longueur des phrases"
+    },
+    "language": {
+      "original": "Original",
+      "english": "Anglais",
+      "spanish": "Espagnol",
+      "french": "Français",
+      "german": "Allemand",
+      "portuguese": "Portugais",
+      "luxembourgish": "Luxembourgeois",
+      "italian": "Italien"
+    },
+    "style": {
+      "original": "Original",
+      "formal": "Formel",
+      "informal": "Informel",
+      "friendly": "Amical",
+      "technical": "Technique"
+    },
+    "complexity": {
+      "original": "Original",
+      "simple": "Simple",
+      "medium": "Moyen",
+      "complex": "Complexe"
+    },
+    "sentence": {
+      "original": "Original",
+      "concise": "Concis",
+      "verbose": "Détaillé"
+    },
+    "useAbbreviations": "Utiliser des abréviations",
+    "interface": {
+      "heading": "Style du texte dans l'interface",
+      "size": "Taille",
+      "font": "Police",
+      "lineSpacing": "Interligne",
+      "alignment": "Alignement",
+      "contrast": "Contraste"
+    },
+    "font": {
+      "sans": "Sans",
+      "serif": "Serif",
+      "monospace": "Monospace",
+      "neutral": "Neutre",
+      "grotesque": "Grotesque",
+      "condensed": "Condensée"
+    },
+    "alignment": {
+      "left": "Gauche",
+      "center": "Centré",
+      "justify": "Justifié"
+    },
+    "contrast": {
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé"
+    },
+    "color": {
+      "label": "Couleur",
+      "help": "Choisissez un préréglage adapté à différents besoins d'accessibilité. L'échantillon montre la couleur réellement affichée.",
+      "radiogroupAria": "Préréglage de couleur du texte",
+      "customPrefix": "Valeur actuelle :",
+      "customSuffix": "(personnalisée — choisissez un préréglage ci-dessus pour la remplacer).",
+      "options": {
+        "default": {
+          "label": "Par défaut (thème)",
+          "description": "Suit le thème actif — s'adapte au mode clair ou sombre."
+        },
+        "black": {
+          "label": "Noir — contraste élevé",
+          "description": "Lisibilité maximale sur fonds clairs (WCAG AAA)."
+        },
+        "darkSlate": {
+          "label": "Ardoise foncée — contraste élevé doux",
+          "description": "Contraste élevé avec une fatigue visuelle réduite pour les longues lectures."
+        },
+        "slate": {
+          "label": "Ardoise — contraste moyen",
+          "description": "Contraste plus faible, plus doux pour les utilisateurs malvoyants sur écrans lumineux."
+        },
+        "blue": {
+          "label": "Bleu — adapté au daltonisme",
+          "description": "Distinguable pour les visions des couleurs protan et deutan."
+        },
+        "teal": {
+          "label": "Sarcelle — adapté au daltonisme",
+          "description": "Se lit comme une teinte claire pour tous les types courants de vision des couleurs."
+        },
+        "white": {
+          "label": "Blanc — pour fonds sombres",
+          "description": "Contraste maximal lorsque l'agent s'affiche sur une surface sombre."
+        }
+      }
+    },
+    "voice": {
+      "gender": "Genre de la voix",
+      "male": "Masculin",
+      "female": "Féminin",
+      "ambiguous": "Ambigu",
+      "speed": "Vitesse de la voix"
+    },
+    "avatar": {
+      "label": "Avatar",
+      "remove": "Supprimer l'avatar"
+    },
+    "modality": {
+      "title": "Modalité",
+      "subtitle": "Configurer le texte ainsi qu'une entrée/sortie vocale facultative.",
+      "input": "Modalités d'entrée",
+      "inputAlways": "L'entrée texte est toujours activée.",
+      "enableSpeechInput": "Activer l'entrée vocale",
+      "output": "Modalités de sortie",
+      "outputAlways": "La sortie texte est toujours activée.",
+      "enableSpeechOutput": "Activer la sortie vocale"
+    },
+    "content": {
+      "title": "Contenu",
+      "subtitle": "Adaptez les réponses à l'aide de l'association de profil utilisateur sélectionnée.",
+      "adapt": "Adapter le contenu au profil utilisateur",
+      "profileNote": "Le profil utilisé pour l'adaptation est sélectionné dans l'Association de profil utilisateur.",
+      "enableNote": "Activez cette option pour adapter les réponses générées au profil sélectionné et à ses attributs."
+    },
+    "behavior": {
+      "title": "Comportement",
+      "subtitle": "Définissez le délai de réponse et le style de diffusion.",
+      "responseTiming": "Délai de réponse"
+    },
+    "timing": {
+      "instant": "Instantané",
+      "delayed": "Réflexion simulée"
+    },
+    "save": {
+      "title": "Enregistrer cette personnalisation",
+      "description": "Une fois le formulaire ci-dessus rempli, nommez votre personnalisation et enregistrez-la ici. Les personnalisations enregistrées apparaissent dans le sélecteur \"Charger une personnalisation enregistrée\" en haut de la page afin que vous puissiez basculer entre elles plus tard.",
+      "nameLabel": "Nom de la personnalisation",
+      "namePlaceholder": "Donnez un nom à cette configuration",
+      "activeBadge": "Active",
+      "unnamed": "Personnalisation sans nom",
+      "notLinked": "Pas encore liée à une personnalisation enregistrée.",
+      "savedLabel": "Personnalisations enregistrées",
+      "selectCustomization": "Sélectionner une personnalisation",
+      "lastUpdated": "Dernière mise à jour {{date}}",
+      "loadSelected": "Charger la sélection",
+      "applying": "Application en cours...",
+      "saveAndApply": "Enregistrer et appliquer la configuration",
+      "resetDefaults": "Réinitialiser aux valeurs par défaut",
+      "errors": {
+        "generic": "Échec de l'enregistrement de la configuration."
+      }
+    },
+    "importExport": {
+      "title": "Import / Export",
+      "description": "Télécharger ou téléverser des fichiers de configuration.",
+      "downloadJson": "Télécharger le JSON",
+      "uploadJson": "Téléverser le JSON",
+      "uploadNote": "Le téléversement remplace les valeurs actuelles du formulaire mais n'enregistre pas automatiquement."
+    },
+    "confirm": {
+      "replace": "Remplacer",
+      "deleteConfig": "Supprimer la configuration \"{{name}}\" ?",
+      "overwrite": {
+        "title": "Remplacer la configuration existante ?",
+        "description": "Une configuration nommée \"{{name}}\" existe déjà. L'enregistrement la remplacera."
+      },
+      "profile": {
+        "title": "Remplacer l'association de profil utilisateur existante ?",
+        "description": "Le profil utilisateur \"{{profile}}\" est déjà associé à la configuration \"{{existing}}\". L'enregistrement remplacera cette association par \"{{next}}\"."
+      }
+    },
+    "toast": {
+      "persistFailed": "Échec de la mise à jour du diagramme d'agent.",
+      "noActiveDiagram": "Aucun diagramme d'agent actif.",
+      "nameBeforeDefault": "Donnez un nom au LLM avant de le définir par défaut.",
+      "selectToLoad": "Veuillez sélectionner une configuration à charger.",
+      "notFound": "La configuration sélectionnée est introuvable.",
+      "loaded": "Configuration \"{{name}}\" chargée.",
+      "selectToDelete": "Veuillez sélectionner une configuration à supprimer.",
+      "deleted": "Configuration supprimée.",
+      "selectProfileFirst": "Veuillez d'abord sélectionner une association de profil utilisateur.",
+      "profileUnavailable": "Le profil utilisateur sélectionné n'est pas disponible. Veuillez sélectionner un profil utilisateur enregistré valide.",
+      "signInGitHub": "Connectez-vous à GitHub pour utiliser les recommandations.",
+      "invalidMappingResponse": "Réponse de recommandation d'association non valide reçue du backend.",
+      "ruleRecApplied_one": "Recommandation basée sur des règles appliquée ({{count}} règle correspond).",
+      "ruleRecApplied_other": "Recommandation basée sur des règles appliquée ({{count}} règles correspondent).",
+      "ruleRecAppliedNone": "Recommandation basée sur des règles appliquée. Aucune règle spécifique ne correspond, les valeurs par défaut ont donc été conservées.",
+      "mappingRecFailed": "Échec de l'obtention de la recommandation basée sur l'association : {{message}}",
+      "mappingRecUnexpected": "Une erreur inattendue s'est produite lors de la demande d'une recommandation basée sur des règles.",
+      "ragSoon": "La proposition de configuration automatique basée sur RAG sera bientôt disponible.",
+      "invalidRecResponse": "Réponse de recommandation non valide reçue du backend.",
+      "llmRecApplied": "Recommandation basée sur un LLM appliquée à la configuration actuelle.",
+      "llmRecFailed": "Échec de l'obtention de la recommandation LLM : {{message}}",
+      "llmRecUnexpected": "Une erreur inattendue s'est produite lors de la demande d'une recommandation basée sur un LLM.",
+      "resetToDefaults": "Configuration réinitialisée aux valeurs par défaut.",
+      "nameBeforeSave": "Veuillez indiquer un nom de configuration avant d'enregistrer.",
+      "openDiagramFirst": "Veuillez ouvrir un diagramme d'agent avant d'enregistrer et d'appliquer.",
+      "selectProfileBeforeApply": "Veuillez sélectionner un profil utilisateur à associer avant d'enregistrer et d'appliquer.",
+      "transformFailed": "Échec de la transformation du modèle d'agent : {{message}}",
+      "transformTimeout": "La personnalisation prend plus de temps que prévu. Réessayez avec un agent plus court ou moins de transformations.",
+      "transformApplied": "Configuration transformée, enregistrée et appliquée avec succès.",
+      "saveLocalFailed": "Échec de l'enregistrement local de la configuration.",
+      "transformUnexpected": "Une erreur inattendue s'est produite lors de la transformation du modèle d'agent.",
+      "uploadLoaded": "Configuration chargée depuis le fichier. N'oubliez pas de l'enregistrer si vous souhaitez la conserver dans votre bibliothèque.",
+      "invalidFile": "Fichier de configuration non valide."
+    }
+  },
+  "generation": {
+    "generate": "Générer",
+    "deploy": "Déployer",
+    "defaultDiagramTitle": "Diagramme",
+    "django": {
+      "title": "Configuration du projet Django",
+      "description": "Configurez les noms et les options de conteneurisation pour la génération Django.",
+      "projectName": "Nom du projet",
+      "appName": "Nom de l'application",
+      "includeDocker": "Inclure la conteneurisation Docker"
+    },
+    "sql": {
+      "title": "Sélection du dialecte SQL",
+      "description": "Choisissez le dialecte SQL pour les instructions DDL générées.",
+      "dialect": "Dialecte",
+      "selectDialect": "Sélectionner le dialecte SQL"
+    },
+    "sqlAlchemy": {
+      "title": "Sélection du SGBD SQLAlchemy",
+      "description": "Choisissez le système de base de données pour le code SQLAlchemy généré.",
+      "dbms": "SGBD",
+      "selectDbms": "Sélectionner le SGBD"
+    },
+    "supabase": {
+      "title": "Configuration Supabase",
+      "descriptionBefore": "Génère du DDL Postgres avec des clés primaires UUID,",
+      "descriptionAfter": "la mise en miroir, et la sécurité au niveau des lignes (RLS). Indiquez quelle classe de votre diagramme correspond à auth.users.",
+      "userRootLabel": "Nom de la classe racine utilisateur",
+      "hintBefore": "Laissez vide pour ignorer l'intégration de l'authentification (pas de",
+      "hintMiddle": "miroir, pas de RLS). Par défaut :"
+    },
+    "jsonSchema": {
+      "title": "Mode JSON Schema",
+      "description": "Choisissez un schéma JSON standard ou le mode smart data NGSI-LD.",
+      "mode": "Mode",
+      "selectMode": "Sélectionner le mode",
+      "regular": "JSON Schema standard"
+    },
+    "agent": {
+      "title": "Sélectionner les langues de l'agent",
+      "description": "Configurez les langues source et cibles pour la traduction de l'agent.",
+      "noSavedConfig": "Aucune configuration enregistrée trouvée. L'agent sera généré avec la configuration par défaut.",
+      "configureTechnologies": "Configurer les technologies de l'agent",
+      "sourceLanguage": "Langue source (optionnel)",
+      "addSpokenLanguage": "Ajouter une langue parlée pour la traduction de l'agent",
+      "selectLanguage": "Sélectionner une langue...",
+      "addLanguage": "Ajouter une langue",
+      "translatedToAll": "L'agent sera traduit dans toutes les langues parlées sélectionnées.",
+      "warningAriaLabel": "avertissement",
+      "moreLanguagesWarning": "Ajouter plus de langues augmentera le temps de génération.",
+      "systemConfiguration": "Configuration système",
+      "editInAgentConfig": "Modifier dans Agent Config",
+      "platform": "Plateforme",
+      "platformStreamlit": "WebSocket avec interface Streamlit",
+      "intentRecognition": "Reconnaissance d'intention",
+      "classical": "Classique",
+      "llmBased": "Basé sur LLM",
+      "systemConfigHint": "Ces valeurs proviennent de l'onglet Configuration système d'Agent Config et sont utilisées pour chaque génération.",
+      "personalizationStrategy": "Stratégie de personnalisation",
+      "none": "Aucune",
+      "personalizationAll": "Personnalisation (toutes)",
+      "personalizationAllHint": "Envoie au backend toutes les correspondances de personnalisation profil-vers-configuration disponibles.",
+      "personalizationNoneHint": "Génère sans joindre de variantes de personnalisation enregistrées ni de données de configuration avancée.",
+      "mode": "Mode",
+      "modeOriginal": "Original",
+      "modeConfiguration": "Configuration",
+      "modePersonalization": "Personnalisation",
+      "selectMappings": "Sélectionner les correspondances profil → configuration",
+      "selectStoredConfigs": "Sélectionner les configurations enregistrées",
+      "noMappingsFound": "Aucune correspondance avec des agents générés trouvée. Créez des correspondances et exécutez d'abord \"Save & Apply\".",
+      "mappingsListHint": "Seules les correspondances dont la configuration cible possède déjà un agent généré sont listées.",
+      "noStoredConfigsFound": "Aucune configuration enregistrée avec des agents générés trouvée. Utilisez d'abord \"Save & Apply\" pour les rendre disponibles ici.",
+      "storedConfigsListHint": "Sélectionnez une ou plusieurs configurations (seules les entrées avec des agents générés sont listées) à inclure dans la requête. Cela générera un agent par configuration.",
+      "selectedLanguages": "Langues sélectionnées",
+      "removeLanguage": "Supprimer la langue {{language}}",
+      "languages": {
+        "english": "Anglais",
+        "french": "Français",
+        "german": "Allemand",
+        "luxembourgish": "Luxembourgeois",
+        "portuguese": "Portugais",
+        "spanish": "Espagnol"
+      }
+    },
+    "qiskit": {
+      "title": "Configuration du backend Qiskit",
+      "description": "Choisissez le backend d'exécution et le nombre de tirs (shots).",
+      "executionBackend": "Backend d'exécution",
+      "selectBackend": "Sélectionner le backend",
+      "backendAerSimulator": "Aer Simulator (Local)",
+      "backendMockSimulation": "Simulation fictive (simulation de bruit)",
+      "backendIbmQuantum": "IBM Quantum (Matériel réel)",
+      "numberOfShots": "Nombre de tirs (shots)",
+      "shotsLabel": "Tirs"
+    },
+    "webApp": {
+      "title": "Générateur d'application web",
+      "description": "Les diagrammes suivants seront utilisés pour la génération.",
+      "required": "Requis",
+      "optional": "Optionnel",
+      "referencesHint": "Si le diagramme de classes ou GUI n'est pas correct, modifiez les références dans les onglets de diagramme avant de générer.",
+      "noProjectLoaded": "Aucun projet chargé. Créez ou chargez d'abord un projet.",
+      "untitled": "(sans titre)",
+      "missing": "(manquant)",
+      "emptyWillBeSkipped": " (vide - sera ignoré)",
+      "referencesClassDiagram": "Références : diagramme de classes \"{{title}}\"",
+      "diagramRequired": "Ce diagramme est requis pour la génération de l'application web.",
+      "diagramEmpty": "Ce diagramme est vide. La génération peut produire des résultats incomplets.",
+      "noAgentDiagrams": "Aucun diagramme d'agent dans le projet",
+      "agentDiagramsHint": "Les diagrammes d'agent sont liés par composant dans l'éditeur GUI (glisser-déposer).",
+      "classDiagramLabel": "Diagramme de classes",
+      "guiDiagramLabel": "Diagramme GUI",
+      "agentDiagramsLabel": "Diagrammes d'agent",
+      "agentDiagramsAvailable": "{{count}} disponible(s) (configuré(s) par composant dans le GUI)",
+      "noneAvailable": "Aucun disponible"
+    },
+    "toast": {
+      "validationFailed": "Échec de la validation",
+      "noDiagram": "Aucun diagramme pour générer du code",
+      "localDeploymentInProgress": "Déploiement local en cours... Cela peut prendre quelques minutes.",
+      "httpError": "Erreur HTTP ! statut : {{status}}",
+      "localDeploymentCompleted": "Déploiement local terminé !",
+      "accessApplicationAt": "Vous pouvez maintenant accéder à votre application à : ",
+      "unknownDeploymentError": "Erreur inconnue survenue lors du déploiement",
+      "noProjectAvailable": "Aucun projet disponible pour la génération de code",
+      "codeGenerationCompleted": "Génération de code terminée avec succès",
+      "requestTimedOut": "Délai de la requête dépassé. Veuillez réessayer.",
+      "unknownError": "Erreur inconnue survenue",
+      "createOrLoadProject": "Créez ou chargez un projet avant de générer du code.",
+      "couldNotSwitchToGui": "Impossible de passer au diagramme GUI pour l'auto-génération.",
+      "guiEditorNotReady": "L'éditeur GUI n'a pas été prêt à temps.",
+      "couldNotAutoGenerateGui": "Impossible de générer automatiquement le GUI à partir du diagramme de classes.",
+      "guiDiagramEmpty": "Impossible de générer l'application web : le diagramme GUI est vide.",
+      "openQuantumEditor": "Ouvrez l'éditeur Quantum avant de générer du code Qiskit.",
+      "openNnEditor": "Ouvrez l'éditeur de diagramme NN avant de générer du code de réseau de neurones.",
+      "switchToUmlDiagram": "Passez à un diagramme UML pour utiliser ce générateur.",
+      "noUmlEditor": "Aucune instance d'éditeur UML disponible. Ouvrez d'abord un diagramme UML.",
+      "switchToObjectOrUserDiagram": "Passez à un diagramme d'objets ou un diagramme utilisateur pour utiliser le générateur JSON Object.",
+      "generationFailed": "Échec de la génération : {{error}}",
+      "createOrLoadProjectValidate": "Créez ou chargez un projet avant de valider.",
+      "comingSoon": "bientôt disponible",
+      "noDiagramToValidate": "Aucun diagramme disponible pour la validation",
+      "qualityCheckFailed": "Échec du contrôle qualité : {{error}}",
+      "namesRequired": "Les noms du projet et de l'application sont requis.",
+      "namesMustDiffer": "Les noms du projet et de l'application doivent être différents.",
+      "namesInvalid": "Les noms doivent commencer par une lettre/un trait de soulignement et ne contenir que des lettres, des chiffres et des traits de soulignement.",
+      "openUmlBeforeDeploy": "Ouvrez un diagramme UML avant de déployer.",
+      "noValidPersonalizationMappings": "Aucune correspondance de personnalisation valide trouvée. Créez des correspondances et enregistrez d'abord des variantes personnalisées."
+    },
+    "context": {
+      "djangoGeneration": "Génération Django",
+      "djangoDeployment": "Déploiement Django",
+      "sqlGeneration": "Génération SQL",
+      "supabaseGeneration": "Génération Supabase",
+      "sqlAlchemyGeneration": "Génération SQLAlchemy",
+      "jsonSchemaGeneration": "Génération JSON Schema",
+      "agentGeneration": "Génération d'agent",
+      "qiskitGeneration": "Génération Qiskit",
+      "webAppGeneration": "Génération d'application web"
+    }
+  },
+  "project": {
+    "field": {
+      "name": "Nom",
+      "owner": "Propriétaire",
+      "description": "Description"
+    },
+    "hub": {
+      "stepBadge": "Étape {{current}} sur {{total}}",
+      "back": "Retour",
+      "unknownError": "Erreur inconnue",
+      "create": {
+        "title": "Créer un projet",
+        "description": "Définissez les métadonnées du projet et commencez à modéliser à partir de zéro.",
+        "detailsTitle": "Détails du projet",
+        "detailsDescription": "Donnez un nom et une description à votre espace de travail.",
+        "submit": "Créer le projet",
+        "tip": "Astuce : choisissez une perspective de modélisation pour concentrer l'espace de travail sur les diagrammes dont vous avez besoin."
+      },
+      "import": {
+        "title": "Importer un projet",
+        "description": "Chargez un fichier de projet exporté et reprenez là où vous en étiez.",
+        "cardTitle": "Importer un fichier de projet",
+        "cardDescription": "Formats pris en charge : .json, .py.",
+        "dropAria": "Déposez un fichier ou cliquez pour parcourir",
+        "dropPrompt": "Déposez un fichier ici ou cliquez pour parcourir",
+        "dropHint": "Fichiers de projet JSON ou Python"
+      },
+      "spreadsheet": {
+        "title": "Démarrer à partir d'un tableur",
+        "description": "Créez un projet et générez automatiquement un diagramme de classes à partir de fichiers CSV/XLSX.",
+        "cardTitle": "Entrée tableur",
+        "cardDescription": "Créez les métadonnées du projet et téléversez les fichiers sources.",
+        "sourceFiles": "Fichiers sources",
+        "selectFiles": "Sélectionner des fichiers CSV / XLSX",
+        "submit": "Créer à partir du tableur",
+        "howTitle": "Comment ça marche",
+        "step1": "Le projet est d'abord créé avec vos métadonnées.",
+        "step2": "Les fichiers du tableur sont convertis en un diagramme de classes.",
+        "step3": "Le diagramme de classes généré est automatiquement importé dans le projet.",
+        "accepted": "Acceptés : .csv, .xlsx, .xls"
+      },
+      "open": {
+        "title": "Ouvrir un projet existant",
+        "description": "Choisissez n'importe quel projet enregistré et revenez instantanément dans votre espace de travail.",
+        "allProjects": "Tous les projets"
+      },
+      "start": {
+        "title": "Bienvenue dans BESSER Web Modeling Editor",
+        "description": "Choisissez comment démarrer votre session de modélisation et ouvrir votre espace de travail.",
+        "heroTitle": "Démarrez votre espace de modélisation",
+        "heroBody": "BESSER (Better Smart Software Faster) est une plateforme open source dirigée par les modèles pour la conception, la génération et le déploiement UML. Choisissez un chemin ci-dessous pour amorcer rapidement votre projet.",
+        "cardCreate": {
+          "title": "Créer vierge",
+          "description": "Partez de zéro avec tous les éditeurs disponibles."
+        },
+        "cardSpreadsheet": {
+          "title": "À partir d'un tableur",
+          "description": "Générez automatiquement un diagramme de classes à partir de fichiers CSV/XLSX."
+        },
+        "cardImport": {
+          "title": "Importer un projet",
+          "description": "Chargez un projet .json ou .py exporté."
+        },
+        "existingProjects": "Projets existants",
+        "viewAll": "Voir tous les projets",
+        "noProjects": "Aucun projet pour l'instant.",
+        "warningBanner": "Créez, importez ou ouvrez un projet pour accéder à l'espace de travail."
+      },
+      "perspective": {
+        "label": "Perspective de modélisation",
+        "helper": "Détermine quels diagrammes apparaissent dans la barre latérale. Vous pourrez le modifier plus tard dans les Paramètres."
+      },
+      "list": {
+        "emptyHint": "Aucun projet pour l'instant. Créez-en un pour commencer.",
+        "noDescription": "Aucune description fournie.",
+        "active": "Actif",
+        "open": "Ouvrir",
+        "deleteAria": "Supprimer le projet {{name}}"
+      },
+      "deleteConfirm": {
+        "title": "Supprimer le projet",
+        "description": "Supprimer le projet « {{name}} » ? Cette action est irréversible."
+      },
+      "toast": {
+        "created": "Projet « {{name}} » créé.",
+        "createFailed": "Impossible de créer le projet : {{error}}",
+        "loaded": "Projet chargé.",
+        "loadFailed": "Impossible de charger le projet : {{error}}",
+        "deleted": "Projet « {{name}} » supprimé.",
+        "deleteFailed": "Impossible de supprimer le projet : {{error}}",
+        "imported": "Projet « {{name}} » importé.",
+        "importFailed": "Échec de l'importation : {{error}}",
+        "unsupportedFileType": "Type de fichier non pris en charge. Veuillez déposer un fichier .json ou .py.",
+        "noSpreadsheetFile": "Sélectionnez au moins un fichier CSV/XLSX.",
+        "spreadsheetGenerateFailed": "Impossible de générer le diagramme de classes à partir du tableur.",
+        "spreadsheetCreated": "Projet « {{name}} » créé et diagramme de classes importé.",
+        "spreadsheetImportFailed": "Échec de l'importation du tableur : {{error}}"
+      }
+    },
+    "settings": {
+      "title": "Paramètres du projet",
+      "subtitle": "Gérez les métadonnées, les diagrammes et les préférences d'affichage",
+      "exportProject": "Exporter le projet",
+      "exporting": "Exportation...",
+      "loadingProject": "Chargement du projet...",
+      "noProject": "Ouvrez ou créez un projet pour modifier les paramètres.",
+      "unknownError": "Erreur inconnue",
+      "general": {
+        "title": "Général",
+        "description": "Informations de base du projet",
+        "projectName": "Nom du projet",
+        "created": "Créé",
+        "activeEditor": "Éditeur actif"
+      },
+      "display": {
+        "title": "Affichage",
+        "description": "Configurez le rendu des diagrammes",
+        "showInstancedObjects": "Afficher les objets instanciés",
+        "showInstancedObjectsDesc": "Activer/désactiver la visibilité des instances d'objets",
+        "showAssociationNames": "Afficher les noms d'associations",
+        "showAssociationNamesDesc": "Activer/désactiver la visibilité des noms d'associations",
+        "propertiesPanel": "Panneau des propriétés",
+        "propertiesPanelDesc": "Utiliser le panneau latéral droit au lieu de la fenêtre contextuelle flottante",
+        "classNotation": "Notation du diagramme de classes",
+        "classNotationDesc": "UML (par défaut) affiche les classes UML standard ; ER affiche un rendu entité/relation de style Chen"
+      },
+      "diagrams": {
+        "title": "Diagrammes",
+        "countWithContent_one": "{{count}} diagramme avec du contenu",
+        "countWithContent_other": "{{count}} diagrammes avec du contenu",
+        "noneWithContent": "Aucun diagramme avec du contenu pour l'instant",
+        "updated": "Mis à jour {{date}}",
+        "empty": "Commencez à modifier un diagramme pour le voir ici"
+      },
+      "perspectives": {
+        "title": "Perspectives de modélisation",
+        "description": "Masquez les perspectives dont vous n'avez pas besoin. Utilisez un préréglage pour en basculer plusieurs à la fois, ou activez chacune individuellement ci-dessous. Les perspectives désactivées sont retirées de la barre latérale ; les modèles existants sont conservés et restaurés lors de la réactivation. Les générateurs restent disponibles dans tous les cas.",
+        "quickPresets": "Préréglages rapides",
+        "lastEnabledTitle": "Au moins une perspective doit être activée.",
+        "toggleAria": "Activer/désactiver la visibilité de {{label}}"
+      },
+      "toast": {
+        "updatePerspectiveFailed": "Échec de la mise à jour de la perspective",
+        "applyPresetFailed": "Échec de l'application du préréglage",
+        "exported": "Projet exporté avec succès.",
+        "exportFailed": "Échec de l'exportation du projet : {{error}}"
+      }
+    },
+    "templates": {
+      "title": "Charger un modèle",
+      "description": "Partez de modèles UML, agent, machine à états, quantiques prêts à l'emploi, ou de lots de projets complets.",
+      "loadTemplate": "Charger le modèle",
+      "multiDiagramProject": "Projet multi-diagrammes",
+      "unknownError": "Erreur inconnue",
+      "confirm": {
+        "title": "Diagramme existant détecté",
+        "body": "Vous avez déjà un <strong>{{type}}</strong>. Comment souhaitez-vous charger le modèle ?",
+        "newTab": "Nouvel onglet",
+        "replace": "Remplacer"
+      },
+      "toast": {
+        "loadedProjectTemplate": "Modèle de projet « {{name}} » chargé",
+        "loadFailed": "Échec du chargement du modèle : {{error}}"
+      }
+    }
+  },
+  "github": {
+    "sync": "Synchronisation GitHub",
+    "closeSidebar": "Fermer le panneau GitHub",
+    "fullPath": "Chemin complet :",
+    "folderPathLabel": "Chemin du dossier (facultatif)",
+    "folderPathPlaceholder": "ex. : projects/my-models",
+    "fileNameLabel": "Nom du fichier",
+    "defaultRepoDescription": "Projet BESSER : {{name}}",
+    "defaultGistDescription": "Projet BESSER : {{name}}",
+    "connect": {
+      "title": "Se connecter à GitHub",
+      "subtitle": "Connectez-vous pour synchroniser vos projets avec GitHub.",
+      "button": "Se connecter à GitHub"
+    },
+    "noProject": {
+      "title": "Aucun projet sélectionné",
+      "subtitle": "Ouvrez ou créez un projet pour utiliser la synchronisation GitHub."
+    },
+    "notLinked": {
+      "title": "Lier un dépôt",
+      "subtitle": "Liez ce projet à un dépôt GitHub pour le contrôle de version.",
+      "linkExisting": "Lier un existant",
+      "createNew": "Créer un nouveau"
+    },
+    "linked": {
+      "repository": "Dépôt",
+      "checking": "Vérification...",
+      "unsavedChanges": "Vous avez des modifications non enregistrées",
+      "upToDate": "À jour",
+      "push": "Push",
+      "pull": "Pull",
+      "history": "Historique",
+      "refreshHistory": "Actualiser l'historique des commits",
+      "latest": "Dernier",
+      "clickToRestore": "Cliquez pour restaurer",
+      "noCommits": "Aucun commit pour le moment",
+      "share": "Partager",
+      "createSecretGist": "Créer un Gist secret"
+    },
+    "settings": {
+      "title": "Paramètres",
+      "autoCommit": "Commit automatique",
+      "enabledWithInterval": "Activé ({{minutes}} min)",
+      "disabled": "Désactivé",
+      "intervalLabel": "Intervalle (minutes)",
+      "interval5": "5 minutes",
+      "interval10": "10 minutes",
+      "interval15": "15 minutes",
+      "interval30": "30 minutes",
+      "interval60": "1 heure",
+      "autoSaving": "Enregistrement automatique..."
+    },
+    "linkModal": {
+      "goBack": "Revenir à la sélection du dépôt",
+      "titleSelect": "Lier à un dépôt",
+      "titleConfigure": "Configurer la liaison",
+      "descriptionSelect": "Sélectionnez un dépôt avec lequel synchroniser votre projet.",
+      "descriptionConfigure": "Définissez la branche et le chemin du fichier pour cette synchronisation de projet.",
+      "private": "Privé",
+      "updated": "Mis à jour : {{date}}",
+      "noRepositories": "Aucun dépôt trouvé",
+      "branch": "Branche",
+      "browseFiles": "Parcourir les fichiers du dépôt",
+      "browseHint": "Choisissez un fichier de projet existant sans saisir le chemin.",
+      "checkFileExists": "Vérifier si le fichier existe",
+      "fileExistsPrompt": "Le fichier existe déjà dans le dépôt. Choisissez comment procéder :",
+      "loadAndLinkRecommended": "Charger et lier (recommandé)",
+      "linkWithoutLoading": "Lier sans charger (peut écraser)",
+      "filePathAvailable": "Le chemin du fichier est disponible. Cliquez sur « Lier le dépôt » pour continuer.",
+      "loadAndLink": "Charger et lier",
+      "linkRepository": "Lier le dépôt",
+      "selectProjectFile": "Sélectionner le fichier de projet"
+    },
+    "fileBrowser": {
+      "selectFile": "Sélectionner un fichier",
+      "loadFailed": "Échec du chargement du contenu du répertoire",
+      "root": "root",
+      "upOneLevel": "Remonter d'un niveau",
+      "emptyDirectory": "Répertoire vide",
+      "dirHint": "Naviguez jusqu'au dossier cible, puis cliquez sur « Sélectionner le dossier actuel ».",
+      "selectCurrentFolder": "Sélectionner le dossier actuel"
+    },
+    "commit": {
+      "title": "Pousser vers GitHub",
+      "description": "Écrivez un message de commit pour vos modifications.",
+      "messageLabel": "Message de commit",
+      "messagePlaceholder": "Décrivez vos modifications...",
+      "pushing": "Envoi en cours...",
+      "push": "Push"
+    },
+    "gist": {
+      "title": "Créer un Gist",
+      "description": "Créez un Gist GitHub pour partager rapidement votre projet.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Description du Gist...",
+      "publicGist": "Gist public",
+      "secretHint": "Les gists secrets sont masqués des moteurs de recherche mais visibles par quiconque possède le lien.",
+      "creating": "Création...",
+      "createGist": "Créer un Gist"
+    },
+    "createRepo": {
+      "title": "Créer un dépôt",
+      "description": "Créez un nouveau dépôt GitHub et poussez le projet actuel.",
+      "repoNameLabel": "Nom du dépôt",
+      "repoNameHelper": "Seuls les lettres minuscules, les chiffres, les tirets et les traits de soulignement sont autorisés.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Description facultative...",
+      "privateRepository": "Dépôt privé",
+      "creating": "Création...",
+      "create": "Créer"
+    },
+    "restore": {
+      "title": "Restaurer la version",
+      "description": "Vos modifications actuelles non enregistrées seront perdues. Envisagez de pousser votre travail actuel d'abord.",
+      "confirmQuestion": "Restaurer ce commit ?",
+      "restoring": "Restauration...",
+      "restoreButton": "Restaurer cette version"
+    },
+    "context": {
+      "loadingDirectory": "Chargement du contenu du répertoire",
+      "githubPush": "Push GitHub",
+      "githubPull": "Pull GitHub",
+      "fetchingRepositories": "Récupération des dépôts",
+      "fetchingCommits": "Récupération des commits",
+      "checkingChanges": "Vérification des modifications",
+      "selectingRepository": "Sélection du dépôt",
+      "checkingFile": "Vérification de l'existence du fichier",
+      "linkingRepository": "Liaison du dépôt",
+      "creatingRepository": "Création du dépôt",
+      "committing": "Commit vers GitHub",
+      "restoringCommit": "Restauration du commit",
+      "creatingGist": "Création du Gist"
+    },
+    "toasts": {
+      "loadProjectFailed": "Échec du chargement du projet",
+      "couldNotLoadProjectData": "Impossible de charger les données du projet",
+      "projectPulled": "Projet récupéré depuis GitHub",
+      "projectLoadedFromRepo": "Projet chargé depuis le dépôt GitHub",
+      "loadFromRepoFailedLinking": "Impossible de charger depuis le dépôt ; liaison sans chargement.",
+      "linkedReconnectToPush": "Dépôt lié. Reconnectez GitHub pour pousser le fichier de projet initial.",
+      "linkedInitialPushReadFailed": "Dépôt lié, mais le push initial a échoué car le projet local n'a pas pu être lu.",
+      "initialSyncCommitMessage": "Synchronisation initiale depuis BESSER Web Modeling Editor",
+      "linkedInitialPushFailed": "Dépôt lié, mais le push initial a échoué. Vous pouvez pousser manuellement depuis GitHub Sync.",
+      "couldNotLoadRepoContents": "Impossible de charger le contenu du dépôt",
+      "repoUnlinked": "Dépôt délié",
+      "alreadyLatest": "Il s'agit déjà de la dernière version",
+      "projectRestored": "Projet restauré depuis le commit sélectionné",
+      "authFailed": "Échec de l'authentification GitHub : {{error}}",
+      "signedInAs": "Connecté en tant que {{username}}",
+      "autoSaveCommitMessage": "Enregistrement automatique : {{timestamp}}",
+      "autoSaved": "Enregistré automatiquement sur GitHub",
+      "noProjectToDeploy": "Aucun projet à déployer.",
+      "notSignedIn": "Non connecté à GitHub.",
+      "repoUpdated": "Dépôt mis à jour : {{name}}",
+      "repoCreated": "Dépôt créé : {{name}}",
+      "deploymentFailed": "Échec du déploiement",
+      "repoCreationFailed": "Échec de la création du dépôt",
+      "requestTimedOut": "Délai de la requête dépassé. Veuillez réessayer.",
+      "fetchReposFailed": "Échec de la récupération des dépôts GitHub",
+      "repoLinkedPushToSync": "Dépôt lié ! Poussez pour synchroniser votre projet.",
+      "fetchCommitsFailed": "Échec de la récupération de l'historique des commits",
+      "saveProjectFailed": "Échec de l'enregistrement du projet sur GitHub",
+      "projectSaved": "Projet enregistré sur GitHub !",
+      "saveProjectFailedShort": "Échec de l'enregistrement du projet",
+      "loadProjectFromGitHubFailed": "Échec du chargement du projet depuis GitHub",
+      "loadFromCommitFailed": "Échec du chargement du projet depuis le commit",
+      "restoredFromCommitFallback": "commit",
+      "restoredVersionFrom": "Version restaurée depuis {{source}}",
+      "createRepoFailed": "Échec de la création du dépôt",
+      "repoCreatedQuoted": "Dépôt « {{name}} » créé !",
+      "createGistFailed": "Échec de la création du Gist",
+      "gistCreated": "Gist créé avec succès !"
+    }
+  },
+  "assistant": {
+    "import": {
+      "titleImage": "Importer un diagramme de classes depuis une image",
+      "titleKg": "Importer un diagramme de classes depuis un graphe de connaissances",
+      "description": "Utilisez une clé API OpenAI pour convertir votre fichier en diagramme de classes et l'ajouter au projet actuel.",
+      "apiKeyLabel": "Clé API OpenAI",
+      "uploadImageLabel": "Téléverser une image de diagramme (PNG/JPEG)",
+      "uploadKgLabel": "Téléverser un graphe de connaissances (TTL/RDF/JSON)",
+      "selected": "Sélectionné : {{name}}",
+      "importing": "Importation...",
+      "import": "Importer"
+    },
+    "connection": {
+      "connected": "Connecté",
+      "closing": "Fermeture…",
+      "reconnecting": "Reconnexion…",
+      "disconnected": "Déconnecté",
+      "unknown": "Inconnu"
+    },
+    "agentAvatarAlt": "Agent",
+    "modelingAssistant": "Assistant de modélisation",
+    "byBesser": "par BESSER",
+    "welcome": {
+      "greeting": "Bonjour ! Je suis votre assistant de modélisation",
+      "intro": "Je peux vous aider à créer et modifier des diagrammes UML, générer du code et répondre à vos questions de modélisation. Essayez par exemple :",
+      "suggestions": {
+        "library": "Créer un système de gestion de bibliothèque",
+        "payment": "Ajouter une classe Payment avec amount et date",
+        "django": "Générer du code Django"
+      },
+      "headlinePre": "Que souhaitez-vous",
+      "headlineEmphasis": "modéliser",
+      "headlinePost": "aujourd'hui ?",
+      "subtitle": "Décrivez votre système en langage naturel. Obtenez des modèles, des interfaces et du code.",
+      "pressEscPre": "Appuyez sur",
+      "pressEscPost": "pour fermer"
+    },
+    "composer": {
+      "placeholder": "Décrivez ce que vous voulez créer ou modifier..."
+    },
+    "messageCount_one": "{{count}} message",
+    "messageCount_other": "{{count}} messages",
+    "fab": {
+      "open": "Ouvrir l'assistant",
+      "close": "Fermer l'assistant"
+    },
+    "privacy": {
+      "iconLabel": "Confidentialité et traitement des données",
+      "title": "Confidentialité et traitement des données",
+      "subtitle": "Informations importantes sur la façon dont l'assistant traite les données de modélisation.",
+      "noticeHeading": "Avis sur le traitement des données :",
+      "body": "Lorsque vous utilisez l'assistant de modélisation, vos messages et données de diagramme sont traités pour fournir une assistance de modélisation basée sur l'IA.",
+      "bullets": {
+        "sent": "Vos modèles de diagramme et vos messages sont envoyés au service d'IA pour traitement.",
+        "encrypted": "Les données sont transmises via des connexions chiffrées.",
+        "processed": "Les requêtes sont traitées pour générer des mises à jour UML et des suggestions de modélisation.",
+        "stored": "L'historique des conversations est stocké localement dans votre session de navigateur actuelle."
+      },
+      "privacyLabel": "Confidentialité :",
+      "privacyBody": "Évitez de partager des informations sensibles ou confidentielles dans les messages de l'assistant.",
+      "understand": "J'ai compris"
+    },
+    "poweredWithBaf": "Propulsé par BAF",
+    "capabilities": {
+      "systemDesign": {
+        "title": "Conception de système",
+        "body": "Structures de données, flux de travail, agents et plus encore"
+      },
+      "visualInterfaces": {
+        "title": "Interfaces visuelles",
+        "body": "Écrans et mises en page à partir de descriptions"
+      },
+      "codeGeneration": {
+        "title": "Génération de code",
+        "body": "WebApp complète, React, SQL et plus encore !"
+      }
+    },
+    "starterPrompts": {
+      "ecommerce": "Créer un système e-commerce avec clients, commandes et produits",
+      "university": "Concevoir un système d'inscription universitaire avec étudiants, cours et professeurs",
+      "hospital": "Modéliser un système de gestion hospitalière avec patients, médecins et rendez-vous",
+      "library": "Construire un système de gestion de bibliothèque avec livres, auteurs et membres",
+      "banking": "Créer un système bancaire avec comptes, transactions et clients",
+      "social": "Concevoir une plateforme de réseau social avec utilisateurs, publications et commentaires",
+      "restaurant": "Modéliser un système de commande de restaurant avec menus, commandes et tables",
+      "project": "Créer un outil de gestion de projet avec tâches, équipes et sprints",
+      "hotel": "Concevoir une application web de réservation d'hôtel avec chambres, clients et réservations",
+      "dashboard": "Concevoir un tableau de bord pour la gestion des stocks",
+      "libraryPlatform": "Construire une plateforme complète de gestion de bibliothèque avec modèles et interface",
+      "taskApp": "Construire une application de gestion de tâches avec modèles et interface"
+    },
+    "chat": {
+      "newChat": "Nouvelle conversation",
+      "newConversationTitle": "Démarrer une nouvelle conversation"
+    },
+    "drawer": {
+      "pushToClose": "Poussez vers le haut pour fermer l'assistant",
+      "pullToOpen": "Tirez vers le bas pour ouvrir l'assistant",
+      "pushUp": "Pousser vers le haut",
+      "pullDown": "Tirer l'assistant vers le bas"
+    },
+    "generationCompleted": "Génération terminée avec succès.",
+    "exportingProject": "Exportation du projet au format {{format}}…",
+    "startingDeployment": "Démarrage du déploiement…",
+    "generatingGui": "Génération de l'interface à partir de votre diagramme de classes…",
+    "guiGenerated": "✓ Interface générée avec succès à partir de votre diagramme de classes !",
+    "convertThisFile": "Convertir ce fichier",
+    "convertFileToDiagram": "Convertir ce fichier en diagramme",
+    "reconnectingMessage": "Reconnexion à l'assistant — votre message sera envoyé automatiquement.",
+    "reconnectingVoice": "Reconnexion à l'assistant — votre message vocal sera envoyé automatiquement.",
+    "tryAgain": "Réessayer",
+    "errors": {
+      "createTabFailed": "Impossible de créer un nouvel onglet : {{error}}",
+      "switchFailed": "Impossible de basculer vers {{type}}.",
+      "generationUnavailable": "La génération n'est pas disponible dans ce contexte.",
+      "genericAgentError": "Une erreur s'est produite du côté de l'assistant.",
+      "error": "Erreur",
+      "errorWithCode": "Erreur : {{code}}",
+      "guiSwitchFailed": "Impossible de basculer vers l'éditeur d'interface. Veuillez basculer manuellement et réessayer.",
+      "guiNotReady": "L'éditeur d'interface n'a pas été prêt à temps. Veuillez réessayer.",
+      "guiGenerateFailed": "Impossible de générer l'interface : {{error}}.",
+      "timedOut": "Délai dépassé",
+      "noResponse": "Aucune réponse",
+      "unknownError": "Erreur inconnue",
+      "fileTooLarge": "Le fichier \"{{name}}\" est trop volumineux (max. 10 Mo).",
+      "rateLimit": "Limite de requêtes dépassée. Veuillez patienter avant d'envoyer un autre message.",
+      "readFileFailed": "Impossible de lire le(s) fichier(s) joint(s). Veuillez réessayer.",
+      "sendFailed": "Impossible d'envoyer votre message — veuillez réessayer.",
+      "sendVoiceFailed": "Impossible d'envoyer votre message vocal — veuillez réessayer.",
+      "voiceProcessFailed": "Impossible de traiter votre message vocal. Veuillez réessayer."
+    }
+  },
+  "deploy": {
+    "dialog": {
+      "publishTitle": "Publier sur Render",
+      "existing": "Mettez à jour le dépôt existant avec vos dernières modifications.",
+      "existingAgent": "Mettez à jour le dépôt d'agent existant avec vos dernières modifications.",
+      "new": "Créez un dépôt GitHub à partir du projet actuel et déployez-le sur Render.",
+      "newAgent": "Créez un dépôt GitHub à partir du diagramme d'agent actif et déployez un agent autonome sur Render."
+    },
+    "fields": {
+      "deploymentTarget": "Cible de déploiement",
+      "commitMessage": "Message de commit",
+      "commitMessageHelper": "Décrivez ce qui a changé (laissez vide pour le message par défaut)",
+      "commitMessagePlaceholder": "Mettre à jour l'application",
+      "repoName": "Nom du dépôt",
+      "repoNamePlaceholder": "mon-super-app",
+      "description": "Description",
+      "descriptionPlaceholder": "Application web générée par BESSER",
+      "makePrivate": "Rendre le dépôt privé",
+      "personalization": "Personnalisation"
+    },
+    "targets": {
+      "webapp": "Application web (Classe + GUI)",
+      "agent": "Agent autonome"
+    },
+    "existing": {
+      "previouslyDeployed": "Précédemment déployé sur :",
+      "filesPreserved": "Les fichiers que vous avez ajoutés manuellement seront conservés.",
+      "createNewInstead": "Créer un nouveau dépôt à la place"
+    },
+    "privateWarning": "Les dépôts privés peuvent nécessiter une configuration manuelle des autorisations Render.",
+    "personalizationNote": "L'agent déployé authentifiera les utilisateurs et servira la variante personnalisée correspondant au profil de chaque utilisateur.",
+    "actions": {
+      "publish": "Publier sur Render",
+      "publishAgent": "Publier l'agent sur Render",
+      "updatePublish": "Mettre à jour et publier",
+      "updatePublishAgent": "Mettre à jour et publier l'agent",
+      "publishing": "Publication..."
+    },
+    "result": {
+      "titleUpdated": "Dépôt mis à jour avec succès",
+      "titleUpdatedAgent": "Dépôt d'agent mis à jour",
+      "titleCreated": "Dépôt créé avec succès",
+      "titleCreatedAgent": "Dépôt d'agent créé",
+      "descUpdated": "Vos modifications ont été poussées sur GitHub. Déclenchez un redéploiement sur Render pour les prendre en compte.",
+      "descUpdatedAgent": "Les modifications de votre agent ont été poussées sur GitHub. Déclenchez un redéploiement sur Render pour les prendre en compte.",
+      "descCreated": "Poursuivez avec le déploiement en un clic sur Render ou inspectez le dépôt généré.",
+      "descCreatedAgent": "Poursuivez avec le déploiement en un clic sur Render pour votre agent autonome ou inspectez le dépôt généré.",
+      "filesUploaded": "{{count}} fichiers téléversés.",
+      "notSeeingChanges": "Vous ne voyez pas encore vos modifications ?",
+      "manualSyncIntro": "Ouvrez votre Blueprint sur Render et cliquez sur",
+      "manualSyncLabel": "Manual Sync",
+      "manualSyncBody": ". Cela redéploie chaque service du blueprint (backend, frontend, agents) à partir du dernier commit en un clic. Le déploiement automatique de Render peut manquer des pushes lorsque l'application GitHub n'a pas accès au dépôt, donc Manual Sync est la voie fiable.",
+      "manualSyncBodyAgent": ". Cela redéploie chaque service du blueprint à partir du dernier commit en un clic. Le déploiement automatique de Render peut manquer des pushes lorsque l'application GitHub n'a pas accès au dépôt, donc Manual Sync est la voie fiable.",
+      "openLiveAgent": "Ouvrir l'agent en ligne",
+      "openLiveApp": "Ouvrir l'application en ligne",
+      "openRenderDeployment": "Ouvrir le déploiement Render",
+      "openBlueprint": "Ouvrir le Blueprint Render",
+      "viewRepo": "Voir le dépôt GitHub"
+    }
+  },
+  "exportImport": {
+    "dialogTitle": "Exporter le projet",
+    "dialogDescription": "Exportez les fichiers complets du projet ou les ressources du diagramme actuel.",
+    "multipleDiagrams": {
+      "title": "Plusieurs diagrammes",
+      "subtitle": "Exportez les diagrammes sélectionnés au format JSON ou B-UML.",
+      "diagramCount": "{{count}} diagrammes : {{titles}}"
+    },
+    "currentDiagram": {
+      "title": "Diagramme actuel",
+      "subtitle": "Exportez le diagramme UML actuel sous forme de ressources image.",
+      "untitled": "Diagramme sans titre",
+      "requiresUmlView": "Les exports du diagramme actuel nécessitent une vue de diagramme UML. Utilisez plutôt l'export au niveau du projet."
+    },
+    "noDiagramsAvailable": "Aucun diagramme disponible dans le projet actuel.",
+    "buttons": {
+      "exportJson": "Exporter en JSON",
+      "exportBuml": "Exporter en B-UML",
+      "exportSvg": "Exporter en SVG",
+      "exportPngWhite": "Exporter en PNG (blanc)",
+      "exportPngTransparent": "Exporter en PNG (transparent)",
+      "exportDiagramJson": "Exporter le diagramme en JSON",
+      "exportDiagramBuml": "Exporter le diagramme en B-UML"
+    },
+    "defaults": {
+      "diagram": "Diagramme"
+    },
+    "diagramTypes": {
+      "ClassDiagram": "Diagramme de classes",
+      "ObjectDiagram": "Diagramme d'objets",
+      "StateMachineDiagram": "Diagramme de machine à états",
+      "AgentDiagram": "Diagramme d'agent",
+      "UserDiagram": "Diagramme utilisateur",
+      "GUINoCodeDiagram": "Diagramme GUI No-Code",
+      "QuantumCircuitDiagram": "Diagramme de circuit quantique",
+      "NNDiagram": "Diagramme de réseau de neurones"
+    },
+    "titles": {
+      "importedClassDiagram": "Diagramme de classes importé",
+      "importedObjectDiagram": "Diagramme d'objets importé",
+      "importedStateMachineDiagram": "Diagramme de machine à états importé",
+      "importedAgentDiagram": "Diagramme d'agent importé"
+    },
+    "descriptions": {
+      "importedFrom": "Importé depuis {{filename}}",
+      "importedDiagram": "Diagramme {{diagramType}} importé",
+      "importedFromKg": "Diagramme {{diagramType}} importé depuis Knowledge Graph",
+      "importedFromImage": "Diagramme {{diagramType}} importé depuis une image"
+    },
+    "fileTypes": {
+      "pythonBuml": "Python/BUML",
+      "json": "JSON"
+    },
+    "buml": {
+      "exportSuccess": "Export BUML terminé avec succès"
+    },
+    "project": {
+      "exportSuccess": "Projet exporté sous {{filename}}"
+    },
+    "github": {
+      "fetching": "Récupération de {{filename}} depuis GitHub...",
+      "importSuccess": "Projet importé avec succès : {{name}}"
+    },
+    "import": {
+      "diagramAddedSuccess": "Diagramme {{diagramType}} importé avec succès et ajouté au projet « {{projectName}} ». Ce diagramme a été converti du format {{fileType}} vers le nouveau format de projet.",
+      "kgSuccess": "Diagramme {{diagramType}} importé avec succès depuis Knowledge Graph et ajouté au projet « {{projectName}} ».",
+      "imageSuccess": "Diagramme {{diagramType}} importé avec succès depuis une image et ajouté au projet « {{projectName}} »."
+    },
+    "errors": {
+      "openUmlFirst": "Ouvrez d'abord un diagramme UML.",
+      "noProject": "Aucun projet disponible à exporter.",
+      "selectAtLeastOne": "Sélectionnez au moins un diagramme à exporter.",
+      "exportFailed": "Échec de l'export : {{message}}",
+      "unknown": "Erreur inconnue",
+      "unknownOccurred": "Une erreur inconnue est survenue",
+      "unknownDuringImport": "Une erreur inconnue est survenue lors de l'import",
+      "validationFailed": "Échec de la validation",
+      "noDiagramToExport": "Aucun diagramme à exporter",
+      "noProjectData": "Aucune donnée de projet disponible à exporter",
+      "exportProjectFailed": "Échec de l'export du projet : {{message}}",
+      "guiEmpty": "Le modèle GUI de ce fichier est vide et aucun autre type de diagramme n'a été trouvé.",
+      "guiNotSupported": "Ce fichier contient un modèle GUI. Les modèles GUI ne peuvent être importés que via la fonction d'import de projet (Fichier > Importer un projet).",
+      "noValidDiagram": "Aucun diagramme valide trouvé dans le fichier BUML",
+      "importBumlFailed": "Échec de l'import du fichier BUML : {{message}}",
+      "invalidGithubUrl": "URL GitHub non valide. Veuillez fournir une URL de dépôt GitHub valide.",
+      "githubFileNotFound": "Fichier introuvable sur GitHub. Veuillez vérifier l'URL et réessayer.",
+      "githubFetchFailed": "Échec de la récupération du fichier depuis GitHub : {{status}}",
+      "githubImportFailed": "Échec de l'import du modèle depuis GitHub",
+      "readFileFailed": "Échec de la lecture du fichier",
+      "unsupportedFileType": "Type de fichier non pris en charge. Veuillez sélectionner un fichier .json ou .py.",
+      "invalidDiagramMissingType": "Diagramme non valide : informations de modèle ou de type manquantes",
+      "invalidDiagramFormat": "Format de diagramme non valide : modèle ou type manquant",
+      "importFailedTitle": "Échec de l'import",
+      "couldNotImportFile": "Impossible d'importer le fichier sélectionné : {{message}}",
+      "couldNotImportDiagram": "Impossible d'importer le diagramme : {{message}}",
+      "noProjectOpen": "Aucun projet n'est actuellement ouvert. Veuillez d'abord créer ou ouvrir un projet.",
+      "maxDiagramsReached": "Import impossible : le maximum de {{max}} diagrammes {{diagramType}} par projet est atteint.",
+      "noFileSelected": "Aucun fichier sélectionné",
+      "fileSelectionCancelled": "Sélection de fichier annulée",
+      "invalidDiagramFromBackend": "Diagramme non valide renvoyé par le backend",
+      "couldNotImportFromKg": "Impossible d'importer le diagramme depuis Knowledge Graph : {{message}}",
+      "couldNotImportFromImage": "Impossible d'importer le diagramme depuis une image : {{message}}"
+    }
+  },
+  "shared": {
+    "commandPalette": {
+      "dialogLabel": "Palette de commandes",
+      "placeholder": "Saisissez une commande...",
+      "searchLabel": "Rechercher des commandes",
+      "noResults": "Aucune commande correspondante",
+      "navigate": "Naviguer",
+      "select": "Sélectionner",
+      "categories": {
+        "editors": "Éditeurs",
+        "navigation": "Navigation",
+        "actions": "Actions"
+      },
+      "actions": {
+        "switchClass": "Passer au diagramme de classes",
+        "switchState": "Passer à la machine à états",
+        "switchObject": "Passer au diagramme d'objets",
+        "switchGui": "Passer à l'éditeur d'interface",
+        "switchAgent": "Passer au diagramme d'agent",
+        "switchQuantum": "Passer au circuit quantique",
+        "goSettings": "Aller aux paramètres",
+        "goQualityCheck": "Aller au contrôle qualité",
+        "exportJson": "Exporter en JSON",
+        "exportBuml": "Exporter en B-UML"
+      }
+    },
+    "cookie": {
+      "toggleEnable": "Activer les statistiques",
+      "toggleDisable": "Désactiver les statistiques",
+      "settingsTitle": "Paramètres de confidentialité",
+      "settingsDesc": "Gérer les préférences de statistiques pour ce navigateur.",
+      "policyTitle": "Politique de confidentialité",
+      "policyDesc": "Résumé du traitement des données d'analyse dans BESSER.",
+      "settingsButton": "Paramètres de confidentialité",
+      "banner": {
+        "title": "Cookies d'analyse",
+        "subtitle": "Statistiques anonymes pour améliorer BESSER.",
+        "details": "Détails",
+        "hideDetails": "Masquer les détails",
+        "decline": "Refuser",
+        "settings": "Paramètres",
+        "accept": "Accepter",
+        "privacyPolicy": "Politique de confidentialité",
+        "rows": {
+          "generators": "Générateurs de code utilisés",
+          "diagramComplexity": "Type de diagramme et complexité du modèle",
+          "assistantUsage": "Nombre d'utilisations de l'assistant IA",
+          "noContent": "Aucun contenu de modèle ni donnée personnelle"
+        }
+      },
+      "settings": {
+        "essentialTitle": "Cookies essentiels",
+        "requiredBadge": "Requis",
+        "essentialDesc": "Requis pour le fonctionnement de l'éditeur et les préférences locales.",
+        "analyticsTitle": "Statistiques",
+        "analyticsDesc": "Mesures d'utilisation anonymes pour améliorer les générateurs, les workflows et la qualité de l'UX.",
+        "savePreferences": "Enregistrer les préférences"
+      },
+      "privacy": {
+        "aboutTitle": "À propos de BESSER",
+        "aboutBody": "BESSER (Better Smart Software Faster) est une plateforme low-code open source développée par le Software Engineering Research Group du LIST (Luxembourg Institute of Science and Technology).",
+        "collectTitle": "Données que nous collectons",
+        "collect": {
+          "usage": "Utilisation des fonctionnalités (générateurs et workflows de diagrammes)",
+          "metrics": "Métriques du modèle (taille et décomptes de structure)",
+          "assistant": "Nombre d'utilisations de l'assistant IA (pas le contenu)",
+          "session": "Métadonnées de session anonymes"
+        },
+        "noCollectTitle": "Données que nous ne collectons pas",
+        "noCollect": {
+          "identity": "Données d'identité personnelles (nom, e-mail)",
+          "content": "Contenu des diagrammes/modèles",
+          "recordings": "Enregistrements d'écran ou relecture de session",
+          "names": "Noms de projets et titres de diagrammes"
+        },
+        "useTitle": "Comment nous utilisons les données",
+        "useBody": "Les statistiques servent uniquement à améliorer la qualité du produit et à prioriser le développement des fonctionnalités. Elles ne sont pas utilisées à des fins de marketing ou de revente.",
+        "providerTitle": "Fournisseur",
+        "providerIntro": "Nous utilisons PostHog (hébergé dans l'UE). Voir",
+        "providerLinkText": "Politique de confidentialité de PostHog"
+      }
+    },
+    "error": {
+      "dismiss": "Ignorer l'erreur"
+    },
+    "errorBoundary": {
+      "title": "Erreur de l'éditeur",
+      "description": "L'éditeur a rencontré une erreur inattendue. Votre travail a été enregistré.",
+      "unknownError": "Erreur inconnue",
+      "tryAgainLabel": "Réessayer après l'erreur",
+      "tryAgain": "Réessayer"
+    },
+    "jsonViewer": {
+      "jsonTitle": "Aperçu JSON du projet",
+      "diagramBuml": "Diagramme B-UML",
+      "closeLabel": "Fermer la fenêtre d'aperçu",
+      "expand": "Développer {{name}}",
+      "collapse": "Réduire {{name}}",
+      "root": "root",
+      "generatingBuml": "Génération de l'aperçu B-UML...",
+      "noBumlPreview": "Aucun aperçu B-UML n'est encore disponible.",
+      "generating": "Génération...",
+      "regenerate": "Régénérer",
+      "downloadBuml": "Télécharger le B-UML",
+      "copyBuml": "Copier le B-UML",
+      "downloadJson": "Télécharger le JSON",
+      "copyJson": "Copier le JSON",
+      "copyValue": "Copier la valeur"
+    },
+    "notFound": {
+      "title": "Page introuvable",
+      "description": "La page que vous recherchez n'existe pas ou a été déplacée.",
+      "backHome": "Retour à l'accueil"
+    },
+    "offline": {
+      "offlineMessage": "Vous êtes hors ligne. Certaines fonctionnalités peuvent ne pas fonctionner.",
+      "backOnline": "De retour en ligne.",
+      "dismiss": "Ignorer l'avertissement hors ligne"
+    }
+  },
+  "shell": {
+    "errors": {
+      "noProject": "Créez ou chargez d'abord un projet.",
+      "unknown": "Erreur inconnue",
+      "couldNotSwitchDiagram": "Impossible de passer à {{type}}."
+    },
+    "export": {
+      "bumlSuccess": "Projet exporté en B-UML.",
+      "bumlFailed": "Échec de l'export B-UML : {{message}}",
+      "jsonSuccess": "Projet exporté en JSON."
+    },
+    "import": {
+      "failed": "Échec de l'import : {{message}}"
+    },
+    "validateBeforeNav": {
+      "title": "Validez vos modèles avant de passer à la tâche suivante",
+      "description": "Ce modèle utilisateur n'a pas été validé après vos dernières modifications.",
+      "confirmLabel": "Valider les modèles",
+      "cancelLabel": "Ignorer"
+    },
+    "leaveWithIssues": {
+      "title": "Il y a des problèmes avec votre diagramme, voulez-vous quand même quitter ce modèle ?",
+      "description": "Le contrôle qualité a détecté des erreurs. Vous pouvez rester pour les corriger ou quitter ce modèle quand même.",
+      "confirmLabel": "Quitter le modèle",
+      "cancelLabel": "Rester"
+    },
+    "agentVariant": {
+      "createdAt": "Créé {{date}}",
+      "noBaseModel": "Aucun modèle de base disponible pour cet onglet d'agent pour l'instant.",
+      "switchedToBase": "Basculé vers le modèle d'agent de base.",
+      "notAvailable": "La variante sélectionnée n'est plus disponible.",
+      "switchedToVariant": "Basculé vers la variante {{name}}.",
+      "switchFailed": "Échec du changement de variante de modèle d'agent."
+    },
+    "nav": {
+      "open": "Ouvrir la navigation",
+      "close": "Fermer la navigation",
+      "title": "Navigation"
+    },
+    "preview": {
+      "projectLabel": "Projet (V{{version}})",
+      "bumlLabelNamed": "Aperçu B-UML du projet ({{name}})",
+      "bumlLabel": "Aperçu B-UML du projet"
+    }
+  },
+  "editors": {
+    "diagramTabs": {
+      "editorNotReady": "L'éditeur n'est pas encore prêt.",
+      "pickClassRefFirst": "Choisissez d'abord une référence de diagramme de classes.",
+      "noClassesToInstantiate": "Le diagramme de classes référencé n'a aucune classe à instancier.",
+      "linksFragment_one": ", {{count}} lien",
+      "linksFragment_other": ", {{count}} liens",
+      "allClassesHaveInstance_one": "La {{count}} classe a déjà une instance — rien à ajouter.",
+      "allClassesHaveInstance_other": "Les {{count}} classes ont déjà une instance — rien à ajouter.",
+      "generatedWithSkipped_one": "{{count}} objet{{links}} généré, {{skipped}} déjà présent sur le canevas ignoré.",
+      "generatedWithSkipped_other": "{{count}} objets{{links}} générés, {{skipped}} déjà présents sur le canevas ignorés.",
+      "generatedFromClassDiagram_one": "{{count}} objet{{links}} généré à partir du diagramme de classes.",
+      "generatedFromClassDiagram_other": "{{count}} objets{{links}} générés à partir du diagramme de classes.",
+      "maxDiagrams": "Maximum {{count}} diagrammes par type.",
+      "classRefTooltipObject": "Sélectionnez quel diagramme de classes fournit le modèle de données pour ce diagramme d'objets",
+      "classRefTooltipGui": "Sélectionnez quel diagramme de classes fournit le modèle de données pour cette interface graphique",
+      "validationValidated": "Validé",
+      "validationIssues": "Problèmes",
+      "validationNeedsValidation": "Validation requise",
+      "validationNotValidated": "Non validé",
+      "diagramTabLabel": "Onglet de diagramme : {{title}}",
+      "validationStatusLabel": "Statut de validation : {{status}}",
+      "renameDiagram": "Renommer le diagramme",
+      "closeTabLabel": "Fermer l'onglet {{title}}",
+      "closeTab": "Fermer l'onglet",
+      "addNewDiagram": "Ajouter un nouveau diagramme",
+      "expandLinkedDiagrams": "Développer les diagrammes liés",
+      "collapseLinkedDiagrams": "Réduire les diagrammes liés",
+      "showLinkedDiagrams": "Afficher les diagrammes liés",
+      "hideLinkedDiagrams": "Masquer les diagrammes liés",
+      "linkedDiagrams": "Diagrammes liés",
+      "references": "Références",
+      "classDiagram": "Diagramme de classes",
+      "referenceBroken": "Référence rompue - veuillez resélectionner",
+      "referenceDeleted": "Le diagramme référencé a été supprimé. Veuillez en sélectionner un nouveau.",
+      "referenceEmpty": "Le diagramme de classes référencé est vide (aucune classe ni relation).",
+      "generateObjectsTooltip": "Crée une instance d'objet par classe dans le diagramme référencé, avec des valeurs par défaut pour chaque attribut.",
+      "generate": "Générer",
+      "noClassDiagramsAvailable": "Aucun diagramme de classes disponible"
+    },
+    "charts": {
+      "loadingChart": "Chargement du graphique...",
+      "noDataAvailable": "Aucune donnée disponible"
+    },
+    "table": {
+      "columnLabel": "Libellé",
+      "columnValue": "Valeur",
+      "addEntity": "Ajouter {{entity}}",
+      "addRegister": "Ajouter un enregistrement",
+      "previewDescription": "Aperçu des données uniquement. Configurez les liaisons pour connecter les lignes du tableau à votre modèle de domaine.",
+      "edit": "Modifier",
+      "editRow": "Modifier la ligne",
+      "remove": "Supprimer",
+      "removeRow": "Supprimer la ligne",
+      "showingRows": "Affichage de {{visible}} sur {{total}} lignes",
+      "rowsPerPage": "Lignes par page : {{count}}"
+    },
+    "quantum": {
+      "editorTitle": "Quantum Editor",
+      "saved": "Enregistré",
+      "saving": "Enregistrement...",
+      "error": "Erreur",
+      "undo": "Annuler",
+      "redo": "Rétablir",
+      "examples": "Exemples",
+      "saveNow": "Enregistrer maintenant",
+      "saveNowTooltip": "Enregistrer manuellement le circuit dans le projet",
+      "exportJson": "Exporter JSON",
+      "importJson": "Importer JSON",
+      "editFunctionGate": "Modifier la porte de fonction",
+      "closeModal": "Fermer la fenêtre",
+      "gateNamePlaceholder": "Saisissez le nom de la porte (par ex. Bell State, QFT)",
+      "gateColor": "Couleur de la porte :",
+      "selectGateColor": "Sélectionner la couleur de la porte {{color}}",
+      "customColor": "Couleur personnalisée",
+      "qubits": "Qubits : {{count}}",
+      "removeQubit": "Supprimer un qubit",
+      "addQubit": "Ajouter un qubit",
+      "saveCircuit": "Enregistrer le circuit"
+    },
+    "gui": {
+      "guiGeneratedFromClass": "Interface graphique générée avec succès à partir du diagramme de classes.",
+      "unknownError": "Erreur inconnue",
+      "errorGeneratingGui": "Erreur lors de la génération de l'interface : {{message}}",
+      "guiModelLoaded": "Modèle d'interface chargé depuis l'assistant.",
+      "statusSaved": "Enregistré",
+      "statusSaving": "Enregistrement...",
+      "statusErrorSaving": "Erreur d'enregistrement",
+      "editorStillLoading": "L'éditeur est en cours de chargement. Veuillez patienter un instant et réessayer.",
+      "errorSavingProject": "Erreur lors de l'enregistrement du projet. Veuillez consulter la console pour plus de détails.",
+      "downloadHtml": "Télécharger HTML",
+      "exportTemplate": "Exporter le modèle",
+      "downloadJson": "Télécharger JSON",
+      "projectJson": "JSON du projet",
+      "clearCanvasTitle": "Effacer le canevas",
+      "clearCanvasDescription": "Êtes-vous sûr de vouloir effacer tout le canevas ? Cette action est irréversible.",
+      "clearCanvasConfirm": "Effacer",
+      "autoGenerateTitle": "Générer automatiquement l'interface à partir du diagramme de classes",
+      "autoGenerateIntro": "Cela effacera votre interface actuelle et en générera une nouvelle à partir de votre diagramme de classes.",
+      "autoGenerateCreatedTitle": "Créé automatiquement :",
+      "autoGenerateItemNav": "Panneau de navigation avec des liens vers chaque classe",
+      "autoGenerateItemPage": "Une page pour chaque classe avec un tableau de données",
+      "autoGenerateItemMethods": "Boutons de méthode pour les classes ayant des méthodes",
+      "autoGenerateCannotUndo": "Cette action est irréversible",
+      "autoGenerateConfirmQuestion": "Êtes-vous sûr de vouloir continuer ?",
+      "generateGui": "Générer l'interface",
+      "guiGeneratedSuccess": "Interface graphique générée avec succès ! Pages, tableaux et boutons de méthode créés pour toutes les classes.",
+      "noActiveProject": "Aucun projet actif trouvé.",
+      "noClassDiagramFound": "Aucun diagramme de classes trouvé. Veuillez d'abord créer un diagramme de classes.",
+      "qualityCheckFailed": "Échec du contrôle qualité du diagramme de classes",
+      "qualityCheckFailedMessage": "Des erreurs ont été détectées dans votre diagramme de classes. Veuillez les corriger avant de générer l'interface.",
+      "classDiagramErrors": "Erreurs du diagramme de classes",
+      "noClassesFound": "Aucune classe trouvée dans le diagramme de classes. Veuillez d'abord créer un diagramme de classes.",
+      "noPageSelected": "Aucune page sélectionnée",
+      "editRoutePrompt": "Modifier le chemin de route pour la page \"{{pageName}}\" :\n\nExemples :\n- /home\n- /users/:id\n- /products",
+      "routeUpdated": "Route mise à jour vers : {{route}}",
+      "sidebarBlocks": "Blocs",
+      "sidebarStyles": "Styles",
+      "sidebarTraits": "Propriétés",
+      "sidebarLayers": "Calques",
+      "sidebarPages": "Pages",
+      "traitDataSource": "Source de données",
+      "traitDataSourcePlaceholder": "par ex. User ou User.name",
+      "traitDisplayField": "Champ d'affichage",
+      "traitDisplayFieldPlaceholder": "Champ à afficher",
+      "traitValueField": "Champ de valeur",
+      "traitValueFieldPlaceholder": "Champ pour la valeur",
+      "importTemplate": "Importer un modèle",
+      "importTemplateLabel": "Collez ici votre HTML/CSS et cliquez sur Importer"
+    }
+  }
+}

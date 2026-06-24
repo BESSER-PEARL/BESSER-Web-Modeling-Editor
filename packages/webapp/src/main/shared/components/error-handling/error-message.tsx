@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function ErrorMessage(props: Props) {
+  const { t } = useTranslation();
   const { headerText, bodyText } = props.error;
 
   return (
@@ -29,7 +31,7 @@ export function ErrorMessage(props: Props) {
           size="icon"
           className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={() => props.onClose(props.error)}
-          aria-label="Dismiss error"
+          aria-label={t('shared.error.dismiss')}
         >
           <X className="size-4" />
         </Button>
