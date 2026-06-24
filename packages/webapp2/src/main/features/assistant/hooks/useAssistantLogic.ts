@@ -592,7 +592,9 @@ export function useAssistantLogic({
         instructions:
           typeof payload.instructions === 'string' ? payload.instructions : '',
         provider:
-          payload.provider === 'anthropic' || payload.provider === 'openai'
+          payload.provider === 'anthropic' ||
+          payload.provider === 'openai' ||
+          payload.provider === 'mistral'
             ? payload.provider
             : undefined,
         llmModel: typeof payload.llmModel === 'string' ? payload.llmModel : undefined,

@@ -73,6 +73,14 @@ const PROVIDER_OPTIONS: readonly ProviderOption[] = [
     hint: 'Keys typically start with sk-',
     expectedPrefix: 'sk-',
   },
+  {
+    value: 'mistral',
+    label: 'Mistral',
+    placeholder: 'Your Mistral API key',
+    // Mistral keys have no fixed public prefix, so we don't assert one.
+    hint: 'Paste your Mistral API key (no fixed prefix)',
+    expectedPrefix: '',
+  },
 ] as const;
 
 interface ModelPreset {
@@ -107,12 +115,24 @@ const MODEL_PRESETS: Record<SmartGenProvider, readonly ModelPreset[]> = {
     { value: 'gpt-4o-mini', label: 'GPT-4o mini — fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
+  mistral: [
+    { value: 'mistral-large-latest', label: 'Mistral Large — most capable (default)' },
+    { value: 'mistral-small-latest', label: 'Mistral Small — fast & cheap' },
+    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
+  ],
 } as const;
 
 /** Default preset for a provider — used when no prior choice is stored. */
 function _defaultModelForProvider(provider: SmartGenProvider): string {
   return MODEL_PRESETS[provider][0].value;
 }
+
+/** Placeholder shown in the Custom model ID input, per provider. */
+const CUSTOM_MODEL_PLACEHOLDER: Record<SmartGenProvider, string> = {
+  anthropic: 'e.g. claude-opus-4-6',
+  openai: 'e.g. o1-preview',
+  mistral: 'e.g. mistral-medium-latest',
+} as const;
 
 /**
  * Given a provider and a stored/resolved model value, determine how the
@@ -422,8 +442,8 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
           <DialogTitle>Vibe-Driven Generator — API Key</DialogTitle>
           <DialogDescription>
             The Vibe-Driven Generator runs an LLM on your behalf to build a
-            customised codebase from your model. Paste your own Anthropic
-            or OpenAI key to start. <strong>{PRIVACY_COPY}</strong>
+            customised codebase from your model. Paste your own Anthropic,
+            OpenAI, or Mistral key to start. <strong>{PRIVACY_COPY}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -514,7 +534,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
                   setCustomModel(e.target.value);
                   setSaveError(null);
                 }}
-                placeholder={provider === 'anthropic' ? 'e.g. claude-opus-4-6' : 'e.g. o1-preview'}
+                placeholder={CUSTOM_MODEL_PLACEHOLDER[provider]}
                 autoComplete="off"
                 spellCheck={false}
               />

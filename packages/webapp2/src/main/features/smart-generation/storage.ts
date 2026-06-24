@@ -1,8 +1,8 @@
 /**
  * BYOK (bring-your-own-key) session storage helpers for the Smart Generator.
  *
- * The user's Anthropic / OpenAI API key is stored ONLY in `sessionStorage`
- * (tab-lifetime, cleared on tab close). It is never written to localStorage
+ * The user's Anthropic / OpenAI / Mistral API key is stored ONLY in
+ * `sessionStorage` (tab-lifetime, cleared on tab close). It is never written to localStorage
  * or to Redux state. This module is the only place in the frontend that
  * touches the raw key.
  *
@@ -44,7 +44,9 @@ export function readSessionKey(): SessionKey | null {
     const apiKey = window.sessionStorage.getItem(sessionStorageSmartGenApiKey);
     const provider = window.sessionStorage.getItem(sessionStorageSmartGenProvider);
     if (!apiKey || !provider) return null;
-    if (provider !== 'anthropic' && provider !== 'openai') return null;
+    if (provider !== 'anthropic' && provider !== 'openai' && provider !== 'mistral') {
+      return null;
+    }
     const rawLlmModel = window.sessionStorage.getItem(sessionStorageSmartGenLlmModel);
     const llmModel = rawLlmModel && rawLlmModel.trim() ? rawLlmModel.trim() : undefined;
     return { apiKey, provider, llmModel };

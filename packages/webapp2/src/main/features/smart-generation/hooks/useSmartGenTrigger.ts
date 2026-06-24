@@ -111,6 +111,7 @@ const VALID_PHASES: ReadonlySet<SmartGenPhase> = new Set<SmartGenPhase>([
 const VALID_PROVIDERS: ReadonlySet<SmartGenProvider> = new Set<SmartGenProvider>([
   'anthropic',
   'openai',
+  'mistral',
 ]);
 
 /**

@@ -6,7 +6,7 @@
  * and renders them into the existing assistant chat message list.
  */
 
-export type SmartGenProvider = 'anthropic' | 'openai';
+export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral';
 
 export type SmartGenPhase =
   | 'select'

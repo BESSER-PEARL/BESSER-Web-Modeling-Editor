@@ -44,8 +44,9 @@ export const FALLBACK_SMART_GEN_CONFIG: SmartGenConfig = {
   default_models: {
     anthropic: 'claude-sonnet-4-6',
     openai: 'gpt-4o',
+    mistral: 'mistral-large-latest',
   },
-  supported_providers: ['anthropic', 'openai'],
+  supported_providers: ['anthropic', 'openai', 'mistral'],
 };
 
 const _isFiniteNumber = (value: unknown): value is number =>
