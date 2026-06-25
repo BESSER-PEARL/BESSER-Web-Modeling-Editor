@@ -1,8 +1,281 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
+import { LocalStorageRepository } from '../../../../shared/services/storage/local-storage-repository';
+import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
+import type { UMLModel } from '@besser/wme';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
+
+type PageVariant = {
+  id: string;
+  profileId: string;
+  profileName: string;
+  // Serialized GrapesJS page content
+  content: string;
+  // Serialized styles and CSS
+  styles: string;
+};
+
+const VARIANT_STORAGE_FIELD = 'besserPageVariants';
+const ACTIVE_VARIANT_FIELD = 'besserActiveVariantId';
+
+const getPageVariants = (page: any): PageVariant[] => {
+  const raw = page?.get?.(VARIANT_STORAGE_FIELD);
+  if (!raw || typeof raw !== 'string') return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+};
+
+const setPageVariants = (page: any, variants: PageVariant[]) => {
+  if (!page?.set) return;
+  page.set(VARIANT_STORAGE_FIELD, JSON.stringify(variants));
+};
+
+const getActiveVariantId = (page: any): string | null => {
+  return page?.get?.(ACTIVE_VARIANT_FIELD) || null;
+};
+
+const setActiveVariantId = (page: any, variantId: string | null) => {
+  if (!page?.set) return;
+  page.set(ACTIVE_VARIANT_FIELD, variantId);
+};
+
+const getPageRoute = (page: any): string => {
+  const name = page?.getName?.() || 'page';
+  return page?.get?.('route_path') || '/' + slugify(name);
+};
+
+const buildPersonalizedPageName = (baseName: string, profileName: string): string =>
+  `${baseName} (${profileName})`;
+
+const buildPersonalizedRoute = (baseRoute: string, profileName: string): string => {
+  const routeBase = baseRoute && baseRoute !== '/' ? baseRoute.replace(/\/+$/g, '') : '/page';
+  const suffix = slugify(profileName);
+  return `${routeBase}-${suffix}`;
+};
+
+const createUniquePageId = (baseName: string): string => `${slugify(baseName)}-${Date.now()}`;
+
+const duplicatePageContent = (editor: Editor, sourcePage: any, targetPage: any) => {
+  const originalComponents = sourcePage.getMainComponent()?.components();
+
+  const removeComponentIds = (componentArray: any[]): any[] =>
+    componentArray.map((comp: any) => {
+      const newComp = { ...comp };
+      delete newComp.id;
+      if (newComp.attributes && newComp.attributes.id) {
+        delete newComp.attributes.id;
+      }
+      if (newComp.components && Array.isArray(newComp.components)) {
+        newComp.components = removeComponentIds(newComp.components);
+      }
+      return newComp;
+    });
+
+  const updateCssSelectors = (oldId: string, newId: string) => {
+    const cssRules = editor.Css.getAll();
+    cssRules.forEach((rule: any) => {
+      const ruleJSON = rule.toJSON();
+      if (ruleJSON.pageId === targetPage.getId() && ruleJSON.selectors) {
+        const updated = ruleJSON.selectors.map((sel: any) => {
+          if (typeof sel === 'string' && sel === `#${oldId}`) {
+            return `#${newId}`;
+          } else if (sel.name === oldId) {
+            return { ...sel, name: newId };
+          }
+          return sel;
+        });
+        if (JSON.stringify(updated) !== JSON.stringify(ruleJSON.selectors)) {
+          rule.set('selectors', updated);
+        }
+      }
+    });
+  };
+
+  const oldToNewIdMap = new Map<string, string>();
+
+  if (originalComponents) {
+    const componentsJSON = JSON.parse(JSON.stringify(originalComponents.toJSON()));
+
+    const storeOldIds = (compArray: any[]) => {
+      compArray.forEach((comp: any) => {
+        if (comp.attributes?.id) {
+          oldToNewIdMap.set(comp.attributes.id, '');
+        }
+        if (comp.components && Array.isArray(comp.components)) {
+          storeOldIds(comp.components);
+        }
+      });
+    };
+    storeOldIds(componentsJSON);
+
+    const cleanedComponents = removeComponentIds(componentsJSON);
+
+    const mainComponent = targetPage.getMainComponent();
+    if (mainComponent) {
+      mainComponent.components().reset();
+      const addedComponents = mainComponent.components().add(cleanedComponents);
+
+      const mapNewIds = (oldComps: any[], newComps: any) => {
+        const newCompsArray = Array.isArray(newComps) ? newComps : [newComps];
+        oldComps.forEach((oldComp, index) => {
+          const newComp = newCompsArray[index];
+          if (newComp && oldComp.attributes?.id) {
+            const oldAttrId = oldComp.attributes.id;
+            const newCompId = newComp.getId();
+            newComp.addAttributes({ id: newCompId });
+            oldToNewIdMap.set(oldAttrId, newCompId);
+            updateCssSelectors(oldAttrId, newCompId);
+          }
+          if (oldComp.components && newComp?.components) {
+            mapNewIds(oldComp.components, newComp.components().models);
+          }
+        });
+      };
+
+      mapNewIds(componentsJSON, Array.isArray(addedComponents) ? addedComponents : [addedComponents]);
+    }
+  }
+
+  const copyComponentStyles = (oldComp: any, newComp: any) => {
+    const oldStyle = oldComp.getStyle();
+    if (oldStyle && Object.keys(oldStyle).length > 0) {
+      newComp.setStyle(oldStyle);
+    }
+
+    const oldClasses = oldComp.getClasses();
+    if (oldClasses && oldClasses.length > 0) {
+      newComp.setClass(oldClasses);
+    }
+
+    const oldChildren = oldComp.components();
+    const newChildren = newComp.components();
+    if (oldChildren && newChildren && oldChildren.length === newChildren.length) {
+      oldChildren.forEach((oldChild: any, index: number) => {
+        const newChild = newChildren.at(index);
+        if (newChild) {
+          copyComponentStyles(oldChild, newChild);
+        }
+      });
+    }
+  };
+
+  const originalMainComp = sourcePage.getMainComponent();
+  const newMainComp = targetPage.getMainComponent();
+  if (originalMainComp && newMainComp) {
+    const originalChildren = originalMainComp.components();
+    const newChildren = newMainComp.components();
+
+    originalChildren.forEach((oldComp: any, index: number) => {
+      const newComp = newChildren.at(index);
+      if (newComp) {
+        copyComponentStyles(oldComp, newComp);
+      }
+    });
+  }
+};
+
+const createPageCopy = (
+  editor: Editor,
+  sourcePage: any,
+  newName: string,
+  routePath?: string,
+  personalizationMeta?: PagePersonalizationMeta | null,
+) => {
+  const newPage = editor.Pages?.add({ id: createUniquePageId(newName), name: newName.trim() });
+  if (!newPage) return null;
+
+  duplicatePageContent(editor, sourcePage, newPage);
+
+  const originalRoute = routePath || getPageRoute(sourcePage);
+  if (originalRoute) {
+    newPage.set('route_path', originalRoute);
+  }
+
+  setPagePersonalizationMeta(newPage, personalizationMeta || null);
+  return newPage;
+};
+
+const getAvailableProfiles = (): Array<{ id: string; name: string }> => {
+  try {
+    const project = ProjectStorageRepository.getCurrentProject();
+    if (!project) {
+      console.log('[Personalization] No project loaded');
+      return [];
+    }
+
+    // Extract all User Diagram tabs as profiles (same approach as AgentConfigurationPanel)
+    const userDiagrams = project.diagrams?.UserDiagram || [];
+    const profiles = userDiagrams.map((diagram: any) => ({
+      id: diagram.id,
+      name: diagram.title || 'Unnamed Profile'
+    }));
+
+    console.log('[Personalization] Found profiles from User Diagrams:', profiles);
+    return profiles;
+  } catch (err) {
+    console.warn('[Personalization] Error fetching profiles:', err);
+    return [];
+  }
+};
+
+const openProfilePickerModal = async (
+  editor: Editor,
+  options: {
+    title: string;
+    description: string;
+    confirmLabel: string;
+    onConfirm: (profile: { id: string; name: string }) => void | Promise<void>;
+  },
+) => {
+  const profiles = getAvailableProfiles();
+  if (profiles.length === 0) {
+    await globalConfirm({
+      title: options.title,
+      description: 'No user profiles are available. Create a user profile in the User Diagram first, then try again.',
+      confirmLabel: 'OK',
+      cancelLabel: 'OK',
+    });
+    return;
+  }
+
+  const modal = editor.Modal;
+  const selectId = 'gjs-personalization-profile-select';
+  const content = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 320px;">
+      <p style="margin: 0 0 12px; color: #444; line-height: 1.5;">${options.description}</p>
+      <label for="${selectId}" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:#333; text-transform:uppercase; letter-spacing:0.04em;">User profile</label>
+      <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:white;">
+        ${profiles.map((profile) => `<option value="${profile.id}">${profile.name}</option>`).join('')}
+      </select>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" id="gjs-personalization-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">Cancel</button>
+        <button type="button" id="gjs-personalization-confirm-btn" style="padding:8px 12px; border:none; border-radius:6px; background:#2563eb; color:#fff; cursor:pointer;">${options.confirmLabel}</button>
+      </div>
+    </div>
+  `;
+
+  modal.setTitle(options.title);
+  modal.setContent(content);
+  modal.open();
+
+  setTimeout(() => {
+    const cancelBtn = document.getElementById('gjs-personalization-cancel-btn');
+    const confirmBtn = document.getElementById('gjs-personalization-confirm-btn');
+    const select = document.getElementById(selectId) as HTMLSelectElement | null;
+
+    cancelBtn?.addEventListener('click', () => modal.close());
+    confirmBtn?.addEventListener('click', async () => {
+      const selectedProfile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
+      modal.close();
+      await options.onConfirm({ id: selectedProfile.id, name: selectedProfile.name });
+    });
+  }, 50);
+};
 
 export function setupPageSystem(editor: Editor) {
   // Check if this specific editor already has the page system initialized
@@ -65,7 +338,7 @@ function setupPagesTabInSidebar(editor: Editor) {
     // Also remove the old floating panel button if exists
     try {
       panelManager.removeButton('options', 'open-pages');
-    } catch (e) {
+    } catch {
       // Ignore if button doesn't exist
     }
     
@@ -252,12 +525,22 @@ function updatePagesList(editor: Editor) {
     list.innerHTML = '';
     
     editor.Pages.getAll().forEach((page: any) => {
-      const pageRoute = page.get('route_path') || '/' + page.getName().toLowerCase().replace(/\s+/g, '-');
+      const pageRoute = getPageRoute(page);
+      const variants = getPageVariants(page);
+      const activeVariantId = getActiveVariantId(page);
       const item = document.createElement('div');
       item.className = 'gjs-page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
+      
+      let variantLabel = 'Base';
+      if (activeVariantId && variants.length > 0) {
+        const activeVariant = variants.find(v => v.id === activeVariantId);
+        variantLabel = activeVariant?.profileName || 'Base';
+      }
+      
       item.innerHTML = `
         <div class="gjs-page-info">
           <span class="gjs-page-name">${page.getName()}</span>
+          ${variants.length > 0 ? `<span class="gjs-page-profile">${variantLabel}${variants.length > 1 ? ` (+${variants.length - 1} more)` : ''}</span>` : ''}
           <span class="gjs-page-route">${pageRoute}</span>
         </div>
         <div class="gjs-page-actions">
@@ -276,6 +559,17 @@ function updatePagesList(editor: Editor) {
               <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
             </svg>
           </button>
+          <button class="gjs-page-btn add-variant-btn" title="Add personalized variant" aria-label="Add personalized variant">
+            <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
+              <path d="M12,12A4,4 0 1,0 8,8A4,4 0 0,0 12,12M12,14C9.33,14 4,15.33 4,18V20H20V18C20,15.33 14.67,14 12,14M19,8V5H17V8H14V10H17V13H19V10H22V8Z" />
+            </svg>
+          </button>
+          ${variants.length > 0 ? `
+          <select class="gjs-page-variants-select" title="Switch variant" aria-label="Switch variant" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
+            <option value="">Base</option>
+            ${variants.map(v => `<option value="${v.id}" ${activeVariantId === v.id ? 'selected' : ''}>${v.profileName}</option>`).join('')}
+          </select>
+          ` : ''}
           <button class="gjs-page-btn delete-page-btn" title="Delete page" aria-label="Delete page">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
@@ -286,7 +580,7 @@ function updatePagesList(editor: Editor) {
       
       item.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
-        if (target.tagName !== 'BUTTON' && !target.closest('button') && target.tagName.toLowerCase() !== 'input') {
+        if (target.tagName !== 'BUTTON' && !target.closest('button') && target.tagName !== 'SELECT' && target.tagName.toLowerCase() !== 'option') {
           editor.Pages.select(page);
         }
       });
@@ -322,160 +616,87 @@ function updatePagesList(editor: Editor) {
         e.stopPropagation();
         
         const originalName = page.getName();
-        const originalId = page.getId();
         const newName = prompt('Enter name for duplicated page:', originalName + ' Copy');
         if (!newName?.trim()) return;
-        
-        // Create new page with unique ID
-        const newId = newName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-        const newPage = editor.Pages.add({ id: newId, name: newName.trim() });
-        
-        if (!newPage) {
-          return;
+        const newPage = editor.Pages?.add({ id: createUniquePageId(newName), name: newName.trim() });
+        if (newPage) {
+          editor.Pages.select(newPage);
         }
-        
-        // Helper function to recursively remove IDs from components
-        const removeComponentIds = (componentArray: any[]): any[] => {
-          return componentArray.map((comp: any) => {
-            const newComp = { ...comp };
-            // Remove the component ID so GrapesJS generates new ones
-            delete newComp.id;
-            // Also remove ID from attributes if present
-            if (newComp.attributes && newComp.attributes.id) {
-              delete newComp.attributes.id;
-            }
-            // Recursively process children
-            if (newComp.components && Array.isArray(newComp.components)) {
-              newComp.components = removeComponentIds(newComp.components);
-            }
-            return newComp;
-          });
-        };
-        
-        // Helper function to update CSS selectors from old IDs to new IDs
-        const updateCssSelectors = (oldId: string, newId: string) => {
-          const cssRules = editor.Css.getAll();
-          cssRules.forEach((rule: any) => {
-            const ruleJSON = rule.toJSON();
-            // Check if this rule belongs to the new page and references the old component ID
-            if (ruleJSON.pageId === newPage.getId() && ruleJSON.selectors) {
-              const updated = ruleJSON.selectors.map((sel: any) => {
-                if (typeof sel === 'string' && sel === `#${oldId}`) {
-                  return `#${newId}`;
-                } else if (sel.name === oldId) {
-                  return { ...sel, name: newId };
-                }
-                return sel;
-              });
-              if (JSON.stringify(updated) !== JSON.stringify(ruleJSON.selectors)) {
-                rule.set('selectors', updated);
-              }
-            }
-          });
-        };
-        
-        // Deep copy components from original page, preserving IDs temporarily for CSS mapping
-        const originalComponents = page.getMainComponent()?.components();
-        const oldToNewIdMap = new Map<string, string>();
-        
-        if (originalComponents) {
-          const componentsJSON = JSON.parse(JSON.stringify(originalComponents.toJSON()));
-          
-          // Store old attribute IDs before removing them (these are used in CSS selectors)
-          const storeOldIds = (compArray: any[]) => {
-            compArray.forEach((comp: any) => {
-              if (comp.attributes?.id) {
-                oldToNewIdMap.set(comp.attributes.id, ''); // Will fill in new ID later
-              }
-              if (comp.components && Array.isArray(comp.components)) {
-                storeOldIds(comp.components);
-              }
-            });
-          };
-          storeOldIds(componentsJSON);
-          
-          const cleanedComponents = removeComponentIds(componentsJSON);
-          
-          // Clear any existing components and add fresh ones
-          const mainComponent = newPage.getMainComponent();
-          if (mainComponent) {
-            mainComponent.components().reset();
-            const addedComponents = mainComponent.components().add(cleanedComponents);
-            
-            // Map old attribute IDs to new component IDs by walking the component tree
-            const mapNewIds = (oldComps: any[], newComps: any) => {
-              const newCompsArray = Array.isArray(newComps) ? newComps : [newComps];
-              oldComps.forEach((oldComp, index) => {
-                const newComp = newCompsArray[index];
-                if (newComp && oldComp.attributes?.id) {
-                  const oldAttrId = oldComp.attributes.id;
-                  const newCompId = newComp.getId();
-                  // Set the new component's attribute ID to match its component ID
-                  newComp.addAttributes({ id: newCompId });
-                  oldToNewIdMap.set(oldAttrId, newCompId);
-                }
-                if (oldComp.components && newComp?.components) {
-                  mapNewIds(oldComp.components, newComp.components().models);
-                }
-              });
-            };
-            mapNewIds(componentsJSON, Array.isArray(addedComponents) ? addedComponents : [addedComponents]);
-          }
-        }
-        
-        // Copy styles by getting the CSS string from the original page and applying it to components on the new page
-        // This is simpler and more reliable than trying to copy CSS rules
-        const copyComponentStyles = (oldComp: any, newComp: any) => {
-          // Copy inline styles
-          const oldStyle = oldComp.getStyle();
-          if (oldStyle && Object.keys(oldStyle).length > 0) {
-            newComp.setStyle(oldStyle);
-          }
-          
-          // Copy classes
-          const oldClasses = oldComp.getClasses();
-          if (oldClasses && oldClasses.length > 0) {
-            newComp.setClass(oldClasses);
-          }
-          
-          // Recursively copy styles for children
-          const oldChildren = oldComp.components();
-          const newChildren = newComp.components();
-          if (oldChildren && newChildren && oldChildren.length === newChildren.length) {
-            oldChildren.forEach((oldChild: any, index: number) => {
-              const newChild = newChildren.at(index);
-              if (newChild) {
-                copyComponentStyles(oldChild, newChild);
-              }
-            });
-          }
-        };
-        
-        // Copy styles from original page components to new page components
-        const originalMainComp = page.getMainComponent();
-        const newMainComp = newPage.getMainComponent();
-        if (originalMainComp && newMainComp) {
-          const originalChildren = originalMainComp.components();
-          const newChildren = newMainComp.components();
-          
-          originalChildren.forEach((oldComp: any, index: number) => {
-            const newComp = newChildren.at(index);
-            if (newComp) {
-              copyComponentStyles(oldComp, newComp);
-            }
-          });
-        }
-        
-        // Only copy specific page attributes, not all
-        // Only copy route_path if it exists
-        const originalRoute = page.get('route_path');
-        if (originalRoute) {
-          newPage.set('route_path', originalRoute + '-copy');
-        }
-        
-        // Select the new page and update the list
-        editor.Pages.select(newPage);
         updatePagesList(editor);
+      });
+
+      // Variant dropdown: switch between personalization variants
+      (item.querySelector('.gjs-page-variants-select') as HTMLSelectElement)?.addEventListener('change', (e) => {
+        e.stopPropagation();
+        const select = e.target as HTMLSelectElement;
+        const selectedVariantId = select.value;
+        
+        if (!selectedVariantId) {
+          // Switch back to base (empty activeVariantId)
+          setActiveVariantId(page, null);
+        } else {
+          const variants = getPageVariants(page);
+          const variant = variants.find(v => v.id === selectedVariantId);
+          if (variant) {
+            setActiveVariantId(page, variant.id);
+            // Load variant content into the page
+            try {
+              const content = JSON.parse(variant.content);
+              page.frames().forEach((frame: any) => frame.remove());
+              const styles = JSON.parse(variant.styles);
+              page.setStyle(styles);
+              const html = content.html || '';
+              const components = content.components || [];
+              components.forEach((comp: any) => {
+                page.addComponent(comp);
+              });
+            } catch (err) {
+              console.warn('[Personalization] Error loading variant content:', err);
+            }
+          }
+        }
+        updatePagesList(editor);
+      });
+
+      // Add variant button
+      item.querySelector('.add-variant-btn')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+
+        await openProfilePickerModal(editor, {
+          title: 'Create page variant',
+          description: `Choose a user profile to create a personalized variant of "${page.getName()}".`,
+          confirmLabel: 'Create variant',
+          onConfirm: async (profile) => {
+            // Check if variant already exists for this profile
+            const variants = getPageVariants(page);
+            if (variants.some(v => v.profileId === profile.id)) {
+              // Switch to existing variant
+              setActiveVariantId(page, variants.find(v => v.profileId === profile.id)!.id);
+              updatePagesList(editor);
+              return;
+            }
+
+            // Capture current page content as a variant
+            const currentContent = {
+              html: page.getHtml?.() || '',
+              components: page.getComponents?.() || []
+            };
+            const currentStyles = page.getStyle?.() || {};
+            
+            const newVariant: PageVariant = {
+              id: `variant-${profile.id}-${Date.now()}`,
+              profileId: profile.id,
+              profileName: profile.name,
+              content: JSON.stringify(currentContent),
+              styles: JSON.stringify(currentStyles),
+            };
+
+            const updatedVariants = [...variants, newVariant];
+            setPageVariants(page, updatedVariants);
+            setActiveVariantId(page, newVariant.id);
+            updatePagesList(editor);
+          },
+        });
       });
       
       item.querySelector('.delete-page-btn')?.addEventListener('click', async (e) => {
@@ -545,6 +766,49 @@ function setupPageCommands(editor: Editor) {
         editor.Pages.select(page);
         updatePagesList(editor);
       }
+    }
+  });
+
+  editor.Commands.add('personalize-page', {
+    async run() {
+      const selectedPage = editor.Pages?.getSelected();
+      if (!selectedPage) {
+        return;
+      }
+
+      const meta = getPagePersonalizationMeta(selectedPage);
+      const basePage = meta ? findPageById(editor, meta.basePageId) : selectedPage;
+      if (!basePage) {
+        return;
+      }
+
+      await openProfilePickerModal(editor, {
+        title: 'Create personalized page',
+        description: `Choose a saved user profile. A personalized copy of "${basePage.getName()}" will be created for that profile.`,
+        confirmLabel: 'Create copy',
+        onConfirm: async (profile) => {
+          const existing = findPersonalizedPageForProfile(editor, basePage.getId(), profile.id);
+          if (existing) {
+            editor.Pages.select(existing);
+            updatePagesList(editor);
+            return;
+          }
+
+          const personalizedName = buildPersonalizedPageName(basePage.getName(), profile.name);
+          const personalizedRoute = buildPersonalizedRoute(getPageRoute(basePage), profile.name);
+          const newPage = createPageCopy(editor, basePage, personalizedName, personalizedRoute, {
+            basePageId: basePage.getId(),
+            basePageName: basePage.getName(),
+            profileId: profile.id,
+            profileName: profile.name,
+          });
+
+          if (newPage) {
+            editor.Pages.select(newPage);
+            updatePagesList(editor);
+          }
+        },
+      });
     }
   });
 }
@@ -693,6 +957,19 @@ function addPagesPanelCSS() {
       min-width: 0;
       gap: 2px;
     }
+
+    .gjs-page-profile {
+      display: inline-flex;
+      align-self: flex-start;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.12);
+      color: #1d4ed8;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
     
     .gjs-page-name {
       font-size: 13px;
@@ -722,9 +999,11 @@ function addPagesPanelCSS() {
     
     .gjs-page-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 4px;
       opacity: 0;
       transition: opacity 0.2s;
+      justify-content: flex-end;
     }
     
     .gjs-page-item:hover .gjs-page-actions,
