@@ -4,9 +4,7 @@ BPMN Diagrams
 BPMN (Business Process Model and Notation) diagrams let you model the flow of
 work across tasks, events, and decision points, optionally partitioned into
 pools and lanes to show which participant is responsible for each step. The WME
-BPMN editor follows the BPMN 2.0.2 standard and can export to standard
-``.bpmn`` XML files that open in Camunda Modeler, bpmn.io, and other
-conformant tools.
+BPMN editor follows the definition of `BPMN models <https://besser.readthedocs.io/en/latest/buml_language/model_types/bpmn.html>`_.
 
 Pools and Lanes
 ---------------
