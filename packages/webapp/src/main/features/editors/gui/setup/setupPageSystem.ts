@@ -1,24 +1,36 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
-import { LocalStorageRepository } from '../../../../shared/services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
-import type { UMLModel } from '@besser/wme';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
+
+type PageSnapshot = {
+  // Serialized children of the page's main component
+  components: any[];
+  // CSS rule JSON scoped to this page (rules carry a pageId in this GrapesJS build)
+  css: any[];
+};
 
 type PageVariant = {
   id: string;
   profileId: string;
   profileName: string;
-  // Serialized GrapesJS page content
-  content: string;
-  // Serialized styles and CSS
-  styles: string;
+  // Independent copy of the page content for this profile
+  snapshot: PageSnapshot;
 };
 
 const VARIANT_STORAGE_FIELD = 'besserPageVariants';
 const ACTIVE_VARIANT_FIELD = 'besserActiveVariantId';
+const BASE_SNAPSHOT_FIELD = 'besserBaseSnapshot';
+
+const slugify = (value: string): string =>
+  (value || 'page')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'page';
 
 const getPageVariants = (page: any): PageVariant[] => {
   const raw = page?.get?.(VARIANT_STORAGE_FIELD);
@@ -44,161 +56,118 @@ const setActiveVariantId = (page: any, variantId: string | null) => {
   page.set(ACTIVE_VARIANT_FIELD, variantId);
 };
 
+const getBaseSnapshot = (page: any): PageSnapshot | null => {
+  const raw = page?.get?.(BASE_SNAPSHOT_FIELD);
+  if (!raw || typeof raw !== 'string') return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const setBaseSnapshot = (page: any, snapshot: PageSnapshot) => {
+  if (!page?.set) return;
+  page.set(BASE_SNAPSHOT_FIELD, JSON.stringify(snapshot));
+};
+
+// --- Snapshot capture / restore -------------------------------------------
+// The personalization UX keeps ONE GrapesJS page and swaps its content in and
+// out per profile. Each profile (and the implicit "Base") owns an independent
+// snapshot of the page's component tree + its page-scoped CSS rules. Because
+// only one snapshot is ever mounted at a time, "the page's current CSS rules"
+// always equals "the active variant's CSS", so we can swap both atomically and
+// no component-id remapping is required.
+
+const getPageCssRules = (editor: Editor, page: any): any[] => {
+  const pageId = page?.getId?.();
+  if (!pageId) return [];
+  try {
+    return editor.Css.getAll().filter((rule: any) => {
+      try {
+        return rule.toJSON().pageId === pageId;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return [];
+  }
+};
+
+const captureSnapshot = (editor: Editor, page: any): PageSnapshot => {
+  const main = page?.getMainComponent?.();
+  const components = main ? JSON.parse(JSON.stringify(main.components().toJSON())) : [];
+  const css = getPageCssRules(editor, page).map((rule: any) =>
+    JSON.parse(JSON.stringify(rule.toJSON())),
+  );
+  return { components, css };
+};
+
+const applySnapshot = (editor: Editor, page: any, snapshot: PageSnapshot) => {
+  const main = page?.getMainComponent?.();
+  // Drop the CSS rules belonging to whatever is currently mounted on this page.
+  getPageCssRules(editor, page).forEach((rule: any) => {
+    try {
+      editor.Css.getAll().remove(rule);
+    } catch (err) {
+      console.warn('[Personalization] Failed to remove CSS rule:', err);
+    }
+  });
+  // Swap the component tree.
+  if (main) {
+    main.components().reset(snapshot?.components || []);
+  }
+  // Bring in the incoming snapshot's CSS rules.
+  (snapshot?.css || []).forEach((ruleJson: any) => {
+    try {
+      editor.Css.getAll().add(ruleJson);
+    } catch (err) {
+      console.warn('[Personalization] Failed to add CSS rule:', err);
+    }
+  });
+};
+
+// Persist the live canvas into whichever variant/base is currently active.
+const saveActiveLive = (editor: Editor, page: any) => {
+  const snapshot = captureSnapshot(editor, page);
+  const activeId = getActiveVariantId(page);
+  if (activeId == null) {
+    setBaseSnapshot(page, snapshot);
+    return;
+  }
+  const variants = getPageVariants(page);
+  const idx = variants.findIndex((v) => v.id === activeId);
+  if (idx >= 0) {
+    variants[idx] = { ...variants[idx], snapshot };
+    setPageVariants(page, variants);
+  } else {
+    // Active id points at nothing (stale) — treat current content as base.
+    setBaseSnapshot(page, snapshot);
+  }
+};
+
+// Switch the page to a different variant (null = Base): save outgoing, load incoming.
+const switchVariant = (editor: Editor, page: any, targetId: string | null) => {
+  const activeId = getActiveVariantId(page);
+  if (targetId === activeId) return;
+  saveActiveLive(editor, page);
+  const nextSnapshot =
+    targetId == null
+      ? getBaseSnapshot(page)
+      : (getPageVariants(page).find((v) => v.id === targetId)?.snapshot ?? null);
+  if (nextSnapshot) {
+    applySnapshot(editor, page, nextSnapshot);
+  }
+  setActiveVariantId(page, targetId);
+};
+
 const getPageRoute = (page: any): string => {
   const name = page?.getName?.() || 'page';
   return page?.get?.('route_path') || '/' + slugify(name);
 };
 
-const buildPersonalizedPageName = (baseName: string, profileName: string): string =>
-  `${baseName} (${profileName})`;
-
-const buildPersonalizedRoute = (baseRoute: string, profileName: string): string => {
-  const routeBase = baseRoute && baseRoute !== '/' ? baseRoute.replace(/\/+$/g, '') : '/page';
-  const suffix = slugify(profileName);
-  return `${routeBase}-${suffix}`;
-};
-
 const createUniquePageId = (baseName: string): string => `${slugify(baseName)}-${Date.now()}`;
-
-const duplicatePageContent = (editor: Editor, sourcePage: any, targetPage: any) => {
-  const originalComponents = sourcePage.getMainComponent()?.components();
-
-  const removeComponentIds = (componentArray: any[]): any[] =>
-    componentArray.map((comp: any) => {
-      const newComp = { ...comp };
-      delete newComp.id;
-      if (newComp.attributes && newComp.attributes.id) {
-        delete newComp.attributes.id;
-      }
-      if (newComp.components && Array.isArray(newComp.components)) {
-        newComp.components = removeComponentIds(newComp.components);
-      }
-      return newComp;
-    });
-
-  const updateCssSelectors = (oldId: string, newId: string) => {
-    const cssRules = editor.Css.getAll();
-    cssRules.forEach((rule: any) => {
-      const ruleJSON = rule.toJSON();
-      if (ruleJSON.pageId === targetPage.getId() && ruleJSON.selectors) {
-        const updated = ruleJSON.selectors.map((sel: any) => {
-          if (typeof sel === 'string' && sel === `#${oldId}`) {
-            return `#${newId}`;
-          } else if (sel.name === oldId) {
-            return { ...sel, name: newId };
-          }
-          return sel;
-        });
-        if (JSON.stringify(updated) !== JSON.stringify(ruleJSON.selectors)) {
-          rule.set('selectors', updated);
-        }
-      }
-    });
-  };
-
-  const oldToNewIdMap = new Map<string, string>();
-
-  if (originalComponents) {
-    const componentsJSON = JSON.parse(JSON.stringify(originalComponents.toJSON()));
-
-    const storeOldIds = (compArray: any[]) => {
-      compArray.forEach((comp: any) => {
-        if (comp.attributes?.id) {
-          oldToNewIdMap.set(comp.attributes.id, '');
-        }
-        if (comp.components && Array.isArray(comp.components)) {
-          storeOldIds(comp.components);
-        }
-      });
-    };
-    storeOldIds(componentsJSON);
-
-    const cleanedComponents = removeComponentIds(componentsJSON);
-
-    const mainComponent = targetPage.getMainComponent();
-    if (mainComponent) {
-      mainComponent.components().reset();
-      const addedComponents = mainComponent.components().add(cleanedComponents);
-
-      const mapNewIds = (oldComps: any[], newComps: any) => {
-        const newCompsArray = Array.isArray(newComps) ? newComps : [newComps];
-        oldComps.forEach((oldComp, index) => {
-          const newComp = newCompsArray[index];
-          if (newComp && oldComp.attributes?.id) {
-            const oldAttrId = oldComp.attributes.id;
-            const newCompId = newComp.getId();
-            newComp.addAttributes({ id: newCompId });
-            oldToNewIdMap.set(oldAttrId, newCompId);
-            updateCssSelectors(oldAttrId, newCompId);
-          }
-          if (oldComp.components && newComp?.components) {
-            mapNewIds(oldComp.components, newComp.components().models);
-          }
-        });
-      };
-
-      mapNewIds(componentsJSON, Array.isArray(addedComponents) ? addedComponents : [addedComponents]);
-    }
-  }
-
-  const copyComponentStyles = (oldComp: any, newComp: any) => {
-    const oldStyle = oldComp.getStyle();
-    if (oldStyle && Object.keys(oldStyle).length > 0) {
-      newComp.setStyle(oldStyle);
-    }
-
-    const oldClasses = oldComp.getClasses();
-    if (oldClasses && oldClasses.length > 0) {
-      newComp.setClass(oldClasses);
-    }
-
-    const oldChildren = oldComp.components();
-    const newChildren = newComp.components();
-    if (oldChildren && newChildren && oldChildren.length === newChildren.length) {
-      oldChildren.forEach((oldChild: any, index: number) => {
-        const newChild = newChildren.at(index);
-        if (newChild) {
-          copyComponentStyles(oldChild, newChild);
-        }
-      });
-    }
-  };
-
-  const originalMainComp = sourcePage.getMainComponent();
-  const newMainComp = targetPage.getMainComponent();
-  if (originalMainComp && newMainComp) {
-    const originalChildren = originalMainComp.components();
-    const newChildren = newMainComp.components();
-
-    originalChildren.forEach((oldComp: any, index: number) => {
-      const newComp = newChildren.at(index);
-      if (newComp) {
-        copyComponentStyles(oldComp, newComp);
-      }
-    });
-  }
-};
-
-const createPageCopy = (
-  editor: Editor,
-  sourcePage: any,
-  newName: string,
-  routePath?: string,
-  personalizationMeta?: PagePersonalizationMeta | null,
-) => {
-  const newPage = editor.Pages?.add({ id: createUniquePageId(newName), name: newName.trim() });
-  if (!newPage) return null;
-
-  duplicatePageContent(editor, sourcePage, newPage);
-
-  const originalRoute = routePath || getPageRoute(sourcePage);
-  if (originalRoute) {
-    newPage.set('route_path', originalRoute);
-  }
-
-  setPagePersonalizationMeta(newPage, personalizationMeta || null);
-  return newPage;
-};
 
 const getAvailableProfiles = (): Array<{ id: string; name: string }> => {
   try {
@@ -273,6 +242,65 @@ const openProfilePickerModal = async (
       const selectedProfile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
       modal.close();
       await options.onConfirm({ id: selectedProfile.id, name: selectedProfile.name });
+    });
+  }, 50);
+};
+
+// Delete chooser shown when a page has personalization variants: lists Base +
+// every variant and lets the user delete a single variant or the whole page.
+// Deleting "Base" (or "Delete all") removes the page and every variant with it.
+const openPageDeleteModal = (
+  editor: Editor,
+  page: any,
+  handlers: {
+    deleteEntirePage: () => void;
+    deleteVariant: (variantId: string) => void;
+  },
+) => {
+  const variants = getPageVariants(page);
+  const activeId = getActiveVariantId(page);
+  const modal = editor.Modal;
+
+  const variantRows = variants
+    .map(
+      (v) => `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px;">
+        <span style="font-size:14px; color:#333;">${v.profileName}${activeId === v.id ? ' <span style="color:#1d4ed8; font-size:11px; font-weight:600;">(active)</span>' : ''}</span>
+        <button type="button" class="gjs-del-variant-btn" data-variant-id="${v.id}" style="padding:6px 10px; border:1px solid #e74c3c; color:#e74c3c; background:#fff; border-radius:6px; cursor:pointer; font-size:12px;">Delete</button>
+      </div>`,
+    )
+    .join('');
+
+  const content = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 360px;">
+      <p style="margin:0 0 12px; color:#444; line-height:1.5;">"${page.getName()}" has personalized variants. Choose what to delete.</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; background:#fafafa;">
+        <span style="font-size:14px; color:#333;">Base page <span style="color:#888; font-size:11px;">— deletes the page and all variants</span></span>
+        <button type="button" id="gjs-del-base-btn" style="padding:6px 10px; border:none; color:#fff; background:#c0392b; border-radius:6px; cursor:pointer; font-size:12px;">Delete all</button>
+      </div>
+      ${variantRows}
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
+        <button type="button" id="gjs-del-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  `;
+
+  modal.setTitle('Delete page or variant');
+  modal.setContent(content);
+  modal.open();
+
+  setTimeout(() => {
+    document.getElementById('gjs-del-cancel-btn')?.addEventListener('click', () => modal.close());
+    document.getElementById('gjs-del-base-btn')?.addEventListener('click', () => {
+      modal.close();
+      handlers.deleteEntirePage();
+    });
+    document.querySelectorAll('.gjs-del-variant-btn').forEach((btn) => {
+      btn.addEventListener('click', (ev) => {
+        const id = (ev.currentTarget as HTMLElement).getAttribute('data-variant-id');
+        modal.close();
+        if (id) handlers.deleteVariant(id);
+      });
     });
   }, 50);
 };
@@ -625,36 +653,13 @@ function updatePagesList(editor: Editor) {
         updatePagesList(editor);
       });
 
-      // Variant dropdown: switch between personalization variants
+      // Variant dropdown: switch between personalization variants ('' = Base).
+      // switchVariant() saves the live canvas into the outgoing record before
+      // loading the incoming one, so edits never leak across profiles.
       (item.querySelector('.gjs-page-variants-select') as HTMLSelectElement)?.addEventListener('change', (e) => {
         e.stopPropagation();
         const select = e.target as HTMLSelectElement;
-        const selectedVariantId = select.value;
-        
-        if (!selectedVariantId) {
-          // Switch back to base (empty activeVariantId)
-          setActiveVariantId(page, null);
-        } else {
-          const variants = getPageVariants(page);
-          const variant = variants.find(v => v.id === selectedVariantId);
-          if (variant) {
-            setActiveVariantId(page, variant.id);
-            // Load variant content into the page
-            try {
-              const content = JSON.parse(variant.content);
-              page.frames().forEach((frame: any) => frame.remove());
-              const styles = JSON.parse(variant.styles);
-              page.setStyle(styles);
-              const html = content.html || '';
-              const components = content.components || [];
-              components.forEach((comp: any) => {
-                page.addComponent(comp);
-              });
-            } catch (err) {
-              console.warn('[Personalization] Error loading variant content:', err);
-            }
-          }
-        }
+        switchVariant(editor, page, select.value || null);
         updatePagesList(editor);
       });
 
@@ -667,32 +672,52 @@ function updatePagesList(editor: Editor) {
           description: `Choose a user profile to create a personalized variant of "${page.getName()}".`,
           confirmLabel: 'Create variant',
           onConfirm: async (profile) => {
-            // Check if variant already exists for this profile
+            // Persist any edits in the currently-active variant/base first.
+            saveActiveLive(editor, page);
+
+            // Ensure a Base snapshot exists so "Base" can always be restored.
+            if (!getBaseSnapshot(page)) {
+              setBaseSnapshot(page, captureSnapshot(editor, page));
+            }
+            const baseSnapshot = getBaseSnapshot(page) ?? captureSnapshot(editor, page);
+
             const variants = getPageVariants(page);
-            if (variants.some(v => v.profileId === profile.id)) {
-              // Switch to existing variant
-              setActiveVariantId(page, variants.find(v => v.profileId === profile.id)!.id);
+            const existing = variants.find((v) => v.profileId === profile.id);
+
+            if (existing) {
+              // Re-adding an existing profile resets its page back to Base content.
+              const confirmed = await globalConfirm({
+                title: 'Variant already exists',
+                description: `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page. Continue?`,
+                confirmLabel: 'Replace with Base',
+                variant: 'danger',
+              });
+              if (!confirmed) {
+                // Leave it untouched — just surface the existing variant.
+                switchVariant(editor, page, existing.id);
+                updatePagesList(editor);
+                return;
+              }
+              // Put Base content on the canvas and store it as the variant's snapshot.
+              applySnapshot(editor, page, baseSnapshot);
+              const idx = variants.findIndex((v) => v.id === existing.id);
+              variants[idx] = { ...existing, snapshot: baseSnapshot };
+              setPageVariants(page, variants);
+              setActiveVariantId(page, existing.id);
               updatePagesList(editor);
               return;
             }
 
-            // Capture current page content as a variant
-            const currentContent = {
-              html: page.getHtml?.() || '',
-              components: page.getComponents?.() || []
-            };
-            const currentStyles = page.getStyle?.() || {};
-            
+            // The new variant starts as an independent copy of what's on screen.
             const newVariant: PageVariant = {
               id: `variant-${profile.id}-${Date.now()}`,
               profileId: profile.id,
               profileName: profile.name,
-              content: JSON.stringify(currentContent),
-              styles: JSON.stringify(currentStyles),
+              snapshot: captureSnapshot(editor, page),
             };
 
-            const updatedVariants = [...variants, newVariant];
-            setPageVariants(page, updatedVariants);
+            setPageVariants(page, [...variants, newVariant]);
+            // Live canvas already shows the variant's content, so just mark it active.
             setActiveVariantId(page, newVariant.id);
             updatePagesList(editor);
           },
@@ -702,29 +727,21 @@ function updatePagesList(editor: Editor) {
       item.querySelector('.delete-page-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
 
-        // Prevent deleting the last page
-        const totalPages = editor.Pages.getAll().length;
-        if (totalPages <= 1) {
-          await globalConfirm({
-            title: 'Cannot Delete Page',
-            description: 'Cannot delete the last page. At least one page is required.',
-            confirmLabel: 'OK',
-            cancelLabel: 'OK',
-          });
-          return;
-        }
+        // Removes the whole page (and therefore every variant on it).
+        const removePageEntirely = async () => {
+          // Prevent deleting the last page
+          if (editor.Pages.getAll().length <= 1) {
+            await globalConfirm({
+              title: 'Cannot Delete Page',
+              description: 'Cannot delete the last page. At least one page is required.',
+              confirmLabel: 'OK',
+              cancelLabel: 'OK',
+            });
+            return;
+          }
 
-        const confirmed = await globalConfirm({
-          title: 'Delete Page',
-          description: 'Delete page "' + page.getName() + '"?',
-          confirmLabel: 'Delete',
-          variant: 'danger',
-        });
-        if (confirmed) {
           // If deleting the selected page, select another one first
-          const isSelected = editor.Pages.getSelected()?.getId() === page.getId();
-
-          if (isSelected) {
+          if (editor.Pages.getSelected()?.getId() === page.getId()) {
             const allPages = editor.Pages.getAll();
             const currentIndex = allPages.findIndex((p: any) => p.getId() === page.getId());
             const nextPage = allPages[currentIndex + 1] || allPages[currentIndex - 1];
@@ -736,7 +753,42 @@ function updatePagesList(editor: Editor) {
           editor.Pages.remove(page);
           updatePagesList(editor);
           console.log(`[Pages] Deleted page: ${page.getName()}`);
+        };
+
+        const variants = getPageVariants(page);
+
+        // No variants — keep the simple confirm.
+        if (variants.length === 0) {
+          const confirmed = await globalConfirm({
+            title: 'Delete Page',
+            description: 'Delete page "' + page.getName() + '"?',
+            confirmLabel: 'Delete',
+            variant: 'danger',
+          });
+          if (confirmed) await removePageEntirely();
+          return;
         }
+
+        // Has variants — let the user delete a single variant or the whole page.
+        openPageDeleteModal(editor, page, {
+          deleteEntirePage: () => {
+            void removePageEntirely();
+          },
+          deleteVariant: (variantId) => {
+            setPageVariants(
+              page,
+              getPageVariants(page).filter((v) => v.id !== variantId),
+            );
+            // If the deleted variant was active, fall back to Base content.
+            if (getActiveVariantId(page) === variantId) {
+              const base = getBaseSnapshot(page);
+              if (base) applySnapshot(editor, page, base);
+              setActiveVariantId(page, null);
+            }
+            updatePagesList(editor);
+            console.log(`[Pages] Deleted variant ${variantId} from page: ${page.getName()}`);
+          },
+        });
       });
       
       list.appendChild(item);
@@ -766,49 +818,6 @@ function setupPageCommands(editor: Editor) {
         editor.Pages.select(page);
         updatePagesList(editor);
       }
-    }
-  });
-
-  editor.Commands.add('personalize-page', {
-    async run() {
-      const selectedPage = editor.Pages?.getSelected();
-      if (!selectedPage) {
-        return;
-      }
-
-      const meta = getPagePersonalizationMeta(selectedPage);
-      const basePage = meta ? findPageById(editor, meta.basePageId) : selectedPage;
-      if (!basePage) {
-        return;
-      }
-
-      await openProfilePickerModal(editor, {
-        title: 'Create personalized page',
-        description: `Choose a saved user profile. A personalized copy of "${basePage.getName()}" will be created for that profile.`,
-        confirmLabel: 'Create copy',
-        onConfirm: async (profile) => {
-          const existing = findPersonalizedPageForProfile(editor, basePage.getId(), profile.id);
-          if (existing) {
-            editor.Pages.select(existing);
-            updatePagesList(editor);
-            return;
-          }
-
-          const personalizedName = buildPersonalizedPageName(basePage.getName(), profile.name);
-          const personalizedRoute = buildPersonalizedRoute(getPageRoute(basePage), profile.name);
-          const newPage = createPageCopy(editor, basePage, personalizedName, personalizedRoute, {
-            basePageId: basePage.getId(),
-            basePageName: basePage.getName(),
-            profileId: profile.id,
-            profileName: profile.name,
-          });
-
-          if (newPage) {
-            editor.Pages.select(newPage);
-            updatePagesList(editor);
-          }
-        },
-      });
     }
   });
 }
