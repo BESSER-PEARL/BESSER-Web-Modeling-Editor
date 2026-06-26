@@ -10,6 +10,7 @@ import { UMLElementComponent } from '../uml-element/uml-element-component';
 import { CanvasContainer } from './canvas-styles';
 import { UMLElementState } from '../../services/uml-element/uml-element-types';
 import { UMLRelationship } from '../../services/uml-relationship/uml-relationship';
+import { NNAssociationMonitor } from '../../packages/nn-diagram/nn-association/nn-association-monitor';
 
 type OwnProps = {};
 
@@ -77,6 +78,7 @@ export class CanvasComponent extends Component<Props> implements Omit<ILayer, 'l
 
     return (
       <Droppable>
+        <NNAssociationMonitor />
         <CanvasContainer
           id="modeling-editor-canvas"
           width={diagram.bounds.width + minX}

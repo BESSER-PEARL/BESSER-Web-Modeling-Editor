@@ -107,10 +107,10 @@ build
 /diagrams/
 .DS_Store
 .run/
-packages/webapp2/dist/*
+packages/webapp/dist/*
 
 # Playwright
-/packages/webapp2/tests/e2e/test-results/
-/packages/webapp2/playwright-report/
-/packages/webapp2/blob-report/
-/packages/webapp2/test-results/
+/packages/webapp/tests/e2e/test-results/
+/packages/webapp/playwright-report/
+/packages/webapp/blob-report/
+/packages/webapp/test-results/

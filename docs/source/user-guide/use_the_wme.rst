@@ -29,7 +29,7 @@ The numbered elements in the interface are described below.
 
 The *File* menu provides project and diagram management:
 
-- *New / Open / Import Project*: Opens the project hub where you can create a new project, open a recent one, or import an existing project. Supported diagram types: Structural (class diagrams), Object, State Machine, Agent, GUI No-Code, and Quantum Circuit. A project can contain multiple diagrams of each type.
+- *New / Open / Import Project*: Opens the project hub where you can create a new project, open a recent one, or import an existing project. Supported diagram types: Structural (class diagrams), Object, State Machine, Agent, Neural Network, GUI No-Code, and Quantum Circuit. A project can contain multiple diagrams of each type.
 - *Load Template*: Import a model template in JSON or B-UML format (``.json`` or ``.py`` file).
 - *Export Project*: Export your project or individual diagrams in B-UML, JSON, SVG, PNG, or PDF format.
 - *Import Class Diagram from Image*: Use AI (OpenAI) to convert an image of a class diagram into a model.

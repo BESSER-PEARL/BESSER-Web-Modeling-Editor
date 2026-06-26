@@ -1,7 +1,7 @@
 Web Application
 ===============
 
-The ``packages/webapp2`` workspace is a React single-page application built with
+The ``packages/webapp`` workspace is a React single-page application built with
 Vite, Radix UI, and Tailwind CSS. It wraps the editor engine with project
 management, collaboration, and code generation features. It is the application
 deployed at https://editor.besser-pearl.org.

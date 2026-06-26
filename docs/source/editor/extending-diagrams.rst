@@ -3,7 +3,7 @@
 Extending Diagram Types
 =======================
 
-The editor ships with a catalogue of UML and domain-specific diagram types (class, object, state machine, agent, GUI, quantum circuit).
+The editor ships with a catalogue of UML and domain-specific diagram types (class, object, state machine, agent, neural network, GUI, quantum circuit).
 
 .. note::
    
