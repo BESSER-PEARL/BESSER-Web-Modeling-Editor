@@ -20,7 +20,7 @@ The Three Packages
   diagram type registries, and Redux stores. External applications embed this
   package without needing the web application.
 
-* **Web application** (``packages/webapp2``): A React SPA built with Vite,
+* **Web application** (``packages/webapp``): A React SPA built with Vite,
   Radix UI, and Tailwind CSS. It wraps the editor with project management,
   code generation, deployment, and collaboration features. This is what runs
   at `editor.besser-pearl.org <https://editor.besser-pearl.org>`_.
@@ -29,15 +29,11 @@ The Three Packages
   compiled webapp, stores shared diagrams (filesystem or Redis), and handles
   SVG-to-PDF conversion.
 
-.. warning::
-   ``packages/webapp/`` is **deprecated** and will be removed in a future
-   release. All development targets ``packages/webapp2/``.
-
 How Data Flows
 --------------
 
 1. The user designs a diagram on the canvas (editor package).
-2. Changes flow through Redux to the ``workspaceSlice`` (webapp2).
+2. Changes flow through Redux to the ``workspaceSlice`` (webapp).
 3. The workspace slice auto-saves to ``localStorage`` and optionally syncs
    via WebSocket to the Express server for collaboration.
 4. When the user clicks **Generate**, the webapp sends the diagram JSON to the

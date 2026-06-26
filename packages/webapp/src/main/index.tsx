@@ -1,23 +1,28 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
-import { RoutedApplication } from './application';
-import { setTheme } from './utils/theme-switcher';
-import { LocalStorageRepository } from '../main/services/local-storage/local-storage-repository';
+import { RoutedApplication } from './app/application';
+import { OfflineBanner } from './shared/components/offline-banner/OfflineBanner';
+import { setTheme } from './shared/utils/theme-switcher';
+import { LocalStorageRepository } from './shared/services/storage/local-storage-repository';
 import { createRoot } from 'react-dom/client';
-import { NO_HTTP_URL, SENTRY_DSN } from './constant';
+import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
+import { runStorageMigrations } from './shared/utils/storage-migration';
+import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
+import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
-import 'bootstrap/dist/css/bootstrap.css';
 import './styles.css';
 
-if (SENTRY_DSN) {
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: NO_HTTP_URL,
-    tracesSampleRate: 0.5,
-  });
+// Run localStorage schema migrations before anything else reads stored data
+runStorageMigrations();
 
-  Sentry.setTag('package', 'webapp');
-}
+// Defer Sentry + PostHog initialization until the browser is idle.
+// This removes ~40KB+ of synchronous JS from the critical render path.
+initLazyAnalytics({
+  sentryDsn: SENTRY_DSN,
+  sentryEnvironment: NO_HTTP_URL,
+  posthogKey: POSTHOG_KEY,
+  posthogHost: POSTHOG_HOST,
+  hasUserConsented,
+});
 const themePreference = LocalStorageRepository.getUserThemePreference();
 
 if (themePreference === 'dark') {
@@ -31,4 +36,9 @@ if (themePreference === 'dark') {
 
 const container = document.getElementById('root') as HTMLElement;
 const root = createRoot(container);
-root.render(<RoutedApplication />);
+root.render(
+  <>
+    <RoutedApplication />
+    <OfflineBanner />
+  </>,
+);

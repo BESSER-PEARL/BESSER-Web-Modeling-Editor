@@ -47,5 +47,5 @@ Before opening a pull request, run the full automated check suite:
 This verifies linting, unit tests, and production build all pass with your changes.
 
 .. note::
-   The standalone Node/Express server (``npm run start:server``) serves built webapp2 assets and a small set of ``/api``
+   The standalone Node/Express server (``npm run start:server``) serves built webapp assets and a small set of ``/api``
    routes, but code generation and validation still rely on the BESSER backend.

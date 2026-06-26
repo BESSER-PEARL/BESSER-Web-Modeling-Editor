@@ -6,6 +6,7 @@ import isMobile from 'is-mobile';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../utils/actions/actions';
 import { EditorRepository } from '../../services/editor/editor-repository';
+import { AutoLayoutRepository } from '../../services/layouter/auto-layout-repository';
 import { clamp } from '../../utils/clamp';
 import { ZoomPane } from './zoom-pane';
 
@@ -56,6 +57,7 @@ type StateProps = { moving: string[]; connecting: boolean; reconnecting: boolean
 type DispatchProps = {
   move: AsyncDispatch<typeof UMLElementRepository.move>;
   setZoomFactor: typeof EditorRepository.setZoomFactor;
+  autoLayout: typeof AutoLayoutRepository.layout;
 };
 
 const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
@@ -68,6 +70,7 @@ const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
   {
     move: UMLElementRepository.move,
     setZoomFactor: EditorRepository.setZoomFactor,
+    autoLayout: AutoLayoutRepository.layout,
   },
 );
 
@@ -125,7 +128,7 @@ class EditorComponent extends Component<Props, State> {
   }
 
   render() {
-    const { moving, connecting, reconnecting, scale = 1.0, move, setZoomFactor, ...props } = this.props;
+    const { moving, connecting, reconnecting, scale = 1.0, move, setZoomFactor, autoLayout, ...props } = this.props;
 
     if (this.state.isMobile) {
       return (
@@ -134,6 +137,7 @@ class EditorComponent extends Component<Props, State> {
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
+            onAutoLayout={() => this.props.autoLayout()}
             min={minScale}
             max={maxScale}
             step={0.2}
@@ -147,6 +151,7 @@ class EditorComponent extends Component<Props, State> {
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
+            onAutoLayout={() => this.props.autoLayout()}
             min={minScale}
             max={maxScale}
             step={0.2}
