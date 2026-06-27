@@ -1,6 +1,7 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
+import { apiClient, ApiError } from '../../../../shared/api/api-client';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
@@ -169,7 +170,9 @@ const getPageRoute = (page: any): string => {
 
 const createUniquePageId = (baseName: string): string => `${slugify(baseName)}-${Date.now()}`;
 
-const getAvailableProfiles = (): Array<{ id: string; name: string }> => {
+type ProfileOption = { id: string; name: string; model: any };
+
+const getAvailableProfiles = (): ProfileOption[] => {
   try {
     const project = ProjectStorageRepository.getCurrentProject();
     if (!project) {
@@ -181,15 +184,92 @@ const getAvailableProfiles = (): Array<{ id: string; name: string }> => {
     const userDiagrams = project.diagrams?.UserDiagram || [];
     const profiles = userDiagrams.map((diagram: any) => ({
       id: diagram.id,
-      name: diagram.title || 'Unnamed Profile'
+      name: diagram.title || 'Unnamed Profile',
+      // Full UML model of the UserDiagram — needed for LLM personalization.
+      model: diagram.model,
     }));
 
-    console.log('[Personalization] Found profiles from User Diagrams:', profiles);
+    console.log('[Personalization] Found profiles from User Diagrams:', profiles.length);
     return profiles;
   } catch (err) {
     console.warn('[Personalization] Error fetching profiles:', err);
     return [];
   }
+};
+
+// Fire a GrapesJS notification (success/error/info) — the editor's standard
+// way of surfacing async results in this codebase.
+const notify = (editor: Editor, type: 'success' | 'error' | 'info', message: string) => {
+  try {
+    editor.runCommand('notifications:add', { type, message, group: 'Personalization' });
+  } catch {
+    // Notification plugin not available — non-fatal.
+    console.log(`[Personalization] ${type}: ${message}`);
+  }
+};
+
+// Show a blocking modal with an indeterminate progress bar while a long task
+// runs. Returns a function that closes it.
+const openLoadingModal = (editor: Editor, title: string, message: string): (() => void) => {
+  const modal = editor.Modal;
+  modal.setTitle(title);
+  modal.setContent(`
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 340px; padding: 4px 0 8px;">
+      <p style="margin: 0 0 14px; color: #444; line-height: 1.5;">${message}</p>
+      <div style="position: relative; height: 8px; border-radius: 999px; background: #e8e8e8; overflow: hidden;">
+        <div style="position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 999px; background: #2563eb; animation: gjsPersonalizeIndet 1.2s ease-in-out infinite;"></div>
+      </div>
+      <p style="margin: 12px 0 0; color: #888; font-size: 12px;">This can take up to a minute. Please don't close the editor.</p>
+      <style>
+        @keyframes gjsPersonalizeIndet {
+          0% { left: -40%; }
+          50% { left: 40%; }
+          100% { left: 100%; }
+        }
+      </style>
+    </div>
+  `);
+  modal.open();
+  return () => {
+    try {
+      modal.close();
+    } catch {
+      /* modal already closed */
+    }
+  };
+};
+
+// Call the backend to LLM-personalize the current page content for a profile.
+// Returns a new PageSnapshot ({components, css}) or throws on failure.
+const personalizeSnapshotWithAI = async (
+  editor: Editor,
+  page: any,
+  profile: ProfileOption,
+): Promise<PageSnapshot> => {
+  const baseline = captureSnapshot(editor, page);
+  const response = await apiClient.post<{ guiPage?: PageSnapshot }>(
+    '/personalize-gui-page',
+    {
+      guiPage: baseline,
+      pageName: page?.getName?.() || 'page',
+      userProfileModel: profile.model,
+    },
+    // LLM calls are slow; mirror the long timeout used by other transforms.
+    { timeout: 600_000 },
+  );
+
+  const result = response?.guiPage;
+  if (!result || !Array.isArray(result.components)) {
+    throw new Error('Personalization service returned an invalid page.');
+  }
+  const pageId = page?.getId?.();
+  return {
+    components: result.components,
+    // Keep variant CSS scoped to this page regardless of what the LLM echoes back.
+    css: Array.isArray(result.css)
+      ? result.css.map((rule: any) => (pageId ? { ...rule, pageId } : rule))
+      : [],
+  };
 };
 
 const openProfilePickerModal = async (
@@ -198,7 +278,12 @@ const openProfilePickerModal = async (
     title: string;
     description: string;
     confirmLabel: string;
-    onConfirm: (profile: { id: string; name: string }) => void | Promise<void>;
+    // When true, shows an "Auto-personalize with AI" checkbox.
+    personalizeToggle?: boolean;
+    onConfirm: (
+      profile: ProfileOption,
+      choices: { personalize: boolean },
+    ) => void | Promise<void>;
   },
 ) => {
   const profiles = getAvailableProfiles();
@@ -214,6 +299,17 @@ const openProfilePickerModal = async (
 
   const modal = editor.Modal;
   const selectId = 'gjs-personalization-profile-select';
+  const toggleId = 'gjs-personalization-ai-toggle';
+  const toggleHtml = options.personalizeToggle
+    ? `
+      <label style="display:flex; align-items:flex-start; gap:8px; margin-top:14px; cursor:pointer;">
+        <input type="checkbox" id="${toggleId}" style="margin-top:3px;" />
+        <span style="font-size:13px; color:#444; line-height:1.4;">
+          <strong>✨ Auto-personalize with AI</strong><br/>
+          <span style="color:#777;">Use an LLM to adapt the page's content and style to this profile. Leave unchecked to copy the page as-is.</span>
+        </span>
+      </label>`
+    : '';
   const content = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 320px;">
       <p style="margin: 0 0 12px; color: #444; line-height: 1.5;">${options.description}</p>
@@ -221,6 +317,7 @@ const openProfilePickerModal = async (
       <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:white;">
         ${profiles.map((profile) => `<option value="${profile.id}">${profile.name}</option>`).join('')}
       </select>
+      ${toggleHtml}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
         <button type="button" id="gjs-personalization-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">Cancel</button>
         <button type="button" id="gjs-personalization-confirm-btn" style="padding:8px 12px; border:none; border-radius:6px; background:#2563eb; color:#fff; cursor:pointer;">${options.confirmLabel}</button>
@@ -236,12 +333,14 @@ const openProfilePickerModal = async (
     const cancelBtn = document.getElementById('gjs-personalization-cancel-btn');
     const confirmBtn = document.getElementById('gjs-personalization-confirm-btn');
     const select = document.getElementById(selectId) as HTMLSelectElement | null;
+    const toggle = document.getElementById(toggleId) as HTMLInputElement | null;
 
     cancelBtn?.addEventListener('click', () => modal.close());
     confirmBtn?.addEventListener('click', async () => {
       const selectedProfile = profiles.find((profile) => profile.id === select?.value) || profiles[0];
+      const personalize = !!toggle?.checked;
       modal.close();
-      await options.onConfirm({ id: selectedProfile.id, name: selectedProfile.name });
+      await options.onConfirm(selectedProfile, { personalize });
     });
   }, 50);
 };
@@ -671,7 +770,8 @@ function updatePagesList(editor: Editor) {
           title: 'Create page variant',
           description: `Choose a user profile to create a personalized variant of "${page.getName()}".`,
           confirmLabel: 'Create variant',
-          onConfirm: async (profile) => {
+          personalizeToggle: true,
+          onConfirm: async (profile, { personalize }) => {
             // Persist any edits in the currently-active variant/base first.
             saveActiveLive(editor, page);
 
@@ -681,15 +781,62 @@ function updatePagesList(editor: Editor) {
             }
             const baseSnapshot = getBaseSnapshot(page) ?? captureSnapshot(editor, page);
 
+            // Build the variant content: a plain copy of the current canvas, or —
+            // when AI is requested — an LLM-personalized version. Shows a loading
+            // bar during the call. On failure, asks whether to still create a
+            // plain copy. Returns null when the user declines (abort, no variant).
+            const buildSnapshot = async (): Promise<PageSnapshot | null> => {
+              if (!personalize) return captureSnapshot(editor, page);
+
+              const closeLoading = openLoadingModal(
+                editor,
+                'Personalizing page with AI',
+                `Adapting "${page.getName()}" for ${profile.name}…`,
+              );
+              let snap: PageSnapshot | null = null;
+              let failure: string | null = null;
+              try {
+                snap = await personalizeSnapshotWithAI(editor, page, profile);
+              } catch (err) {
+                failure =
+                  err instanceof ApiError
+                    ? err.message
+                    : err instanceof DOMException && err.name === 'TimeoutError'
+                      ? 'The request timed out.'
+                      : err instanceof Error
+                        ? err.message
+                        : 'Unknown error.';
+              } finally {
+                closeLoading();
+              }
+
+              if (snap) {
+                notify(editor, 'success', `✓ Personalized "${page.getName()}" for ${profile.name}.`);
+                return snap;
+              }
+
+              // Personalization failed — show the error and ask whether to fall
+              // back to a manual copy.
+              const makeCopy = await globalConfirm({
+                title: 'AI personalization failed',
+                description: `${failure ?? 'Something went wrong.'}\n\nDo you still want to create a copy to manually personalize?`,
+                confirmLabel: 'Create copy',
+                cancelLabel: 'Cancel',
+              });
+              return makeCopy ? captureSnapshot(editor, page) : null;
+            };
+
             const variants = getPageVariants(page);
             const existing = variants.find((v) => v.profileId === profile.id);
 
             if (existing) {
-              // Re-adding an existing profile resets its page back to Base content.
+              // Re-adding an existing profile replaces its content.
               const confirmed = await globalConfirm({
                 title: 'Variant already exists',
-                description: `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page. Continue?`,
-                confirmLabel: 'Replace with Base',
+                description: personalize
+                  ? `A variant for "${profile.name}" already exists. Continue to regenerate it with AI? This replaces its current content.`
+                  : `A personalized variant for "${profile.name}" already exists. Creating it again will replace its current content with the Base page. Continue?`,
+                confirmLabel: personalize ? 'Regenerate with AI' : 'Replace with Base',
                 variant: 'danger',
               });
               if (!confirmed) {
@@ -698,26 +845,39 @@ function updatePagesList(editor: Editor) {
                 updatePagesList(editor);
                 return;
               }
-              // Put Base content on the canvas and store it as the variant's snapshot.
-              applySnapshot(editor, page, baseSnapshot);
+              const snapshot = personalize ? await buildSnapshot() : baseSnapshot;
+              if (!snapshot) {
+                // User declined the fallback copy — leave the variant untouched.
+                switchVariant(editor, page, existing.id);
+                updatePagesList(editor);
+                return;
+              }
+              applySnapshot(editor, page, snapshot);
               const idx = variants.findIndex((v) => v.id === existing.id);
-              variants[idx] = { ...existing, snapshot: baseSnapshot };
+              variants[idx] = { ...existing, snapshot };
               setPageVariants(page, variants);
               setActiveVariantId(page, existing.id);
               updatePagesList(editor);
               return;
             }
 
-            // The new variant starts as an independent copy of what's on screen.
+            const snapshot = await buildSnapshot();
+            if (!snapshot) {
+              // User declined the fallback copy — don't create a variant.
+              updatePagesList(editor);
+              return;
+            }
+            // Plain copy already matches the canvas; AI content must be mounted.
+            if (personalize) applySnapshot(editor, page, snapshot);
+
             const newVariant: PageVariant = {
               id: `variant-${profile.id}-${Date.now()}`,
               profileId: profile.id,
               profileName: profile.name,
-              snapshot: captureSnapshot(editor, page),
+              snapshot,
             };
 
             setPageVariants(page, [...variants, newVariant]);
-            // Live canvas already shows the variant's content, so just mark it active.
             setActiveVariantId(page, newVariant.id);
             updatePagesList(editor);
           },
