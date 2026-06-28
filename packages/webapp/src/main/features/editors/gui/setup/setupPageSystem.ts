@@ -164,8 +164,13 @@ const switchVariant = (editor: Editor, page: any, targetId: string | null) => {
 };
 
 const getPageRoute = (page: any): string => {
-  const name = page?.getName?.() || 'page';
-  return page?.get?.('route_path') || '/' + slugify(name);
+  try {
+    const name = page?.getName?.() || 'page';
+    return page?.get?.('route_path') || '/' + slugify(name);
+  } catch {
+    // Never let route computation blank out the whole pages list.
+    return '/page';
+  }
 };
 
 const createUniquePageId = (baseName: string): string => `${slugify(baseName)}-${Date.now()}`;
@@ -652,6 +657,7 @@ function updatePagesList(editor: Editor) {
     list.innerHTML = '';
     
     editor.Pages.getAll().forEach((page: any) => {
+     try {
       const pageRoute = getPageRoute(page);
       const variants = getPageVariants(page);
       const activeVariantId = getActiveVariantId(page);
@@ -952,6 +958,33 @@ function updatePagesList(editor: Editor) {
       });
       
       list.appendChild(item);
+     } catch (err) {
+       // A single broken page must not blank the entire panel — render a
+       // minimal, still-selectable fallback row and keep going.
+       console.error('[Pages] Failed to render a page item; using fallback:', err);
+       try {
+         const fallback = document.createElement('div');
+         fallback.className = 'gjs-page-item';
+         const label = (() => {
+           try {
+             return page?.getName?.() || 'Untitled page';
+           } catch {
+             return 'Untitled page';
+           }
+         })();
+         fallback.innerHTML = `<div class="gjs-page-info"><span class="gjs-page-name">${label}</span></div>`;
+         fallback.addEventListener('click', () => {
+           try {
+             editor.Pages.select(page);
+           } catch {
+             /* ignore */
+           }
+         });
+         list.appendChild(fallback);
+       } catch {
+         /* give up on this row */
+       }
+     }
     });
   });
 }
