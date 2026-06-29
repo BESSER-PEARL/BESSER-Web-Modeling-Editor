@@ -21,6 +21,7 @@ import {
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
+import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
@@ -228,6 +229,11 @@ export function useModelInjection({
           } else if (command.model) {
             await dispatch(updateDiagramModelThunk({ model: command.model as any }));
           }
+          // Freshly generated class diagram in a new tab -> let ELK arrange it
+          // once the new editor instance has the model.
+          if (targetDiagramType === 'ClassDiagram' && (command.systemSpec || command.model)) {
+            requestAutoLayoutOnNextSetup();
+          }
           dispatch(bumpEditorRevision());
           applied = true;
         } catch (tabError) {
@@ -420,6 +426,11 @@ export function useModelInjection({
             });
           } else {
             await dispatch(updateDiagramModelThunk({ model: newModel }));
+            // A freshly generated complete class diagram should be ELK-arranged
+            // on the recreated editor. Incremental edits keep their positions.
+            if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram') {
+              requestAutoLayoutOnNextSetup();
+            }
             dispatch(bumpEditorRevision());
           }
           applied = true;

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
+import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
 import {
   updateDiagramModelThunk,
   selectActiveDiagram,
@@ -142,6 +143,21 @@ export const ApollonEditorComponent: React.FC = () => {
       });
 
       setEditor!(nextEditor);
+
+      // If the assistant just injected a freshly generated class diagram, let
+      // ELK arrange it now that this new editor instance has the model loaded.
+      // One frame lets the model settle into the store before layout; guards
+      // bail if the editor was swapped/destroyed in the meantime.
+      if (consumeAutoLayoutRequest()) {
+        requestAnimationFrame(() => {
+          if (runId !== setupRunRef.current || editorRef.current !== nextEditor) return;
+          try {
+            nextEditor.autoLayout();
+          } catch (error) {
+            console.warn('[ApollonEditorComponent] auto-layout failed:', error);
+          }
+        });
+      }
     };
 
     setupEditor().catch(notifyError('Editor setup'));
