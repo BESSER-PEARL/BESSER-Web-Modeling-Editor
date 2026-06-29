@@ -82,11 +82,11 @@ class BPMNCallActivityUpdateComponent extends Component<Props, State> {
         </section>
         <section>
           <Divider />
-          <Label>Called element</Label>
+          <Label>{this.props.translate('packages.BPMNDiagram.BPMNCalledElement')}</Label>
           <Textfield
             value={element.calledElement}
             onChange={this.changeCalledElement(element.id)}
-            placeholder="Process or task name"
+            placeholder={this.props.translate('packages.BPMNDiagram.BPMNCalledElementPlaceholder')}
           />
         </section>
       </div>

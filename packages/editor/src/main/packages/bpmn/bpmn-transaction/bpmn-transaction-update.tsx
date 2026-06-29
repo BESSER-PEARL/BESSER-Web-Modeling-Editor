@@ -7,5 +7,5 @@ interface OwnProps {
 }
 
 export const BPMNTransactionUpdate: React.ComponentType<OwnProps> = ({ element }) => (
-  <BPMNExpandableUpdate element={element as unknown as ExpandableElement} expandLabel="transaction" />
+  <BPMNExpandableUpdate element={element as unknown as ExpandableElement} labelKey="packages.BPMNDiagram.BPMNTransaction" />
 );

@@ -24,8 +24,8 @@ export interface ExpandableElement {
 
 interface OwnProps {
   element: ExpandableElement;
-  /** Lower-case label used in the button text, e.g. "subprocess" or "transaction". */
-  expandLabel: string;
+  /** i18n key for the element noun shown in the button text, e.g. "packages.BPMNDiagram.BPMNSubprocess". */
+  labelKey: string;
 }
 
 type StateProps = {};
@@ -61,7 +61,8 @@ class BPMNExpandableUpdateComponent extends Component<Props, State> {
   };
 
   render() {
-    const { element, expandLabel } = this.props;
+    const { element, labelKey, translate } = this.props;
+    const label = translate(labelKey);
     return (
       <div>
         <section>
@@ -86,7 +87,9 @@ class BPMNExpandableUpdateComponent extends Component<Props, State> {
         <section>
           <Divider />
           <Button block color={element.isExpanded ? 'secondary' : 'primary'} onClick={this.toggleExpanded(element.id)}>
-            {element.isExpanded ? `Collapse ${expandLabel}` : `Expand ${expandLabel}`}
+            {element.isExpanded
+              ? `${translate('packages.BPMNDiagram.BPMNCollapse')} ${label}`
+              : `${translate('packages.BPMNDiagram.BPMNExpand')} ${label}`}
           </Button>
         </section>
       </div>

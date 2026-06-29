@@ -7,5 +7,5 @@ interface OwnProps {
 }
 
 export const BPMNSubprocessUpdate: React.ComponentType<OwnProps> = ({ element }) => (
-  <BPMNExpandableUpdate element={element as unknown as ExpandableElement} expandLabel="subprocess" />
+  <BPMNExpandableUpdate element={element as unknown as ExpandableElement} labelKey="packages.BPMNDiagram.BPMNSubprocess" />
 );
