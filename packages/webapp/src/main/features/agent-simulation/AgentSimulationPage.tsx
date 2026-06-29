@@ -2,13 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import { selectActiveDiagram } from '@/main/app/store/workspaceSlice';
-import { AgentTestPanel } from './AgentTestPanel';
-import { selectAgentTestStatus, selectSessionId, stopAgentTestThunk } from './agentTestSlice';
+import { AgentSimulationPanel } from './AgentSimulationPanel';
+import { selectAgentSimulationStatus, selectSessionId, stopAgentSimulationThunk } from './agentSimulationSlice';
 
-export const AgentTestPage: React.FC = () => {
+export const AgentSimulationPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const status = useAppSelector(selectAgentTestStatus);
+  const status = useAppSelector(selectAgentSimulationStatus);
   const sessionId = useAppSelector(selectSessionId);
   const diagram = useAppSelector(selectActiveDiagram);
 
@@ -26,18 +26,18 @@ export const AgentTestPage: React.FC = () => {
 
   // Stop the session when the user navigates away from this page without
   // explicitly clicking Stop.  Only dispatch when there is a live session —
-  // dispatching with no session causes stopAgentTestThunk.pending to briefly
-  // set status to 'stopping', which flips isTestAgentActive true→false→true
-  // and triggers an infinite /test-agent ↔ / navigation loop.
+  // dispatching with no session causes stopAgentSimulationThunk.pending to briefly
+  // set status to 'stopping', which flips isSimulationRunning true→false→true
+  // and triggers an infinite /agent-simulation ↔ / navigation loop.
   useEffect(() => {
     return () => {
       if (sessionIdRef.current) {
-        dispatch(stopAgentTestThunk());
+        dispatch(stopAgentSimulationThunk());
       }
     };
   }, [dispatch]);
 
   if (status === 'idle') return null;
 
-  return <AgentTestPanel open diagramTitle={diagram?.title ?? 'Agent'} />;
+  return <AgentSimulationPanel open diagramTitle={diagram?.title ?? 'Agent'} />;
 };

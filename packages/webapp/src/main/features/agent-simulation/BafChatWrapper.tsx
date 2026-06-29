@@ -14,12 +14,12 @@ import { AlertTriangle } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import {
   selectSessionId,
-  selectAgentTestStatus,
+  selectAgentSimulationStatus,
   setCurrentAgentState,
   setLastTransition,
   appendStdoutLine,
   setError,
-} from '@/main/features/agent-testing';
+} from '@/main/features/agent-simulation';
 import { BACKEND_URL } from '@/main/shared/constants/constant';
 
 interface BafChatWrapperProps {}
@@ -201,7 +201,7 @@ function parseHistoryMessages(message: unknown): ChatMessage[] {
 export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
   const dispatch = useAppDispatch();
   const sessionId = useAppSelector(selectSessionId);
-  const status = useAppSelector(selectAgentTestStatus);
+  const status = useAppSelector(selectAgentSimulationStatus);
 
   const wsRef = useRef<WebSocket | null>(null);
   const [wsStatus, setWsStatus] = useState<ConnectionStatus>('disconnected');
@@ -226,7 +226,7 @@ export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
       : 'ws://localhost:9000/besser_api';
     const githubSession = sessionStorage.getItem('github_session');
     const query = githubSession ? `?github_session=${encodeURIComponent(githubSession)}` : '';
-    const wsUrl = `${wsBase}/test/${sessionId}/ws${query}`;
+    const wsUrl = `${wsBase}/simulation/${sessionId}/ws${query}`;
 
     setWsStatus('connecting');
     const ws = new WebSocket(wsUrl);

@@ -1,7 +1,7 @@
 /**
- * Redux slice for the Agent Test feature.
+ * Redux slice for the Agent Simulation feature.
  *
- * NOTE: This file provides the full implementation of the agentTest Redux slice,
+ * NOTE: This file provides the full implementation of the agentSimulation Redux slice,
  * including state shape, thunks, selectors, and the WebSocket session hook.
  *
  * State shape:
@@ -12,14 +12,14 @@
  *   messages: Message[]
  *   stdoutLines: string[]
  *   eventList: string[]
- *   limits: AgentTestLimits | null
+ *   limits: AgentSimulationLimits | null
  *   error: string | null
  */
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { BACKEND_URL } from '@/main/shared/constants/constant';
 import type { RootState } from '@/main/app/store/store';
 
-function getAgentTestAuthHeaders(base: Record<string, string> = {}): Record<string, string> {
+function getAgentSimulationAuthHeaders(base: Record<string, string> = {}): Record<string, string> {
   const githubSession = sessionStorage.getItem('github_session');
   return githubSession
     ? { ...base, 'X-GitHub-Session': githubSession }
@@ -30,7 +30,7 @@ function getAgentTestAuthHeaders(base: Record<string, string> = {}): Record<stri
 // Types
 // ---------------------------------------------------------------------------
 
-export type AgentTestStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'error';
+export type AgentSimulationStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'error';
 
 export interface Message {
   id: string;
@@ -39,7 +39,7 @@ export interface Message {
   timestamp: string;
 }
 
-export interface AgentTestLimits {
+export interface AgentSimulationLimits {
   memoryMb?: number;
   cpuCores?: number;
   diskMb?: number;
@@ -47,7 +47,7 @@ export interface AgentTestLimits {
   editorQuotaEnabled?: boolean;
 }
 
-export interface StartAgentTestPayload {
+export interface StartAgentSimulationPayload {
   title: string;
   model: object;
   config?: object;
@@ -63,22 +63,22 @@ export interface StartAgentTestPayload {
 // Initial state
 // ---------------------------------------------------------------------------
 
-interface AgentTestState {
-  status: AgentTestStatus;
+interface AgentSimulationState {
+  status: AgentSimulationStatus;
   sessionId: string | null;
-  startPayload: StartAgentTestPayload | null;
+  startPayload: StartAgentSimulationPayload | null;
   currentState: string | null;
   lastTransition: string | null;
   messages: Message[];
   stdoutLines: string[];
   eventList: string[];
-  limits: AgentTestLimits | null;
+  limits: AgentSimulationLimits | null;
   error: string | null;
   agentCode: string | null;
   validationErrors: string[];
 }
 
-const initialState: AgentTestState = {
+const initialState: AgentSimulationState = {
   status: 'idle',
   sessionId: null,
   startPayload: null,
@@ -97,13 +97,13 @@ const initialState: AgentTestState = {
 // Thunks
 // ---------------------------------------------------------------------------
 
-export const startAgentTestThunk = createAsyncThunk(
-  'agentTest/start',
-  async (payload: StartAgentTestPayload, { rejectWithValue }) => {
+export const startAgentSimulationThunk = createAsyncThunk(
+  'agentSimulation/start',
+  async (payload: StartAgentSimulationPayload, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/test/sessions`, {
+      const response = await fetch(`${BACKEND_URL}/simulation/sessions`, {
         method: 'POST',
-        headers: getAgentTestAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: getAgentSimulationAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 
@@ -115,18 +115,18 @@ export const startAgentTestThunk = createAsyncThunk(
       const data = (await response.json()) as { sessionId: string; eventList?: string[] };
       return data;
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to start agent test');
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to start agent simulation');
     }
   },
 );
 
 export const validateAgentThunk = createAsyncThunk(
-  'agentTest/validate',
-  async (payload: StartAgentTestPayload, { rejectWithValue }) => {
+  'agentSimulation/validate',
+  async (payload: StartAgentSimulationPayload, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/test/validate`, {
+      const response = await fetch(`${BACKEND_URL}/simulation/validate`, {
         method: 'POST',
-        headers: getAgentTestAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: getAgentSimulationAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
 
@@ -148,29 +148,29 @@ export const validateAgentThunk = createAsyncThunk(
   },
 );
 
-export const stopAgentTestThunk = createAsyncThunk(
-  'agentTest/stop',
+export const stopAgentSimulationThunk = createAsyncThunk(
+  'agentSimulation/stop',
   async (_, { getState, rejectWithValue }) => {
     const state = getState() as RootState;
-    const sessionId = (state as any).agentTest?.sessionId as string | null;
+    const sessionId = (state as any).agentSimulation?.sessionId as string | null;
     if (!sessionId) return;
 
     try {
-      await fetch(`${BACKEND_URL}/test/sessions/${sessionId}`, {
+      await fetch(`${BACKEND_URL}/simulation/sessions/${sessionId}`, {
         method: 'DELETE',
-        headers: getAgentTestAuthHeaders(),
+        headers: getAgentSimulationAuthHeaders(),
       });
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to stop agent test');
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to stop agent simulation');
     }
   },
 );
 
-export const resetAgentTestThunk = createAsyncThunk(
-  'agentTest/reset',
+export const resetAgentSimulationThunk = createAsyncThunk(
+  'agentSimulation/reset',
   async (_, { getState, rejectWithValue }) => {
     const state = getState() as RootState;
-    const sessionId = (state as any).agentTest?.sessionId as string | null;
+    const sessionId = (state as any).agentSimulation?.sessionId as string | null;
     if (!sessionId) return;
 
     try {
@@ -183,31 +183,31 @@ export const resetAgentTestThunk = createAsyncThunk(
         return rejectWithValue(text || `HTTP ${response.status}`);
       }
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to reset agent test');
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to reset agent simulation');
     }
   },
 );
 
-export const restartAgentTestThunk = createAsyncThunk(
-  'agentTest/restart',
+export const restartAgentSimulationThunk = createAsyncThunk(
+  'agentSimulation/restart',
   async (_, { getState, rejectWithValue }) => {
-    const agentTest = (getState() as any).agentTest as AgentTestState;
-    const payload = agentTest?.startPayload;
+    const agentSimulation = (getState() as any).agentSimulation as AgentSimulationState;
+    const payload = agentSimulation?.startPayload;
     if (!payload) return rejectWithValue('No start payload stored — cannot restart');
 
     // Fire-and-forget cleanup of the current session
-    const oldSessionId = agentTest.sessionId;
+    const oldSessionId = agentSimulation.sessionId;
     if (oldSessionId) {
       fetch(`${BACKEND_URL}/test/sessions/${oldSessionId}`, {
         method: 'DELETE',
-        headers: getAgentTestAuthHeaders(),
+        headers: getAgentSimulationAuthHeaders(),
       }).catch(() => {});
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/test/sessions`, {
+      const response = await fetch(`${BACKEND_URL}/simulation/sessions`, {
         method: 'POST',
-        headers: getAgentTestAuthHeaders({ 'Content-Type': 'application/json' }),
+        headers: getAgentSimulationAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -217,20 +217,20 @@ export const restartAgentTestThunk = createAsyncThunk(
       const data = (await response.json()) as { sessionId: string; eventList?: string[] };
       return data;
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to restart agent test');
+      return rejectWithValue(err instanceof Error ? err.message : 'Failed to restart agent simulation');
     }
   },
 );
 
 export const fetchLimitsThunk = createAsyncThunk(
-  'agentTest/fetchLimits',
+  'agentSimulation/fetchLimits',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/test/limits`, {
-        headers: getAgentTestAuthHeaders(),
+      const response = await fetch(`${BACKEND_URL}/simulation/limits`, {
+        headers: getAgentSimulationAuthHeaders(),
       });
       if (!response.ok) return rejectWithValue(`HTTP ${response.status}`);
-      return (await response.json()) as AgentTestLimits;
+      return (await response.json()) as AgentSimulationLimits;
     } catch (err) {
       return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch limits');
     }
@@ -243,8 +243,8 @@ export const fetchLimitsThunk = createAsyncThunk(
 
 const MAX_STDOUT_LINES = 2000;
 
-const agentTestSlice = createSlice({
-  name: 'agentTest',
+const agentSimulationSlice = createSlice({
+  name: 'agentSimulation',
   initialState,
   reducers: {
     setError(state, action: PayloadAction<string | null>) {
@@ -283,9 +283,9 @@ const agentTestSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // startAgentTestThunk
+    // startAgentSimulationThunk
     builder
-      .addCase(startAgentTestThunk.pending, (state, action) => {
+      .addCase(startAgentSimulationThunk.pending, (state, action) => {
         state.status = 'starting';
         state.error = null;
         state.messages = [];
@@ -295,43 +295,43 @@ const agentTestSlice = createSlice({
         state.sessionId = null;
         state.startPayload = action.meta.arg;
       })
-      .addCase(startAgentTestThunk.fulfilled, (state, action) => {
+      .addCase(startAgentSimulationThunk.fulfilled, (state, action) => {
         state.status = 'running';
         state.sessionId = action.payload.sessionId;
         state.eventList = action.payload.eventList ?? [];
       })
-      .addCase(startAgentTestThunk.rejected, (state, action) => {
+      .addCase(startAgentSimulationThunk.rejected, (state, action) => {
         state.status = 'error';
-        state.error = (action.payload as string) ?? 'Failed to start agent test';
+        state.error = (action.payload as string) ?? 'Failed to start agent simulation';
       });
 
-    // stopAgentTestThunk
+    // stopAgentSimulationThunk
     builder
-      .addCase(stopAgentTestThunk.pending, (state) => {
+      .addCase(stopAgentSimulationThunk.pending, (state) => {
         state.status = 'stopping';
       })
-      .addCase(stopAgentTestThunk.fulfilled, (state) => {
+      .addCase(stopAgentSimulationThunk.fulfilled, (state) => {
         state.status = 'idle';
         state.sessionId = null;
       })
-      .addCase(stopAgentTestThunk.rejected, (state) => {
+      .addCase(stopAgentSimulationThunk.rejected, (state) => {
         state.status = 'idle';
         state.sessionId = null;
       });
 
-    // resetAgentTestThunk
+    // resetAgentSimulationThunk
     builder
-      .addCase(resetAgentTestThunk.fulfilled, (state) => {
+      .addCase(resetAgentSimulationThunk.fulfilled, (state) => {
         state.messages = [];
         state.stdoutLines = [];
         state.currentState = null;
         state.lastTransition = null;
       });
 
-    // restartAgentTestThunk — tears down the current session and starts fresh
+    // restartAgentSimulationThunk — tears down the current session and starts fresh
     // without transitioning through 'idle' (which would navigate away from the test page)
     builder
-      .addCase(restartAgentTestThunk.pending, (state) => {
+      .addCase(restartAgentSimulationThunk.pending, (state) => {
         state.status = 'starting';
         state.error = null;
         state.messages = [];
@@ -342,15 +342,15 @@ const agentTestSlice = createSlice({
         state.validationErrors = [];
         state.eventList = [];
       })
-      .addCase(restartAgentTestThunk.fulfilled, (state, action) => {
+      .addCase(restartAgentSimulationThunk.fulfilled, (state, action) => {
         if (!action.payload) return;
         state.status = 'running';
         state.sessionId = action.payload.sessionId;
         state.eventList = action.payload.eventList ?? [];
       })
-      .addCase(restartAgentTestThunk.rejected, (state, action) => {
+      .addCase(restartAgentSimulationThunk.rejected, (state, action) => {
         state.status = 'error';
-        state.error = (action.payload as string) ?? 'Failed to restart agent test';
+        state.error = (action.payload as string) ?? 'Failed to restart agent simulation';
       });
 
     // fetchLimitsThunk
@@ -361,9 +361,9 @@ const agentTestSlice = createSlice({
 
     // validateAgentThunk — intentionally does NOT change `status`.
     // Validation is a pre-flight check; the status should stay 'idle' until
-    // startAgentTestThunk actually creates a session.  Changing status here
+    // startAgentSimulationThunk actually creates a session.  Changing status here
     // caused isTestAgentActive to flip true prematurely, which (a) navigated
-    // the user to /test-agent before they filled in credentials and (b) left
+    // the user to /agent-simulation before they filled in credentials and (b) left
     // status stuck in a non-idle value whenever the user cancelled the dialog
     // or navigated away, breaking all subsequent Test Agent clicks.
     builder
@@ -394,33 +394,33 @@ export const {
   setLastTransition,
   setEventList,
   resetSession,
-} = agentTestSlice.actions;
+} = agentSimulationSlice.actions;
 
-export const agentTestReducer = agentTestSlice.reducer;
+export const agentSimulationReducer = agentSimulationSlice.reducer;
 
 // ---------------------------------------------------------------------------
 // Selectors
 // ---------------------------------------------------------------------------
 
-// Use a local type that includes agentTest to avoid circular dependency with store.ts
-type AgentTestRootState = RootState & { agentTest: AgentTestState };
+// Use a local type that includes agentSimulation to avoid circular dependency with store.ts
+type AgentSimulationRootState = RootState & { agentSimulation: AgentSimulationState };
 
-const selectAgentTest = (state: RootState) => (state as AgentTestRootState).agentTest;
+const selectAgentSimulation = (state: RootState) => (state as AgentSimulationRootState).agentSimulation;
 
-export const selectAgentTestStatus = (state: RootState) => selectAgentTest(state).status;
-export const selectSessionId = (state: RootState) => selectAgentTest(state).sessionId;
-export const selectCurrentAgentState = (state: RootState) => selectAgentTest(state).currentState;
-export const selectLastTransition = (state: RootState) => selectAgentTest(state).lastTransition;
-export const selectMessages = (state: RootState) => selectAgentTest(state).messages;
-export const selectStdoutLines = (state: RootState) => selectAgentTest(state).stdoutLines;
-export const selectEventList = (state: RootState) => selectAgentTest(state).eventList;
-export const selectAgentTestLimits = (state: RootState) => selectAgentTest(state).limits;
-export const selectAgentTestError = (state: RootState) => selectAgentTest(state).error;
-export const selectIsTestAgentRunning = (state: RootState) => {
-  const status = selectAgentTestStatus(state);
+export const selectAgentSimulationStatus = (state: RootState) => selectAgentSimulation(state).status;
+export const selectSessionId = (state: RootState) => selectAgentSimulation(state).sessionId;
+export const selectCurrentAgentState = (state: RootState) => selectAgentSimulation(state).currentState;
+export const selectLastTransition = (state: RootState) => selectAgentSimulation(state).lastTransition;
+export const selectMessages = (state: RootState) => selectAgentSimulation(state).messages;
+export const selectStdoutLines = (state: RootState) => selectAgentSimulation(state).stdoutLines;
+export const selectEventList = (state: RootState) => selectAgentSimulation(state).eventList;
+export const selectAgentSimulationLimits = (state: RootState) => selectAgentSimulation(state).limits;
+export const selectAgentSimulationError = (state: RootState) => selectAgentSimulation(state).error;
+export const selectIsSimulationRunning = (state: RootState) => {
+  const status = selectAgentSimulationStatus(state);
   return status !== 'idle';
 };
-export const selectAgentCode = (state: RootState) => selectAgentTest(state).agentCode;
-export const selectValidationErrors = (state: RootState) => selectAgentTest(state).validationErrors;
-export const selectStartPayload = (state: RootState) => selectAgentTest(state).startPayload;
+export const selectAgentCode = (state: RootState) => selectAgentSimulation(state).agentCode;
+export const selectValidationErrors = (state: RootState) => selectAgentSimulation(state).validationErrors;
+export const selectStartPayload = (state: RootState) => selectAgentSimulation(state).startPayload;
 

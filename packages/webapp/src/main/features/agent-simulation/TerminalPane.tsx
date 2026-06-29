@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 import { useAppSelector } from '@/main/app/store/hooks';
-import { selectStdoutLines } from '@/main/features/agent-testing';
+import { selectStdoutLines } from '@/main/features/agent-simulation';
 
 const MAX_DISPLAY_LINES = 2000;
 

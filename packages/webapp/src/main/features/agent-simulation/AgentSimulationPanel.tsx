@@ -3,13 +3,13 @@ import { AlertCircle, Bot, FlaskConical, Folder, Loader2, RotateCcw, X } from 'l
 import { Button } from '@/components/ui/button';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import {
-  selectAgentTestError,
-  selectAgentTestStatus,
+  selectAgentSimulationError,
+  selectAgentSimulationStatus,
   selectCurrentAgentState,
   selectLastTransition,
-  stopAgentTestThunk,
-  restartAgentTestThunk,
-} from '@/main/features/agent-testing';
+  stopAgentSimulationThunk,
+  restartAgentSimulationThunk,
+} from '@/main/features/agent-simulation';
 import { BafChatWrapper } from './BafChatWrapper';
 import { TerminalPane } from './TerminalPane';
 import { AgentFileExplorer } from './AgentFileExplorer';
@@ -20,17 +20,17 @@ type LeftTab = 'diagram' | 'code';
 const MIN_RIGHT_WIDTH = 300;
 const MAX_RIGHT_WIDTH = 1400;
 
-interface AgentTestPanelProps {
+interface AgentSimulationPanelProps {
   open: boolean;
   diagramTitle: string;
 }
 
-export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTitle }) => {
+export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open, diagramTitle }) => {
   const dispatch = useAppDispatch();
-  const status = useAppSelector(selectAgentTestStatus);
+  const status = useAppSelector(selectAgentSimulationStatus);
   const currentState = useAppSelector(selectCurrentAgentState);
   const lastTransition = useAppSelector(selectLastTransition);
-  const error = useAppSelector(selectAgentTestError);
+  const error = useAppSelector(selectAgentSimulationError);
 
   const [isTerminalCollapsed, setIsTerminalCollapsed] = useState(true);
   const [rightWidth, setRightWidth] = useState(() => Math.max(MIN_RIGHT_WIDTH, Math.floor(window.innerWidth * 0.5)));
@@ -62,8 +62,8 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
 
   if (!open) return null;
 
-  const handleStop = () => dispatch(stopAgentTestThunk());
-  const handleReset = () => dispatch(restartAgentTestThunk());
+  const handleStop = () => dispatch(stopAgentSimulationThunk());
+  const handleReset = () => dispatch(restartAgentSimulationThunk());
 
   const handleDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -82,7 +82,7 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
           <FlaskConical className="size-4" />
         </div>
         <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">
-          Testing: {diagramTitle}
+          Simulator: {diagramTitle}
         </h1>
 
         {status === 'starting' && (
@@ -94,8 +94,8 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
           size="sm"
           className="size-8 p-0"
           onClick={handleStop}
-          title="Stop test session"
-          aria-label="Stop test session"
+          title="Stop simulation"
+          aria-label="Stop simulation"
         >
           <X className="size-4" />
         </Button>
@@ -106,7 +106,7 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
         <div className="flex shrink-0 items-start gap-2.5 border-b border-red-200/60 bg-red-50/80 px-4 py-3 dark:border-red-800/40 dark:bg-red-950/30">
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-sm font-medium text-red-800 dark:text-red-200">Test session error</span>
+            <span className="text-sm font-medium text-red-800 dark:text-red-200">Simulation error</span>
             <span className="text-xs text-red-700 dark:text-red-300">{error}</span>
           </div>
           <Button
@@ -162,7 +162,7 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
               {!currentState && !lastTransition && status === 'starting' && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="size-3.5 animate-spin" />
-                  Starting agent session…
+                  Starting simulation…
                 </div>
               )}
               <Button
@@ -170,7 +170,7 @@ export const AgentTestPanel: React.FC<AgentTestPanelProps> = ({ open, diagramTit
                 size="sm"
                 className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={handleReset}
-                title="Restart agent session"
+                title="Restart simulation"
               >
                 <RotateCcw className="size-3.5" />
                 Reset

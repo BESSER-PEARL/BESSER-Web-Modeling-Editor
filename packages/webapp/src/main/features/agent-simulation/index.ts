@@ -1,6 +1,6 @@
 // Redux slice exports
 export {
-  agentTestReducer,
+  agentSimulationReducer,
   setError,
   addMessage,
   appendStdoutLine,
@@ -9,32 +9,32 @@ export {
   setEventList,
   resetSession,
   // Thunks
-  startAgentTestThunk,
-  stopAgentTestThunk,
-  resetAgentTestThunk,
-  restartAgentTestThunk,
+  startAgentSimulationThunk,
+  stopAgentSimulationThunk,
+  resetAgentSimulationThunk,
+  restartAgentSimulationThunk,
   fetchLimitsThunk,
   validateAgentThunk,
   // Selectors
-  selectAgentTestStatus,
+  selectAgentSimulationStatus,
   selectSessionId,
   selectCurrentAgentState,
   selectLastTransition,
   selectMessages,
   selectStdoutLines,
   selectEventList,
-  selectAgentTestLimits,
-  selectAgentTestError,
-  selectIsTestAgentRunning,
+  selectAgentSimulationLimits,
+  selectAgentSimulationError,
+  selectIsSimulationRunning,
   selectAgentCode,
   selectValidationErrors,
-} from './agentTestSlice';
+} from './agentSimulationSlice';
 
-export type { AgentTestLimits, AgentTestStatus, Message } from './agentTestSlice';
+export type { AgentSimulationLimits, AgentSimulationStatus, Message } from './agentSimulationSlice';
 
 // UI Components
-export { AgentTestPage } from './AgentTestPage';
-export { AgentTestPanel } from './AgentTestPanel';
+export { AgentSimulationPage } from './AgentSimulationPage';
+export { AgentSimulationPanel } from './AgentSimulationPanel';
 export { AgentCodeViewer } from './AgentCodeViewer';
 export { AgentFileExplorer } from './AgentFileExplorer';
 export { AgentDiagramReadOnly } from './AgentDiagramReadOnly';

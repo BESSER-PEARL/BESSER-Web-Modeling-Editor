@@ -11,9 +11,9 @@ import {
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import {
   fetchLimitsThunk,
-  selectAgentTestLimits,
-  startAgentTestThunk,
-} from '@/main/features/agent-testing';
+  selectAgentSimulationLimits,
+  startAgentSimulationThunk,
+} from '@/main/features/agent-simulation';
 
 interface CredentialsDialogProps {
   open: boolean;
@@ -25,7 +25,7 @@ interface CredentialsDialogProps {
 }
 
 const SENSITIVE_DATA_WARNING =
-  'Do not share sensitive personal information (passwords, personal data, confidential documents) in the test chat. Test sessions are logged and may be visible to operators of this editor.';
+  'Do not share sensitive personal information (passwords, personal data, confidential documents) in the simulation chat. Simulation sessions are logged and may be visible to operators of this editor.';
 
 export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
   open,
@@ -36,7 +36,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
   diagramConfigYaml,
 }) => {
   const dispatch = useAppDispatch();
-  const limits = useAppSelector(selectAgentTestLimits);
+  const limits = useAppSelector(selectAgentSimulationLimits);
 
   const [apiKeyMode, setApiKeyMode] = useState<'own' | 'quota'>('own');
   const [openAiKey, setOpenAiKey] = useState('');
@@ -69,7 +69,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
       credentials,
     };
 
-    dispatch(startAgentTestThunk(payload));
+    dispatch(startAgentSimulationThunk(payload));
     onOpenChange(false);
   };
 
@@ -83,7 +83,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
               <FlaskConical className="size-4" />
             </div>
-            Test Agent: {diagramTitle}
+            Simulate Agent: {diagramTitle}
           </DialogTitle>
         </DialogHeader>
 
@@ -247,7 +247,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
           </Button>
           <Button onClick={handleStartTest} className="gap-2">
             <FlaskConical className="size-4" />
-            Start Test
+            Start Simulation
           </Button>
         </DialogFooter>
       </DialogContent>

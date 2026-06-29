@@ -29,7 +29,7 @@ import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
 import type { GenerationResult } from '../../features/generation/types';
 import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
-import { CredentialsDialog, selectIsTestAgentRunning, selectSessionId, stopAgentTestThunk, validateAgentThunk } from '../../features/agent-testing';
+import { CredentialsDialog, selectIsSimulationRunning, selectSessionId, stopAgentSimulationThunk, validateAgentThunk } from '../../features/agent-simulation';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { WorkspaceTopBar } from './WorkspaceTopBar';
 import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
@@ -164,9 +164,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   } = useGitHubAuth();
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
 
-  const isTestAgentActive = useAppSelector(selectIsTestAgentRunning);
-  const testSessionId = useAppSelector(selectSessionId);
-  const showTestAgent = currentProject?.currentDiagramType === 'AgentDiagram';
+  const isSimulationActive = useAppSelector(selectIsSimulationRunning);
+  const simulationSessionId = useAppSelector(selectSessionId);
+  const showSimulateAgent = currentProject?.currentDiagramType === 'AgentDiagram';
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
   const [isValidatingBeforeTest, setIsValidatingBeforeTest] = useState(false);
 
@@ -190,7 +190,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     currentProject?.currentDiagramType,
   );
 
-  // Build a normalized system config for the test sandbox — mirrors the same
+  // Build a normalized system config for the agent simulation — mirrors the same
   // normalization that handleAgentGenerate applies before code generation, so
   // the backend receives the same intentRecognitionTechnology / llm / platform
   // values in both flows. Without this, a raw diagram.config that is undefined,
@@ -358,43 +358,43 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setDiagramTitleDraft(diagram?.title ?? '');
   }, [diagram?.id, diagram?.title]);
 
-  // Navigate to /test-agent only when the test transitions from idle to active.
+  // Navigate to /agent-simulation only when the simulation transitions from idle to active.
   // Using a ref avoids re-redirecting the user if they manually navigate away while
-  // the test is still running.
-  const prevIsTestAgentActiveRef = useRef(isTestAgentActive);
+  // the simulation is still running.
+  const prevIsSimulationActiveRef = useRef(isSimulationActive);
   useEffect(() => {
-    const wasActive = prevIsTestAgentActiveRef.current;
-    prevIsTestAgentActiveRef.current = isTestAgentActive;
-    if (!wasActive && isTestAgentActive) {
-      navigate('/test-agent');
+    const wasActive = prevIsSimulationActiveRef.current;
+    prevIsSimulationActiveRef.current = isSimulationActive;
+    if (!wasActive && isSimulationActive) {
+      navigate('/agent-simulation');
     }
-  }, [isTestAgentActive, navigate]);
+  }, [isSimulationActive, navigate]);
 
-  // Stop any running test session when the user switches to a different project
+  // Stop any running simulation session when the user switches to a different project
   const prevProjectIdRef = useRef<string | undefined>(currentProject?.id);
   useEffect(() => {
     const currentId = currentProject?.id;
     const prevId = prevProjectIdRef.current;
     prevProjectIdRef.current = currentId;
     if (prevId !== undefined && prevId !== currentId) {
-      void dispatch(stopAgentTestThunk());
+      void dispatch(stopAgentSimulationThunk());
     }
   }, [currentProject?.id, dispatch]);
 
   // Best-effort session cleanup when the browser tab is closed or reloaded.
   // Uses fetch with keepalive:true so the request can outlive the page.
   useEffect(() => {
-    const sessionId = testSessionId;
+    const sessionId = simulationSessionId;
     if (!sessionId) return;
     const handleBeforeUnload = () => {
-      fetch(`${BACKEND_URL}/test/sessions/${sessionId}`, {
+      fetch(`${BACKEND_URL}/simulation/sessions/${sessionId}`, {
         method: 'DELETE',
         keepalive: true,
       }).catch(() => {});
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [testSessionId]);
+  }, [simulationSessionId]);
 
   /* ---- Assistant-driven export (JSON / BUML) ---- */
   useEffect(() => {
@@ -771,9 +771,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     dispatch(updateDiagramModelThunk({ title: normalized }));
   }, [diagramTitleDraft, diagram?.title, dispatch]);
 
-  const handleTestAgent = async () => {
+  const handleSimulateAgent = async () => {
     if (isModelEmpty(diagram?.model)) {
-      toast.info('The agent diagram is empty. Add states, transitions, and intents before testing.');
+      toast.info('The agent diagram is empty. Add states, transitions, and intents before simulating.');
       return;
     }
 
@@ -976,7 +976,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onSwitchDiagramType={handleMobileSwitchDiagramType}
             onNavigate={handleMobileNavigate}
             onToggleExpanded={closeMobileDrawer}
-            onTestAgent={showTestAgent ? handleTestAgent : undefined}
+            onTestAgent={showSimulateAgent ? handleSimulateAgent : undefined}
           />
         </div>
       </div>
@@ -1004,7 +1004,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             void handleSafeNavigate(path);
           }}
           onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
-          onTestAgent={showTestAgent ? handleTestAgent : undefined}
+          onTestAgent={showSimulateAgent ? handleSimulateAgent : undefined}
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">

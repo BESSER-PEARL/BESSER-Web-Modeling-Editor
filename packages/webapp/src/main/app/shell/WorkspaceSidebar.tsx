@@ -71,7 +71,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
   const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
   const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
-  const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath) || locationPath === '/test-agent';
+  const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath) || locationPath === '/agent-simulation';
   const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
   const agentContainerClass = showAgentSubItems
     ? isDarkTheme
@@ -153,18 +153,18 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 }`}
               >
                 {onTestAgent && (
-                  <SidebarTooltip label="Test Agent" collapsed={isCollapsed}>
+                  <SidebarTooltip label="Simulate Agent" collapsed={isCollapsed}>
                     <button
                       type="button"
-                      className={`${navButtonClass(locationPath === '/test-agent', isSidebarExpanded, isDarkTheme)} ${
+                      className={`${navButtonClass(locationPath === '/agent-simulation', isSidebarExpanded, isDarkTheme)} ${
                         isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
                       }`}
                       onClick={onTestAgent}
-                      title={isSidebarExpanded ? 'Test Agent' : undefined}
-                      aria-label="Test Agent"
+                      title={isSidebarExpanded ? 'Simulate Agent' : undefined}
+                      aria-label="Simulate Agent"
                     >
                       <FlaskConical className="size-4" />
-                      {isSidebarExpanded && <span>Test Agent</span>}
+                      {isSidebarExpanded && <span>Simulate Agent</span>}
                     </button>
                   </SidebarTooltip>
                 )}

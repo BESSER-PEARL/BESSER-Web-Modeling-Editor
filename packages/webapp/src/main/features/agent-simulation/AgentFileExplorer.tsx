@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppSelector } from '@/main/app/store/hooks';
-import { selectSessionId } from '@/main/features/agent-testing';
+import { selectSessionId } from '@/main/features/agent-simulation';
 import { BACKEND_URL } from '@/main/shared/constants/constant';
 
 // ---------------------------------------------------------------------------
@@ -302,7 +302,7 @@ export const AgentFileExplorer: React.FC = () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const resp = await fetch(`${BACKEND_URL}/test/sessions/${sid}/files`, {
+      const resp = await fetch(`${BACKEND_URL}/simulation/sessions/${sid}/files`, {
         headers: getAuthHeaders(),
       });
       if (!resp.ok) {
