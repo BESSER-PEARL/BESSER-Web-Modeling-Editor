@@ -96,6 +96,29 @@ export const GraphicalUIEditor: React.FC = () => {
             throw new Error('Invalid GrapesJS model data');
           }
 
+          // GrapesJS only allows double-click text editing when a component has
+          // BOTH type:'text' AND editable:true. Models loaded via loadProjectData
+          // use their component defs as-is (the preset-webpage plugin's defaults
+          // are NOT applied), so agent-generated text arrives locked. Walk the
+          // model and mark every text component editable so generated GUIs can be
+          // edited just like manually-created ones. Mutating `model` here fixes
+          // both the live load (below) and the persisted copy (saved further down).
+          const markTextEditable = (node: any): void => {
+            if (Array.isArray(node)) {
+              node.forEach(markTextEditable);
+              return;
+            }
+            if (node && typeof node === 'object') {
+              if (node.type === 'text') {
+                node.editable = true;
+              }
+              for (const key of Object.keys(node)) {
+                markTextEditable(node[key]);
+              }
+            }
+          };
+          markTextEditable(model);
+
           // Clear existing pages
           const pages = editor.Pages;
           if (pages) {
