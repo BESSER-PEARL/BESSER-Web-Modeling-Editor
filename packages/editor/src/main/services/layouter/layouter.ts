@@ -124,14 +124,6 @@ export function* render(id: string): SagaIterator {
       y: update.bounds.y - original.bounds.y,
     };
 
-    console.log('[layouter] update id=' + update.id, {
-      type: (update as any).type,
-      sizeDelta: size,
-      positionDelta: position,
-      originalBounds: { ...original.bounds },
-      updateBounds: { ...update.bounds },
-    });
-
     if (Object.values(position).some((x) => x !== 0)) {
       yield put<MoveAction>({
         type: MovingActionTypes.MOVE,
