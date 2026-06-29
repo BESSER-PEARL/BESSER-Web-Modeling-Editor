@@ -321,6 +321,8 @@ export class AssistantClient {
   private shouldReconnect = true;
   private responseTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly responseTimeoutMs = 45000;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly heartbeatMs = 15000;
 
   private readonly clientMode: AssistantClientMode;
   private readonly sessionId: string;
@@ -364,6 +366,7 @@ export class AssistantClient {
             this.reconnectTimeout = null;
           }
           this.onConnectionHandler?.(true);
+          this.startHeartbeat();
           this.processMessageQueue();
           this.connectingPromise = null;
           resolve();
@@ -371,6 +374,7 @@ export class AssistantClient {
 
         this.ws.onclose = () => {
           this.isConnected = false;
+          this.stopHeartbeat();
           this.connectingPromise = null;
           this.onTypingHandler?.(false);
           this.onConnectionHandler?.(false);
@@ -408,6 +412,7 @@ export class AssistantClient {
     // Abort any in-flight async drain loop immediately.
     this._drainAborted = true;
     this.clearResponseTimer();
+    this.stopHeartbeat();
     if (this.ws) {
       this.ws.onopen = null;
       this.ws.onclose = null;
@@ -794,6 +799,48 @@ export class AssistantClient {
     if (this.responseTimeout) {
       clearTimeout(this.responseTimeout);
       this.responseTimeout = null;
+    }
+  }
+
+  /**
+   * Application-level keep-alive. Browsers don't expose WebSocket ping frames,
+   * so a silent socket gets reaped by proxy idle timeouts (and the server's
+   * ping_timeout) within ~20s. When that happens mid-generation the agent's
+   * reply slot goes stale and the result is silently dropped -- the user sees
+   * "thinking... generating..." then nothing.
+   *
+   * We send a lightweight `user_set_variable` heartbeat (an action the agent
+   * already handles, no LLM trigger) every 15s. It keeps the socket warm AND
+   * lets the agent re-claim its reply slot for this live connection, so a
+   * result produced 40s+ later still routes back here. Fires once immediately
+   * on (re)connect so the slot is claimed without waiting a full interval.
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    const beat = (): void => {
+      if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      try {
+        this.ws.send(
+          JSON.stringify({
+            action: 'user_set_variable',
+            user_id: this.sessionId,
+            message: { __heartbeat: Date.now() },
+          }),
+        );
+      } catch {
+        // best-effort -- a failed beat just means the socket is already gone
+      }
+    };
+    beat();
+    this.heartbeatTimer = setInterval(beat, this.heartbeatMs);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
     }
   }
 
