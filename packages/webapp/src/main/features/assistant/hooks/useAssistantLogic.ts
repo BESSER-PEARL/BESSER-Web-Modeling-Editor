@@ -16,11 +16,16 @@
  * that AssistantWidget and AssistantWorkspaceDrawer require zero changes.
  */
 
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
-import { AssistantClient, type AssistantActionPayload } from '../services';
+import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
+import {
+  conversationStore,
+  setConversationHandlers,
+  wireConversationDispatchers,
+} from './assistantConversationStore';
 import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
@@ -30,6 +35,8 @@ import {
   UMLModelingService,
   RateLimiterService,
   type RateLimitStatus,
+  type ChatMessage,
+  type InjectionCommand,
   formatErrorForUser,
 } from '../services';
 import { isUMLModel, type ProjectDiagram, type SupportedDiagramType } from '../../../shared/types/project';
@@ -222,14 +229,20 @@ export function useAssistantLogic({
   onGenerate,
 }: UseAssistantLogicOptions): UseAssistantLogicReturn {
   /* ---- core state (owned by orchestrator) ---- */
-  const [messages, setMessages] = useState<ChatKitMessage[]>([]);
+  // Conversation lives in a SHARED external store so the floating widget and the
+  // workspace drawer render IDENTICAL content (one client, one session, one
+  // conversation). The store mutators are setState-compatible, so every existing
+  // setMessages/setMessageMeta call site below works unchanged.
+  const messages = useSyncExternalStore(conversationStore.subscribe, conversationStore.getMessages);
+  const setMessages = conversationStore.setMessages;
+  const messageMeta = useSyncExternalStore(conversationStore.subscribe, conversationStore.getMessageMeta);
+  const setMessageMeta = conversationStore.setMessageMeta;
   const [inputValue, setInputValue] = useState('');
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus>({
     requestsLastMinute: 0,
     requestsLastHour: 0,
     cooldownRemaining: 0,
   });
-  const [messageMeta, setMessageMeta] = useState<Record<string, MessageMeta>>({});
   const [lastSentMessage, setLastSentMessage] = useState('');
 
   const messageListContainerRef = useRef<HTMLDivElement>(null);
@@ -269,13 +282,21 @@ export function useAssistantLogic({
 
   /* ---- singleton services ---- */
 
-  const [assistantClient] = useState(
-    () =>
-      new AssistantClient(UML_BOT_WS_URL, {
-        clientMode: 'workspace',
-        contextProvider: buildWorkspaceContext,
-      }),
+  // Shared singleton: the floating widget and the workspace drawer use ONE
+  // client (one socket, one session id) so they share the same conversation
+  // instead of opening two sockets with the same id (BAF reply collision).
+  const [assistantClient] = useState(() =>
+    getSharedAssistantClient(UML_BOT_WS_URL, {
+      clientMode: 'workspace',
+      contextProvider: buildWorkspaceContext,
+    }),
   );
+
+  // Keep the shared client's context provider pointed at THIS mounted surface's
+  // live workspace state (the singleton only captured the first surface's).
+  useEffect(() => {
+    assistantClient.setContextProvider(buildWorkspaceContext);
+  }, [assistantClient, buildWorkspaceContext]);
 
   const [rateLimiter] = useState(
     () =>
@@ -741,14 +762,16 @@ export function useAssistantLogic({
   /* ================================================================ */
 
   useEffect(() => {
-    assistantClient.onMessage((message) => {
-      // Clear generating state on any real message -- the backend always sends
-      // a final message (success or error), so receiving ANY message means
-      // generation is done.  This also handles the 45s response-timeout
-      // synthetic message from AssistantClient.
-      streaming.setIsGenerating(false);
-      streaming.setProgressMessage('');
-
+    /* ---- SHARED single-dispatch handlers (run ONCE per event) ----
+     * These append to the SHARED conversation store and apply real diagram
+     * side-effects, so they must run exactly once -- NOT once per mounted
+     * surface (else messages double-append and injections double-apply).
+     * setConversationHandlers points the single wired dispatchers at this
+     * surface's handlers (last writer wins; the handlers are equivalent across
+     * surfaces); wireConversationDispatchers attaches them to the shared client
+     * exactly once. The generating/progress clear lives in the PER-SURFACE
+     * handler below since that is local UI state owned per surface. */
+    const onMessage = (message: ChatMessage) => {
       const responseTiming = stopTimer('response');
       const totalTiming = stopTimer('total');
 
@@ -811,20 +834,41 @@ export function useAssistantLogic({
           [kitMsg.id]: { ...prev[kitMsg.id], suggestedActions: suggested as SuggestedAction[] },
         }));
       }
-    });
+    };
 
-    streaming.registerTypingHandler(assistantClient);
-
-    assistantClient.onInjection((command) => {
+    const onInjection = (command: InjectionCommand) => {
       enqueueAssistantTask(() => injection.handleInjection(command));
-    });
-    assistantClient.onAction((payload) => {
+    };
+    const onAction = (payload: AssistantActionPayload) => {
       enqueueAssistantTask(() => handleAction(payload));
-    });
+    };
 
-    // NOTE: connection lifecycle (connect/disconnect/onConnection) is handled
-    // by useWebSocketConnection. We only register message/typing/injection/action
-    // handlers here since they depend on orchestrator state.
+    setConversationHandlers({ onMessage, onInjection, onAction });
+    wireConversationDispatchers(assistantClient);
+
+    /* ---- PER-SURFACE handlers (run for EACH mounted surface) ----
+     * Clearing the generating/progress indicator is local UI state owned by
+     * this surface's useStreamingResponse, so it must fire for BOTH surfaces
+     * (widget and drawer), not just the single-dispatch winner. The backend
+     * always sends a final message (success or error) — and a 45s synthetic
+     * timeout message — so receiving ANY message means generation is done. The
+     * typing handler likewise mirrors the shared client's typing broadcast into
+     * this surface's isGenerating. Both are idempotent UI side-effects. */
+    const unsubGenClear = assistantClient.onMessage(() => {
+      streaming.setIsGenerating(false);
+      streaming.setProgressMessage('');
+    });
+    const unsubTyping = streaming.registerTypingHandler(assistantClient);
+
+    return () => {
+      unsubGenClear();
+      unsubTyping?.();
+    };
+    // NOTE: connection lifecycle (connect/disconnect/onConnection) is handled by
+    // useWebSocketConnection. The SHARED message/injection/action dispatchers are
+    // wired once on the shared client and intentionally persist across a single
+    // surface unmounting (the other surface still needs them); only this
+    // surface's per-surface handlers are torn down here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistantClient]);
 

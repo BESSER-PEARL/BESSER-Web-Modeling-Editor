@@ -65,7 +65,7 @@ export function useWebSocketConnection({
   // Register the onConnection handler and initiate the connection once.
   // Keep alive for the lifetime of the hook; disconnect on unmount.
   useEffect(() => {
-    assistantClient.onConnection((connected) => {
+    const unsubConnection = assistantClient.onConnection((connected) => {
       let next: ConnectionStatus;
       if (connected) {
         next = 'connected';
@@ -83,14 +83,19 @@ export function useWebSocketConnection({
     });
 
     setConnectionStatus('connecting');
+    // connect() is idempotent \u2014 if the other surface already opened the shared
+    // client, this resolves immediately.
     assistantClient.connect().catch(() => {
       setConnectionStatus('disconnected');
       toast.error('Could not reach the AI assistant \u2014 make sure the backend is running.');
     });
 
+    // The client is SHARED between the widget and the drawer, so a single
+    // surface unmounting must NOT clearHandlers()/disconnect() \u2014 that would
+    // kill the other surface's connection. Only drop this surface's own
+    // connection-status subscription; the socket lives on (heartbeat keeps it).
     return () => {
-      assistantClient.clearHandlers();
-      assistantClient.disconnect({ allowReconnect: false, clearQueue: true });
+      unsubConnection();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assistantClient]);

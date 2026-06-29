@@ -326,18 +326,36 @@ export class AssistantClient {
 
   private readonly clientMode: AssistantClientMode;
   private sessionId: string;
-  private readonly contextProvider?: () => AssistantWorkspaceContext | undefined;
+  // Mutable so a shared (singleton) client can be re-pointed at the live
+  // workspace context by whichever surface is currently mounted, instead of
+  // going stale when the creating surface unmounts.
+  private contextProvider?: () => AssistantWorkspaceContext | undefined;
 
-  private onMessageHandler: MessageHandler | null = null;
-  private onConnectionHandler: ConnectionHandler | null = null;
-  private onTypingHandler: TypingHandler | null = null;
-  private onInjectionHandler: InjectionHandler | null = null;
-  private onActionHandler: ActionHandler | null = null;
+  // Multi-subscriber handlers so a SINGLE shared client can feed BOTH the
+  // floating widget and the workspace drawer (one socket, one session id).
+  // Previously each surface created its own client → two sockets sharing one
+  // session id, which collided in BAF's reply routing.
+  private readonly messageHandlers = new Set<MessageHandler>();
+  private readonly connectionHandlers = new Set<ConnectionHandler>();
+  private readonly typingHandlers = new Set<TypingHandler>();
+  private readonly injectionHandlers = new Set<InjectionHandler>();
+  private readonly actionHandlers = new Set<ActionHandler>();
+
+  private emitMessage(m: ChatMessage): void { this.messageHandlers.forEach((h) => h(m)); }
+  private emitConnection(c: boolean): void { this.connectionHandlers.forEach((h) => h(c)); }
+  private emitTyping(t: boolean): void { this.typingHandlers.forEach((h) => h(t)); }
+  private emitInjection(i: InjectionCommand): void { this.injectionHandlers.forEach((h) => h(i)); }
+  private emitAction(a: AssistantActionPayload): void { this.actionHandlers.forEach((h) => h(a)); }
 
   constructor(private readonly url: string = 'ws://localhost:8765', options: AssistantClientOptions = {}) {
     this.clientMode = options.clientMode || 'widget';
     this.sessionId = options.sessionId || createSessionId();
     this.contextProvider = options.contextProvider;
+  }
+
+  /** Re-point the (possibly shared) client at the live workspace-context source. */
+  setContextProvider(provider: () => AssistantWorkspaceContext | undefined): void {
+    this.contextProvider = provider;
   }
 
   connect(): Promise<void> {
@@ -365,7 +383,7 @@ export class AssistantClient {
             clearTimeout(this.reconnectTimeout);
             this.reconnectTimeout = null;
           }
-          this.onConnectionHandler?.(true);
+          this.emitConnection(true);
           this.startHeartbeat();
           this.processMessageQueue();
           this.connectingPromise = null;
@@ -376,8 +394,8 @@ export class AssistantClient {
           this.isConnected = false;
           this.stopHeartbeat();
           this.connectingPromise = null;
-          this.onTypingHandler?.(false);
-          this.onConnectionHandler?.(false);
+          this.emitTyping(false);
+          this.emitConnection(false);
           if (this.shouldReconnect) {
             this.attemptReconnect();
           } else {
@@ -389,8 +407,8 @@ export class AssistantClient {
           console.error('Assistant WebSocket error:', error);
           this.isConnected = false;
           this.connectingPromise = null;
-          this.onTypingHandler?.(false);
-          this.onConnectionHandler?.(false);
+          this.emitTyping(false);
+          this.emitConnection(false);
           if (this.shouldReconnect) {
             this.attemptReconnect();
           }
@@ -435,8 +453,8 @@ export class AssistantClient {
     if (options.clearQueue) {
       this.messageQueue = [];
     }
-    this.onTypingHandler?.(false);
-    this.onConnectionHandler?.(false);
+    this.emitTyping(false);
+    this.emitConnection(false);
   }
 
   sendMessage(
@@ -505,32 +523,40 @@ export class AssistantClient {
     }
   }
 
-  onMessage(handler: MessageHandler): void {
-    this.onMessageHandler = handler;
+  // Each onX adds a subscriber and returns an unsubscribe fn, so one surface
+  // unmounting removes only ITS handlers (not the other surface's).
+  onMessage(handler: MessageHandler): () => void {
+    this.messageHandlers.add(handler);
+    return () => this.messageHandlers.delete(handler);
   }
 
-  onConnection(handler: ConnectionHandler): void {
-    this.onConnectionHandler = handler;
+  onConnection(handler: ConnectionHandler): () => void {
+    this.connectionHandlers.add(handler);
+    return () => this.connectionHandlers.delete(handler);
   }
 
-  onTyping(handler: TypingHandler): void {
-    this.onTypingHandler = handler;
+  onTyping(handler: TypingHandler): () => void {
+    this.typingHandlers.add(handler);
+    return () => this.typingHandlers.delete(handler);
   }
 
-  onInjection(handler: InjectionHandler): void {
-    this.onInjectionHandler = handler;
+  onInjection(handler: InjectionHandler): () => void {
+    this.injectionHandlers.add(handler);
+    return () => this.injectionHandlers.delete(handler);
   }
 
-  onAction(handler: ActionHandler): void {
-    this.onActionHandler = handler;
+  onAction(handler: ActionHandler): () => void {
+    this.actionHandlers.add(handler);
+    return () => this.actionHandlers.delete(handler);
   }
 
+  /** Remove ALL subscribers — full teardown only, never per-surface. */
   clearHandlers(): void {
-    this.onMessageHandler = null;
-    this.onConnectionHandler = null;
-    this.onTypingHandler = null;
-    this.onInjectionHandler = null;
-    this.onActionHandler = null;
+    this.messageHandlers.clear();
+    this.connectionHandlers.clear();
+    this.typingHandlers.clear();
+    this.injectionHandlers.clear();
+    this.actionHandlers.clear();
   }
 
   /**
@@ -640,7 +666,7 @@ export class AssistantClient {
     }
 
     this.ws.send(JSON.stringify(wire));
-    this.onTypingHandler?.(true);
+    this.emitTyping(true);
     this.startResponseTimer();
   }
 
@@ -669,11 +695,11 @@ export class AssistantClient {
     this.clearResponseTimer();
     try {
       const payload = JSON.parse(event.data) as AgentResponse;
-      this.onTypingHandler?.(false);
+      this.emitTyping(false);
       const directAction = this.extractActionPayload(payload);
       if (directAction) {
         if (isInjectionCommand(directAction)) {
-          this.onInjectionHandler?.({
+          this.emitInjection({
             ...directAction,
             message:
               typeof directAction.message === 'string'
@@ -686,7 +712,7 @@ export class AssistantClient {
           // they are fully processed by the injection handler above.
           // Firing both would enqueue duplicate tasks in the drawer.
         } else {
-          this.onActionHandler?.(directAction);
+          this.emitAction(directAction);
         }
 
         if (directAction.action === 'assistant_message' && typeof directAction.message === 'string') {
@@ -698,7 +724,7 @@ export class AssistantClient {
             timestamp: new Date(),
             diagramType: typeof directAction.diagramType === 'string' ? directAction.diagramType : payload.diagramType,
           };
-          this.onMessageHandler?.(chatMessage);        
+          this.emitMessage(chatMessage);        
         }
         return;
       }
@@ -712,7 +738,7 @@ export class AssistantClient {
         timestamp: new Date(),
         diagramType: payload.diagramType,
       };
-      this.onMessageHandler?.(chatMessage);
+      this.emitMessage(chatMessage);
     } catch (error) {
       const rawData = typeof event.data === 'string' ? event.data : '';
       const protocolError = new ProtocolError(
@@ -730,7 +756,7 @@ export class AssistantClient {
         isUser: false,
         timestamp: new Date(),
       };
-      this.onMessageHandler?.(chatMessage);
+      this.emitMessage(chatMessage);
     }
   }
 
@@ -802,8 +828,8 @@ export class AssistantClient {
   private startResponseTimer(): void {
     this.clearResponseTimer();
     this.responseTimeout = setTimeout(() => {
-      this.onTypingHandler?.(false);
-      this.onMessageHandler?.({
+      this.emitTyping(false);
+      this.emitMessage({
         id: createMessageId(),
         action: 'agent_error',
         message: 'The assistant is taking too long to respond. Please try again.',
@@ -928,6 +954,32 @@ export class AssistantClient {
 
     drainNext();
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared singleton                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One AssistantClient per browser tab, shared by the floating widget AND the
+ * workspace drawer. Each surface used to create its own client → two
+ * WebSockets carrying the SAME session id, which collided in BAF's reply
+ * routing. A single shared client = one socket, one (unique) session id, and
+ * both surfaces render the same conversation via the multi-subscriber handlers
+ * above. Each mounted surface should call setContextProvider() to keep the
+ * workspace context pointed at its live state, and register handlers with the
+ * returned unsubscribe (removed on its own unmount).
+ */
+let _sharedAssistantClient: AssistantClient | null = null;
+
+export function getSharedAssistantClient(
+  url?: string,
+  options?: AssistantClientOptions,
+): AssistantClient {
+  if (!_sharedAssistantClient) {
+    _sharedAssistantClient = new AssistantClient(url, options);
+  }
+  return _sharedAssistantClient;
 }
 
 export type {

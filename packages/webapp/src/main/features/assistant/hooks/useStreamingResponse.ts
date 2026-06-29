@@ -104,10 +104,14 @@ export interface UseStreamingResponseReturn {
     payload: AssistantActionPayload,
     setMessages: React.Dispatch<React.SetStateAction<ChatKitMessage[]>>,
   ) => boolean;
-  /** Register the onTyping handler on the assistant client. */
+  /**
+   * Register the onTyping handler on the (shared) assistant client. Returns an
+   * unsubscribe so a surface can detach just its own typing handler on unmount
+   * without tearing down the shared client's other subscribers.
+   */
   registerTypingHandler: (
-    assistantClient: { onTyping: (cb: (typing: boolean) => void) => void },
-  ) => void;
+    assistantClient: { onTyping: (cb: (typing: boolean) => void) => () => void },
+  ) => () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -151,9 +155,9 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
   /* ---- handler registration ---- */
 
   const registerTypingHandler = (
-    assistantClient: { onTyping: (cb: (typing: boolean) => void) => void },
-  ) => {
-    assistantClient.onTyping((typing) => {
+    assistantClient: { onTyping: (cb: (typing: boolean) => void) => () => void },
+  ): (() => void) => {
+    return assistantClient.onTyping((typing) => {
       setIsGenerating((prev) => (prev === typing ? prev : typing));
     });
   };
