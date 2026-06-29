@@ -14,7 +14,7 @@ import { IPath } from '../../../utils/geometry/path';
 import { canHaveCenterPort } from '../../uml-relationship/uml-relationship-port';
 
 import { UMLDiagramType } from '../../../packages/diagram-type';
-import { BPMNRelationshipType } from '../../../packages/bpmn';
+import { BPMNRelationshipType, isCollapsibleBpmnContainer } from '../../../packages/bpmn';
 import { BPMNFlow } from '../../../packages/bpmn/bpmn-flow/bpmn-flow';
 import { getAllowedBpmnFlowTypes, getDefaultBpmnFlowType } from '../../../packages/bpmn/bpmn-flow/bpmn-flow-semantics';
 
@@ -138,10 +138,8 @@ export const Connectable = {
           if (sourceOwner !== targetOwner) {
             const sourceOwnerEl = sourceOwner ? dispatch(UMLElementCommonRepository.getById(sourceOwner)) : null;
             const targetOwnerEl = targetOwner ? dispatch(UMLElementCommonRepository.getById(targetOwner)) : null;
-            const sourceInSubprocess =
-              sourceOwnerEl?.type === 'BPMNSubprocess' || sourceOwnerEl?.type === 'BPMNTransaction';
-            const targetInSubprocess =
-              targetOwnerEl?.type === 'BPMNSubprocess' || targetOwnerEl?.type === 'BPMNTransaction';
+            const sourceInSubprocess = isCollapsibleBpmnContainer(sourceOwnerEl?.type);
+            const targetInSubprocess = isCollapsibleBpmnContainer(targetOwnerEl?.type);
             if (sourceInSubprocess || targetInSubprocess) {
               continue;
             }
