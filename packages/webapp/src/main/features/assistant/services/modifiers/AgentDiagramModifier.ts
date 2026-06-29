@@ -21,6 +21,7 @@ export class AgentDiagramModifier implements DiagramModifier {
       'remove_element',
       'remove_transition',
       'add_state_body',
+      'add_intent_training_phrase',
       'add_rag_element'
     ].includes(action);
   }
@@ -43,6 +44,8 @@ export class AgentDiagramModifier implements DiagramModifier {
         return this.removeTransition(updatedModel, modification);
       case 'add_state_body':
         return this.addStateBody(updatedModel, modification);
+      case 'add_intent_training_phrase':
+        return this.addIntentTrainingPhraseAction(updatedModel, modification);
       case 'add_rag_element':
         return this.addRagElement(updatedModel, modification);
       case 'remove_element':
@@ -252,6 +255,27 @@ export class AgentDiagramModifier implements DiagramModifier {
   }
 
   /**
+   * Action wrapper for add_intent_training_phrase. The backend sends
+   * target.intentName + changes.trainingPhrase; previously this action had no
+   * handler, so the editor threw "Unsupported action" and applied nothing.
+   */
+  private addIntentTrainingPhraseAction(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const changes = modification.changes;
+    const target = modification.target;
+    const phrase = changes.trainingPhrase || changes.text || changes.name;
+    const intentName = target.intentName || target.stateName || target.name;
+    const intentId = target.intentId || (intentName ? this.findIntentIdByName(model, intentName) : null);
+    if (!intentId) {
+      throw new Error(`Could not find intent "${intentName || '?'}" to add a training phrase to.`);
+    }
+    if (!phrase) {
+      throw new Error('No training phrase text was provided.');
+    }
+    this.addIntentTrainingPhrase(model, intentId, phrase);
+    return model;
+  }
+
+  /**
    * Add state body (reply)
    */
   private addStateBody(model: BESSERModel, modification: ModelModification): BESSERModel {
@@ -319,8 +343,13 @@ export class AgentDiagramModifier implements DiagramModifier {
     const changes = modification.changes;
     const target = modification.target;
 
-    const sourceName = changes.source || target.stateName || target.intentName;
-    const targetName = changes.target || target.targetClass;
+    // The backend (AgentModificationTarget) emits sourceStateName/targetStateName
+    // for transitions, plus changes.intentName for an intent source. Earlier this
+    // only read changes.source/target/stateName, so every generated transition
+    // failed with "requires both source and target".
+    const sourceName = changes.source || target.sourceStateName || target.stateName
+      || target.intentName || changes.intentName;
+    const targetName = changes.target || target.targetStateName || target.targetClass;
 
     if (!sourceName || !targetName) {
       throw new Error('Transition requires both source and target (state or intent names).');
@@ -381,14 +410,16 @@ export class AgentDiagramModifier implements DiagramModifier {
   private removeTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { transitionId } = modification.target;
 
+    const sourceName = modification.changes.source || modification.target?.sourceStateName;
+    const targetName = modification.changes.target || modification.target?.targetStateName;
+
     if (transitionId && model.relationships?.[transitionId]) {
       delete model.relationships[transitionId];
-    } else if (modification.changes.source && modification.changes.target) {
-      // Find transition by source and target
-      const sourceName = modification.changes.source;
-      const targetName = modification.changes.target;
-      
-      const sourceId = this.findStateIdByName(model, sourceName) || 
+    } else if (sourceName && targetName) {
+      // Find transition by source and target (backend emits sourceStateName/
+      // targetStateName; previously only changes.source/target was read, so
+      // remove silently no-op'd while still reporting success).
+      const sourceId = this.findStateIdByName(model, sourceName) ||
                        this.findIntentIdByName(model, sourceName);
       const targetId = this.findStateIdByName(model, targetName);
 
