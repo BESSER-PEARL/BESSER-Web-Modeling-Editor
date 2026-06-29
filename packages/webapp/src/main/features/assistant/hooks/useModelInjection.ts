@@ -325,23 +325,48 @@ export function useModelInjection({
                 ? JSON.parse(JSON.stringify(currentModel))
                 : {};
               const appliedActions: string[] = [];
+              const failedActions: string[] = [];
+              // Apply each modification independently: a single bad sub-op
+              // (e.g. an unsupported action or a failed transition) must NOT
+              // discard the valid ones in the same batch. Commit what applies,
+              // skip + log what doesn't, and only fail if nothing applied.
               for (const mod of command.modifications) {
                 if (!mod || !mod.action) {
-                  throw new Error('modify_model contains a modification with no action');
+                  failedActions.push('(missing action)');
+                  continue;
                 }
                 if (!modifier.canHandle(mod.action)) {
-                  throw new Error(
-                    `Unsupported modification action '${mod.action}' for ${targetDiagramType}`,
+                  failedActions.push(mod.action);
+                  console.warn(
+                    `[modify_model] unsupported action '${mod.action}' for ${targetDiagramType} — skipping`,
+                  );
+                  continue;
+                }
+                try {
+                  modifiedModel = modifier.applyModification(
+                    modifiedModel,
+                    mod as ModelModification,
+                  );
+                  appliedActions.push(mod.action);
+                } catch (modErr) {
+                  failedActions.push(mod.action);
+                  console.warn(
+                    `[modify_model] action '${mod.action}' failed — skipping:`,
+                    modErr,
                   );
                 }
-                modifiedModel = modifier.applyModification(
-                  modifiedModel,
-                  mod as ModelModification,
-                );
-                appliedActions.push(mod.action);
               }
               if (appliedActions.length === 0) {
-                throw new Error('modify_model did not apply any modifications');
+                throw new Error(
+                  failedActions.length
+                    ? `Could not apply any of the requested changes (${failedActions.join(', ')}).`
+                    : 'modify_model did not apply any modifications',
+                );
+              }
+              if (failedActions.length > 0) {
+                console.warn(
+                  `[modify_model] applied ${appliedActions.length}, skipped ${failedActions.length}: ${failedActions.join(', ')}`,
+                );
               }
               newModel = modifiedModel;
             } else if (
