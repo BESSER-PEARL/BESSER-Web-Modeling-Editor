@@ -1048,6 +1048,11 @@ export function useAssistantLogic({
     setMessageMeta({});
     streaming.setProgressMessage('');
     streaming.setStreamingMessageId(null);
+    // Start a fresh backend conversation session too. The agent keys its
+    // conversation memory on the sessionId, so without this a "new chat" or a
+    // project switch would reuse the old memory — the agent then "remembers"
+    // a previous project and hallucinates from it.
+    assistantClient.resetSession();
   };
 
   /* ================================================================ */

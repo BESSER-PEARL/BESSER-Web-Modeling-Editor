@@ -325,7 +325,7 @@ export class AssistantClient {
   private readonly heartbeatMs = 15000;
 
   private readonly clientMode: AssistantClientMode;
-  private readonly sessionId: string;
+  private sessionId: string;
   private readonly contextProvider?: () => AssistantWorkspaceContext | undefined;
 
   private onMessageHandler: MessageHandler | null = null;
@@ -531,6 +531,24 @@ export class AssistantClient {
     this.onTypingHandler = null;
     this.onInjectionHandler = null;
     this.onActionHandler = null;
+  }
+
+  /**
+   * Start a fresh conversation session. The backend keys conversation memory
+   * on the payload `sessionId`, so reusing it across projects/chats leaks
+   * memory (the agent "remembers" a previous project). Regenerating the id
+   * here means subsequent messages start a clean agent memory. The WebSocket
+   * itself (keyed on the stable per-browser `user_id`) is left intact — only
+   * the sessionId carried in future payloads changes. Call on project switch
+   * and on "new chat".
+   */
+  resetSession(): void {
+    try {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {
+      // sessionStorage unavailable — fall through to a fresh in-memory id
+    }
+    this.sessionId = createSessionId();
   }
 
   get connected(): boolean {
