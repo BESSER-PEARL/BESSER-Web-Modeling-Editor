@@ -80,26 +80,72 @@ const setBaseSnapshot = (page: any, snapshot: PageSnapshot) => {
 // always equals "the active variant's CSS", so we can swap both atomically and
 // no component-id remapping is required.
 
-const getPageCssRules = (editor: Editor, page: any): any[] => {
-  const pageId = page?.getId?.();
-  if (!pageId) return [];
-  try {
-    return editor.Css.getAll().filter((rule: any) => {
+// Walk a live GrapesJS component and all of its descendants.
+const collectLiveComponents = (root: any): any[] => {
+  const out: any[] = [];
+  const walk = (c: any) => {
+    if (!c) return;
+    out.push(c);
+    const kids = c.components?.();
+    kids?.forEach?.((k: any) => walk(k));
+  };
+  walk(root);
+  return out;
+};
+
+// Resolve the CSS rules that style the page's CURRENT live content. Uses
+// GrapesJS's own component->rules resolver (getComponentRules) for every
+// component in the tree — reliable across id/class selectors and independent of
+// whether rules carry a pageId — plus any rules explicitly tagged with this
+// page's id. This is what makes per-variant CSS truly isolated: a pageId-only
+// or selector-string filter missed the unscoped Base rules, so personalized
+// styles leaked into Base.
+const getLivePageRules = (editor: Editor, page: any): any[] => {
+  const seen = new Set<any>();
+  const rules: any[] = [];
+  const main = page?.getMainComponent?.();
+  if (main) {
+    collectLiveComponents(main).forEach((comp: any) => {
+      let compRules: any[] = [];
       try {
-        return rule.toJSON().pageId === pageId;
+        compRules = editor.Css.getComponentRules(comp) || [];
       } catch {
-        return false;
+        compRules = [];
       }
+      compRules.forEach((r: any) => {
+        if (!seen.has(r)) {
+          seen.add(r);
+          rules.push(r);
+        }
+      });
     });
-  } catch {
-    return [];
   }
+  const pageId = page?.getId?.();
+  if (pageId) {
+    try {
+      editor.Css.getAll().forEach((r: any) => {
+        let json: any;
+        try {
+          json = r.toJSON();
+        } catch {
+          return;
+        }
+        if (json?.pageId === pageId && !seen.has(r)) {
+          seen.add(r);
+          rules.push(r);
+        }
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+  return rules;
 };
 
 const captureSnapshot = (editor: Editor, page: any): PageSnapshot => {
   const main = page?.getMainComponent?.();
   const components = main ? JSON.parse(JSON.stringify(main.components().toJSON())) : [];
-  const css = getPageCssRules(editor, page).map((rule: any) =>
+  const css = getLivePageRules(editor, page).map((rule: any) =>
     JSON.parse(JSON.stringify(rule.toJSON())),
   );
   return { components, css };
@@ -107,10 +153,12 @@ const captureSnapshot = (editor: Editor, page: any): PageSnapshot => {
 
 const applySnapshot = (editor: Editor, page: any, snapshot: PageSnapshot) => {
   const main = page?.getMainComponent?.();
-  // Drop the CSS rules belonging to whatever is currently mounted on this page.
-  getPageCssRules(editor, page).forEach((rule: any) => {
+  // Remove every rule styling the CURRENT (outgoing) content before swapping, so
+  // the incoming snapshot's rules can't merge into a stale rule and so the
+  // outgoing variant's styles don't linger on the next one (the Base leak).
+  getLivePageRules(editor, page).forEach((rule: any) => {
     try {
-      editor.Css.getAll().remove(rule);
+      editor.Css.remove(rule);
     } catch (err) {
       console.warn('[Personalization] Failed to remove CSS rule:', err);
     }
@@ -119,7 +167,8 @@ const applySnapshot = (editor: Editor, page: any, snapshot: PageSnapshot) => {
   if (main) {
     main.components().reset(snapshot?.components || []);
   }
-  // Bring in the incoming snapshot's CSS rules.
+  // Re-add the incoming snapshot's rules. Add per-rule (this reliably applies
+  // the styles); addCollection() dropped them in this GrapesJS build.
   (snapshot?.css || []).forEach((ruleJson: any) => {
     try {
       editor.Css.getAll().add(ruleJson);
@@ -664,16 +713,11 @@ function updatePagesList(editor: Editor) {
       const item = document.createElement('div');
       item.className = 'gjs-page-item' + (selected?.getId() === page.getId() ? ' selected' : '');
       
-      let variantLabel = 'Base';
-      if (activeVariantId && variants.length > 0) {
-        const activeVariant = variants.find(v => v.id === activeVariantId);
-        variantLabel = activeVariant?.profileName || 'Base';
-      }
-      
+      // Only the page name + route are shown here. Personalized variants stay
+      // accessible via the variant dropdown in the actions row.
       item.innerHTML = `
         <div class="gjs-page-info">
           <span class="gjs-page-name">${page.getName()}</span>
-          ${variants.length > 0 ? `<span class="gjs-page-profile">${variantLabel}${variants.length > 1 ? ` (+${variants.length - 1} more)` : ''}</span>` : ''}
           <span class="gjs-page-route">${pageRoute}</span>
         </div>
         <div class="gjs-page-actions">
@@ -1131,8 +1175,9 @@ function addPagesPanelCSS() {
     
     .gjs-page-item {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
       padding: 10px 12px;
       margin-bottom: 4px;
       background: #f9f9f9;
@@ -1200,17 +1245,16 @@ function addPagesPanelCSS() {
     }
     
     .gjs-page-actions {
-      display: flex;
+      display: none;
       flex-wrap: wrap;
       gap: 4px;
-      opacity: 0;
-      transition: opacity 0.2s;
       justify-content: flex-end;
+      align-items: center;
     }
-    
+
     .gjs-page-item:hover .gjs-page-actions,
     .gjs-page-item.selected .gjs-page-actions {
-      opacity: 1;
+      display: flex;
     }
     
     .gjs-page-btn {
