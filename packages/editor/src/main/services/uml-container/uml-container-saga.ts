@@ -26,6 +26,51 @@ function boundsOverlap(
   return a.x + 1 < b.x + b.width && a.x + a.width - 1 > b.x && a.y + 1 < b.y + b.height && a.y + a.height - 1 > b.y;
 }
 
+function collectRelationshipIdsNeedingRecalc(
+  elements: ModelState['elements'],
+  diagram: ModelState['diagram'],
+  ownerIds: string[],
+  elementIds: string[] = [],
+): string[] {
+  const ownerSet = new Set(ownerIds);
+  const elementSet = new Set(elementIds);
+  const relationshipIds: string[] = [];
+
+  const isElementWithinAffectedOwners = (elementId: string): boolean => {
+    let current = elements[elementId];
+    while (current) {
+      if (ownerSet.has(current.id)) {
+        return true;
+      }
+      if (!current.owner || current.owner === diagram.id) {
+        return ownerSet.has(diagram.id);
+      }
+      current = elements[current.owner];
+    }
+    return false;
+  };
+
+  for (const relId of diagram.ownedRelationships) {
+    const rel = elements[relId] as IUMLRelationship | undefined;
+    if (!rel || !UMLRelationship.isUMLRelationship(rel)) continue;
+
+    const sourceEl = elements[rel.source.element];
+    const targetEl = elements[rel.target.element];
+    if (!sourceEl || !targetEl) continue;
+
+    if (
+      elementSet.has(rel.source.element) ||
+      elementSet.has(rel.target.element) ||
+      isElementWithinAffectedOwners(rel.source.element) ||
+      isElementWithinAffectedOwners(rel.target.element)
+    ) {
+      relationshipIds.push(relId);
+    }
+  }
+
+  return relationshipIds;
+}
+
 function* recordBoundsOnStart(): SagaIterator {
   const startAction: MoveStartAction = yield take(MovableActionTypes.START);
   const { elements }: ModelState = yield select();
@@ -46,6 +91,7 @@ function* revertOnSiblingOverlap(): SagaIterator {
 
   const { elements, diagram }: ModelState = yield select();
   const ownersToRerender: string[] = [];
+  const revertedIds: string[] = [];
 
   for (const id of endAction.payload.ids) {
     const movedEl = elements[id];
@@ -63,6 +109,7 @@ function* revertOnSiblingOverlap(): SagaIterator {
 
     if (hasSiblingOverlap) {
       yield put(UMLElementCommonRepository.update(id, { bounds: origBounds }));
+      revertedIds.push(id);
       const owner = movedEl.owner || diagram.id;
       if (!ownersToRerender.includes(owner)) ownersToRerender.push(owner);
     }
@@ -76,10 +123,8 @@ function* revertOnSiblingOverlap(): SagaIterator {
   // were repositioned — render() alone does not update relationship geometry.
   if (ownersToRerender.length > 0) {
     const { elements: afterElements, diagram: afterDiagram }: ModelState = yield select();
-    for (const relId of afterDiagram.ownedRelationships) {
-      const rel = afterElements[relId] as IUMLRelationship | undefined;
-      if (!rel || !UMLRelationship.isUMLRelationship(rel)) continue;
-      if (!afterElements[rel.source.element] || !afterElements[rel.target.element]) continue;
+    const relIdsToRecalc = collectRelationshipIdsNeedingRecalc(afterElements, afterDiagram, ownersToRerender, revertedIds);
+    for (const relId of relIdsToRecalc) {
       yield call(recalc, relId);
     }
   }
@@ -123,10 +168,8 @@ function* remove(): SagaIterator {
   // correct flow positions on every deletion.
   if (owners.length > 0) {
     const { elements: afterElements, diagram: afterDiagram }: ModelState = yield select();
-    for (const relId of afterDiagram.ownedRelationships) {
-      const rel = afterElements[relId] as IUMLRelationship | undefined;
-      if (!rel || !UMLRelationship.isUMLRelationship(rel)) continue;
-      if (!afterElements[rel.source.element] || !afterElements[rel.target.element]) continue;
+    const relIdsToRecalc = collectRelationshipIdsNeedingRecalc(afterElements, afterDiagram, owners);
+    for (const relId of relIdsToRecalc) {
       yield call(recalc, relId);
     }
   }

@@ -3,15 +3,11 @@ import { connect } from 'react-redux';
 import { compose } from 'redux';
 import { Button } from '../../../components/controls/button/button';
 import { Divider } from '../../../components/controls/divider/divider';
-import { TrashIcon } from '../../../components/controls/icon/trash';
-import { Textfield } from '../../../components/controls/textfield/textfield';
 import { I18nContext } from '../../../components/i18n/i18n-context';
 import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
-import { styled } from '../../../components/theme/styles';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
-import { ColorButton } from '../../../components/controls/color-button/color-button';
-import { StylePane } from '../../../components/style-pane/style-pane';
+import { BpmnPopupHeader } from './bpmn-popup-header';
 
 export interface ExpandableElement {
   id: string;
@@ -45,45 +41,13 @@ const enhance = compose<ComponentClass<OwnProps>>(
   }),
 );
 
-const Flex = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-`;
-
-type State = { colorOpen: boolean };
-
-class BPMNExpandableUpdateComponent extends Component<Props, State> {
-  state = { colorOpen: false };
-
-  private toggleColor = () => {
-    this.setState((state) => ({ colorOpen: !state.colorOpen }));
-  };
-
+class BPMNExpandableUpdateComponent extends Component<Props> {
   render() {
     const { element, labelKey, translate } = this.props;
     const label = translate(labelKey);
     return (
       <div>
-        <section>
-          <Flex>
-            <Textfield value={element.name} onChange={this.rename(element.id)} autoFocus />
-            <ColorButton onClick={this.toggleColor} />
-            <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
-              <TrashIcon />
-            </Button>
-          </Flex>
-          <section>
-            <StylePane
-              open={this.state.colorOpen}
-              element={element}
-              onColorChange={this.props.update}
-              lineColor
-              textColor
-              fillColor
-            />
-          </section>
-        </section>
+        <BpmnPopupHeader element={element} update={this.props.update} delete={this.props.delete} />
         <section>
           <Divider />
           <Button block color={element.isExpanded ? 'secondary' : 'primary'} onClick={this.toggleExpanded(element.id)}>
@@ -96,16 +60,8 @@ class BPMNExpandableUpdateComponent extends Component<Props, State> {
     );
   }
 
-  private rename = (id: string) => (value: string) => {
-    this.props.update(id, { name: value });
-  };
-
   private toggleExpanded = (id: string) => () => {
     this.props.update(id, { isExpanded: !this.props.element.isExpanded });
-  };
-
-  private delete = (id: string) => () => {
-    this.props.delete(id);
   };
 }
 

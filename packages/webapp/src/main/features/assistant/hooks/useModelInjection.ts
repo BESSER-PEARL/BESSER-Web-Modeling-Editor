@@ -29,6 +29,40 @@ import { stopTimer, startTimer } from './useStreamingResponse';
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
+type ModelBounds = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  centerX: number;
+  centerY: number;
+  width: number;
+  height: number;
+};
+
+function getModelBounds(model: any): ModelBounds | null {
+  const elements = Object.values((model?.elements || {}) as Record<string, any>);
+  if (!elements.length) return null;
+
+  const xs = elements.flatMap((e: any) => [e.bounds?.x ?? 0, (e.bounds?.x ?? 0) + (e.bounds?.width ?? 0)]);
+  const ys = elements.flatMap((e: any) => [e.bounds?.y ?? 0, (e.bounds?.y ?? 0) + (e.bounds?.height ?? 0)]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}
+
 /**
  * Scroll the editor canvas so the content bounding-box centre is visible.
  * The editor's inner SVG places model coordinate (0,0) at exactly
@@ -41,15 +75,9 @@ function centerEditorViewport(model: any, delayMs = 200): void {
   setTimeout(() => {
     const sc = document.querySelector('[data-editor-scroll="1"]') as HTMLElement | null;
     if (!sc) return;
-    const elements = Object.values((model?.elements || {}) as Record<string, any>);
-    let cx = 0;
-    let cy = 0;
-    if (elements.length) {
-      const xs = elements.flatMap((e: any) => [e.bounds?.x ?? 0, (e.bounds?.x ?? 0) + (e.bounds?.width ?? 0)]);
-      const ys = elements.flatMap((e: any) => [e.bounds?.y ?? 0, (e.bounds?.y ?? 0) + (e.bounds?.height ?? 0)]);
-      cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-      cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-    }
+    const bounds = getModelBounds(model);
+    const cx = bounds?.centerX ?? 0;
+    const cy = bounds?.centerY ?? 0;
     sc.scrollLeft = Math.max(0, (sc.scrollWidth - sc.clientWidth) / 2 + cx);
     sc.scrollTop = Math.max(0, (sc.scrollHeight - sc.clientHeight) / 2 + cy);
   }, delayMs);
@@ -57,6 +85,32 @@ function centerEditorViewport(model: any, delayMs = 200): void {
 
 const UML_DIAGRAM_TYPES = new Set(['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'BPMN']);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
+
+function shouldCenterViewportAfterInjection(command: InjectionCommand, previousModel: any, nextModel: any): boolean {
+  if (command.action === 'inject_complete_system') {
+    return true;
+  }
+
+  const previousBounds = getModelBounds(previousModel);
+  const nextBounds = getModelBounds(nextModel);
+
+  if (!previousBounds && nextBounds) {
+    return true;
+  }
+
+  if (!previousBounds || !nextBounds) {
+    return false;
+  }
+
+  const centerShiftX = Math.abs(nextBounds.centerX - previousBounds.centerX);
+  const centerShiftY = Math.abs(nextBounds.centerY - previousBounds.centerY);
+  const widthGrowth = nextBounds.width - previousBounds.width;
+  const heightGrowth = nextBounds.height - previousBounds.height;
+
+  // Re-center when the assistant change effectively reframes the whole diagram,
+  // not when it is just a small local tweak.
+  return centerShiftX > 240 || centerShiftY > 180 || widthGrowth > 320 || heightGrowth > 240;
+}
 
 const createMessageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -398,7 +452,9 @@ export function useModelInjection({
             dispatch(bumpEditorRevision());
           }
           applied = true;
-          centerEditorViewport(newModel);
+          if (shouldCenterViewportAfterInjection(command, currentModel, newModel)) {
+            centerEditorViewport(newModel);
+          }
         }
       }
 
