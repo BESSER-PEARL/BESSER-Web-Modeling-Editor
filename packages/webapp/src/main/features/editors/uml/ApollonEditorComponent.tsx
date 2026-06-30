@@ -146,17 +146,20 @@ export const ApollonEditorComponent: React.FC = () => {
 
       // If the assistant just injected a freshly generated class diagram, let
       // ELK arrange it now that this new editor instance has the model loaded.
-      // One frame lets the model settle into the store before layout; guards
-      // bail if the editor was swapped/destroyed in the meantime.
+      // Setting `model` above triggers recreateEditor(), which rebuilds the
+      // store + auto-layout saga and re-arms nextRender; we MUST await that
+      // before dispatching autoLayout, otherwise the layout action fires before
+      // the saga is listening and is silently dropped. Guards bail if the
+      // editor was swapped/destroyed in the meantime.
       if (consumeAutoLayoutRequest()) {
-        requestAnimationFrame(() => {
-          if (runId !== setupRunRef.current || editorRef.current !== nextEditor) return;
-          try {
+        try {
+          await nextEditor.nextRender;
+          if (runId === setupRunRef.current && editorRef.current === nextEditor) {
             nextEditor.autoLayout();
-          } catch (error) {
-            console.warn('[ApollonEditorComponent] auto-layout failed:', error);
           }
-        });
+        } catch (error) {
+          console.warn('[ApollonEditorComponent] auto-layout failed:', error);
+        }
       }
     };
 
