@@ -16,6 +16,7 @@ import type {
   TypingHandler,
 } from './assistant-types';
 import { ProtocolError } from './errors';
+import { readAssistantApiKey } from './byokStorage';
 
 interface FileAttachmentPayload {
   filename: string;
@@ -385,6 +386,11 @@ export class AssistantClient {
           }
           this.emitConnection(true);
           this.startHeartbeat();
+          // Re-arm the user's BYOK key on a fresh socket so the agent's
+          // session variable is restored after a reconnect / reclaimed slot.
+          // Sent BEFORE draining the queue so any queued user message is
+          // processed with the key already in place.
+          this.rearmUserApiKey();
           this.processMessageQueue();
           this.connectingPromise = null;
           resolve();
@@ -520,6 +526,62 @@ export class AssistantClient {
     } catch (error) {
       console.error('Failed to send frontend event', error);
       return 'error';
+    }
+  }
+
+  /**
+   * Send the user's bring-your-own-key (BYOK) API key to the agent as a
+   * `user_set_variable` message — the same lightweight channel the heartbeat
+   * and voice-context use (an action the agent already handles, no LLM
+   * trigger). The agent reads session variables `user_api_key`,
+   * `user_api_provider`, and `user_api_model` to route the conversation
+   * through the user's own key.
+   *
+   * Pass an empty `apiKey` to CLEAR it on the agent side (sends just
+   * `{ user_api_key: '' }`).
+   *
+   * Returns 'sent' when delivered, 'error' when the socket is down — in which
+   * case the key still lives in sessionStorage, so the next (re)connect
+   * re-arms it automatically via `rearmUserApiKey()`. The key is NEVER logged.
+   */
+  setUserApiKey(params: { apiKey: string; provider?: string; model?: string }): SendStatus {
+    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return 'error';
+    }
+    try {
+      const message: Record<string, string> = { user_api_key: params.apiKey };
+      // Only attach provider/model when actually setting a key — a clear
+      // sends the bare `{ user_api_key: '' }`.
+      if (params.apiKey) {
+        if (params.provider) message.user_api_provider = params.provider;
+        if (params.model) message.user_api_model = params.model;
+      }
+      this.ws.send(
+        JSON.stringify({
+          action: 'user_set_variable',
+          user_id: this.sessionId,
+          message,
+        }),
+      );
+      return 'sent';
+    } catch {
+      // Never log the key — even on failure.
+      return 'error';
+    }
+  }
+
+  /**
+   * Re-send the stored BYOK key (if any) right after a (re)connect so the
+   * agent's session variable survives a fresh socket / reclaimed reply slot.
+   * Best-effort and silent — never logs the key.
+   */
+  private rearmUserApiKey(): void {
+    try {
+      const stored = readAssistantApiKey();
+      if (!stored) return;
+      this.setUserApiKey({ apiKey: stored.apiKey, provider: stored.provider, model: stored.model });
+    } catch {
+      // best-effort — a failed re-arm just means the user re-saves the key
     }
   }
 

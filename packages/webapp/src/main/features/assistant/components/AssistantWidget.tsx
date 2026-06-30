@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, Settings, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, KeyRound, Settings, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -26,6 +26,7 @@ import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
+import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
 import { Z_INDEX } from '../../../shared/constants/z-index';
@@ -79,6 +80,7 @@ interface AssistantWidgetProps {
 export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGenerate }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [byokOpen, setByokOpen] = useState(false);
 
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -125,6 +127,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     sendVoiceMessage,
     stopGenerating,
     reportIssue,
+    assistantClient,
   } = useAssistantLogic({
     isActive: isVisible,
     switchDiagram,
@@ -227,6 +230,17 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 variant="ghost"
                 size="icon"
                 className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                onClick={() => setByokOpen(true)}
+                title="Use your own API key for the assistant"
+                aria-label="Use your own API key"
+              >
+                <KeyRound className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => dispatch(openByokDialog(null))}
                 title="Vibe-Driven Generator settings — change API key, provider, or model"
                 aria-label="Vibe-Driven Generator settings"
@@ -314,6 +328,21 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             {/* Quick actions after last assistant message */}
             {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
               <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+            )}
+
+            {/* Limit reached / auth error → offer the user their own key */}
+            {lastMeta?.needsApiKey && (
+              <div className="mt-2 flex justify-start">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-lg bg-brand text-brand-foreground hover:bg-brand-dark"
+                  onClick={() => setByokOpen(true)}
+                >
+                  <KeyRound className="size-3.5" />
+                  Add your API key
+                </Button>
+              </div>
             )}
           </div>
           {/* Scroll-to-bottom — shown while the user has scrolled up;
@@ -417,6 +446,9 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Bring-your-own-key dialog ── */}
+      <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
     </>
   );
 };

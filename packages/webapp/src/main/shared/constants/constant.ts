@@ -91,6 +91,17 @@ export const sessionStorageSmartGenMaxCostUsd = localStoragePrefix + 'smart_gen_
 export const sessionStorageSmartGenMaxRuntimeSeconds =
   localStoragePrefix + 'smart_gen_max_runtime_seconds';
 
+// AI Assistant — BYOK session-storage keys.
+// The raw API key is stored ONLY in sessionStorage (tab-lifetime, cleared on
+// tab close). It is never written to localStorage or Redux state. Kept
+// independent from the Smart Generator key above so the two features don't
+// share secrets (feature isolation).
+export const sessionStorageAssistantApiKey = localStoragePrefix + 'assistant_api_key';
+export const sessionStorageAssistantProvider = localStoragePrefix + 'assistant_provider';
+// Optional model override alongside the key. Empty / missing means "use the
+// backend default for this provider".
+export const sessionStorageAssistantModel = localStoragePrefix + 'assistant_model';
+
 // Smart Generator backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/smart-generate`;
 export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/smart-gen/config`;

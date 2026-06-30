@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings, Flag } from 'lucide-react';
+import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings, Flag, KeyRound } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
+import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
 import { useAppDispatch } from '../../../app/store/hooks';
@@ -134,6 +135,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   const dispatch = useAppDispatch();
 
+  /* ---- BYOK dialog ---- */
+
+  const [byokOpen, setByokOpen] = useState(false);
+
   /* ---- Drag gesture state ---- */
 
   const drawerRef = useRef<HTMLDivElement | null>(null);
@@ -172,6 +177,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     stopGenerating,
     clearConversation,
     reportIssue,
+    assistantClient,
   } = useAssistantLogic({
     isActive: open,
     switchDiagram,
@@ -657,6 +663,21 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
                       <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
                     )}
+
+                    {/* Limit reached / auth error → offer the user their own key */}
+                    {lastMeta?.needsApiKey && (
+                      <div className="mt-3 flex justify-start">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-8 gap-1.5 rounded-lg bg-brand text-brand-foreground hover:bg-brand-dark"
+                          onClick={() => setByokOpen(true)}
+                        >
+                          <KeyRound className="size-3.5" />
+                          Add your API key
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {/* Scroll-to-bottom — shown while the user has scrolled up;
@@ -683,6 +704,16 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
+                        onClick={() => setByokOpen(true)}
+                        title="Use your own API key for the assistant"
+                      >
+                        <KeyRound className="size-3.5" />
+                        API key
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -756,6 +787,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
           </div>
         </div>
       </section>
+
+      {/* ── Bring-your-own-key dialog ── */}
+      <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
     </>
   );
 };

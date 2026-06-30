@@ -75,6 +75,12 @@ export interface MessageMeta {
   badge?: 'injection' | 'error' | 'generation';
   /** Human-readable badge label, e.g. "Applied to ClassDiagram". */
   badgeLabel?: string;
+  /**
+   * True when the agent reported a rate-limit / auth error and the user can
+   * recover by supplying their own API key. Surfaces render an inline
+   * "Add your API key" button that opens the AssistantByokDialog.
+   */
+  needsApiKey?: boolean;
 }
 
 export interface UseAssistantLogicOptions {
@@ -693,6 +699,12 @@ export function useAssistantLogic({
       });
 
       const meta: MessageMeta = { badge: 'error', badgeLabel: errorCode ? `Error: ${errorCode}` : 'Error' };
+      // A rate-limit or auth error is recoverable by the user supplying their
+      // own API key — flag it so the surface shows an inline "Add your API
+      // key" button that opens the AssistantByokDialog.
+      if (errorCode === 'rate_limit' || errorCode === 'auth_error') {
+        meta.needsApiKey = true;
+      }
       if (retryable && suggestedRecovery) {
         meta.suggestedActions = [{ label: 'Try again', prompt: suggestedRecovery }];
       }
