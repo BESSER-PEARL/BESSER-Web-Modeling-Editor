@@ -10,6 +10,7 @@ import { ObjectDiagramModifier } from './ObjectDiagramModifier';
 import { StateMachineModifier } from './StateMachineModifier';
 import { QuantumCircuitModifier } from './QuantumCircuitModifier';
 import { GUIDiagramModifier } from './GUIDiagramModifier';
+import { UserDiagramModifier } from './UserDiagramModifier';
 
 export class ModifierFactory {
   private static modifiers: Map<DiagramType, DiagramModifier> = new Map();
@@ -22,6 +23,7 @@ export class ModifierFactory {
       this.modifiers.set('StateMachineDiagram', new StateMachineModifier());
       this.modifiers.set('QuantumCircuitDiagram', new QuantumCircuitModifier());
       this.modifiers.set('GUINoCodeDiagram', new GUIDiagramModifier());
+      this.modifiers.set('UserDiagram', new UserDiagramModifier());
     }
   }
 

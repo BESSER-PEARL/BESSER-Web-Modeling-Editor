@@ -19,3 +19,4 @@ export { ObjectDiagramModifier } from './ObjectDiagramModifier';
 export { StateMachineModifier } from './StateMachineModifier';
 export { QuantumCircuitModifier } from './QuantumCircuitModifier';
 export { GUIDiagramModifier } from './GUIDiagramModifier';
+export { UserDiagramModifier } from './UserDiagramModifier';

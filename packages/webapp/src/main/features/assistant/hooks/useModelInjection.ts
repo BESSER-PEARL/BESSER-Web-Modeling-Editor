@@ -34,6 +34,7 @@ const UML_DIAGRAM_TYPES = new Set([
   'ObjectDiagram',
   'StateMachineDiagram',
   'AgentDiagram',
+  'UserDiagram',
 ]);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
 
@@ -266,6 +267,7 @@ export function useModelInjection({
                 command.systemSpec.classes ??
                   command.systemSpec.states ??
                   command.systemSpec.objects ??
+                  command.systemSpec.profiles ??
                   command.systemSpec.intents,
               )
             ) {
