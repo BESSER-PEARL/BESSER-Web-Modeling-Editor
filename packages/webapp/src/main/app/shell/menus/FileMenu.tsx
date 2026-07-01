@@ -60,11 +60,6 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         {/* <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>
           Import Single Diagram to Project
         </DropdownMenuItem> */}
-        {activeDiagramType === 'BPMN' && (
-          <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
-            Import BPMN Diagram (.bpmn / .xml)
-          </DropdownMenuItem>
-        )}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger disabled={!hasProject}>Import Class Diagram from</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
@@ -72,6 +67,11 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             <DropdownMenuItem onClick={onOpenAssistantImportKg}>KG to Project</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        {activeDiagramType === 'BPMN' && (
+          <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
+            Import BPMN Diagram (.bpmn / .xml)
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
           Preview Project
         </DropdownMenuItem>
