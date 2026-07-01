@@ -8,6 +8,7 @@ import { UMLDiagramSaga } from './uml-diagram/uml-diagram-saga';
 import { UMLElementSaga } from './uml-element/uml-element-saga';
 import { UMLRelationshipSaga } from './uml-relationship/uml-relationship-saga';
 import { PatchLayouter } from './patcher/patcher-saga';
+import { BPMNFlowDefaultSaga } from '../packages/bpmn/bpmn-flow/bpmn-flow-default-saga';
 
 export type SagaContext = {
   layer: ILayer | null;
@@ -22,5 +23,6 @@ export function* saga(): SagaIterator {
     UMLRelationshipSaga,
     UMLDiagramSaga,
     PatchLayouter,
+    BPMNFlowDefaultSaga,
   ]);
 }
