@@ -13,7 +13,7 @@ export type BPMNEndEventType = 'default' | 'message' | 'escalation' | 'error' | 
 
 export class BPMNEndEvent extends UMLContainer {
   static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
-  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false };
+  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false, droppable: false };
   static defaultEventType: BPMNEndEventType = 'default';
 
   type: UMLElementType = BPMNElementType.BPMNEndEvent;

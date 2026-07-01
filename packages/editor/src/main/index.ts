@@ -1,9 +1,9 @@
 /**
  * Main entry point for the BESSER Web Modeling Editor package.
- * 
+ *
  * This file serves as a "barrel export" that creates a clean, well-organized public API
  * by selectively re-exporting functionality from various internal modules. The goal is to:
- * 
+ *
  * - Provide a single, convenient entry point for package consumers
  * - Expose only the necessary public API while keeping internal implementation details private
  * - Maintain type safety through TypeScript type exports
@@ -33,6 +33,11 @@ export * from './services/diagram-bridge';
 // Export the settings service
 // Provides configuration management for standalone applications
 export * from './services/settings/settings-service';
+
+// Export BPMN flow semantics + validation (consumed by the webapp's BPMN
+// import / export + the Phase C vitest coverage).
+export * from './packages/bpmn/bpmn-flow/bpmn-flow-semantics';
+export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
 
 // Export the multiplicity helpers used by the ER-notation rendering
 // (parseMultiplicity / toERCardinality). Pure functions, safe to import

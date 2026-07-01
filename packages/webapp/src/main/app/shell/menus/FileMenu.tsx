@@ -12,14 +12,17 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { SupportedDiagramType } from '../../../shared/types/project';
 
 interface FileMenuProps {
   outlineButtonClass: string;
   hasProject: boolean;
+  activeDiagramType: SupportedDiagramType;
   onOpenProjectHub: () => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onImportSingleDiagram: () => void;
+  onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
   onOpenProjectPreview: () => void;
@@ -28,10 +31,12 @@ interface FileMenuProps {
 export const FileMenu: React.FC<FileMenuProps> = ({
   outlineButtonClass,
   hasProject,
+  activeDiagramType,
   onOpenProjectHub,
   onOpenTemplateDialog,
   onExportProject,
   onImportSingleDiagram,
+  onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onOpenProjectPreview,
@@ -62,6 +67,11 @@ export const FileMenu: React.FC<FileMenuProps> = ({
             <DropdownMenuItem onClick={onOpenAssistantImportKg}>KG to Project</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        {activeDiagramType === 'BPMN' && (
+          <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
+            Import BPMN Diagram (.bpmn / .xml)
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
           Preview Project
         </DropdownMenuItem>
