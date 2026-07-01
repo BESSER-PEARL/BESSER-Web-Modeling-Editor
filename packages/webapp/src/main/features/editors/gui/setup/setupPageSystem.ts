@@ -1048,7 +1048,7 @@ function setupPageCommands(editor: Editor) {
     run() {
       const name = prompt('Enter page name:');
       if (!name?.trim() || !editor.Pages) return;
-      
+
       const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
       const page = editor.Pages.add({ id, name: name.trim() });
       if (page) {
@@ -1056,6 +1056,22 @@ function setupPageCommands(editor: Editor) {
         updatePagesList(editor);
       }
     }
+  });
+
+  // Flush the live canvas of the currently-selected page into its active
+  // base/variant snapshot. Used before web-app generation so the just-edited
+  // page is captured into besserBaseSnapshot/besserPageVariants (which are what
+  // per-version generation reads) — the live canvas holds edits that haven't
+  // been written back to the active snapshot until a variant switch.
+  editor.Commands.add('personalization:flush-active', {
+    run() {
+      try {
+        const page = editor.Pages?.getSelected();
+        if (page) saveActiveLive(editor, page);
+      } catch (err) {
+        console.warn('[Personalization] flush-active failed:', err);
+      }
+    },
   });
 }
 

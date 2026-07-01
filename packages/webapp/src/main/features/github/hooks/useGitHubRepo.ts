@@ -5,6 +5,8 @@ import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
 import type { BesserProject } from '../../../shared/types/project';
+import { isGrapesJSProjectData } from '../../../shared/types/project';
+import { buildVersionGuiModel, collectVariantProfiles } from '../../../shared/utils/buildWebAppVersions';
 
 export type DeploymentTarget = 'webapp' | 'agent';
 type BackendDeploymentTarget = 'webapp' | 'chatbot';
@@ -17,6 +19,30 @@ const fromBackendDeploymentTarget = (target: unknown): DeploymentTarget | undefi
   if (target === 'chatbot') return 'agent';
   if (target === 'webapp') return 'webapp';
   return undefined;
+};
+
+/**
+ * Deploy always ships the BASE web app — personalized page variants are a
+ * design-time convenience and must never be what gets deployed. The stored GUI
+ * model's page content reflects whichever variant was last *active* in the
+ * editor, so we resolve the active GUINoCodeDiagram to its base version before
+ * building the deploy payload. No-ops when the GUI has no variants.
+ */
+const forceBaseWebAppGuiModel = (project: BesserProject): BesserProject => {
+  const guiDiagrams = project.diagrams?.GUINoCodeDiagram;
+  if (!Array.isArray(guiDiagrams) || guiDiagrams.length === 0) return project;
+
+  const idx = project.currentDiagramIndices?.GUINoCodeDiagram ?? 0;
+  const target = guiDiagrams[idx];
+  if (!target || !isGrapesJSProjectData(target.model)) return project;
+  if (collectVariantProfiles(target.model).length === 0) return project;
+
+  const nextGui = [...guiDiagrams];
+  nextGui[idx] = { ...target, model: buildVersionGuiModel(target.model, null) };
+  return {
+    ...project,
+    diagrams: { ...project.diagrams, GUINoCodeDiagram: nextGui },
+  };
 };
 
 export interface GitHubDeploymentUrls {
@@ -205,8 +231,16 @@ export const useGitHubRepo = () => {
           includePersonalization: false,
         });
 
+        // For a web app deploy, generate from the BASE version only — never a
+        // personalized page variant. The bundled ``projectExport`` above keeps
+        // the original model (variants intact) so re-import restores them.
+        const isWebappDeploy = (options.deploymentTarget ?? 'webapp') === 'webapp';
+        const projectForGeneration = isWebappDeploy
+          ? forceBaseWebAppGuiModel(projectForBackend)
+          : projectForBackend;
+
         const requestBody = {
-          ...projectForBackend,
+          ...projectForGeneration,
           name: normalizeProjectName(projectData?.name || 'project'),
           settings: {
             ...((projectData as { settings?: Record<string, unknown> }).settings ?? {}),
