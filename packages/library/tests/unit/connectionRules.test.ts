@@ -126,6 +126,32 @@ describe("objectLinkConnectionRule", () => {
   })
 })
 
+describe("objectLinkConnectionRule — UserModelName parity (gap 3)", () => {
+  const userModelNode = (id: string, classId?: string) => ({
+    id,
+    type: "UserModelName",
+    data: classId ? { name: id, classId } : { name: id },
+  })
+
+  it("allows linking a UserModelName instance whose class shares an association", () => {
+    const result = objectLinkConnectionRule({
+      nodes: [],
+      sourceNode: obj("alice", "cls-person"),
+      targetNode: userModelNode("rexUser", "cls-dog"),
+    })
+    expect(result).toBe(true)
+  })
+
+  it("vetoes linking a UserModelName instance whose class shares no association", () => {
+    const result = objectLinkConnectionRule({
+      nodes: [],
+      sourceNode: obj("whiskers", "cls-cat"),
+      targetNode: userModelNode("rexUser", "cls-dog"),
+    })
+    expect(result).toBe(false)
+  })
+})
+
 describe("canConnectEndpoints consults the object-diagram rules", () => {
   const nodes = [
     obj("alice", "cls-person"),

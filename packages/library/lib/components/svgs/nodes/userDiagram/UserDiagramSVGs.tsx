@@ -18,6 +18,7 @@ import {
   getUserMetaModelClasses,
   type UserMetaModelClass,
 } from "@/services/userMetaModel"
+import { diagramBridge } from "@/services/diagramBridge"
 
 /**
  * Full v3-parity rewrite of the UserDiagram SVGs.
@@ -26,8 +27,12 @@ import {
  *
  *  1. `UserModelNameSVG` — the canvas-side SVG used by `UserModelName.tsx`.
  *     Renders a v3-`UMLUserModelName`-shaped node: underlined header
- *     showing `name : className`, then the attribute rows below.
- *     Visibility symbols are NOT rendered (unlike Class rows).
+ *     showing the resolved linked-class name (see
+ *     `resolveUserModelHeaderLabel`), then the attribute rows below.
+ *     Visibility symbols are NOT rendered (unlike Class rows). The
+ *     icon/table split is derived live from the global `showIconView`
+ *     setting — `data.view` is no longer consulted for rendering (kept
+ *     only for round-trip, see `versionConverter.ts`).
  *
  *  2. `UserModelIconSVG` — small icon preview (legacy palette entry).
  *
@@ -53,9 +58,13 @@ interface UserModelNameSVGData {
   textColor?: string
   attributes: ClassNodeElement[]
   /**
-   * Per-node render mode. `"icon"` (default) renders
-   * the person/class icon — mirrors the v3 preferred UserDiagram view.
-   * `"attributes"` shows the underlined header + attribute table.
+   * Legacy per-node render mode. NOT consulted by
+   * `UserModelNameSVG` for the render decision — v3 has no per-instance
+   * override for UserModelName; the icon/table split is derived purely
+   * from the global `showIconView` setting (see
+   * `uml-user-model-name.ts:161-180`, `user-model-preview.ts:12-18`).
+   * Retained on the type only so `versionConverter.ts` can round-trip
+   * the field through v3<->v4 JSON.
    */
   view?: "icon" | "attributes"
 }
@@ -98,6 +107,34 @@ function resolveIconBody(data: UserModelNameSVGData): string {
 }
 
 /**
+ * Resolve the canvas header label for a `UserModelName` node — v3
+ * parity with `uml-object-name-component.tsx`'s `isUserModelElement`
+ * branch: `className || element.className || element.name`.
+ *
+ * Unlike `resolveObjectHeaderLabel` (plain ObjectName instances render
+ * `alice : Person`), a UserModelName header shows ONLY the resolved
+ * class label — the instance name is the last-resort fallback, not a
+ * prefix. The class name resolves live from the diagram bridge (so a
+ * class rename in the sibling ClassDiagram is reflected on next
+ * render), falling back to the cached `data.className`, then `data.name`.
+ */
+export function resolveUserModelHeaderLabel(data: {
+  name: string
+  classId?: string
+  className?: string
+}): string {
+  let resolvedClassName: string | undefined
+  if (data.classId) {
+    try {
+      resolvedClassName = diagramBridge.getClassById(data.classId)?.name
+    } catch {
+      resolvedClassName = undefined
+    }
+  }
+  return resolvedClassName || data.className || data.name
+}
+
+/**
  * The canvas-side SVG. Built from primitives directly (no ObjectNameSVG
  * coupling) so the user-model visual is owned by this module.
  */
@@ -110,7 +147,7 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   svgAttributes,
   showAssessmentResults = false,
 }) => {
-  const { name, className, attributes } = data
+  const { attributes } = data
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
   const padding = LAYOUT.DEFAULT_PADDING
@@ -129,19 +166,20 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
-  // Per-node `data.view` selects between the icon
-  // body (default — mirrors the v3 preferred preview where a UserDiagram
-  // card shows a person/class glyph) and the v3 "normal" attribute
-  // table. Unset → `"icon"`. The legacy global `showIconView` toggle is
-  // still read by other diagrams; on the user diagram the per-node
-  // setting wins so v4-authored fixtures behave deterministically.
-  // Touch the settings store once so call sites that flipped it before
-  // Don't accidentally bring down the subscription.
-  useSettingsStore((s) => s.showIconView)
-  // v3 parity: UserDiagram nodes always render as icon, header is just
-  // the instance name (no `: className` suffix).
-  const iconViewActive = true
-  const headerLabel = name
+  // v3 parity: the icon/table split is decided purely by the global
+  // `showIconView` setting (`uml-user-model-name.ts:162-180`;
+  // `composeUserModelPreview` in `user-model-preview.ts:16-18`) —
+  // default `false` (table view). `data.view` is NOT consulted: v3 has
+  // no per-instance override for UserModelName. Unlike ObjectName, no
+  // `hasIcon` gate is needed here: `resolveIconBody` below always
+  // resolves to a renderable body (direct icon -> linked meta-class icon
+  // -> hardcoded person-glyph fallback), so there is no blank-icon-box
+  // case to guard against.
+  const showIconView = useSettingsStore((s) => s.showIconView)
+  const iconViewActive = showIconView
+  // v3 parity: header shows the resolved class name, not the instance
+  // name — see `resolveUserModelHeaderLabel`.
+  const headerLabel = resolveUserModelHeaderLabel(data)
   const iconBody = resolveIconBody(data)
 
   return (
@@ -162,8 +200,8 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
           stroke={strokeColor}
         />
 
-        {/* Header band (white fill, underlined name). v3 visual:
-            `:className` rendered alongside the instance name. */}
+        {/* Header band (white fill, underlined resolved class name — see
+            `resolveUserModelHeaderLabel`). */}
         <rect
           x={LAYOUT.LINE_WIDTH / 2}
           y={LAYOUT.LINE_WIDTH / 2}

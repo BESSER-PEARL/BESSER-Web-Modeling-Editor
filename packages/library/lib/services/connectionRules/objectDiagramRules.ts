@@ -1,11 +1,13 @@
 /**
- * ObjectDiagram connection rules — v3 `canElementConnect` parity
- * (`v3 source: components/uml-element/connectable/connectable.tsx`).
+ * ObjectDiagram / UserDiagram connection rules — v3 `canElementConnect`
+ * parity (`v3 source: components/uml-element/connectable/
+ * connectable.tsx:523-568`).
  *
  * v3 suppressed the connect-target highlight (and thereby the
- * connection) when the hovered element was a **class-linked object
- * instance** whose class shares no association with the dragged-from
- * instance's class:
+ * connection) when the hovered element was a **class-linked instance**
+ * whose class shares no association with the dragged-from instance's
+ * class. `canElementConnect` gates on `"classId" in element` generically
+ * — it has NO type allowlist:
  *
  *   - target has `classId`:
  *       · source has no `classId`            → reject,
@@ -18,10 +20,14 @@
  * hierarchies, so an association declared on a parent class allows
  * connecting instances of its subclasses (v3 behaviour).
  *
- * Scoped to `objectName` endpoints: only ObjectDiagram instances carry
- * this rule. Other classId-bearing nodes (StateObjectNode,
- * UserModelName) link classes for different semantics and are not
- * association-constrained here.
+ * Scoped to `objectName` and `UserModelName` endpoints — both node
+ * families carry a meta-class-linking `classId`
+ * (`IUMLObjectName.classId` / `IUMLUserModelName.classId` in v3) and are
+ * therefore gated identically by `canElementConnect`. Other
+ * classId-bearing node families (e.g. StateObjectNode) are NOT yet
+ * covered by this rule — v3 gates them too, but wiring them in is
+ * tracked separately (state-machine parity track) to avoid mixing
+ * unrelated diagram behavior changes into this module.
  */
 import { diagramBridge } from "@/services/diagramBridge"
 import {
@@ -44,10 +50,15 @@ export const objectLinkConnectionRule: DiagramConnectionRule = ({
   sourceNode,
   targetNode,
 }) => {
-  // Only object-instance targets participate (v3 keyed the check off
-  // the hovered element's classId; v4 additionally scopes by type so
-  // other classId-bearing node families stay unaffected).
-  if (targetNode?.type !== "objectName") return undefined
+  // v3 keyed the check off the hovered element's `classId` with no type
+  // allowlist (`canElementConnect`, `connectable.tsx:530`). v4 scopes to
+  // the node families known to carry a meta-class-linking `classId`
+  // today — object instances and user-model instances — so unrelated
+  // classId-bearing node shapes stay unaffected.
+  const targetType = targetNode?.type
+  if (targetType !== "objectName" && targetType !== "UserModelName") {
+    return undefined
+  }
 
   const targetClassId = getClassId(targetNode)
   if (!targetClassId) return undefined

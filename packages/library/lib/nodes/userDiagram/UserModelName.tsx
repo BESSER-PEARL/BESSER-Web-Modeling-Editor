@@ -1,7 +1,10 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { useEffect, useMemo, useRef } from "react"
 import { DefaultNodeWrapper } from "../wrappers"
-import { UserModelNameSVG } from "@/components/svgs/nodes/userDiagram"
+import {
+  UserModelNameSVG,
+  resolveUserModelHeaderLabel,
+} from "@/components/svgs/nodes/userDiagram"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import {
@@ -26,10 +29,15 @@ import {
  *
  * Visual contract (matches v3 `UMLUserModelName.render` + the way
  * `composeUserModelPreview` emits one card per meta-model class):
- *  - Underlined header showing `name` (the instance name) and the linked
- *    class label `: className` when `className` is set — this matches the
- *    v3 sidebar drag-source `${classInfo.name.charAt(0).toLowerCase() +
- *    classInfo.name.slice(1)}_1` format and the v3 inspector workflow.
+ *  - Underlined header showing the resolved linked-class name (via
+ *    `resolveUserModelHeaderLabel` — `classId` lookup, then cached
+ *    `className`, then the instance `name` as last resort). This mirrors
+ *    `uml-object-name-component.tsx`'s `isUserModelElement` branch, NOT
+ *    the `name : className` format used for plain ObjectName instances.
+ *  - Icon vs. attribute-table body is derived purely from the global
+ *    `showIconView` setting (see `UserDiagramSVGs.tsx`) — there is no
+ *    per-node override; node height is always driven by the attribute
+ *    row count so both views share the same footprint.
  *  - No methods rendered (user-model is constraint-style data only).
  *  - Each attribute row is rendered in `name = value` format. The
  *    formatter prefers `attributeOperator` when present (so `>=`, `<=`
@@ -60,10 +68,6 @@ export function UserModelName({
   data,
 }: NodeProps<Node<UserModelNameNodeProps>>) {
   const { attributes, name, className } = data
-  // v3 parity: UserDiagram nodes always render as an icon. The class-style
-  // attribute table is not exposed. `data.view` is preserved for
-  // round-trip but ignored at render time.
-  const view = "icon" as const
   const displayAttributes = useMemo(
     () => attributes.map(formatUserModelAttributeForDisplay),
     [attributes]
@@ -83,10 +87,12 @@ export function UserModelName({
   const padding = LAYOUT.DEFAULT_PADDING
   const font = LAYOUT.DEFAULT_FONT
 
-  // v3 parity: the header is just the instance name. The classId/className
-  // link is kept in data for round-trip with the meta-model but is not
-  // shown in the header.
-  const headerLabel = useMemo(() => name, [name])
+  // v3 parity: the header shows the resolved linked-class name (falling
+  // back to the cached className / instance name) — mirrors
+  // `uml-object-name-component.tsx`'s `isUserModelElement` branch. Shared
+  // with `UserModelNameSVG` so the width budget below always matches
+  // what's actually painted.
+  const headerLabel = resolveUserModelHeaderLabel(data)
 
   const maxTextWidth = useMemo(() => {
     const headerTextWidth = measureTextWidth(headerLabel, font)
@@ -101,24 +107,20 @@ export function UserModelName({
     [maxTextWidth, padding]
   )
 
+  // v3 parity: height is driven by the attribute-row count regardless of
+  // icon/table view — `UserModelNameSVG` decides at paint time which
+  // body to draw inside the same footprint (global `showIconView`
+  // setting), mirroring how `ObjectName.tsx` sizes `ObjectNameSVG`.
   const minHeight = useMemo(
-    () => {
-      // Icon view collapses the row stack to a single
-      // glyph slot. Reserve roughly the same footprint v3 reserved
-      // (`renderIconView` defaulted to a 50×50 glyph below a 40-px
-      // header — see `uml-user-model-name.ts:196-209`).
-      if (view === "icon") {
-        return headerHeight + 60
-      }
-      return calculateMinHeight(
+    () =>
+      calculateMinHeight(
         headerHeight,
         attributes.length,
         0,
         attributeHeight,
         methodHeight
-      )
-    },
-    [view, headerHeight, attributes.length, attributeHeight, methodHeight]
+      ),
+    [headerHeight, attributes.length, attributeHeight, methodHeight]
   )
 
   useEffect(() => {
@@ -190,9 +192,6 @@ export function UserModelName({
             strokeColor: data.strokeColor,
             textColor: data.textColor,
             attributes: displayAttributes,
-            // Forward the per-node view so the SVG
-            // renders the icon glyph by default.
-            view,
           }}
           id={id}
           showAssessmentResults={!isDiagramModifiable}

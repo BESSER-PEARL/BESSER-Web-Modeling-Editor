@@ -514,12 +514,14 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         onChange={(e) => update({ name: e.target.value })}
       />
 
-      {/* v3 parity: no class selector and no Icon/Attributes view toggle.
-          UserDiagram nodes always render as an icon, and the class link
-          is bound to the meta-model entry that produced the palette card
-          (set at drop time). `data.classId` / `data.className` /
-          `data.view` are preserved in the type for round-trip but not
-          editable here. */}
+      {/* v3 parity: no class selector and no per-node Icon/Attributes view
+          toggle. UserDiagram nodes render icon vs. attribute-table purely
+          per the GLOBAL "Show Icon View" setting (Settings panel), exactly
+          like ObjectDiagram — v3 has no per-instance override on
+          UMLUserModelName. The class link is bound to the meta-model
+          entry that produced the palette card (set at drop time).
+          `data.classId` / `data.className` / `data.view` are preserved in
+          the type for round-trip but not editable here. */}
 
       {/* Description collapsed behind a Metadata
           Accordion so the panel doesn't burn vertical real estate when
