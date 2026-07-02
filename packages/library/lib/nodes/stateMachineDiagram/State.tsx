@@ -17,7 +17,9 @@ import { getCustomColorsFromData } from "@/utils/layoutUtils"
  * `data.bodies[]` / `data.fallbackBodies[]`.
  */
 
-const ROW_HEIGHT = 26
+// Develop parity (`uml-state-member.ts`): every body / fallback-body row
+// defaults to `computeDimension(1.0, 30)` = 30px.
+const ROW_HEIGHT = 30
 
 const renderRow = (
   row: StateBodyRow,
@@ -77,17 +79,25 @@ export function State({
     : LAYOUT.DEFAULT_HEADER_HEIGHT
   const hasAnyBody = mainBodies.length + fallbackBodies.length > 0
   const fallbackDividerY = headerHeight + mainBodies.length * ROW_HEIGHT
-  const hasFallbackDivider =
-    fallbackBodies.length > 0 && mainBodies.length > 0
+  // Develop parity (`uml-state.ts` `render()` / `uml-state-component.tsx`):
+  // the fallback divider is drawn whenever any fallback row exists,
+  // independent of whether main body rows are present — a state with
+  // only fallback rows still shows one divider right below the header.
+  const hasFallbackDivider = fallbackBodies.length > 0
+  // Develop parity: `UMLState.render()` sets `bounds.height` to exactly
+  // `headerHeight + Σ(row heights)` — there is no extra padding beyond
+  // the rows themselves.
   const requiredHeight =
-    headerHeight +
-    (mainBodies.length + fallbackBodies.length) * ROW_HEIGHT +
-    (hasFallbackDivider ? 10 : 0) +
-    16
+    headerHeight + (mainBodies.length + fallbackBodies.length) * ROW_HEIGHT
 
-  // Auto-grow node height to fit all body rows.
+  // Develop parity (`uml-state.ts` `static features.resizable = 'WIDTH'`):
+  // height is never user-controlled — it's always exactly the computed
+  // content height. Snap unconditionally (grow *and* shrink), mirroring
+  // Class.tsx's `minHeight` snap-effect, so adding/removing a body row
+  // settles the height immediately instead of leaving dead space (the
+  // prior grow-only effect never shrank an over-tall node).
   useEffect(() => {
-    if (height && height < requiredHeight) {
+    if (height && height !== requiredHeight) {
       setNodes((all) =>
         all.map((n) =>
           n.id === id
@@ -114,13 +124,23 @@ export function State({
   const cornerRadius = 8
 
   return (
-    <DefaultNodeWrapper width={width} height={height} elementId={id}>
+    <DefaultNodeWrapper
+      width={width}
+      height={height}
+      elementId={id}
+      className="horizontally-not-resizable"
+    >
       <NodeToolbar elementId={id} />
+      {/* Develop parity (`uml-state.ts` `resizable: 'WIDTH'`): only the
+          left/right handles are live — height is locked to the computed
+          content height via minHeight===maxHeight, mirroring
+          `StateForkNodeHorizontal.tsx` and `Class.tsx`. */}
       <NodeResizer
         isVisible={isDiagramModifiable}
         onResize={onResize}
         minWidth={120}
-        minHeight={60}
+        minHeight={requiredHeight}
+        maxHeight={requiredHeight}
         handleStyle={{ width: 8, height: 8 }}
       />
       <div ref={wrapperRef}>
@@ -193,6 +213,8 @@ export function State({
             renderRow(b, i, headerHeight, width, textColor, false)
           )}
           {hasFallbackDivider && (
+            // Develop parity (`uml-state-component.tsx`): solid line, same
+            // style as the header divider — no dash, no reduced opacity.
             <line
               x1={0}
               x2={width}
@@ -200,8 +222,6 @@ export function State({
               y2={fallbackDividerY}
               stroke={strokeColor}
               strokeWidth={1}
-              strokeDasharray="3 2"
-              opacity={0.6}
             />
           )}
           {fallbackBodies.map((b, i) =>

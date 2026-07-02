@@ -878,7 +878,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       // palette variants).
       type: "State" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 130,
+      height: 70,
       defaultData: {
         name: "State",
         bodies: [{ id: "state-template-body", name: "body" }],
@@ -888,11 +888,11 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     {
       // Develop palette parity (`state-preview.ts`
       // `stateWithBothBodies`): third State preview with one body row
-      // plus one fallback row so the dashed fallback divider is visible
+      // plus one fallback row so the fallback divider is visible
       // straight from the sidebar.
       type: "State" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 160,
+      height: 100,
       defaultData: {
         name: "State",
         bodies: [{ id: "state-template-body", name: "body" }],
@@ -923,7 +923,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // existing models that reference them still render.
     {
       type: "StateCodeBlock" as never,
-      width: 200,
+      width: 150,
       height: 150,
       defaultData: {
         name: "code",

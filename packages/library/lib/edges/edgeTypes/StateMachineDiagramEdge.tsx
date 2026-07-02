@@ -122,9 +122,10 @@ export const StateMachineDiagramEdge = ({
   // v3 state-transition notation
   // (`v3 source: uml-state-transition.ts:38-65`), where
   // `params` is a dict / array stored on the relationship root and
-  // each value is wrapped in its own bracket pair. `code` is reserved
-  // for the inspector — it's not part of the canvas label.
-  // Include `params` entries before the guard.
+  // all values are joined with ", " inside a single bracket pair
+  // (develop parity: `uml-state-transition-component.tsx` `getDisplayText()`
+  // lines 46-61). `code` is reserved for the inspector — it's not part of
+  // the canvas label. Include `params` entries before the guard.
   const dataAny = (data ?? {}) as {
     name?: string
     guard?: string
@@ -137,7 +138,8 @@ export const StateMachineDiagramEdge = ({
     if (Array.isArray(p)) return p.filter((v) => !!v)
     return Object.values(p).filter((v) => typeof v === "string" && !!v)
   })()
-  const paramSegment = paramValues.map((v) => `[${v}]`).join(" ")
+  const paramSegment =
+    paramValues.length > 0 ? `[${paramValues.join(", ")}]` : ""
   const label =
     [
       dataAny.name,
