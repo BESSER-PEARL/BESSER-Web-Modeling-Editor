@@ -11,7 +11,12 @@ import {
 } from "@xyflow/react"
 import * as Y from "yjs"
 import { sortNodesTopologically } from "@/utils"
-import { getNodesMap, getEdgesMap, getAssessments } from "@/sync/ydoc"
+import {
+  getNodesMap,
+  getEdgesMap,
+  getAssessments,
+  reconcileYMap,
+} from "@/sync/ydoc"
 import { deepEqual } from "@/utils/storeUtils"
 import { Assessment, InteractiveElements } from "@/typings"
 import {
@@ -158,12 +163,50 @@ export const createDiagramStore = (
             }
           )
 
+          // Restore the user's selection across undo/redo (undo should bring
+          // back the context, not just the content). The selection in effect
+          // when an edit is recorded is stashed on the stack item and
+          // re-applied -- to `selectedElementIds` and the per-element
+          // `selected` flags -- when it is popped.
+          const applySelection = (ids: string[]) => {
+            const idSet = new Set(ids)
+            set(
+              (state) => ({
+                selectedElementIds: ids,
+                nodes: state.nodes.map((node) =>
+                  (node.selected ?? false) === idSet.has(node.id)
+                    ? node
+                    : { ...node, selected: idSet.has(node.id) }
+                ),
+                edges: state.edges.map((edge) =>
+                  (edge.selected ?? false) === idSet.has(edge.id)
+                    ? edge
+                    : { ...edge, selected: idSet.has(edge.id) }
+                ),
+              }),
+              undefined,
+              "undo-restore-selection"
+            )
+          }
+
+          const captureSelection = ({
+            stackItem,
+          }: {
+            stackItem: Y.UndoManager["undoStack"][number]
+          }) => {
+            stackItem.meta.set("selectedElementIds", get().selectedElementIds)
+          }
+          undoManager.on("stack-item-added", captureSelection)
+          undoManager.on("stack-item-updated", captureSelection)
+
           // Listen to undo manager state changes
           undoManager.on("stack-item-added", () => {
             get().updateUndoRedoState()
           })
 
-          undoManager.on("stack-item-popped", () => {
+          undoManager.on("stack-item-popped", ({ stackItem }) => {
+            const ids = stackItem.meta.get("selectedElementIds")
+            if (Array.isArray(ids)) applySelection(ids)
             get().updateUndoRedoState()
           })
 
@@ -325,8 +368,10 @@ export const createDiagramStore = (
           }
 
           ydoc.transact(() => {
-            getNodesMap(ydoc).clear()
-            nodes.forEach((node) => getNodesMap(ydoc).set(node.id, node))
+            reconcileYMap(
+              getNodesMap(ydoc),
+              nodes.map((node) => [node.id, node] as const)
+            )
           }, "store")
           const prunedInteractive = pruneInteractiveElements(
             {
@@ -364,8 +409,10 @@ export const createDiagramStore = (
             return
           }
           ydoc.transact(() => {
-            getEdgesMap(ydoc).clear()
-            edges.forEach((edge) => getEdgesMap(ydoc).set(edge.id, edge))
+            reconcileYMap(
+              getEdgesMap(ydoc),
+              edges.map((edge) => [edge.id, edge] as const)
+            )
           }, "store")
           const prunedInteractive = pruneInteractiveElements(
             {
@@ -397,10 +444,14 @@ export const createDiagramStore = (
             new Set(nodes.map((n) => n.id))
           )
           ydoc.transact(() => {
-            getNodesMap(ydoc).clear()
-            getEdgesMap(ydoc).clear()
-            nodes.forEach((node) => getNodesMap(ydoc).set(node.id, node))
-            edges.forEach((edge) => getEdgesMap(ydoc).set(edge.id, edge))
+            reconcileYMap(
+              getNodesMap(ydoc),
+              nodes.map((node) => [node.id, node] as const)
+            )
+            reconcileYMap(
+              getEdgesMap(ydoc),
+              edges.map((edge) => [edge.id, edge] as const)
+            )
           }, "store")
           const prunedInteractive = pruneInteractiveElements(
             {
@@ -774,11 +825,7 @@ export const createDiagramStore = (
             typeof payload === "function" ? payload(get().assessments) : payload
 
           ydoc.transact(() => {
-            const yMap = getAssessments(ydoc)
-            yMap.clear()
-            Object.entries(assessments).forEach(([id, assessment]) => {
-              yMap.set(id, assessment)
-            })
+            reconcileYMap(getAssessments(ydoc), Object.entries(assessments))
           }, "store")
 
           set({ assessments }, undefined, "setAssessments")
