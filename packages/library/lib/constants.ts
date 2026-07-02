@@ -390,6 +390,14 @@ export type DropElementConfig = {
    * rendering the entry. Leave undefined to skip.
    */
   readonly sectionLabel?: string
+  /**
+   * Optional override for the size of the node actually created on
+   * canvas-drop, when it must differ from the sidebar-preview
+   * `width`/`height` (e.g. NNContainer: compact preview, large default
+   * canvas footprint). Falls back to `width`/`height` when unset.
+   */
+  readonly dropWidth?: number
+  readonly dropHeight?: number
 }
 
 /**
@@ -1167,12 +1175,15 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
     // together. The `sectionLabel` field on a group's first entry
     // tells `Sidebar.tsx` to prepend a divider + heading.
     {
-      // Palette preview is rendered at a fixed sidebar scale, so the
-      // 320 × 200 canvas default was getting clipped. Drop it to a
-      // compact preview-friendly size; users can resize on the canvas.
+      // Sidebar preview stays compact (this scales by
+      // DROPS.SIDEBAR_PREVIEW_SCALE for the thumbnail); the node actually
+      // created on canvas-drop uses `dropWidth`/`dropHeight` below to
+      // match develop's `NNContainer.defaultWidth/defaultHeight` (800x200).
       type: "NNContainer" as never,
       width: 220,
       height: 140,
+      dropWidth: 800,
+      dropHeight: 200,
       defaultData: { name: "Neural_Network" },
       svg: NNContainerSVG,
       sectionLabel: "NN Structure",

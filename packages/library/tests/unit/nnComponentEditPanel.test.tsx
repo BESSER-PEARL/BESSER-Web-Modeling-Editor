@@ -491,3 +491,45 @@ describe("pooling enable-path seeding (NN-8)", () => {
     expect(getAttrs(store)["kernel_dim"]).toBe("[3, 3, 3]")
   })
 })
+
+/* ─────── mandatory list-shaped autofill on fresh drop (#30) ────────── */
+
+describe("mandatory list-shaped autofill on mount (#30)", () => {
+  it("seeds kernel_dim '[3]' on a fresh Conv1DLayer node", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "Conv1DLayer", { name: "Conv1", attributes: {} }),
+    ])
+    expect(getAttrs(store)["kernel_dim"]).toBe("[3]")
+  })
+
+  it("seeds kernel_dim '[3, 3]' on a fresh Conv2DLayer node", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "Conv2DLayer", { name: "Conv2", attributes: {} }),
+    ])
+    expect(getAttrs(store)["kernel_dim"]).toBe("[3, 3]")
+  })
+
+  it("seeds kernel_dim '[3, 3, 3]' on a fresh Conv3DLayer node", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "Conv3DLayer", { name: "Conv3", attributes: {} }),
+    ])
+    expect(getAttrs(store)["kernel_dim"]).toBe("[3, 3, 3]")
+  })
+
+  it("seeds normalized_shape '[-1]' on a fresh LayerNormalizationLayer node", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "LayerNormalizationLayer", {
+        name: "LN1",
+        attributes: {},
+      }),
+    ])
+    expect(getAttrs(store)["normalized_shape"]).toBe("[-1]")
+  })
+
+  it("does NOT auto-seed optional stride_dim on a fresh Conv1DLayer node", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "Conv1DLayer", { name: "Conv1", attributes: {} }),
+    ])
+    expect("stride_dim" in getAttrs(store)).toBe(false)
+  })
+})

@@ -176,15 +176,15 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       // Create the new node with a unique ID and calculated position
       const newNode: Node = {
         id: generateUUID(),
-        width: dropElementConfig.width,
-        height: dropElementConfig.height,
+        width: dropElementConfig.dropWidth ?? dropElementConfig.width,
+        height: dropElementConfig.dropHeight ?? dropElementConfig.height,
         type: dropData.type,
         position: { ...position },
         data: { ...defaultData, ...dropData.data },
         parentId: parentId,
         measured: {
-          width: dropElementConfig.width,
-          height: dropElementConfig.height,
+          width: dropElementConfig.dropWidth ?? dropElementConfig.width,
+          height: dropElementConfig.dropHeight ?? dropElementConfig.height,
         },
         selected: false,
       }

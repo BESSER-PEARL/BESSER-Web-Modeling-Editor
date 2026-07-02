@@ -41,7 +41,7 @@ const PARENT_MIN_SIZE: Record<string, { width: number; height: number }> = {
   bpmnSubprocess: { width: 160, height: 60 },
   bpmnTransaction: { width: 160, height: 60 },
   bpmnCallActivity: { width: 160, height: 60 },
-  NNContainer: { width: 200, height: 140 },
+  NNContainer: { width: 200, height: 150 },
   State: { width: 160, height: 100 },
   AgentIntent: { width: 160, height: 100 },
 }

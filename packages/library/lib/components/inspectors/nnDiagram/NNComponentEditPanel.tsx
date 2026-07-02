@@ -440,6 +440,18 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
         patch[key] = f.defaultValue
         continue
       }
+      // List-shaped mandatory fields whose shape varies by layer kind
+      // (Conv1D/2D/3D `kernel_dim`, LayerNormalization
+      // `normalized_shape`) can't live in the flat NN_ATTRIBUTE_DEFAULTS
+      // table — source them from `getListExpectation`, the same
+      // per-(layerKind, slug) table develop's constructors
+      // (conv1d/2d/3d-attributes.ts, layernormalization-attributes.ts)
+      // hard-code as `[3]` / `[3, 3]` / `[3, 3, 3]` / `[-1]`.
+      const listExpectation = getListExpectation(layerKind, f.slug)
+      if (listExpectation.count !== null) {
+        patch[key] = listExpectation.example
+        continue
+      }
       const fallback = NN_ATTRIBUTE_DEFAULTS[f.slug]
       if (fallback !== undefined) {
         patch[key] = fallback

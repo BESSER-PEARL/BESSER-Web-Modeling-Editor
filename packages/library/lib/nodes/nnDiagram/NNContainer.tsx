@@ -76,7 +76,7 @@ export function NNContainer({
         isVisible={isDiagramModifiable}
         onResize={onResize}
         minWidth={200}
-        minHeight={140}
+        minHeight={150}
         handleStyle={{ width: 8, height: 8 }}
       />
       <div ref={wrapperRef}>
