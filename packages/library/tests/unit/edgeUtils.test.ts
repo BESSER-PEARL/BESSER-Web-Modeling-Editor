@@ -17,9 +17,11 @@ import {
   getInitialEdgeData,
   getMarkerSegmentPath,
   normalizeNNCompositionEndpoints,
+  getAllowedBpmnFlowEdgeTypes,
   parseSvgPath,
   removeDuplicatePoints,
   resolveAgentEdgeType,
+  resolveBpmnEdgeType,
   resolveCommentEdgeType,
   resolveNNEdgeType,
   simplifyPoints,
@@ -1053,7 +1055,7 @@ describe("getDefaultEdgeType", () => {
     ["Flowchart", "FlowChartFlowline"],
     ["SyntaxTree", "SyntaxTreeLink"],
     ["ReachabilityGraph", "ReachabilityGraphArc"],
-    ["BPMN", "BPMNSequenceFlow"],
+    ["BPMNDiagram", "BPMNSequenceFlow"],
     ["Sfc", "SfcDiagramEdge"],
     ["CommunicationDiagram", "CommunicationLink"],
     ["PetriNet", "PetriNetArc"],
@@ -1264,6 +1266,62 @@ describe("resolveNNEdgeType", () => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// resolveBpmnEdgeType + getAllowedBpmnFlowEdgeTypes — BPMN flow-legality
+// auto-detect (port of develop's bpmn-flow-semantics.ts:
+// getAllowedBpmnFlowTypes / getDefaultBpmnFlowType). Priority order is
+// sequence > message > data association > association.
+// ---------------------------------------------------------------------------
+describe("resolveBpmnEdgeType", () => {
+  const fallback = "BPMNSequenceFlow" as const
+
+  it("resolves task → task to BPMNSequenceFlow", () => {
+    expect(resolveBpmnEdgeType("bpmnTask", "bpmnTask", fallback)).toBe(
+      "BPMNSequenceFlow"
+    )
+  })
+
+  it("resolves pool → pool to BPMNMessageFlow", () => {
+    expect(resolveBpmnEdgeType("bpmnPool", "bpmnPool", fallback)).toBe(
+      "BPMNMessageFlow"
+    )
+  })
+
+  it("resolves dataObject → task to BPMNDataAssociationFlow (both directions)", () => {
+    expect(
+      resolveBpmnEdgeType("bpmnDataObject", "bpmnTask", fallback)
+    ).toBe("BPMNDataAssociationFlow")
+    expect(
+      resolveBpmnEdgeType("bpmnTask", "bpmnDataStore", fallback)
+    ).toBe("BPMNDataAssociationFlow")
+  })
+
+  it("resolves annotation → task to BPMNAssociationFlow", () => {
+    expect(
+      resolveBpmnEdgeType("bpmnAnnotation", "bpmnTask", fallback)
+    ).toBe("BPMNAssociationFlow")
+  })
+
+  it("falls back for an illegal pair (dataObject ↔ dataObject)", () => {
+    expect(
+      resolveBpmnEdgeType("bpmnDataObject", "bpmnDataObject", fallback)
+    ).toBe(fallback)
+  })
+
+  it("does NOT treat gateways as message-eligible", () => {
+    // Two gateways are flow-eligible (sequence), never message-eligible.
+    expect(getAllowedBpmnFlowEdgeTypes("bpmnGateway", "bpmnGateway")).toEqual([
+      "BPMNSequenceFlow",
+    ])
+  })
+
+  it("lists no BPMN subtype for a data-node ↔ data-node pair", () => {
+    expect(
+      getAllowedBpmnFlowEdgeTypes("bpmnDataObject", "bpmnDataStore")
+    ).toEqual([])
+  })
+})
+
 describe("normalizeNNCompositionEndpoints", () => {
   const connection = {
     source: "s",
@@ -1451,7 +1509,7 @@ describe("getConnectionLineType", () => {
     "DeploymentDiagram",
     "ReachabilityGraph",
     "Flowchart",
-    "BPMN",
+    "BPMNDiagram",
     "Sfc",
   ] as const
 

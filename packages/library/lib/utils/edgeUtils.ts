@@ -852,7 +852,7 @@ export const getDefaultEdgeType = (
       return "SyntaxTreeLink"
     case "ReachabilityGraph":
       return "ReachabilityGraphArc"
-    case "BPMN":
+    case "BPMNDiagram":
       return "BPMNSequenceFlow"
     case "Sfc":
       return "SfcDiagramEdge"
@@ -912,6 +912,93 @@ export const resolveNNEdgeType = (
   if (datasetTypes.has(sourceType) || datasetTypes.has(targetType)) {
     return "NNAssociation"
   }
+  return fallback
+}
+
+// BPMN flow-legality node-type sets. Ported verbatim from develop's
+// `bpmn-flow/bpmn-flow-semantics.ts`, translated to migration's
+// camelCase React Flow node-type strings (cross-checked against
+// `utils/bpmnConstraints.ts`'s `canDropIntoParent` lists). Single source
+// of truth for both `resolveBpmnEdgeType` (below) and the up-front
+// `bpmnFlowConnectionRule` (`services/connectionRules/bpmnFlowRules.ts`),
+// the same relationship develop keeps between bpmn-flow-semantics.ts and
+// bpmn-flow-validator.ts.
+const BPMN_FLOW_NODES = new Set([
+  "bpmnStartEvent",
+  "bpmnIntermediateEvent",
+  "bpmnEndEvent",
+  "bpmnTask",
+  "bpmnSubprocess",
+  "bpmnTransaction",
+  "bpmnCallActivity",
+  "bpmnGateway",
+])
+const BPMN_DATA_NODES = new Set(["bpmnDataObject", "bpmnDataStore"])
+const BPMN_ARTIFACT_NODES = new Set(["bpmnAnnotation", "bpmnGroup"])
+// Message-eligible = flow nodes minus the gateway, plus the pool.
+// Gateways are NOT message-eligible in develop's semantics.
+const BPMN_MESSAGE_ELIGIBLE = new Set([
+  "bpmnStartEvent",
+  "bpmnIntermediateEvent",
+  "bpmnEndEvent",
+  "bpmnTask",
+  "bpmnSubprocess",
+  "bpmnTransaction",
+  "bpmnCallActivity",
+  "bpmnPool",
+])
+
+/**
+ * Port of develop's `getAllowedBpmnFlowTypes`, expressed as React Flow
+ * edge-type strings. Given a source/target node-type pair, returns every
+ * BPMN flow subtype that is legal between them (empty when the pair is
+ * illegal, e.g. data-node ↔ data-node). Shared by `resolveBpmnEdgeType`
+ * (default-pick) and `bpmnFlowConnectionRule` (up-front veto).
+ */
+export function getAllowedBpmnFlowEdgeTypes(
+  sourceType: string | undefined,
+  targetType: string | undefined
+): DiagramEdgeType[] {
+  const s = sourceType ?? ""
+  const t = targetType ?? ""
+  const allowed: DiagramEdgeType[] = []
+  if (BPMN_FLOW_NODES.has(s) && BPMN_FLOW_NODES.has(t)) {
+    allowed.push("BPMNSequenceFlow")
+  }
+  if (
+    (BPMN_DATA_NODES.has(s) && BPMN_FLOW_NODES.has(t)) ||
+    (BPMN_FLOW_NODES.has(s) && BPMN_DATA_NODES.has(t))
+  ) {
+    allowed.push("BPMNDataAssociationFlow")
+  }
+  if (BPMN_ARTIFACT_NODES.has(s) || BPMN_ARTIFACT_NODES.has(t)) {
+    allowed.push("BPMNAssociationFlow")
+  }
+  if (BPMN_MESSAGE_ELIGIBLE.has(s) && BPMN_MESSAGE_ELIGIBLE.has(t)) {
+    allowed.push("BPMNMessageFlow")
+  }
+  return allowed
+}
+
+/**
+ * Auto-detect the BPMNDiagram edge type from its endpoints (mirrors
+ * `resolveNNEdgeType`). Picks the highest-priority legal flow subtype for
+ * the node pair — sequence > message > data association > association,
+ * matching develop's `getDefaultBpmnFlowType`. Falls back to the diagram
+ * default when no BPMN-specific subtype is legal.
+ */
+export const resolveBpmnEdgeType = (
+  sourceType: string | undefined,
+  targetType: string | undefined,
+  fallback: DiagramEdgeType
+): DiagramEdgeType => {
+  const allowed = getAllowedBpmnFlowEdgeTypes(sourceType, targetType)
+  if (allowed.includes("BPMNSequenceFlow")) return "BPMNSequenceFlow"
+  if (allowed.includes("BPMNMessageFlow")) return "BPMNMessageFlow"
+  if (allowed.includes("BPMNDataAssociationFlow")) {
+    return "BPMNDataAssociationFlow"
+  }
+  if (allowed.includes("BPMNAssociationFlow")) return "BPMNAssociationFlow"
   return fallback
 }
 

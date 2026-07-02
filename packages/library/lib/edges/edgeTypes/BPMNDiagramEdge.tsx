@@ -98,6 +98,38 @@ export const BPMNDiagramEdge = ({
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
+  // BPMN 2.0.2 §8.3.13 default-flow marker: a short diagonal slash near
+  // the start of a default sequence flow. Ported from develop's
+  // bpmn-flow-component.tsx — take the first connector segment's unit
+  // direction, offset 12px from the source along it, then draw a 5px
+  // half-length segment rotated 45° from that direction
+  // (slashDir = ((dx - dy)·k, (dx + dy)·k) with k = √½).
+  const defaultFlowMarker = (() => {
+    if (type !== "BPMNSequenceFlow" || !data?.isDefault) return null
+    const p1 = midpoints[0] ?? targetPoint
+    const dx = p1.x - sourcePoint.x
+    const dy = p1.y - sourcePoint.y
+    const len = Math.hypot(dx, dy)
+    if (len === 0) return null
+    const ux = dx / len
+    const uy = dy / len
+    const cx = sourcePoint.x + ux * 12
+    const cy = sourcePoint.y + uy * 12
+    const k = Math.SQRT1_2
+    const sx = (ux - uy) * k
+    const sy = (ux + uy) * k
+    const half = 5
+    return (
+      <path
+        d={`M ${cx - sx * half} ${cy - sy * half} L ${cx + sx * half} ${cy + sy * half}`}
+        stroke={strokeColor}
+        strokeLinecap="round"
+        fill="none"
+        pointerEvents="none"
+      />
+    )
+  })()
+
   return (
     <AssessmentSelectableWrapper elementId={id} asElement="g">
       <FeedbackDropzone elementId={id} asElement="path" elementType={type}>
@@ -127,6 +159,8 @@ export const BPMNDiagramEdge = ({
               strokeColor={strokeColor}
             />
           )}
+
+          {!isReconnectingRef.current && defaultFlowMarker}
 
           <path
             ref={pathRef}

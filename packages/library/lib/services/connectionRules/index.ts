@@ -9,6 +9,7 @@
  */
 import "./objectDiagramRules"
 import "./nnDiagramRules"
+import "./bpmnFlowRules"
 
 export {
   registerConnectionRule,
@@ -20,3 +21,4 @@ export {
 } from "./registry"
 export { objectLinkConnectionRule } from "./objectDiagramRules"
 export { nnConnectionRule } from "./nnDiagramRules"
+export { bpmnFlowConnectionRule } from "./bpmnFlowRules"

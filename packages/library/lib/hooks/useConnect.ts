@@ -18,6 +18,7 @@ import {
   getInitialEdgeData,
   normalizeNNCompositionEndpoints,
   resolveAgentEdgeType,
+  resolveBpmnEdgeType,
   resolveCommentEdgeType,
   resolveNNEdgeType,
 } from "@/utils"
@@ -194,6 +195,12 @@ export const useConnect = () => {
           targetType,
           defaultEdgeType
         )
+      } else if (diagramType === "BPMNDiagram") {
+        resolvedType = resolveBpmnEdgeType(
+          sourceType,
+          targetType,
+          defaultEdgeType
+        )
       } else {
         resolvedType = defaultEdgeType
       }
@@ -358,6 +365,12 @@ export const useConnect = () => {
             )
           } else if (diagramType === "AgentDiagram") {
             resolvedTypeOnEnd = resolveAgentEdgeType(
+              sourceTypeOnEnd,
+              targetTypeOnEnd,
+              defaultEdgeType
+            )
+          } else if (diagramType === "BPMNDiagram") {
+            resolvedTypeOnEnd = resolveBpmnEdgeType(
               sourceTypeOnEnd,
               targetTypeOnEnd,
               defaultEdgeType

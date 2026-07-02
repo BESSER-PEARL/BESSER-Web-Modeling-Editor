@@ -1,4 +1,4 @@
-export type UMLDiagramType = keyof typeof UMLDiagramType
+export type UMLDiagramType = (typeof UMLDiagramType)[keyof typeof UMLDiagramType]
 
 export const UMLDiagramType = {
   ClassDiagram: "ClassDiagram",
@@ -12,7 +12,10 @@ export const UMLDiagramType = {
   ReachabilityGraph: "ReachabilityGraph",
   SyntaxTree: "SyntaxTree",
   Flowchart: "Flowchart",
-  BPMN: "BPMN",
+  // Key `BPMN`, value `BPMNDiagram`: the on-the-wire diagram-type value
+  // follows BESSER's `<Name>Diagram` convention (matches develop's
+  // diagram-type.ts and the backend's BPMN_DIAGRAM_TYPES contract).
+  BPMN: "BPMNDiagram",
   Sfc: "Sfc",
   StateMachineDiagram: "StateMachineDiagram",
   AgentDiagram: "AgentDiagram",

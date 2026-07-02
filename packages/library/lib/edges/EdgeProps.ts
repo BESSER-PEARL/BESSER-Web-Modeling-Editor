@@ -25,6 +25,13 @@ export type CustomEdgeProps = {
    * never set this.
    */
   associationId?: string
+  /**
+   * BPMNSequenceFlow-only field. Marks a sequence flow as the source
+   * node's default outgoing flow (BPMN 2.0.2 §8.3.13 — rendered as a
+   * short diagonal slash near the start of the connector). Other edge
+   * types never set this.
+   */
+  isDefault?: boolean
 }
 
 export type ExtendedEdgeProps = EdgeProps<Edge<CustomEdgeProps>> & {

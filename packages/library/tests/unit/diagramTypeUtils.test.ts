@@ -14,7 +14,7 @@ import type { Node, Edge } from "@xyflow/react"
 describe("parseDiagramType", () => {
   it("returns the value if it is a valid UMLDiagramType", () => {
     expect(parseDiagramType("ClassDiagram")).toBe("ClassDiagram")
-    expect(parseDiagramType("BPMN")).toBe("BPMN")
+    expect(parseDiagramType("BPMNDiagram")).toBe("BPMNDiagram")
     expect(parseDiagramType("Flowchart")).toBe("Flowchart")
     expect(parseDiagramType("Sfc")).toBe("Sfc")
   })
@@ -36,7 +36,7 @@ describe("parseDiagramType", () => {
   })
 
   it("uses custom fallback", () => {
-    expect(parseDiagramType("nope", UMLDiagramType.BPMN)).toBe("BPMN")
+    expect(parseDiagramType("nope", UMLDiagramType.BPMN)).toBe("BPMNDiagram")
   })
 
   it("recognizes all valid diagram types", () => {
