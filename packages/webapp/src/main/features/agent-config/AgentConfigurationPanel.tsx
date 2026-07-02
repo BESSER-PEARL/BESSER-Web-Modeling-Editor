@@ -57,6 +57,7 @@ import {
   resolveDefaultLlm as resolveDefaultLlmForModel,
   toAgentLLMElement,
 } from './agentLlmUtils';
+import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -2189,6 +2190,27 @@ export const AgentConfigurationPanel: React.FC = () => {
                   Add LLM
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
+              <CardDescription>
+                Edit the <code>config.yaml</code> file that will be included when generating the agent.
+                {' '}
+                <a
+                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand underline underline-offset-2 hover:text-brand/80"
+                >
+                  Configuration properties reference ↗
+                </a>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AgentConfigYamlEditor currentProject={currentProject} />
             </CardContent>
           </Card>
           </>
