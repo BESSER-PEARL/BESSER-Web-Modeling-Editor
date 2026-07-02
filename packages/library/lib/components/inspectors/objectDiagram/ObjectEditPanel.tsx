@@ -134,6 +134,8 @@ const BOOL_TYPES = new Set(["bool", "boolean"])
 const DATE_TYPES = new Set(["date"])
 const DATETIME_TYPES = new Set(["datetime"])
 const TIME_TYPES = new Set(["time"])
+const DURATION_TYPES = new Set(["timedelta", "duration", "period", "timespan"])
+const STRING_TYPES = new Set(["str", "string"])
 
 /**
  * Restore per-attribute-type value widgets in the
@@ -191,6 +193,8 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
   const isDate = DATE_TYPES.has(lowerType)
   const isDatetime = DATETIME_TYPES.has(lowerType)
   const isTime = TIME_TYPES.has(lowerType)
+  const isDuration = DURATION_TYPES.has(lowerType)
+  const isString = STRING_TYPES.has(lowerType)
   const enumValues = rawType ? enumLiterals.get(rawType) ?? [] : []
   const isEnum = enumValues.length > 0
 
@@ -247,6 +251,23 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         {...navigationProps}
       />
     )
+  } else if (isDuration) {
+    // v3 parity: renderDurationInput (uml-object-attribute-update.tsx:169-176,304-317).
+    valueWidget = (
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        placeholder="e.g., 1d 2h 30m, P1DT2H30M, 1:30:00"
+        value={valueAsString}
+        onChange={(e) => commitValue(e.target.value)}
+        sx={{ flex: 1 }}
+        inputProps={{
+          title:
+            "Enter duration in formats like: '1d 2h 30m', 'P1DT2H30M' (ISO 8601), or 'HH:mm:ss'",
+        }}
+        {...navigationProps}
+      />
+    )
   } else if (isEnum) {
     valueWidget = (
       <Select
@@ -265,7 +286,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
       </Select>
     )
   } else {
-    valueWidget = (
+    const textfield = (
       <MuiTextField
         size="small"
         variant="outlined"
@@ -275,6 +296,26 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         sx={{ flex: 1 }}
         {...navigationProps}
       />
+    )
+    // v3 parity: isStringType + QuoteWrapper/Quote
+    // (uml-object-attribute-update.tsx:360-386).
+    valueWidget = isString ? (
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={0.25}
+        sx={{ flex: 1 }}
+      >
+        <MuiTypography component="span" sx={{ userSelect: "none" }}>
+          "
+        </MuiTypography>
+        {textfield}
+        <MuiTypography component="span" sx={{ userSelect: "none" }}>
+          "
+        </MuiTypography>
+      </Stack>
+    ) : (
+      textfield
     )
   }
 

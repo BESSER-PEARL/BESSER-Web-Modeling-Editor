@@ -77,6 +77,22 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     associationId?: string
   }
 
+  // v3 parity (uml-object-link-update.tsx:101-107 getRelationshipDisplayName):
+  // always fall back to the connected objects' names (defaulting to the
+  // literal "Object") instead of the generic Association-<id> tail.
+  const sourceNode = nodes.find((n) => n.id === edge.source)
+  const targetNode = nodes.find((n) => n.id === edge.target)
+  const sourceObjectName =
+    (sourceNode?.data as ObjectNodeProps | undefined)?.name || "Object"
+  const targetObjectName =
+    (targetNode?.data as ObjectNodeProps | undefined)?.name || "Object"
+  const displayNameFor = (a: IAssociationInfo) =>
+    diagramBridge.getRelationshipDisplayName(
+      a,
+      sourceObjectName,
+      targetObjectName
+    )
+
   const updateData = (
     patch: Partial<CustomEdgeProps & { name?: string; associationId?: string }>
   ) => {
@@ -119,7 +135,7 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     // Mirror v3 `uml-object-link-update.tsx:79-95`: pin the association
     // and pre-fill the link name from the chosen association's
     // canonical display name when present.
-    const displayName = diagramBridge.getRelationshipDisplayName(selected)
+    const displayName = displayNameFor(selected)
     updateData({
       associationId: selected.id,
       name: displayName ?? data.name,
@@ -167,7 +183,7 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           <MenuItem value="">— Unlinked —</MenuItem>
           {associations.map((a) => (
             <MenuItem key={a.id} value={a.id}>
-              {diagramBridge.getRelationshipDisplayName(a)}
+              {displayNameFor(a)}
             </MenuItem>
           ))}
         </Select>

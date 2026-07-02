@@ -138,6 +138,62 @@ describe("ObjectEditPanel — Enter-to-next-slot navigation", () => {
   })
 })
 
+describe("ObjectEditPanel — duration and string value widgets", () => {
+  it("renders a duration textfield with the v3 placeholder for timedelta-typed attributes", () => {
+    const { store } = renderPanel([
+      objectNode({
+        attributes: [
+          {
+            id: "a-1",
+            name: "elapsed",
+            attributeType: "timedelta",
+            value: "1d 2h 30m",
+          },
+        ],
+      }),
+    ])
+
+    const input = screen.getByPlaceholderText(
+      "e.g., 1d 2h 30m, P1DT2H30M, 1:30:00"
+    ) as HTMLInputElement
+    expect(input.value).toBe("1d 2h 30m")
+
+    fireEvent.change(input, { target: { value: "PT45M" } })
+    expect(getData(store).attributes[0].value).toBe("PT45M")
+  })
+
+  it("flanks str-typed attribute values with quote glyphs", () => {
+    renderPanel([
+      objectNode({
+        attributes: [
+          { id: "a-1", name: "label", attributeType: "str", value: "hello" },
+        ],
+      }),
+    ])
+
+    expect(screen.getAllByText('"')).toHaveLength(2)
+    expect(screen.getByDisplayValue("hello")).toBeInTheDocument()
+  })
+
+  it("does not quote-wrap non-string fallback values", () => {
+    renderPanel([
+      objectNode({
+        attributes: [
+          {
+            id: "a-1",
+            name: "misc",
+            attributeType: "customType",
+            value: "raw",
+          },
+        ],
+      }),
+    ])
+
+    expect(screen.queryByText('"')).not.toBeInTheDocument()
+    expect(screen.getByDisplayValue("raw")).toBeInTheDocument()
+  })
+})
+
 describe("resolveObjectHeaderLabel — live `name : ClassName` header", () => {
   it("renders the bare name for unlinked instances", () => {
     expect(resolveObjectHeaderLabel({ name: "rex" })).toBe("rex")

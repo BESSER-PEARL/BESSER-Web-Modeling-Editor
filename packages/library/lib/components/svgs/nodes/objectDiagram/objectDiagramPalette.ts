@@ -99,7 +99,9 @@ function buildGenericObjectEntry(): DropElementConfig {
       LAYOUT.DEFAULT_HEADER_HEIGHT + LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT,
     defaultData: {
       name: "Object",
-      attributes: [{ id: generateUUID(), name: "attribute = value" }],
+      attributes: [
+        { id: generateUUID(), name: "attribute", value: "value" },
+      ],
       methods: [],
     },
     svg: ObjectNameSVG,
