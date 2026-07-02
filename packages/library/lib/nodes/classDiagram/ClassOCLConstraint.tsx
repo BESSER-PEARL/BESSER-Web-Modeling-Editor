@@ -48,6 +48,36 @@ function wrapText(text: string, maxCharsPerLine: number, maxLines: number): stri
   return lines
 }
 
+// Read-only stereotype badge derived from the OCL text — mirrors develop's
+// `deriveBadge` (v3 source: uml-class-ocl/uml-class-ocl-constraint-component.tsx)
+// and the backend's routing regex: `context X (inv|pre|post) ...` for
+// invariants, `context X::method(params) (pre|post) ...` for method contracts.
+// `data.kind` wins when present (legacy v3 fixtures carry it explicitly);
+// otherwise derive live from the expression as the user types, exactly like
+// develop. Purely a visual cue — the source of truth is the constraint text.
+const OCL_HEADER_RE = /\bcontext\s+\w+(?:::(\w+)\s*\([^)]*\))?\s+(inv|pre|post)\b/i
+const OCL_BADGE_LABEL: Record<string, string> = {
+  inv: "«inv»",
+  pre: "«pre»",
+  post: "«post»",
+}
+
+function deriveBadge(
+  expression: string,
+  explicitKind?: string
+): { label: string; method?: string } | null {
+  const explicit = explicitKind?.toLowerCase()
+  if (explicit && OCL_BADGE_LABEL[explicit]) {
+    return { label: OCL_BADGE_LABEL[explicit] }
+  }
+  if (!expression) return null
+  const match = OCL_HEADER_RE.exec(expression)
+  if (!match) return null
+  const method = match[1] || undefined
+  const kw = match[2].toLowerCase()
+  return { label: OCL_BADGE_LABEL[kw], method }
+}
+
 const MIN_WIDTH = 160
 const MIN_HEIGHT = 80
 
@@ -67,8 +97,10 @@ export function ClassOCLConstraintNode({
   const padding = 12
   const headerHeight = 18
   const name = (data.name ?? "").trim()
+  const badge = deriveBadge(data.expression || "", data.kind)
   const showName = name.length > 0
-  const contentTop = padding + (showName ? headerHeight : 0)
+  const showHeader = showName || !!badge
+  const contentTop = padding + (showHeader ? headerHeight : 0)
   const contentWidth = w - padding * 2
   const contentHeight = h - contentTop - padding
 
@@ -139,6 +171,26 @@ export function ClassOCLConstraintNode({
               }}
             >
               {name}
+            </text>
+          )}
+          {/* «inv»/«pre»/«post» stereotype badge, live-derived from the OCL
+              text (parity with develop's ClassOCLConstraintComponent).
+              Right-aligned so it never collides with the name header. */}
+          {badge && (
+            <text
+              x={w - fold - 4}
+              y={padding + 2}
+              textAnchor="end"
+              fill={textColor}
+              style={{
+                fontSize: "11px",
+                fontWeight: 600,
+                fontStyle: "italic",
+                dominantBaseline: "hanging",
+              }}
+            >
+              {badge.label}
+              {badge.method ? ` ${badge.method}` : ""}
             </text>
           )}
           {/* Wrapped expression body. */}
