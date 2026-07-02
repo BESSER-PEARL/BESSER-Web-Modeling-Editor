@@ -338,9 +338,14 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     AgentIntentDescription: "AgentIntentDescription",
     AgentIntentObjectComponent: "AgentIntentObjectComponent",
     AgentRagElement: "AgentRagElement",
-    // Reasoning primitives (develop parity) — top-level elements,
+    // Legacy fold: develop merged the standalone `AgentReasoningState`
+    // element into `AgentState` with `stateType: "reasoning"`. Map the
+    // legacy v3 type onto `AgentState` so no v4 node of the old type is
+    // emitted; the data switch (`case "AgentReasoningState"`) seeds
+    // `stateType: "reasoning"` + the reasoning fields.
+    AgentReasoningState: "AgentState",
+    // Capability primitives (develop parity) — top-level elements,
     // no child folding; PascalCase passthrough.
-    AgentReasoningState: "AgentReasoningState",
     AgentTool: "AgentTool",
     AgentSkill: "AgentSkill",
     AgentWorkspace: "AgentWorkspace",
@@ -1223,6 +1228,14 @@ function convertV3NodeDataToV4(
         replyType?: string
         bodies?: string[]
         fallbackBodies?: string[]
+        stateType?: string
+        fallbackBodyEnabled?: boolean
+        llm_name?: string
+        max_steps?: number
+        enable_task_planning?: boolean
+        stream_steps?: boolean
+        system_prompt?: string
+        fallback_message?: string
       }
       const v3RowToV4 = (row: V3UMLElement) => {
         const r = row as V3UMLElement & {
@@ -1235,6 +1248,22 @@ function convertV3NodeDataToV4(
           dbOperation?: string
           dbSqlQuery?: string
           code?: string
+          // Remaining `AgentStateMember` reply-type extras.
+          prompt?: string
+          system_message?: string
+          initial_url?: string
+          max_depth?: number
+          max_pages?: number
+          crawl_format?: string
+          base_url_prefix?: string
+          run_crawl?: boolean
+          no_crawl_error_message?: string
+          system_message_prefix?: string
+          ws_message?: string
+          ws_audio_speed?: number | null
+          ws_options?: string
+          ws_latitude?: number
+          ws_longitude?: number
         }
         return {
           id: r.id,
@@ -1256,6 +1285,37 @@ function convertV3NodeDataToV4(
           ...(r.dbOperation !== undefined && { dbOperation: r.dbOperation }),
           ...(r.dbSqlQuery !== undefined && { dbSqlQuery: r.dbSqlQuery }),
           ...(r.code !== undefined && { code: r.code }),
+          // Remaining `AgentStateMember` extras (develop
+          // `agent-state-member.ts`). Same spread-if-defined idiom.
+          ...(r.prompt !== undefined && { prompt: r.prompt }),
+          ...(r.system_message !== undefined && {
+            system_message: r.system_message,
+          }),
+          ...(r.initial_url !== undefined && { initial_url: r.initial_url }),
+          ...(r.max_depth !== undefined && { max_depth: r.max_depth }),
+          ...(r.max_pages !== undefined && { max_pages: r.max_pages }),
+          ...(r.crawl_format !== undefined && {
+            crawl_format: r.crawl_format,
+          }),
+          ...(r.base_url_prefix !== undefined && {
+            base_url_prefix: r.base_url_prefix,
+          }),
+          ...(r.run_crawl !== undefined && { run_crawl: r.run_crawl }),
+          ...(r.no_crawl_error_message !== undefined && {
+            no_crawl_error_message: r.no_crawl_error_message,
+          }),
+          ...(r.system_message_prefix !== undefined && {
+            system_message_prefix: r.system_message_prefix,
+          }),
+          ...(r.ws_message !== undefined && { ws_message: r.ws_message }),
+          ...(r.ws_audio_speed !== undefined && {
+            ws_audio_speed: r.ws_audio_speed,
+          }),
+          ...(r.ws_options !== undefined && { ws_options: r.ws_options }),
+          ...(r.ws_latitude !== undefined && { ws_latitude: r.ws_latitude }),
+          ...(r.ws_longitude !== undefined && {
+            ws_longitude: r.ws_longitude,
+          }),
           ...((r.fillColor as string | undefined) && {
             fillColor: r.fillColor,
           }),
@@ -1299,6 +1359,29 @@ function convertV3NodeDataToV4(
         ...(e.stereotype !== undefined && { stereotype: e.stereotype }),
         ...(e.italic !== undefined && { italic: !!e.italic }),
         ...(e.underline !== undefined && { underline: !!e.underline }),
+        // Develop `agent-state.ts` state-level fields. `stateType` /
+        // `fallbackBodyEnabled` pass through; the reasoning-only fields
+        // are spread-if-present (they only carry meaning when
+        // `stateType === "reasoning"`, but a standard state may still
+        // round-trip a stashed value).
+        ...(e.stateType !== undefined && { stateType: e.stateType }),
+        ...(e.fallbackBodyEnabled !== undefined && {
+          fallbackBodyEnabled: !!e.fallbackBodyEnabled,
+        }),
+        ...(e.llm_name !== undefined && { llm_name: e.llm_name }),
+        ...(e.max_steps !== undefined && { max_steps: e.max_steps }),
+        ...(e.enable_task_planning !== undefined && {
+          enable_task_planning: !!e.enable_task_planning,
+        }),
+        ...(e.stream_steps !== undefined && {
+          stream_steps: !!e.stream_steps,
+        }),
+        ...(e.system_prompt !== undefined && {
+          system_prompt: e.system_prompt,
+        }),
+        ...(e.fallback_message !== undefined && {
+          fallback_message: e.fallback_message,
+        }),
         ...(mainRows.length > 0 && { bodies: mainRows }),
         ...(fallbackRows.length > 0 && { fallbackBodies: fallbackRows }),
       }
@@ -1361,6 +1444,9 @@ function convertV3NodeDataToV4(
         dbSqlQuery?: string
         ragType?: string
         llm_name?: string
+        llm_prompt?: string
+        k?: number
+        num_previous_messages?: number
       }
       return {
         ...baseData,
@@ -1377,6 +1463,12 @@ function convertV3NodeDataToV4(
         ...(e.ragType !== undefined && { ragType: e.ragType }),
         // Registered LLM reference (multi-LLM wave); empty = default.
         ...(e.llm_name !== undefined && { llm_name: e.llm_name }),
+        // Develop `agent-rag-element.ts` fields.
+        ...(e.llm_prompt !== undefined && { llm_prompt: e.llm_prompt }),
+        ...(e.k !== undefined && { k: e.k }),
+        ...(e.num_previous_messages !== undefined && {
+          num_previous_messages: e.num_previous_messages,
+        }),
       }
     }
 
@@ -1410,11 +1502,16 @@ function convertV3NodeDataToV4(
     }
 
     case "AgentReasoningState": {
-      // Develop `agent-reasoning-state.ts` deserialize defaults:
-      // initial false, llm_name '', max_steps 8, planning + streaming
-      // true, empty prompt / fallback message.
+      // LEGACY FOLD: pre-fold diagrams stored reasoning states as a
+      // standalone `AgentReasoningState` element. Develop folded them
+      // into `AgentState` with `stateType: "reasoning"`. The type map
+      // above already maps this v3 type onto the `AgentState` v4 node
+      // type; here we seed `stateType: "reasoning"` + the reasoning
+      // fields (develop `agent-state.ts` deserialize defaults: llm_name
+      // '', max_steps 8, planning + streaming true, empty prompt /
+      // fallback message) so old saves keep working. `initial` is no
+      // longer a data field — it is re-derived from the init edge.
       const e = element as {
-        initial?: boolean
         llm_name?: string
         max_steps?: number
         enable_task_planning?: boolean
@@ -1424,7 +1521,7 @@ function convertV3NodeDataToV4(
       }
       return {
         ...baseData,
-        initial: e.initial !== undefined ? !!e.initial : false,
+        stateType: "reasoning",
         llm_name: e.llm_name || "",
         max_steps: e.max_steps !== undefined ? e.max_steps : 8,
         enable_task_planning:
@@ -2879,7 +2976,9 @@ const invertNodeType = (v4Type: string): string => {
     AgentIntentDescription: "AgentIntentDescription",
     AgentIntentObjectComponent: "AgentIntentObjectComponent",
     AgentRagElement: "AgentRagElement",
-    AgentReasoningState: "AgentReasoningState",
+    // No `AgentReasoningState` entry: reasoning states are folded into
+    // `AgentState` (`stateType: "reasoning"`), so no v4 node of the old
+    // type exists to invert.
     AgentTool: "AgentTool",
     AgentSkill: "AgentSkill",
     AgentWorkspace: "AgentWorkspace",
@@ -3048,7 +3147,7 @@ export function convertV4ToV3StateMachine(v4: UMLModel): V3UMLModel {
         break
       }
       case "StateActionNode": {
-        const data = node.data as StateActionNodeProps
+        const data = node.data as StateActionNodeProps & { code?: string }
         elements[node.id] = {
           ...baseV3,
           ...(data.code !== undefined && {
@@ -3267,6 +3366,22 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           dbQueryMode?: string
           dbOperation?: string
           dbSqlQuery?: string
+          // Remaining `AgentStateMember` reply-type extras.
+          prompt?: string
+          system_message?: string
+          initial_url?: string
+          max_depth?: number
+          max_pages?: number
+          crawl_format?: string
+          base_url_prefix?: string
+          run_crawl?: boolean
+          no_crawl_error_message?: string
+          system_message_prefix?: string
+          ws_message?: string
+          ws_audio_speed?: number | null
+          ws_options?: string
+          ws_latitude?: number
+          ws_longitude?: number
           fillColor?: string
           textColor?: string
         }
@@ -3280,6 +3395,8 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           const v3Type: string = isFallback
             ? "AgentStateFallbackBody"
             : "AgentStateBody"
+          const rt = row.replyType ?? "text"
+          const isWs = rt.startsWith("ws_")
           elements[row.id] = {
             id: row.id,
             name: row.name ?? "",
@@ -3310,6 +3427,61 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
               dbSqlQuery: row.dbSqlQuery,
             }),
             ...(row.code !== undefined && { code: row.code }),
+            // Remaining `AgentStateMember` extras, gated per-`replyType`
+            // exactly as develop `agent-state-member.ts serialize()`
+            // (spread-if-defined so v4 → v3 → v4 round-trips verbatim):
+            //   rag           → prompt
+            //   llm/llm_chat  → system_message
+            //   web_crawl_llm → initial_url/…/system_message_prefix
+            //   ws_*          → ws_message/ws_audio_speed/ws_options/lat/long
+            ...(rt === "rag" &&
+              row.prompt !== undefined && { prompt: row.prompt }),
+            ...((rt === "llm" || rt === "llm_chat") &&
+              row.system_message !== undefined && {
+                system_message: row.system_message,
+              }),
+            ...(rt === "web_crawl_llm" &&
+              row.initial_url !== undefined && {
+                initial_url: row.initial_url,
+              }),
+            ...(rt === "web_crawl_llm" &&
+              row.max_depth !== undefined && { max_depth: row.max_depth }),
+            ...(rt === "web_crawl_llm" &&
+              row.max_pages !== undefined && { max_pages: row.max_pages }),
+            ...(rt === "web_crawl_llm" &&
+              row.crawl_format !== undefined && {
+                crawl_format: row.crawl_format,
+              }),
+            ...(rt === "web_crawl_llm" &&
+              row.base_url_prefix !== undefined && {
+                base_url_prefix: row.base_url_prefix,
+              }),
+            ...(rt === "web_crawl_llm" &&
+              row.run_crawl !== undefined && { run_crawl: row.run_crawl }),
+            ...(rt === "web_crawl_llm" &&
+              row.no_crawl_error_message !== undefined && {
+                no_crawl_error_message: row.no_crawl_error_message,
+              }),
+            ...(rt === "web_crawl_llm" &&
+              row.system_message_prefix !== undefined && {
+                system_message_prefix: row.system_message_prefix,
+              }),
+            ...(isWs &&
+              row.ws_message !== undefined && { ws_message: row.ws_message }),
+            ...(isWs &&
+              row.ws_audio_speed !== undefined && {
+                ws_audio_speed: row.ws_audio_speed,
+              }),
+            ...(isWs &&
+              row.ws_options !== undefined && { ws_options: row.ws_options }),
+            ...(isWs &&
+              row.ws_latitude !== undefined && {
+                ws_latitude: row.ws_latitude,
+              }),
+            ...(isWs &&
+              row.ws_longitude !== undefined && {
+                ws_longitude: row.ws_longitude,
+              }),
             ...(row.fillColor && { fillColor: row.fillColor }),
             ...(row.textColor && { textColor: row.textColor }),
           } as V3UMLElement
@@ -3318,6 +3490,12 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         }
         for (const row of data.bodies ?? []) emitRow(row, false)
         for (const row of data.fallbackBodies ?? []) emitRow(row, true)
+        // Develop `agent-state.ts serialize()`: always emit `stateType`
+        // + `fallbackBodyEnabled`; emit the reasoning fields only when
+        // `stateType === "reasoning"` (L97-104).
+        const stateType =
+          typeof data.stateType === "string" ? data.stateType : "standard"
+        const isReasoning = stateType === "reasoning"
         elements[node.id] = {
           ...baseV3,
           ...(data.replyType !== undefined && {
@@ -3326,6 +3504,23 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           ...(data.stereotype !== undefined && { stereotype: data.stereotype }),
           ...(data.italic !== undefined && { italic: !!data.italic }),
           ...(data.underline !== undefined && { underline: !!data.underline }),
+          stateType,
+          ...(data.fallbackBodyEnabled !== undefined && {
+            fallbackBodyEnabled: !!data.fallbackBodyEnabled,
+          }),
+          ...(isReasoning && {
+            llm_name: (data.llm_name as string) || "",
+            max_steps:
+              data.max_steps !== undefined ? (data.max_steps as number) : 8,
+            enable_task_planning:
+              data.enable_task_planning !== undefined
+                ? !!data.enable_task_planning
+                : true,
+            stream_steps:
+              data.stream_steps !== undefined ? !!data.stream_steps : true,
+            system_prompt: (data.system_prompt as string) || "",
+            fallback_message: (data.fallback_message as string) || "",
+          }),
           ...(bodyIds.length > 0 && { bodies: bodyIds }),
           ...(fallbackIds.length > 0 && { fallbackBodies: fallbackIds }),
         } as V3UMLElement
@@ -3448,6 +3643,12 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           }),
           ...(data.ragType !== undefined && { ragType: data.ragType }),
           ...(data.llm_name !== undefined && { llm_name: data.llm_name }),
+          // Develop `agent-rag-element.ts` fields.
+          ...(data.llm_prompt !== undefined && { llm_prompt: data.llm_prompt }),
+          ...(data.k !== undefined && { k: data.k }),
+          ...(data.num_previous_messages !== undefined && {
+            num_previous_messages: data.num_previous_messages,
+          }),
         } as V3UMLElement
         break
       }
@@ -3477,27 +3678,10 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         } as V3UMLElement
         break
       }
-      case "AgentReasoningState": {
-        // Emit the develop wire form (`agent-reasoning-state.ts`
-        // serialize()): every field present with its default applied.
-        const data = node.data as Record<string, unknown>
-        elements[node.id] = {
-          ...baseV3,
-          initial: data.initial !== undefined ? !!data.initial : false,
-          llm_name: (data.llm_name as string) || "",
-          max_steps:
-            data.max_steps !== undefined ? (data.max_steps as number) : 8,
-          enable_task_planning:
-            data.enable_task_planning !== undefined
-              ? !!data.enable_task_planning
-              : true,
-          stream_steps:
-            data.stream_steps !== undefined ? !!data.stream_steps : true,
-          system_prompt: (data.system_prompt as string) || "",
-          fallback_message: (data.fallback_message as string) || "",
-        } as V3UMLElement
-        break
-      }
+      // NOTE: no `case "AgentReasoningState"` — reasoning states are
+      // folded into `AgentState` (`stateType: "reasoning"`) and their
+      // reasoning fields are emitted in the `case "AgentState"` block
+      // above, so no v4 node of the old type reaches this switch.
       case "AgentTool": {
         const data = node.data as Record<string, unknown>
         elements[node.id] = {
@@ -4450,26 +4634,21 @@ export function normalizeV4Model(model: UMLModel): UMLModel {
 }
 
 /**
- * Seed develop's deserialize defaults on the agent reasoning-primitive
- * nodes (`AgentReasoningState` / `AgentTool` / `AgentSkill` /
- * `AgentWorkspace`). Mirrors the v3 `deserialize()` methods
- * (`agent-reasoning-state.ts`, `agent-tool.ts`, `agent-skill.ts`,
- * `agent-workspace.ts`): templates or hand-written v4 fixtures that
- * omit a field surface in the editor with the same value v3 would have
- * applied (max_steps 8, planning/streaming/writable true,
- * max_read_bytes 200000, empty strings elsewhere).
+ * Seed develop's deserialize defaults on the agent capability-primitive
+ * nodes (`AgentTool` / `AgentSkill` / `AgentWorkspace`) plus the
+ * data-only `AgentLLM`. Mirrors the v3 `deserialize()` methods
+ * (`agent-tool.ts`, `agent-skill.ts`, `agent-workspace.ts`,
+ * `agent-llm.ts`): templates or hand-written v4 fixtures that omit a
+ * field surface in the editor with the same value v3 would have applied
+ * (planning/streaming/writable true, max_read_bytes 200000, empty
+ * strings elsewhere). Reasoning-state defaults are handled in the
+ * `AgentState` V3→V4 case (the fold), not here.
  */
 function normalizeAgentReasoningPrimitiveDefaults(model: UMLModel): UMLModel {
   const DEFAULTS: Record<string, Record<string, unknown>> = {
-    AgentReasoningState: {
-      initial: false,
-      llm_name: "",
-      max_steps: 8,
-      enable_task_planning: true,
-      stream_steps: true,
-      system_prompt: "",
-      fallback_message: "",
-    },
+    // No `AgentReasoningState` entry: reasoning-state defaulting now
+    // happens inside the `AgentState` V3→V4 case (`stateType:
+    // "reasoning"` seeds max_steps / planning / streaming defaults).
     AgentTool: { description: "", code: "" },
     AgentSkill: { content: "", description: "" },
     AgentWorkspace: {
@@ -4590,7 +4769,9 @@ function normalizeAgentBodyKindToArrays(model: UMLModel): UMLModel {
   type LegacyRow = { id: string; kind?: string } & Record<string, unknown>
   let touched = 0
   const nodes = model.nodes.map((n) => {
-    if (n.type !== "AgentState") return n
+    // `n.type` is a wide node-type union that predates the AgentState
+    // registration; compare via string to avoid a spurious no-overlap.
+    if ((n.type as string) !== "AgentState") return n
     const data = n.data as Record<string, unknown> & {
       bodies?: LegacyRow[]
       fallbackBodies?: LegacyRow[]

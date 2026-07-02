@@ -20,19 +20,20 @@ import { registerNodeTypes } from "../types"
 import { AgentState } from "./AgentState"
 import { AgentIntent } from "./AgentIntent"
 import { AgentRagElement } from "./AgentRagElement"
-import { AgentReasoningState } from "./AgentReasoningState"
 import { AgentTool } from "./AgentTool"
 import { AgentSkill } from "./AgentSkill"
 import { AgentWorkspace } from "./AgentWorkspace"
 import { AgentLLM } from "./AgentLLM"
 
 registerNodeTypes({
+  // AgentState covers both `stateType: 'standard'` and the folded
+  // `stateType: 'reasoning'` mode (develop dropped the separate
+  // `AgentReasoningState` node type).
   AgentState,
   AgentIntent,
   AgentRagElement,
-  // Reasoning primitives (develop parity — Reasoning / Capabilities
-  // palette sections).
-  AgentReasoningState,
+  // Capabilities primitives (develop parity — Capabilities palette
+  // section).
   AgentTool,
   AgentSkill,
   AgentWorkspace,
@@ -44,7 +45,6 @@ registerNodeTypes({
 export * from "./AgentState"
 export * from "./AgentIntent"
 export * from "./AgentRagElement"
-export * from "./AgentReasoningState"
 export * from "./AgentTool"
 export * from "./AgentSkill"
 export * from "./AgentWorkspace"

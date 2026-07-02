@@ -1,21 +1,26 @@
 /**
- * Wave-2 reasoning primitives — AgentReasoningState / AgentTool /
- * AgentSkill / AgentWorkspace.
+ * Agent reasoning-state fold + reasoning primitives —
+ * AgentState(stateType:"reasoning") / AgentTool / AgentSkill /
+ * AgentWorkspace.
  *
- * Asserts (develop parity, `agent-state-diagram` package):
+ * Develop folded the standalone `AgentReasoningState` element into
+ * `AgentState` with `stateType: "reasoning"` (`agent-state.ts`). These
+ * tests assert:
  *
- *  1. v3 → v4 migration maps each primitive to its v4 node with the
- *     develop deserialize defaults applied.
- *  2. v4 → v3 inverse emits the develop serialize() wire form (every
- *     field present, defaults applied).
- *  3. v3 → v4 → v3 keeps the primitive fields intact.
- *  4. `normalizeV4Model` seeds missing defaults on partial v4 nodes
- *     (templates / hand-written fixtures).
- *  5. `resolveAgentEdgeType` treats AgentReasoningState as a
- *     state-like endpoint (init edge promotion).
+ *  1. LEGACY FOLD: a pre-fold v3 `AgentReasoningState` element migrates
+ *     into a v4 `AgentState` node with `stateType: "reasoning"` and the
+ *     develop reasoning fields (backward-compat contract for old saves).
+ *  2. v4 → v3 emits the reasoning state back as an `AgentState` element
+ *     carrying `stateType: "reasoning"` + the reasoning fields (develop
+ *     serialize()).
+ *  3. AgentTool / AgentSkill / AgentWorkspace primitives round-trip.
+ *  4. `normalizeV4Model` seeds missing defaults on the capability
+ *     primitives.
+ *  5. `resolveAgentEdgeType` treats an `AgentState` endpoint (which now
+ *     covers reasoning) as a state-like endpoint (init edge promotion).
  *  6. The AgentDiagram palette carries the develop section layout —
- *     Flow / Reasoning / Knowledge / Capabilities — and the new
- *     drag sources.
+ *     Flow / Knowledge / Capabilities — with the reasoning drag source
+ *     folded into an `AgentState`-typed entry.
  */
 import { describe, it, expect } from "vitest"
 import {
@@ -28,7 +33,7 @@ import { resolveAgentEdgeType } from "@/utils/edgeUtils"
 import { dropElementConfigs } from "@/constants"
 import { UMLDiagramType } from "@/types"
 import type {
-  AgentReasoningStateNodeProps,
+  AgentStateNodeProps,
   AgentSkillNodeProps,
   AgentToolNodeProps,
   AgentWorkspaceNodeProps,
@@ -44,7 +49,10 @@ const bounds = (x: number, y: number, w = 160, h = 80) => ({
   height: h,
 })
 
-/** Minimal v3 AgentDiagram with one of each reasoning primitive. */
+/**
+ * Minimal v3 AgentDiagram carrying one legacy `AgentReasoningState`
+ * element plus one of each capability primitive.
+ */
 const reasoningV3 = {
   version: "3.0.0",
   type: "AgentDiagram",
@@ -99,24 +107,29 @@ const reasoningV3 = {
   assessments: {},
 } as never
 
-/* ───────────────────────────── v3 → v4 ─────────────────────────────── */
+/* ─────────────────────── legacy fold (v3 → v4) ─────────────────────── */
 
-describe("AgentDiagram reasoning primitives v3 → v4", () => {
+describe("AgentReasoningState legacy fold + primitives v3 → v4", () => {
   const v4 = migrateAgentDiagramV3ToV4(reasoningV3)
 
-  it("migrates AgentReasoningState with every develop field", () => {
+  it("folds a legacy AgentReasoningState into an AgentState reasoning node", () => {
     const rs = v4.nodes.find((n) => n.id === "rs-1")!
     expect(rs).toBeDefined()
-    expect(rs.type).toBe("AgentReasoningState")
-    const data = rs.data as AgentReasoningStateNodeProps
+    // Legacy fold: no separate `AgentReasoningState` v4 node type.
+    expect(rs.type).toBe("AgentState")
+    const data = rs.data as AgentStateNodeProps
     expect(data.name).toBe("reason")
-    expect(data.initial).toBe(true)
+    expect(data.stateType).toBe("reasoning")
     expect(data.llm_name).toBe("gpt-4o-mini")
     expect(data.max_steps).toBe(15)
     expect(data.enable_task_planning).toBe(true)
     expect(data.stream_steps).toBe(false)
     expect(data.system_prompt).toBe("Be concise.")
     expect(data.fallback_message).toBe("Loop failed.")
+    // No v4 node of the retired type survives.
+    expect(v4.nodes.some((n) => (n.type as string) === "AgentReasoningState")).toBe(
+      false
+    )
   })
 
   it("migrates AgentTool with description + code", () => {
@@ -148,7 +161,7 @@ describe("AgentDiagram reasoning primitives v3 → v4", () => {
     expect(data.max_read_bytes).toBe(50000)
   })
 
-  it("applies develop deserialize defaults when v3 fields are absent", () => {
+  it("seeds develop reasoning defaults when a legacy state omits them", () => {
     const sparse = {
       version: "3.0.0",
       type: "AgentDiagram",
@@ -175,14 +188,15 @@ describe("AgentDiagram reasoning primitives v3 → v4", () => {
     } as never
     const out = convertV3ToV4(sparse)
     const rs = out.nodes.find((n) => n.id === "rs-min")!
-      .data as AgentReasoningStateNodeProps
-    expect(rs.initial).toBe(false)
-    expect(rs.llm_name).toBe("")
-    expect(rs.max_steps).toBe(8)
-    expect(rs.enable_task_planning).toBe(true)
-    expect(rs.stream_steps).toBe(true)
-    expect(rs.system_prompt).toBe("")
-    expect(rs.fallback_message).toBe("")
+    expect(rs.type).toBe("AgentState")
+    const rsData = rs.data as AgentStateNodeProps
+    expect(rsData.stateType).toBe("reasoning")
+    expect(rsData.llm_name).toBe("")
+    expect(rsData.max_steps).toBe(8)
+    expect(rsData.enable_task_planning).toBe(true)
+    expect(rsData.stream_steps).toBe(true)
+    expect(rsData.system_prompt).toBe("")
+    expect(rsData.fallback_message).toBe("")
     const ws = out.nodes.find((n) => n.id === "ws-min")!
       .data as AgentWorkspaceNodeProps
     expect(ws.path).toBe("")
@@ -193,14 +207,15 @@ describe("AgentDiagram reasoning primitives v3 → v4", () => {
 
 /* ───────────────────────────── v4 → v3 ─────────────────────────────── */
 
-describe("AgentDiagram reasoning primitives v4 → v3 inverse", () => {
+describe("Reasoning state + primitives v4 → v3 inverse", () => {
   const v4 = migrateAgentDiagramV3ToV4(reasoningV3)
   const v3 = convertV4ToV3Agent(v4)
 
-  it("re-emits AgentReasoningState fields on the v3 wire form", () => {
+  it("re-emits the reasoning state as an AgentState + stateType wire form", () => {
     const rs = v3.elements["rs-1"] as Record<string, unknown>
-    expect(rs.type).toBe("AgentReasoningState")
-    expect(rs.initial).toBe(true)
+    // No more separate `AgentReasoningState` wire type.
+    expect(rs.type).toBe("AgentState")
+    expect(rs.stateType).toBe("reasoning")
     expect(rs.llm_name).toBe("gpt-4o-mini")
     expect(rs.max_steps).toBe(15)
     expect(rs.enable_task_planning).toBe(true)
@@ -222,10 +237,21 @@ describe("AgentDiagram reasoning primitives v4 → v3 inverse", () => {
     expect(ws.max_read_bytes).toBe(50000)
   })
 
-  it("v3 → v4 → v3 keeps the primitive fields intact", () => {
-    const source = (reasoningV3 as { elements: Record<string, never> })
-      .elements
-    for (const id of ["rs-1", "tool-1", "skill-1", "ws-1"]) {
+  it("v3 → v4 → v3 keeps the reasoning fields intact (minus the folded type/initial)", () => {
+    const rs = v3.elements["rs-1"] as Record<string, unknown>
+    // `initial` is no longer a data field on a reasoning state — it is
+    // re-derived from the init edge, so it does not round-trip here.
+    expect(rs.llm_name).toBe("gpt-4o-mini")
+    expect(rs.max_steps).toBe(15)
+    expect(rs.enable_task_planning).toBe(true)
+    expect(rs.stream_steps).toBe(false)
+    expect(rs.system_prompt).toBe("Be concise.")
+    expect(rs.fallback_message).toBe("Loop failed.")
+  })
+
+  it("v3 → v4 → v3 keeps the capability-primitive fields intact", () => {
+    const source = (reasoningV3 as { elements: Record<string, never> }).elements
+    for (const id of ["tool-1", "skill-1", "ws-1"]) {
       const before = source[id] as Record<string, unknown>
       const after = v3.elements[id] as Record<string, unknown>
       for (const key of Object.keys(before)) {
@@ -238,21 +264,12 @@ describe("AgentDiagram reasoning primitives v4 → v3 inverse", () => {
 
 /* ─────────────────────────── normalizeV4Model ──────────────────────── */
 
-describe("normalizeV4Model — reasoning primitive defaults", () => {
+describe("normalizeV4Model — capability primitive defaults", () => {
   it("seeds develop defaults on partial v4 nodes", () => {
     const model = {
       version: "4.0.0",
       type: "AgentDiagram",
       nodes: [
-        {
-          id: "rs-1",
-          type: "AgentReasoningState",
-          position: { x: 0, y: 0 },
-          width: 200,
-          height: 80,
-          measured: { width: 200, height: 80 },
-          data: { name: "reason" },
-        },
         {
           id: "tool-1",
           type: "AgentTool",
@@ -277,13 +294,6 @@ describe("normalizeV4Model — reasoning primitive defaults", () => {
     } as unknown as UMLModel
 
     const out = normalizeV4Model(model)
-    const rs = out.nodes.find((n) => n.id === "rs-1")!
-      .data as AgentReasoningStateNodeProps
-    expect(rs.max_steps).toBe(8)
-    expect(rs.enable_task_planning).toBe(true)
-    expect(rs.stream_steps).toBe(true)
-    expect(rs.llm_name).toBe("")
-    expect(rs.initial).toBe(false)
     const tool = out.nodes.find((n) => n.id === "tool-1")!
       .data as AgentToolNodeProps
     expect(tool.description).toBe("kept") // explicit value untouched
@@ -319,39 +329,32 @@ describe("normalizeV4Model — reasoning primitive defaults", () => {
 
 /* ─────────────────────────── resolveAgentEdgeType ──────────────────── */
 
-describe("resolveAgentEdgeType — reasoning states", () => {
-  it("initial → AgentReasoningState promotes to AgentStateTransitionInit", () => {
+describe("resolveAgentEdgeType — AgentState (covers reasoning)", () => {
+  it("initial → AgentState promotes to AgentStateTransitionInit", () => {
     expect(
       resolveAgentEdgeType(
         "StateInitialNode",
-        "AgentReasoningState",
+        "AgentState",
         "AgentStateTransition"
       )
     ).toBe("AgentStateTransitionInit")
   })
 
-  it("AgentReasoningState → initial promotes to AgentStateTransitionInit", () => {
+  it("AgentState → initial promotes to AgentStateTransitionInit", () => {
     expect(
       resolveAgentEdgeType(
-        "AgentReasoningState",
+        "AgentState",
         "StateInitialNode",
         "AgentStateTransition"
       )
     ).toBe("AgentStateTransitionInit")
   })
 
-  it("AgentReasoningState ↔ AgentState falls back to the default transition", () => {
-    expect(
-      resolveAgentEdgeType(
-        "AgentReasoningState",
-        "AgentState",
-        "AgentStateTransition"
-      )
-    ).toBe("AgentStateTransition")
+  it("AgentState ↔ AgentState falls back to the default transition", () => {
     expect(
       resolveAgentEdgeType(
         "AgentState",
-        "AgentReasoningState",
+        "AgentState",
         "AgentStateTransition"
       )
     ).toBe("AgentStateTransition")
@@ -360,7 +363,7 @@ describe("resolveAgentEdgeType — reasoning states", () => {
   it("tool / skill / workspace endpoints keep the fallback", () => {
     for (const t of ["AgentTool", "AgentSkill", "AgentWorkspace"]) {
       expect(
-        resolveAgentEdgeType(t, "AgentReasoningState", "AgentStateTransition")
+        resolveAgentEdgeType(t, "AgentState", "AgentStateTransition")
       ).toBe("AgentStateTransition")
     }
   })
@@ -371,27 +374,39 @@ describe("resolveAgentEdgeType — reasoning states", () => {
 describe("AgentDiagram palette — develop section layout", () => {
   const palette = dropElementConfigs[UMLDiagramType.AgentDiagram]
 
-  it("carries the four titled sections in develop order", () => {
+  it("carries the three titled sections in develop order", () => {
     const labels = palette
       .map((entry) => entry.sectionLabel)
       .filter((label): label is string => !!label)
-    expect(labels).toEqual(["Flow", "Reasoning", "Knowledge", "Capabilities"])
+    expect(labels).toEqual(["Flow", "Knowledge", "Capabilities"])
   })
 
-  it("offers a drag source for each reasoning primitive", () => {
+  it("offers a drag source for each capability primitive + a reasoning AgentState", () => {
     const types = palette.map((entry) => entry.type as string)
-    expect(types).toContain("AgentReasoningState")
+    expect(types).toContain("AgentState")
     expect(types).toContain("AgentTool")
     expect(types).toContain("AgentSkill")
     expect(types).toContain("AgentWorkspace")
+    // No standalone AgentReasoningState palette type after the fold.
+    expect(types).not.toContain("AgentReasoningState")
+    // The reasoning shortcut is an AgentState-typed entry.
+    const reasoning = palette.find(
+      (e) =>
+        (e.type as string) === "AgentState" &&
+        (e.defaultData as { stateType?: string })?.stateType === "reasoning"
+    )
+    expect(reasoning).toBeDefined()
   })
 
-  it("ReasoningState drag source ships the develop element defaults", () => {
+  it("reasoning drag source ships the develop element defaults on AgentState", () => {
     const entry = palette.find(
-      (e) => (e.type as string) === "AgentReasoningState"
+      (e) =>
+        (e.type as string) === "AgentState" &&
+        (e.defaultData as { stateType?: string })?.stateType === "reasoning"
     )!
     expect(entry.defaultData).toMatchObject({
       name: "ReasoningState",
+      stateType: "reasoning",
       llm_name: "",
       max_steps: 8,
       enable_task_planning: true,

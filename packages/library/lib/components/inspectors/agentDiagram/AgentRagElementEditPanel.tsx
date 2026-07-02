@@ -99,6 +99,51 @@ export const AgentRagElementEditPanel: React.FC<PopoverProps> = ({
           </MenuItem>
         ))}
       </Select>
+
+      {/* Develop `agent-rag-element-update.tsx` L71-94: LLM prompt prefix,
+          K (retrieved chunks, clamped >= 1), num previous messages
+          (clamped >= 0). */}
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        multiline
+        minRows={2}
+        label="LLM Prompt Prefix"
+        value={data.llm_prompt ?? ""}
+        onChange={(e) => update({ llm_prompt: e.target.value })}
+      />
+
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        type="number"
+        label="K (retrieved chunks)"
+        value={data.k ?? 4}
+        onChange={(e) => {
+          const parsed = parseInt(e.target.value, 10)
+          update({ k: Math.max(1, Number.isNaN(parsed) ? 4 : parsed) })
+        }}
+      />
+
+      <MuiTextField
+        size="small"
+        variant="outlined"
+        fullWidth
+        type="number"
+        label="Num Previous Messages"
+        value={data.num_previous_messages ?? 0}
+        onChange={(e) => {
+          const parsed = parseInt(e.target.value, 10)
+          update({
+            num_previous_messages: Math.max(
+              0,
+              Number.isNaN(parsed) ? 0 : parsed
+            ),
+          })
+        }}
+      />
     </Box>
   )
 }

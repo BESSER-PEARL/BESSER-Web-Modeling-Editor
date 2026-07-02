@@ -425,7 +425,14 @@ export type AgentStateBodyRow = {
   name?: string
   /** Optional code body when `replyType === 'code'`. */
   code?: string
-  /** v3 `AgentStateMember.replyType`. */
+  /**
+   * Develop `AgentStateMember.replyType`. One of
+   * `'text' | 'llm' | 'llm_chat' | 'rag' | 'db_reply' | 'code' |
+   * 'web_crawl_llm' | 'ws_markdown' | 'ws_html' | 'ws_speech' |
+   * 'ws_options' | 'ws_location' | 'ws_file' | 'ws_image' |
+   * 'ws_dataframe' | 'ws_plotly'`. Kept `string`-typed to match
+   * develop's untyped `replyType`. Defaults to `'text'`.
+   */
   replyType?: string
   /**
    * Registered `AgentLLM` name used by `llm` replies and `db_reply`
@@ -440,6 +447,39 @@ export type AgentStateBodyRow = {
   dbQueryMode?: string
   dbOperation?: string
   dbSqlQuery?: string
+  /* --- Remaining `AgentStateMember` reply-type extras (develop
+     `agent-state-member.ts` L11-34). Each only meaningful for the reply
+     type noted; carried verbatim so v3 round-trips stay lossless. --- */
+  /** `rag`: prompt override passed to `RAGReply(prompt=…)` (distinct from `ragDatabaseName`). */
+  prompt?: string
+  /** `llm` / `llm_chat`: system message. */
+  system_message?: string
+  /** `web_crawl_llm`: seed URL to crawl. */
+  initial_url?: string
+  /** `web_crawl_llm`: max crawl depth (develop default 2). */
+  max_depth?: number
+  /** `web_crawl_llm`: max pages to fetch (develop default 20). */
+  max_pages?: number
+  /** `web_crawl_llm`: crawl output format (`markdown` | `text` | `html`). */
+  crawl_format?: string
+  /** `web_crawl_llm`: restrict crawl to URLs under this prefix. */
+  base_url_prefix?: string
+  /** `web_crawl_llm`: run the crawl vs reuse cached result (develop default true). */
+  run_crawl?: boolean
+  /** `web_crawl_llm`: message shown when `run_crawl` is off and no cache exists. */
+  no_crawl_error_message?: string
+  /** `web_crawl_llm`: optional system-message prefix. */
+  system_message_prefix?: string
+  /** `ws_markdown` / `ws_html` / `ws_speech`: reply message text. */
+  ws_message?: string
+  /** `ws_speech`: optional audio playback speed (`null` = default). */
+  ws_audio_speed?: number | null
+  /** `ws_options`: newline-separated option list. */
+  ws_options?: string
+  /** `ws_location`: latitude. */
+  ws_latitude?: number
+  /** `ws_location`: longitude. */
+  ws_longitude?: number
   /** Optional fillColor / textColor passthrough for round-trip parity. */
   fillColor?: string
   textColor?: string
@@ -474,6 +514,30 @@ export type AgentStateNodeProps = StateNodeProps & {
    * `AgentStateFallbackBody` elements.
    */
   fallbackBodies?: AgentStateBodyRow[]
+  /**
+   * Develop `agent-state.ts` `stateType` discriminator. `'standard'`
+   * (default) renders the body / fallback rows; `'reasoning'` folds the
+   * former standalone `AgentReasoningState` node into this type — an
+   * autonomous reasoning-loop state rendered with a purple accent and a
+   * `🧠 «reasoning»` header, driven by the reasoning-config fields below.
+   * Toggling back to `'standard'` restores `bodies` / `fallbackBodies`
+   * untouched (they are preserved regardless of `stateType`).
+   */
+  stateType?: "standard" | "reasoning"
+  /** Whether the Fallback Body section is active (develop default true). */
+  fallbackBodyEnabled?: boolean
+  /** Reasoning: registered `AgentLLM` name; empty = agent default. */
+  llm_name?: string
+  /** Reasoning: loop step budget (develop default 8). */
+  max_steps?: number
+  /** Reasoning: enable task-planning (develop default true). */
+  enable_task_planning?: boolean
+  /** Reasoning: stream intermediate steps (develop default true). */
+  stream_steps?: boolean
+  /** Reasoning: optional system-prompt prefix for this state. */
+  system_prompt?: string
+  /** Reasoning: message returned if the reasoning loop fails. */
+  fallback_message?: string
 }
 
 /**
@@ -582,6 +646,21 @@ export type AgentIntentObjectComponentNodeProps = DefaultNodeProps & {
 export type AgentRagElementNodeProps = DefaultNodeProps & {
   /** Registered LLM name; empty = use the agent default. */
   llm_name?: string
+  /**
+   * LLM prompt prefix passed to the RAG reply. Develop
+   * `agent-rag-element.ts` default `''`.
+   */
+  llm_prompt?: string
+  /**
+   * Number of retrieved chunks (`k`). Develop default `4`, clamped
+   * to `>= 1` in the inspector.
+   */
+  k?: number
+  /**
+   * Chat-history window handed to the RAG reply. Develop default `0`,
+   * clamped to `>= 0` in the inspector.
+   */
+  num_previous_messages?: number
 }
 
 /**
@@ -608,15 +687,18 @@ export type AgentLLMNodeProps = DefaultNodeProps & {
 }
 
 /**
- * `AgentReasoningState` — autonomous reasoning-loop state (purple
- * rounded rectangle with a `▷ «reasoning»` header). Develop source:
- * `agent-state-diagram/agent-reasoning-state/agent-reasoning-state.ts`.
+ * @deprecated Legacy wire-shape only. Develop folded the standalone
+ * `AgentReasoningState` node into `AgentState` with
+ * `stateType: 'reasoning'` (see `AgentStateNodeProps`). No live node type
+ * references this after the fold; it is retained purely so the one-time
+ * `versionConverter.ts` legacy-import path can read pre-fold diagrams
+ * (`type: "AgentReasoningState"`) and convert them into `AgentState`
+ * reasoning nodes. Do not register a node/inspector/palette entry
+ * against it.
  *
  * `llm_name` references a registered `AgentLLM` definition by name; an
  * empty string means "(use default)" — the agent's default LLM resolves
- * at codegen time. The AgentLLM definitions themselves arrive with the
- * multi-LLM wave; until then the inspector offers "(use default)" plus
- * any AgentLLM nodes present in the model (none yet).
+ * at codegen time.
  */
 export type AgentReasoningStateNodeProps = DefaultNodeProps & {
   /** Mirrors v3 `initial` — set when the init edge targets this state. */

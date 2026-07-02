@@ -9,6 +9,7 @@ import { useDiagramStore } from "@/store/context"
 import { AgentStateBodyRow, AgentStateNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { AGENT_PRIMITIVE_COLORS } from "./agentPrimitiveColors"
 
 /**
  * `AgentState` renders body sections inline.
@@ -20,15 +21,23 @@ import { getCustomColorsFromData } from "@/utils/layoutUtils"
  * undoes that split — bodies live on `data.bodies` and render as inline
  * rows here.
  *
- * Layout:
- *  - Header (stereotype + name).
- *  - Header divider (when any body row exists).
- *  - Main body rows (entry / do / exit / on).
- *  - Fallback divider (when at least one fallback row exists alongside
- *    main rows; mirrors v3's `hasFallbackBody` check).
- *  - Fallback rows.
+ * Two render modes, keyed on `data.stateType`:
+ *  - `'reasoning'` (folded from the former standalone `AgentReasoningState`
+ *    node): purple-accent rounded rect, `🧠 «reasoning»` header + bold
+ *    name, an accent divider under the fixed 50px header, and the resolved
+ *    LLM label (`LLM: <name>` / `LLM: (use default)`). Body rows are not
+ *    shown and the auto-grow effect is skipped (fixed height). Mirrors
+ *    develop `agent-state-component.tsx` L18-70.
+ *  - `'standard'` (default):
+ *     - Header (stereotype + name).
+ *     - Header divider (when any body row exists).
+ *     - Main body rows (entry / do / exit / on).
+ *     - Fallback divider (when at least one fallback row exists alongside
+ *       main rows; mirrors v3's `hasFallbackBody` check).
+ *     - Fallback rows.
  */
 const ROW_HEIGHT = 30
+const REASONING_HEADER_HEIGHT = 50
 
 const renderRow = (
   body: AgentStateBodyRow,
@@ -108,12 +117,12 @@ export function AgentState({
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
-
-  if (!width || !height) return null
+  const setNodes = useDiagramStore((state) => state.setNodes)
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
   const { name, stereotype, italic, underline } = data
   const cornerRadius = 8
+  const isReasoning = data.stateType === "reasoning"
   const showStereotype = !!stereotype
   const headerHeight = showStereotype
     ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
@@ -136,8 +145,11 @@ export function AgentState({
     (mainBodies.length + fallbackBodies.length) * ROW_HEIGHT +
     (hasFallbackDivider ? 12 : 0) +
     16 // bottom padding
-  const setNodes = useDiagramStore((state) => state.setNodes)
   useEffect(() => {
+    // Reasoning states use a fixed size (develop `agent-state.ts`
+    // `reasoningStateHeight`), so skip the row-driven auto-grow.
+    if (isReasoning) return
+    if (!width || !height) return
     if (height < requiredHeight) {
       setNodes((all) =>
         all.map((n) =>
@@ -155,7 +167,91 @@ export function AgentState({
         )
       )
     }
-  }, [requiredHeight, height, id, setNodes, width])
+  }, [requiredHeight, height, id, setNodes, width, isReasoning])
+
+  if (!width || !height) return null
+
+  // ── Reasoning-state render (folded AgentReasoningState) ────────────────
+  if (isReasoning) {
+    const accent = strokeColor || AGENT_PRIMITIVE_COLORS.reasoning.accent
+    const llmLabel = data.llm_name
+      ? `LLM: ${data.llm_name}`
+      : "LLM: (use default)"
+    return (
+      <DefaultNodeWrapper width={width} height={height} elementId={id}>
+        <NodeToolbar elementId={id} />
+        <NodeResizer
+          isVisible={isDiagramModifiable}
+          onResize={onResize}
+          minWidth={120}
+          minHeight={80}
+          handleStyle={{ width: 8, height: 8 }}
+        />
+        <div ref={wrapperRef}>
+          <svg
+            width={width}
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            overflow="visible"
+          >
+            <rect
+              x={0}
+              y={0}
+              width={width}
+              height={height}
+              rx={cornerRadius}
+              ry={cornerRadius}
+              fill={fillColor}
+              stroke={accent}
+              strokeWidth={LAYOUT.LINE_WIDTH}
+            />
+            <text
+              x={width / 2}
+              y={20}
+              textAnchor="middle"
+              fontSize={LAYOUT.STEREOTYPE_LINE_HEIGHT}
+              fontWeight="bold"
+              fill={accent}
+            >
+              {"🧠 «reasoning»"}
+            </text>
+            <text
+              x={width / 2}
+              y={40}
+              textAnchor="middle"
+              fontSize={LAYOUT.NAME_FONT_SIZE}
+              fontWeight="600"
+              fill={textColor}
+            >
+              {name}
+            </text>
+            <line
+              x1={0}
+              x2={width}
+              y1={REASONING_HEADER_HEIGHT}
+              y2={REASONING_HEADER_HEIGHT}
+              stroke={accent}
+              strokeWidth={1}
+            />
+            <text
+              x={width / 2}
+              y={REASONING_HEADER_HEIGHT + 19}
+              textAnchor="middle"
+              fontSize={LAYOUT.NAME_FONT_SIZE - 2}
+              fill={textColor}
+            >
+              {llmLabel}
+            </text>
+          </svg>
+        </div>
+        <PopoverManager
+          anchorEl={wrapperRef.current}
+          elementId={id}
+          type={"AgentState" as const}
+        />
+      </DefaultNodeWrapper>
+    )
+  }
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>

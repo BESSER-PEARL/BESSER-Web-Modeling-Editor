@@ -56,13 +56,18 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(greet.type).toBe("AgentState")
     const greetData = greet.data as AgentStateNodeProps
     expect(greetData.replyType).toBe("text")
+    // Main + fallback rows live in separate arrays (`data.bodies` /
+    // `data.fallbackBodies`) — the array IS the section discriminator
+    // (the legacy `kind: "fallback"` marker was removed).
     expect(greetData.bodies).toBeDefined()
-    expect(greetData.bodies!.length).toBe(2)
-    const greetBody = greetData.bodies!.find((b) => b.kind !== "fallback")!
+    expect(greetData.bodies!.length).toBe(1)
+    const greetBody = greetData.bodies![0]
     expect(greetBody.id).toBe("asb-Greet-1")
     expect(greetBody.name).toBe("Hello there!")
     expect(greetBody.replyType).toBe("text")
-    const greetFallback = greetData.bodies!.find((b) => b.kind === "fallback")!
+    expect(greetData.fallbackBodies).toBeDefined()
+    expect(greetData.fallbackBodies!.length).toBe(1)
+    const greetFallback = greetData.fallbackBodies![0]
     expect(greetFallback.id).toBe("asfb-Greet-1")
 
     const help = v4.nodes.find((n) => n.id === "as-Help")!
@@ -593,9 +598,10 @@ describe("AgentIntentDescription / ObjectComponent v4 → v3 export safety", () 
     const result = normalizeAgentBodies(fixture as never)
     expect(result.nodes.length).toBe(1)
     const data = result.nodes[0].data as AgentStateNodeProps
-    expect(data.bodies?.length).toBe(1)
-    expect(data.bodies?.[0].kind).toBe("fallback")
-    expect(data.bodies?.[0].name).toBe("fallback")
+    // Floating AgentStateFallbackBody folds onto the parent's separate
+    // `fallbackBodies` array (not `bodies` with a `kind` marker).
+    expect(data.fallbackBodies?.length).toBe(1)
+    expect(data.fallbackBodies?.[0].name).toBe("fallback")
   })
 
   it("drops orphan floating bodies when no AgentState exists", () => {

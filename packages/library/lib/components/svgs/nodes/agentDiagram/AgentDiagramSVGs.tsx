@@ -229,9 +229,13 @@ type PrimitiveSVGProps = SVGComponentProps & {
 }
 
 /**
- * Palette preview for `AgentReasoningState` — purple rounded rect with
- * the `▷ «reasoning»` header and the "(use default)" LLM line, mirroring
- * the canvas node (develop `agent-state-preview.ts` reasoning entry).
+ * Palette preview for the reasoning-mode AgentState drag source — purple
+ * rounded rect with the `▷ «reasoning»` header and the "(use default)"
+ * LLM line. Develop folded the standalone `AgentReasoningState` node into
+ * `AgentState` with `stateType: "reasoning"`, so this SVG is now the icon
+ * for an `AgentState`-typed palette entry (see `constants.ts`) rather than
+ * a distinct `AgentReasoningState` type. The component itself is
+ * unchanged; only its consumer differs.
  */
 export const AgentReasoningStateSVG: React.FC<PrimitiveSVGProps> = ({
   width,

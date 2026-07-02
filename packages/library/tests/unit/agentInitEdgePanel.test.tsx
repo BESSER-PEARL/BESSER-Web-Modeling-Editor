@@ -142,7 +142,15 @@ describe("AgentDiagramInitEdgeEditPanel", () => {
 
 describe("AgentDiagram palette — AgentState previews (develop parity)", () => {
   const entries = dropElementConfigs[UMLDiagramType.AgentDiagram]
-  const states = entries.filter((e) => (e.type as string) === "AgentState")
+  // Standard AgentState body previews. The reasoning drag source is also
+  // `AgentState`-typed (develop folded AgentReasoningState into
+  // `stateType: "reasoning"`), so exclude it here to count only the
+  // standard body-preview variants.
+  const states = entries.filter(
+    (e) =>
+      (e.type as string) === "AgentState" &&
+      (e.defaultData as { stateType?: string })?.stateType !== "reasoning"
+  )
 
   it("offers three AgentState previews (empty / body / body+fallback)", () => {
     // Develop `agent-state-preview.ts` composes emptyAgentState,

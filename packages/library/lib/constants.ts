@@ -947,11 +947,12 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
   // body / fallback / intent body / description child nodes are NOT
   // included — they're inserted automatically inside the parent
   // container, mirroring v3 behaviour.
-  // Develop visual section order — Flow → Reasoning →
-  // Knowledge → Capabilities. Section labels mirror develop
-  // `agent-state-diagram/agent-state-preview.ts` (`sectionTitle(...)`
-  // entries); the `sectionLabel` field on a group's first entry tells
-  // `Sidebar.tsx` to prepend a divider + heading (same mechanism as
+  // Visual section order — Flow → Knowledge → Capabilities. The
+  // reasoning-state drag source lives in the Flow section (as an
+  // `AgentState`-typed entry with `stateType: "reasoning"`) since develop
+  // folded reasoning into AgentState and dropped the separate "Reasoning"
+  // palette section. The `sectionLabel` field on a group's first entry
+  // tells `Sidebar.tsx` to prepend a divider + heading (same mechanism as
   // the NN palette).
   [UMLDiagramType.AgentDiagram]: [
     // Per user (2025-05): AgentDiagram palette only carries the initial
@@ -1022,15 +1023,23 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       svg: AgentStateSVG,
     },
     {
-      // Autonomous reasoning-loop state. Default data mirrors the
-      // develop element defaults (`agent-reasoning-state.ts`):
-      // max_steps 8, planning + streaming on, empty llm_name = "(use
-      // default)".
-      type: "AgentReasoningState" as never,
+      // Autonomous reasoning-loop state. Develop folded the standalone
+      // `AgentReasoningState` node into `AgentState` with
+      // `stateType: "reasoning"`, so this drag source is now an
+      // `AgentState`-typed entry carrying the reasoning defaults
+      // (`agent-state.ts`): max_steps 8, planning + streaming on, empty
+      // llm_name = "(use default)". Develop's current palette has no
+      // reasoning shortcut (users flip "State Type" in the inspector);
+      // this entry is a discoverability superset over the identical
+      // data model, kept per the project's "no deliberate drops" policy.
+      // It folds into the "Flow" section (no `sectionLabel` — develop has
+      // no "Reasoning" palette section header).
+      type: "AgentState" as never,
       width: 200,
       height: 80,
       defaultData: {
         name: "ReasoningState",
+        stateType: "reasoning",
         llm_name: "",
         max_steps: 8,
         enable_task_planning: true,
@@ -1039,7 +1048,6 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
         fallback_message: "",
       },
       svg: AgentReasoningStateSVG,
-      sectionLabel: "Reasoning",
     },
     {
       type: "AgentIntent" as never,

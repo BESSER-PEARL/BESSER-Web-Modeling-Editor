@@ -963,11 +963,11 @@ export const normalizeNNCompositionEndpoints = <
  * supports `[AgentStateTransitionInit, StateTransition]` and AgentState
  * supports `[AgentStateTransition, AgentStateTransitionInit, Link]`, so
  * initial ↔ AgentState (either direction) intersects to
- * `AgentStateTransitionInit`. `AgentReasoningState` declares the same
- * supported relationships as `AgentState` (develop
- * `agent-reasoning-state.ts` `supportedRelationships`), so reasoning
- * states participate in transitions identically — including being the
- * initial-edge target. Everything else (state ↔ state, anything
+ * `AgentStateTransitionInit`. Reasoning states are no longer a distinct
+ * type — develop folded them into `AgentState` with
+ * `data.stateType === "reasoning"`, so a reasoning node is still
+ * `type: "AgentState"` and participates in transitions identically
+ * (including being the initial-edge target). Everything else (state ↔ state, anything
  * touching intents / RAG elements) falls back to the diagram default
  * `AgentStateTransition`.
  */
@@ -977,8 +977,10 @@ export const resolveAgentEdgeType = (
   fallback: DiagramEdgeType
 ): DiagramEdgeType => {
   const isInitial = (t?: string) => t === "StateInitialNode"
-  const isAgentState = (t?: string) =>
-    t === "AgentState" || t === "AgentReasoningState"
+  // Reasoning states carry `type: "AgentState"` (only `data.stateType`
+  // differs after develop folded the separate `AgentReasoningState`
+  // type), so `"AgentState"` alone covers both modes.
+  const isAgentState = (t?: string) => t === "AgentState"
   if (
     (isInitial(sourceType) &&
       (isAgentState(targetType) || isInitial(targetType))) ||
@@ -1000,7 +1002,7 @@ export const resolveAgentEdgeType = (
  *
  * Decision (parity superset, recorded here on purpose): develop only
  * tethered cleanly to elements that listed `GeneralRelationshipType.Link`
- * (UMLClass, ObjectName, State, AgentState, AgentReasoningState,
+ * (UMLClass, ObjectName, State, AgentState — standard and reasoning,
  * UserModelName, Comments). Endpoints WITHOUT it (AbstractClass,
  * Interface, OCL constraint) fell through to the mistyped diagram
  * default (e.g. `ClassBidirectional`) — a develop bug, not a

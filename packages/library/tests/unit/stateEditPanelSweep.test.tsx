@@ -131,29 +131,34 @@ describe("StateEditPanel — per-row colors (A2a)", () => {
   })
 })
 
-describe("AgentStateEditPanel — rapid-entry keyboard flow (A2b)", () => {
-  it("Enter in the add-text-body field appends a text row and clears", () => {
+describe("AgentStateEditPanel — multi-action ActionCard flow", () => {
+  // The migration-specific "+ add text body (Enter)" rapid-entry field was
+  // replaced by develop's ActionCard model (`agent-state-update.tsx`): a
+  // per-section "Add action" 2-level picker (Simple / AI / Data tab → type
+  // → Add). The Simple tab defaults to "text", so clicking the main
+  // section's Add button appends a seeded text action.
+  it("adds a text action to the body section via the Add button", () => {
     const { store } = renderWith([agentStateNode()], AgentStateEditPanel)
 
-    // Both sections render an add field; the first belongs to the
-    // main body section.
-    const addFields = screen.getAllByPlaceholderText("+ add text body (Enter)")
-    expect(addFields.length).toBeGreaterThan(0)
+    // Two "Add" buttons render (Body + Fallback Body); the first belongs
+    // to the main body section.
+    const addButtons = screen.getAllByRole("button", { name: "Add" })
+    expect(addButtons.length).toBeGreaterThan(0)
 
-    fireEvent.change(addFields[0], { target: { value: "Hello there!" } })
-    fireEvent.keyDown(addFields[0], { key: "Enter" })
+    fireEvent.click(addButtons[0])
 
     const data = store
       .getState()
       .nodes.find((n) => n.id === "state-1")!.data as AgentStateNodeProps
     expect(data.bodies).toHaveLength(1)
-    expect(data.bodies![0].name).toBe("Hello there!")
     expect(data.bodies![0].replyType).toBe("text")
-    expect((addFields[0] as HTMLInputElement).value).toBe("")
+    // Seeded default name (develop `addPredefinedAction`).
+    expect(data.bodies![0].name).toBe("Enter reply message")
+    expect(data.bodies![0].id).toBeTruthy()
   })
 
-  it("Enter on an existing text row falls through to the add field", () => {
-    renderWith(
+  it("switching State Type to Reasoning surfaces the reasoning fields and preserves bodies", () => {
+    const { store } = renderWith(
       [
         agentStateNode({
           bodies: [{ id: "b-1", name: "Hi", replyType: "text" }],
@@ -162,11 +167,20 @@ describe("AgentStateEditPanel — rapid-entry keyboard flow (A2b)", () => {
       AgentStateEditPanel
     )
 
-    const row = screen.getByDisplayValue("Hi")
-    const addFields = screen.getAllByPlaceholderText("+ add text body (Enter)")
+    // The State Type select (MUI) exposes a combobox with a "Standard"
+    // value; open it and pick "Reasoning".
+    const combos = screen.getAllByRole("combobox")
+    fireEvent.mouseDown(combos[0])
+    fireEvent.click(screen.getByRole("option", { name: "Reasoning" }))
 
-    row.focus()
-    fireEvent.keyDown(row, { key: "Enter" })
-    expect(document.activeElement).toBe(addFields[0])
+    const data = store
+      .getState()
+      .nodes.find((n) => n.id === "state-1")!.data as AgentStateNodeProps
+    expect(data.stateType).toBe("reasoning")
+    // Bodies are preserved across the toggle (not deleted).
+    expect(data.bodies).toHaveLength(1)
+    expect(data.bodies![0].name).toBe("Hi")
+    // Reasoning-only fields render (Max steps).
+    expect(screen.getByLabelText("Max steps")).toBeDefined()
   })
 })
