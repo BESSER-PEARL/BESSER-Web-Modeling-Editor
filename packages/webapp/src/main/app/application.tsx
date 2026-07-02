@@ -26,7 +26,6 @@ import { GeneratingOverlay } from '../shared/components/loading/GeneratingOverla
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
 import { NotFound } from '../shared/components/NotFound';
-import { useOnboarding } from '../features/onboarding/useOnboarding';
 import { useAppSelector } from './store/hooks';
 import { selectActiveDiagram } from './store/workspaceSlice';
 

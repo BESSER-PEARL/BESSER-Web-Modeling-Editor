@@ -30,6 +30,7 @@ import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { AboutDialog } from '../../shared/dialogs/AboutDialog';
 import { AssistantImportDialog } from '../../features/assistant/components/AssistantImportDialog';
+import { OnboardingChecklist } from '../../features/onboarding/OnboardingChecklist';
 import { DeployDialog } from '../../features/deploy/dialogs/DeployDialog';
 import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDialog';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
