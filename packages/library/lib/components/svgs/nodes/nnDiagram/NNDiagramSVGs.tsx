@@ -24,7 +24,7 @@ const NN_LAYER_ICON_BASE = "/images/nn-layers/"
  * one is registered.
  */
 const buildLayerPreview = (
-  kindLabel: string,
+  _kindLabel: string,
   defaultName: string,
   fill: string,
   iconFile?: string

@@ -156,7 +156,6 @@ export function NNLayerBase({
   data,
   parentId,
   nodeType,
-  kindLabel,
   defaultFill,
 }: NNLayerBaseProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null)
