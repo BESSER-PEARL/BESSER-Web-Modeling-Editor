@@ -148,6 +148,47 @@ describe('ensureProjectMigrated v3 → v4', () => {
   });
 });
 
+describe('BPMN diagram support', () => {
+  it('registers BPMN as a supported diagram type', () => {
+    expect(ALL_DIAGRAM_TYPES).toContain('BPMN');
+  });
+
+  it('seeds a fresh project with a BPMN diagram whose wire type is BPMNDiagram', () => {
+    const project = createDefaultProject('Demo', 'desc', 'me');
+    expect(project.diagrams.BPMN).toBeDefined();
+    expect(project.diagrams.BPMN.length).toBe(1);
+    // Bucket key is 'BPMN' but the on-the-wire model.type is 'BPMNDiagram'.
+    expect(UMLDiagramType.BPMN).toBe('BPMNDiagram');
+    expect((project.diagrams.BPMN[0].model as UMLModel).type).toBe(UMLDiagramType.BPMN);
+    expect(project.currentDiagramIndices.BPMN).toBe(0);
+  });
+
+  it('retrofits a missing BPMN bucket + index on an older project', () => {
+    const project = createDefaultProject('Legacy', '', 'me');
+    // Simulate a project created before the BPMN bucket existed.
+    delete (project.diagrams as any).BPMN;
+    delete (project.currentDiagramIndices as any).BPMN;
+
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.diagrams.BPMN).toBeDefined();
+    expect(migrated.diagrams.BPMN.length).toBeGreaterThan(0);
+    expect(migrated.currentDiagramIndices.BPMN).toBe(0);
+  });
+
+  it("rewrites a stale model.type === 'BPMN' to the canonical 'BPMNDiagram'", () => {
+    const project = createDefaultProject('BackCompat', '', 'me');
+    // Diagrams created by an earlier migration build baked in the pre-rename
+    // wire value 'BPMN'; the back-compat loop must normalize it.
+    const bpmnModel = project.diagrams.BPMN[0].model as { type: string };
+    bpmnModel.type = 'BPMN';
+
+    ensureProjectMigrated(project);
+
+    expect((project.diagrams.BPMN[0].model as UMLModel).type).toBe(UMLDiagramType.BPMN);
+    expect((project.diagrams.BPMN[0].model as UMLModel).type).toBe('BPMNDiagram');
+  });
+});
+
 describe('findHiddenReferencedPerspectives', () => {
   function withDiagrams(
     project: BesserProject,

@@ -9,6 +9,7 @@ export enum SoftwarePatternCategory {
   STATE_MACHINE = 'State Machine Diagram',
   QUANTUM_CIRCUIT = 'Quantum Circuit',
   NN = 'Neural Network',
+  BPMN = 'BPMN Diagram',
   FULL_PROJECT = 'Full Project',
 }
 
@@ -32,6 +33,10 @@ export enum SoftwarePatternType {
   NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN (with Training + Test)',
   NN_ALEXNET = 'AlexNet',
   NN_LSTM = 'LSTM',
+  // BPMN patterns
+  BPMN_CAR_WASH = 'Car Wash',
+  BPMN_PARALLEL_REVIEW = 'Parallel Review',
+  BPMN_PIZZA_STORE = 'Pizza Store',
   // Quantum Circuit patterns
   QUANTUM_EMPTY = 'Empty Circuit',
   QUANTUM_SINGLE_GATES = 'Single Qubit Gates',

@@ -13,7 +13,7 @@ import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switch
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
 import { getActiveAgentVariantId, readAgentVariants } from '../../shared/services/agent-variants/agent-variants-service';
-import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
+import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
@@ -157,6 +157,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     isLoading: githubLoading,
   } = useGitHubAuth();
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
+  const importBpmnDiagramToProject = useImportBpmnDiagramToProjectWorkflow();
 
   // Local UI state
   // Sidebar starts expanded so diagram-type labels are visible; users can
@@ -703,6 +704,24 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
   };
 
+  const handleImportBpmnDiagram = async () => {
+    if (!currentProject) {
+      toast.error('Create or load a project first.');
+      return;
+    }
+
+    try {
+      const result = await importBpmnDiagramToProject();
+      toast.success(result.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (message.toLowerCase().includes('cancel')) {
+        return;
+      }
+      toast.error(`Import failed: ${message}`);
+    }
+  };
+
   // Command palette actions (filter by enabled per-project perspectives)
   const perspectives = useAppSelector(selectPerspectives);
   const commandPaletteActions = useMemo(
@@ -748,6 +767,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenTemplateDialog={onOpenTemplateDialog}
         onExportProject={onExportProject}
         onImportSingleDiagram={handleImportSingleDiagram}
+        onImportBpmnDiagram={handleImportBpmnDiagram}
         onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
         onOpenProjectPreview={handleOpenProjectPreview}

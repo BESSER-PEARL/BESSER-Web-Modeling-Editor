@@ -1,0 +1,1004 @@
+{
+  "version": "4.0.0",
+  "id": "converted-diagram-1782994098534",
+  "title": "Pizza Store",
+  "type": "BPMNDiagram",
+  "nodes": [
+    {
+      "id": "c-pool",
+      "type": "bpmnPool",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "width": 1300,
+      "height": 260,
+      "measured": {
+        "width": 1300,
+        "height": 260
+      },
+      "data": {
+        "name": "Pizza Customer"
+      }
+    },
+    {
+      "id": "c-start",
+      "type": "bpmnStartEvent",
+      "position": {
+        "x": 60,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Hungry for pizza",
+        "eventType": "default"
+      }
+    },
+    {
+      "id": "c-select",
+      "type": "bpmnTask",
+      "position": {
+        "x": 150,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Select a pizza",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "c-order",
+      "type": "bpmnTask",
+      "position": {
+        "x": 320,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Order a pizza",
+        "taskType": "send",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "c-gw",
+      "type": "bpmnGateway",
+      "position": {
+        "x": 480,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "event-based"
+      }
+    },
+    {
+      "id": "c-timer",
+      "type": "bpmnIntermediateEvent",
+      "position": {
+        "x": 480,
+        "y": 190
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "60 min",
+        "eventType": "timer-catch"
+      }
+    },
+    {
+      "id": "c-ask",
+      "type": "bpmnTask",
+      "position": {
+        "x": 525,
+        "y": 180
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Ask for pizza",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "c-msg",
+      "type": "bpmnIntermediateEvent",
+      "position": {
+        "x": 795,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Pizza received",
+        "eventType": "message-catch"
+      }
+    },
+    {
+      "id": "c-pay",
+      "type": "bpmnTask",
+      "position": {
+        "x": 900,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Pay for pizza",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "c-eat",
+      "type": "bpmnTask",
+      "position": {
+        "x": 1070,
+        "y": 100
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Eat the pizza",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "c-end",
+      "type": "bpmnEndEvent",
+      "position": {
+        "x": 1240,
+        "y": 110
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Hunger satisfied",
+        "eventType": "default"
+      }
+    },
+    {
+      "id": "v-pool",
+      "type": "bpmnPool",
+      "position": {
+        "x": 0,
+        "y": 300
+      },
+      "width": 1300,
+      "height": 390,
+      "measured": {
+        "width": 1300,
+        "height": 390
+      },
+      "data": {
+        "name": "Pizza Vendor"
+      }
+    },
+    {
+      "id": "v-lane-clerk",
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 0
+      },
+      "width": 1260,
+      "height": 130,
+      "measured": {
+        "width": 1260,
+        "height": 130
+      },
+      "data": {
+        "name": "Clerk"
+      },
+      "parentId": "v-pool"
+    },
+    {
+      "id": "v-lane-chef",
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 130
+      },
+      "width": 1260,
+      "height": 130,
+      "measured": {
+        "width": 1260,
+        "height": 130
+      },
+      "data": {
+        "name": "Pizza Chef"
+      },
+      "parentId": "v-pool"
+    },
+    {
+      "id": "v-lane-delivery",
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 40,
+        "y": 260
+      },
+      "width": 1260,
+      "height": 130,
+      "measured": {
+        "width": 1260,
+        "height": 130
+      },
+      "data": {
+        "name": "Delivery Boy"
+      },
+      "parentId": "v-pool"
+    },
+    {
+      "id": "v-start",
+      "type": "bpmnStartEvent",
+      "position": {
+        "x": 355,
+        "y": 350
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Order received",
+        "eventType": "message"
+      }
+    },
+    {
+      "id": "v-pgw",
+      "type": "bpmnGateway",
+      "position": {
+        "x": 450,
+        "y": 350
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "parallel"
+      }
+    },
+    {
+      "id": "v-askmsg",
+      "type": "bpmnIntermediateEvent",
+      "position": {
+        "x": 560,
+        "y": 350
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Where is my pizza?",
+        "eventType": "message-catch"
+      }
+    },
+    {
+      "id": "v-calm",
+      "type": "bpmnTask",
+      "position": {
+        "x": 650,
+        "y": 340
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Calm customer",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "v-bake",
+      "type": "bpmnTask",
+      "position": {
+        "x": 520,
+        "y": 465
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Bake the pizza",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "v-deliver",
+      "type": "bpmnTask",
+      "position": {
+        "x": 760,
+        "y": 595
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Deliver the pizza",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "v-receive",
+      "type": "bpmnTask",
+      "position": {
+        "x": 900,
+        "y": 595
+      },
+      "width": 110,
+      "height": 60,
+      "measured": {
+        "width": 110,
+        "height": 60
+      },
+      "data": {
+        "name": "Receive payment",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "v-end",
+      "type": "bpmnEndEvent",
+      "position": {
+        "x": 1060,
+        "y": 605
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Order complete",
+        "eventType": "default"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "f-c1",
+      "source": "c-start",
+      "target": "c-select",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 100,
+            "y": 130
+          },
+          {
+            "x": 150,
+            "y": 130
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c2",
+      "source": "c-select",
+      "target": "c-order",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 260,
+            "y": 130
+          },
+          {
+            "x": 320,
+            "y": 130
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c3",
+      "source": "c-order",
+      "target": "c-gw",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 430,
+            "y": 130
+          },
+          {
+            "x": 480,
+            "y": 130
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c4",
+      "source": "c-gw",
+      "target": "c-timer",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 500,
+            "y": 150
+          },
+          {
+            "x": 500,
+            "y": 190
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c5",
+      "source": "c-gw",
+      "target": "c-msg",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 520,
+            "y": 130
+          },
+          {
+            "x": 795,
+            "y": 130
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c6",
+      "source": "c-timer",
+      "target": "c-ask",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 520,
+            "y": 210
+          },
+          {
+            "x": 525,
+            "y": 210
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c7",
+      "source": "c-msg",
+      "target": "c-pay",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 835,
+            "y": 130
+          },
+          {
+            "x": 900,
+            "y": 130
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c8",
+      "source": "c-pay",
+      "target": "c-eat",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 1010,
+            "y": 130
+          },
+          {
+            "x": 1070,
+            "y": 130
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-c9",
+      "source": "c-eat",
+      "target": "c-end",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 1180,
+            "y": 130
+          },
+          {
+            "x": 1240,
+            "y": 130
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-v1",
+      "source": "v-start",
+      "target": "v-pgw",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 395,
+            "y": 370
+          },
+          {
+            "x": 450,
+            "y": 370
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-v2",
+      "source": "v-pgw",
+      "target": "v-bake",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 470,
+            "y": 390
+          },
+          {
+            "x": 470,
+            "y": 495
+          },
+          {
+            "x": 520,
+            "y": 495
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-v3",
+      "source": "v-pgw",
+      "target": "v-askmsg",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 490,
+            "y": 370
+          },
+          {
+            "x": 560,
+            "y": 370
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-v4",
+      "source": "v-askmsg",
+      "target": "v-calm",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 600,
+            "y": 370
+          },
+          {
+            "x": 650,
+            "y": 370
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-v5",
+      "source": "v-bake",
+      "target": "v-deliver",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 575,
+            "y": 525
+          },
+          {
+            "x": 575,
+            "y": 625
+          },
+          {
+            "x": 760,
+            "y": 625
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-v6",
+      "source": "v-deliver",
+      "target": "v-receive",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 870,
+            "y": 625
+          },
+          {
+            "x": 900,
+            "y": 625
+          }
+        ]
+      }
+    },
+    {
+      "id": "f-v7",
+      "source": "v-receive",
+      "target": "v-end",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 1010,
+            "y": 625
+          },
+          {
+            "x": 1060,
+            "y": 625
+          }
+        ]
+      }
+    },
+    {
+      "id": "mf-1",
+      "source": "c-order",
+      "target": "v-start",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Pizza order",
+        "name": "Pizza order",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 375,
+            "y": 160
+          },
+          {
+            "x": 375,
+            "y": 350
+          }
+        ]
+      }
+    },
+    {
+      "id": "mf-2",
+      "source": "c-ask",
+      "target": "v-askmsg",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Where is my pizza?",
+        "name": "Where is my pizza?",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 580,
+            "y": 240
+          },
+          {
+            "x": 580,
+            "y": 350
+          }
+        ]
+      }
+    },
+    {
+      "id": "mf-3",
+      "source": "v-deliver",
+      "target": "c-msg",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "Pizza delivered",
+        "name": "Pizza delivered",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 815,
+            "y": 595
+          },
+          {
+            "x": 815,
+            "y": 150
+          }
+        ]
+      }
+    },
+    {
+      "id": "mf-4",
+      "source": "c-pay",
+      "target": "v-receive",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "Payment",
+        "name": "Payment",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 955,
+            "y": 160
+          },
+          {
+            "x": 955,
+            "y": 595
+          }
+        ]
+      }
+    }
+  ],
+  "assessments": {}
+}

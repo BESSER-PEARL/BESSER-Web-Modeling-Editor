@@ -277,6 +277,7 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       GUINoCodeDiagram: null,
       QuantumCircuitDiagram: null,
       NNDiagram: null,
+      BPMN: UMLDiagramType.BPMN,
     };
     const diagramTitles: Record<SupportedDiagramType, string> = {
       ClassDiagram: 'Class Diagram',
@@ -287,6 +288,7 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       GUINoCodeDiagram: 'GUI Diagram',
       QuantumCircuitDiagram: 'Quantum Circuit',
       NNDiagram: 'Neural Network Diagram',
+      BPMN: 'BPMN Diagram',
     };
     const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
       GUINoCodeDiagram: 'gui',

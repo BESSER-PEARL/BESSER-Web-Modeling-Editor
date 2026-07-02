@@ -14,7 +14,8 @@ import { bumpEditorRevision, loadProjectThunk } from '../../app/store/workspaceS
 import { displayError } from '../../app/store/errorManagementSlice';
 import { useNavigate } from 'react-router-dom';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { useBumlToDiagram, isBumlFile, isJsonFile } from './useBumlToDiagram';
+import { useBumlToDiagram, isBumlFile, isJsonFile, isBpmnXmlFile } from './useBumlToDiagram';
+import { useImportBpmnXml } from './useImportBpmnXml';
 
 /**
  * Detect v3-shape `{elements, relationships}` UMLModels
@@ -45,7 +46,8 @@ export const useImportDiagram = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const convertBumlToDiagram = useBumlToDiagram();
-  
+  const convertBpmnXmlToDiagram = useImportBpmnXml();
+
   const importDiagram = useCallback(async (file: File) => {
     try {
       let diagram: ProjectDiagram;
@@ -53,6 +55,10 @@ export const useImportDiagram = () => {
       if (isBumlFile(file)) {
         // Handle Python/BUML file - convert to diagram
         diagram = await convertBumlToDiagram(file);
+
+      } else if (isBpmnXmlFile(file)) {
+        // Handle BPMN 2.0 XML file - parse to a v4 diagram (already v4-shape)
+        diagram = await convertBpmnXmlToDiagram(file);
 
       } else if (isJsonFile(file)) {
         // Handle JSON file - parse directly
@@ -66,7 +72,7 @@ export const useImportDiagram = () => {
         diagram = JSON.parse(fileContent);
         diagram.id = uuid();
       } else {
-        throw new Error('Unsupported file type. Please select a .json or .py file.');
+        throw new Error('Unsupported file type. Please select a .json, .py, or .bpmn/.xml file.');
       }
 
       // Accept legacy v3 single-file exports by
@@ -97,7 +103,7 @@ export const useImportDiagram = () => {
         displayError('Import failed', `Could not import selected file: ${errorMessage}`)
       );
     }
-  }, [dispatch, navigate, convertBumlToDiagram]);
+  }, [dispatch, navigate, convertBumlToDiagram, convertBpmnXmlToDiagram]);
 
   return importDiagram;
 };
@@ -106,7 +112,8 @@ export const useImportDiagram = () => {
 export const useImportDiagramToProject = () => {
   const dispatch = useAppDispatch();
   const convertBumlToDiagram = useBumlToDiagram();
-  
+  const convertBpmnXmlToDiagram = useImportBpmnXml();
+
   const importDiagramToProject = useCallback(async (file: File) => {
     try {
       let diagram: ProjectDiagram;
@@ -114,6 +121,9 @@ export const useImportDiagramToProject = () => {
       if (isBumlFile(file)) {
         // Handle Python/BUML file - convert to diagram
         diagram = await convertBumlToDiagram(file);
+      } else if (isBpmnXmlFile(file)) {
+        // Handle BPMN 2.0 XML file - parse to a v4 diagram (already v4-shape)
+        diagram = await convertBpmnXmlToDiagram(file);
       } else if (isJsonFile(file)) {
         // Handle JSON file - parse directly
         const fileContent = await new Promise<string>((resolve, reject) => {
@@ -125,7 +135,7 @@ export const useImportDiagramToProject = () => {
         
         diagram = JSON.parse(fileContent);
       } else {
-        throw new Error('Unsupported file type. Please select a .json or .py file.');
+        throw new Error('Unsupported file type. Please select a .json, .py, or .bpmn/.xml file.');
       }
 
       // Migrate v3-shape uploads before validation.
@@ -196,7 +206,7 @@ export const useImportDiagramToProject = () => {
         }
       }
 
-      const fileType = isBumlFile(file) ? 'Python/BUML' : 'JSON';
+      const fileType = isBumlFile(file) ? 'Python/BUML' : isBpmnXmlFile(file) ? 'BPMN 2.0 XML' : 'JSON';
       return {
         success: true,
         diagramType,
@@ -211,7 +221,7 @@ export const useImportDiagramToProject = () => {
       );
       throw error;
     }
-  }, [dispatch, convertBumlToDiagram]);
+  }, [dispatch, convertBumlToDiagram, convertBpmnXmlToDiagram]);
 
   return importDiagramToProject;
 };
@@ -221,9 +231,9 @@ export function selectDiagramFileForProject(): Promise<File> {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,.py'; // Accept both JSON and Python files
+    input.accept = '.json,.py,.bpmn,.xml'; // Accept JSON, Python and BPMN 2.0 XML files
     input.multiple = false;
-    
+
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
@@ -232,11 +242,36 @@ export function selectDiagramFileForProject(): Promise<File> {
         reject(new Error('No file selected'));
       }
     };
-    
+
     input.oncancel = () => {
       reject(new Error('File selection cancelled'));
     };
-    
+
+    input.click();
+  });
+}
+
+// Helper function to trigger file selection restricted to BPMN 2.0 XML files
+export function selectBpmnXmlFileForProject(): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.bpmn,.xml'; // BPMN 2.0 XML only
+    input.multiple = false;
+
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        resolve(file);
+      } else {
+        reject(new Error('No file selected'));
+      }
+    };
+
+    input.oncancel = () => {
+      reject(new Error('File selection cancelled'));
+    };
+
     input.click();
   });
 }
@@ -249,16 +284,38 @@ export const useImportDiagramToProjectWorkflow = () => {
     try {
       // Select the file
       const file = await selectDiagramFileForProject();
-      
+
       // Import the diagram to the project (now handles both JSON and Python files)
       const result = await importDiagramToProject(file);
-      
+
       return result;
     } catch (error) {
       console.error('Failed to import diagram to project:', error);
       throw error;
     }
   }, [importDiagramToProject]);
-  
+
   return handleImportDiagramToProject;
+};
+
+// Complete workflow function for importing a BPMN 2.0 XML file to the current project
+export const useImportBpmnDiagramToProjectWorkflow = () => {
+  const importDiagramToProject = useImportDiagramToProject();
+
+  const handleImportBpmnDiagramToProject = useCallback(async () => {
+    try {
+      // Select a BPMN 2.0 XML file
+      const file = await selectBpmnXmlFileForProject();
+
+      // Import the BPMN diagram to the project
+      const result = await importDiagramToProject(file);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to import BPMN diagram to project:', error);
+      throw error;
+    }
+  }, [importDiagramToProject]);
+
+  return handleImportBpmnDiagramToProject;
 };

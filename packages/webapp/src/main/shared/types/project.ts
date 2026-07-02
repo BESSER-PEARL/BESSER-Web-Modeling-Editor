@@ -9,13 +9,14 @@ export type SupportedDiagramType =
   | 'UserDiagram'
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram'
-  | 'NNDiagram';
+  | 'NNDiagram'
+  | 'BPMN';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
 export const PROJECT_SCHEMA_VERSION = 5;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram',
+  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram', 'BPMN',
 ];
 
 export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
@@ -103,6 +104,7 @@ export interface BesserProject {
     GUINoCodeDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
     NNDiagram: ProjectDiagram[];
+    BPMN: ProjectDiagram[];
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -159,6 +161,7 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   GUINoCodeDiagram: 0,
   QuantumCircuitDiagram: 0,
   NNDiagram: 0,
+  BPMN: 0,
 });
 
 // Migrate v1 project (single diagram per type) to v2 (array per type)
@@ -202,6 +205,8 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'NNDiagram';
     case UMLDiagramType.UserDiagram:
       return 'UserDiagram';
+    case UMLDiagramType.BPMN:
+      return 'BPMN';
     default:
       return 'ClassDiagram'; // fallback
   }
@@ -222,6 +227,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.NNDiagram;
     case 'UserDiagram':
       return UMLDiagramType.UserDiagram;
+    case 'BPMN':
+      return UMLDiagramType.BPMN;
     case 'GUINoCodeDiagram':
       return null; // GUINoCodeDiagram doesn't have a UML diagram type
     case 'QuantumCircuitDiagram':
@@ -510,6 +517,7 @@ export const createDefaultProject = (
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
       NNDiagram: [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)],
+      BPMN: [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)],
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
@@ -536,7 +544,8 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
     obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram;
+    obj.diagrams.QuantumCircuitDiagram &&
+    obj.diagrams.BPMN;
 
   return !!hasRequiredDiagrams;
 };
@@ -558,9 +567,33 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj.diagrams.UserDiagram = [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)];
   }
 
+  // Add BPMN diagram if missing
+  if (!obj.diagrams.BPMN) {
+    obj.diagrams.BPMN = [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)];
+  }
+
   // Ensure index entry exists for UserDiagram
   if (obj.currentDiagramIndices.UserDiagram === undefined) {
     obj.currentDiagramIndices.UserDiagram = 0;
+  }
+
+  // Ensure index entry exists for BPMN
+  if (obj.currentDiagramIndices.BPMN === undefined) {
+    obj.currentDiagramIndices.BPMN = 0;
+  }
+
+  // Back-compat: pre-`BPMNDiagram` BPMN diagrams stored `model.type === 'BPMN'`.
+  // Normalize to the new wire value so the diagram round-trips against the
+  // BESSER backend's `"<Name>Diagram"` convention. This is load-bearing even
+  // with the versionConverter.ts fix: it also catches diagrams already in v4
+  // shape (created by an earlier migration build before DiagramType.ts was
+  // fixed) whose `isV3UMLModel` check is false and thus never pass through
+  // `convertV3ToV4`.
+  for (const diagram of obj.diagrams.BPMN ?? []) {
+    const model = diagram.model as { type?: string } | undefined;
+    if (model && model.type === 'BPMN') {
+      model.type = UMLDiagramType.BPMN;
+    }
   }
 
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)

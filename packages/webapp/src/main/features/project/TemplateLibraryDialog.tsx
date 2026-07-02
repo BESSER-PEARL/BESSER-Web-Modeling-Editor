@@ -47,6 +47,7 @@ const categoryOrder: SoftwarePatternCategory[] = [
   SoftwarePatternCategory.CREATIONAL,
   SoftwarePatternCategory.STATE_MACHINE,
   SoftwarePatternCategory.AGENT,
+  SoftwarePatternCategory.BPMN,
   SoftwarePatternCategory.QUANTUM_CIRCUIT,
   SoftwarePatternCategory.NN,
 ];
@@ -57,6 +58,7 @@ const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatter
   AgentDiagram: SoftwarePatternCategory.AGENT,
   QuantumCircuitDiagram: SoftwarePatternCategory.QUANTUM_CIRCUIT,
   NNDiagram: SoftwarePatternCategory.NN,
+  BPMN: SoftwarePatternCategory.BPMN,
 };
 
 const categoryColor: Record<SoftwarePatternCategory, string> = {
@@ -67,6 +69,7 @@ const categoryColor: Record<SoftwarePatternCategory, string> = {
   [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
   [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   [SoftwarePatternCategory.NN]: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
+  [SoftwarePatternCategory.BPMN]: 'bg-pink-100 text-pink-900 dark:bg-pink-900/30 dark:text-pink-300',
   [SoftwarePatternCategory.FULL_PROJECT]: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
 };
 

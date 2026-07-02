@@ -1,0 +1,383 @@
+{
+  "version": "4.0.0",
+  "id": "converted-diagram-1782994098532",
+  "title": "Parallel Review",
+  "type": "BPMNDiagram",
+  "nodes": [
+    {
+      "id": "pr-start",
+      "type": "bpmnStartEvent",
+      "position": {
+        "x": 0,
+        "y": 90
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Document submitted",
+        "eventType": "default"
+      }
+    },
+    {
+      "id": "pr-prepare",
+      "type": "bpmnTask",
+      "position": {
+        "x": 110,
+        "y": 80
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Prepare Draft",
+        "taskType": "default",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "pr-split",
+      "type": "bpmnGateway",
+      "position": {
+        "x": 320,
+        "y": 90
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "parallel"
+      }
+    },
+    {
+      "id": "pr-tech",
+      "type": "bpmnTask",
+      "position": {
+        "x": 440,
+        "y": 0
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Technical Review",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "pr-legal",
+      "type": "bpmnTask",
+      "position": {
+        "x": 440,
+        "y": 160
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Legal Review",
+        "taskType": "user",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "pr-join",
+      "type": "bpmnGateway",
+      "position": {
+        "x": 660,
+        "y": 90
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "",
+        "gatewayType": "parallel"
+      }
+    },
+    {
+      "id": "pr-publish",
+      "type": "bpmnTask",
+      "position": {
+        "x": 780,
+        "y": 80
+      },
+      "width": 140,
+      "height": 60,
+      "measured": {
+        "width": 140,
+        "height": 60
+      },
+      "data": {
+        "name": "Publish",
+        "taskType": "default",
+        "marker": "none"
+      }
+    },
+    {
+      "id": "pr-end",
+      "type": "bpmnEndEvent",
+      "position": {
+        "x": 980,
+        "y": 90
+      },
+      "width": 40,
+      "height": 40,
+      "measured": {
+        "width": 40,
+        "height": 40
+      },
+      "data": {
+        "name": "Published",
+        "eventType": "default"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "pr-f1",
+      "source": "pr-start",
+      "target": "pr-prepare",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 40,
+            "y": 110
+          },
+          {
+            "x": 110,
+            "y": 110
+          }
+        ]
+      }
+    },
+    {
+      "id": "pr-f2",
+      "source": "pr-prepare",
+      "target": "pr-split",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 250,
+            "y": 110
+          },
+          {
+            "x": 320,
+            "y": 110
+          }
+        ]
+      }
+    },
+    {
+      "id": "pr-f3",
+      "source": "pr-split",
+      "target": "pr-tech",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "top",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 360,
+            "y": 110
+          },
+          {
+            "x": 440,
+            "y": 30
+          }
+        ]
+      }
+    },
+    {
+      "id": "pr-f4",
+      "source": "pr-split",
+      "target": "pr-legal",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 360,
+            "y": 110
+          },
+          {
+            "x": 440,
+            "y": 190
+          }
+        ]
+      }
+    },
+    {
+      "id": "pr-f5",
+      "source": "pr-tech",
+      "target": "pr-join",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 580,
+            "y": 30
+          },
+          {
+            "x": 660,
+            "y": 110
+          }
+        ]
+      }
+    },
+    {
+      "id": "pr-f6",
+      "source": "pr-legal",
+      "target": "pr-join",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 580,
+            "y": 190
+          },
+          {
+            "x": 660,
+            "y": 110
+          }
+        ]
+      }
+    },
+    {
+      "id": "pr-f7",
+      "source": "pr-join",
+      "target": "pr-publish",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 700,
+            "y": 110
+          },
+          {
+            "x": 780,
+            "y": 110
+          }
+        ]
+      }
+    },
+    {
+      "id": "pr-f8",
+      "source": "pr-publish",
+      "target": "pr-end",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 920,
+            "y": 110
+          },
+          {
+            "x": 980,
+            "y": 110
+          }
+        ]
+      }
+    }
+  ],
+  "assessments": {}
+}

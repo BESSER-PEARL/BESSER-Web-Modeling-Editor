@@ -113,6 +113,10 @@ const NN_GENERATORS: GeneratorMenuEntry[] = [
   },
 ];
 
+const BPMN_GENERATORS: GeneratorMenuEntry[] = [
+  { kind: 'action', label: 'BPMN 2.0 XML', generator: 'bpmn' },
+];
+
 const UNAVAILABLE_GENERATORS: GeneratorMenuEntry[] = [{ kind: 'notice', label: 'Not yet available for this diagram' }];
 
 export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry[]> = {
@@ -124,5 +128,6 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   gui: GUI_GENERATORS,
   quantum: QUANTUM_GENERATORS,
   nn: NN_GENERATORS,
+  bpmn: BPMN_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };

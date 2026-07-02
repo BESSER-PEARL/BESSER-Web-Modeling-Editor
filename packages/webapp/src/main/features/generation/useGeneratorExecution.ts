@@ -51,6 +51,7 @@ import {
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
+import { apollonBpmnToXml } from '../export/bpmn-xml-exporter';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -468,7 +469,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
 
-  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext } = getWorkspaceContext(
+  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isBpmnContext } = getWorkspaceContext(
     location.pathname,
     currentProject?.currentDiagramType,
   );
@@ -716,6 +717,44 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
           return nnResult;
         }
 
+        if (generatorType === 'bpmn') {
+          // BPMN export is a purely client-side transform (there is no
+          // server-side BPMN generator). Serialize the active BPMN diagram's
+          // v4 model to BPMN 2.0 XML and trigger a `.bpmn` download.
+          if (!isBpmnContext) {
+            toast.error('Open a BPMN diagram before exporting BPMN 2.0 XML.');
+            return { ok: false, error: 'Open a BPMN diagram before exporting BPMN 2.0 XML.' };
+          }
+          const bpmnModel = getActiveDiagram(currentProject, 'BPMN')?.model;
+          if (!bpmnModel || !isUMLModel(bpmnModel)) {
+            toast.error('The active BPMN diagram has no model to export.');
+            return { ok: false, error: 'The active BPMN diagram has no model to export.' };
+          }
+          try {
+            const xml = apollonBpmnToXml(bpmnModel);
+            const filename = `${activeDiagramTitle || 'diagram'}.bpmn`;
+            const blob = new Blob([xml], { type: 'application/xml' });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = filename;
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+            getPostHog()?.capture('generator_used', {
+              generator_type: 'bpmn',
+              diagram_type: currentProject.currentDiagramType,
+              ...getModelMetrics(currentProject),
+            });
+            return { ok: true, filename };
+          } catch (error) {
+            const msg = `BPMN export failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            toast.error(msg);
+            return { ok: false, error: msg };
+          }
+        }
+
         if (isQuantumContext || isGuiContext) {
           toast.error('Switch to a UML diagram to use this generator.');
           return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
@@ -799,7 +838,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, ensureGuiForAssistantWebAppGeneration,
+      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isBpmnContext, ensureGuiForAssistantWebAppGeneration,
     ],
   );
 

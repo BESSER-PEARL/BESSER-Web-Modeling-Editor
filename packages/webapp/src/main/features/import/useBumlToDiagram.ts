@@ -164,3 +164,11 @@ export const isBumlFile = (file: File): boolean => {
 export const isJsonFile = (file: File): boolean => {
   return file.name.toLowerCase().endsWith('.json');
 };
+
+/**
+ * Utility function to check if a file is a BPMN 2.0 XML file (`.bpmn` / `.xml`).
+ */
+export const isBpmnXmlFile = (file: File): boolean => {
+  const name = file.name.toLowerCase();
+  return name.endsWith('.bpmn') || name.endsWith('.xml');
+};

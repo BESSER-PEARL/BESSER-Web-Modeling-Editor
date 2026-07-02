@@ -13,6 +13,7 @@ import {
   migrateAgentDiagramV3ToV4,
   migrateUserDiagramV3ToV4,
   migrateNNDiagramV3ToV4,
+  migrateBpmnDiagramV3ToV4,
   convertV3ToV4,
   isV3Format,
   isV4Format,
@@ -27,6 +28,7 @@ export {
   migrateAgentDiagramV3ToV4,
   migrateUserDiagramV3ToV4,
   migrateNNDiagramV3ToV4,
+  migrateBpmnDiagramV3ToV4,
 };
 
 type SupportedDiagramType =
@@ -36,6 +38,7 @@ type SupportedDiagramType =
   | 'AgentDiagram'
   | 'UserDiagram'
   | 'NNDiagram'
+  | 'BPMN'
   // Non-UML kinds — skipped at the caller, but listed for the param's union.
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram';
@@ -96,6 +99,8 @@ export function migrateUMLModelV3ToV4(
       return migrateUserDiagramV3ToV4(model);
     case 'NNDiagram':
       return migrateNNDiagramV3ToV4(model);
+    case 'BPMN':
+      return migrateBpmnDiagramV3ToV4(model);
     default:
       throw new Error(
         `[migrateUMLModelV3ToV4] Unsupported diagram type: ${String(type)}`,
