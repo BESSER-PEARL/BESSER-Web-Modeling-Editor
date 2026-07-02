@@ -1,17 +1,23 @@
 /**
  * SA-3 round-trip test for the BESSER StateMachineDiagram migration.
  *
- * What it asserts (per the SA-3 brief and `uml-v4-shape.md`):
+ * What it asserts (per the SA-3 brief and `uml-v4-shape.md`, as later
+ * superseded by the inline-row refactor — see the "State" case in
+ * `versionConverter.ts::convertV3NodeDataToV4`):
  *
  *  1. v3 fixture → `migrateStateMachineDiagramV3ToV4` produces a v4
- *     model with the 11 state-machine node types preserved, including
- *     `StateBody` / `StateFallbackBody` / `StateCodeBlock` as separate
- *     React-Flow children with `parentId` pointing at their
- *     containing `State`.
+ *     model where `StateBody` / `StateFallbackBody` are collapsed onto
+ *     their owning `State.data.bodies` / `data.fallbackBodies` inline
+ *     arrays (same shape as `AgentState`) rather than emitted as
+ *     separate React-Flow child nodes; every other state-machine node
+ *     type — including `StateCodeBlock` — stays a free-standing node.
  *  2. `StateObjectNode.classId` survives the migration (resolves spec
  *     open question 4: yes, the link is preserved).
- *  3. `StateTransition` edges round-trip with `name`, `guard`, `params`,
- *     and the BESSER-additional `code` / `eventName` fields.
+ *  3. `StateTransition` edges round-trip with `name`, `guard`, `params`.
+ *     The legacy `code` / `eventName` relationship fields are
+ *     BESSER schema-creep with no v3 source, so the v3 → v4 migrator
+ *     intentionally does not carry them over (they only round-trip
+ *     once authored natively in v4 — see `convertV4ToV3StateMachine`).
  *  4. `convertV4ToV3StateMachine(v4)` is structurally invertible: a
  *     v4 → v3 → v4 cycle produces the same canonical view.
  *  5. Editing one transition's `name` is preserved through the cycle.
@@ -35,9 +41,12 @@ describe("StateMachineDiagram v3 → v4 round-trip", () => {
     expect(v4.version).toMatch(/^4\./)
     expect(v4.type).toBe("StateMachineDiagram")
 
-    // 12 element ids in the fixture, all should land as v4 nodes —
-    // bodies / fallback-bodies are NOT collapsed (per the SA-3 brief).
-    expect(v4.nodes.length).toBe(13)
+    // 13 v3 elements collapse to 10 v4 nodes: `body-Working-1`,
+    // `body-Working-2` and `fallback-Working-1` fold onto
+    // `state-Working.data.bodies` / `.fallbackBodies` instead of
+    // surviving as separate nodes (see the "State" case in
+    // `convertV3NodeDataToV4`).
+    expect(v4.nodes.length).toBe(10)
 
     // States: Idle (no children), Working (2 bodies + 1 fallback body),
     // Done (no children).
@@ -49,17 +58,23 @@ describe("StateMachineDiagram v3 → v4 round-trip", () => {
     expect(working.type).toBe("State")
     expect((working.data as StateNodeProps).stereotype).toBe("active")
 
-    // Bodies / fallback-bodies use parentId.
-    const body1 = v4.nodes.find((n) => n.id === "body-Working-1")!
-    expect(body1.type).toBe("StateBody")
-    expect(body1.parentId).toBe("state-Working")
-    const body2 = v4.nodes.find((n) => n.id === "body-Working-2")!
-    expect(body2.parentId).toBe("state-Working")
-    const fallback = v4.nodes.find((n) => n.id === "fallback-Working-1")!
-    expect(fallback.type).toBe("StateFallbackBody")
-    expect(fallback.parentId).toBe("state-Working")
+    // Bodies / fallback-bodies survive as inline data rows on the
+    // parent State — not as separate nodes with `parentId`.
+    expect(v4.nodes.find((n) => n.id === "body-Working-1")).toBeUndefined()
+    expect(v4.nodes.find((n) => n.id === "body-Working-2")).toBeUndefined()
+    expect(
+      v4.nodes.find((n) => n.id === "fallback-Working-1")
+    ).toBeUndefined()
+    const workingData = working.data as StateNodeProps
+    expect(workingData.bodies).toEqual([
+      { id: "body-Working-1", name: "entry / startMotor()" },
+      { id: "body-Working-2", name: "do / monitor()" },
+    ])
+    expect(workingData.fallbackBodies).toEqual([
+      { id: "fallback-Working-1", name: "fallback / safeStop()" },
+    ])
 
-    // CodeBlock retains its content.
+    // CodeBlock retains its content and stays a free-standing node.
     const code = v4.nodes.find((n) => n.id === "code-Working-1")!
     expect(code.type).toBe("StateCodeBlock")
     expect((code.data as StateCodeBlockProps).code).toContain("def monitor")
@@ -71,10 +86,12 @@ describe("StateMachineDiagram v3 → v4 round-trip", () => {
     expect(v4.nodes.find((n) => n.id === "fork-1")!.type).toBe("StateForkNode")
     expect(v4.nodes.find((n) => n.id === "merge-1")!.type).toBe("StateMergeNode")
 
-    // ActionNode preserves `code`.
+    // ActionNode: v3 parity means only `name` survives — `code` is
+    // BESSER schema-creep with no v3 source (`StateActionNodeProps`
+    // is a plain `DefaultNodeProps`, no `code` field).
     const action = v4.nodes.find((n) => n.id === "action-1")!
     expect(action.type).toBe("StateActionNode")
-    expect((action.data as { code?: string }).code).toBe("print('logged')")
+    expect((action.data as { code?: string }).code).toBeUndefined()
 
     // ObjectNode preserves `classId` + `className` (spec open question 4).
     const obj = v4.nodes.find((n) => n.id === "obj-1")!
@@ -89,13 +106,14 @@ describe("StateMachineDiagram v3 → v4 round-trip", () => {
     expect(t2.type).toBe("StateTransition")
     expect(t2.source).toBe("state-Idle")
     expect(t2.target).toBe("state-Working")
-    // BESSER-extra fields surface on edge.data.
-    expect((t2.data as { eventName?: string }).eventName).toBe("BeginEvent")
-    expect((t2.data as { code?: string }).code).toBe("println('starting')")
+    // `code` / `eventName` are BESSER schema-creep with no v3 source —
+    // the migrator intentionally does not carry them over from a
+    // legacy v3 fixture (see `convertV3RelationshipToV4Edge`).
+    expect((t2.data as { eventName?: string }).eventName).toBeUndefined()
+    expect((t2.data as { code?: string }).code).toBeUndefined()
     expect((t2.data as { guard?: string }).guard).toBe("ready")
-    const t2Params = (t2.data as { params?: Record<string, string> }).params!
-    expect(t2Params["0"]).toBe("x")
-    expect(t2Params["1"]).toBe("y")
+    const t2Params = (t2.data as { params?: string[] }).params!
+    expect(t2Params).toEqual(["x", "y"])
   })
 
   it("round-trips v4 → v3 → v4 with structural equality", () => {

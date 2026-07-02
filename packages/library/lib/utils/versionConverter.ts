@@ -4737,11 +4737,16 @@ function normalizeAgentReasoningPrimitiveDefaults(model: UMLModel): UMLModel {
  * as labelled rows on the parent state, not as separate canvas nodes.
  */
 function normalizeStateBodyNodesInline(model: UMLModel): UMLModel {
-  const bodyChildren = model.nodes.filter(
-    (n) =>
-      typeof n.type === "string" &&
-      (n.type === "StateBody" || n.type === "StateFallbackBody")
-  )
+  // `n.type` is a wide node-type union that predates the state-machine
+  // registration (state-machine node types are runtime-registered via
+  // `registerNodeTypes` in `nodes/stateMachineDiagram/index.ts`, not
+  // part of the static `DiagramNodeType` union built from
+  // `defaultNodeTypes`); compare via string to avoid a spurious
+  // no-overlap error, mirroring the AgentState pattern below.
+  const bodyChildren = model.nodes.filter((n) => {
+    const nt = n.type as string
+    return nt === "StateBody" || nt === "StateFallbackBody"
+  })
   if (bodyChildren.length === 0) return model
 
   const parentOf: Record<string, { bodies: any[]; fallbackBodies: any[] }> = {}
@@ -4754,19 +4759,18 @@ function normalizeStateBodyNodesInline(model: UMLModel): UMLModel {
       name:
         ((child.data as { name?: string } | undefined) ?? {}).name ?? "",
     }
-    if (child.type === "StateFallbackBody") slot.fallbackBodies.push(row)
+    if ((child.type as string) === "StateFallbackBody") slot.fallbackBodies.push(row)
     else slot.bodies.push(row)
   }
   if (Object.keys(parentOf).length === 0) return model
 
   const nodes = model.nodes
-    .filter(
-      (n) =>
-        typeof n.type !== "string" ||
-        (n.type !== "StateBody" && n.type !== "StateFallbackBody")
-    )
+    .filter((n) => {
+      const nt = n.type as string
+      return nt !== "StateBody" && nt !== "StateFallbackBody"
+    })
     .map((n) => {
-      if (n.type !== "State") return n
+      if ((n.type as string) !== "State") return n
       const adds = parentOf[n.id]
       if (!adds) return n
       const data = n.data as Record<string, unknown> & {
