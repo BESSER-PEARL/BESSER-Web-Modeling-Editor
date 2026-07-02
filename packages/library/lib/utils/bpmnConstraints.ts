@@ -154,6 +154,7 @@ export const canDropIntoParent = (
       childType === "bpmnDataStore" ||
       childType === "bpmnAnnotation" ||
       childType === "bpmnGroup" ||
+      childType === "bpmnSwimlane" ||
       childType === "bpmnPool"
     )
   }
@@ -162,6 +163,25 @@ export const canDropIntoParent = (
   if (parentType === "bpmnGroup") {
     // Groups can contain any BPMN elements
     return childType.startsWith("bpmn")
+  }
+
+  // BPMN Swimlane constraints — a lane holds the same elements a
+  // subprocess does (everything except pools and other lanes).
+  if (parentType === "bpmnSwimlane") {
+    return (
+      childType === "bpmnTask" ||
+      childType === "bpmnStartEvent" ||
+      childType === "bpmnIntermediateEvent" ||
+      childType === "bpmnEndEvent" ||
+      childType === "bpmnGateway" ||
+      childType === "bpmnSubprocess" ||
+      childType === "bpmnTransaction" ||
+      childType === "bpmnCallActivity" ||
+      childType === "bpmnDataObject" ||
+      childType === "bpmnDataStore" ||
+      childType === "bpmnAnnotation" ||
+      childType === "bpmnGroup"
+    )
   }
 
   // BPMN Subprocess constraints

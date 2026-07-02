@@ -57,6 +57,9 @@ import {
   BPMNEndEventEditPopover,
   BPMNGatewayEditPopover,
   BPMNPoolEditPopover,
+  BPMNSubprocessEditPopover,
+  BPMNTransactionEditPopover,
+  BPMNCallActivityEditPopover,
 } from "./bpmnDiagram"
 import { ComponentEdgeEditPopover } from "./edgePopovers/ComponentDiagramEdgeEditPopover"
 import { ReachabilityGraphMarkingEditPopover } from "./reachabilityGraphDiagram"
@@ -104,6 +107,7 @@ type NodePopoverType =
   | "BPMNDataObject"
   | "BPMNDataStore"
   | "BPMNPool"
+  | "BPMNSwimlane"
   | "BPMNGroup"
   | "ReachabilityGraphMarking"
   | "Sfc"
@@ -272,6 +276,7 @@ const editPopovers: {
   BPMNDataObject: React.FC<PopoverProps>
   BPMNDataStore: React.FC<PopoverProps>
   BPMNPool: React.FC<PopoverProps>
+  BPMNSwimlane: React.FC<PopoverProps>
   BPMNGroup: React.FC<PopoverProps>
   ReachabilityGraphMarking: React.FC<PopoverProps>
   Sfc: React.FC<PopoverProps>
@@ -334,13 +339,14 @@ const editPopovers: {
   BPMNIntermediateEvent: BPMNIntermediateEventEditPopover,
   BPMNEndEvent: BPMNEndEventEditPopover,
   BPMNGateway: BPMNGatewayEditPopover,
-  BPMNSubprocess: DefaultNodeEditPopover,
-  BPMNTransaction: DefaultNodeEditPopover,
-  BPMNCallActivity: DefaultNodeEditPopover,
+  BPMNSubprocess: BPMNSubprocessEditPopover,
+  BPMNTransaction: BPMNTransactionEditPopover,
+  BPMNCallActivity: BPMNCallActivityEditPopover,
   BPMNAnnotation: DefaultNodeEditPopover,
   BPMNDataObject: DefaultNodeEditPopover,
   BPMNDataStore: DefaultNodeEditPopover,
   BPMNPool: BPMNPoolEditPopover,
+  BPMNSwimlane: DefaultNodeEditPopover,
   BPMNGroup: DefaultNodeEditPopover,
   ReachabilityGraphMarking: ReachabilityGraphMarkingEditPopover,
   Sfc: DefaultNodeEditPopover,

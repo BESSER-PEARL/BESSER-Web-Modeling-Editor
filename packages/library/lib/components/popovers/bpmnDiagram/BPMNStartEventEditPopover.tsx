@@ -45,6 +45,10 @@ export const BPMNStartEventEditPopover: React.FC<PopoverProps> = ({
           <MenuItem value="timer">Timer</MenuItem>
           <MenuItem value="conditional">Conditional</MenuItem>
           <MenuItem value="signal">Signal</MenuItem>
+          <MenuItem value="escalation">Escalation</MenuItem>
+          <MenuItem value="error">Error</MenuItem>
+          <MenuItem value="compensation">Compensation</MenuItem>
+          <MenuItem value="link">Link</MenuItem>
         </Select>
       </FormControl>
     </Box>

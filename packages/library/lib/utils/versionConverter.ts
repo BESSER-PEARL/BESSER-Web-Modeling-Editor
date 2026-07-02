@@ -291,6 +291,7 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
     BPMNDataObject: "bpmnDataObject",
     BPMNDataStore: "bpmnDataStore",
     BPMNPool: "bpmnPool",
+    BPMNSwimlane: "bpmnSwimlane",
     BPMNGroup: "bpmnGroup",
 
     // SFC Diagram
@@ -1808,10 +1809,22 @@ function convertV3NodeDataToV4(
       }
     }
 
-    // For other BPMN elements that just need base data
+    // Subprocess / Transaction carry the collapse/expand flag; it was
+    // silently dropped before (fell into the generic base-data bucket).
     case "BPMNSubprocess":
-    case "BPMNTransaction":
-    case "BPMNCallActivity":
+    case "BPMNTransaction": {
+      const e = element as { isExpanded?: boolean }
+      return { ...baseData, isExpanded: e.isExpanded ?? false }
+    }
+
+    // Call Activity carries the referenced element id.
+    case "BPMNCallActivity": {
+      const e = element as { calledElement?: string }
+      return { ...baseData, calledElement: e.calledElement ?? "" }
+    }
+
+    // For other BPMN elements that just need base data
+    case "BPMNSwimlane":
     case "BPMNAnnotation":
     case "BPMNDataObject":
     case "BPMNDataStore":
@@ -2412,7 +2425,10 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
     version: "4.0.0",
     id,
     title,
-    type: model.type as UMLDiagramType,
+    // Normalize the legacy pre-rename BPMN wire value ("BPMN") to the
+    // canonical v4 value ("BPMNDiagram") so migrateBpmnDiagramV3ToV4's
+    // type guard passes for old files. All other types are key===value.
+    type: (model.type === "BPMN" ? "BPMNDiagram" : model.type) as UMLDiagramType,
     nodes,
     edges,
     assessments,
@@ -2493,6 +2509,26 @@ export function migrateClassDiagramV3ToV4(
   if (v4.type !== "ClassDiagram") {
     throw new Error(
       `migrateClassDiagramV3ToV4: expected ClassDiagram, got ${v4.type}`
+    )
+  }
+  return v4
+}
+
+/**
+ * BPMN v3 → v4 migrator. Thin wrapper around `convertV3ToV4` that asserts
+ * the result is a `BPMNDiagram`. `convertV3ToV4` normalizes the legacy
+ * pre-rename `model.type === "BPMN"` to `"BPMNDiagram"`, so both spellings
+ * of the old wire value migrate cleanly; the per-element conversion table
+ * carries `isExpanded` (Subprocess/Transaction), `calledElement`
+ * (CallActivity), and swimlanes.
+ */
+export function migrateBpmnDiagramV3ToV4(
+  data: V3DiagramFormat | V3UMLModel
+): UMLModel {
+  const v4 = convertV3ToV4(data)
+  if (v4.type !== "BPMNDiagram") {
+    throw new Error(
+      `migrateBpmnDiagramV3ToV4: expected BPMNDiagram, got ${v4.type}`
     )
   }
   return v4

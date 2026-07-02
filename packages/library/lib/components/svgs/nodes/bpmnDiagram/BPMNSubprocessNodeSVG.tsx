@@ -6,10 +6,13 @@ import { SVGComponentProps } from "@/types/SVG"
 import { useShallow } from "zustand/shallow"
 import AssessmentIcon from "../../AssessmentIcon"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
-import { BPMNSubprocessProps } from "@/types/nodes/NodeProps"
+import { DefaultNodeProps } from "@/types/nodes/NodeProps"
 
 interface BPMNSubprocessNodeSVGProps extends SVGComponentProps {
-  data: BPMNSubprocessProps
+  // Shared by Subprocess / Transaction (carry `isExpanded`) and Call
+  // Activity (carries `calledElement`); the component only reads `name`
+  // and narrows `isExpanded` off `data`, so the base shape is enough.
+  data: DefaultNodeProps
   variant?: "subprocess" | "transaction" | "call"
 }
 export const BPMNSubprocessNodeSVG: React.FC<BPMNSubprocessNodeSVGProps> = ({
@@ -30,6 +33,12 @@ export const BPMNSubprocessNodeSVG: React.FC<BPMNSubprocessNodeSVGProps> = ({
   const isTransaction = variant === "transaction"
   const isCall = variant === "call"
   const isSubprocess = !isTransaction && !isCall
+  // Subprocess & Transaction carry a collapse/expand marker; CallActivity
+  // does not. When expanded, the [+] marker becomes a [−] (vertical bar
+  // dropped) and the name top-anchors, mirroring develop's
+  // `nameY = element.isExpanded ? 20 : height / 2`.
+  const showCollapseMarker = isSubprocess || isTransaction
+  const isExpanded = (data as { isExpanded?: boolean }).isExpanded ?? false
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
   return (
@@ -79,20 +88,23 @@ export const BPMNSubprocessNodeSVG: React.FC<BPMNSubprocessNodeSVGProps> = ({
           stroke={strokeColor}
         />
       )}
-      {/* Subprocess: single border + plus box */}
+      {/* Subprocess: single border */}
       {isSubprocess && (
+        <StyledRect
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          rx={10}
+          ry={10}
+          fill={fillColor}
+          stroke={strokeColor}
+        />
+      )}
+      {/* Collapse/expand marker (Subprocess & Transaction). Horizontal
+          bar always drawn; vertical bar only when collapsed → [+] vs [−]. */}
+      {showCollapseMarker && (
         <>
-          <StyledRect
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            rx={10}
-            ry={10}
-            fill={fillColor}
-            stroke={strokeColor}
-          />
-          {/* Plus box marker */}
           <rect
             x={width / 2 - 7}
             y={height - 14}
@@ -110,26 +122,29 @@ export const BPMNSubprocessNodeSVG: React.FC<BPMNSubprocessNodeSVGProps> = ({
             stroke={strokeColor}
             strokeWidth={LAYOUT.LINE_WIDTH}
           />
-          <line
-            x1={width / 2}
-            y1={height - 11}
-            x2={width / 2}
-            y2={height - 3}
-            stroke={strokeColor}
-            strokeWidth={LAYOUT.LINE_WIDTH}
-          />
+          {!isExpanded && (
+            <line
+              x1={width / 2}
+              y1={height - 11}
+              x2={width / 2}
+              y2={height - 3}
+              stroke={strokeColor}
+              strokeWidth={LAYOUT.LINE_WIDTH}
+            />
+          )}
         </>
       )}
       <MultilineText
         text={name}
         x={width / 2}
-        y={height / 2}
+        y={isExpanded ? 20 : height / 2}
+        verticalAnchor={isExpanded ? "top" : "middle"}
         maxWidth={width - 16}
         fontSize={LAYOUT.NAME_FONT_SIZE}
         fontWeight="bold"
         fill={textColor}
         maxLines={maxLinesForHeight(
-          height - (isSubprocess ? 28 : 16),
+          height - (showCollapseMarker ? 28 : 16),
           LAYOUT.NAME_LINE_HEIGHT
         )}
       />

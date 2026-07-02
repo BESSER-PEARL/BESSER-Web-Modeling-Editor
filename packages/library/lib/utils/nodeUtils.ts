@@ -37,6 +37,10 @@ const PARENT_MIN_SIZE: Record<string, { width: number; height: number }> = {
   deploymentNode: { width: 180, height: 120 },
   deploymentComponent: { width: 180, height: 120 },
   bpmnPool: { width: 200, height: 120 },
+  // Lane default/fallback size (develop's BPMNSwimlane.DEFAULT_HEIGHT =
+  // 80). Width tracks the owning pool's content width at creation time;
+  // 200 is only the initial fallback.
+  bpmnSwimlane: { width: 200, height: 80 },
   bpmnGroup: { width: 160, height: 60 },
   bpmnSubprocess: { width: 160, height: 60 },
   bpmnTransaction: { width: 160, height: 60 },
@@ -281,6 +285,10 @@ const NODE_LABEL_CAPABILITIES = {
   bpmnEndEvent: { wrapsName: false, rendersNameLabel: true },
   bpmnGateway: { wrapsName: false, rendersNameLabel: true },
   bpmnPool: { wrapsName: false, rendersNameLabel: true },
+  // Swimlane draws its name as a custom rotated single line — not the
+  // generic wrap machinery, so wrapsName stays false. (Entry required
+  // because DiagramNodeType, and thus this Record, now includes it.)
+  bpmnSwimlane: { wrapsName: false, rendersNameLabel: true },
   bpmnDataObject: { wrapsName: false, rendersNameLabel: true },
   bpmnDataStore: { wrapsName: false, rendersNameLabel: true },
 
@@ -327,6 +335,7 @@ export const isParentNodeType = (nodeType?: string) => {
     nodeType === DiagramNodeTypeRecord.deploymentNode ||
     nodeType === DiagramNodeTypeRecord.deploymentComponent ||
     nodeType === DiagramNodeTypeRecord.bpmnPool ||
+    nodeType === DiagramNodeTypeRecord.bpmnSwimlane ||
     nodeType === DiagramNodeTypeRecord.bpmnGroup ||
     nodeType === DiagramNodeTypeRecord.bpmnSubprocess ||
     nodeType === DiagramNodeTypeRecord.bpmnTransaction ||

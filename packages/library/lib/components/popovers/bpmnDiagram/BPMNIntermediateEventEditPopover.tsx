@@ -46,6 +46,7 @@ export const BPMNIntermediateEventEditPopover: React.FC<PopoverProps> = ({
           <MenuItem value="message-catch">Message Catch</MenuItem>
           <MenuItem value="message-throw">Message Throw</MenuItem>
           <MenuItem value="timer-catch">Timer Catch</MenuItem>
+          <MenuItem value="timer-throw">Timer Throw</MenuItem>
           <MenuItem value="escalation-throw">Escalation Throw</MenuItem>
           <MenuItem value="conditional-catch">Conditional Catch</MenuItem>
           <MenuItem value="link-catch">Link Catch</MenuItem>

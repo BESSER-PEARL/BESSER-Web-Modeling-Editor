@@ -111,6 +111,58 @@ export const BPMNEventNodeSVG: React.FC<BPMNEventNodeSVGProps> = ({
               />
             </g>
           )
+        // Start-event subtypes render UNFILLED (catch semantics),
+        // matching develop's BPMNEscalation/Error/Compensation/LinkIcon.
+        case "escalation":
+          return (
+            <g transform={translate}>
+              <polyline
+                points="10 3, 4 15, 10 12, 16 15, 10 3"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.ICON_LINE_WIDTH}
+              />
+            </g>
+          )
+        case "error":
+          return (
+            <g transform={translate}>
+              <polyline
+                points="3 16, 6 4, 13 11, 17 4, 14 16, 7 10, 3 16"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.ICON_LINE_WIDTH}
+              />
+            </g>
+          )
+        case "compensation":
+          return (
+            <g transform={translate}>
+              <polyline
+                points="3 10, 9 6, 9 14, 3 10"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.ICON_LINE_WIDTH}
+              />
+              <polyline
+                points="10 10, 16 6, 16 14, 10 10"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.ICON_LINE_WIDTH}
+              />
+            </g>
+          )
+        case "link":
+          return (
+            <g transform={translate}>
+              <polyline
+                points="3 7, 13 7, 13 4, 18 10, 13 16, 13 13, 3 13, 3 7"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.ICON_LINE_WIDTH}
+              />
+            </g>
+          )
       }
     }
     if (variant === "intermediate") {
@@ -144,6 +196,30 @@ export const BPMNEventNodeSVG: React.FC<BPMNEventNodeSVGProps> = ({
             </g>
           )
         case "timer-catch":
+          return (
+            <g transform={translate}>
+              <circle
+                cx={10}
+                cy={10}
+                r={10}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.ICON_LINE_WIDTH}
+              />
+              <polyline
+                points="10 4, 10 10, 13 13"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={LAYOUT.ICON_LINE_WIDTH}
+              />
+            </g>
+          )
+        // develop renders the same BPMNTimerIcon for timer-throw as
+        // timer-catch (the throw/catch distinction is fill-only elsewhere,
+        // but the timer glyph itself is identical).
+        case "timer-throw":
           return (
             <g transform={translate}>
               <circle

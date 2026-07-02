@@ -223,6 +223,7 @@ export type PetriNetPlaceProps = {
 export type BPMNTaskType =
   | "default"
   | "user"
+  | "service"
   | "send"
   | "receive"
   | "manual"
@@ -246,12 +247,17 @@ export type BPMNStartEventType =
   | "timer"
   | "conditional"
   | "signal"
+  | "escalation"
+  | "error"
+  | "compensation"
+  | "link"
 
 export type BPMNIntermediateEventType =
   | "default"
   | "message-catch"
   | "message-throw"
   | "timer-catch"
+  | "timer-throw"
   | "escalation-throw"
   | "conditional-catch"
   | "link-catch"
@@ -284,14 +290,16 @@ export type BPMNGatewayProps = DefaultNodeProps & {
   gatewayType: BPMNGatewayType
 }
 
-export type BPMNSubprocessProps = DefaultNodeProps
-export type BPMNTransactionProps = DefaultNodeProps
-export type BPMNCallActivityProps = DefaultNodeProps
+export type BPMNSubprocessProps = DefaultNodeProps & { isExpanded: boolean }
+export type BPMNTransactionProps = DefaultNodeProps & { isExpanded: boolean }
+export type BPMNCallActivityProps = DefaultNodeProps & { calledElement: string }
 export type BPMNAnnotationProps = DefaultNodeProps
 export type BPMNDataObjectProps = DefaultNodeProps
 export type BPMNDataStoreProps = DefaultNodeProps
 export type BPMNPoolProps = DefaultNodeProps
 export type BPMNGroupProps = DefaultNodeProps
+// Swimlane carries no extra fields beyond name/bounds (a pool subdivision).
+export type BPMNSwimlaneProps = DefaultNodeProps
 
 export type ReachabilityGraphMarkingProps = DefaultNodeProps & {
   isInitialMarking: boolean
