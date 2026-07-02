@@ -73,6 +73,7 @@ import { BPMNDiagramEdgeEditPopover } from "./edgePopovers/BPMNDiagramEdgeEditPo
 import { PetriNetEdgeEditPopover } from "./edgePopovers/PetriNetEdgeEditPopover"
 import {
   getInspector,
+  registerInspector,
   registerInspectors,
 } from "../inspectors/registry"
 
@@ -646,6 +647,44 @@ const seeFeedbackPopovers: {
 registerInspectors("edit", editPopovers)
 registerInspectors("feedbackGive", giveFeedbackPopovers)
 registerInspectors("feedbackSee", seeFeedbackPopovers)
+
+// BPMN camelCase node-type aliases.
+//
+// The floating `PopoverManager` resolves inspectors from the PascalCase
+// popover `type` prop each BPMN node passes (e.g. "BPMNTask"), so the
+// registrations above are enough for popover mode. The right-side
+// `PropertiesPanel` — the DEFAULT editing surface (`usePropertiesPanel`
+// defaults to `true`) — instead derives the lookup key from the React-Flow
+// node `type`, which for BPMN is camelCase ("bpmnTask", "bpmnPool", …).
+// Those keys are absent from the maps above, so `getInspector("bpmnTask",
+// "edit")` returned `null` and the BPMN properties panel never opened
+// (unlike `class`/`objectName`, whose node type equals their registry key).
+// Register the camelCase node types as aliases so BPMN nodes resolve their
+// inspector in BOTH surfaces.
+const bpmnNodeTypeToPopoverType: Record<string, keyof typeof editPopovers> = {
+  bpmnTask: "BPMNTask",
+  bpmnStartEvent: "BPMNStartEvent",
+  bpmnIntermediateEvent: "BPMNIntermediateEvent",
+  bpmnEndEvent: "BPMNEndEvent",
+  bpmnGateway: "BPMNGateway",
+  bpmnSubprocess: "BPMNSubprocess",
+  bpmnTransaction: "BPMNTransaction",
+  bpmnCallActivity: "BPMNCallActivity",
+  bpmnAnnotation: "BPMNAnnotation",
+  bpmnDataObject: "BPMNDataObject",
+  bpmnDataStore: "BPMNDataStore",
+  bpmnPool: "BPMNPool",
+  bpmnSwimlane: "BPMNSwimlane",
+  bpmnGroup: "BPMNGroup",
+}
+
+for (const [nodeType, popoverType] of Object.entries(
+  bpmnNodeTypeToPopoverType
+)) {
+  registerInspector(nodeType, "edit", editPopovers[popoverType])
+  registerInspector(nodeType, "feedbackGive", DefaultNodeGiveFeedbackPopover)
+  registerInspector(nodeType, "feedbackSee", DefaultNodeSeeFeedbackPopover)
+}
 
 interface PopoverManagerProps {
   elementId: string

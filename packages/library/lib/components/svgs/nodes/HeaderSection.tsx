@@ -15,6 +15,21 @@ interface HeaderSectionProps {
   isUnderlined?: boolean
   textColor?: string
   fill?: string
+  /**
+   * Horizontal alignment of the stereotype/name text.
+   * `"middle"` (default) centers the text on the node — the box always
+   * auto-grows to fit the longest row (see `calculateMinWidth`), so a
+   * centered header reads correctly for short, single-string names like
+   * a Class name.
+   * `"start"` left-aligns the text against the header's left padding
+   * instead, so the (already-present) clipPath truncates only the END
+   * of an overlong name — matches how attribute/method rows render (see
+   * `RowBlockSection`). Use this for headers whose label concatenates
+   * multiple parts into one longer string (e.g. ObjectName's
+   * `name : ClassName`), where centering would clip equally from BOTH
+   * ends and leave only the middle of the string visible.
+   */
+  align?: "start" | "middle"
 }
 
 export const HeaderSection: FC<HeaderSectionProps> = ({
@@ -27,11 +42,13 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
   isUnderlined = false,
   textColor,
   fill = "var(--besser-background, white)",
+  align = "middle",
 }) => {
   // Falls back to stereotype-derived italic when caller doesn't pass the flag.
   const italic = isItalic ?? stereotype === ClassType.Abstract
   // SVG ids must not contain the colons React's useId emits.
   const clipId = `header-clip-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
+  const textX = align === "start" ? LAYOUT.DEFAULT_PADDING : width / 2
   return (
     <>
       <rect
@@ -54,16 +71,16 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
       </clipPath>
       <CustomText
         clipPath={`url(#${clipId})`}
-        x={width / 2}
+        x={textX}
         y={headerHeight / 2}
         dominantBaseline="middle"
-        textAnchor="middle"
+        textAnchor={align}
         fontWeight="bold"
         textDecoration={isUnderlined ? "underline" : "normal"}
         fill={textColor}
       >
         {showStereotype && (
-          <tspan x={width / 2} dy="-8" fontSize="85%">
+          <tspan x={textX} dy="-8" fontSize="85%">
             {`«${stereotype}»`}
           </tspan>
         )}
@@ -81,7 +98,7 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
          * `isUnderlined={true}` prop).
          */}
         <tspan
-          x={width / 2}
+          x={textX}
           dy={showStereotype ? "18" : "0"}
           fontStyle={italic ? "italic" : "normal"}
           textDecoration={isUnderlined ? "underline" : "normal"}

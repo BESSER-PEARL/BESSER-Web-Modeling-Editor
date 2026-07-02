@@ -121,7 +121,13 @@ export const ObjectNameSVG = ({
             `uml-object-name-component.tsx` displayLabel). Stereotype
             band renders only when `data.stereotype` is set. The
             HeaderSection prop expects ClassType, but v3 stored arbitrary
-            string stereotypes on object instances — cast through. */}
+            string stereotypes on object instances — cast through.
+            `align="start"` left-aligns the header instead of the
+            default centering: the object header concatenates
+            `name : ClassName` into one (often long) string, and a
+            centered + clipped label loses BOTH ends, showing only the
+            middle. Left-aligning keeps the start visible and truncates
+            only the end, matching how attribute rows already render. */}
         <HeaderSection
           showStereotype={hasStereotype}
           stereotype={hasStereotype ? (stereotype as unknown as ClassType) : undefined}
@@ -131,6 +137,7 @@ export const ObjectNameSVG = ({
           isUnderlined={true}
           fill={fillColor}
           textColor={textColor}
+          align="start"
         />
 
         {/* Icon view replaces attributes/methods sections. The

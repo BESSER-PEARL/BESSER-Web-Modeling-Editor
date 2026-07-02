@@ -10,7 +10,6 @@ import { SeparationLine } from "@/components/svgs/nodes/SeparationLine"
 import { CustomText } from "@/components/svgs/nodes/CustomText"
 import { RowBlockSection } from "@/components/svgs/nodes/RowBlockSection"
 import { useDiagramStore } from "@/store"
-import { useSettingsStore } from "@/store/settingsStore"
 import { useShallow } from "zustand/shallow"
 import AssessmentIcon from "@/components/svgs/AssessmentIcon"
 import { getCustomColorsFromData } from "@/utils"
@@ -30,9 +29,13 @@ import { diagramBridge } from "@/services/diagramBridge"
  *     showing the resolved linked-class name (see
  *     `resolveUserModelHeaderLabel`), then the attribute rows below.
  *     Visibility symbols are NOT rendered (unlike Class rows). The
- *     icon/table split is derived live from the global `showIconView`
- *     setting — `data.view` is no longer consulted for rendering (kept
- *     only for round-trip, see `versionConverter.ts`).
+ *     icon/table split is derived from the per-node `data.view`
+ *     (`"icon"` when unset — v3's preferred UserDiagram preview; opt into
+ *     the attribute table with an explicit `view: "attributes"`). This is
+ *     intentionally NOT tied to the shared `showIconView` setting exposed
+ *     in the Display settings panel — that toggle is scoped to
+ *     ObjectDiagram ("Render objects with their class icon instead of the
+ *     attribute table"), not UserDiagram.
  *
  *  2. `UserModelIconSVG` — small icon preview (legacy palette entry).
  *
@@ -58,13 +61,12 @@ interface UserModelNameSVGData {
   textColor?: string
   attributes: ClassNodeElement[]
   /**
-   * Legacy per-node render mode. NOT consulted by
-   * `UserModelNameSVG` for the render decision — v3 has no per-instance
-   * override for UserModelName; the icon/table split is derived purely
-   * from the global `showIconView` setting (see
-   * `uml-user-model-name.ts:161-180`, `user-model-preview.ts:12-18`).
-   * Retained on the type only so `versionConverter.ts` can round-trip
-   * the field through v3<->v4 JSON.
+   * Per-node render mode. `"icon"` (default, applied when unset) renders
+   * the person/class glyph — matches the v3 fork's preferred UserDiagram
+   * preview. `"attributes"` shows the underlined header + attribute
+   * table. `versionConverter.ts` normalises absent `view` to `"icon"` on
+   * v3->v4 migration and round-trips an explicit `"attributes"` value
+   * untouched.
    */
   view?: "icon" | "attributes"
 }
@@ -166,17 +168,15 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
-  // v3 parity: the icon/table split is decided purely by the global
-  // `showIconView` setting (`uml-user-model-name.ts:162-180`;
-  // `composeUserModelPreview` in `user-model-preview.ts:16-18`) —
-  // default `false` (table view). `data.view` is NOT consulted: v3 has
-  // no per-instance override for UserModelName. Unlike ObjectName, no
+  // Icon/table split comes from the per-node `data.view`,
+  // defaulting to `"icon"` when unset (v3's preferred UserDiagram
+  // preview — see the `view` doc comment above). Unlike ObjectName, no
   // `hasIcon` gate is needed here: `resolveIconBody` below always
   // resolves to a renderable body (direct icon -> linked meta-class icon
   // -> hardcoded person-glyph fallback), so there is no blank-icon-box
   // case to guard against.
-  const showIconView = useSettingsStore((s) => s.showIconView)
-  const iconViewActive = showIconView
+  const view = data.view ?? "icon"
+  const iconViewActive = view === "icon"
   // v3 parity: header shows the resolved class name, not the instance
   // name — see `resolveUserModelHeaderLabel`.
   const headerLabel = resolveUserModelHeaderLabel(data)

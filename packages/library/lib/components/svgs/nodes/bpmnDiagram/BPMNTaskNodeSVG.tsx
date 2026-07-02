@@ -12,6 +12,15 @@ export type BPMNTaskNodeSVGProps = SVGComponentProps & {
   data: BPMNTaskProps
 }
 
+/**
+ * Horizontal inset (per side) applied to the centred name's wrap width when a
+ * task-type icon is drawn in the top-left corner, so the name can't slide
+ * under the icon. Ported from develop's `TASK_ICON_SIDE_INSET`. The icon is a
+ * 20×20 glyph at (10, 10) (right edge ~30), so a 26px inset keeps the name
+ * clear of it while staying visually centred.
+ */
+const TASK_ICON_SIDE_INSET = 26 // px, per side, matches develop
+
 export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
   id,
   width,
@@ -312,12 +321,17 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
         {/* Cap the wrapped block so it can't collide with the top-left
             task-type icon or the bottom-center marker. Reserves are only
             charged when the corresponding decoration is actually drawn,
-            so a plain task keeps its full vertical budget. */}
+            so a plain task keeps its full vertical budget. When a type icon
+            is present, inset the name's wrap width by TASK_ICON_SIDE_INSET on
+            each side (keeps it centred but clear of the corner icon); plain
+            tasks keep the default 8px side padding. */}
         <MultilineText
           text={name}
           x={width / 2}
           y={height / 2}
-          maxWidth={width - 16}
+          maxWidth={
+            icon ? Math.max(1, width - 2 * TASK_ICON_SIDE_INSET) : width - 16
+          }
           fontSize={LAYOUT.NAME_FONT_SIZE}
           fontWeight="bold"
           fill={textColor}

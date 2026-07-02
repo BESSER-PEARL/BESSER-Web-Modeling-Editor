@@ -34,10 +34,12 @@ import {
  *    `className`, then the instance `name` as last resort). This mirrors
  *    `uml-object-name-component.tsx`'s `isUserModelElement` branch, NOT
  *    the `name : className` format used for plain ObjectName instances.
- *  - Icon vs. attribute-table body is derived purely from the global
- *    `showIconView` setting (see `UserDiagramSVGs.tsx`) — there is no
- *    per-node override; node height is always driven by the attribute
- *    row count so both views share the same footprint.
+ *  - Icon vs. attribute-table body is derived from the per-node
+ *    `data.view` (see `UserDiagramSVGs.tsx`), defaulting to `"icon"`
+ *    when unset — v3's preferred UserDiagram preview. Icon view reserves
+ *    a fixed glyph footprint (`headerHeight + 60`, mirroring v3's 50x50
+ *    icon slot below a 40px header); the attribute table falls back to
+ *    the attribute-row-count-driven height.
  *  - No methods rendered (user-model is constraint-style data only).
  *  - Each attribute row is rendered in `name = value` format. The
  *    formatter prefers `attributeOperator` when present (so `>=`, `<=`
@@ -68,6 +70,10 @@ export function UserModelName({
   data,
 }: NodeProps<Node<UserModelNameNodeProps>>) {
   const { attributes, name, className } = data
+  // Per-node render mode — default to `"icon"` (v3 preferred preview).
+  // The class-style attribute table is opt-in via an explicit
+  // `view: "attributes"` (round-tripped through `versionConverter.ts`).
+  const view = data.view ?? "icon"
   const displayAttributes = useMemo(
     () => attributes.map(formatUserModelAttributeForDisplay),
     [attributes]
@@ -107,21 +113,23 @@ export function UserModelName({
     [maxTextWidth, padding]
   )
 
-  // v3 parity: height is driven by the attribute-row count regardless of
-  // icon/table view — `UserModelNameSVG` decides at paint time which
-  // body to draw inside the same footprint (global `showIconView`
-  // setting), mirroring how `ObjectName.tsx` sizes `ObjectNameSVG`.
-  const minHeight = useMemo(
-    () =>
-      calculateMinHeight(
-        headerHeight,
-        attributes.length,
-        0,
-        attributeHeight,
-        methodHeight
-      ),
-    [headerHeight, attributes.length, attributeHeight, methodHeight]
-  )
+  // Icon view collapses the row stack to a single glyph slot. Reserve
+  // roughly the same footprint v3 reserved (`renderIconView` defaulted
+  // to a 50x50 glyph below a 40px header — see
+  // `uml-user-model-name.ts:196-209`). The attribute table falls back to
+  // the attribute-row-count-driven height.
+  const minHeight = useMemo(() => {
+    if (view === "icon") {
+      return headerHeight + 60
+    }
+    return calculateMinHeight(
+      headerHeight,
+      attributes.length,
+      0,
+      attributeHeight,
+      methodHeight
+    )
+  }, [view, headerHeight, attributes.length, attributeHeight, methodHeight])
 
   useEffect(() => {
     // Icon view is fixed-height (maxHeight === minHeight), so the node
@@ -192,6 +200,10 @@ export function UserModelName({
             strokeColor: data.strokeColor,
             textColor: data.textColor,
             attributes: displayAttributes,
+            // Forward the per-node view so the SVG renders the icon
+            // glyph by default (or the attribute table when explicitly
+            // opted into via `view: "attributes"`).
+            view,
           }}
           id={id}
           showAssessmentResults={!isDiagramModifiable}
