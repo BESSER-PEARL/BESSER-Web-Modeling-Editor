@@ -1,4 +1,5 @@
 import {
+  ALL_DIAGRAM_TYPES,
   BesserProject,
   ProjectDiagram,
   PROJECT_SCHEMA_VERSION,
@@ -6,6 +7,7 @@ import {
   createDefaultPerspectives,
   createEmptyDiagram,
   getActiveDiagram,
+  toSupportedDiagramType,
 } from '../../types/project';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { LocalStorageRepository } from '../storage/local-storage-repository';
@@ -56,7 +58,7 @@ function isOldWebappFormat(data: any): boolean {
   const diagrams = data.project.diagrams;
   // Old format: diagrams are plain objects, not arrays
   return Object.values(diagrams).some(
-    (d: any) => d && typeof d === 'object' && !Array.isArray(d) && ('title' in d || 'model' in d || 'lastUpdate' in d)
+    (d: any) => d && typeof d === 'object' && !Array.isArray(d) && ('title' in d || 'model' in d || 'lastUpdate' in d),
   );
 }
 
@@ -68,8 +70,15 @@ function migrateOldWebappProject(data: any): BesserProject {
   // Build diagram arrays from single diagram objects
   const migratedDiagrams: any = {};
   const allTypes: SupportedDiagramType[] = [
-    'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
-    'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
+    'ClassDiagram',
+    'ObjectDiagram',
+    'StateMachineDiagram',
+    'AgentDiagram',
+    'UserDiagram',
+    'GUINoCodeDiagram',
+    'QuantumCircuitDiagram',
+    'NNDiagram',
+    'BPMN',
   ];
 
   for (const diagramType of allTypes) {
@@ -82,19 +91,28 @@ function migrateOldWebappProject(data: any): BesserProject {
     } else if (Array.isArray(existing)) {
       migratedDiagrams[diagramType] = existing;
     } else {
-      migratedDiagrams[diagramType] = [createEmptyDiagram(
-        diagramType.replace(/([A-Z])/g, ' $1').trim(),
-        diagramType === 'GUINoCodeDiagram' || diagramType === 'QuantumCircuitDiagram'
-          ? null
-          : (UMLDiagramType as any)[diagramType] ?? null,
-        diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined
-      )];
+      migratedDiagrams[diagramType] = [
+        createEmptyDiagram(
+          diagramType.replace(/([A-Z])/g, ' $1').trim(),
+          diagramType === 'GUINoCodeDiagram' || diagramType === 'QuantumCircuitDiagram'
+            ? null
+            : ((UMLDiagramType as any)[diagramType] ?? null),
+          diagramType === 'GUINoCodeDiagram' ? 'gui' : diagramType === 'QuantumCircuitDiagram' ? 'quantum' : undefined,
+        ),
+      ];
     }
   }
 
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
-    ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-    AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0, NNDiagram: 0,
+    ClassDiagram: 0,
+    ObjectDiagram: 0,
+    StateMachineDiagram: 0,
+    AgentDiagram: 0,
+    UserDiagram: 0,
+    GUINoCodeDiagram: 0,
+    QuantumCircuitDiagram: 0,
+    NNDiagram: 0,
+    BPMN: 0,
   };
 
   return {
@@ -134,7 +152,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'NNDiagram',
     'UserDiagram',
     'GUINoCodeDiagram',
-    'QuantumCircuitDiagram'
+    'QuantumCircuitDiagram',
+    'BPMN',
   ];
 
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -146,6 +165,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
     QuantumCircuitDiagram: null,
+    BPMN: UMLDiagramType.BPMN,
   };
 
   const diagramTitles: Record<SupportedDiagramType, string> = {
@@ -156,7 +176,8 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     NNDiagram: 'NN Diagram',
     UserDiagram: 'User Diagram',
     GUINoCodeDiagram: 'GUI Diagram',
-    QuantumCircuitDiagram: 'Quantum Circuit'
+    QuantumCircuitDiagram: 'Quantum Circuit',
+    BPMN: 'BPMN Diagram',
   };
 
   const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
@@ -165,7 +186,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
   };
 
   // Ensure all diagram types exist as arrays
-  allDiagramTypes.forEach(diagramType => {
+  allDiagramTypes.forEach((diagramType) => {
     const existing = project.diagrams[diagramType];
     if (!existing) {
       const umlType = diagramTypeToUMLType[diagramType];
@@ -237,9 +258,7 @@ function isGUIModelEmpty(guiModel: any): boolean {
 
         // Check if any frame has components
         for (const frame of page.frames) {
-          if (frame.component &&
-            frame.component.components &&
-            frame.component.components.length > 0) {
+          if (frame.component && frame.component.components && frame.component.components.length > 0) {
             return false; // Found a frame with components, not empty
           }
         }
@@ -319,7 +338,7 @@ function extractPersonalization(data: V2ExportData): ImportedPersonalization | u
 // Import from BUML (.py)
 export async function importProjectFromBUML(file: File): Promise<BesserProject> {
   const formData = new FormData();
-  formData.append("buml_file", file);
+  formData.append('buml_file', file);
 
   const response = await fetch(`${BACKEND_URL}/get-project-json-model`, {
     method: 'POST',
@@ -337,7 +356,6 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
     const project = migrateOldWebappProject(jsonData);
     storeImportedProject(project);
     return project;
-
   } else if (validateV2ExportData(jsonData)) {
     const project = fillMissingDiagrams({
       ...jsonData.project,
@@ -347,12 +365,10 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
     });
     storeImportedProject(project, extractPersonalization(jsonData));
     return project;
-
   } else if (validateLegacyImportData(jsonData)) {
     const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
     storeImportedProject(convertedProject);
     return convertedProject;
-
   } else {
     throw new Error('Invalid BUML file structure');
   }
@@ -373,7 +389,6 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           storeImportedProject(importedProject);
           console.log(`Project "${importedProject.name}" imported successfully (old webapp format migrated)`);
           resolve(importedProject);
-
         } else if (validateV2ExportData(jsonData)) {
           // V2 format - project already contains diagrams
           const project = jsonData.project;
@@ -384,7 +399,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             ...project,
             id: newProjectId,
             name: `${project.name}`,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
           });
 
           // Store using project storage
@@ -392,7 +407,6 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
           console.log(`Project "${importedProject.name}" imported successfully (V2 format)`);
           resolve(importedProject);
-
         } else if (validateLegacyImportData(jsonData)) {
           // Legacy V1 format - convert to new format and store
           const convertedProject = fillMissingDiagrams(convertLegacyToProject(jsonData));
@@ -400,32 +414,61 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
 
           console.log(`Project "${convertedProject.name}" imported successfully (Legacy format converted)`);
           resolve(convertedProject);
-
         } else if (jsonData && jsonData.model && typeof jsonData.model === 'object' && jsonData.model.type) {
-          // Raw single-diagram JSON (e.g., exported from old editor as bare diagram)
-          const diagramType = (jsonData.model.type as string) || 'ClassDiagram';
-          const supportedType = (diagramType in UMLDiagramType ? diagramType : 'ClassDiagram') as SupportedDiagramType;
+          // Raw single-diagram JSON (e.g., exported from old editor as bare diagram).
+          // Legacy: pre-`BPMNDiagram` BPMN files used `type: 'BPMN'` — normalize.
+          const rawType = (jsonData.model.type as string) || UMLDiagramType.ClassDiagram;
+          const wireType = rawType === 'BPMN' ? UMLDiagramType.BPMN : rawType;
+          // Map wire type → SupportedDiagramType (bucket key). Unknown types fall
+          // back to ClassDiagram; the previous `in UMLDiagramType` check tested
+          // *keys* and incorrectly missed entries where key ≠ value (BPMN).
+          const knownWireType = (Object.values(UMLDiagramType) as string[]).includes(wireType);
+          const supportedType: SupportedDiagramType = knownWireType
+            ? toSupportedDiagramType(wireType as UMLDiagramType)
+            : 'ClassDiagram';
           const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-          const allTypes: SupportedDiagramType[] = [
-            'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram',
-            'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram'
-          ];
+          const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
+            ClassDiagram: UMLDiagramType.ClassDiagram,
+            ObjectDiagram: UMLDiagramType.ObjectDiagram,
+            StateMachineDiagram: UMLDiagramType.StateMachineDiagram,
+            AgentDiagram: UMLDiagramType.AgentDiagram,
+            UserDiagram: UMLDiagramType.UserDiagram,
+            GUINoCodeDiagram: null,
+            QuantumCircuitDiagram: null,
+            NNDiagram: UMLDiagramType.NNDiagram,
+            BPMN: UMLDiagramType.BPMN,
+          };
+          const diagramTitles: Record<SupportedDiagramType, string> = {
+            ClassDiagram: 'Class Diagram',
+            ObjectDiagram: 'Object Diagram',
+            StateMachineDiagram: 'State Machine Diagram',
+            AgentDiagram: 'Agent Diagram',
+            UserDiagram: 'User Diagram',
+            GUINoCodeDiagram: 'GUI Diagram',
+            QuantumCircuitDiagram: 'Quantum Circuit',
+            NNDiagram: 'NN Diagram',
+            BPMN: 'BPMN Diagram',
+          };
 
+
+          // ALL_DIAGRAM_TYPES (incl. BPMN) — the prior local list silently
+          // dropped BPMN, which produced a project without a BPMN bucket and
+          // failed isProject() validation on the next load.
           const diagrams: any = {};
-          for (const t of allTypes) {
+          for (const t of ALL_DIAGRAM_TYPES) {
             if (t === supportedType) {
-              diagrams[t] = [{
-                id: jsonData.id || `${t}_${Date.now()}`,
-                title: jsonData.title || t.replace(/([A-Z])/g, ' $1').trim(),
-                model: jsonData.model,
-                lastUpdate: jsonData.lastUpdate || new Date().toISOString(),
-              }];
+              diagrams[t] = [
+                {
+                  id: jsonData.id || `${t}_${Date.now()}`,
+                  title: jsonData.title || diagramTitles[t],
+                  model: jsonData.model,
+                  lastUpdate: jsonData.lastUpdate || new Date().toISOString(),
+                },
+              ];
             } else {
-              const umlType = t === 'GUINoCodeDiagram' || t === 'QuantumCircuitDiagram'
-                ? null : (UMLDiagramType as any)[t] ?? null;
               const kind = t === 'GUINoCodeDiagram' ? 'gui' : t === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-              diagrams[t] = [createEmptyDiagram(t.replace(/([A-Z])/g, ' $1').trim(), umlType, kind)];
+              diagrams[t] = [createEmptyDiagram(diagramTitles[t], diagramTypeToUMLType[t], kind)];
             }
           }
 
@@ -439,8 +482,15 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             createdAt: new Date().toISOString(),
             currentDiagramType: supportedType,
             currentDiagramIndices: {
-              ClassDiagram: 0, ObjectDiagram: 0, StateMachineDiagram: 0,
-              AgentDiagram: 0, UserDiagram: 0, GUINoCodeDiagram: 0, QuantumCircuitDiagram: 0, NNDiagram: 0,
+              ClassDiagram: 0,
+              ObjectDiagram: 0,
+              StateMachineDiagram: 0,
+              AgentDiagram: 0,
+              UserDiagram: 0,
+              GUINoCodeDiagram: 0,
+              QuantumCircuitDiagram: 0,
+              NNDiagram: 0,
+              BPMN: 0,
             },
             diagrams,
             settings: {
@@ -454,11 +504,9 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
           storeImportedProject(importedProject);
           console.log(`Project "${importedProject.name}" imported successfully (raw diagram format)`);
           resolve(importedProject);
-
         } else {
           throw new Error('Invalid project file format - unsupported structure');
         }
-
       } catch (error) {
         console.error('JSON import failed:', error);
         reject(new Error('Failed to import project: Invalid JSON format'));

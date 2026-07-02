@@ -9,6 +9,7 @@ export const PERSPECTIVE_LABELS: Record<SupportedDiagramType, string> = {
   GUINoCodeDiagram: 'GUI Diagram',
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',
   NNDiagram: 'Neural Network Diagram',
+  BPMN: 'BPMN Diagram',
 };
 
 export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
@@ -20,6 +21,7 @@ export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
   GUINoCodeDiagram: 'Graphical user interface design (IFML-inspired).',
   QuantumCircuitDiagram: 'Quantum program specification.',
   NNDiagram: 'Neural network architecture (PyTorch / TensorFlow).',
+  BPMN: 'Business process modeling (BPMN 2.0).',
 };
 
 export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
@@ -31,4 +33,5 @@ export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
   GUINoCodeDiagram: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
   QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   NNDiagram: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
+  BPMN: 'bg-pink-100 text-pink-900 dark:bg-pink-900/30 dark:text-pink-300',
 };
