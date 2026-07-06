@@ -22,6 +22,7 @@ Design UML models, generate code, and deploy applications -- all from your brows
    :caption: How-to Guides
 
    overview/getting-started
+   user-guide/vibe-modeling
    user-guide/deploy_locally
    user-guide/projects
    user-guide/diagrams/index
