@@ -26,6 +26,7 @@ import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
+import { shouldOpenGuiTab, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
@@ -137,6 +138,15 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   /* ---- Quick action handler: submit a prompt directly ---- */
   const handleQuickAction = useCallback((prompt: string) => {
     handleSubmit(undefined, { overrideText: prompt });
+  }, [handleSubmit]);
+
+  /* ---- Suggested-action chip handler: route "modify the GUI" to the GUI tab ---- */
+  const handleSuggestedAction = useCallback((action: GuiActionRouteInput) => {
+    if (shouldOpenGuiTab(action)) {
+      void switchDiagram('GUINoCodeDiagram');
+      return;
+    }
+    handleSubmit(undefined, { overrideText: action.prompt ?? '' });
   }, [handleSubmit]);
 
   /* ---- Keyboard shortcuts on input ---- */
@@ -289,8 +299,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 </div>
                 <div className="flex flex-col gap-1.5 w-full max-w-xs">
                   {[
-                    'Create a library management system',
-                    'Add a Payment class with amount and date',
+                    'Build a library app to track books and loans',
+                    'Add a Payment with an amount and a date',
                     'Generate Django code',
                   ].map((suggestion) => (
                     <button
@@ -327,7 +337,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
             {/* Quick actions after last assistant message */}
             {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
-              <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+              <QuickActions actions={lastMeta.suggestedActions} onAction={handleSuggestedAction} />
             )}
 
             {/* Limit reached / auth error → offer the user their own key */}

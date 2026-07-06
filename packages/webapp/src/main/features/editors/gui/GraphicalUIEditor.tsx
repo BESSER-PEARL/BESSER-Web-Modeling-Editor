@@ -22,6 +22,7 @@ import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectD
 import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
+import { markTextEditable } from '../../../shared/utils/markTextEditable';
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
@@ -100,23 +101,11 @@ export const GraphicalUIEditor: React.FC = () => {
           // BOTH type:'text' AND editable:true. Models loaded via loadProjectData
           // use their component defs as-is (the preset-webpage plugin's defaults
           // are NOT applied), so agent-generated text arrives locked. Walk the
-          // model and mark every text component editable so generated GUIs can be
-          // edited just like manually-created ones. Mutating `model` here fixes
-          // both the live load (below) and the persisted copy (saved further down).
-          const markTextEditable = (node: any): void => {
-            if (Array.isArray(node)) {
-              node.forEach(markTextEditable);
-              return;
-            }
-            if (node && typeof node === 'object') {
-              if (node.type === 'text') {
-                node.editable = true;
-              }
-              for (const key of Object.keys(node)) {
-                markTextEditable(node[key]);
-              }
-            }
-          };
+          // model and mark every text component editable (and coerce bare text
+          // tags like <p> to editable text) so generated GUIs can be edited just
+          // like manually-created ones. Mutating `model` here fixes both the live
+          // load (below) and the persisted copy (saved further down). The shared
+          // helper is reused on the assistant's editor-bypass injection paths.
           markTextEditable(model);
 
           // Clear existing pages

@@ -66,6 +66,13 @@ export type { ConnectionStatus } from './useWebSocketConnection';
 export interface SuggestedAction {
   label: string;
   prompt: string;
+  /**
+   * Optional explicit routing hint from the backend. When set to 'open-gui'
+   * the chip switches to the GUI tab instead of relaying its prompt to the
+   * agent (see shouldOpenGuiTab). The current "Modify the GUI" chip works via
+   * a label/prompt regex fallback even without this field.
+   */
+  action?: string;
 }
 
 export interface MessageMeta {

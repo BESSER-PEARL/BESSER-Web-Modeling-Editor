@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
+import { shouldOpenGuiTab, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
@@ -53,21 +54,21 @@ const SHOW_FLOATING_CARDS = false;
 
 /** All available starter prompts — a random subset is displayed each session. */
 const ALL_STARTER_PROMPTS = [
-  // Class Diagrams
-  'Create an e-commerce system with customers, orders, and products',
-  'Design a university enrollment system with students, courses, and professors',
-  'Model a hospital management system with patients, doctors, and appointments',
-  'Build a library management system with books, authors, and members',
-  'Create a banking system with accounts, transactions, and customers',
-  'Design a social media platform with users, posts, and comments',
-  'Model a restaurant ordering system with menus, orders, and tables',
-  'Create a project management tool with tasks, teams, and sprints',
-  // GUI
-  'Design a hotel booking web app with rooms, guests, and reservations',
-  'Design a dashboard for inventory management',
-  // Multi-diagram
-  'Build a complete library management platform with models and UI',
-  'Build a task management application with models and UI',
+  // Data-focused apps
+  'Build an online store for customers, orders, and products',
+  'Make an app to manage class enrollments for students and courses',
+  'Build an app to manage patient appointments with doctors',
+  'Create a library app to track books, authors, and loans',
+  'Build a banking app for accounts, transactions, and customers',
+  'Make a social app with users, posts, and comments',
+  'Make a restaurant ordering app with menus, tables, and orders',
+  'Build a project tracker for tasks, teams, and sprints',
+  // App with screens
+  'Make a hotel booking app for rooms, guests, and reservations',
+  'Build an inventory dashboard to track stock levels',
+  // Full app (data + screens)
+  'Build a complete library app with data and screens',
+  'Make a task manager app with data and screens',
 ];
 
 /** Pick N random prompts from the pool, deterministic per session. */
@@ -186,8 +187,14 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   /* ---- Quick action handler ---- */
 
-  const handleQuickAction = useCallback((prompt: string) => {
-    handleSubmit(undefined, { overrideText: prompt });
+  // A "view/modify the GUI" chip switches to the GUI tab instead of relaying a
+  // prompt the agent can't act on; every other chip relays its prompt as chat.
+  const handleQuickAction = useCallback((action: GuiActionRouteInput) => {
+    if (shouldOpenGuiTab(action)) {
+      void switchDiagram('GUINoCodeDiagram');
+      return;
+    }
+    handleSubmit(undefined, { overrideText: action.prompt ?? '' });
   }, [handleSubmit]);
 
   /* ---- Last assistant message meta (for QuickActions) ---- */

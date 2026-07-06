@@ -4,11 +4,14 @@ import { Code, Layout, ArrowRight, Zap, Download, LayoutTemplate, RefreshCw, Lay
 interface QuickAction {
   label: string;
   prompt: string;
+  /** Optional explicit routing hint (e.g. 'open-gui'); consumed by the handler. */
+  action?: string;
 }
 
 interface QuickActionsProps {
   actions: QuickAction[];
-  onAction: (prompt: string) => void;
+  /** Receives the full action so the handler can route (e.g. open the GUI tab). */
+  onAction: (action: QuickAction) => void;
 }
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
@@ -46,7 +49,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction })
         <button
           key={i}
           type="button"
-          onClick={() => onAction(action.prompt)}
+          onClick={() => onAction(action)}
           className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground/80 transition-all hover:border-brand/40 hover:bg-brand/5 hover:text-foreground active:scale-[0.97]"
         >
           {getIcon(action.label)}

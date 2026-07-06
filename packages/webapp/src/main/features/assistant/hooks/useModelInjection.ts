@@ -22,6 +22,7 @@ import {
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
 import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
+import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
@@ -291,8 +292,12 @@ export function useModelInjection({
             const { ConverterFactory } = await import('../services/converters');
             const converter = ConverterFactory.getConverter(targetDiagramType as any);
             const convertedModel = converter.convertCompleteSystem(command.systemSpec);
+            // This tab bypasses the GUI editor's load path, so mark agent text
+            // editable here too (no-op for UML models). See markTextEditable.
+            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(convertedModel);
             await dispatch(updateDiagramModelThunk({ model: convertedModel }));
           } else if (command.model) {
+            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(command.model as any);
             await dispatch(updateDiagramModelThunk({ model: command.model as any }));
           }
           // Freshly generated class diagram in a new tab -> let ELK arrange it
@@ -517,6 +522,10 @@ export function useModelInjection({
           }
           applied = true;
         } else {
+          // Editor-not-ready fallback: persist straight to storage. This also
+          // bypasses the GUI editor's load path, so mark agent text editable
+          // before persisting so the reloaded GUI is double-click editable.
+          if (targetDiagramIsGui) markTextEditable(command.model as any);
           const result = await dispatch(updateDiagramModelThunk({ model: command.model as any }));
           if (updateDiagramModelThunk.rejected.match(result)) {
             throw new Error(result.error.message || 'Failed to persist assistant model update');
