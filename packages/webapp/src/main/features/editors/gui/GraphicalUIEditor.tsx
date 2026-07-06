@@ -16,6 +16,7 @@ import { registerLayoutComponents } from './component-registrars/registerLayoutC
 import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
+import { setupInputBlocks } from './setup/setupInputBlocks';
 import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
@@ -369,6 +370,7 @@ function setupEditorFeatures(
   setupDataBindingTraits(editor);
   setupCustomTraits(editor);
   setupLayoutBlocks(editor);
+  setupInputBlocks(editor);
   // enableAbsolutePositioning(editor);
   
   // Return cleanup function
