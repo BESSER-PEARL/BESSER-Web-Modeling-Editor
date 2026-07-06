@@ -12,6 +12,7 @@ import { composeUserModelPreview } from '../../packages/user-modeling/user-model
 import { composeUseCasePreview } from '../../packages/uml-use-case-diagram/use-case-preview';
 import { UMLElement } from '../../services/uml-element/uml-element';
 import { UMLElementFeatures } from '../../services/uml-element/uml-element-features';
+import { UMLContainerRepository } from '../../services/uml-container/uml-container-repository';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { UMLElementState } from '../../services/uml-element/uml-element-types';
 import { clone } from '../../utils/geometry/tree';
@@ -31,6 +32,7 @@ import { ColorLegend } from '../../packages/common/color-legend/color-legend';
 import { Comments } from '../../packages/common/comments/comments';
 import { Separator } from './create-pane-styles';
 import { composeBPMNPreview } from '../../packages/bpmn/bpmn-diagram-preview';
+import { BPMNPool } from '../../packages/bpmn/bpmn-pool/bpmn-pool';
 import { composeStatePreview } from '../../packages/uml-state-diagram/state-preview';
 import { composeNNPreview } from '../../packages/nn-diagram/nn-preview';
 import { composeBotPreview } from '../../packages/agent-state-diagram/agent-state-preview';
@@ -38,6 +40,7 @@ import { composeBotPreview } from '../../packages/agent-state-diagram/agent-stat
 import { setPalette } from '../../services/palette/palette-types';
 import { settingsService } from '../../services/settings/settings-service';
 
+import { BPMNElementType } from '../../packages/bpmn';
 
 type OwnProps = {};
 
@@ -45,10 +48,14 @@ type StateProps = {
   type: UMLDiagramType;
   colorEnabled: boolean;
   previewScaleFactor?: number;
+  elements: UMLElementState;
 };
 
 type DispatchProps = {
   create: typeof UMLElementRepository.create;
+  append: typeof UMLContainerRepository.append;
+  remove: typeof UMLContainerRepository.remove;
+  update: typeof UMLElementRepository.update;
   setPalette: typeof setPalette;
 };
 
@@ -136,13 +143,24 @@ const enhance = compose<ComponentClass<OwnProps>>(
     (state) => ({
       type: state.diagram.type,
       colorEnabled: state.editor.colorEnabled,
+      elements: state.elements,
     }),
     {
       create: UMLElementRepository.create,
+      append: UMLContainerRepository.append,
+      remove: UMLContainerRepository.remove,
+      update: UMLElementRepository.update,
       setPalette,
     },
   ),
 );
+
+function boundsOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
 
 class CreatePaneComponent extends Component<Props, State> {
   state = getInitialState(this.props);
@@ -226,8 +244,139 @@ class CreatePaneComponent extends Component<Props, State> {
   }
 
   create = (preview: UMLElement, owner?: string) => {
+    if (preview.type === BPMNElementType.BPMNSwimlane) {
+      if (!owner) {
+        return;
+      }
+
+      const ownerElement = this.props.elements[owner];
+      let resolvedOwner = owner;
+
+      if (ownerElement?.type === BPMNElementType.BPMNSwimlane) {
+        const parentOwner = ownerElement.owner ? this.props.elements[ownerElement.owner] : undefined;
+
+        if (parentOwner?.type !== BPMNElementType.BPMNPool || !ownerElement.owner) {
+          return;
+        }
+
+        resolvedOwner = ownerElement.owner;
+      } else if (ownerElement?.type !== BPMNElementType.BPMNPool) {
+        return;
+      }
+
+      // Collect the pool's non-lane children before create() mutates the store,
+      // so they can be re-parented into the new lane. (Guide 16.)
+      const poolState = this.props.elements[resolvedOwner];
+      const ownedIds =
+        poolState && 'ownedElements' in poolState ? (poolState as { ownedElements: string[] }).ownedElements : [];
+      const nonLaneChildIds = ownedIds.filter((id) => this.props.elements[id]?.type !== BPMNElementType.BPMNSwimlane);
+      // Only re-parent when no lanes existed yet. For multi-lane pools the
+      // new lane's y is hard to compute here, but tasks are already in the
+      // existing lanes so nonLaneChildIds would be empty anyway. (Guide 16-FU1.)
+      const poolHadNoLanes = ownedIds.every((id) => this.props.elements[id]?.type !== BPMNElementType.BPMNSwimlane);
+
+      const elements = clone(preview, this.state.previews);
+      this.props.create(elements, resolvedOwner);
+      if (nonLaneChildIds.length > 0 && poolHadNoLanes) {
+        // The layout saga is async; lane.bounds still has the raw drop-position
+        // origin. Pre-position the lane to its layout-correct values so the
+        // append reducer converts task coordinates from the right origin.
+        // Pool bounds are unchanged at this point (pool hasn't been re-rendered
+        // yet). (Guide 16-FU1.)
+        const poolBounds = this.props.elements[resolvedOwner].bounds;
+        this.props.update(elements[0].id, {
+          bounds: {
+            x: BPMNPool.HEADER_WIDTH,
+            y: 0,
+            width: poolBounds.width - BPMNPool.HEADER_WIDTH,
+            height: poolBounds.height,
+          },
+        });
+        // Remove tasks from the pool's ownedElements before appending to the
+        // lane. APPEND only adds to the new container — it never removes from
+        // the old one — so without this step both pool and lane list the same
+        // element IDs and each element is rendered twice. (Guide 16-FU2.)
+        this.props.remove(nonLaneChildIds);
+        // Move pool-level tasks/events into the new lane. The append reducer
+        // re-positions them relative to the pre-positioned lane. (Guide 16.)
+        this.props.append(nonLaneChildIds, elements[0].id);
+      }
+      return;
+    }
     const elements = clone(preview, this.state.previews);
-    this.props.create(elements, owner);
+    const dropped = elements[0];
+
+    // BPMNPool must live at root level; a pool's Droppable would otherwise capture
+    // the event and set owner to the existing pool's id, nesting the new pool inside it.
+    const effectiveOwner = preview.type === BPMNElementType.BPMNPool ? undefined : owner;
+
+    // Elements are stored in parent-local coordinates. The drop position from
+    // DraggableLayer is canvas-absolute, so we subtract the accumulated owner chain
+    // offsets to get a localBounds comparable to sibling.bounds in the same space.
+    const localBounds = { ...dropped.bounds };
+    if (effectiveOwner) {
+      let curId: string | null = effectiveOwner;
+      let depth = 0;
+      while (curId && this.props.elements[curId] && depth < 20) {
+        const el = this.props.elements[curId];
+        localBounds.x -= el.bounds.x;
+        localBounds.y -= el.bounds.y;
+        curId = el.owner;
+        depth++;
+      }
+    }
+
+    const GAP = 20;
+    const MAX_ITERS = 50;
+    const siblings = Object.values(this.props.elements).filter(
+      (el) => (el.owner ?? null) === (effectiveOwner ?? null) && el.bounds.width > 0 && el.bounds.height > 0,
+    );
+    let iter = 0;
+    while (iter < MAX_ITERS && siblings.some((sib) => boundsOverlap(localBounds, sib.bounds))) {
+      localBounds.x += GAP;
+      dropped.bounds.x += GAP;
+      iter++;
+    }
+
+    // If the nudged position overflows the BPMN container, widen it to fit rather
+    // than letting the element escape the pool/lane boundary.
+    if (effectiveOwner) {
+      const ownerEl = this.props.elements[effectiveOwner];
+      if (ownerEl) {
+        const PADDING = 10;
+        const rightEdge = localBounds.x + dropped.bounds.width + PADDING;
+
+        if (rightEdge > ownerEl.bounds.width) {
+          const newOwnerWidth = rightEdge;
+
+          if (ownerEl.type === BPMNElementType.BPMNSwimlane) {
+            this.props.update(effectiveOwner, { bounds: { ...ownerEl.bounds, width: newOwnerWidth } });
+            if (ownerEl.owner) {
+              const poolEl = this.props.elements[ownerEl.owner];
+              if (poolEl && poolEl.type === BPMNElementType.BPMNPool) {
+                this.props.update(ownerEl.owner, {
+                  bounds: { ...poolEl.bounds, width: newOwnerWidth + BPMNPool.HEADER_WIDTH },
+                });
+                const ownedIds =
+                  'ownedElements' in poolEl ? (poolEl as { ownedElements: string[] }).ownedElements : [];
+                for (const sibId of ownedIds) {
+                  if (sibId !== effectiveOwner) {
+                    const sibEl = this.props.elements[sibId];
+                    if (sibEl && sibEl.type === BPMNElementType.BPMNSwimlane) {
+                      this.props.update(sibId, { bounds: { ...sibEl.bounds, width: newOwnerWidth } });
+                    }
+                  }
+                }
+              }
+            }
+          } else if (ownerEl.type === BPMNElementType.BPMNPool) {
+            this.props.update(effectiveOwner, { bounds: { ...ownerEl.bounds, width: newOwnerWidth } });
+          }
+        }
+      }
+    }
+
+    this.props.create(elements, effectiveOwner);
   };
 }
 

@@ -81,37 +81,40 @@ class BPMNIntermediateEventUpdateComponent extends Component<Props, State> {
           <Divider />
           <Dropdown value={element.eventType} onChange={this.changeEventType(element.id)}>
             <Dropdown.Item value={'default'}>
-              {this.props.translate('packages.BPMN.BPMNIntermediateEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNIntermediateEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'message-catch'}>
-              {this.props.translate('packages.BPMN.BPMNMessageIntermediateCatchEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNMessageIntermediateCatchEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'message-throw'}>
-              {this.props.translate('packages.BPMN.BPMNMessageIntermediateThrowEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNMessageIntermediateThrowEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'timer-catch'}>
-              {this.props.translate('packages.BPMN.BPMNTimerIntermediateCatchEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNTimerIntermediateCatchEvent')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'timer-throw'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNTimerIntermediateThrowEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'escalation-throw'}>
-              {this.props.translate('packages.BPMN.BPMNEscalationIntermediateThrowEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNEscalationIntermediateThrowEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'conditional-catch'}>
-              {this.props.translate('packages.BPMN.BPMNConditionalIntermediateCatchEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNConditionalIntermediateCatchEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'link-catch'}>
-              {this.props.translate('packages.BPMN.BPMNLinkIntermediateCatchEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNLinkIntermediateCatchEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'link-throw'}>
-              {this.props.translate('packages.BPMN.BPMNLinkIntermediateThrowEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNLinkIntermediateThrowEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'compensation-throw'}>
-              {this.props.translate('packages.BPMN.BPMNCompensationIntermediateThrowEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNCompensationIntermediateThrowEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'signal-catch'}>
-              {this.props.translate('packages.BPMN.BPMNSignalIntermediateCatchEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNSignalIntermediateCatchEvent')}
             </Dropdown.Item>
             <Dropdown.Item value={'signal-throw'}>
-              {this.props.translate('packages.BPMN.BPMNSignalIntermediateThrowEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNSignalIntermediateThrowEvent')}
             </Dropdown.Item>
           </Dropdown>
         </section>

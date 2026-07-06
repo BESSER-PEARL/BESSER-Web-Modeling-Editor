@@ -11,9 +11,12 @@ import { isPerspectiveVisible } from '../../shared/types/project';
 import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import {
+  useImportDiagramToProjectWorkflow,
+  useImportBpmnDiagramToProjectWorkflow,
+} from '../../features/import/useImportDiagram';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
-import { readAgentVariants } from '../../shared/services/agent-variants/agent-variants-service';
-import { useImportDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
+import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
@@ -47,7 +50,9 @@ const GitHubSidebar = React.lazy(() =>
   import('../../features/github/components/GitHubSidebar').then((m) => ({ default: m.GitHubSidebar })),
 );
 const AssistantWorkspaceDrawer = React.lazy(() =>
-  import('../../features/assistant/components/AssistantWorkspaceDrawer').then((m) => ({ default: m.AssistantWorkspaceDrawer })),
+  import('../../features/assistant/components/AssistantWorkspaceDrawer').then((m) => ({
+    default: m.AssistantWorkspaceDrawer,
+  })),
 );
 const FeedbackDialog = React.lazy(() =>
   import('../../shared/dialogs/FeedbackDialog').then((m) => ({ default: m.FeedbackDialog })),
@@ -74,7 +79,14 @@ const sanitizeRepoName = (name: string): string => {
 };
 
 interface OnboardingHook {
-  checklist: { createdClass: boolean; addedAttribute: boolean; createdRelationship: boolean; generatedCode: boolean; exploredTemplates: boolean; triedQualityCheck: boolean };
+  checklist: {
+    createdClass: boolean;
+    addedAttribute: boolean;
+    createdRelationship: boolean;
+    generatedCode: boolean;
+    exploredTemplates: boolean;
+    triedQualityCheck: boolean;
+  };
   checklistDismissed: boolean;
   checklistCompleted: number;
   checklistTotal: number;
@@ -157,9 +169,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     isLoading: githubLoading,
   } = useGitHubAuth();
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
+  const importBpmnDiagramToProject = useImportBpmnDiagramToProjectWorkflow();
 
   // Local UI state
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  // Sidebar starts expanded so diagram-type labels are visible; users can
+  // collapse it with the bottom toggle to reclaim canvas space.
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState(currentProject?.name ?? '');
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
@@ -173,17 +188,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     () => toUMLDiagramType(currentDiagramType) ?? UMLDiagramType.ClassDiagram,
     [currentDiagramType],
   );
-  const { isDeploymentAvailable } = getWorkspaceContext(
-    location.pathname,
-    currentProject?.currentDiagramType,
-  );
+  const { isDeploymentAvailable } = getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
 
   // Extracted hooks
-  const {
-    hasStarred,
-    starLoading,
-    handleToggleStar,
-  } = useGitHubStar({ isAuthenticated, githubSession });
+  const { hasStarred, starLoading, handleToggleStar } = useGitHubStar({ isAuthenticated, githubSession });
 
   const {
     isDeployDialogOpen,
@@ -352,9 +360,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isMobileDrawerOpen]);
 
-  const handleNavigate = useCallback((path: string) => {
-    navigate(path);
-  }, [navigate]);
+  const handleNavigate = useCallback(
+    (path: string) => {
+      navigate(path);
+    },
+    [navigate],
+  );
 
   const getUserModelValidationStatus = useCallback((targetDiagram: ProjectDiagram | null | undefined): QualityCheckState => {
     if (!targetDiagram?.id) {
@@ -540,9 +551,33 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     const latestProjectSnapshot = ProjectStorageRepository.loadProject(currentProject.id) || currentProject;
     const agentIndex = latestProjectSnapshot.currentDiagramIndices.AgentDiagram ?? 0;
     const activeAgentDiagram = latestProjectSnapshot.diagrams.AgentDiagram[agentIndex] || getActiveDiagram(latestProjectSnapshot, 'AgentDiagram') || diagram;
-    const currentConfigRecord = (activeAgentDiagram.config ?? {}) as Record<string, unknown>;
+    let currentConfigRecord = (activeAgentDiagram.config ?? {}) as Record<string, unknown>;
 
     try {
+      // Persist the current live model back into its source before switching,
+      // so in-canvas edits to the active base/variant aren't discarded. When a
+      // variant is active, fold the edits into its inline snapshot; on the base,
+      // update the stored base model.
+      const currentActiveVariantId = getActiveAgentVariantId(activeAgentDiagram);
+      const liveModel = activeAgentDiagram.model;
+      if (isUMLModel(liveModel) && liveModel.type === UMLDiagramType.AgentDiagram) {
+        if (currentActiveVariantId) {
+          const currentVariants = readAgentVariants(activeAgentDiagram);
+          if (currentVariants.some((variant) => variant.id === currentActiveVariantId)) {
+            currentConfigRecord = {
+              ...currentConfigRecord,
+              personalizedVariants: currentVariants.map((variant) =>
+                variant.id === currentActiveVariantId
+                  ? { ...variant, model: structuredClone(liveModel) }
+                  : variant,
+              ),
+            };
+          }
+        } else {
+          LocalStorageRepository.saveAgentBaseModel(activeAgentDiagram.id, liveModel);
+        }
+      }
+
       if (!variantId) {
         const baseModel = LocalStorageRepository.getAgentBaseModel(activeAgentDiagram.id);
         if (!baseModel) {
@@ -677,6 +712,24 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
   };
 
+  const handleImportBpmnDiagram = async () => {
+    if (!currentProject) {
+      toast.error('Create or load a project first.');
+      return;
+    }
+
+    try {
+      const result = await importBpmnDiagramToProject();
+      toast.success(result.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (message.toLowerCase().includes('cancel')) {
+        return;
+      }
+      toast.error(`Import failed: ${message}`);
+    }
+  };
+
   // Command palette actions (filter by enabled per-project perspectives)
   const perspectives = useAppSelector(selectPerspectives);
   const commandPaletteActions = useMemo(
@@ -722,6 +775,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenTemplateDialog={onOpenTemplateDialog}
         onExportProject={onExportProject}
         onImportSingleDiagram={handleImportSingleDiagram}
+        onImportBpmnDiagram={handleImportBpmnDiagram}
         onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
         onOpenProjectPreview={handleOpenProjectPreview}
@@ -778,11 +832,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }`}
       >
         {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={closeMobileDrawer}
-          aria-hidden="true"
-        />
+        <div className="absolute inset-0 bg-black/50" onClick={closeMobileDrawer} aria-hidden="true" />
         {/* Drawer panel */}
         <div
           className={`relative h-full w-64 shadow-xl overflow-y-auto transition-transform duration-300 ${
@@ -790,8 +840,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           } bg-background`}
         >
           {/* Close button inside drawer */}
-          <div className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}>
-            <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>Navigation</span>
+          <div
+            className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}
+          >
+            <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>
+              Navigation
+            </span>
             <button
               type="button"
               className="p-1 rounded text-muted-foreground hover:bg-muted"
@@ -905,7 +959,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         }}
         onApiKeyChange={setAssistantApiKey}
         onFileChange={handleAssistantFileChange}
-        onImport={() => { handleAssistantImport().catch(console.error); }}
+        onImport={() => {
+          handleAssistantImport().catch(console.error);
+        }}
       />
 
       <JsonViewerModal
@@ -920,7 +976,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         bumlLabel={currentProject?.name ? `Project B-UML Preview (${currentProject.name})` : 'Project B-UML Preview'}
         isBumlLoading={isProjectBumlPreviewLoading}
         bumlError={projectBumlPreviewError}
-        onRequestBuml={() => { handleRequestProjectBumlPreview().catch(console.error); }}
+        onRequestBuml={() => {
+          handleRequestProjectBumlPreview().catch(console.error);
+        }}
         onCopyBuml={handleCopyProjectBumlPreview}
         onDownloadBuml={handleDownloadProjectBumlPreview}
       />
@@ -956,7 +1014,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onCommitMessageChange={setCommitMessage}
         onIncludePersonalizationChange={setIncludePersonalization}
         onCreateNewInstead={handleCreateNewInstead}
-        onPublish={() => { handlePublishToRender().catch(console.error); }}
+        onPublish={() => {
+          handlePublishToRender().catch(console.error);
+        }}
       />
 
       <DeployResultDialog

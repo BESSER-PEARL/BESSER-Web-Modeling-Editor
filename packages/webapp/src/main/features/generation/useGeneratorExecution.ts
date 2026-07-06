@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../app/store/hooks';
@@ -616,7 +616,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean },
+      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel },
     ): Promise<GenerationResult> => {
       if (!currentProject) {
         toast.error('Create or load a project before generating code.');
@@ -735,11 +735,18 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent':
-            result = await generateCode(editor, 'agent', activeDiagramTitle, config as AgentConfig);
+            result = await generateCode(
+              editor,
+              'agent',
+              activeDiagramTitle,
+              config as AgentConfig,
+              undefined,
+              options?.agentModelOverride,
+            );
             break;
           case 'test_case':
-                result = await generateCode(editor, 'test_case', activeDiagramTitle);
-                break
+            result = await generateCode(editor, 'test_case', activeDiagramTitle);
+            break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
               toast.error('Switch to an Object Diagram or User Diagram to use the JSON Object generator.');
@@ -921,25 +928,41 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     const agentConfig = diagramConfig
       ? normalizeAgentRuntimeConfig({
         agentPlatform: typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+        agentPlatformUseStreamlit: typeof diagramConfig.agentPlatformUseStreamlit === 'boolean' ? diagramConfig.agentPlatformUseStreamlit : undefined,
         intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
         agentLlmProvider: llmBlock?.provider,
         agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
         agentCustomLlmModel: undefined,
+        agentLlmName:
+          typeof diagramConfig.agentLlmName === 'string'
+            ? diagramConfig.agentLlmName
+            : (typeof llmBlock?.name === 'string' ? llmBlock.name : undefined),
       })
       : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
     const resolvedOpenAiModel =
       agentConfig.agentLlmModel === 'other' ? agentConfig.agentCustomLlmModel.trim() : agentConfig.agentLlmModel;
+    const defaultLlmNameFromDiagram =
+      diagramConfig && typeof diagramConfig.default_llm_name === 'string' && diagramConfig.default_llm_name
+        ? diagramConfig.default_llm_name
+        : undefined;
+    const resolvedAgentPlatform =
+      agentConfig.agentPlatform === 'websocket' && agentConfig.agentPlatformUseStreamlit
+        ? 'streamlit'
+        : agentConfig.agentPlatform;
     const systemConfig: AgentConfig = {
-      agentPlatform: agentConfig.agentPlatform,
+      agentPlatform: resolvedAgentPlatform,
       intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
-      ...(agentConfig.agentLlmProvider
-        ? {
-          llm: {
-            provider: agentConfig.agentLlmProvider,
-            ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
-          },
-        }
-        : {}),
+      ...(defaultLlmNameFromDiagram ? { default_llm_name: defaultLlmNameFromDiagram } : {}),
+      ...(agentConfig.agentLlmName
+        ? { llm: { name: agentConfig.agentLlmName } }
+        : agentConfig.agentLlmProvider
+          ? {
+              llm: {
+                provider: agentConfig.agentLlmProvider,
+                ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
+              },
+            }
+          : {}),
     };
 
     let baseConfig: AgentConfig = {
@@ -954,6 +977,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     }
 
     let finalConfig: AgentConfig = baseConfig;
+    let agentModelOverride: UMLModel | undefined;
 
     if (agentGenerationMode === 'personalization') {
       const localProfiles = LocalStorageRepository.getUserProfiles();
@@ -992,7 +1016,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             name: profile.name,
             configuration: structuredClone(config.config),
             user_profile: structuredClone(profile.model),
-            agent_model: structuredClone(agentModel),
+            // Normalize to the canonical nested transition shape before sending.
+            // Variant/config snapshots can bypass the editor (e.g. imported
+            // projects) and still carry the legacy flat shape, which the backend
+            // collapses to when_no_intent_matched. normalizeAgentModel is pure
+            // and idempotent and returns a fresh clone.
+            agent_model: normalizeAgentModel(agentModel as UMLModel) as Record<string, any>,
           };
         })
         .filter((entry): entry is {
@@ -1011,10 +1040,36 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         ...baseConfig,
         personalizationMapping,
       };
+
+      // Personalization codegen rebuilds every variant on top of the model the
+      // backend receives. Send the un-personalized base from localStorage so
+      // generation is deterministic — without this, whichever variant is
+      // active in the editor would silently become the new "base" each variant
+      // is layered onto.
+      const baseAgentDiagramId = activeAgentDiagram?.id;
+      const storedBase = baseAgentDiagramId
+        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
+        : null;
+      if (storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram) {
+        agentModelOverride = storedBase;
+      } else {
+        // No stored base resolved — generation falls back to the active editor
+        // model, which may be a personalized variant rather than the
+        // un-personalized base. Surface it instead of silently shipping the
+        // wrong base.
+        console.warn(
+          '[generation] Personalization mode could not resolve a stored agent base model; ' +
+            'falling back to the active diagram. Save & Apply at least once to capture the base.',
+        );
+      }
     }
 
     const shouldSendConfig = Object.keys(finalConfig).length > 0;
-    await executeGenerator('agent', shouldSendConfig ? finalConfig : undefined);
+    await executeGenerator(
+      'agent',
+      shouldSendConfig ? finalConfig : undefined,
+      agentModelOverride ? { agentModelOverride } : undefined,
+    );
     setConfigDialog('none');
   }, [
     currentProject,

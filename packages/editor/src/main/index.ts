@@ -1,9 +1,9 @@
 /**
  * Main entry point for the BESSER Web Modeling Editor package.
- * 
+ *
  * This file serves as a "barrel export" that creates a clean, well-organized public API
  * by selectively re-exporting functionality from various internal modules. The goal is to:
- * 
+ *
  * - Provide a single, convenient entry point for package consumers
  * - Expose only the necessary public API while keeping internal implementation details private
  * - Maintain type safety through TypeScript type exports
@@ -19,6 +19,9 @@ export * from './typings';
 // This is the primary entry point for users who want to embed the UML editor
 export * from './apollon-editor';
 
+// Export the headless ELK auto-layout helper (pure model -> laid-out model)
+export { layoutModel } from './services/layouter/model-layout';
+
 // Export compatibility helper functions
 // These utilities help with backward compatibility and cross-version support
 export * from './compat/helpers';
@@ -31,10 +34,20 @@ export * from './services/diagram-bridge';
 // Provides configuration management for standalone applications
 export * from './services/settings/settings-service';
 
+// Export BPMN flow semantics + validation (consumed by the webapp's BPMN
+// import / export + the Phase C vitest coverage).
+export * from './packages/bpmn/bpmn-flow/bpmn-flow-semantics';
+export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
+
 // Export the multiplicity helpers used by the ER-notation rendering
 // (parseMultiplicity / toERCardinality). Pure functions, safe to import
 // from tests and from consumer webapps.
 export * from './packages/common/uml-association/multiplicity';
+
+// Export the agent-model normalizer (flat → canonical nested transition shape).
+// Pure function, used by the webapp to normalize models that bypass the editor
+// (e.g. agentBaseModels snapshots written straight to localStorage).
+export { normalizeAgentModel } from './packages/agent-state-diagram/normalize-agent-model';
 
 // Export only the Patch type (not the implementation) for type safety
 // Used when working with patching operations in TypeScript

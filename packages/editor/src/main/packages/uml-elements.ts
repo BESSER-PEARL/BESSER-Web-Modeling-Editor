@@ -78,6 +78,11 @@ import { AgentRagElement } from './agent-state-diagram/agent-rag-element/agent-r
 import { AgentState } from './agent-state-diagram/agent-state/agent-state';
 import { AgentStateBody } from './agent-state-diagram/agent-state-body/agent-state-body';
 import { AgentStateFallbackBody } from './agent-state-diagram/agent-state-fallback-body/agent-state-fallback-body';
+import { AgentTool } from './agent-state-diagram/agent-tool/agent-tool';
+import { AgentSkill } from './agent-state-diagram/agent-skill/agent-skill';
+import { AgentWorkspace } from './agent-state-diagram/agent-workspace/agent-workspace';
+import { AgentLLM } from './agent-state-diagram/agent-llm/agent-llm';
+import { AgentSectionTitle, AgentSectionSeparator } from './agent-state-diagram/agent-section-elements';
 
 import { NNElementType } from './nn-diagram';
 import { Conv1DLayer } from './nn-diagram/nn-conv1d-layer/nn-conv1d-layer';
@@ -358,6 +363,13 @@ export const UMLElements = {
   [UMLElementType.AgentState]: AgentState,
   [UMLElementType.AgentStateBody]: AgentStateBody,
   [UMLElementType.AgentStateFallbackBody]: AgentStateFallbackBody,
+  [UMLElementType.AgentTool]: AgentTool,
+  [UMLElementType.AgentSkill]: AgentSkill,
+  [UMLElementType.AgentWorkspace]: AgentWorkspace,
+  [UMLElementType.AgentLLM]: AgentLLM,
+  [UMLElementType.AgentSectionTitle]: AgentSectionTitle,
+  [UMLElementType.AgentSectionSeparator]: AgentSectionSeparator,
+
   [NNElementType.Conv1DLayer]: Conv1DLayer,
   // Conv1D Attributes - Mandatory
   [NNElementType.NameAttributeConv1D]: NameAttributeConv1D,

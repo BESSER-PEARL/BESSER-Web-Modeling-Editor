@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
@@ -196,6 +196,7 @@ export const useGenerateCode = () => {
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
+      modelOverride?: UMLModel,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
@@ -228,14 +229,30 @@ export const useGenerateCode = () => {
         return { ok: false, error: validationResult.message || 'Validation failed' };
       }
 
-      // Prepare body for single diagram generation
+      // Prepare body for single diagram generation. modelOverride is used by
+      // agent personalization to ship the un-personalized base instead of
+      // whatever variant happens to be active in the editor — see
+      // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: editor.model,
+        model: modelOverride ?? editor.model,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),
       };
+
+      // For agent generation, include the user-authored config.yaml from the diagram
+      if (generatorType === 'agent') {
+        const currentProject = ProjectStorageRepository.getCurrentProject();
+        const activeAgentDiagram = currentProject
+          ? currentProject.diagrams.AgentDiagram?.[
+              currentProject.currentDiagramIndices?.AgentDiagram ?? 0
+            ]
+          : undefined;
+        if (typeof activeAgentDiagram?.configYaml === 'string') {
+          body.configYaml = activeAgentDiagram.configYaml;
+        }
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000);

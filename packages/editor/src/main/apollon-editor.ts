@@ -13,6 +13,7 @@ import { Patch, Patcher, PatcherRepository } from './services/patcher';
 import { ApollonMode, ApollonView, Locale } from './services/editor/editor-types';
 import { UMLDiagram } from './services/uml-diagram/uml-diagram';
 import { UMLElementRepository } from './services/uml-element/uml-element-repository';
+import { AutoLayoutRepository } from './services/layouter/auto-layout-repository';
 import * as Apollon from './typings';
 import { UMLDiagramType, UMLModel } from './typings';
 import { Dispatch } from './utils/actions/actions';
@@ -399,6 +400,17 @@ export class ApollonEditor {
    */
   exportAsSVG(options?: Apollon.ExportOptions): Promise<Apollon.SVG> {
     return ApollonEditor.exportModelAsSvg(this.model, options, this.options.theme);
+  }
+
+  /**
+   * Auto-arranges the current class diagram using ELK's layered layout, then
+   * re-routes relationships and reflows class members. Class diagrams only;
+   * other diagram types are a no-op. The work runs in the auto-layout saga
+   * (services/layouter/auto-layout-saga), shared with the in-canvas button.
+   */
+  autoLayout(): void {
+    this.ensureInitialized();
+    (this.store!.dispatch as Dispatch)(AutoLayoutRepository.layout());
   }
 
   /**

@@ -14,7 +14,7 @@ import {
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constants/constant';
-import { UMLModel } from '@besser/wme';
+import { UMLModel, normalizeAgentModel } from '@besser/wme';
 import { uuid } from '../../utils/uuid';
 import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
 
@@ -26,18 +26,22 @@ const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
 
 export interface AgentRuntimeConfig {
   agentPlatform: string;
+  agentPlatformUseStreamlit: boolean;
   intentRecognitionTechnology: IntentRecognitionTechnology;
   agentLlmProvider: AgentLLMProvider;
   agentLlmModel: string;
   agentCustomLlmModel: string;
+  agentLlmName: string;
 }
 
 export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
-  agentPlatform: 'streamlit',
+  agentPlatform: 'websocket',
+  agentPlatformUseStreamlit: true,
   intentRecognitionTechnology: 'classical',
   agentLlmProvider: 'openai',
   agentLlmModel: 'gpt-5.5',
   agentCustomLlmModel: '',
+  agentLlmName: '',
 };
 
 export const normalizeAgentRuntimeConfig = (
@@ -55,12 +59,21 @@ export const normalizeAgentRuntimeConfig = (
       : '';
   const intent: IntentRecognitionTechnology =
     raw.intentRecognitionTechnology === 'llm-based' ? 'llm-based' : 'classical';
+  // Migrate legacy 'streamlit' value → 'websocket' + use_streamlit=true
+  let agentPlatform = typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'websocket';
+  let agentPlatformUseStreamlit = raw.agentPlatformUseStreamlit ?? false;
+  if (agentPlatform === 'streamlit') {
+    agentPlatform = 'websocket';
+    agentPlatformUseStreamlit = true;
+  }
   return {
-    agentPlatform: typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'streamlit',
+    agentPlatform,
+    agentPlatformUseStreamlit,
     intentRecognitionTechnology: intent,
     agentLlmProvider: provider,
     agentLlmModel: typeof raw.agentLlmModel === 'string' ? raw.agentLlmModel : '',
     agentCustomLlmModel: typeof raw.agentCustomLlmModel === 'string' ? raw.agentCustomLlmModel : '',
+    agentLlmName: typeof raw.agentLlmName === 'string' ? raw.agentLlmName : '',
   };
 };
 
@@ -157,8 +170,20 @@ const getStoredAgentBaseModels = (): AgentBaseModelMap => {
   }
 };
 
+/**
+ * Single chokepoint for writing ``besser_agentBaseModels``. Every entry is
+ * normalized to the canonical nested agent-transition shape before it lands in
+ * localStorage, so the legacy flat shape can never be persisted — whether the
+ * model came from the live editor, an imported project snapshot, or the V4
+ * migration. ``normalizeAgentModel`` is idempotent, so already-nested models are
+ * untouched.
+ */
 const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
-  safeSetItem(localStorageAgentBaseModels, JSON.stringify(entries));
+  const normalized: AgentBaseModelMap = {};
+  for (const [diagramId, model] of Object.entries(entries)) {
+    normalized[diagramId] = model ? normalizeAgentModel(model) : model;
+  }
+  safeSetItem(localStorageAgentBaseModels, JSON.stringify(normalized));
 };
 
 export interface DeployLinkedRepo {
@@ -208,6 +233,24 @@ const parseDeployLinkedRepo = (raw: string | null): DeployLinkedRepo | null => {
 const migrateToV3 = (): void => {
   if (localStorage.getItem(localStorageSystemConfig) !== null) {
     localStorage.removeItem(localStorageSystemConfig);
+  }
+};
+
+/**
+ * v3 -> v4: normalize stored ``besser_agentBaseModels`` to the canonical nested
+ * agent-transition shape.
+ *
+ * Projects imported before this fix wrote their bundled ``agentBaseModels``
+ * snapshot to localStorage in the legacy flat shape (top-level
+ * ``condition`` / ``conditionValue``), which the backend collapses to
+ * ``when_no_intent_matched``. Re-persisting routes every entry through
+ * ``persistAgentBaseModels``, which normalizes them. Idempotent — already-nested
+ * snapshots round-trip unchanged, and an empty store is a no-op.
+ */
+const migrateToV4 = (): void => {
+  const stored = getStoredAgentBaseModels();
+  if (Object.keys(stored).length > 0) {
+    persistAgentBaseModels(stored);
   }
 };
 
@@ -516,4 +559,11 @@ export const LocalStorageRepository = {
    * Idempotent — safe to invoke on every boot.
    */
   migrateToV3,
+
+  /**
+   * v3 -> v4 migration: normalize stored agent base models to the canonical
+   * nested transition shape. Invoked by the storage-migration runner after V3.
+   * Idempotent — safe to invoke on every boot.
+   */
+  migrateToV4,
 };

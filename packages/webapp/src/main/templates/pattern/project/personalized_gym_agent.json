@@ -58,12 +58,8 @@
                   "width": 420,
                   "height": 100
                 },
-                "bodies": [
-                  "63a2c160-ebbb-457b-953a-93fd2e643224"
-                ],
-                "fallbackBodies": [
-                  "1f369122-06c2-4050-ba54-4ea160f95a8c"
-                ]
+                "bodies": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
+                "fallbackBodies": ["1f369122-06c2-4050-ba54-4ea160f95a8c"]
               },
               "63a2c160-ebbb-457b-953a-93fd2e643224": {
                 "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
@@ -104,9 +100,7 @@
                   "width": 630,
                   "height": 100
                 },
-                "bodies": [
-                  "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
-                ],
+                "bodies": ["a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"],
                 "intent_description": "Question about how to become muscular and which exercises to perform."
               },
               "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
@@ -192,9 +186,7 @@
                   "width": 420,
                   "height": 70
                 },
-                "bodies": [
-                  "ad226172-93d8-4644-80c5-62825565dd24"
-                ],
+                "bodies": ["ad226172-93d8-4644-80c5-62825565dd24"],
                 "fallbackBodies": []
               },
               "ad226172-93d8-4644-80c5-62825565dd24": {
@@ -312,9 +304,7 @@
                   "width": 180,
                   "height": 70
                 },
-                "bodies": [
-                  "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
-                ],
+                "bodies": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
                 "fallbackBodies": []
               },
               "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
@@ -342,9 +332,7 @@
                   "width": 630,
                   "height": 100
                 },
-                "bodies": [
-                  "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
-                ],
+                "bodies": ["f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"],
                 "intent_description": "Question about nutrition in gym."
               },
               "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
@@ -452,8 +440,14 @@
                   "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
                 },
                 "isManuallyLayouted": false,
-                "condition": "when_intent_matched",
-                "conditionValue": "Muscles_intent"
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Muscles_intent"
+                },
+                "custom": {
+                  "condition": []
+                }
               },
               "7d65df96-e669-4fc6-a882-dbfe92a57073": {
                 "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
@@ -485,8 +479,14 @@
                   "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
                 },
                 "isManuallyLayouted": false,
-                "condition": "auto",
-                "conditionValue": ""
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
               },
               "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
                 "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
@@ -530,8 +530,14 @@
                   "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
                 },
                 "isManuallyLayouted": true,
-                "condition": "when_intent_matched",
-                "conditionValue": "Other"
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Other"
+                },
+                "custom": {
+                  "condition": []
+                }
               },
               "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
                 "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
@@ -571,8 +577,14 @@
                   "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
                 },
                 "isManuallyLayouted": false,
-                "condition": "auto",
-                "conditionValue": ""
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
               },
               "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
                 "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
@@ -616,8 +628,14 @@
                   "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
                 },
                 "isManuallyLayouted": false,
-                "condition": "auto",
-                "conditionValue": ""
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
               },
               "3564da62-bea0-4489-81b2-fda2effddd02": {
                 "id": "3564da62-bea0-4489-81b2-fda2effddd02",
@@ -661,8 +679,14 @@
                   "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
                 },
                 "isManuallyLayouted": false,
-                "condition": "auto",
-                "conditionValue": ""
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
               },
               "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
                 "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
@@ -694,8 +718,14 @@
                   "element": "7610bbda-21ef-4637-a188-1da1352bea17"
                 },
                 "isManuallyLayouted": false,
-                "condition": "when_intent_matched",
-                "conditionValue": "Nutrition_intent"
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Nutrition_intent"
+                },
+                "custom": {
+                  "condition": []
+                }
               }
             },
             "assessments": {}
@@ -703,12 +733,8 @@
           "lastUpdate": "2026-05-06T13:49:26.796Z",
           "config": {
             "agentLanguage": "original",
-            "inputModalities": [
-              "text"
-            ],
-            "outputModalities": [
-              "text"
-            ],
+            "inputModalities": ["text"],
+            "outputModalities": ["text"],
             "agentPlatform": "streamlit",
             "responseTiming": "instant",
             "agentStyle": "original",
@@ -778,9 +804,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "ccd1dced-243c-49c4-9a00-80e7f772327a"
-                      ],
+                      "bodies": ["ccd1dced-243c-49c4-9a00-80e7f772327a"],
                       "intent_description": "Question about how to become muscular and which exercises to perform."
                     },
                     "651f4205-d406-482c-8bb4-975fdf9e456f": {
@@ -806,9 +830,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "651f4205-d406-482c-8bb4-975fdf9e456f"
-                      ],
+                      "bodies": ["651f4205-d406-482c-8bb4-975fdf9e456f"],
                       "intent_description": "Question about nutrition in gym."
                     },
                     "4037bf46-f138-4c9c-a891-c8f5639a19a0": {
@@ -848,9 +870,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "e082c986-9bb3-45be-8f43-2e6b8af7a9d7"
-                      ],
+                      "bodies": ["e082c986-9bb3-45be-8f43-2e6b8af7a9d7"],
                       "fallbackBodies": []
                     },
                     "07601353-ee34-4ca9-bbe4-bdd711e624c4": {
@@ -864,12 +884,8 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "ac420544-4ccf-4a49-9b3f-0c1eb9278f7e"
-                      ],
-                      "fallbackBodies": [
-                        "3e3e5cbe-d409-4601-9cb2-11b371cfb064"
-                      ]
+                      "bodies": ["ac420544-4ccf-4a49-9b3f-0c1eb9278f7e"],
+                      "fallbackBodies": ["3e3e5cbe-d409-4601-9cb2-11b371cfb064"]
                     },
                     "8f57a878-84ca-409d-b89d-cc62fc815507": {
                       "id": "8f57a878-84ca-409d-b89d-cc62fc815507",
@@ -920,9 +936,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "4499b560-b246-4b3f-b703-d9709836b98e"
-                      ],
+                      "bodies": ["4499b560-b246-4b3f-b703-d9709836b98e"],
                       "fallbackBodies": []
                     },
                     "e082c986-9bb3-45be-8f43-2e6b8af7a9d7": {
@@ -1182,7 +1196,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -1242,7 +1255,6 @@
                         "intentName": "Muscles_intent"
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -1302,7 +1314,6 @@
                         "intentName": "Other"
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -1362,7 +1373,6 @@
                         "intentName": "Nutrition_intent"
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -1422,7 +1432,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -1482,7 +1491,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -1542,7 +1550,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -1635,9 +1642,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "6b718df7-70ef-4e1c-8c6b-c82133964f86"
-                      ],
+                      "bodies": ["6b718df7-70ef-4e1c-8c6b-c82133964f86"],
                       "intent_description": "Question about how to become muscular and which exercises to perform."
                     },
                     "192db72d-4d0e-49b0-b49c-5050fb0dbb68": {
@@ -1663,9 +1668,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "192db72d-4d0e-49b0-b49c-5050fb0dbb68"
-                      ],
+                      "bodies": ["192db72d-4d0e-49b0-b49c-5050fb0dbb68"],
                       "intent_description": "Question about nutrition in gym."
                     },
                     "90d28305-378e-4bad-b3ea-61c3ddaa5921": {
@@ -1705,9 +1708,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "82783f5d-8ef3-47f7-8feb-9651bdf73d63"
-                      ],
+                      "bodies": ["82783f5d-8ef3-47f7-8feb-9651bdf73d63"],
                       "fallbackBodies": []
                     },
                     "f03a1ef0-33cd-4e7e-a9d0-76989314eaa8": {
@@ -1721,12 +1722,8 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "d91b1fe8-cd6c-4b20-928c-70021c0f044d"
-                      ],
-                      "fallbackBodies": [
-                        "10a044fe-f0bd-41e8-ae27-0f2c2afc2cac"
-                      ]
+                      "bodies": ["d91b1fe8-cd6c-4b20-928c-70021c0f044d"],
+                      "fallbackBodies": ["10a044fe-f0bd-41e8-ae27-0f2c2afc2cac"]
                     },
                     "aa0bf687-2e08-4cba-aa98-335bcce5ecc7": {
                       "id": "aa0bf687-2e08-4cba-aa98-335bcce5ecc7",
@@ -1777,9 +1774,7 @@
                         "width": 160,
                         "height": 100
                       },
-                      "bodies": [
-                        "3721c5e6-19b1-4811-8b00-17415913c3aa"
-                      ],
+                      "bodies": ["3721c5e6-19b1-4811-8b00-17415913c3aa"],
                       "fallbackBodies": []
                     },
                     "82783f5d-8ef3-47f7-8feb-9651bdf73d63": {
@@ -2039,7 +2034,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -2099,7 +2093,6 @@
                         "intentName": "Muscles_intent"
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -2159,7 +2152,6 @@
                         "intentName": "Other"
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -2219,7 +2211,6 @@
                         "intentName": "Nutrition_intent"
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -2279,7 +2270,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -2339,7 +2329,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -2399,7 +2388,6 @@
                         "conditionValue": ""
                       },
                       "custom": {
-                        "event": "None",
                         "condition": []
                       }
                     },
@@ -3041,12 +3029,8 @@
       "savedAt": "2026-05-06T13:45:22.587Z",
       "config": {
         "agentLanguage": "original",
-        "inputModalities": [
-          "text"
-        ],
-        "outputModalities": [
-          "text"
-        ],
+        "inputModalities": ["text"],
+        "outputModalities": ["text"],
         "agentPlatform": "streamlit",
         "responseTiming": "instant",
         "agentStyle": "informal",
@@ -3109,12 +3093,8 @@
               "width": 420,
               "height": 100
             },
-            "bodies": [
-              "63a2c160-ebbb-457b-953a-93fd2e643224"
-            ],
-            "fallbackBodies": [
-              "1f369122-06c2-4050-ba54-4ea160f95a8c"
-            ]
+            "bodies": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
+            "fallbackBodies": ["1f369122-06c2-4050-ba54-4ea160f95a8c"]
           },
           "63a2c160-ebbb-457b-953a-93fd2e643224": {
             "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
@@ -3155,9 +3135,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
-            ],
+            "bodies": ["a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"],
             "intent_description": "Question about how to become muscular and which exercises to perform."
           },
           "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
@@ -3243,9 +3221,7 @@
               "width": 420,
               "height": 70
             },
-            "bodies": [
-              "ad226172-93d8-4644-80c5-62825565dd24"
-            ],
+            "bodies": ["ad226172-93d8-4644-80c5-62825565dd24"],
             "fallbackBodies": []
           },
           "ad226172-93d8-4644-80c5-62825565dd24": {
@@ -3363,9 +3339,7 @@
               "width": 180,
               "height": 70
             },
-            "bodies": [
-              "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
-            ],
+            "bodies": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
             "fallbackBodies": []
           },
           "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
@@ -3393,9 +3367,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
-            ],
+            "bodies": ["f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"],
             "intent_description": "Question about nutrition in gym."
           },
           "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
@@ -3503,8 +3475,14 @@
               "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Muscles_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Muscles_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "7d65df96-e669-4fc6-a882-dbfe92a57073": {
             "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
@@ -3536,8 +3514,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
             "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
@@ -3581,8 +3565,14 @@
               "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
             },
             "isManuallyLayouted": true,
-            "condition": "when_intent_matched",
-            "conditionValue": "Other"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Other"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
             "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
@@ -3622,8 +3612,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
             "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
@@ -3667,8 +3663,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "3564da62-bea0-4489-81b2-fda2effddd02": {
             "id": "3564da62-bea0-4489-81b2-fda2effddd02",
@@ -3712,8 +3714,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
             "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
@@ -3745,8 +3753,14 @@
               "element": "7610bbda-21ef-4637-a188-1da1352bea17"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Nutrition_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Nutrition_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           }
         },
         "assessments": {}
@@ -3786,12 +3800,8 @@
               "width": 420,
               "height": 100
             },
-            "bodies": [
-              "63a2c160-ebbb-457b-953a-93fd2e643224"
-            ],
-            "fallbackBodies": [
-              "1f369122-06c2-4050-ba54-4ea160f95a8c"
-            ]
+            "bodies": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
+            "fallbackBodies": ["1f369122-06c2-4050-ba54-4ea160f95a8c"]
           },
           "63a2c160-ebbb-457b-953a-93fd2e643224": {
             "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
@@ -3832,9 +3842,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
-            ],
+            "bodies": ["a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"],
             "intent_description": "Question about how to become muscular and which exercises to perform."
           },
           "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
@@ -3920,9 +3928,7 @@
               "width": 420,
               "height": 70
             },
-            "bodies": [
-              "ad226172-93d8-4644-80c5-62825565dd24"
-            ],
+            "bodies": ["ad226172-93d8-4644-80c5-62825565dd24"],
             "fallbackBodies": []
           },
           "ad226172-93d8-4644-80c5-62825565dd24": {
@@ -4040,9 +4046,7 @@
               "width": 180,
               "height": 70
             },
-            "bodies": [
-              "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
-            ],
+            "bodies": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
             "fallbackBodies": []
           },
           "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
@@ -4070,9 +4074,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
-            ],
+            "bodies": ["f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"],
             "intent_description": "Question about nutrition in gym."
           },
           "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
@@ -4180,8 +4182,14 @@
               "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Muscles_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Muscles_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "7d65df96-e669-4fc6-a882-dbfe92a57073": {
             "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
@@ -4213,8 +4221,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
             "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
@@ -4258,8 +4272,14 @@
               "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
             },
             "isManuallyLayouted": true,
-            "condition": "when_intent_matched",
-            "conditionValue": "Other"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Other"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
             "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
@@ -4299,8 +4319,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
             "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
@@ -4344,8 +4370,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "3564da62-bea0-4489-81b2-fda2effddd02": {
             "id": "3564da62-bea0-4489-81b2-fda2effddd02",
@@ -4389,8 +4421,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
             "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
@@ -4422,8 +4460,14 @@
               "element": "7610bbda-21ef-4637-a188-1da1352bea17"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Nutrition_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Nutrition_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           }
         },
         "assessments": {}
@@ -4463,9 +4507,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "ccd1dced-243c-49c4-9a00-80e7f772327a"
-            ],
+            "bodies": ["ccd1dced-243c-49c4-9a00-80e7f772327a"],
             "intent_description": "Question about how to become muscular and which exercises to perform."
           },
           "651f4205-d406-482c-8bb4-975fdf9e456f": {
@@ -4491,9 +4533,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "651f4205-d406-482c-8bb4-975fdf9e456f"
-            ],
+            "bodies": ["651f4205-d406-482c-8bb4-975fdf9e456f"],
             "intent_description": "Question about nutrition in gym."
           },
           "4037bf46-f138-4c9c-a891-c8f5639a19a0": {
@@ -4533,9 +4573,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "e082c986-9bb3-45be-8f43-2e6b8af7a9d7"
-            ],
+            "bodies": ["e082c986-9bb3-45be-8f43-2e6b8af7a9d7"],
             "fallbackBodies": []
           },
           "07601353-ee34-4ca9-bbe4-bdd711e624c4": {
@@ -4549,12 +4587,8 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "ac420544-4ccf-4a49-9b3f-0c1eb9278f7e"
-            ],
-            "fallbackBodies": [
-              "3e3e5cbe-d409-4601-9cb2-11b371cfb064"
-            ]
+            "bodies": ["ac420544-4ccf-4a49-9b3f-0c1eb9278f7e"],
+            "fallbackBodies": ["3e3e5cbe-d409-4601-9cb2-11b371cfb064"]
           },
           "8f57a878-84ca-409d-b89d-cc62fc815507": {
             "id": "8f57a878-84ca-409d-b89d-cc62fc815507",
@@ -4605,9 +4639,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "4499b560-b246-4b3f-b703-d9709836b98e"
-            ],
+            "bodies": ["4499b560-b246-4b3f-b703-d9709836b98e"],
             "fallbackBodies": []
           },
           "e082c986-9bb3-45be-8f43-2e6b8af7a9d7": {
@@ -4867,7 +4899,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -4927,7 +4958,6 @@
               "intentName": "Muscles_intent"
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -4987,7 +5017,6 @@
               "intentName": "Other"
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -5047,7 +5076,6 @@
               "intentName": "Nutrition_intent"
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -5107,7 +5135,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -5167,7 +5194,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -5227,7 +5253,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -5284,12 +5309,8 @@
       "savedAt": "2026-05-06T13:49:25.848Z",
       "config": {
         "agentLanguage": "original",
-        "inputModalities": [
-          "text"
-        ],
-        "outputModalities": [
-          "text"
-        ],
+        "inputModalities": ["text"],
+        "outputModalities": ["text"],
         "agentPlatform": "streamlit",
         "responseTiming": "instant",
         "agentStyle": "original",
@@ -5352,12 +5373,8 @@
               "width": 420,
               "height": 100
             },
-            "bodies": [
-              "63a2c160-ebbb-457b-953a-93fd2e643224"
-            ],
-            "fallbackBodies": [
-              "1f369122-06c2-4050-ba54-4ea160f95a8c"
-            ]
+            "bodies": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
+            "fallbackBodies": ["1f369122-06c2-4050-ba54-4ea160f95a8c"]
           },
           "63a2c160-ebbb-457b-953a-93fd2e643224": {
             "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
@@ -5398,9 +5415,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
-            ],
+            "bodies": ["a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"],
             "intent_description": "Question about how to become muscular and which exercises to perform."
           },
           "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
@@ -5486,9 +5501,7 @@
               "width": 420,
               "height": 70
             },
-            "bodies": [
-              "ad226172-93d8-4644-80c5-62825565dd24"
-            ],
+            "bodies": ["ad226172-93d8-4644-80c5-62825565dd24"],
             "fallbackBodies": []
           },
           "ad226172-93d8-4644-80c5-62825565dd24": {
@@ -5606,9 +5619,7 @@
               "width": 180,
               "height": 70
             },
-            "bodies": [
-              "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
-            ],
+            "bodies": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
             "fallbackBodies": []
           },
           "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
@@ -5636,9 +5647,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
-            ],
+            "bodies": ["f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"],
             "intent_description": "Question about nutrition in gym."
           },
           "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
@@ -5746,8 +5755,14 @@
               "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Muscles_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Muscles_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "7d65df96-e669-4fc6-a882-dbfe92a57073": {
             "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
@@ -5779,8 +5794,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
             "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
@@ -5824,8 +5845,14 @@
               "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
             },
             "isManuallyLayouted": true,
-            "condition": "when_intent_matched",
-            "conditionValue": "Other"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Other"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
             "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
@@ -5865,8 +5892,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
             "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
@@ -5910,8 +5943,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "3564da62-bea0-4489-81b2-fda2effddd02": {
             "id": "3564da62-bea0-4489-81b2-fda2effddd02",
@@ -5955,8 +5994,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
             "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
@@ -5988,8 +6033,14 @@
               "element": "7610bbda-21ef-4637-a188-1da1352bea17"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Nutrition_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Nutrition_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           }
         },
         "assessments": {}
@@ -6029,12 +6080,8 @@
               "width": 420,
               "height": 100
             },
-            "bodies": [
-              "63a2c160-ebbb-457b-953a-93fd2e643224"
-            ],
-            "fallbackBodies": [
-              "1f369122-06c2-4050-ba54-4ea160f95a8c"
-            ]
+            "bodies": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
+            "fallbackBodies": ["1f369122-06c2-4050-ba54-4ea160f95a8c"]
           },
           "63a2c160-ebbb-457b-953a-93fd2e643224": {
             "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
@@ -6075,9 +6122,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
-            ],
+            "bodies": ["a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"],
             "intent_description": "Question about how to become muscular and which exercises to perform."
           },
           "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
@@ -6163,9 +6208,7 @@
               "width": 420,
               "height": 70
             },
-            "bodies": [
-              "ad226172-93d8-4644-80c5-62825565dd24"
-            ],
+            "bodies": ["ad226172-93d8-4644-80c5-62825565dd24"],
             "fallbackBodies": []
           },
           "ad226172-93d8-4644-80c5-62825565dd24": {
@@ -6283,9 +6326,7 @@
               "width": 180,
               "height": 70
             },
-            "bodies": [
-              "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
-            ],
+            "bodies": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
             "fallbackBodies": []
           },
           "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
@@ -6313,9 +6354,7 @@
               "width": 630,
               "height": 100
             },
-            "bodies": [
-              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
-            ],
+            "bodies": ["f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"],
             "intent_description": "Question about nutrition in gym."
           },
           "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
@@ -6423,8 +6462,14 @@
               "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Muscles_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Muscles_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "7d65df96-e669-4fc6-a882-dbfe92a57073": {
             "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
@@ -6456,8 +6501,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
             "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
@@ -6501,8 +6552,14 @@
               "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
             },
             "isManuallyLayouted": true,
-            "condition": "when_intent_matched",
-            "conditionValue": "Other"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Other"
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
             "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
@@ -6542,8 +6599,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
             "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
@@ -6587,8 +6650,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "3564da62-bea0-4489-81b2-fda2effddd02": {
             "id": "3564da62-bea0-4489-81b2-fda2effddd02",
@@ -6632,8 +6701,14 @@
               "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
             },
             "isManuallyLayouted": false,
-            "condition": "auto",
-            "conditionValue": ""
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "auto",
+              "conditionValue": ""
+            },
+            "custom": {
+              "condition": []
+            }
           },
           "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
             "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
@@ -6665,8 +6740,14 @@
               "element": "7610bbda-21ef-4637-a188-1da1352bea17"
             },
             "isManuallyLayouted": false,
-            "condition": "when_intent_matched",
-            "conditionValue": "Nutrition_intent"
+            "transitionType": "predefined",
+            "predefined": {
+              "predefinedType": "when_intent_matched",
+              "intentName": "Nutrition_intent"
+            },
+            "custom": {
+              "condition": []
+            }
           }
         },
         "assessments": {}
@@ -6706,9 +6787,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "6b718df7-70ef-4e1c-8c6b-c82133964f86"
-            ],
+            "bodies": ["6b718df7-70ef-4e1c-8c6b-c82133964f86"],
             "intent_description": "Question about how to become muscular and which exercises to perform."
           },
           "192db72d-4d0e-49b0-b49c-5050fb0dbb68": {
@@ -6734,9 +6813,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "192db72d-4d0e-49b0-b49c-5050fb0dbb68"
-            ],
+            "bodies": ["192db72d-4d0e-49b0-b49c-5050fb0dbb68"],
             "intent_description": "Question about nutrition in gym."
           },
           "90d28305-378e-4bad-b3ea-61c3ddaa5921": {
@@ -6776,9 +6853,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "82783f5d-8ef3-47f7-8feb-9651bdf73d63"
-            ],
+            "bodies": ["82783f5d-8ef3-47f7-8feb-9651bdf73d63"],
             "fallbackBodies": []
           },
           "f03a1ef0-33cd-4e7e-a9d0-76989314eaa8": {
@@ -6792,12 +6867,8 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "d91b1fe8-cd6c-4b20-928c-70021c0f044d"
-            ],
-            "fallbackBodies": [
-              "10a044fe-f0bd-41e8-ae27-0f2c2afc2cac"
-            ]
+            "bodies": ["d91b1fe8-cd6c-4b20-928c-70021c0f044d"],
+            "fallbackBodies": ["10a044fe-f0bd-41e8-ae27-0f2c2afc2cac"]
           },
           "aa0bf687-2e08-4cba-aa98-335bcce5ecc7": {
             "id": "aa0bf687-2e08-4cba-aa98-335bcce5ecc7",
@@ -6848,9 +6919,7 @@
               "width": 160,
               "height": 100
             },
-            "bodies": [
-              "3721c5e6-19b1-4811-8b00-17415913c3aa"
-            ],
+            "bodies": ["3721c5e6-19b1-4811-8b00-17415913c3aa"],
             "fallbackBodies": []
           },
           "82783f5d-8ef3-47f7-8feb-9651bdf73d63": {
@@ -7110,7 +7179,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -7170,7 +7238,6 @@
               "intentName": "Muscles_intent"
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -7230,7 +7297,6 @@
               "intentName": "Other"
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -7290,7 +7356,6 @@
               "intentName": "Nutrition_intent"
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -7350,7 +7415,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -7410,7 +7474,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -7470,7 +7533,6 @@
               "conditionValue": ""
             },
             "custom": {
-              "event": "None",
               "condition": []
             }
           },
@@ -8137,12 +8199,8 @@
             "width": 420,
             "height": 100
           },
-          "bodies": [
-            "63a2c160-ebbb-457b-953a-93fd2e643224"
-          ],
-          "fallbackBodies": [
-            "1f369122-06c2-4050-ba54-4ea160f95a8c"
-          ]
+          "bodies": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
+          "fallbackBodies": ["1f369122-06c2-4050-ba54-4ea160f95a8c"]
         },
         "63a2c160-ebbb-457b-953a-93fd2e643224": {
           "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
@@ -8183,9 +8241,7 @@
             "width": 630,
             "height": 100
           },
-          "bodies": [
-            "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
-          ],
+          "bodies": ["a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"],
           "intent_description": "Question about how to become muscular and which exercises to perform."
         },
         "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
@@ -8271,9 +8327,7 @@
             "width": 420,
             "height": 70
           },
-          "bodies": [
-            "ad226172-93d8-4644-80c5-62825565dd24"
-          ],
+          "bodies": ["ad226172-93d8-4644-80c5-62825565dd24"],
           "fallbackBodies": []
         },
         "ad226172-93d8-4644-80c5-62825565dd24": {
@@ -8391,9 +8445,7 @@
             "width": 180,
             "height": 70
           },
-          "bodies": [
-            "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
-          ],
+          "bodies": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
           "fallbackBodies": []
         },
         "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
@@ -8421,9 +8473,7 @@
             "width": 630,
             "height": 100
           },
-          "bodies": [
-            "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
-          ],
+          "bodies": ["f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"],
           "intent_description": "Question about nutrition in gym."
         },
         "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
@@ -8531,8 +8581,14 @@
             "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
           },
           "isManuallyLayouted": false,
-          "condition": "when_intent_matched",
-          "conditionValue": "Muscles_intent"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "Muscles_intent"
+          },
+          "custom": {
+            "condition": []
+          }
         },
         "7d65df96-e669-4fc6-a882-dbfe92a57073": {
           "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
@@ -8564,8 +8620,14 @@
             "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
           },
           "isManuallyLayouted": false,
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
         "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
           "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
@@ -8609,8 +8671,14 @@
             "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
           },
           "isManuallyLayouted": true,
-          "condition": "when_intent_matched",
-          "conditionValue": "Other"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "Other"
+          },
+          "custom": {
+            "condition": []
+          }
         },
         "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
           "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
@@ -8650,8 +8718,14 @@
             "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
           },
           "isManuallyLayouted": false,
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
         "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
           "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
@@ -8695,8 +8769,14 @@
             "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
           },
           "isManuallyLayouted": false,
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
         "3564da62-bea0-4489-81b2-fda2effddd02": {
           "id": "3564da62-bea0-4489-81b2-fda2effddd02",
@@ -8740,8 +8820,14 @@
             "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
           },
           "isManuallyLayouted": false,
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
         "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
           "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
@@ -8773,8 +8859,14 @@
             "element": "7610bbda-21ef-4637-a188-1da1352bea17"
           },
           "isManuallyLayouted": false,
-          "condition": "when_intent_matched",
-          "conditionValue": "Nutrition_intent"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "Nutrition_intent"
+          },
+          "custom": {
+            "condition": []
+          }
         }
       },
       "assessments": {}

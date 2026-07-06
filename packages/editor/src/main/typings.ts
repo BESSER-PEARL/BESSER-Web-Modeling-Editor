@@ -66,13 +66,32 @@ export type UMLModelElement = {
 };
 
 export interface AgentModelElement extends UMLModelElement {
+  actionType?: string;
   replyType: string;
   ragDatabaseName?: string;
+  prompt?: string;
   dbSelectionType?: string;
   dbCustomName?: string;
   dbQueryMode?: string;
   dbOperation?: string;
   dbSqlQuery?: string;
+  llm_name?: string;
+  system_message?: string;
+  // web crawl + LLM fields
+  initial_url?: string;
+  max_depth?: number;
+  max_pages?: number;
+  crawl_format?: string;
+  base_url_prefix?: string;
+  run_crawl?: boolean;
+  no_crawl_error_message?: string;
+  system_message_prefix?: string;
+  // websocket-specific reply fields
+  ws_message?: string;
+  ws_audio_speed?: number | null;
+  ws_options?: string;
+  ws_latitude?: number;
+  ws_longitude?: number;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -100,12 +119,7 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
-export type MethodImplementationType =
-  | 'none'
-  | 'code'
-  | 'bal'
-  | 'state_machine'
-  | 'quantum_circuit';
+export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit';
 
 export type DiagramReference = {
   id: string;
@@ -147,9 +161,22 @@ export interface UMLState extends UMLElement {
 
 export interface AgentState extends UMLElement {
   type: UMLElementType;
-  bodies: string[];
-  fallbackBodies: string[];
-  replyType: string;
+  // canonical keys
+  actions: string[];
+  fallbackActions: string[];
+  stateType?: string;
+  fallbackBodyEnabled?: boolean;
+  // reasoning-state fields (used when stateType = 'reasoning')
+  llm_name?: string;
+  max_steps?: number;
+  enable_task_planning?: boolean;
+  stream_steps?: boolean;
+  system_prompt?: string;
+  fallback_message?: string;
+  // legacy backward-compat keys
+  bodies?: string[];
+  fallbackBodies?: string[];
+  replyType?: string;
 }
 
 export interface AgentIntent extends UMLElement {
@@ -160,6 +187,10 @@ export interface AgentIntent extends UMLElement {
 
 export interface AgentRagElement extends UMLElement {
   type: UMLElementType;
+  llm_name?: string;
+  llm_prompt?: string;
+  k?: number;
+  num_previous_messages?: number;
 }
 
 export interface UMLReply extends UMLElement {
@@ -180,9 +211,7 @@ export type AgentStateTransition = UMLRelationship & {
     predefinedType?: string;
     intentName?: string;
     fileType?: string;
-    conditionValue?:
-      | string
-      | { variable: string; operator: string; targetValue: string };
+    conditionValue?: string | { variable: string; operator: string; targetValue: string };
   };
   custom?: {
     event?:
@@ -254,6 +283,18 @@ export type BPMNTask = UMLElement & {
   marker: BPMNMarkerType;
 };
 
+export type BPMNSubprocess = UMLElement & {
+  isExpanded: boolean;
+};
+
+export type BPMNTransaction = UMLElement & {
+  isExpanded: boolean;
+};
+
+export type BPMNCallActivity = UMLElement & {
+  calledElement: string;
+};
+
 export type BPMNGateway = UMLElement & {
   gatewayType: BPMNGatewayType;
 };
@@ -272,6 +313,7 @@ export type BPMNEndEvent = UMLElement & {
 
 export type BPMNFlow = UMLRelationship & {
   flowType: BPMNFlowType;
+  isDefault?: boolean;
 };
 
 export type UMLReachabilityGraphMarking = UMLElement & {

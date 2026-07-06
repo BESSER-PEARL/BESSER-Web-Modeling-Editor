@@ -27,6 +27,15 @@ export interface IUMLState extends IUMLContainer {
   dividerPosition: number;
   hasBody: boolean;
   hasFallbackBody: boolean;
+  stateType: string;
+  fallbackBodyEnabled: boolean;
+  // Reasoning-state fields (only used when stateType = 'reasoning')
+  llm_name: string;
+  max_steps: number;
+  enable_task_planning: boolean;
+  stream_steps: boolean;
+  system_prompt: string;
+  fallback_message: string;
 }
 
 export class AgentState extends UMLContainer implements IUMLState {
@@ -46,6 +55,14 @@ export class AgentState extends UMLContainer implements IUMLState {
   dividerPosition: number = 0;
   hasBody: boolean = false;
   hasFallbackBody: boolean = false;
+  stateType: string = 'standard';
+  fallbackBodyEnabled: boolean = false;
+  llm_name: string = '';
+  max_steps: number = 8;
+  enable_task_planning: boolean = true;
+  stream_steps: boolean = true;
+  system_prompt: string = '';
+  fallback_message: string = '';
 
   get headerHeight() {
     return this.stereotype ? AgentState.stereotypeHeaderHeight : AgentState.nonStereotypeHeaderHeight;
@@ -62,14 +79,64 @@ export class AgentState extends UMLContainer implements IUMLState {
     return [...bodies.map((element) => element.id), ...fallbackBodies.map((element) => element.id)];
   }
 
-  serialize(children: UMLElement[] = []): Apollon.UMLState {
-    return {
-      ...super.serialize(children),
+  serialize(children: UMLElement[] = []): Apollon.AgentState {
+    const base = super.serialize(children);
+    const bodyIds = children.filter((x) => x instanceof AgentStateBody).map((x) => x.id);
+    const fallbackIds = children.filter((x) => x instanceof AgentStateFallbackBody).map((x) => x.id);
+    const result: Apollon.AgentState = {
+      ...base,
       type: this.type as UMLElementType,
-      bodies: children.filter((x) => x instanceof AgentStateBody).map((x) => x.id),
-      fallbackBodies: children.filter((x) => x instanceof AgentStateFallbackBody).map((x) => x.id),
+      stateType: this.stateType,
+      fallbackBodyEnabled: this.fallbackBodyEnabled,
+      actions: bodyIds,
+      fallbackActions: fallbackIds,
+      // Backward-compat aliases so old backend code (if any) still sees the old keys.
+      bodies: bodyIds,
+      fallbackBodies: fallbackIds,
     };
+    if (this.stateType === 'reasoning') {
+      result.llm_name = this.llm_name;
+      result.max_steps = this.max_steps;
+      result.enable_task_planning = this.enable_task_planning;
+      result.stream_steps = this.stream_steps;
+      result.system_prompt = this.system_prompt;
+      result.fallback_message = this.fallback_message;
+    }
+    return result;
   }
+
+  deserialize<T extends Apollon.UMLModelElement>(
+    values: T & {
+      stateType?: string;
+      fallbackBodyEnabled?: boolean;
+      // new keys
+      actions?: string[];
+      fallbackActions?: string[];
+      // old keys (backward compat)
+      bodies?: string[];
+      fallbackBodies?: string[];
+      // reasoning-state fields
+      llm_name?: string;
+      max_steps?: number;
+      enable_task_planning?: boolean;
+      stream_steps?: boolean;
+      system_prompt?: string;
+      fallback_message?: string;
+    },
+    children?: Apollon.UMLModelElement[],
+  ): void {
+    super.deserialize(values, children);
+    this.stateType = values.stateType ?? 'standard';
+    this.fallbackBodyEnabled = values.fallbackBodyEnabled !== undefined ? values.fallbackBodyEnabled : true;
+    this.llm_name = values.llm_name ?? '';
+    this.max_steps = values.max_steps !== undefined ? values.max_steps : 8;
+    this.enable_task_planning = values.enable_task_planning !== undefined ? values.enable_task_planning : true;
+    this.stream_steps = values.stream_steps !== undefined ? values.stream_steps : true;
+    this.system_prompt = values.system_prompt ?? '';
+    this.fallback_message = values.fallback_message ?? '';
+  }
+
+  static reasoningStateHeight = 80;
 
   render(layer: ILayer, children: ILayoutable[] = []): ILayoutable[] {
     const bodies = children.filter((x): x is AgentStateBody => x instanceof AgentStateBody);
@@ -79,22 +146,39 @@ export class AgentState extends UMLContainer implements IUMLState {
     this.hasFallbackBody = fallbackBodies.length > 0;
 
     const radix = 10;
-    const initialWidth = Math.round(this.bounds.width / radix) * radix;
-    const computedWidth = [this, ...bodies, ...fallbackBodies].reduce(
-      (current, child, index) => {
-        const styles = index === 0 ? { fontWeight: 'bold' } : undefined;
-        const lines = child.name.split('\n');
-        const maxLineWidth = lines.reduce((max, line) => {
-          return Math.max(max, Text.size(layer, line, styles).width);
-        }, 0);
-        const measured = maxLineWidth + 60;
-        const rounded = Math.round(measured / radix) * radix;
-        return Math.max(current, rounded);
-      },
-      initialWidth,
-    );
 
-    this.bounds.width = clampAgentStateWidth(computedWidth);
+    // Reasoning states have a fixed size — body children are not shown.
+    if (this.stateType === 'reasoning') {
+      if (!this.isManuallyLayouted) {
+        const nameWidth = Text.size(layer, this.name, { fontWeight: 'bold' }).width + 60;
+        this.bounds.width = clampAgentStateWidth(Math.round(nameWidth / radix) * radix);
+        this.bounds.height = AgentState.reasoningStateHeight;
+      }
+      this.bounds.width = Math.max(this.bounds.width, AGENT_STATE_MIN_WIDTH);
+      this.bounds.height = Math.max(this.bounds.height, 50);
+      return [this];
+    }
+
+    if (!this.isManuallyLayouted) {
+      const initialWidth = Math.round(this.bounds.width / radix) * radix;
+      const computedWidth = [this, ...bodies, ...fallbackBodies].reduce(
+        (current, child, index) => {
+          const styles = index === 0 ? { fontWeight: 'bold' } : undefined;
+          const lines = child.name.split('\n');
+          const maxLineWidth = lines.reduce((max, line) => {
+            return Math.max(max, Text.size(layer, line, styles).width);
+          }, 0);
+          const measured = maxLineWidth + 60;
+          const rounded = Math.round(measured / radix) * radix;
+          return Math.max(current, rounded);
+        },
+        initialWidth,
+      );
+
+      this.bounds.width = clampAgentStateWidth(computedWidth);
+    } else {
+      this.bounds.width = Math.max(this.bounds.width, AGENT_STATE_MIN_WIDTH);
+    }
 
     let y = this.headerHeight;
     for (const body of bodies) {
@@ -111,7 +195,8 @@ export class AgentState extends UMLContainer implements IUMLState {
       y += fallbackBody.bounds.height;
     }
 
-    this.bounds.height = y;
+    // State height should always follow the current body/fallback rows.
+    this.bounds.height = Math.max(y, this.headerHeight);
     return [this, ...bodies, ...fallbackBodies];
   }
 }

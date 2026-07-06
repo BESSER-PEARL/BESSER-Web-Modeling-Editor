@@ -86,7 +86,9 @@ import { AgentStateComponent } from './agent-state-diagram/agent-state/agent-sta
 import { AgentStateMemberComponent } from './agent-state-diagram/agent-state/agent-state-member-component';
 import { AgentStateTransitionComponent } from './agent-state-diagram/agent-state-transition/agent-state-transition-component';
 import { AgentStateTransitionInitComponent } from './agent-state-diagram/agent-state-transition-init/agent-state-transition-init-component';
-
+import { AgentToolComponent } from './agent-state-diagram/agent-tool/agent-tool-component';
+import { AgentSkillComponent } from './agent-state-diagram/agent-skill/agent-skill-component';
+import { AgentWorkspaceComponent } from './agent-state-diagram/agent-workspace/agent-workspace-component';
 import { NNElementType } from './nn-diagram';
 import { NNRelationshipType } from './nn-diagram';
 import { NNAssociationComponent } from './nn-diagram/nn-association/nn-association-component';
@@ -98,6 +100,13 @@ import { NNContainerComponent } from './nn-diagram/nn-container/nn-container-com
 import { NNReferenceComponent } from './nn-diagram/nn-reference/nn-reference-component';
 import { NNComponentMemberComponent } from './nn-diagram/nn-component-member-component';
 import { NNLayerIconComponent } from './nn-diagram/nn-layer-icon/nn-layer-icon-component';
+
+// AgentLLM is a data-only element managed exclusively from the agent
+// customization tab; no SVG presence on the canvas. The lookup in
+// canvas-element still happens for every element in the model, so we
+// register a no-op React component to avoid an "undefined component"
+// crash when an AgentLLM is present.
+const AgentLLMNoopComponent: FunctionComponent<PropsWithChildren<{ element: any; fillColor?: string }>> = () => null;
 
 export const Components: {
   [key in UMLElementType | UMLRelationshipType]:
@@ -214,6 +223,12 @@ export const Components: {
   [UMLElementType.AgentState]: AgentStateComponent,
   [UMLElementType.AgentStateBody]: AgentStateMemberComponent,
   [UMLElementType.AgentStateFallbackBody]: AgentStateMemberComponent,
+  [UMLElementType.AgentTool]: AgentToolComponent,
+  [UMLElementType.AgentSkill]: AgentSkillComponent,
+  [UMLElementType.AgentWorkspace]: AgentWorkspaceComponent,
+  [UMLElementType.AgentLLM]: AgentLLMNoopComponent,
+  [UMLElementType.AgentSectionTitle]: NNSectionTitleComponent as any,
+  [UMLElementType.AgentSectionSeparator]: NNSectionSeparatorComponent as any,
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionComponent,
   [UMLRelationshipType.AgentStateTransitionInit]: AgentStateTransitionInitComponent,
 
