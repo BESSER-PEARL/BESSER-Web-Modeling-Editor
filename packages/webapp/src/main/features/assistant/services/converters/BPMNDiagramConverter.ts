@@ -21,7 +21,7 @@
  *
  * NOTE on naming: the converter is registered under the STORAGE-BUCKET token
  * "BPMN" (what SupportedDiagramType / the store use), but it emits the Apollon
- * model.type "BPMNDiagram".
+ * model.type "BPMNDiagram". 
  */
 
 import { DiagramConverter, generateUniqueId } from './base';
@@ -29,7 +29,7 @@ import { DiagramConverter, generateUniqueId } from './base';
 interface SpecNode {
   id?: string;
   name?: string;
-  type?: string;
+  type?: string; // startEvent | endEvent | intermediateEvent | task | gateway
   taskType?: string;
   gatewayType?: string;
   eventType?: string;
@@ -38,10 +38,9 @@ interface SpecNode {
 }
 
 interface SpecFlow {
-  source?: string;
-  target?: string;
-  name?: string;
-  flowType?: string;
+  source?: string; // node id
+  target?: string; // node id
+  name?: string; // optional edge label (branch condition)
 }
 
 interface SpecLane {
@@ -63,19 +62,6 @@ const ROW_GAP = 120; // vertical distance between sibling nodes within a layer/b
 const EVENT_SIZE = 40;
 const TASK_W = 140;
 const TASK_H = 60;
-const POOL_HEADER_WIDTH = 40;
-const POOL_MIN_HEIGHT = 80;
-const POOL_VERTICAL_GAP = 80;
-const POOL_NODE_X = 120;
-const POOL_TOP_PADDING = 30;
-const LANE_HEIGHT = 140;
-const LANE_STACK_GAP = 80;
-const LANE_HEADER_WIDTH = 30;
-
-type NormalizedSpecNode = SpecNode & { id: string };
-type NormalizedSpecLane = { id: string; name: string; poolId: string };
-type NormalizedSpecPool = { id: string; name: string; lanes: NormalizedSpecLane[] };
-type NodePlacement = { poolId: string | null; laneId: string | null };
 
 // Pool/lane geometry constants matching the editor's own BPMNPool/BPMNSwimlane
 // classes (packages/editor/.../bpmn-pool/bpmn-pool.ts) and the reference
@@ -94,6 +80,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
   }
 
   convertSingleElement(spec: any) {
+    // Single-element generation funnels into a one-node process so the
+    // DiagramConverter contract still holds (the agent funnels these the
+    // same way — see the agent guide's generate_single_element).
     return this.convertCompleteSystem({ nodes: [spec], flows: [] });
   }
 
@@ -137,13 +126,11 @@ export class BPMNDiagramConverter implements DiagramConverter {
     const elements: Record<string, any> = {};
     const relationships: Record<string, any> = {};
     const idMap: Record<string, string> = {}; // spec id -> apollon id
-    const laneIdMap: Record<string, string> = {}; // spec pool::lane -> apollon swimlane id
 
     const byLayer: Record<number, string[]> = {};
-
-    nodes.forEach((node) => {
-      const layer = layerOf[node.id] ?? 0;
-      (byLayer[layer] ||= []).push(node.id);
+    nodes.forEach((n) => {
+      const L = layerOf[n.id] ?? 0;
+      (byLayer[L] ||= []).push(n.id);
     });
 
     nodes.forEach((n) => {
@@ -156,29 +143,40 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     flows.forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships));
 
-  private finalizeModel(
-    elements: Record<string, any>,
-    relationships: Record<string, any>,
-    byLayer: Record<number, string[]> = {},
-  ) {
-    this.centerContent(elements);
+    // --- Center the content on the origin (0,0) ---
+    // The canvas draws elements inside <svg x="50%" y="50%">, so model
+    // coordinate (0,0) is the VISUAL CENTER of the canvas, not the top-left.
+    // Content pinned to x>=0 / y>=0 lands entirely in the bottom-right quadrant
+    // (the "shifted to the right" symptom).  Every built-in converter avoids
+    // this by starting at negative coordinates (LAYOUT_START_X/Y); here we
+    // instead measure the content bounding box and shift it so its center sits
+    // on the origin.  Flow geometry is placeholder (the layouter recomputes it
+    // on load), so only element bounds need shifting.
+    const placed = Object.values(elements);
+    if (placed.length) {
+      const minX = Math.min(...placed.map((e) => e.bounds.x));
+      const minY = Math.min(...placed.map((e) => e.bounds.y));
+      const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
+      const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
+      const offsetX = -(minX + maxX) / 2;
+      const offsetY = -(minY + maxY) / 2;
+      placed.forEach((e) => {
+        e.bounds.x += offsetX;
+        e.bounds.y += offsetY;
+      });
+    }
 
-    const placed = Object.values(elements) as Array<{
-      bounds: { x: number; y: number; width: number; height: number };
-    }>;
-    const maxRight = placed.reduce((max, element) => Math.max(max, element.bounds.x + element.bounds.width), 0);
-    const maxBottom = placed.reduce((max, element) => Math.max(max, element.bounds.y + element.bounds.height), 0);
-    const minLeft = placed.reduce((min, element) => Math.min(min, element.bounds.x), 0);
-    const minTop = placed.reduce((min, element) => Math.min(min, element.bounds.y), 0);
-    const maxLayer = Object.keys(byLayer).length ? Math.max(...Object.keys(byLayer).map(Number)) : 0;
-    const maxRows = Object.values(byLayer).reduce((max, rows) => Math.max(max, rows.length), 1);
+    // --- Diagram-size envelope ---
+    const layerKeys = Object.keys(byLayer).map(Number);
+    const maxLayer = layerKeys.length ? Math.max(...layerKeys) : 0;
+    const maxRows = Object.values(byLayer).reduce((m, a) => Math.max(m, a.length), 1);
 
     return {
       version: '3.0.0',
       type: 'BPMNDiagram',
       size: {
-        width: Math.max(600, Math.max((maxLayer + 1) * COL_GAP, maxRight - minLeft + 200)),
-        height: Math.max(320, Math.max(maxRows * ROW_GAP, maxBottom - minTop + 160)),
+        width: Math.max(600, (maxLayer + 1) * COL_GAP),
+        height: Math.max(320, maxRows * ROW_GAP),
       },
       interactive: { elements: {}, relationships: {} },
       elements,
@@ -464,36 +462,37 @@ export class BPMNDiagramConverter implements DiagramConverter {
     if (t === 'endevent' || t === 'end' || t === 'endnode') return 'BPMNEndEvent';
     if (t === 'intermediateevent' || t === 'intermediate') return 'BPMNIntermediateEvent';
     if (t === 'gateway' || t === 'gate') return 'BPMNGateway';
-    return 'BPMNTask';
+    return 'BPMNTask'; // default: any unrecognized node is a task
   }
 
   /** Longest-path layer assignment over the sequence-flow graph (cycle-safe). */
   private computeLayers(nodes: { id: string }[], flows: SpecFlow[]): Record<string, number> {
-    const ids = new Set(nodes.map((node) => node.id));
+    const ids = new Set(nodes.map((n) => n.id));
     const succ: Record<string, string[]> = {};
     const indeg: Record<string, number> = {};
-    nodes.forEach((node) => {
-      succ[node.id] = [];
-      indeg[node.id] = 0;
+    nodes.forEach((n) => {
+      succ[n.id] = [];
+      indeg[n.id] = 0;
     });
-    flows.forEach((flow) => {
-      const source = String(flow.source);
-      const target = String(flow.target);
-      if (ids.has(source) && ids.has(target) && source !== target) {
-        succ[source].push(target);
-        indeg[target] += 1;
+    flows.forEach((f) => {
+      const s = String(f.source);
+      const t = String(f.target);
+      if (ids.has(s) && ids.has(t) && s !== t) {
+        succ[s].push(t);
+        indeg[t] += 1;
       }
     });
 
     const layer: Record<string, number> = {};
     const remaining = { ...indeg };
     const queue: string[] = [];
-    nodes.forEach((node) => {
-      if (indeg[node.id] === 0) {
-        layer[node.id] = 0;
-        queue.push(node.id);
+    nodes.forEach((n) => {
+      if (indeg[n.id] === 0) {
+        layer[n.id] = 0;
+        queue.push(n.id);
       }
     });
+    // Pure cycle with no source: seed the first node at layer 0.
     if (queue.length === 0 && nodes.length) {
       layer[nodes[0].id] = 0;
       queue.push(nodes[0].id);
@@ -501,40 +500,40 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     const visited = new Set<string>();
     while (queue.length) {
-      const nodeId = queue.shift() as string;
-      if (visited.has(nodeId)) continue;
-      visited.add(nodeId);
-      const currentLayer = layer[nodeId] ?? 0;
-      succ[nodeId].forEach((target) => {
-        layer[target] = Math.max(layer[target] ?? 0, currentLayer + 1);
-        remaining[target] -= 1;
-        if (remaining[target] <= 0 && !visited.has(target)) queue.push(target);
+      const u = queue.shift() as string;
+      if (visited.has(u)) continue;
+      visited.add(u);
+      const lu = layer[u] ?? 0;
+      succ[u].forEach((v) => {
+        layer[v] = Math.max(layer[v] ?? 0, lu + 1);
+        remaining[v] -= 1;
+        if (remaining[v] <= 0 && !visited.has(v)) queue.push(v);
       });
     }
-
-    nodes.forEach((node) => {
-      if (!(node.id in layer)) layer[node.id] = 0;
+    // Any node never reached (cycle remnant) gets a best-effort layer 0.
+    nodes.forEach((n) => {
+      if (!(n.id in layer)) layer[n.id] = 0;
     });
     return layer;
   }
 
+  /** Cheap geometry-based edge direction for a nicer first paint (the
+   *  layouter re-routes anyway, but good initial directions reduce flicker). */
   private edgeDirections(
     sourceId: string,
     targetId: string,
     layerOf: Record<string, number>,
     byLayer: Record<number, string[]>,
   ): { sourceDir: string; targetDir: string } {
-    const sourceLayer = layerOf[sourceId] ?? 0;
-    const targetLayer = layerOf[targetId] ?? 0;
-    const sourceRow = (byLayer[sourceLayer] || []).indexOf(sourceId);
-    const targetRow = (byLayer[targetLayer] || []).indexOf(targetId);
-    const dx = targetLayer - sourceLayer;
-    const dy = targetRow - sourceRow;
+    const sLayer = layerOf[sourceId] ?? 0;
+    const tLayer = layerOf[targetId] ?? 0;
+    const sRow = (byLayer[sLayer] || []).indexOf(sourceId);
+    const tRow = (byLayer[tLayer] || []).indexOf(targetId);
+    const dx = tLayer - sLayer;
+    const dy = tRow - sRow;
     if (Math.abs(dx) >= Math.abs(dy)) {
       return dx >= 0 ? { sourceDir: 'Right', targetDir: 'Left' } : { sourceDir: 'Left', targetDir: 'Right' };
     }
     return dy >= 0 ? { sourceDir: 'Down', targetDir: 'Up' } : { sourceDir: 'Up', targetDir: 'Down' };
   }
 }
-
-
