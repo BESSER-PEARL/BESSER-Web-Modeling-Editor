@@ -1,10 +1,23 @@
 /**
  * BPMN Diagram Converter
- * Converts a simplified BPMN process spec emitted by the modeling agent into
- * the Apollon BPMNDiagram model.
+ * Converts a simplified BPMN process spec (nodes + flows, optionally grouped
+ * into pools/lanes) emitted by the modeling agent into the Apollon
+ * BPMNDiagram model.
  *
- * Base BPMN only: tasks, gateways, events, pools, swimlanes, and BPMNFlow.
- * Agentic BPMN fields stay out of scope here.
+ * No other agentic fields (isAgentic, role, gatewayRole, collaborationMode,
+ * mergingStrategy, trustScore, governanceDsl, …). Output shape matches the
+ * verified BPMN template shape (see .claude/bpmn/11-bpmn-load-template-examples-guide.md):
+ * model.type === "BPMNDiagram"; sequence-flow paths are left for the editor's
+ * layouter to recompute on load (isManuallyLayouted: false), so only element
+ * bounds need to be correct here.
+ *
+ * Pools/lanes: confirmed against the hand-authored reference templates
+ * (car_wash.json, pizza_store.json) that ALL bounds — including nodes drawn
+ * inside a pool/lane — are ABSOLUTE canvas coordinates. Only BPMNSwimlane
+ * elements set owner (to their pool's Apollon id); pools and every node/flow
+ * keep owner: null and are placed purely by geometric overlap with the
+ * pool/lane rectangle. flowType ('sequence' vs 'message') is derived here
+ * from pool membership, never emitted by the agent.
  *
  * NOTE on naming: the converter is registered under the STORAGE-BUCKET token
  * "BPMN" (what SupportedDiagramType / the store use), but it emits the Apollon
@@ -20,9 +33,15 @@ interface SpecNode {
   taskType?: string;
   gatewayType?: string;
   eventType?: string;
-  poolId?: string;
-  laneId?: string;
-  owner?: string;
+  poolId?: string; // optional: id of the pool (participant) this node belongs to
+  laneId?: string; // optional: id of the lane (role) within poolId
+}
+
+interface SpecFlow {
+  source?: string;
+  target?: string;
+  name?: string;
+  flowType?: string;
 }
 
 interface SpecLane {
@@ -36,15 +55,11 @@ interface SpecPool {
   lanes?: SpecLane[];
 }
 
-interface SpecFlow {
-  source?: string;
-  target?: string;
-  name?: string;
-  flowType?: string;
-}
+type StableNode = SpecNode & { id: string };
+type Pool = { id: string; name: string; lanes: { id: string; name: string }[] };
 
-const COL_GAP = 220;
-const ROW_GAP = 120;
+const COL_GAP = 220; // horizontal distance between layers
+const ROW_GAP = 120; // vertical distance between sibling nodes within a layer/band
 const EVENT_SIZE = 40;
 const TASK_W = 140;
 const TASK_H = 60;
@@ -62,6 +77,14 @@ type NormalizedSpecLane = { id: string; name: string; poolId: string };
 type NormalizedSpecPool = { id: string; name: string; lanes: NormalizedSpecLane[] };
 type NodePlacement = { poolId: string | null; laneId: string | null };
 
+// Pool/lane geometry constants matching the editor's own BPMNPool/BPMNSwimlane
+// classes (packages/editor/.../bpmn-pool/bpmn-pool.ts) and the reference
+// templates, so first-paint geometry looks like a hand-laid-out diagram.
+const POOL_HEADER_WIDTH = 40; // matches BPMNPool.HEADER_WIDTH
+const POOL_GAP = 40; // vertical gap between sibling pools
+const BAND_V_PADDING = 20; // top/bottom padding inside a lane/pool band
+const BAND_MIN_HEIGHT = 130; // matches the reference templates' single-row lane height
+
 const TASK_TYPES = new Set(['default', 'user', 'service', 'send', 'receive', 'manual', 'business-rule', 'script']);
 const GATEWAY_TYPES = new Set(['exclusive', 'parallel', 'inclusive', 'event-based', 'complex']);
 
@@ -77,25 +100,45 @@ export class BPMNDiagramConverter implements DiagramConverter {
   convertCompleteSystem(systemSpec: any) {
     const rawNodes: SpecNode[] = Array.isArray(systemSpec?.nodes) ? systemSpec.nodes : [];
     const flows: SpecFlow[] = Array.isArray(systemSpec?.flows) ? systemSpec.flows : [];
-    const pools = this.normalizePools(Array.isArray(systemSpec?.pools) ? systemSpec.pools : []);
+    const rawPools: SpecPool[] = Array.isArray(systemSpec?.pools) ? systemSpec.pools : [];
 
-    const nodes: NormalizedSpecNode[] = rawNodes.map((node, index) => ({
-      ...node,
-      id: typeof node.id === 'string' && node.id.trim() ? node.id.trim() : `n${index}`,
+    // Give every node a stable spec-id (referenced by flows).
+    const nodes: StableNode[] = rawNodes.map((n, i) => ({
+      ...n,
+      id: typeof n.id === 'string' && n.id.trim() ? n.id.trim() : `n${i}`,
     }));
 
-    if (pools.length > 0) {
-      return this.convertWithPools(nodes, flows, pools);
-    }
+    const pools: Pool[] = rawPools
+      .filter((p): p is SpecPool & { id: string } => typeof p.id === 'string' && p.id.trim().length > 0)
+      .map((p) => ({
+        id: p.id.trim(),
+        name: typeof p.name === 'string' ? p.name : '',
+        lanes: (Array.isArray(p.lanes) ? p.lanes : [])
+          .filter((l): l is SpecLane & { id: string } => typeof l.id === 'string' && l.id.trim().length > 0)
+          .map((l) => ({ id: l.id.trim(), name: typeof l.name === 'string' ? l.name : '' })),
+      }));
 
-    return this.convertFlat(nodes, flows);
+    // --- Layered left-to-right layout (longest-path layering). Computed over
+    // the FULL flow graph (including cross-pool message flows) so columns
+    // line up visually across pools/lanes, matching the reference templates. ---
+    const layerOf = this.computeLayers(nodes, flows);
+
+    if (pools.length === 0) {
+      return this.layoutFlat(nodes, flows, layerOf);
+    }
+    return this.layoutWithPools(nodes, flows, pools, layerOf);
   }
 
-  private convertFlat(nodes: NormalizedSpecNode[], flows: SpecFlow[]) {
+  // ------------------------------------------------------------------
+  // Flat process (no pools) — original algorithm, unchanged.
+  // ------------------------------------------------------------------
+
+  private layoutFlat(nodes: StableNode[], flows: SpecFlow[], layerOf: Record<string, number>) {
     const elements: Record<string, any> = {};
     const relationships: Record<string, any> = {};
-    const idMap: Record<string, string> = {};
-    const layerOf = this.computeLayers(nodes, flows);
+    const idMap: Record<string, string> = {}; // spec id -> apollon id
+    const laneIdMap: Record<string, string> = {}; // spec pool::lane -> apollon swimlane id
+
     const byLayer: Record<number, string[]> = {};
 
     nodes.forEach((node) => {
@@ -103,348 +146,15 @@ export class BPMNDiagramConverter implements DiagramConverter {
       (byLayer[layer] ||= []).push(node.id);
     });
 
-    nodes.forEach((node) => {
-      const apollonType = this.normalizeType(node.type);
-      const isTask = apollonType === 'BPMNTask';
-      const width = isTask ? TASK_W : EVENT_SIZE;
-      const height = isTask ? TASK_H : EVENT_SIZE;
-      const layer = layerOf[node.id] ?? 0;
-      const row = byLayer[layer].indexOf(node.id);
-      const apollonId = generateUniqueId('bpmn');
-
-      idMap[node.id] = apollonId;
-      elements[apollonId] = this.makeNodeRecord(
-        apollonId,
-        node,
-        apollonType,
-        { x: layer * COL_GAP, y: row * ROW_GAP, width, height },
-        null,
-      );
+    nodes.forEach((n) => {
+      const layer = layerOf[n.id] ?? 0;
+      const row = byLayer[layer].indexOf(n.id);
+      const x = layer * COL_GAP;
+      const y = row * ROW_GAP;
+      this.emitNodeElement(n, x, y, elements, idMap);
     });
 
-    this.emitFlows(flows, relationships, idMap, layerOf, byLayer, () => 'sequence');
-
-    return this.finalizeModel(elements, relationships, byLayer);
-  }
-
-  private convertWithPools(nodes: NormalizedSpecNode[], flows: SpecFlow[], pools: NormalizedSpecPool[]) {
-    const elements: Record<string, any> = {};
-    const relationships: Record<string, any> = {};
-    const idMap: Record<string, string> = {};
-    const laneIdMap: Record<string, string> = {};
-    const placementByNodeId = this.resolveNodePlacements(nodes, pools);
-    const nodesByPool = new Map<string | null, NormalizedSpecNode[]>();
-
-    nodes.forEach((node) => {
-      const placement = placementByNodeId.get(node.id) ?? { poolId: null, laneId: null };
-      const bucket = nodesByPool.get(placement.poolId) ?? [];
-      bucket.push(node);
-      nodesByPool.set(placement.poolId, bucket);
-    });
-
-    const groupedLayers = new Map<string | null, Record<string, number>>();
-    const groupedColumns = new Map<string | null, Record<number, string[]>>();
-
-    for (const [poolId, groupNodes] of nodesByPool.entries()) {
-      const groupNodeIds = new Set(groupNodes.map((node) => node.id));
-      const groupFlows = flows.filter(
-        (flow) => groupNodeIds.has(String(flow.source)) && groupNodeIds.has(String(flow.target)),
-      );
-      const layerOf = this.computeLayers(groupNodes, groupFlows);
-      const byLayer: Record<number, string[]> = {};
-      groupNodes.forEach((node) => {
-        const layer = layerOf[node.id] ?? 0;
-        (byLayer[layer] ||= []).push(node.id);
-      });
-      groupedLayers.set(poolId, layerOf);
-      groupedColumns.set(poolId, byLayer);
-    }
-
-    const globalMaxLayer = Array.from(groupedColumns.values()).reduce((max, byLayer) => {
-      const groupMax = Object.keys(byLayer).length ? Math.max(...Object.keys(byLayer).map(Number)) : 0;
-      return Math.max(max, groupMax);
-    }, 0);
-    const poolWidth = Math.max(600, POOL_NODE_X + globalMaxLayer * COL_GAP + TASK_W + 140);
-    let currentY = 0;
-
-    for (const pool of pools) {
-      const apollonPoolId = generateUniqueId('bpmn');
-      const poolNodes = nodesByPool.get(pool.id) ?? [];
-      const layerOf = groupedLayers.get(pool.id) ?? {};
-      const nodesByLaneLayer = new Map<string, string[]>();
-
-      poolNodes.forEach((node) => {
-        const placement = placementByNodeId.get(node.id) ?? { poolId: pool.id, laneId: null };
-        if (!placement.laneId) return;
-        const layer = layerOf[node.id] ?? 0;
-        const key = this.makeLaneLayerKey(placement.laneId, layer);
-        const bucket = nodesByLaneLayer.get(key) ?? [];
-        bucket.push(node.id);
-        nodesByLaneLayer.set(key, bucket);
-      });
-
-      const laneHeights = pool.lanes.map((lane) => {
-        const maxSameLayer = this.maxLaneLayerCount(lane.id, nodesByLaneLayer);
-        return Math.max(LANE_HEIGHT, LANE_HEIGHT + Math.max(0, maxSameLayer - 1) * LANE_STACK_GAP);
-      });
-      const lanesHeight = laneHeights.reduce((sum, height) => sum + height, 0);
-      const poolLevelNodeCount = poolNodes.filter((node) => !placementByNodeId.get(node.id)?.laneId).length;
-      const poolLevelBandHeight =
-        poolLevelNodeCount > 0
-          ? Math.max(LANE_HEIGHT, LANE_HEIGHT + Math.max(0, poolLevelNodeCount - 1) * LANE_STACK_GAP)
-          : 0;
-      const poolHeight = Math.max(
-        POOL_MIN_HEIGHT,
-        POOL_TOP_PADDING + poolLevelBandHeight + lanesHeight + POOL_TOP_PADDING,
-      );
-
-      elements[apollonPoolId] = {
-        id: apollonPoolId,
-        name: pool.name,
-        type: 'BPMNPool',
-        owner: null,
-        bounds: { x: 0, y: currentY, width: poolWidth, height: poolHeight },
-      };
-
-      let laneY = currentY + POOL_TOP_PADDING + poolLevelBandHeight;
-      pool.lanes.forEach((lane, laneIndex) => {
-        const apollonLaneId = generateUniqueId('bpmn');
-        laneIdMap[this.makeLaneKey(pool.id, lane.id)] = apollonLaneId;
-
-        elements[apollonLaneId] = {
-          id: apollonLaneId,
-          name: lane.name,
-          type: 'BPMNSwimlane',
-          owner: apollonPoolId,
-          bounds: {
-            x: POOL_HEADER_WIDTH,
-            y: laneY,
-            width: poolWidth - POOL_HEADER_WIDTH,
-            height: laneHeights[laneIndex],
-          },
-        };
-
-        laneY += laneHeights[laneIndex];
-      });
-
-      const laneSlotIndex = new Map<string, number>();
-      poolNodes.forEach((node) => {
-        const apollonType = this.normalizeType(node.type);
-        const isTask = apollonType === 'BPMNTask';
-        const width = isTask ? TASK_W : EVENT_SIZE;
-        const height = isTask ? TASK_H : EVENT_SIZE;
-        const layer = layerOf[node.id] ?? 0;
-        const x = POOL_NODE_X + layer * COL_GAP;
-        const placement = placementByNodeId.get(node.id) ?? { poolId: pool.id, laneId: null };
-        const apollonId = generateUniqueId('bpmn');
-
-        idMap[node.id] = apollonId;
-
-        let owner: string | null = apollonPoolId;
-        let y = currentY + POOL_TOP_PADDING + poolLevelBandHeight / 2 - height / 2;
-
-        if (placement.laneId) {
-          const lane = pool.lanes.find((candidate) => candidate.id === placement.laneId);
-          if (lane) {
-            const laneElementId = laneIdMap[this.makeLaneKey(pool.id, lane.id)];
-            const laneBounds = elements[laneElementId]?.bounds;
-            owner = laneElementId;
-            const laneLayerKey = this.makeLaneLayerKey(lane.id, layer);
-            const slotIndex = laneSlotIndex.get(laneLayerKey) ?? 0;
-            laneSlotIndex.set(laneLayerKey, slotIndex + 1);
-            const sameLayerNodes = nodesByLaneLayer.get(laneLayerKey) ?? [];
-            const offset = this.centeredOffset(slotIndex, sameLayerNodes.length);
-            y = laneBounds.y + laneBounds.height / 2 - height / 2 + offset;
-          }
-        }
-
-        elements[apollonId] = this.makeNodeRecord(
-          apollonId,
-          node,
-          apollonType,
-          {
-            x: owner && owner !== apollonPoolId ? Math.max(x, POOL_HEADER_WIDTH + LANE_HEADER_WIDTH + 10) : x,
-            y,
-            width,
-            height,
-          },
-          owner,
-        );
-      });
-
-      currentY += poolHeight + POOL_VERTICAL_GAP;
-    }
-
-    const flatNodes = nodesByPool.get(null) ?? [];
-    if (flatNodes.length > 0) {
-      const layerOf = groupedLayers.get(null) ?? {};
-      const byLayer = groupedColumns.get(null) ?? {};
-      flatNodes.forEach((node) => {
-        const apollonType = this.normalizeType(node.type);
-        const isTask = apollonType === 'BPMNTask';
-        const width = isTask ? TASK_W : EVENT_SIZE;
-        const height = isTask ? TASK_H : EVENT_SIZE;
-        const layer = layerOf[node.id] ?? 0;
-        const row = byLayer[layer].indexOf(node.id);
-        const apollonId = generateUniqueId('bpmn');
-        idMap[node.id] = apollonId;
-        elements[apollonId] = this.makeNodeRecord(
-          apollonId,
-          node,
-          apollonType,
-          { x: layer * COL_GAP, y: currentY + row * ROW_GAP, width, height },
-          null,
-        );
-      });
-    }
-
-    this.emitFlows(flows, relationships, idMap, {}, {}, (flow) => this.resolveFlowType(flow, placementByNodeId));
-
-    return this.finalizeModel(elements, relationships);
-  }
-
-  private normalizePools(rawPools: SpecPool[]): NormalizedSpecPool[] {
-    return rawPools.map((pool, poolIndex) => {
-      const poolId = typeof pool.id === 'string' && pool.id.trim() ? pool.id.trim() : `pool_${poolIndex}`;
-      const rawLanes = Array.isArray(pool.lanes) ? pool.lanes : [];
-      const lanes = rawLanes.map((lane, laneIndex) => ({
-        id: typeof lane.id === 'string' && lane.id.trim() ? lane.id.trim() : `${poolId}_lane_${laneIndex}`,
-        name: typeof lane.name === 'string' ? lane.name : '',
-        poolId,
-      }));
-
-      return {
-        id: poolId,
-        name: typeof pool.name === 'string' ? pool.name : '',
-        lanes,
-      };
-    });
-  }
-
-  private resolveNodePlacements(nodes: NormalizedSpecNode[], pools: NormalizedSpecPool[]): Map<string, NodePlacement> {
-    const placements = new Map<string, NodePlacement>();
-    const poolsById = new Map(pools.map((pool) => [pool.id, pool]));
-    const lanePools = new Map<string, string[]>();
-
-    pools.forEach((pool) => {
-      pool.lanes.forEach((lane) => {
-        const owners = lanePools.get(lane.id) ?? [];
-        owners.push(pool.id);
-        lanePools.set(lane.id, owners);
-      });
-    });
-
-    nodes.forEach((node) => {
-      const laneToken = this.normalizeRef(node.laneId) ?? this.normalizeRef(node.owner);
-      let poolId = this.normalizeRef(node.poolId);
-
-      if (poolId && !poolsById.has(poolId)) {
-        poolId = null;
-      }
-
-      if (!poolId && laneToken) {
-        const ownerPools = lanePools.get(laneToken) ?? [];
-        if (ownerPools.length === 1) {
-          poolId = ownerPools[0];
-        }
-      }
-
-      let laneId: string | null = null;
-      if (poolId && laneToken) {
-        const pool = poolsById.get(poolId);
-        if (pool?.lanes.some((lane) => lane.id === laneToken)) {
-          laneId = laneToken;
-        }
-      }
-
-      placements.set(node.id, { poolId: poolId ?? null, laneId });
-    });
-
-    return placements;
-  }
-
-  private resolveFlowType(flow: SpecFlow, placements: Map<string, NodePlacement>): 'sequence' | 'message' {
-    const normalized = this.normalizeFlowType(flow.flowType);
-    if (normalized) return normalized;
-
-    const sourcePool = placements.get(String(flow.source))?.poolId ?? null;
-    const targetPool = placements.get(String(flow.target))?.poolId ?? null;
-    return sourcePool && targetPool && sourcePool !== targetPool ? 'message' : 'sequence';
-  }
-
-  private normalizeFlowType(rawType?: string): 'sequence' | 'message' | null {
-    const type = (rawType || '').toLowerCase().replace(/[\s_-]/g, '');
-    if (type === 'message' || type === 'messageflow') return 'message';
-    if (type === 'sequence' || type === 'sequenceflow') return 'sequence';
-    return null;
-  }
-
-  private makeNodeRecord(
-    apollonId: string,
-    node: SpecNode,
-    apollonType: string,
-    bounds: { x: number; y: number; width: number; height: number },
-    owner: string | null,
-  ) {
-    const base = {
-      id: apollonId,
-      name: typeof node.name === 'string' ? node.name : '',
-      type: apollonType,
-      owner,
-      bounds,
-    };
-
-    if (apollonType === 'BPMNTask') {
-      const taskType = TASK_TYPES.has(String(node.taskType)) ? node.taskType : 'default';
-      return { ...base, taskType, marker: 'none' };
-    }
-
-    if (apollonType === 'BPMNGateway') {
-      const gatewayType = GATEWAY_TYPES.has(String(node.gatewayType)) ? node.gatewayType : 'exclusive';
-      return { ...base, gatewayType };
-    }
-
-    const eventType = typeof node.eventType === 'string' && node.eventType ? node.eventType : 'default';
-    return { ...base, eventType };
-  }
-
-  private emitFlows(
-    flows: SpecFlow[],
-    relationships: Record<string, any>,
-    idMap: Record<string, string>,
-    layerOf: Record<string, number>,
-    byLayer: Record<number, string[]>,
-    resolveFlowType: (flow: SpecFlow) => 'sequence' | 'message',
-  ) {
-    flows.forEach((flow) => {
-      const sourceId = idMap[String(flow.source)];
-      const targetId = idMap[String(flow.target)];
-      if (!sourceId || !targetId) return;
-
-      const relId = generateUniqueId('flow');
-      const { sourceDir, targetDir } =
-        Object.keys(layerOf).length > 0
-          ? this.edgeDirections(String(flow.source), String(flow.target), layerOf, byLayer)
-          : { sourceDir: 'Right', targetDir: 'Left' };
-
-      relationships[relId] = {
-        id: relId,
-        name: typeof flow.name === 'string' ? flow.name : '',
-        type: 'BPMNFlow',
-        owner: null,
-        bounds: { x: 0, y: 0, width: 100, height: 1 },
-        path: [
-          { x: 0, y: 0 },
-          { x: 100, y: 0 },
-        ],
-        source: { direction: sourceDir, element: sourceId },
-        target: { direction: targetDir, element: targetId },
-        isManuallyLayouted: false,
-        flowType: resolveFlowType(flow),
-        isDefault: false,
-      };
-    });
-  }
+    flows.forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships));
 
   private finalizeModel(
     elements: Record<string, any>,
@@ -477,49 +187,276 @@ export class BPMNDiagramConverter implements DiagramConverter {
     };
   }
 
-  private centerContent(elements: Record<string, any>) {
-    const placed = Object.values(elements);
-    if (placed.length === 0) return;
+  // ------------------------------------------------------------------
+  // Collaboration diagram (pools/lanes present).
+  // ------------------------------------------------------------------
 
-    const minX = Math.min(...placed.map((element: any) => element.bounds.x));
-    const minY = Math.min(...placed.map((element: any) => element.bounds.y));
-    const maxX = Math.max(...placed.map((element: any) => element.bounds.x + element.bounds.width));
-    const maxY = Math.max(...placed.map((element: any) => element.bounds.y + element.bounds.height));
-    const offsetX = -(minX + maxX) / 2;
-    const offsetY = -(minY + maxY) / 2;
+  private layoutWithPools(nodes: StableNode[], flows: SpecFlow[], pools: Pool[], layerOf: Record<string, number>) {
+    const elements: Record<string, any> = {};
+    const relationships: Record<string, any> = {};
+    const idMap: Record<string, string> = {}; // spec id -> apollon id
+    const laneIdMap: Record<string, string> = {}; // spec pool::lane -> apollon swimlane id
 
-    placed.forEach((element: any) => {
-      element.bounds.x += offsetX;
-      element.bounds.y += offsetY;
+    // --- Band model: one band per lane, or one band per pool when it has no
+    // lanes. Nodes with an unrecognized/missing poolId land in a trailing
+    // flat band so a partially-specified spec never loses a node. ---
+    type Band = { key: string; nodeIds: string[] };
+    const poolIndexOf: Record<string, number> = {}; // spec node id -> pool stacking order (for message-flow detection)
+    const bandKeyOf: Record<string, string> = {};
+    const bandsByPool: Record<string, Band[]> = {};
+
+    pools.forEach((pool, pIdx) => {
+      const laneBands: Band[] = pool.lanes.length
+        ? pool.lanes.map((lane) => ({ key: `${pool.id}::${lane.id}`, nodeIds: [] }))
+        : [{ key: `${pool.id}::__self`, nodeIds: [] }];
+      bandsByPool[pool.id] = laneBands;
+
+      nodes.forEach((n) => {
+        if (n.poolId !== pool.id) return;
+        poolIndexOf[n.id] = pIdx;
+        const lane = pool.lanes.find((l) => l.id === n.laneId);
+        const band = (lane && laneBands.find((b) => b.key === `${pool.id}::${lane.id}`)) || laneBands[0];
+        band.nodeIds.push(n.id);
+        bandKeyOf[n.id] = band.key;
+      });
     });
+
+    const orphanBand: Band = { key: '__none', nodeIds: [] };
+    nodes.forEach((n) => {
+      if (!(n.id in bandKeyOf)) {
+        orphanBand.nodeIds.push(n.id);
+        bandKeyOf[n.id] = orphanBand.key;
+      }
+    });
+
+    // --- Row assignment within each band (nodes sharing a layer stack vertically) ---
+    const rowOf: Record<string, number> = {};
+    const maxRowsOf: Record<string, number> = {};
+    const allBands: Band[] = [
+      ...pools.flatMap((p) => bandsByPool[p.id]),
+      ...(orphanBand.nodeIds.length ? [orphanBand] : []),
+    ];
+    allBands.forEach((band) => {
+      const byLayerInBand: Record<number, string[]> = {};
+      band.nodeIds.forEach((id) => {
+        const L = layerOf[id] ?? 0;
+        (byLayerInBand[L] ||= []).push(id);
+      });
+      let maxRows = 1;
+      Object.values(byLayerInBand).forEach((ids) => {
+        ids.forEach((id, i) => {
+          rowOf[id] = i;
+        });
+        maxRows = Math.max(maxRows, ids.length);
+      });
+      maxRowsOf[band.key] = band.nodeIds.length ? maxRows : 0;
+    });
+
+    // --- Column width shared by every pool so they visually align ---
+    const layerValues = Object.values(layerOf);
+    const maxLayer = layerValues.length ? Math.max(...layerValues) : 0;
+    const contentWidth = (maxLayer + 1) * COL_GAP;
+    const poolWidth = Math.max(400, POOL_HEADER_WIDTH + contentWidth + COL_GAP / 2);
+
+    // --- Stack pools top-to-bottom; lanes stack top-to-bottom within a pool ---
+    let cursorY = 0;
+    const bandOriginY: Record<string, number> = {};
+
+    pools.forEach((pool) => {
+      const bands = bandsByPool[pool.id];
+      const poolY = cursorY;
+      let laneCursorY = poolY;
+      bands.forEach((band) => {
+        const rows = maxRowsOf[band.key] || 1;
+        const bandHeight = Math.max(BAND_MIN_HEIGHT, rows * ROW_GAP + BAND_V_PADDING * 2);
+        bandOriginY[band.key] = laneCursorY;
+        laneCursorY += bandHeight;
+      });
+      const poolHeight = laneCursorY - poolY;
+
+      const poolApollonId = generateUniqueId('bpmn');
+      elements[poolApollonId] = {
+        id: poolApollonId,
+        name: pool.name,
+        type: 'BPMNPool',
+        owner: null,
+        bounds: { x: 0, y: poolY, width: poolWidth, height: poolHeight },
+      };
+
+      pool.lanes.forEach((lane, i) => {
+        const band = bands[i];
+        const laneApollonId = generateUniqueId('bpmn');
+        laneIdMap[`${pool.id}::${lane.id}`] = laneApollonId;
+        elements[laneApollonId] = {
+          id: laneApollonId,
+          name: lane.name,
+          type: 'BPMNSwimlane',
+          owner: poolApollonId,
+          bounds: {
+            x: POOL_HEADER_WIDTH,
+            y: bandOriginY[band.key],
+            width: poolWidth - POOL_HEADER_WIDTH,
+            height: Math.max(BAND_MIN_HEIGHT, (maxRowsOf[band.key] || 1) * ROW_GAP + BAND_V_PADDING * 2),
+          },
+        };
+      });
+
+      cursorY = poolY + poolHeight + POOL_GAP;
+    });
+
+    // --- Trailing flat band for nodes with no recognized pool (fallback) ---
+    if (orphanBand.nodeIds.length) {
+      bandOriginY[orphanBand.key] = cursorY;
+    }
+
+    // --- Emit node elements ---
+    nodes.forEach((n) => {
+      const layer = layerOf[n.id] ?? 0;
+      const bandY = bandOriginY[bandKeyOf[n.id]] ?? 0;
+      const row = rowOf[n.id] ?? 0;
+      const x = POOL_HEADER_WIDTH + layer * COL_GAP;
+      const y = bandY + BAND_V_PADDING + row * ROW_GAP;
+      const owner = n.poolId && n.laneId ? laneIdMap[`${n.poolId}::${n.laneId}`] ?? null : null;
+      this.emitNodeElement(n, x, y, elements, idMap, owner);
+    });
+
+    // --- Emit flows: cross-pool flows become message flows with a vertical
+    // direction override (matches the reference templates); everything else
+    // uses the generic geometry-based heuristic. ---
+    const byLayer: Record<number, string[]> = {};
+    nodes.forEach((n) => {
+      const L = layerOf[n.id] ?? 0;
+      (byLayer[L] ||= []).push(n.id);
+    });
+    flows.forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships, poolIndexOf));
+
+    return this.finalizeModel(elements, relationships);
   }
 
-  private normalizeRef(value?: string): string | null {
-    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  // ------------------------------------------------------------------
+  // Shared element/flow emission
+  // ------------------------------------------------------------------
+
+  private emitNodeElement(
+    n: StableNode,
+    x: number,
+    y: number,
+    elements: Record<string, any>,
+    idMap: Record<string, string>,
+    owner: string | null = null,
+  ): void {
+    const apollonType = this.normalizeType(n.type);
+    const isTask = apollonType === 'BPMNTask';
+    const w = isTask ? TASK_W : EVENT_SIZE;
+    const h = isTask ? TASK_H : EVENT_SIZE;
+    const apollonId = generateUniqueId('bpmn');
+    idMap[n.id] = apollonId;
+
+    const base = {
+      id: apollonId,
+      name: typeof n.name === 'string' ? n.name : '',
+      type: apollonType,
+      owner,
+      bounds: { x, y, width: w, height: h },
+    };
+
+    if (apollonType === 'BPMNTask') {
+      const taskType = TASK_TYPES.has(String(n.taskType)) ? n.taskType : 'default';
+      elements[apollonId] = { ...base, taskType, marker: 'none' };
+    } else if (apollonType === 'BPMNGateway') {
+      const gatewayType = GATEWAY_TYPES.has(String(n.gatewayType)) ? n.gatewayType : 'exclusive';
+      elements[apollonId] = { ...base, gatewayType };
+    } else {
+      // BPMNStartEvent / BPMNEndEvent / BPMNIntermediateEvent
+      const eventType = typeof n.eventType === 'string' && n.eventType ? n.eventType : 'default';
+      elements[apollonId] = { ...base, eventType };
+    }
   }
 
-  private makeLaneKey(poolId: string, laneId: string) {
-    return `${poolId}::${laneId}`;
-  }
+  /**
+   * Emits a sequence-flow relationship. Geometry is placeholder; the editor's
+   * layouter recomputes the path on load (isManuallyLayouted false), exactly
+   * like StateMachineConverter's transitions. When `poolIndexOf` is supplied
+   * and the flow's endpoints sit in different pools, it becomes a message
+   * flow with a vertical direction override (matches car_wash/pizza_store's
+   * cross-pool flows, which are always Down/Up rather than Left/Right).
+   */
+  private emitFlow(
+    f: SpecFlow,
+    idMap: Record<string, string>,
+    layerOf: Record<string, number>,
+    byLayer: Record<number, string[]>,
+    relationships: Record<string, any>,
+    poolIndexOf?: Record<string, number>,
+  ): void {
+    const sourceId = idMap[String(f.source)];
+    const targetId = idMap[String(f.target)];
+    if (!sourceId || !targetId) return; // skip dangling refs
 
-  private makeLaneLayerKey(laneId: string, layer: number) {
-    return `${laneId}@${layer}`;
-  }
+    const relId = generateUniqueId('flow');
+    let { sourceDir, targetDir } = this.edgeDirections(String(f.source), String(f.target), layerOf, byLayer);
 
-  private maxLaneLayerCount(laneId: string, nodesByLaneLayer: Map<string, string[]>) {
-    let max = 0;
-    for (const [key, laneNodes] of nodesByLaneLayer.entries()) {
-      if (key.startsWith(`${laneId}@`)) {
-        max = Math.max(max, laneNodes.length);
+    let flowType: 'sequence' | 'message' = 'sequence';
+    if (poolIndexOf) {
+      const sPool = poolIndexOf[String(f.source)];
+      const tPool = poolIndexOf[String(f.target)];
+      if (sPool !== undefined && tPool !== undefined && sPool !== tPool) {
+        flowType = 'message';
+        sourceDir = sPool < tPool ? 'Down' : 'Up';
+        targetDir = sPool < tPool ? 'Up' : 'Down';
       }
     }
-    return max;
+
+    relationships[relId] = {
+      id: relId,
+      name: typeof f.name === 'string' ? f.name : '',
+      type: 'BPMNFlow',
+      owner: null,
+      bounds: { x: 0, y: 0, width: 100, height: 1 },
+      path: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
+      source: { direction: sourceDir, element: sourceId },
+      target: { direction: targetDir, element: targetId },
+      isManuallyLayouted: false,
+      flowType,
+      isDefault: false,
+    };
   }
 
-  private centeredOffset(index: number, total: number) {
-    if (total <= 1) return 0;
-    return (index - (total - 1) / 2) * LANE_STACK_GAP;
+  /** Centers content on the origin and wraps it into a full BPMNDiagram model. */
+  private finalizeModel(elements: Record<string, any>, relationships: Record<string, any>) {
+    const placed = Object.values(elements);
+    let width = 600;
+    let height = 320;
+    if (placed.length) {
+      const minX = Math.min(...placed.map((e) => e.bounds.x));
+      const minY = Math.min(...placed.map((e) => e.bounds.y));
+      const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
+      const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
+      const offsetX = -(minX + maxX) / 2;
+      const offsetY = -(minY + maxY) / 2;
+      placed.forEach((e) => {
+        e.bounds.x += offsetX;
+        e.bounds.y += offsetY;
+      });
+      width = Math.max(600, maxX - minX);
+      height = Math.max(320, maxY - minY);
+    }
+
+    return {
+      version: '3.0.0',
+      type: 'BPMNDiagram',
+      size: { width, height },
+      interactive: { elements: {}, relationships: {} },
+      elements,
+      relationships,
+      assessments: {},
+    };
   }
+
+  // ------------------------------------------------------------------
 
   private normalizeType(rawType?: string): string {
     const t = (rawType || '').toLowerCase().replace(/[\s_-]/g, '');
@@ -599,3 +536,5 @@ export class BPMNDiagramConverter implements DiagramConverter {
     return dy >= 0 ? { sourceDir: 'Down', targetDir: 'Up' } : { sourceDir: 'Up', targetDir: 'Down' };
   }
 }
+
+

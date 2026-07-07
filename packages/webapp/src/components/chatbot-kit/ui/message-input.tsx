@@ -124,7 +124,14 @@ export function MessageInput({
     if (!items) return
 
     const text = event.clipboardData.getData("text")
-    if (text && text.length > 500 && props.allowAttachments) {
+    // Threshold high enough that a multi-sentence natural-language request (e.g.
+    // "the customer places an order, then the system checks stock, then...", a
+    // typical BPMN/state-machine process description) stays as normal chat text
+    // and goes through intent routing, instead of being silently rerouted into
+    // file-conversion (a different code path with much narrower diagram-type
+    // detection). Still catches genuinely large pastes (JSON dumps, full
+    // PlantUML/CSV files, etc.).
+    if (text && text.length > 3000 && props.allowAttachments) {
       event.preventDefault()
       const blob = new Blob([text], { type: "text/plain" })
       const file = new File([blob], "Pasted text", {
