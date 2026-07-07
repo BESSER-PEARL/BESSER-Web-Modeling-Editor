@@ -55,6 +55,35 @@ export function pointsToSvgPath(points: IPoint[]): string {
   }
   return pathCommands.join(" ")
 }
+
+/**
+ * Render a point sequence as a smooth Catmull-Rom spline (cubic béziers
+ * through every point) instead of straight segments. Used by the Agent
+ * diagram so transitions read as flowing connections — no sharp right
+ * angles — matching the agent flow-card nodes. Falls back to a straight
+ * path for fewer than 3 points.
+ */
+export function pointsToSmoothSvgPath(points: IPoint[]): string {
+  if (points.length < 3) return pointsToSvgPath(points)
+  const p = points
+  const d: string[] = [`M ${Math.round(p[0].x)} ${Math.round(p[0].y)}`]
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[i - 1] ?? p[i]
+    const p1 = p[i]
+    const p2 = p[i + 1]
+    const p3 = p[i + 2] ?? p[i + 1]
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+    d.push(
+      `C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ` +
+        `${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ` +
+        `${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    )
+  }
+  return d.join(" ")
+}
 export function tryFindStraightPath(
   source: {
     position: { x: number; y: number }

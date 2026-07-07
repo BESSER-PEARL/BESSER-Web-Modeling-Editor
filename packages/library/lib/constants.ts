@@ -955,72 +955,18 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
   // tells `Sidebar.tsx` to prepend a divider + heading (same mechanism as
   // the NN palette).
   [UMLDiagramType.AgentDiagram]: [
-    // Per user (2025-05): AgentDiagram palette only carries the initial
-    // state marker. The final-state marker was removed because the
-    // BESSER agent metamodel doesn't have a final-state concept (an
-    // agent loops on user input rather than terminating).
-    {
-      type: "StateInitialNode" as never,
-      width: 45,
-      height: 45,
-      defaultData: { name: "" },
-      svg: StateInitialNodeSVG,
-      sectionLabel: "Flow",
-    },
+    // The initial-state marker node was dropped from the AgentDiagram
+    // palette: "initial" is now a boolean property on an AgentState
+    // (toggled in the inspector), not a separate marker node + init edge.
+    // (The final-state marker was likewise removed — the BESSER agent
+    // metamodel has no final-state concept; an agent loops on user input.)
     {
       type: "AgentState" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
       height: 100,
       defaultData: { name: "AgentState", replyType: "text" },
       svg: AgentStateSVG,
-    },
-
-    {
-      type: "AgentState" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 130,
-      defaultData: {
-        name: "AgentState",
-        replyType: "text",
-        bodies: [
-          {
-            id: "agentstate-template-body-text",
-            name: "Hello world",
-            replyType: "text",
-          },
-        ],
-      },
-      svg: AgentStateSVG,
-    },
-    {
-      // Develop palette parity (`agent-state-preview.ts`
-      // `stateWithBothBodies`): third AgentState preview carrying one
-      // body row plus one fallback row so the dashed fallback divider
-      // is visible straight from the sidebar. Row ids are template
-      // placeholders — `DraggableGhost` re-ids body/fallback rows on
-      // drop (same treatment as class `attributes` / `methods`).
-      type: "AgentState" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 160,
-      defaultData: {
-        name: "AgentState",
-        replyType: "text",
-        bodies: [
-          {
-            id: "agentstate-template-body",
-            name: "Body",
-            replyType: "text",
-          },
-        ],
-        fallbackBodies: [
-          {
-            id: "agentstate-template-fallback-body",
-            name: "Fallback Body",
-            replyType: "text",
-          },
-        ],
-      },
-      svg: AgentStateSVG,
+      sectionLabel: "Flow",
     },
     {
       // Autonomous reasoning-loop state. Develop folded the standalone

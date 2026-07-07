@@ -49,56 +49,53 @@ export const CustomControls = () => {
   }
 
   return (
-    <Controls
-      orientation="horizontal"
-      showInteractive={false}
-      style={{ display: "flex", gap: 4, alignItems: "center" }}
-    >
-      {/* Undo Button */}
+    <Controls orientation="horizontal" showInteractive={false}>
+      {/* Undo / Redo history group (separated from the built-in zoom group) */}
       {undoManagerExist && (
-        <Tooltip title="Undo (Ctrl+Z)">
-          <span>
-            <button
-              className={`control-button ${!canUndo ? "disabled" : ""}`}
-              onClick={handleUndo}
-              disabled={!canUndo}
-            >
-              <UndoIcon
-                width={16}
-                height={16}
-                fill={
-                  canUndo
-                    ? "var(--besser-primary-contrast, #000000)"
-                    : "var(--besser-secondary, #6c757d)"
-                }
-              />
-            </button>
-          </span>
-        </Tooltip>
+        <>
+          <span className="control-divider" aria-hidden="true" />
+          <Tooltip title="Undo (Ctrl+Z)">
+            <span>
+              <button
+                className={`control-button ${!canUndo ? "disabled" : ""}`}
+                onClick={handleUndo}
+                disabled={!canUndo}
+              >
+                <UndoIcon
+                  width={16}
+                  height={16}
+                  fill={
+                    canUndo
+                      ? "var(--besser-primary-contrast, #000000)"
+                      : "var(--besser-secondary, #6c757d)"
+                  }
+                />
+              </button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Redo (Ctrl+Y or Ctrl+Shift+Z)">
+            <span>
+              <button
+                className={`control-button ${!canRedo ? "disabled" : ""}`}
+                onClick={handleRedo}
+                disabled={!canRedo}
+              >
+                <RedoIcon
+                  width={16}
+                  height={16}
+                  fill={
+                    canRedo
+                      ? "var(--besser-primary-contrast, #000000)"
+                      : "var(--besser-secondary, #6c757d)"
+                  }
+                />
+              </button>
+            </span>
+          </Tooltip>
+        </>
       )}
-      {/* Redo Button */}
-      {undoManagerExist && (
-        <Tooltip title="Redo (Ctrl+Y or Ctrl+Shift+Z)">
-          <span>
-            <button
-              className={`control-button ${!canRedo ? "disabled" : ""}`}
-              onClick={handleRedo}
-              disabled={!canRedo}
-            >
-              <RedoIcon
-                width={16}
-                height={16}
-                fill={
-                  canRedo
-                    ? "var(--besser-primary-contrast, #000000)"
-                    : "var(--besser-secondary, #6c757d)"
-                }
-              />
-            </button>
-          </span>
-        </Tooltip>
-      )}
-      {/* Auto-layout Button */}
+      {/* Auto-layout group */}
+      <span className="control-divider" aria-hidden="true" />
       <Tooltip title="Auto-layout diagram">
         <span>
           <button
@@ -118,24 +115,13 @@ export const CustomControls = () => {
           </button>
         </span>
       </Tooltip>
-      <div
-        style={{
-          userSelect: "none",
-          border: "1px solid var(--besser-primary-contrast, #000000)",
-          borderRadius: 8,
-          paddingLeft: 4,
-          paddingRight: 4,
-          cursor: "pointer",
-          display: "flex",
-          height: "100%",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--besser-primary-contrast, #000000)",
-        }}
-        onClick={() => zoomTo(1)}
-      >
-        {zoomLevelPercent}%
-      </div>
+      {/* Zoom-percentage readout — click to reset to 100% */}
+      <span className="control-divider" aria-hidden="true" />
+      <Tooltip title="Reset zoom to 100%">
+        <div className="control-zoom-readout" onClick={() => zoomTo(1)}>
+          {zoomLevelPercent}%
+        </div>
+      </Tooltip>
     </Controls>
   )
 }

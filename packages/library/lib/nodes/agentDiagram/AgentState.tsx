@@ -1,111 +1,40 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { useEffect, useRef } from "react"
+import { Bot, Map, RotateCw } from "lucide-react"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { useDiagramStore } from "@/store/context"
-import { AgentStateBodyRow, AgentStateNodeProps } from "@/types"
-import { LAYOUT } from "@/constants"
-import { getCustomColorsFromData } from "@/utils/layoutUtils"
-import { AGENT_PRIMITIVE_COLORS } from "./agentPrimitiveColors"
+import { AgentStateNodeProps } from "@/types"
+import {
+  AGENT_PRIMITIVE_COLORS,
+  replyTypeIcon,
+} from "./agentPrimitiveColors"
+import {
+  AGENT_CARD_HEADER_HEIGHT,
+  AgentBadge,
+  AgentNodeCard,
+  AgentPill,
+  AgentSectionLabel,
+} from "./AgentNodeCard"
 
 /**
- * `AgentState` renders body sections inline.
+ * `AgentState` — the core agent-flow node, styled as an AI-workflow card
+ * (see `AgentNodeCard`) rather than the flat UML box it used to share with
+ * the Class diagram.
  *
- * v3 source (`agent-state-diagram/agent-state/agent-state-component.tsx`)
- * drew the body rows directly inside the parent `<g>`, like a Class
- * node draws attribute / method rows. originally split bodies into
- * separate React-Flow children connected via `parentId`;
- * undoes that split — bodies live on `data.bodies` and render as inline
- * rows here.
- *
- * Two render modes, keyed on `data.stateType`:
- *  - `'reasoning'` (folded from the former standalone `AgentReasoningState`
- *    node): purple-accent rounded rect, `🧠 «reasoning»` header + bold
- *    name, an accent divider under the fixed 50px header, and the resolved
- *    LLM label (`LLM: <name>` / `LLM: (use default)`). Body rows are not
- *    shown and the auto-grow effect is skipped (fixed height). Mirrors
- *    develop `agent-state-component.tsx` L18-70.
- *  - `'standard'` (default):
- *     - Header (stereotype + name).
- *     - Header divider (when any body row exists).
- *     - Main body rows (entry / do / exit / on).
- *     - Fallback divider (when at least one fallback row exists alongside
- *       main rows; mirrors v3's `hasFallbackBody` check).
- *     - Fallback rows.
+ *  - `'standard'`: indigo card, message-icon `«state»` header, and one
+ *    **reply pill** per `data.bodies[]` row (icon keyed on `replyType`),
+ *    followed by a dashed "fallback" section for `data.fallbackBodies[]`.
+ *  - `'reasoning'`: purple card, brain-icon `«reasoning»` header with the
+ *    resolved LLM as a header badge, and the loop config (step budget,
+ *    planning) as body pills. Fixed height (no row-driven auto-grow).
  */
-const ROW_HEIGHT = 30
-const REASONING_HEADER_HEIGHT = 50
-
-const renderRow = (
-  body: AgentStateBodyRow,
-  index: number,
-  yOffset: number,
-  width: number,
-  textColor: string,
-  isFallback: boolean
-): React.ReactNode => {
-  const isCode = body.replyType === "code"
-  const codeText = body.code ?? body.name ?? ""
-  const labelText = body.name ?? ""
-  const y = yOffset + index * ROW_HEIGHT
-  if (isCode) {
-    return (
-      <foreignObject
-        key={body.id}
-        x={0}
-        y={y}
-        width={width}
-        height={ROW_HEIGHT}
-      >
-        <div
-          style={{
-            fontFamily: "monospace",
-            fontSize: 12,
-            whiteSpace: "pre",
-            color: textColor,
-            padding: "4px 10px",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {codeText}
-        </div>
-      </foreignObject>
-    )
-  }
-  // Use foreignObject for non-code rows too so long reply text clips
-  // with an ellipsis at the node boundary instead of spilling outside
-  // the rounded rectangle (user report 2025-05).
-  return (
-    <foreignObject
-      key={body.id}
-      x={0}
-      y={y}
-      width={width}
-      height={ROW_HEIGHT}
-    >
-      <div
-        style={{
-          fontSize: LAYOUT.NAME_FONT_SIZE - 2,
-          color: textColor,
-          padding: "0 10px",
-          height: ROW_HEIGHT,
-          lineHeight: `${ROW_HEIGHT}px`,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          fontStyle: isFallback ? "italic" : undefined,
-        }}
-        title={labelText}
-      >
-        {labelText}
-      </div>
-    </foreignObject>
-  )
-}
+const PILL_ROW = 30
+const BODY_PAD = 16
+const FALLBACK_SECTION = 22
 
 export function AgentState({
   id,
@@ -119,35 +48,32 @@ export function AgentState({
   const isDiagramModifiable = useDiagramModifiable()
   const setNodes = useDiagramStore((state) => state.setNodes)
 
-  const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const { name, stereotype, italic, underline } = data
-  const cornerRadius = 8
+  const { name, italic, underline } = data
   const isReasoning = data.stateType === "reasoning"
-  const showStereotype = !!stereotype
-  const headerHeight = showStereotype
-    ? LAYOUT.DEFAULT_HEADER_HEIGHT_WITH_STEREOTYPE
-    : LAYOUT.DEFAULT_HEADER_HEIGHT
+  const accent =
+    data.strokeColor ||
+    (isReasoning
+      ? AGENT_PRIMITIVE_COLORS.reasoning.accent
+      : AGENT_PRIMITIVE_COLORS.state.accent)
+  const TypeIcon = isReasoning
+    ? AGENT_PRIMITIVE_COLORS.reasoning.Icon
+    : AGENT_PRIMITIVE_COLORS.state.Icon
+  const surface = data.fillColor || undefined
+  const textColor = data.textColor || undefined
 
-  // v3 parity: main + fallback bodies live in separate arrays on the parent
-  // (replacing the prior `kind: 'fallback'` discriminator on body rows).
   const mainBodies = data.bodies ?? []
   const fallbackBodies = data.fallbackBodies ?? []
   const hasAnyBody = mainBodies.length > 0 || fallbackBodies.length > 0
-  const fallbackDividerY = headerHeight + mainBodies.length * ROW_HEIGHT
   const hasFallbackDivider = fallbackBodies.length > 0 && mainBodies.length > 0
 
-  // Auto-grow node height to fit all body rows. Without this the SVG
-  // viewBox stays at the initial drop height (e.g. 100px) and rows
-  // beyond the third spill outside the parent rectangle — the
-  // user-reported "rows go out of the AgentState" symptom.
-  const requiredHeight =
-    headerHeight +
-    (mainBodies.length + fallbackBodies.length) * ROW_HEIGHT +
-    (hasFallbackDivider ? 12 : 0) +
-    16 // bottom padding
+  const requiredHeight = hasAnyBody
+    ? AGENT_CARD_HEADER_HEIGHT +
+      BODY_PAD +
+      (mainBodies.length + fallbackBodies.length) * PILL_ROW +
+      (hasFallbackDivider ? FALLBACK_SECTION : 0)
+    : AGENT_CARD_HEADER_HEIGHT + 10
+
   useEffect(() => {
-    // Reasoning states use a fixed size (develop `agent-state.ts`
-    // `reasoningStateHeight`), so skip the row-driven auto-grow.
     if (isReasoning) return
     if (!width || !height) return
     if (height < requiredHeight) {
@@ -171,78 +97,50 @@ export function AgentState({
 
   if (!width || !height) return null
 
-  // ── Reasoning-state render (folded AgentReasoningState) ────────────────
+  // ── Reasoning card ─────────────────────────────────────────────────────
   if (isReasoning) {
-    const accent = strokeColor || AGENT_PRIMITIVE_COLORS.reasoning.accent
-    const llmLabel = data.llm_name
-      ? `LLM: ${data.llm_name}`
-      : "LLM: (use default)"
+    const llmLabel = data.llm_name ? data.llm_name : "default"
     return (
       <DefaultNodeWrapper width={width} height={height} elementId={id}>
         <NodeToolbar elementId={id} />
         <NodeResizer
           isVisible={isDiagramModifiable}
           onResize={onResize}
-          minWidth={120}
+          minWidth={160}
           minHeight={80}
           handleStyle={{ width: 8, height: 8 }}
         />
         <div ref={wrapperRef}>
-          <svg
+          <AgentNodeCard
             width={width}
             height={height}
-            viewBox={`0 0 ${width} ${height}`}
-            overflow="visible"
+            accent={accent}
+            icon={<TypeIcon size={15} />}
+            typeLabel="reasoning"
+            name={name}
+            surface={surface}
+            textColor={textColor}
+            italic={italic}
+            underline={underline}
+            initial={data.initial}
+            headerRight={
+              <AgentBadge accent={accent}>
+                <Bot size={11} />
+                {llmLabel}
+              </AgentBadge>
+            }
           >
-            <rect
-              x={0}
-              y={0}
-              width={width}
-              height={height}
-              rx={cornerRadius}
-              ry={cornerRadius}
-              fill={fillColor}
-              stroke={accent}
-              strokeWidth={LAYOUT.LINE_WIDTH}
-            />
-            <text
-              x={width / 2}
-              y={20}
-              textAnchor="middle"
-              fontSize={LAYOUT.STEREOTYPE_LINE_HEIGHT}
-              fontWeight="bold"
-              fill={accent}
-            >
-              {"🧠 «reasoning»"}
-            </text>
-            <text
-              x={width / 2}
-              y={40}
-              textAnchor="middle"
-              fontSize={LAYOUT.NAME_FONT_SIZE}
-              fontWeight="600"
-              fill={textColor}
-            >
-              {name}
-            </text>
-            <line
-              x1={0}
-              x2={width}
-              y1={REASONING_HEADER_HEIGHT}
-              y2={REASONING_HEADER_HEIGHT}
-              stroke={accent}
-              strokeWidth={1}
-            />
-            <text
-              x={width / 2}
-              y={REASONING_HEADER_HEIGHT + 19}
-              textAnchor="middle"
-              fontSize={LAYOUT.NAME_FONT_SIZE - 2}
-              fill={textColor}
-            >
-              {llmLabel}
-            </text>
-          </svg>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              <AgentPill
+                accent={accent}
+                icon={<RotateCw size={12} />}
+                label={`≤ ${data.max_steps ?? 8} steps`}
+              />
+              {data.enable_task_planning !== false ? (
+                <AgentPill accent={accent} icon={<Map size={12} />} label="planning" />
+              ) : null}
+            </div>
+          </AgentNodeCard>
         </div>
         <PopoverManager
           anchorEl={wrapperRef.current}
@@ -253,103 +151,66 @@ export function AgentState({
     )
   }
 
+  // ── Standard state card ────────────────────────────────────────────────
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
       <NodeToolbar elementId={id} />
       <NodeResizer
         isVisible={isDiagramModifiable}
         onResize={onResize}
-        minWidth={120}
+        minWidth={140}
         minHeight={60}
         handleStyle={{ width: 8, height: 8 }}
       />
       <div ref={wrapperRef}>
-        <svg
+        <AgentNodeCard
           width={width}
           height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          overflow="visible"
+          accent={accent}
+          icon={<TypeIcon size={15} />}
+          typeLabel="state"
+          name={name}
+          surface={surface}
+          textColor={textColor}
+          italic={italic}
+          underline={underline}
+          initial={data.initial}
         >
-          <rect
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            rx={cornerRadius}
-            ry={cornerRadius}
-            fill={fillColor}
-            stroke={strokeColor}
-            strokeWidth={LAYOUT.LINE_WIDTH}
-          />
-          {showStereotype ? (
+          {hasAnyBody ? (
             <>
-              <text
-                x={width / 2}
-                y={18}
-                textAnchor="middle"
-                fontSize={LAYOUT.STEREOTYPE_LINE_HEIGHT}
-                fill={textColor}
-              >
-                {`«${stereotype}»`}
-              </text>
-              <text
-                x={width / 2}
-                y={38}
-                textAnchor="middle"
-                fontSize={LAYOUT.NAME_FONT_SIZE}
-                fontStyle={italic ? "italic" : undefined}
-                textDecoration={underline ? "underline" : undefined}
-                fontWeight="600"
-                fill={textColor}
-              >
-                {name}
-              </text>
+              {mainBodies.map((b) => {
+                const isCode = b.replyType === "code"
+                const label = isCode ? b.code ?? b.name ?? "" : b.name ?? ""
+                const RIcon = replyTypeIcon(b.replyType)
+                return (
+                  <AgentPill
+                    key={b.id}
+                    accent={accent}
+                    icon={<RIcon size={12} />}
+                    label={label}
+                  />
+                )
+              })}
+              {hasFallbackDivider ? (
+                <AgentSectionLabel>fallback</AgentSectionLabel>
+              ) : null}
+              {fallbackBodies.map((b) => {
+                const isCode = b.replyType === "code"
+                const label = isCode ? b.code ?? b.name ?? "" : b.name ?? ""
+                const RIcon = replyTypeIcon(b.replyType)
+                return (
+                  <AgentPill
+                    key={b.id}
+                    accent={accent}
+                    icon={<RIcon size={12} />}
+                    label={label}
+                    dashed
+                  />
+                )
+              })}
             </>
-          ) : (
-            <text
-              x={width / 2}
-              y={26}
-              textAnchor="middle"
-              fontSize={LAYOUT.NAME_FONT_SIZE}
-              fontStyle={italic ? "italic" : undefined}
-              textDecoration={underline ? "underline" : undefined}
-              fontWeight="600"
-              fill={textColor}
-            >
-              {name}
-            </text>
-          )}
-          {/* Header divider — drawn whenever any body row exists, like
-              v3's `hasBody` check. */}
-          {hasAnyBody && (
-            <line
-              x1={0}
-              x2={width}
-              y1={headerHeight}
-              y2={headerHeight}
-              stroke={strokeColor}
-              strokeWidth={1}
-            />
-          )}
-          {mainBodies.map((b, i) =>
-            renderRow(b, i, headerHeight, width, textColor, false)
-          )}
-          {hasFallbackDivider && (
-            <line
-              x1={0}
-              x2={width}
-              y1={fallbackDividerY}
-              y2={fallbackDividerY}
-              stroke={strokeColor}
-              strokeWidth={1}
-              strokeDasharray="3 2"
-              opacity={0.6}
-            />
-          )}
-          {fallbackBodies.map((b, i) =>
-            renderRow(b, i, fallbackDividerY, width, textColor, true)
-          )}
-        </svg>
+          ) : undefined}
+        </AgentNodeCard>
       </div>
       <PopoverManager
         anchorEl={wrapperRef.current}

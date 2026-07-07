@@ -239,8 +239,10 @@ describe("Reasoning state + primitives v4 → v3 inverse", () => {
 
   it("v3 → v4 → v3 keeps the reasoning fields intact (minus the folded type/initial)", () => {
     const rs = v3.elements["rs-1"] as Record<string, unknown>
-    // `initial` is no longer a data field on a reasoning state — it is
-    // re-derived from the init edge, so it does not round-trip here.
+    // The initial-state flag is now a `data.initial` property folded from
+    // the legacy `StateInitialNode` marker; this fixture has no marker (and
+    // the bare `initial` field isn't a supported v3 encoding), so there is
+    // nothing to round-trip here — only the reasoning fields are asserted.
     expect(rs.llm_name).toBe("gpt-4o-mini")
     expect(rs.max_steps).toBe(15)
     expect(rs.enable_task_planning).toBe(true)

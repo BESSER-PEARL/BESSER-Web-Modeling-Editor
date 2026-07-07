@@ -5,19 +5,13 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { AgentRagElementNodeProps } from "@/types"
-import { LAYOUT } from "@/constants"
-import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { AGENT_PRIMITIVE_COLORS } from "./agentPrimitiveColors"
+import { AgentBadge, AgentNodeCard, AgentPill } from "./AgentNodeCard"
 
 /**
- * `AgentRagElement`. Cylinder-shaped database element. Mirrors v3
- * source at `agent-state-diagram/agent-rag-element/agent-rag-element-component.tsx`.
- *
- * The standalone RAG element is now name-only — the
- * DB-mode fields (`ragDatabaseName`, `dbCustomName`, `dbSelectionType`,
- * `dbQueryMode`, `dbOperation`, `dbSqlQuery`) were removed from this
- * node's typed shape. Those settings belong to the AgentState
- * `db_reply` reply mode (see `AgentStateEditPanel.tsx`). The cylinder
- * now renders only `data.name`.
+ * `AgentRagElement` — retrieval-augmented knowledge source. Rendered as a
+ * teal `📚 «rag»` flow card with the retrieval depth (`k`) as a header
+ * badge and the resolved LLM as a body pill.
  */
 export function AgentRagElement({
   id,
@@ -30,89 +24,38 @@ export function AgentRagElement({
 
   if (!width || !height) return null
 
-  const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const { name } = data
-
-  // Surface only the node `name`. DB-mode display
-  // (dbCustomName/ragDatabaseName fallback) was removed — those fields
-  // are no longer carried on the standalone RAG cylinder.
-  const display = name
-
-  // v3 cylinder geometry: top/bottom ellipses + sided rectangle.
-  const ellipseHeight = Math.min(height * 0.3, 30)
-  const radiusX = width / 2
-  const radiusY = ellipseHeight / 2
-  const topCenterY = radiusY
-  const bottomCenterY = height - radiusY
-
-  // v3 default fillColor was `#E8F0FF`. Apply whenever the user has not
-  // explicitly chosen a fill colour (the helper falls back to
-  // `var(--besser-background)`, so a literal "white" check never
-  // matched newly-dropped nodes).
-  const cylinderFill = !data.fillColor ? "#E8F0FF" : fillColor
-  const cylinderStroke = strokeColor || "#668"
+  const accent = data.strokeColor || AGENT_PRIMITIVE_COLORS.rag.accent
+  const llmLabel = data.llm_name ? data.llm_name : "default"
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
       <NodeToolbar elementId={id} />
       <NodeResizer
         isVisible={isDiagramModifiable}
-        minWidth={100}
-        minHeight={80}
+        minWidth={130}
+        minHeight={64}
         handleStyle={{ width: 8, height: 8 }}
       />
       <div ref={wrapperRef}>
-        <svg
+        <AgentNodeCard
           width={width}
           height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          overflow="visible"
+          accent={accent}
+          icon={<AGENT_PRIMITIVE_COLORS.rag.Icon size={15} />}
+          typeLabel="rag"
+          name={data.name}
+          surface={data.fillColor || undefined}
+          textColor={data.textColor || undefined}
+          headerRight={<AgentBadge accent={accent}>k = {data.k ?? 4}</AgentBadge>}
         >
-          <rect
-            x={0}
-            y={radiusY}
-            width={width}
-            height={height - ellipseHeight}
-            fill={cylinderFill}
-            stroke={cylinderStroke}
-          />
-          <ellipse
-            cx={radiusX}
-            cy={topCenterY}
-            rx={radiusX}
-            ry={radiusY}
-            fill={cylinderFill}
-            stroke={cylinderStroke}
-          />
-          <ellipse
-            cx={radiusX}
-            cy={bottomCenterY}
-            rx={radiusX}
-            ry={radiusY}
-            fill={cylinderFill}
-            stroke={cylinderStroke}
-          />
-          <text
-            x={width / 2}
-            y={topCenterY + radiusY * 0.6}
-            textAnchor="middle"
-            fontSize={LAYOUT.NAME_FONT_SIZE - 2}
-            fill={textColor}
-            fontWeight="600"
-          >
-            RAG DB
-          </text>
-          <text
-            x={width / 2}
-            y={height - radiusY - 6}
-            textAnchor="middle"
-            fontSize={LAYOUT.NAME_FONT_SIZE}
-            fill={textColor}
-            dominantBaseline="middle"
-          >
-            {display}
-          </text>
-        </svg>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            <AgentPill
+              accent={accent}
+              icon={<AGENT_PRIMITIVE_COLORS.llm.Icon size={12} />}
+              label={llmLabel}
+            />
+          </div>
+        </AgentNodeCard>
       </div>
       <PopoverManager
         anchorEl={wrapperRef.current}

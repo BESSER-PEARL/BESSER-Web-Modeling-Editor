@@ -48,8 +48,9 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     // are folded onto their parent's inline data arrays. Of the 14
     // v3 elements, 3 AgentState body/fallback rows are absorbed by their
     // parent state and 5 AgentIntent child rows are absorbed by their
-    // parent intents — leaving 6 v4 nodes.
-    expect(v4.nodes.length).toBe(6)
+    // parent intents. The `StateInitialNode` marker (init-1) is also folded
+    // away — onto the target state's `data.initial` — leaving 5 v4 nodes.
+    expect(v4.nodes.length).toBe(5)
 
     // AgentState — retains stereotype/replyType + inline bodies.
     const greet = v4.nodes.find((n) => n.id === "as-Greet")!
@@ -114,9 +115,12 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(ragRaw.dbSelectionType).toBe("custom")
     expect(ragRaw.dbQueryMode).toBe("llm_query")
 
-    // Init edge.
-    const initEdge = v4.edges.find((e) => e.id === "init-edge-1")!
-    expect(initEdge.type).toBe("AgentStateTransitionInit")
+    // Initial state — the legacy `StateInitialNode` marker + init edge are
+    // folded onto `data.initial` on the target state; neither survives in v4.
+    expect(v4.nodes.find((n) => n.id === "init-1")).toBeUndefined()
+    expect(v4.edges.find((e) => e.id === "init-edge-1")).toBeUndefined()
+    const greetState = v4.nodes.find((n) => n.id === "as-Greet")!
+    expect((greetState.data as { initial?: boolean }).initial).toBe(true)
 
     // 4 transitions — covering all five legacy shapes.
     const trans = v4.edges.filter((e) => e.type === "AgentStateTransition")

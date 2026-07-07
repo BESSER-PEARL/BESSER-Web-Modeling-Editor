@@ -5,20 +5,16 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { AgentWorkspaceNodeProps } from "@/types"
-import { LAYOUT } from "@/constants"
 import {
   AGENT_PRIMITIVE_COLORS,
   truncatePrimitiveSubtitle,
 } from "./agentPrimitiveColors"
+import { AgentBadge, AgentNodeCard } from "./AgentNodeCard"
 
 /**
- * `AgentWorkspace` — filesystem root the reasoning LLM may browse.
- * Develop source:
- * `agent-state-diagram/agent-workspace/agent-workspace-component.tsx`.
- *
- * Silhouette: folder with a tab rising above the body on the top-left,
- * amber accent, `📁 «workspace»` stereotype, bold name, truncated
- * path (falling back to description) subtitle.
+ * `AgentWorkspace` — filesystem root the reasoning LLM may browse. Rendered
+ * as an amber `📁 «workspace»` flow card with the path as the subtitle and
+ * a read-only / read-write badge in the header.
  */
 export function AgentWorkspace({
   id,
@@ -32,66 +28,48 @@ export function AgentWorkspace({
   if (!width || !height) return null
 
   const accent = data.strokeColor || AGENT_PRIMITIVE_COLORS.workspace.accent
-  const fill = data.fillColor || AGENT_PRIMITIVE_COLORS.workspace.tint
-  const textColor = data.textColor || "var(--besser-primary-contrast, #000)"
   const subtitle = truncatePrimitiveSubtitle(data.path || data.description)
-
-  // Folder: a tab on the top-left rising above the body (develop's
-  // "folder" silhouette).
-  const tabW = Math.min(70, width * 0.45)
-  const tabH = Math.min(16, height * 0.22)
-  const slope = 10
-  const folderPath = `M 0 0 H ${tabW} L ${tabW + slope} ${tabH} H ${width} V ${height} H 0 Z`
+  const writable = data.writable !== false
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
       <NodeToolbar elementId={id} />
       <NodeResizer
         isVisible={isDiagramModifiable}
-        minWidth={120}
-        minHeight={70}
+        minWidth={140}
+        minHeight={64}
         handleStyle={{ width: 8, height: 8 }}
       />
       <div ref={wrapperRef}>
-        <svg
+        <AgentNodeCard
           width={width}
           height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          overflow="visible"
+          accent={accent}
+          icon={<AGENT_PRIMITIVE_COLORS.workspace.Icon size={15} />}
+          typeLabel="workspace"
+          name={data.name}
+          surface={data.fillColor || undefined}
+          textColor={data.textColor || undefined}
+          headerRight={
+            <AgentBadge accent={accent}>{writable ? "rw" : "ro"}</AgentBadge>
+          }
         >
-          <path d={folderPath} fill={fill} stroke={accent} strokeWidth={1.5} />
-          <text
-            x={width / 2}
-            y={tabH + 16}
-            textAnchor="middle"
-            fontSize={LAYOUT.STEREOTYPE_LINE_HEIGHT}
-            fontWeight="bold"
-            fill={accent}
-          >
-            {`${AGENT_PRIMITIVE_COLORS.workspace.icon} «workspace»`}
-          </text>
-          <text
-            x={width / 2}
-            y={tabH + 34}
-            textAnchor="middle"
-            fontSize={LAYOUT.NAME_FONT_SIZE}
-            fontWeight="600"
-            fill={textColor}
-          >
-            {data.name}
-          </text>
           {subtitle ? (
-            <text
-              x={width / 2}
-              y={height - 12}
-              textAnchor="middle"
-              fontSize={LAYOUT.NAME_FONT_SIZE - 2}
-              fill={textColor}
+            <div
+              title={subtitle}
+              style={{
+                fontSize: 12,
+                fontFamily: "monospace",
+                color: "var(--besser-gray-variant, #64748b)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
             >
               {subtitle}
-            </text>
-          ) : null}
-        </svg>
+            </div>
+          ) : undefined}
+        </AgentNodeCard>
       </div>
       <PopoverManager
         anchorEl={wrapperRef.current}

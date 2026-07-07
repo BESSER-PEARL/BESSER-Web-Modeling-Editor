@@ -511,6 +511,13 @@ export type AgentStateNodeProps = StateNodeProps & {
    */
   replyType?: string
   /**
+   * Whether this state is the agent's initial (entry) state. Replaces the
+   * former `StateInitialNode` marker + `AgentStateTransitionInit` edge:
+   * exactly one AgentState per diagram should carry `initial: true`. Folded
+   * from the init edge by the v3→v4 migrator; read/emitted by the converters.
+   */
+  initial?: boolean
+  /**
    * Main-section inline body rows. Folded from v3's child `AgentStateBody`
    * elements. Fallback rows live in `fallbackBodies`
    * below — kept as a separate array (replacing the prior `kind: 'fallback'`

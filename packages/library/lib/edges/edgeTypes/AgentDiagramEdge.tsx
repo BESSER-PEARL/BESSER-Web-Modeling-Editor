@@ -1,4 +1,4 @@
-import { BaseEdge } from "@xyflow/react"
+import { BaseEdge, getBezierPath } from "@xyflow/react"
 import { useRef } from "react"
 import {
   BaseEdgeProps,
@@ -102,15 +102,11 @@ export const AgentDiagramEdge = ({
   const {
     pathRef,
     edgeData,
-    currentPath,
-    overlayPath,
-    midpoints,
     hasInitialCalculation,
     isReconnectingRef,
     markerEnd,
     markerStart,
     strokeDashArray,
-    handlePointerDown,
     handleEndpointPointerDown,
     sourcePoint,
     targetPoint,
@@ -135,6 +131,17 @@ export const AgentDiagramEdge = ({
   })
 
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
+  // Classic React Flow bézier stroke (the native "flow" edge) instead of the
+  // shared UML step routing, so an agent flow reads as smooth connections.
+  // Reconnection endpoints + the label still come from the hook.
+  const [smoothPath] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  })
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
   // Compose the label per the v4 canonical shape.
@@ -176,7 +183,7 @@ export const AgentDiagramEdge = ({
           <BaseEdge
             key={markerKey}
             id={id}
-            path={currentPath}
+            path={smoothPath}
             pointerEvents="none"
             style={{
               stroke: strokeColor,
@@ -192,7 +199,7 @@ export const AgentDiagramEdge = ({
 
           {!isReconnectingRef.current && (
             <EdgeInlineMarkers
-              pathD={currentPath}
+              pathD={smoothPath}
               markerEnd={markerEnd}
               markerStart={markerStart}
               strokeColor={strokeColor}
@@ -202,7 +209,7 @@ export const AgentDiagramEdge = ({
           <path
             ref={pathRef}
             className="edge-overlay"
-            d={overlayPath}
+            d={smoothPath}
             fill="none"
             strokeWidth={EDGES.EDGE_HIGHLIGHT_STROKE_WIDTH}
             pointerEvents="stroke"
@@ -222,23 +229,6 @@ export const AgentDiagramEdge = ({
             onTargetPointerDown={(e) => handleEndpointPointerDown(e, "target")}
           />
 
-          {isDiagramModifiable &&
-            !isReconnectingRef.current &&
-            allowMidpointDragging &&
-            midpoints.map((point, midPointIndex) => (
-              <circle
-                className="edge-circle"
-                pointerEvents="all"
-                key={`${id}-midpoint-${midPointIndex}`}
-                cx={point.x}
-                cy={point.y}
-                r={10}
-                fill="var(--besser-gray-variant, #adb5bd)"
-                stroke="none"
-                style={{ cursor: "grab", zIndex: 9999 }}
-                onPointerDown={(e) => handlePointerDown(e, midPointIndex)}
-              />
-            ))}
         </g>
 
         <EdgeMiddleLabels

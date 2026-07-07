@@ -1510,8 +1510,10 @@ function convertV3NodeDataToV4(
       // type; here we seed `stateType: "reasoning"` + the reasoning
       // fields (develop `agent-state.ts` deserialize defaults: llm_name
       // '', max_steps 8, planning + streaming true, empty prompt /
-      // fallback message) so old saves keep working. `initial` is no
-      // longer a data field — it is re-derived from the init edge.
+      // fallback message) so old saves keep working. The initial-state
+      // flag is folded onto `data.initial` later by
+      // `normalizeAgentInitialState` (from the legacy `StateInitialNode`
+      // marker), so it isn't seeded here.
       const e = element as {
         llm_name?: string
         max_steps?: number
@@ -3809,6 +3811,46 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
     }
   }
 
+  // v4 encodes the initial (entry) state as `data.initial` on the state
+  // itself; v3 encodes it as a `StateInitialNode` marker wired to that
+  // state via an `AgentStateTransitionInit` edge. Re-synthesize the marker
+  // + edge so the v3 wire form stays structurally round-trip equivalent.
+  // Ids are derived from the state id for determinism — the original
+  // marker/edge ids are dropped by the v3→v4 fold, and the round-trip test
+  // compares structure (not raw ids). Only the first flagged state wins,
+  // matching the metamodel's single-initial-state invariant.
+  const initialState = v4.nodes.find(
+    (n) =>
+      n.type === "AgentState" &&
+      (n.data as { initial?: boolean }).initial === true
+  )
+  if (initialState) {
+    const markerId = `${initialState.id}__initial`
+    const initEdgeId = `${initialState.id}__initial-edge`
+    elements[markerId] = {
+      id: markerId,
+      name: "",
+      type: "StateInitialNode",
+      owner: null,
+      bounds: {
+        x: initialState.position.x - 300,
+        y: initialState.position.y + 20,
+        width: 45,
+        height: 45,
+      },
+    }
+    relationships[initEdgeId] = {
+      id: initEdgeId,
+      name: "",
+      type: "AgentStateTransitionInit",
+      owner: null,
+      bounds: { x: 0, y: 0, width: 0, height: 0 },
+      path: [],
+      source: { element: markerId, direction: "Right" },
+      target: { element: initialState.id, direction: "Left" },
+    } as V3UMLRelationship
+  }
+
   return {
     version: "3.0.0",
     type: v4.type,
@@ -4663,6 +4705,7 @@ export function normalizeV4Model(model: UMLModel): UMLModel {
   m = normalizeAgentBodyKindToArrays(m)
   m = normalizeAgentIntentChildren(m)
   m = normalizeAgentReasoningPrimitiveDefaults(m)
+  m = normalizeAgentInitialState(m)
   m = normalizeOCLConstraintNodes(m)
   m = normalizeClassStereotypeCase(m)
   m = normalizeStateBodyNodesInline(m)
@@ -4727,6 +4770,69 @@ function normalizeAgentReasoningPrimitiveDefaults(model: UMLModel): UMLModel {
       `${touched} reasoning-primitive node(s).`
   )
   return { ...model, nodes }
+}
+
+/**
+ * v4 canonicalization: the agent's initial (entry) state is a boolean
+ * property on the state itself (`data.initial`) — NOT a separate
+ * `StateInitialNode` marker wired up with an `AgentStateTransitionInit`
+ * edge. Legacy encodings (v3 saves + pre-property v4 fixtures/templates
+ * such as the Gym Agent) still ship the marker; fold it onto the target
+ * state's `data.initial = true` and drop both the marker node and the
+ * init edge.
+ *
+ * Gated to `AgentDiagram` because `StateInitialNode` is ALSO the
+ * StateMachine diagram's initial pseudostate — stripping it globally
+ * would delete state-machine entry points.
+ *
+ * Idempotent: a clean agent model (property set, no marker/init edge)
+ * has nothing to fold and is returned by reference.
+ */
+function normalizeAgentInitialState(model: UMLModel): UMLModel {
+  if (model.type !== "AgentDiagram") return model
+
+  const markerIds = new Set(
+    model.nodes.filter((n) => n.type === "StateInitialNode").map((n) => n.id)
+  )
+  const initEdges = model.edges.filter(
+    (e) =>
+      e.type === "AgentStateTransitionInit" ||
+      (typeof e.source === "string" && markerIds.has(e.source))
+  )
+  if (markerIds.size === 0 && initEdges.length === 0) return model
+
+  // The state each init edge points at becomes an initial state.
+  const initialStateIds = new Set(
+    initEdges
+      .map((e) => e.target)
+      .filter((t): t is string => typeof t === "string")
+  )
+
+  const nodes = model.nodes
+    // Drop the marker pseudostate nodes.
+    .filter((n) => !markerIds.has(n.id))
+    // Stamp `initial: true` on the state(s) the init edge targeted.
+    .map((n) => {
+      if (!initialStateIds.has(n.id)) return n
+      const data = (n.data ?? {}) as Record<string, unknown>
+      if (data.initial === true) return n
+      return { ...n, data: { ...data, initial: true } } as BesserNode
+    })
+
+  // Drop the init edges plus any edge dangling off a removed marker.
+  const edges = model.edges.filter(
+    (e) =>
+      e.type !== "AgentStateTransitionInit" &&
+      !(typeof e.source === "string" && markerIds.has(e.source)) &&
+      !(typeof e.target === "string" && markerIds.has(e.target))
+  )
+
+  log.warn(
+    `normalizeAgentInitialState: folded ${initEdges.length} init edge(s) ` +
+      `into data.initial and dropped ${markerIds.size} StateInitialNode ` +
+      `marker(s).`
+  )
+  return { ...model, nodes, edges }
 }
 
 /**
