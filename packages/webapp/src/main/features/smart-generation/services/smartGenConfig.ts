@@ -23,6 +23,13 @@ export interface SmartGenConfigCaps {
 
 export interface SmartGenConfig {
   caps: SmartGenConfigCaps;
+  /**
+   * How long (seconds) the backend keeps a finished run's output around
+   * for download AND in-place editing. Drives the incremental
+   * vibe-modify window: a follow-up run can `mode:'modify'` the previous
+   * run only while it's still within this TTL.
+   */
+  download_ttl_seconds: number;
   features: Record<string, boolean>;
   default_models: Record<string, string>;
   supported_providers: string[];
@@ -40,6 +47,8 @@ export const FALLBACK_SMART_GEN_CONFIG: SmartGenConfig = {
     default_max_cost_usd: 1.0,
     default_max_runtime_seconds: 600,
   },
+  // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
+  download_ttl_seconds: 1800,
   features: {},
   default_models: {
     anthropic: 'claude-sonnet-4-6',
@@ -75,6 +84,9 @@ function _normalize(raw: unknown): SmartGenConfig {
       default_max_cost_usd: caps.default_max_cost_usd,
       default_max_runtime_seconds: caps.default_max_runtime_seconds,
     },
+    download_ttl_seconds: _isFiniteNumber(data.download_ttl_seconds)
+      ? data.download_ttl_seconds
+      : FALLBACK_SMART_GEN_CONFIG.download_ttl_seconds,
     features:
       data.features && typeof data.features === 'object'
         ? data.features

@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Code2,
   Download,
+  Github,
   Loader2,
   Sparkles,
   Square,
@@ -227,6 +228,13 @@ export interface ChatMessageProps extends Message {
   showTimeStamp?: boolean
   animation?: Animation
   actions?: React.ReactNode
+  /**
+   * Handler for the SmartGenCard's "Push to GitHub" button. Supplied by the
+   * assistant surface (via MessageList's messageOptions) so the push flow has
+   * access to the current project + GitHub auth. When omitted, the button is
+   * hidden (e.g. contexts without a project).
+   */
+  onPushToGithub?: (runId: string) => void
 }
 
 /* ------------------------------------------------------------------ */
@@ -313,6 +321,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     isStreaming,
     injectionType,
     smartGen,
+    onPushToGithub,
   } = props
   const files = useMemo(() => {
     return experimental_attachments?.map((attachment) => {
@@ -480,6 +489,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
         <SmartGenCard
           smartGen={smartGen}
           isStreaming={isStreaming === true}
+          onPushToGithub={onPushToGithub}
         />
         {showTimeStamp && createdAt ? (
           <time
@@ -692,6 +702,7 @@ function SmartGenCard({
   smartGen,
   isStreaming,
   onStop,
+  onPushToGithub,
 }: {
   smartGen: SmartGenMessageState
   isStreaming: boolean
@@ -704,6 +715,13 @@ function SmartGenCard({
    * any incoming WS message — long before a smart-gen run finishes).
    */
   onStop?: (runId: string) => void
+  /**
+   * Push the finished generation (code + model) to GitHub. Supplied by the
+   * assistant surface so the handler has the current project + GitHub auth.
+   * When omitted the button is hidden. Rendered next to Download and gated on
+   * the same `canRedownload` condition (a finished run with a run id + file).
+   */
+  onPushToGithub?: (runId: string) => void
 }) {
   // Note: costUsd/maxCost exist on the state (the hook still tracks them
   // for the agent outcome report) but are deliberately NOT rendered —
@@ -895,6 +913,16 @@ function SmartGenCard({
                   </button>
                 )
               })()
+            ) : null}
+            {canRedownload && onPushToGithub && runId ? (
+              <button
+                type="button"
+                onClick={() => onPushToGithub(runId)}
+                className="inline-flex items-center gap-1 rounded border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted"
+              >
+                <Github className="h-3 w-3" />
+                Push to GitHub
+              </button>
             ) : null}
             {showStop ? (
               <button

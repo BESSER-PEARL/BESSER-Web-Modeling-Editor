@@ -13,12 +13,14 @@
  */
 
 import {
+  localStorageSmartGenLastRunPrefix,
   sessionStorageSmartGenApiKey,
   sessionStorageSmartGenLlmModel,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
 } from '../../shared/constants/constant';
+import { isValidRunId, type LastRunRecord } from './runModeDecision';
 import type { SmartGenProvider } from './types';
 
 export interface SessionKey {
@@ -166,5 +168,63 @@ export function writeSessionBudget(budget: {
     return true;
   } catch {
     return false;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Per-project last successful run (incremental vibe-modify)           */
+/*                                                                      */
+/*  Unlike the BYOK key/budget above (sessionStorage, tab-lifetime),    */
+/*  the last-run pointer lives in LOCALSTORAGE so a follow-up "add      */
+/*  feature X" can still edit the previous app in place after a reload. */
+/*  It is not a secret — just a run id + timestamp keyed by project.    */
+/* ------------------------------------------------------------------ */
+
+/** True when localStorage is reachable (it's not in some privacy modes). */
+function _hasLocalStorage(): boolean {
+  try {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  } catch {
+    return false;
+  }
+}
+
+const _lastRunKey = (projectId: string): string =>
+  `${localStorageSmartGenLastRunPrefix}${projectId}`;
+
+/**
+ * Read the stored last successful run for a project, or `null` when none
+ * / unusable. Validates the run id (32-hex) and timestamp so a corrupted
+ * or hand-edited entry degrades to "no last run" (a fresh build) rather
+ * than sending a bad `base_run_id`.
+ */
+export function readProjectLastRun(projectId: string): LastRunRecord | null {
+  if (!projectId || !_hasLocalStorage()) return null;
+  try {
+    const raw = window.localStorage.getItem(_lastRunKey(projectId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LastRunRecord> | null;
+    if (!parsed || !isValidRunId(parsed.runId)) return null;
+    const at = typeof parsed.at === 'number' && Number.isFinite(parsed.at) ? parsed.at : 0;
+    return { runId: parsed.runId, at };
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the last successful run for a project. No-op on failure. */
+export function writeProjectLastRun(
+  projectId: string,
+  runId: string,
+  at: number,
+): void {
+  if (!projectId || !isValidRunId(runId) || !_hasLocalStorage()) return;
+  try {
+    window.localStorage.setItem(
+      _lastRunKey(projectId),
+      JSON.stringify({ runId, at }),
+    );
+  } catch {
+    /* ignore */
   }
 }

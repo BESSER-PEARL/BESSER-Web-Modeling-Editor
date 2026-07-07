@@ -4,10 +4,12 @@ import {
   beginRun,
   claimRunSlot,
   closeByokDialog,
+  closePushDialog,
   completeRun,
   consumePendingTrigger,
   isSmartGenRunActive,
   openByokDialog,
+  openPushDialog,
   releaseRunSlot,
   resetRun,
   setApiKeyPresent,
@@ -22,11 +24,13 @@ import type { SmartGeneratorState } from '../smartGeneratorSlice';
 
 const INITIAL: SmartGeneratorState = {
   byokDialogOpen: false,
+  pushDialogRunId: null,
   provider: null,
   apiKeyInStore: false,
   pendingTrigger: null,
   activeRun: null,
   runStatus: 'idle',
+  lastRunByProject: {},
 };
 
 const PENDING = {
@@ -69,6 +73,31 @@ describe('smartGeneratorSlice', () => {
     const next = smartGeneratorReducer(dirty, closeByokDialog());
     expect(next.byokDialogOpen).toBe(false);
     expect(next.pendingTrigger).toEqual(pending);
+  });
+
+  it('openPushDialog stores the target run id and closePushDialog clears it', () => {
+    // The app-level Push-to-GitHub dialog is Redux-driven (like the BYOK
+    // dialog) so it never lives inside — and can't tear down — the drawer.
+    const opened = smartGeneratorReducer(INITIAL, openPushDialog('run-123'));
+    expect(opened.pushDialogRunId).toBe('run-123');
+
+    const closed = smartGeneratorReducer(opened, closePushDialog());
+    expect(closed.pushDialogRunId).toBeNull();
+  });
+
+  it('openPushDialog does not disturb byok / pending-trigger / last-run state', () => {
+    const pending = { action: 'trigger_smart_generator' as const, instructions: 'x' };
+    const dirty: SmartGeneratorState = {
+      ...INITIAL,
+      byokDialogOpen: true,
+      pendingTrigger: pending,
+      lastRunByProject: { p1: { runId: 'r1', at: 42 } },
+    };
+    const next = smartGeneratorReducer(dirty, openPushDialog('run-9'));
+    expect(next.pushDialogRunId).toBe('run-9');
+    expect(next.byokDialogOpen).toBe(true);
+    expect(next.pendingTrigger).toEqual(pending);
+    expect(next.lastRunByProject).toEqual({ p1: { runId: 'r1', at: 42 } });
   });
 
   it('setProvider and setApiKeyPresent persist flags only (no raw key)', () => {

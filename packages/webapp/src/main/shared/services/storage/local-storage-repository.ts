@@ -189,11 +189,25 @@ const persistAgentBaseModels = (entries: AgentBaseModelMap) => {
 export interface DeployLinkedRepo {
   owner: string;
   repo: string;
+  /**
+   * Target branch for the linked repo. Optional so older links (written
+   * before this field existed) round-trip; ``parseDeployLinkedRepo`` backfills
+   * ``'main'`` when it is missing. Used by the smart-gen ``'github'`` push
+   * target so re-pushes go to the same branch.
+   */
+  branch?: string;
 }
+
+/** Default branch assumed when a stored link predates the ``branch`` field. */
+const DEFAULT_LINKED_BRANCH = 'main';
 
 /**
  * Deploy-linked-repo storage uses a per-(project, target) key:
- *   ``besser_deploy_linked_<projectId>_<target>`` -> ``{ owner, repo }`` JSON.
+ *   ``besser_deploy_linked_<projectId>_<target>`` -> ``{ owner, repo, branch? }`` JSON.
+ *
+ * Targets in use: ``'webapp'`` / ``'agent'`` (Render deploys) and ``'github'``
+ * (the Vibe/Smart-generation "Push to GitHub" flow — a distinct token so push
+ * links never collide with Render deploy links).
  *
  * The two legacy fallback keys (``..._chatbot`` and the bare
  * ``besser_deploy_linked_<projectId>``) predate the explicit ``target``
@@ -213,7 +227,15 @@ const parseDeployLinkedRepo = (raw: string | null): DeployLinkedRepo | null => {
   try {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed.owner === 'string' && typeof parsed.repo === 'string') {
-      return { owner: parsed.owner, repo: parsed.repo };
+      return {
+        owner: parsed.owner,
+        repo: parsed.repo,
+        // Back-compat: links written before the ``branch`` field default to 'main'.
+        branch:
+          typeof parsed.branch === 'string' && parsed.branch
+            ? parsed.branch
+            : DEFAULT_LINKED_BRANCH,
+      };
     }
     return null;
   } catch {

@@ -102,6 +102,37 @@ export const sessionStorageAssistantProvider = localStoragePrefix + 'assistant_p
 // backend default for this provider".
 export const sessionStorageAssistantModel = localStoragePrefix + 'assistant_model';
 
+// "Describe your app" (vibe) hand-off key.
+// The Project Hub's Describe flow stashes the user's plain-language prompt here,
+// then closes and hands off to the assistant. The assistant consumes-and-clears
+// it exactly once — after it has mounted AND its WebSocket is connected — and
+// auto-submits it so the agent starts building immediately. Session-scoped so it
+// never survives a tab close; the one-shot consume guards against replaying a
+// stale prompt.
+export const sessionStoragePendingAssistantPrompt = localStoragePrefix + 'pending_assistant_prompt';
+
+// Smart Generator — per-project last successful run id (incremental vibe-modify).
+// When a vibe-generation run finishes, its run_id is stashed here keyed by
+// project so a follow-up "add feature X" can send `mode:'modify'` +
+// `base_run_id` and edit the existing app in place instead of rebuilding —
+// as long as the run is still within the backend's download TTL. Stored in
+// localStorage (not sessionStorage) so it survives a reload. Suffix: `<projectId>`.
+export const localStorageSmartGenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
+
+// Smart-generation "Push to GitHub" connect-first intent.
+// When the user clicks "Push to GitHub" on a finished vibe-generation card but
+// isn't signed in yet, we stash ``{ runId, projectId }`` here and kick off the
+// GitHub OAuth redirect. After the redirect back, the push hook consumes this
+// (once, for the matching project) and reopens the push dialog for that run.
+export const sessionStorageSmartGenPushIntent = localStoragePrefix + 'smart_gen_push_intent';
+
+// "Continue from GitHub" connect-first intent.
+// When the user picks "Continue from GitHub" in the Project Hub but isn't signed
+// in yet, we stash this flag and kick off the GitHub OAuth redirect. After the
+// redirect back, the Project Hub bootstrap keeps the hub open and the hub jumps
+// straight to the GitHub repo picker (consuming-and-clearing this flag once).
+export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'continue_from_github_intent';
+
 // Smart Generator backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/smart-generate`;
 export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/smart-gen/config`;

@@ -273,8 +273,14 @@ describe('SmartGenByokDialog — model selector', () => {
 });
 
 describe('SmartGenByokDialog — budget controls', () => {
+  // The budget fields live behind a collapsed "Cost and runtime limits"
+  // disclosure — expand it so the inputs are mounted before we query them.
+  const expandBudgetControls = () =>
+    fireEvent.click(screen.getByRole('button', { name: /cost and runtime limits/i }));
+
   it('prefills the budget inputs from the config defaults', async () => {
     renderDialog(true);
+    expandBudgetControls();
     const costInput = document.getElementById('smart-gen-max-cost') as HTMLInputElement;
     const runtimeInput = document.getElementById('smart-gen-max-runtime') as HTMLInputElement;
     expect(costInput).toBeTruthy();
@@ -290,6 +296,7 @@ describe('SmartGenByokDialog — budget controls', () => {
     window.sessionStorage.setItem(sessionStorageSmartGenMaxCostUsd, '1.5');
     window.sessionStorage.setItem(sessionStorageSmartGenMaxRuntimeSeconds, '300');
     renderDialog(true);
+    expandBudgetControls();
     const costInput = document.getElementById('smart-gen-max-cost') as HTMLInputElement;
     const runtimeInput = document.getElementById('smart-gen-max-runtime') as HTMLInputElement;
     await waitFor(() => {
@@ -300,6 +307,7 @@ describe('SmartGenByokDialog — budget controls', () => {
 
   it('persists the budget on save (runtime converted minutes → seconds)', async () => {
     renderDialog(true);
+    expandBudgetControls();
     await waitFor(() => {
       expect((document.getElementById('smart-gen-max-cost') as HTMLInputElement).value).toBe('1');
     });
@@ -321,6 +329,7 @@ describe('SmartGenByokDialog — budget controls', () => {
 
   it('clamps the budget to the config hard caps on save', async () => {
     renderDialog(true);
+    expandBudgetControls();
     await waitFor(() => {
       expect((document.getElementById('smart-gen-max-cost') as HTMLInputElement).value).toBe('1');
     });
@@ -343,6 +352,7 @@ describe('SmartGenByokDialog — budget controls', () => {
 
   it('falls back to the defaults when the inputs are emptied', async () => {
     renderDialog(true);
+    expandBudgetControls();
     await waitFor(() => {
       expect((document.getElementById('smart-gen-max-cost') as HTMLInputElement).value).toBe('1');
     });

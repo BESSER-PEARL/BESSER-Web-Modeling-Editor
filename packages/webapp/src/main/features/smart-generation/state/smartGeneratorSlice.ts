@@ -37,6 +37,15 @@ export interface SmartGenActiveRun {
 
 export interface SmartGeneratorState {
   byokDialogOpen: boolean;
+  /**
+   * Run id whose "Push to GitHub" dialog is currently open, or ``null`` when
+   * the dialog is closed. Like ``byokDialogOpen``, this drives an APP-LEVEL
+   * dialog (mounted a sibling of the assistant drawer, not inside it) so
+   * opening/closing the push dialog never touches the drawer's own lifecycle —
+   * pressing Escape to dismiss the push dialog no longer closes the drawer and
+   * loses the chat.
+   */
+  pushDialogRunId: string | null;
   provider: SmartGenProvider | null;
   apiKeyInStore: boolean;
   pendingTrigger: TriggerSmartGeneratorPayload | null;
@@ -49,6 +58,14 @@ export interface SmartGeneratorState {
    * and claim the run slot synchronously via `tryClaimRunSlot`.
    */
   runStatus: SmartGenRunStatus;
+  /**
+   * Per-project record of the most recent SUCCESSFUL run, keyed by
+   * project id. Drives incremental vibe-modify: a follow-up run reuses
+   * the recorded `runId` as `base_run_id` while it's still fresh. Mirrored
+   * to localStorage (see `localStorageSmartGenLastRunPrefix`) so it also
+   * survives a reload; this in-memory copy is the same-session fast path.
+   */
+  lastRunByProject: Record<string, { runId: string; at: number }>;
 }
 
 const EMPTY_RUN: SmartGenActiveRun = {
@@ -65,11 +82,13 @@ const EMPTY_RUN: SmartGenActiveRun = {
 
 const initialState: SmartGeneratorState = {
   byokDialogOpen: false,
+  pushDialogRunId: null,
   provider: null,
   apiKeyInStore: false,
   pendingTrigger: null,
   activeRun: null,
   runStatus: 'idle',
+  lastRunByProject: {},
 };
 
 /** Error codes that are non-terminal warnings — the stream continues. */
@@ -94,6 +113,18 @@ const smartGeneratorSlice = createSlice({
       // resume effect in useSmartGenTrigger can fire after the user saves
       // their key. Cancel paths must dispatch clearPendingTrigger explicitly.
       state.byokDialogOpen = false;
+    },
+    /**
+     * Open the app-level "Push to GitHub" dialog for a finished run. Stores
+     * the run id so the single app-level dialog instance knows what to push;
+     * the connect-first / linked-repo logic lives in useSmartGenGithubPush.
+     */
+    openPushDialog(state, action: PayloadAction<string>) {
+      state.pushDialogRunId = action.payload;
+    },
+    /** Close the app-level "Push to GitHub" dialog. */
+    closePushDialog(state) {
+      state.pushDialogRunId = null;
     },
     setProvider(state, action: PayloadAction<SmartGenProvider | null>) {
       state.provider = action.payload;
@@ -175,12 +206,27 @@ const smartGeneratorSlice = createSlice({
       state.runStatus = 'idle';
       state.activeRun = null;
     },
+    /**
+     * Record the most recent successful run for a project (incremental
+     * vibe-modify). Dispatched from `useSmartGenTrigger`'s `done` handler
+     * alongside the localStorage mirror. Ignores empty ids defensively.
+     */
+    setLastRunForProject(
+      state,
+      action: PayloadAction<{ projectId: string; runId: string; at: number }>,
+    ) {
+      const { projectId, runId, at } = action.payload;
+      if (!projectId || !runId) return;
+      state.lastRunByProject[projectId] = { runId, at };
+    },
   },
 });
 
 export const {
   openByokDialog,
   closeByokDialog,
+  openPushDialog,
+  closePushDialog,
   setProvider,
   setApiKeyPresent,
   clearPendingTrigger,
@@ -192,6 +238,7 @@ export const {
   completeRun,
   setRunError,
   resetRun,
+  setLastRunForProject,
 } = smartGeneratorSlice.actions;
 
 export const smartGeneratorReducer = smartGeneratorSlice.reducer;

@@ -10,6 +10,7 @@ import { SMART_GEN_ENDPOINT } from '../../../shared/constants/constant';
 import { streamSse } from '../../../shared/services/sse/sseClient';
 import type {
   SmartGenEvent,
+  SmartGenMode,
   SmartGenProvider,
 } from '../types';
 
@@ -22,6 +23,14 @@ export interface StartSmartGenRunParams {
   llmModel?: string;
   maxCostUsd?: number;
   maxRuntimeSeconds?: number;
+  /**
+   * Incremental vibe-modify: when `mode === 'modify'`, the backend edits
+   * the app produced by `baseRunId` in place instead of rebuilding.
+   * `baseRunId` is a 32-hex run id from a previous successful run.
+   * Serialised as `base_run_id` / `mode` to match the backend contract.
+   */
+  baseRunId?: string;
+  mode?: SmartGenMode;
 }
 
 export interface SmartGenRunHandle {
@@ -57,6 +66,11 @@ export function startSmartGenRun(
   if (typeof params.maxRuntimeSeconds === 'number') {
     body.max_runtime_seconds = params.maxRuntimeSeconds;
   }
+  // Incremental vibe-modify — serialise as the backend's snake_case fields.
+  // `mode` defaults to 'generate' server-side, so only send it when set;
+  // `base_run_id` only travels with a 'modify' run.
+  if (params.mode) body.mode = params.mode;
+  if (params.baseRunId) body.base_run_id = params.baseRunId;
 
   const events = streamSse<SmartGenEvent>(SMART_GEN_ENDPOINT, body, {
     signal: controller.signal,

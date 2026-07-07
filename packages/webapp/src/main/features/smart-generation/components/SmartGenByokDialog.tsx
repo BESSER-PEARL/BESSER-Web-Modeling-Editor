@@ -14,6 +14,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -233,6 +234,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
   // parsed + clamped on save. Runtime is edited in MINUTES, stored in seconds.
   const [maxCostInput, setMaxCostInput] = useState<string>('');
   const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>('');
+  const [showBudgetLimits, setShowBudgetLimits] = useState<boolean>(false);
 
   useEffect(() => {
     if (open) {
@@ -546,45 +548,65 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({ onKeySav
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="smart-gen-max-cost">Max cost (USD)</Label>
-              <Input
-                id="smart-gen-max-cost"
-                type="number"
-                inputMode="decimal"
-                min={0.01}
-                step={0.1}
-                max={config.caps.max_cost_usd_hard_cap}
-                value={maxCostInput}
-                onChange={(e) => {
-                  setMaxCostInput(e.target.value);
-                  setSaveError(null);
-                }}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowBudgetLimits((v) => !v)}
+              aria-expanded={showBudgetLimits}
+              className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform ${
+                  showBudgetLimits ? 'rotate-180' : ''
+                }`}
+                aria-hidden="true"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="smart-gen-max-runtime">Max runtime (min)</Label>
-              <Input
-                id="smart-gen-max-runtime"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                step={1}
-                max={Math.ceil(config.caps.max_runtime_seconds_hard_cap / 60)}
-                value={maxRuntimeMinInput}
-                onChange={(e) => {
-                  setMaxRuntimeMinInput(e.target.value);
-                  setSaveError(null);
-                }}
-              />
-            </div>
+              Cost and runtime limits
+            </button>
+            {showBudgetLimits && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="smart-gen-max-cost">Max cost (USD)</Label>
+                    <Input
+                      id="smart-gen-max-cost"
+                      type="number"
+                      inputMode="decimal"
+                      min={0.01}
+                      step={0.1}
+                      max={config.caps.max_cost_usd_hard_cap}
+                      value={maxCostInput}
+                      onChange={(e) => {
+                        setMaxCostInput(e.target.value);
+                        setSaveError(null);
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="smart-gen-max-runtime">Max runtime (min)</Label>
+                    <Input
+                      id="smart-gen-max-runtime"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      step={1}
+                      max={Math.ceil(config.caps.max_runtime_seconds_hard_cap / 60)}
+                      value={maxRuntimeMinInput}
+                      onChange={(e) => {
+                        setMaxRuntimeMinInput(e.target.value);
+                        setSaveError(null);
+                      }}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  The run stops automatically when either budget is reached
+                  (server caps: ${_formatBudgetNumber(config.caps.max_cost_usd_hard_cap)} /{' '}
+                  {_formatBudgetNumber(config.caps.max_runtime_seconds_hard_cap / 60)} min).
+                </p>
+              </div>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            The run stops automatically when either budget is reached
-            (server caps: ${_formatBudgetNumber(config.caps.max_cost_usd_hard_cap)} /{' '}
-            {_formatBudgetNumber(config.caps.max_runtime_seconds_hard_cap / 60)} min).
-          </p>
 
           {apiKeyPresent && (
             <button

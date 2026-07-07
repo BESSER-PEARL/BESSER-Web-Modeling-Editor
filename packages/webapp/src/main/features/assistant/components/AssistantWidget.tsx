@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
-import { openByokDialog } from '../../smart-generation/state/smartGeneratorSlice';
+import { openByokDialog, openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
@@ -321,8 +321,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
               showTimeStamps={false}
               messageOptions={(message: ChatKitMessage) => {
                 const meta = messageMeta[message.id];
-                if (!meta?.badge) return {};
+                // onPushToGithub is always threaded so SmartGenCards can push;
+                // the badge action is added only when the message has one.
+                // Opening the push dialog is a pure dispatch — it's mounted
+                // app-level (SmartGenPushDialogHost) and Redux-driven.
+                const base = { onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) };
+                if (!meta?.badge) return base;
                 return {
+                  ...base,
                   actions: (
                     <MessageBadge badge={meta.badge} label={meta.badgeLabel} />
                   ),
@@ -459,6 +465,9 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
       {/* ── Bring-your-own-key dialog ── */}
       <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
+
+      {/* Push-to-GitHub dialog is mounted app-level (SmartGenPushDialogHost) and
+          opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}
     </>
   );
 };

@@ -8,6 +8,14 @@
 
 export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral';
 
+/**
+ * Run mode sent to `POST /besser_api/smart-generate`.
+ *   - `generate` (default): build the app from scratch.
+ *   - `modify`: edit an existing run's output in place (incremental
+ *     vibe-modify), identified by a companion `base_run_id`.
+ */
+export type SmartGenMode = 'generate' | 'modify';
+
 export type SmartGenPhase =
   | 'select'
   | 'generate'
@@ -134,4 +142,14 @@ export interface TriggerSmartGeneratorPayload {
   provider?: SmartGenProvider;
   llmModel?: string;
   message?: string;
+  /**
+   * Incremental vibe-modify overrides. Normally the frontend decides
+   * automatically (see ``useSmartGenTrigger`` / ``decideRunMode``): a
+   * follow-up run reuses the previous successful run's output while it's
+   * still fresh. The agent MAY force the decision by setting these — e.g.
+   * ``mode:'modify'`` with an explicit ``baseRunId`` — otherwise they stay
+   * absent and the automatic heuristic drives the choice.
+   */
+  mode?: SmartGenMode;
+  baseRunId?: string;
 }

@@ -21,7 +21,8 @@ import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
 import { useAppDispatch } from '../../../app/store/hooks';
-import { openByokDialog } from '../../smart-generation/state/smartGeneratorSlice';
+import { openByokDialog, openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
+import { sessionStoragePendingAssistantPrompt } from '../../../shared/constants/constant';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -185,6 +186,80 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     onGenerate: onTriggerGenerator,
   });
 
+  /* ---- "Describe your app" hand-off ----
+   * The Project Hub's Describe flow stashes a plain-language prompt in
+   * sessionStorage (`besser_pending_assistant_prompt`) and fires
+   * `wme:assistant-run-prompt`. We open THIS drawer and, once the shared
+   * WebSocket is connected, consume-and-clear the prompt exactly once and
+   * auto-submit it via handleSubmit so the agent starts building immediately.
+   *
+   * Two feeds drive one one-shot: the live event covers the common case (this
+   * drawer is already mounted when the dialog fires), while the sessionStorage
+   * stash is the fallback for a too-early event (e.g. this lazy chunk was still
+   * loading). `promptConsumedRef` guards against double-submits, and the stash
+   * key is cleared the instant we read it, so a re-render or the sibling widget
+   * surface can never replay it. */
+  const pendingPromptRef = useRef<string | null>(null);
+  const promptConsumedRef = useRef(false);
+  const [hasPendingPrompt, setHasPendingPrompt] = useState(false);
+
+  // Register the trigger listener + do a mount-time stash check. Runs once.
+  useEffect(() => {
+    const armPrompt = (raw: string) => {
+      const prompt = raw.trim();
+      if (!prompt || promptConsumedRef.current || pendingPromptRef.current) return;
+      pendingPromptRef.current = prompt;
+      setHasPendingPrompt(true);
+      // Make the drawer visible so we never submit into a hidden panel. The
+      // parent's onOpenChange also hides the floating widget so only one
+      // assistant surface shows.
+      onOpenChange(true);
+    };
+
+    const readStash = (): string => {
+      try {
+        return sessionStorage.getItem(sessionStoragePendingAssistantPrompt) ?? '';
+      } catch {
+        return '';
+      }
+    };
+
+    // Fallback: a prompt stashed before this listener existed.
+    const stashed = readStash();
+    if (stashed) armPrompt(stashed);
+
+    const onRunPrompt = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { prompt?: string } | undefined;
+      // Prefer the event payload; fall back to the stash if it carried none.
+      armPrompt(typeof detail?.prompt === 'string' && detail.prompt ? detail.prompt : readStash());
+    };
+
+    window.addEventListener('wme:assistant-run-prompt', onRunPrompt);
+    return () => window.removeEventListener('wme:assistant-run-prompt', onRunPrompt);
+    // Intentionally run once — onOpenChange is only used to open the panel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Consume-and-submit once the panel is open AND the socket is connected.
+  useEffect(() => {
+    if (!hasPendingPrompt || promptConsumedRef.current) return;
+    if (!open || connectionStatus !== 'connected') return;
+    const prompt = pendingPromptRef.current;
+    if (!prompt) return;
+
+    // Consume: flip the guard and clear the stash BEFORE submitting so nothing
+    // can replay it (double render, sibling surface, remount).
+    promptConsumedRef.current = true;
+    pendingPromptRef.current = null;
+    setHasPendingPrompt(false);
+    try {
+      sessionStorage.removeItem(sessionStoragePendingAssistantPrompt);
+    } catch {
+      // Ignore storage failures — the in-memory guard already prevents replay.
+    }
+    void handleSubmit(undefined, { overrideText: prompt });
+  }, [hasPendingPrompt, open, connectionStatus, handleSubmit]);
+
   /* ---- Quick action handler ---- */
 
   // A "view/modify the GUI" chip switches to the GUI tab instead of relaying a
@@ -251,7 +326,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   useEffect(() => {
     if (!open) return;
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onOpenChange(false);
+      if (event.key !== 'Escape') return;
+      // A modal dialog (BYOK / Push-to-GitHub) mounted on top owns Escape —
+      // let Radix dismiss it and don't collapse the drawer (which would lose
+      // the chat). The drawer itself is a custom <section> bottom-sheet, not a
+      // [role="dialog"], so this only skips for the Radix dialogs above it.
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      onOpenChange(false);
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
@@ -659,7 +740,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="relative min-h-0 flex-1">
                 <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                   <div className="mx-auto w-full max-w-4xl">
-                    <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
+                    <MessageList
+                      messages={messages}
+                      isTyping={isGenerating}
+                      showTimeStamps={false}
+                      // Opening the push dialog is a pure dispatch — the dialog
+                      // is mounted app-level (SmartGenPushDialogHost) and driven
+                      // by Redux, so it never touches this drawer's lifecycle.
+                      messageOptions={() => ({ onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) })}
+                    />
 
                     {/* Progress indicator — evolving step list so long
                         operations (diagram + codegen) visibly show motion.
@@ -797,6 +886,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
       {/* ── Bring-your-own-key dialog ── */}
       <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
+
+      {/* Push-to-GitHub dialog is mounted app-level (SmartGenPushDialogHost) and
+          opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}
     </>
   );
 };

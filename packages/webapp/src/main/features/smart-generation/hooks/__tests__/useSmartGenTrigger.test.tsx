@@ -71,6 +71,18 @@ const _mockController: {
   throwOnStart: null,
 };
 
+// Mock the smart-gen config so the modify-vs-fresh decision in startRun
+// resolves synchronously to the fallback (download_ttl_seconds) WITHOUT
+// hitting `fetch` — the "nothing written to disk" assertions below count
+// every fetch call, and the config lookup is unrelated to the download.
+vi.mock('../../services/smartGenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../services/smartGenConfig')>();
+  return {
+    ...mod,
+    getSmartGenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
+  };
+});
+
 vi.mock('../../services/smartGenerationSseClient', () => ({
   startSmartGenRun: vi.fn((_params) => {
     if (_mockController.throwOnStart) throw _mockController.throwOnStart;

@@ -5,7 +5,9 @@ import {
   CalendarDays,
   FileSpreadsheet,
   FolderOpen,
+  Github,
   Layers3,
+  Loader2,
   Plus,
   Sparkles,
   Trash2,
@@ -26,18 +28,62 @@ import { useProject } from '../../app/hooks/useProject';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { importProject } from '../../shared/services/project-import/projectImport';
+import { importProject, importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import {
+  BACKEND_URL,
+  sessionStorageContinueFromGithubIntent,
+  sessionStoragePendingAssistantPrompt,
+} from '../../shared/constants/constant';
 import { useImportDiagramToProject } from '../import/useImportDiagram';
+import { apiClient, ApiError } from '../../shared/api/api-client';
+import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+import { useAppDispatch } from '../../app/store/hooks';
+import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
+import { useGitHubStorage, type GitHubRepository } from '../github/hooks/useGitHubStorage';
+import { writeProjectLastRun } from '../smart-generation/storage';
+import { setLastRunForProject } from '../smart-generation/state/smartGeneratorSlice';
 
 interface ProjectHubDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type ProjectHubStep = 'start' | 'create' | 'import' | 'spreadsheet' | 'open';
+type ProjectHubStep = 'start' | 'describe' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
+
+/** Deploy-link target token for the GitHub push (shared with the Vibe push flow). */
+const GITHUB_TARGET = 'github';
+const GITHUB_DEFAULT_BRANCH = 'main';
+
+/**
+ * Response of ``POST /import-github-run``. ``project`` is a re-importable V2
+ * project export envelope (same shape as ``buml/diagrams.json``); ``has_model``
+ * is false when the repo carries no BESSER model.
+ */
+interface ImportGitHubRunResponse {
+  run_id: string;
+  project: unknown;
+  has_model: boolean;
+  owner: string;
+  repo: string;
+  branch: string;
+}
+
+// Plain, non-technical example prompts for the "Describe your app" hero flow.
+// Kept LOCAL to this file on purpose: feature isolation forbids importing the
+// assistant feature's own starter-prompt list, and these are deliberately
+// simpler/friendlier than the in-assistant examples.
+const DESCRIBE_EXAMPLES = [
+  'Build a library app to track books and loans',
+  'Make a restaurant ordering app with menus and tables',
+  'Create a bike-route app for Luxembourg with a map and reviews',
+  'Build an online shop for products, customers, and orders',
+];
+
+// Default name for a project bootstrapped from the "Describe your app" flow —
+// the user shouldn't be forced through the naming form for the vibe path.
+const DESCRIBE_DEFAULT_PROJECT_NAME = 'My App';
 
 const defaultForm = {
   name: 'New_Project',
@@ -75,6 +121,7 @@ const readableFileSize = (bytes: number): string => {
 export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange }) => {
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
+  const [describePrompt, setDescribePrompt] = useState('');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
@@ -84,6 +131,22 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const [isDragging, setIsDragging] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const spreadsheetFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ── "Continue from GitHub" picker state ──────────────────────────────
+  const [githubRepoFullName, setGithubRepoFullName] = useState('');
+  const [githubBranches, setGithubBranches] = useState<string[]>([]);
+  const [githubBranch, setGithubBranch] = useState('');
+  const [githubLoadingBranches, setGithubLoadingBranches] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
+
+  const dispatch = useAppDispatch();
+  const { isAuthenticated: isGithubAuthenticated, githubSession, login: githubLogin } = useGitHubAuth();
+  const {
+    repositories: githubRepositories,
+    isLoading: githubReposLoading,
+    fetchRepositories: fetchGithubRepositories,
+    fetchBranches: fetchGithubBranches,
+  } = useGitHubStorage();
 
   const { currentProject, createProject, loadProject, deleteProject } = useProject();
   const importDiagramToProject = useImportDiagramToProject();
@@ -118,17 +181,67 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     refreshProjects();
     setStep('start');
+    setDescribePrompt('');
     setForm(defaultForm);
     setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetForm(defaultForm);
     setSpreadsheetPerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetFiles([]);
+    setGithubRepoFullName('');
+    setGithubBranches([]);
+    setGithubBranch('');
+    setGithubLoadingBranches(false);
+    setGithubError(null);
     createValidation.resetTouched();
     spreadsheetValidation.resetTouched();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, refreshProjects]);
 
+  // Resume "Continue from GitHub" after the OAuth redirect: once the hub is
+  // open AND we're authenticated, consume-and-clear the stashed intent and jump
+  // straight to the repo picker. Declared AFTER the open-reset effect above so
+  // it wins the ``step`` write when both fire on the same ``open`` transition;
+  // when auth resolves asynchronously it re-runs on ``isGithubAuthenticated``.
+  useEffect(() => {
+    if (!open || !isGithubAuthenticated) {
+      return;
+    }
+    let hasIntent = false;
+    try {
+      hasIntent = sessionStorage.getItem(sessionStorageContinueFromGithubIntent) !== null;
+    } catch {
+      hasIntent = false;
+    }
+    if (!hasIntent) {
+      return;
+    }
+    try {
+      sessionStorage.removeItem(sessionStorageContinueFromGithubIntent);
+    } catch {
+      /* ignore */
+    }
+    setStep('github');
+  }, [open, isGithubAuthenticated]);
+
+  // Lazy-load the user's repositories when the GitHub step opens.
+  useEffect(() => {
+    if (step !== 'github' || !isGithubAuthenticated || !githubSession) {
+      return;
+    }
+    if (githubRepositories.length > 0 || githubReposLoading) {
+      return;
+    }
+    void fetchGithubRepositories(githubSession);
+  }, [step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
+
   const currentStepInfo = useMemo(() => {
+    if (step === 'describe') {
+      return {
+        title: 'Describe Your App',
+        description: "Tell me your idea in plain words — I'll build the data, the screens, and the code.",
+        badge: 'Step 2 of 2',
+      };
+    }
     if (step === 'create') {
       return {
         title: 'Create A Project',
@@ -154,6 +267,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       return {
         title: 'Open Existing Project',
         description: 'Pick any saved project and re-enter your workspace instantly.',
+        badge: 'Step 2 of 2',
+      };
+    }
+    if (step === 'github') {
+      return {
+        title: 'Continue From GitHub',
+        description: 'Pick a repository BESSER created — its model loads and the next Vibe run edits its code.',
         badge: 'Step 2 of 2',
       };
     }
@@ -194,6 +314,47 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       toast.success(`Project "${name}" created.`);
     } catch (error) {
       toast.error(`Could not create project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const handleStartBuilding = async () => {
+    const prompt = describePrompt.trim();
+    if (!prompt) {
+      return;
+    }
+
+    try {
+      setIsBusy(true);
+      // (a) Bootstrap a blank project via the SAME path handleCreateProject
+      // uses — createProject() with the default perspective. We don't force the
+      // user through the naming form; a sensible default name is applied.
+      await createProject(
+        normalizeProjectName(DESCRIBE_DEFAULT_PROJECT_NAME),
+        defaultForm.description,
+        defaultForm.owner,
+        resolvePerspectives(DEFAULT_PERSPECTIVE_KEY),
+      );
+      refreshProjects();
+
+      // (c) Hand the typed prompt to the AI assistant. Stash it FIRST so the
+      // assistant can consume-and-clear it once it has mounted and its
+      // WebSocket is connected; the CustomEvent then nudges an already-mounted
+      // assistant to react immediately. The stash is the fallback path for the
+      // (rare) case where the event fires before the listener is registered.
+      try {
+        sessionStorage.setItem(sessionStoragePendingAssistantPrompt, prompt);
+      } catch {
+        // sessionStorage can throw (private mode / quota). The CustomEvent path
+        // still delivers the prompt to an already-mounted assistant.
+      }
+
+      // (b) Close the dialog, then (c cont.) fire the hand-off event.
+      handleDialogOpenChange(false);
+      window.dispatchEvent(new CustomEvent('wme:assistant-run-prompt', { detail: { prompt } }));
+    } catch (error) {
+      toast.error(`Could not start building: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsBusy(false);
     }
@@ -351,6 +512,121 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
   };
 
+  // Enter the "Continue from GitHub" step, connecting first when needed. Mirrors
+  // the connect-first pattern in useSmartGenGithubPush: stash the intent, kick
+  // off OAuth, and let the hub reopen on the repo picker once we're back.
+  const handleOpenGithubStep = () => {
+    setGithubError(null);
+    if (!isGithubAuthenticated) {
+      try {
+        sessionStorage.setItem(sessionStorageContinueFromGithubIntent, '1');
+      } catch {
+        /* sessionStorage may be unavailable — login still proceeds. */
+      }
+      toast.info('Connect GitHub to continue from one of your repositories.');
+      githubLogin();
+      return;
+    }
+    setStep('github');
+  };
+
+  const handleSelectGithubRepo = async (fullName: string) => {
+    setGithubRepoFullName(fullName);
+    setGithubBranches([]);
+    setGithubBranch('');
+    setGithubError(null);
+    const repo = githubRepositories.find((r) => r.full_name === fullName);
+    if (!repo || !githubSession) {
+      return;
+    }
+    const [owner] = repo.full_name.split('/');
+    setGithubLoadingBranches(true);
+    const list = await fetchGithubBranches(githubSession, owner, repo.name);
+    setGithubLoadingBranches(false);
+    const resolved = list.length > 0 ? list : [repo.default_branch].filter(Boolean);
+    setGithubBranches(resolved);
+    setGithubBranch(repo.default_branch || resolved[0] || GITHUB_DEFAULT_BRANCH);
+  };
+
+  // Load a BESSER-created repo's model into a fresh project AND prime the next
+  // Vibe run to modify that repo's code and push back to the same repo.
+  const handleContinueGithubRepo = async () => {
+    setGithubError(null);
+    const repo: GitHubRepository | undefined = githubRepositories.find(
+      (r) => r.full_name === githubRepoFullName,
+    );
+    if (!repo) {
+      setGithubError('Select a repository to continue from.');
+      return;
+    }
+    if (!githubSession) {
+      setGithubError('GitHub session not found. Please reconnect.');
+      return;
+    }
+
+    const [owner] = repo.full_name.split('/');
+    const branch = githubBranch || repo.default_branch || GITHUB_DEFAULT_BRANCH;
+
+    try {
+      setIsBusy(true);
+      const response = await apiClient.post<ImportGitHubRunResponse>(
+        '/import-github-run',
+        { owner, repo: repo.name, branch },
+        { headers: { 'X-GitHub-Session': githubSession } },
+      );
+
+      if (!response.has_model) {
+        setGithubError(
+          "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
+        );
+        return;
+      }
+
+      // The returned ``project`` is a V2 export envelope — route it through the
+      // V2-aware importer (validateV2ExportData + extractPersonalization) by
+      // wrapping it in a File, exactly like a ``diagrams.json`` import.
+      const file = new File([JSON.stringify(response.project)], 'diagrams.json', {
+        type: 'application/json',
+      });
+      const imported = await importProjectFromJson(file);
+      await loadProject(imported.id);
+
+      // Link the push target so a later Vibe push updates the same repo.
+      LocalStorageRepository.setDeployLinkedRepo(imported.id, GITHUB_TARGET, {
+        owner: response.owner,
+        repo: response.repo,
+        branch: response.branch,
+      });
+
+      // Prime the modify base: record this run as the project's last successful
+      // run so the NEXT Vibe request auto-selects mode=modify + base_run_id
+      // (via decideRunMode). Mirror to localStorage AND the in-memory store.
+      const at = Date.now();
+      writeProjectLastRun(imported.id, response.run_id, at);
+      dispatch(setLastRunForProject({ projectId: imported.id, runId: response.run_id, at }));
+
+      refreshProjects();
+      handleDialogOpenChange(false);
+      toast.success(`Continuing from ${response.owner}/${response.repo}.`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setGithubError('Your GitHub session expired. Reconnect and try again.');
+        toast.error('GitHub session expired — please reconnect.');
+      } else {
+        const message =
+          error instanceof ApiError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Could not continue from this repository.';
+        setGithubError(message);
+        toast.error(`Continue from GitHub failed: ${message}`);
+      }
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   const renderPerspectivePicker = (
     selected: string,
     onSelect: (key: string) => void,
@@ -490,58 +766,85 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         <div className="max-h-[75vh] overflow-y-auto px-6 py-4">
           {step === 'start' && (
             <div className="flex flex-col gap-5">
-              {/* Hero banner */}
-              <div className="grain-overlay relative overflow-hidden rounded-2xl border border-brand/15 bg-gradient-to-br from-brand/[0.06] via-background to-brand/[0.03] p-5">
-                <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-brand/10 blur-2xl" />
-                <div className="relative z-[2]">
-                  <p className="text-sm font-semibold tracking-tight text-foreground">Start Your Modeling Workspace</p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                    BESSER (Better Smart Software Faster) is an open-source model-driven platform for UML design,
-                    generation, and deployment. Choose a path below to bootstrap your project quickly.
-                  </p>
+              {/* Hero: "describe your app" (vibe) — the dominant primary path.
+                  Full width, brand accent, larger than the manual options below. */}
+              <button
+                type="button"
+                onClick={() => setStep('describe')}
+                className="group grain-overlay relative w-full overflow-hidden rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/[0.10] via-brand/[0.04] to-background p-6 text-left shadow-elevation-2 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-elevation-3 sm:p-7"
+              >
+                <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-brand/10 blur-2xl transition-transform duration-300 group-hover:scale-125" />
+                <div className="relative z-[2] flex items-start gap-4">
+                  <div className="inline-flex shrink-0 rounded-2xl bg-brand/15 p-3 text-brand ring-1 ring-brand/20">
+                    <Sparkles className="size-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                      Describe what you want to build
+                    </p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                      Tell me your idea in plain words and I'll build the model, screens, and code for you.
+                    </p>
+                    <span className="mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-brand-foreground shadow-elevation-1 transition-colors group-hover:bg-brand-dark">
+                      <Sparkles className="size-3.5" />
+                      Start describing
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </button>
 
-              {/* Action cards */}
-              <div className="grid gap-3 md:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => setStep('create')}
-                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevation-2"
-                >
-                  <div className="pointer-events-none absolute -right-4 -top-4 size-16 rounded-full bg-brand/5 transition-transform duration-300 group-hover:scale-150" />
-                  <div className="relative mb-3 inline-flex rounded-xl bg-brand/[0.08] p-2.5 text-brand ring-1 ring-brand/10">
-                    <Plus className="size-4" />
-                  </div>
-                  <p className="text-sm font-semibold tracking-tight">Create Blank</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Start from scratch with all editors available.</p>
-                </button>
+              {/* Secondary: manual start paths, demoted beneath the hero. */}
+              <div className="flex flex-col gap-2.5">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">or start manually</p>
+                <div className="grid gap-2.5 md:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setStep('create')}
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevation-1"
+                  >
+                    <div className="mb-2 inline-flex rounded-lg bg-brand/[0.08] p-2 text-brand ring-1 ring-brand/10">
+                      <Plus className="size-3.5" />
+                    </div>
+                    <p className="text-xs font-semibold tracking-tight">Create Blank</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Start from scratch with all editors.</p>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setStep('spreadsheet')}
-                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-2"
-                >
-                  <div className="pointer-events-none absolute -right-4 -top-4 size-16 rounded-full bg-brand/5 transition-transform duration-300 group-hover:scale-150" />
-                  <div className="relative mb-3 inline-flex rounded-xl bg-emerald-500/[0.08] p-2.5 text-emerald-700 ring-1 ring-emerald-500/10 dark:text-emerald-400">
-                    <FileSpreadsheet className="size-4" />
-                  </div>
-                  <p className="text-sm font-semibold tracking-tight">From Spreadsheet</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Auto-generate a class diagram from CSV/XLSX files.</p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep('spreadsheet')}
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
+                  >
+                    <div className="mb-2 inline-flex rounded-lg bg-emerald-500/[0.08] p-2 text-emerald-700 ring-1 ring-emerald-500/10 dark:text-emerald-400">
+                      <FileSpreadsheet className="size-3.5" />
+                    </div>
+                    <p className="text-xs font-semibold tracking-tight">From Spreadsheet</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Class diagram from CSV/XLSX files.</p>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setStep('import')}
-                  className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 text-left shadow-elevation-1 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-2"
-                >
-                  <div className="pointer-events-none absolute -right-4 -top-4 size-16 rounded-full bg-brand/5 transition-transform duration-300 group-hover:scale-150" />
-                  <div className="relative mb-3 inline-flex rounded-xl bg-violet-500/[0.08] p-2.5 text-violet-700 ring-1 ring-violet-500/10 dark:text-violet-400">
-                    <Upload className="size-4" />
-                  </div>
-                  <p className="text-sm font-semibold tracking-tight">Import Project</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Load an exported `.json` or `.py` project.</p>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep('import')}
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
+                  >
+                    <div className="mb-2 inline-flex rounded-lg bg-violet-500/[0.08] p-2 text-violet-700 ring-1 ring-violet-500/10 dark:text-violet-400">
+                      <Upload className="size-3.5" />
+                    </div>
+                    <p className="text-xs font-semibold tracking-tight">Import Project</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Load an exported `.json` or `.py`.</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenGithubStep}
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
+                  >
+                    <div className="mb-2 inline-flex rounded-lg bg-foreground/[0.06] p-2 text-foreground/80 ring-1 ring-foreground/10">
+                      <Github className="size-3.5" />
+                    </div>
+                    <p className="text-xs font-semibold tracking-tight">Continue from GitHub</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Reopen a repo BESSER created and keep building.</p>
+                  </button>
+                </div>
               </div>
 
               {/* Existing projects */}
@@ -597,6 +900,67 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   Create, import, or open a project to enter the workspace.
                 </div>
               )}
+            </div>
+          )}
+
+          {step === 'describe' && (
+            <div className="flex flex-col gap-5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-fit gap-1.5 rounded-lg px-2.5 text-xs font-medium"
+                onClick={() => setStep('start')}
+              >
+                <ArrowLeft className="size-3.5" />
+                Back
+              </Button>
+
+              <Card className="border-brand/30 bg-gradient-to-br from-brand/[0.05] via-background to-background shadow-elevation-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base tracking-tight">
+                    <Sparkles className="size-4 text-brand" />
+                    What do you want to build?
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Describe your app in plain words. The AI assistant will create the data model, screens, and code for you.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <Textarea
+                    id="describe-prompt"
+                    value={describePrompt}
+                    onChange={(event) => setDescribePrompt(event.target.value)}
+                    placeholder="e.g. Build a library app to track books and loans, with a page to browse the catalogue and see who borrowed what."
+                    className="min-h-36 resize-none text-sm leading-relaxed"
+                    autoFocus
+                  />
+
+                  <div className="flex flex-col gap-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Need inspiration? Try one</p>
+                    <div className="flex flex-wrap gap-2">
+                      {DESCRIBE_EXAMPLES.map((example) => (
+                        <button
+                          key={example}
+                          type="button"
+                          onClick={() => setDescribePrompt(example)}
+                          className="rounded-full border border-brand/15 bg-brand/[0.04] px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-200 hover:-translate-y-px hover:border-brand/30 hover:bg-brand/[0.08] hover:text-foreground"
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => void handleStartBuilding()}
+                    disabled={isBusy || !describePrompt.trim()}
+                    className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
+                  >
+                    <Sparkles className="size-4" />
+                    Start building
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -824,6 +1188,91 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <Badge variant="secondary">{sortedProjects.length}</Badge>
               </div>
               {renderProjectList()}
+            </div>
+          )}
+
+          {step === 'github' && (
+            <div className="flex flex-col gap-5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-fit gap-1.5 rounded-lg px-2.5 text-xs font-medium"
+                onClick={() => setStep('start')}
+              >
+                <ArrowLeft className="size-3.5" />
+                Back
+              </Button>
+
+              <Card className="border-border/50 shadow-elevation-1">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base tracking-tight">
+                    <Github className="size-4" />
+                    Continue from a GitHub repository
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Pick a repository BESSER created (one that contains a saved model). Its model loads into
+                    the editor, and the next Vibe run edits that repo&apos;s code and pushes back to it.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  <FormField label="Repository" htmlFor="github-continue-repo">
+                    <select
+                      id="github-continue-repo"
+                      value={githubRepoFullName}
+                      onChange={(event) => void handleSelectGithubRepo(event.target.value)}
+                      disabled={githubReposLoading || isBusy}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      <option value="" disabled>
+                        {githubReposLoading ? 'Loading repositories…' : 'Select a repository'}
+                      </option>
+                      {githubRepositories.map((repo) => (
+                        <option key={repo.id} value={repo.full_name}>
+                          {repo.full_name}
+                          {repo.private ? ' (private)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+
+                  {githubRepoFullName && (
+                    <FormField label="Branch" htmlFor="github-continue-branch">
+                      <select
+                        id="github-continue-branch"
+                        value={githubBranch}
+                        onChange={(event) => setGithubBranch(event.target.value)}
+                        disabled={githubLoadingBranches || isBusy}
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        {githubLoadingBranches ? (
+                          <option value="">Loading branches…</option>
+                        ) : (
+                          githubBranches.map((branch) => (
+                            <option key={branch} value={branch}>
+                              {branch}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </FormField>
+                  )}
+
+                  {githubError && (
+                    <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300">
+                      {githubError}
+                    </p>
+                  )}
+
+                  <Button
+                    onClick={() => void handleContinueGithubRepo()}
+                    disabled={isBusy || !githubRepoFullName}
+                    className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
+                  >
+                    {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
+                    {isBusy ? 'Loading…' : 'Continue'}
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>

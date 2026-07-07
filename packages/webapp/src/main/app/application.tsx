@@ -58,6 +58,9 @@ const AssistantWidget = React.lazy(() =>
 const SmartGenByokDialog = React.lazy(() =>
   import('../features/smart-generation/components/SmartGenByokDialog').then((m) => ({ default: m.SmartGenByokDialog })),
 );
+const SmartGenPushDialogHost = React.lazy(() =>
+  import('../features/github/dialogs/SmartGenPushDialogHost').then((m) => ({ default: m.SmartGenPushDialogHost })),
+);
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -243,6 +246,9 @@ function AppContentInner() {
       </Suspense>
       <Suspense fallback={null}>
         <SmartGenByokDialog />
+      </Suspense>
+      <Suspense fallback={null}>
+        <SmartGenPushDialogHost />
       </Suspense>
       <GeneratingOverlay visible={isGenerating} />
       <ToastContainer />

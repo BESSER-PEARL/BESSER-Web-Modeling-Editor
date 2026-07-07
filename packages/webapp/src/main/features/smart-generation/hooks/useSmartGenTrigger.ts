@@ -61,16 +61,25 @@ import {
   releaseRunSlot,
   resetRun,
   setApiKeyPresent,
+  setLastRunForProject,
   setRunError,
   tryClaimRunSlot,
   updateCost,
   updatePhase,
 } from '../state/smartGeneratorSlice';
-import { clearSessionKey, readSessionBudget, readSessionKey } from '../storage';
+import {
+  clearSessionKey,
+  readProjectLastRun,
+  readSessionBudget,
+  readSessionKey,
+  writeProjectLastRun,
+} from '../storage';
 import {
   startSmartGenRun,
   type StartSmartGenRunParams,
 } from '../services/smartGenerationSseClient';
+import { getSmartGenConfig } from '../services/smartGenConfig';
+import { decideRunMode } from '../runModeDecision';
 import type {
   SmartGenEvent,
   SmartGenPhase,
@@ -84,6 +93,12 @@ import type {
 // of time to write its recipe file and zip the output even on a slow
 // disk, while still freeing the user promptly if the backend hangs.
 const COST_TIMEOUT_FAILSAFE_MS = 45_000;
+
+// Incremental vibe-modify window used when the server's
+// `download_ttl_seconds` is unavailable. Mirrors the backend default
+// (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800s / 30 min): after this the
+// backend has garbage-collected the run's output, so a rebuild is forced.
+const DEFAULT_DOWNLOAD_TTL_SECONDS = 1800;
 
 const createMessageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -494,6 +509,21 @@ export function useSmartGenTrigger(
           const doneRunId =
             event.runId || extractRunId(event.downloadUrl) || undefined;
           if (doneRunId) currentRunIdRef.current = doneRunId;
+          // Record this successful run as the base for a future
+          // incremental vibe-modify of the SAME project — both in the
+          // slice (same-session fast path) and localStorage (survives a
+          // reload). The next `startRun` reads this back and, while still
+          // within the download TTL, sends `mode:'modify'` + base_run_id.
+          {
+            const doneProjectId = currentProjectRef.current?.id;
+            if (doneRunId && doneProjectId) {
+              const at = Date.now();
+              dispatch(
+                setLastRunForProject({ projectId: doneProjectId, runId: doneRunId, at }),
+              );
+              writeProjectLastRun(doneProjectId, doneRunId, at);
+            }
+          }
           dispatch(
             completeRun({
               downloadUrl: event.downloadUrl,
@@ -786,6 +816,24 @@ export function useSmartGenTrigger(
       // its own defaults — the SSE client only serialises set values.
       const budget = readSessionBudget();
 
+      // Incremental vibe-modify decision. Look up the previous successful
+      // run for THIS project and, if it's still within the backend's
+      // download-TTL window, edit that app in place (`mode:'modify'` +
+      // baseRunId) instead of rebuilding. The decision is automatic; an
+      // explicit `mode` on the trigger payload overrides it. `getSmartGenConfig`
+      // is cached and never rejects (resolves to the fallback), so the TTL
+      // is always defined.
+      const ttlSeconds =
+        (await getSmartGenConfig()).download_ttl_seconds ||
+        DEFAULT_DOWNLOAD_TTL_SECONDS;
+      const runDecision = decideRunMode({
+        lastRun: readProjectLastRun(project.id),
+        nowMs: Date.now(),
+        ttlSeconds,
+        explicitMode: payload.mode,
+        explicitBaseRunId: payload.baseRunId,
+      });
+
       const runParams: StartSmartGenRunParams = {
         project: normalisedProject,
         instructions: payload.instructions,
@@ -794,6 +842,8 @@ export function useSmartGenTrigger(
         llmModel,
         maxCostUsd: budget?.maxCostUsd,
         maxRuntimeSeconds: budget?.maxRuntimeSeconds,
+        mode: runDecision.mode,
+        baseRunId: runDecision.baseRunId,
       };
 
       let handle;

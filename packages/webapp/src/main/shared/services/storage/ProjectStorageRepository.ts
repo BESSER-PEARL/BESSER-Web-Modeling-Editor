@@ -445,8 +445,11 @@ export class ProjectStorageRepository {
       localStorage.removeItem('besser_github_auto_commit');
     }
 
-    // Clean up deploy linked repo entry (per-project key)
+    // Clean up deploy linked repo entries (per-project keys). The bare key is
+    // the legacy Render webapp link; ``_github`` is the smart-gen "Push to
+    // GitHub" link, kept separate so it never collides with Render targets.
     localStorage.removeItem(`besser_deploy_linked_${projectId}`);
+    localStorage.removeItem(`besser_deploy_linked_${projectId}_github`);
   }
   
   // Helper: Update projects list
