@@ -49,6 +49,13 @@ const CLASS_GENERATORS: GeneratorMenuEntry[] = [
   },
   {
     kind: 'group',
+    label: 'Testing',
+    actions: [
+      { kind: 'action', label: 'Python Test Cases', generator: 'test_case' },
+    ],
+  },
+  {
+    kind: 'group',
     label: 'Schema',
     actions: [
       { kind: 'action', label: 'Pydantic Models', generator: 'pydantic' },
