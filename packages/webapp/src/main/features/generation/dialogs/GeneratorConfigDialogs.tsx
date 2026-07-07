@@ -216,6 +216,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
       : null;
     return normalizeAgentRuntimeConfig({
       agentPlatform: typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+      agentPlatformUseStreamlit: typeof diagramConfig.agentPlatformUseStreamlit === 'boolean' ? diagramConfig.agentPlatformUseStreamlit : undefined,
       intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
       agentLlmProvider: llmBlock?.provider,
       agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
@@ -229,9 +230,11 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   const agentPlatformLabel = useMemo(() => {
     switch (agentSystemConfig?.agentPlatform) {
       case 'websocket':
-        return 'WebSocket';
+        return agentSystemConfig.agentPlatformUseStreamlit
+          ? 'WebSocket with Streamlit UI'
+          : 'WebSocket';
       case 'streamlit':
-        return 'WebSocket with Streamlit interface';
+        return 'WebSocket with Streamlit UI (legacy)';
       case 'telegram':
         return 'Telegram';
       default:

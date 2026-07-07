@@ -69,6 +69,14 @@ export const ApollonEditorComponent: React.FC = () => {
     await destroyEditorDeferred(editor);
   }, [destroyEditorDeferred]);
 
+  // Keep the diagramBridge's agentPlatform in sync with the active diagram's config.
+  // This ensures editor popups read the correct platform even when the user hasn't
+  // visited the agent config panel in this session.
+  useEffect(() => {
+    const platform = (reduxDiagram?.config?.agentPlatform as string | undefined) ?? 'websocket';
+    diagramBridge.setAgentPlatform(platform);
+  }, [reduxDiagram]);
+
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
     const qcDiagrams = quantumCircuitDiagrams ?? [];

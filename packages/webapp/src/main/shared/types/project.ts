@@ -80,7 +80,10 @@ export interface ProjectDiagram {
   model?: UMLModel | GrapesJSProjectData | QuantumCircuitData;
   lastUpdate: string;
   description?: string;
-  config?: Record<string, unknown>; // agent LLM/platform/IC config
+  config?: Record<string, unknown>;  // agent LLM/platform/IC config
+  configYaml?: string;  // generated agent config.yaml (derived from agentConfigForm + agentConfigCustomYaml)
+  agentConfigForm?: Record<string, unknown>;  // structured form state for the yaml editor
+  agentConfigCustomYaml?: string;  // extra YAML appended at the end of config.yaml
   /** Per-diagram cross-references: maps a diagram type to the ID of the diagram this depends on.
    *  E.g. a GUINoCodeDiagram may reference a specific ClassDiagram and AgentDiagram by their UUID. */
   references?: Partial<Record<SupportedDiagramType, string>>;

@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../app/store/hooks';
@@ -925,6 +925,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     const agentConfig = diagramConfig
       ? normalizeAgentRuntimeConfig({
         agentPlatform: typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+        agentPlatformUseStreamlit: typeof diagramConfig.agentPlatformUseStreamlit === 'boolean' ? diagramConfig.agentPlatformUseStreamlit : undefined,
         intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
         agentLlmProvider: llmBlock?.provider,
         agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
@@ -941,8 +942,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       diagramConfig && typeof diagramConfig.default_llm_name === 'string' && diagramConfig.default_llm_name
         ? diagramConfig.default_llm_name
         : undefined;
+    const resolvedAgentPlatform =
+      agentConfig.agentPlatform === 'websocket' && agentConfig.agentPlatformUseStreamlit
+        ? 'streamlit'
+        : agentConfig.agentPlatform;
     const systemConfig: AgentConfig = {
-      agentPlatform: agentConfig.agentPlatform,
+      agentPlatform: resolvedAgentPlatform,
       intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
       ...(defaultLlmNameFromDiagram ? { default_llm_name: defaultLlmNameFromDiagram } : {}),
       ...(agentConfig.agentLlmName
@@ -1008,7 +1013,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             name: profile.name,
             configuration: structuredClone(config.config),
             user_profile: structuredClone(profile.model),
-            agent_model: structuredClone(agentModel),
+            // Normalize to the canonical nested transition shape before sending.
+            // Variant/config snapshots can bypass the editor (e.g. imported
+            // projects) and still carry the legacy flat shape, which the backend
+            // collapses to when_no_intent_matched. normalizeAgentModel is pure
+            // and idempotent and returns a fresh clone.
+            agent_model: normalizeAgentModel(agentModel as UMLModel) as Record<string, any>,
           };
         })
         .filter((entry): entry is {

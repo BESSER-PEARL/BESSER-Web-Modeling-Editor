@@ -241,6 +241,19 @@ export const useGenerateCode = () => {
         ...(referenceDiagramData ? { referenceDiagramData } : {}),
       };
 
+      // For agent generation, include the user-authored config.yaml from the diagram
+      if (generatorType === 'agent') {
+        const currentProject = ProjectStorageRepository.getCurrentProject();
+        const activeAgentDiagram = currentProject
+          ? currentProject.diagrams.AgentDiagram?.[
+              currentProject.currentDiagramIndices?.AgentDiagram ?? 0
+            ]
+          : undefined;
+        if (typeof activeAgentDiagram?.configYaml === 'string') {
+          body.configYaml = activeAgentDiagram.configYaml;
+        }
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000);
       try {

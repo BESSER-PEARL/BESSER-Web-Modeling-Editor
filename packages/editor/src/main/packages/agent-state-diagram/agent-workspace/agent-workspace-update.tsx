@@ -5,6 +5,7 @@ import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
+import { AgentElementType } from '..';
 import { AgentWorkspace } from './agent-workspace';
 
 const Section = styled.section`
@@ -18,11 +19,20 @@ const CheckboxRow = styled.label`
   padding: 4px 0;
 `;
 
+const Warning = styled.p`
+  font-size: 12px;
+  margin: 4px 0 8px;
+  color: #e04040;
+  opacity: 0.85;
+`;
+
 type OwnProps = {
   element: AgentWorkspace;
 };
 
-type StateProps = {};
+type StateProps = {
+  elements: ModelState['elements'];
+};
 
 type DispatchProps = {
   update: typeof UMLElementRepository.update;
@@ -30,8 +40,20 @@ type DispatchProps = {
 
 type Props = OwnProps & StateProps & DispatchProps;
 
-const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update }) => (
+const AGENT_STATE_TYPE = (AgentElementType as Record<string, string>).AgentState ?? 'AgentState';
+
+const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, elements }) => {
+  const hasReasoningState = Object.values(elements).some(
+    (el: any) => el.type === AGENT_STATE_TYPE && el.stateType === 'reasoning',
+  );
+
+  return (
   <div>
+    {!hasReasoningState && (
+      <Warning>
+        ⚠ Workspaces can only be used by a reasoning state. Add a reasoning state to use this workspace.
+      </Warning>
+    )}
     <Section>
       <Header>Workspace name</Header>
       <Textfield value={element.name} onChange={(name) => update<AgentWorkspace>(element.id, { name })} autoFocus />
@@ -75,10 +97,12 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update }) => 
       />
     </Section>
   </div>
-);
+  );
+};
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-});
+const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
+  (state) => ({ elements: state.elements }),
+  { update: UMLElementRepository.update },
+);
 
 export const AgentWorkspaceUpdate = enhance(AgentWorkspaceUpdateComponent);

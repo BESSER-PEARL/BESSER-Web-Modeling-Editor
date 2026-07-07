@@ -66,14 +66,32 @@ export type UMLModelElement = {
 };
 
 export interface AgentModelElement extends UMLModelElement {
+  actionType?: string;
   replyType: string;
   ragDatabaseName?: string;
+  prompt?: string;
   dbSelectionType?: string;
   dbCustomName?: string;
   dbQueryMode?: string;
   dbOperation?: string;
   dbSqlQuery?: string;
   llm_name?: string;
+  system_message?: string;
+  // web crawl + LLM fields
+  initial_url?: string;
+  max_depth?: number;
+  max_pages?: number;
+  crawl_format?: string;
+  base_url_prefix?: string;
+  run_crawl?: boolean;
+  no_crawl_error_message?: string;
+  system_message_prefix?: string;
+  // websocket-specific reply fields
+  ws_message?: string;
+  ws_audio_speed?: number | null;
+  ws_options?: string;
+  ws_latitude?: number;
+  ws_longitude?: number;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -143,9 +161,22 @@ export interface UMLState extends UMLElement {
 
 export interface AgentState extends UMLElement {
   type: UMLElementType;
-  bodies: string[];
-  fallbackBodies: string[];
-  replyType: string;
+  // canonical keys
+  actions: string[];
+  fallbackActions: string[];
+  stateType?: string;
+  fallbackBodyEnabled?: boolean;
+  // reasoning-state fields (used when stateType = 'reasoning')
+  llm_name?: string;
+  max_steps?: number;
+  enable_task_planning?: boolean;
+  stream_steps?: boolean;
+  system_prompt?: string;
+  fallback_message?: string;
+  // legacy backward-compat keys
+  bodies?: string[];
+  fallbackBodies?: string[];
+  replyType?: string;
 }
 
 export interface AgentIntent extends UMLElement {
@@ -156,6 +187,10 @@ export interface AgentIntent extends UMLElement {
 
 export interface AgentRagElement extends UMLElement {
   type: UMLElementType;
+  llm_name?: string;
+  llm_prompt?: string;
+  k?: number;
+  num_previous_messages?: number;
 }
 
 export interface UMLReply extends UMLElement {

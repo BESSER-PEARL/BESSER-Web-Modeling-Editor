@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 import { AgentSkill } from './agent-skill';
 import { Text } from '../../../components/controls/text/text';
 import { AGENT_PRIMITIVE_COLORS } from '../agent-primitive-colors';
+import { truncateTextToWidth } from '../text-truncation';
 
 interface Props {
   element: AgentSkill;
@@ -9,16 +10,11 @@ interface Props {
   fillColor?: string;
 }
 
-const truncate = (value: string, max: number) => {
-  if (!value) return '';
-  const flat = value.replace(/\s+/g, ' ').trim();
-  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
-};
-
 export const AgentSkillComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const width = element.bounds.width;
   const height = element.bounds.height;
-  const subtitle = truncate(element.description || element.content || '', 48);
+  const title = truncateTextToWidth(element.name || '', width - 28, 14);
+  const subtitle = truncateTextToWidth(element.description || element.content || '', width - 28, 12);
   const accent = element.strokeColor || AGENT_PRIMITIVE_COLORS.skill.accent;
   const fill = fillColor || element.fillColor || AGENT_PRIMITIVE_COLORS.skill.tint;
   const textColor = element.textColor || 'currentColor';
@@ -36,7 +32,7 @@ export const AgentSkillComponent: FunctionComponent<Props> = ({ element, childre
         {`${AGENT_PRIMITIVE_COLORS.skill.icon} «skill»`}
       </Text>
       <Text x={width / 2} y={44} fill={textColor} fontWeight="bold" textAnchor="middle">
-        {element.name}
+        {title}
       </Text>
       {subtitle ? (
         <Text x={width / 2} y={height - 16} fill={textColor} fontWeight="normal" fontSize="80%" textAnchor="middle">

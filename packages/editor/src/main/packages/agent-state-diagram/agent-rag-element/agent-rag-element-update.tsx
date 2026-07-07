@@ -68,6 +68,30 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
           ))}
         </Select>
       </Section>
+      <Section>
+        <Header>LLM Prompt Prefix</Header>
+        <Textfield
+          value={element.llm_prompt || ''}
+          onChange={(llm_prompt) => update<AgentRagElement>(element.id, { llm_prompt })}
+          multiline
+          enterToSubmit={false}
+        />
+      </Section>
+      <Section>
+        <Header>K (retrieved chunks)</Header>
+        <Textfield value={element.k ?? 4} onChange={(k) => update<AgentRagElement>(element.id, { k: Math.max(1, k) })} />
+      </Section>
+      <Section>
+        <Header>Num Previous Messages</Header>
+        <Textfield
+          value={element.num_previous_messages ?? 0}
+          onChange={(num_previous_messages) =>
+            update<AgentRagElement>(element.id, {
+              num_previous_messages: Math.max(0, num_previous_messages),
+            })
+          }
+        />
+      </Section>
     </div>
   );
 };

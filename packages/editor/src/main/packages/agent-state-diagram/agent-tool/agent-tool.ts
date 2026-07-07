@@ -10,6 +10,11 @@ import { IBoundary } from '../../../utils/geometry/boundary';
 import { Text } from '../../../utils/svg/text';
 import { UMLElementType } from '../../uml-element-type';
 
+const AGENT_TOOL_MIN_WIDTH = 120;
+const AGENT_TOOL_DEFAULT_WIDTH = 160;
+const AGENT_TOOL_MAX_AUTO_WIDTH = 360;
+const AGENT_TOOL_MIN_HEIGHT = 50;
+
 export interface IAgentTool extends IUMLElement {
   description: string;
   code: string;
@@ -24,7 +29,7 @@ export class AgentTool extends UMLElement implements IAgentTool {
 
   type: UMLElementType = AgentElementType.AgentTool;
   description: string = '';
-  code: string = '';
+  code: string = 'def tool_name():\n    pass\n';
 
   bounds: IBoundary = {
     ...this.bounds,
@@ -55,13 +60,20 @@ export class AgentTool extends UMLElement implements IAgentTool {
   ): void {
     super.deserialize(values, children);
     this.description = values.description || '';
-    this.code = values.code || '';
+    this.code = values.code || 'def tool_name():\n    pass\n';
   }
 
   render(layer: ILayer): ILayoutable[] {
-    const minWidth = Math.max(140, Text.size(layer, this.name, { fontWeight: 'bold' }).width + 40);
-    this.bounds.width = Math.max(this.bounds.width, minWidth);
-    this.bounds.height = Math.max(this.bounds.height, 80);
+    if (!this.isManuallyLayouted) {
+      const titleWidth = Text.size(layer, this.name, { fontWeight: 'bold' }).width + 40;
+      const descriptionWidth = Text.size(layer, this.description, { fontWeight: 'normal' }).width + 40;
+      const autoWidth = Math.max(AGENT_TOOL_DEFAULT_WIDTH, titleWidth, descriptionWidth);
+      this.bounds.width = Math.max(AGENT_TOOL_MIN_WIDTH, Math.min(AGENT_TOOL_MAX_AUTO_WIDTH, autoWidth));
+      this.bounds.height = Math.max(this.bounds.height, 80);
+    } else {
+      this.bounds.width = Math.max(this.bounds.width, AGENT_TOOL_MIN_WIDTH);
+      this.bounds.height = Math.max(this.bounds.height, AGENT_TOOL_MIN_HEIGHT);
+    }
     return [this];
   }
 }

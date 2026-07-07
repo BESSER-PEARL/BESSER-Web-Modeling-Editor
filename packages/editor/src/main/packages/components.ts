@@ -89,8 +89,6 @@ import { AgentStateTransitionInitComponent } from './agent-state-diagram/agent-s
 import { AgentToolComponent } from './agent-state-diagram/agent-tool/agent-tool-component';
 import { AgentSkillComponent } from './agent-state-diagram/agent-skill/agent-skill-component';
 import { AgentWorkspaceComponent } from './agent-state-diagram/agent-workspace/agent-workspace-component';
-import { AgentReasoningStateComponent } from './agent-state-diagram/agent-reasoning-state/agent-reasoning-state-component';
-
 import { NNElementType } from './nn-diagram';
 import { NNRelationshipType } from './nn-diagram';
 import { NNAssociationComponent } from './nn-diagram/nn-association/nn-association-component';
@@ -228,7 +226,6 @@ export const Components: {
   [UMLElementType.AgentTool]: AgentToolComponent,
   [UMLElementType.AgentSkill]: AgentSkillComponent,
   [UMLElementType.AgentWorkspace]: AgentWorkspaceComponent,
-  [UMLElementType.AgentReasoningState]: AgentReasoningStateComponent,
   [UMLElementType.AgentLLM]: AgentLLMNoopComponent,
   [UMLElementType.AgentSectionTitle]: NNSectionTitleComponent as any,
   [UMLElementType.AgentSectionSeparator]: NNSectionSeparatorComponent as any,

@@ -19,6 +19,9 @@ export * from './typings';
 // This is the primary entry point for users who want to embed the UML editor
 export * from './apollon-editor';
 
+// Export the headless ELK auto-layout helper (pure model -> laid-out model)
+export { layoutModel } from './services/layouter/model-layout';
+
 // Export compatibility helper functions
 // These utilities help with backward compatibility and cross-version support
 export * from './compat/helpers';

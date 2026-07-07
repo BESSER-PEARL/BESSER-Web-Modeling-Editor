@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,7 @@ import {
   removeConfigurationVariantsFromProject,
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
+import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -578,6 +579,7 @@ const resolveProfileNameFromMapping = (
     : '';
 };
 
+
 const loadInitialState = () => {
   const savedConfigurations = LocalStorageRepository.getAgentConfigurations();
 
@@ -876,6 +878,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       : (cfg.llm && typeof cfg.llm === 'object' && typeof cfg.llm.name === 'string' ? cfg.llm.name : '');
     return {
       agentPlatform: cfg.agentPlatform || DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatform,
+      agentPlatformUseStreamlit: cfg.agentPlatformUseStreamlit ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatformUseStreamlit,
       intentRecognitionTechnology:
         cfg.intentRecognitionTechnology || DEFAULT_AGENT_RUNTIME_CONFIG.intentRecognitionTechnology,
       agentLlmProvider: cfg.agentLlmProvider ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmProvider,
@@ -891,6 +894,11 @@ export const AgentConfigurationPanel: React.FC = () => {
   useEffect(() => {
     setAgentRuntimeConfig(runtimeConfigInitial);
   }, [runtimeConfigInitial]);
+
+  // Keep the diagramBridge in sync so the editor popups can read the current platform.
+  useEffect(() => {
+    diagramBridge.setAgentPlatform(agentRuntimeConfig.agentPlatform);
+  }, [agentRuntimeConfig.agentPlatform]);
 
   // Default LLM name — persisted on the active agent diagram's `config` block
   // under the snake_case key `default_llm_name` so the BAF backend can read it
@@ -951,6 +959,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     },
     [persistDefaultLlmName],
   );
+
 
   // Resolve the default LLM that satisfies the invariant
   // "if the list has any LLMs, the default points to one of them; if there
@@ -2221,12 +2230,24 @@ export const AgentConfigurationPanel: React.FC = () => {
                     id="agent-runtime-platform"
                     className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={agentRuntimeConfig.agentPlatform}
-                    onChange={(event) => updateAgentRuntimeConfig({ agentPlatform: event.target.value })}
+                    onChange={(event) => updateAgentRuntimeConfig({
+                      agentPlatform: event.target.value,
+                      agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
+                    })}
                   >
-                    <option value="streamlit">Streamlit</option>
-                    <option value="telegram">Telegram</option>
                     <option value="websocket">WebSocket</option>
+                    <option value="telegram">Telegram</option>
                   </select>
+                  {agentRuntimeConfig.agentPlatform === 'websocket' && (
+                    <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
+                        onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
+                      />
+                      Use Streamlit UI
+                    </label>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -2308,6 +2329,27 @@ export const AgentConfigurationPanel: React.FC = () => {
                   Add LLM
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
+              <CardDescription>
+                Edit the <code>config.yaml</code> file that will be included when generating the agent.
+                {' '}
+                <a
+                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand underline underline-offset-2 hover:text-brand/80"
+                >
+                  Configuration properties reference ↗
+                </a>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AgentConfigYamlEditor currentProject={currentProject} />
             </CardContent>
           </Card>
           </>

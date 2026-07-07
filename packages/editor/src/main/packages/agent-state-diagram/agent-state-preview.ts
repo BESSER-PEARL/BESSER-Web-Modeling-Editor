@@ -12,7 +12,6 @@ import { AgentStateBody } from './agent-state-body/agent-state-body';
 import { AgentTool } from './agent-tool/agent-tool';
 import { AgentSkill } from './agent-skill/agent-skill';
 import { AgentWorkspace } from './agent-workspace/agent-workspace';
-import { AgentReasoningState } from './agent-reasoning-state/agent-reasoning-state';
 import { AgentSectionTitle, AgentSectionSeparator } from './agent-section-elements';
 
 // Palette section dividers/titles are inert (not draggable) — matches the NN diagram.
@@ -32,7 +31,7 @@ export const composeBotPreview: ComposePreview = (
   translate: (id: string) => string,
 ): UMLElement[] => {
   // Build every preview element first, then push in the palette's display
-  // order below (flow/states → reasoning → reasoning primitives → knowledge).
+  // order below (flow/states → knowledge → capabilities).
 
   // State Initial Node
   const stateInitialNode = new UMLStateInitialNode({
@@ -66,14 +65,6 @@ export const composeBotPreview: ComposePreview = (
   });
   agentState.ownedElements = [botBody.id];
   const agentStateRendered = agentState.render(layer, [botBody]) as UMLElement[];
-
-  const reasoningState = new AgentReasoningState({ name: 'ReasoningState' });
-  reasoningState.bounds = {
-    ...reasoningState.bounds,
-    width: computeDimension(1.0, 200),
-    height: computeDimension(1.0, 80),
-  };
-  reasoningState.render(layer);
 
   const toolElement = new AgentTool({ name: 'tool_name', description: 'What this tool does' });
   toolElement.bounds = {
@@ -115,15 +106,12 @@ export const composeBotPreview: ComposePreview = (
   ragElement.render(layer);
 
   // Display order, grouped into titled sections (mirrors the NN palette):
-  // Flow → Reasoning → Capabilities → Knowledge.
+  // Flow → Knowledge → Capabilities.
   const elements: UMLElement[] = [
     sectionTitle('Flow'),
     stateInitialNode,
     emptyAgentState,
     ...agentStateRendered,
-    sectionSeparator(),
-    sectionTitle('Reasoning'),
-    reasoningState,
     sectionSeparator(),
     sectionTitle('Knowledge'),
     emptyIntent,

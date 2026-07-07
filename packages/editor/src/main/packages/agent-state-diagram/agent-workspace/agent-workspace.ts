@@ -10,6 +10,11 @@ import { IBoundary } from '../../../utils/geometry/boundary';
 import { Text } from '../../../utils/svg/text';
 import { UMLElementType } from '../../uml-element-type';
 
+const AGENT_WORKSPACE_MIN_WIDTH = 120;
+const AGENT_WORKSPACE_DEFAULT_WIDTH = 160;
+const AGENT_WORKSPACE_MAX_AUTO_WIDTH = 380;
+const AGENT_WORKSPACE_MIN_HEIGHT = 50;
+
 export interface IAgentWorkspace extends IUMLElement {
   path: string;
   description: string;
@@ -72,9 +77,17 @@ export class AgentWorkspace extends UMLElement implements IAgentWorkspace {
   }
 
   render(layer: ILayer): ILayoutable[] {
-    const minWidth = Math.max(140, Text.size(layer, this.name, { fontWeight: 'bold' }).width + 40);
-    this.bounds.width = Math.max(this.bounds.width, minWidth);
-    this.bounds.height = Math.max(this.bounds.height, 80);
+    if (!this.isManuallyLayouted) {
+      const titleWidth = Text.size(layer, this.name, { fontWeight: 'bold' }).width + 40;
+      const detailSource = this.description || this.path;
+      const detailWidth = Text.size(layer, detailSource, { fontWeight: 'normal' }).width + 40;
+      const autoWidth = Math.max(AGENT_WORKSPACE_DEFAULT_WIDTH, titleWidth, detailWidth);
+      this.bounds.width = Math.max(AGENT_WORKSPACE_MIN_WIDTH, Math.min(AGENT_WORKSPACE_MAX_AUTO_WIDTH, autoWidth));
+      this.bounds.height = Math.max(this.bounds.height, 80);
+    } else {
+      this.bounds.width = Math.max(this.bounds.width, AGENT_WORKSPACE_MIN_WIDTH);
+      this.bounds.height = Math.max(this.bounds.height, AGENT_WORKSPACE_MIN_HEIGHT);
+    }
     return [this];
   }
 }

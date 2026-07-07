@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 import { AgentWorkspace } from './agent-workspace';
 import { Text } from '../../../components/controls/text/text';
 import { AGENT_PRIMITIVE_COLORS } from '../agent-primitive-colors';
+import { truncateTextToWidth } from '../text-truncation';
 
 interface Props {
   element: AgentWorkspace;
@@ -9,16 +10,11 @@ interface Props {
   fillColor?: string;
 }
 
-const truncate = (value: string, max: number) => {
-  if (!value) return '';
-  const flat = value.replace(/\s+/g, ' ').trim();
-  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
-};
-
 export const AgentWorkspaceComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const width = element.bounds.width;
   const height = element.bounds.height;
-  const subtitle = truncate(element.path || element.description || '', 48);
+  const title = truncateTextToWidth(element.name || '', width - 28, 14);
+  const subtitle = truncateTextToWidth(element.description || element.path || '', width - 28, 12);
   const accent = element.strokeColor || AGENT_PRIMITIVE_COLORS.workspace.accent;
   const fill = fillColor || element.fillColor || AGENT_PRIMITIVE_COLORS.workspace.tint;
   const textColor = element.textColor || 'currentColor';
@@ -36,7 +32,7 @@ export const AgentWorkspaceComponent: FunctionComponent<Props> = ({ element, chi
         {`${AGENT_PRIMITIVE_COLORS.workspace.icon} «workspace»`}
       </Text>
       <Text x={width / 2} y={tabH + 34} fill={textColor} fontWeight="bold" textAnchor="middle">
-        {element.name}
+        {title}
       </Text>
       {subtitle ? (
         <Text x={width / 2} y={height - 12} fill={textColor} fontWeight="normal" fontSize="80%" textAnchor="middle">
