@@ -1160,6 +1160,257 @@
     "QuantumCircuitDiagram": "Quantenschaltkreisdiagramm",
     "NNDiagram": "Neuronales-Netz-Diagramm"
   },
+  "dialogs": {
+    "about": {
+      "title": "Über BESSER",
+      "tagline": "Building Better Smart Software Faster",
+      "para1": "BESSER ist eine Low-Code-Plattform für die Modellierung intelligenter Software und die Codegenerierung. Sie bietet ein Python-basiertes Metamodell (B-UML) zur Beschreibung von Domänenmodellen, Zustandsautomaten, GUI-Designs, Agenten und mehr.",
+      "para2": "Der <brand>Web Modeling Editor</brand> ist der visuelle Online-Editor zum Erstellen und Bearbeiten von BESSER-Modellen, zum Generieren von Code und zum Bereitstellen von Anwendungen.",
+      "para3": "Entwickelt von der Forschungsgruppe BESSER-PEARL an der Universität Luxemburg.",
+      "besserRepository": "BESSER-Repository",
+      "wmeRepository": "WME-Repository",
+      "libraryRepository": "Bibliotheks-Repository"
+    },
+    "shortcuts": {
+      "title": "Tastenkürzel",
+      "description": "Verfügbare Tastenkürzel im gesamten Editor.",
+      "category": {
+        "general": "Allgemein",
+        "guiEditor": "GUI Editor",
+        "quantumEditor": "Quantum Editor",
+        "help": "Hilfe"
+      },
+      "action": {
+        "commandPalette": "Befehlspalette öffnen",
+        "undo": "Rückgängig",
+        "redo": "Wiederholen",
+        "redoAlt": "Wiederholen (Alternative)",
+        "deleteElement": "Ausgewähltes Element löschen",
+        "moveElement": "Ausgewähltes Element verschieben",
+        "closeDeselect": "Bereich schließen / Auswahl aufheben",
+        "save": "Speichern",
+        "copyComponent": "Komponente kopieren",
+        "pasteComponent": "Komponente einfügen",
+        "duplicateComponent": "Komponente duplizieren",
+        "togglePreview": "Vorschau umschalten",
+        "exportTemplate": "Vorlage exportieren",
+        "showJson": "JSON anzeigen",
+        "selectParent": "Übergeordnete Komponente auswählen",
+        "copyGate": "Ausgewähltes Gatter kopieren",
+        "pasteGate": "Gatter einfügen",
+        "showShortcuts": "Tastenkürzel anzeigen"
+      }
+    },
+    "guide": {
+      "title": "So funktioniert der Editor",
+      "description": "Vollständiger Modellierungsleitfaden mit Beispielen und Abbildungen.",
+      "diagramTypesHeading": "Diagrammtypen",
+      "noImage": "Kein Bild für dieses Element.",
+      "openDocs": "BESSER-Dokumentation öffnen",
+      "openWmeRepo": "WME-Repository öffnen",
+      "class": {
+        "label": "Klassendiagramm",
+        "summary": "Modellieren Sie Klassen, Beziehungen, Constraints und fortgeschrittene UML-Strukturen.",
+        "addClass": {
+          "title": "Klasse hinzufügen",
+          "body": "<p>Ziehen Sie eine Klassenform aus der linken Palette per Drag-and-drop auf die Modellierungsfläche.</p>",
+          "alt": "Klassenelement erstellen"
+        },
+        "addAssociation": {
+          "title": "Assoziation oder Generalisierung hinzufügen",
+          "body": "<p>Wählen Sie eine Quellklasse aus und ziehen Sie dann von einem blauen Verbindungspunkt zu einer anderen Klasse. Verwenden Sie für Multiplizitäten Werte wie <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code> oder <code>2..4</code>.</p>",
+          "alt": "Klassenbeziehung erstellen"
+        },
+        "editClass": {
+          "title": "Klasse bearbeiten",
+          "body": "<p>Doppelklicken Sie auf eine Klasse, um ihren Namen, ihre Attribute und Methoden zu bearbeiten.</p><p>Beispiele für das Attributformat: <code>+ attribute : type</code>, <code>+ attribute</code>, <code>attribute</code>. Zu den primitiven Typen gehören <code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>time</code>, <code>date</code>, <code>datetime</code>, <code>timedelta</code> und <code>any</code>.</p><p>Sichtbarkeit: <code>+</code> öffentlich, <code>-</code> privat, <code>#</code> geschützt. Methodenbeispiele: <code>+ notify(sms: str = 'message')</code>, <code>- findBook(title: str): Book</code>, <code>validate()</code>.</p>",
+          "alt": "Klassenelement bearbeiten"
+        },
+        "editAssociation": {
+          "title": "Assoziation oder Generalisierung bearbeiten",
+          "body": "<p>Doppelklicken Sie auf eine Beziehung, um Typ (unidirektional, bidirektional, Komposition, Generalisierung), Name, Rollennamen von Quelle/Ziel und Multiplizitäten zu bearbeiten.</p>",
+          "alt": "Klassenassoziation bearbeiten"
+        },
+        "deleteMove": {
+          "title": "Löschen und Verschieben",
+          "body": "<p>Wählen Sie eine Klasse aus und drücken Sie <code>Delete</code> oder <code>Backspace</code>, um sie zu entfernen.</p><p>Verschieben Sie Elemente durch Ziehen oder mit den Pfeiltasten.</p><p>Verwenden Sie <code>Ctrl+Z</code> und <code>Ctrl+Y</code> zum Rückgängigmachen/Wiederholen.</p>",
+          "alt": "Klassenelement verschieben"
+        },
+        "oclConstraint": {
+          "title": "OCL-Constraint",
+          "body": "<p>Ziehen Sie die OCL-Form und schreiben Sie dann Constraints wie <code>Context \"ClassName\" ...</code>. Sie können Constraints über gepunktete Verbindungen mit Klassen verknüpfen.</p><p>Die Validierung der Constraint-Syntax erfolgt während der Quality Check und wird von <boclLink>B-OCL</boclLink> unterstützt.</p>",
+          "alt": "Hilfe zu OCL-Constraints"
+        },
+        "associationClass": {
+          "title": "Assoziationsklasse",
+          "body": "<p>Erstellen Sie eine Assoziationsklasse, indem Sie ein Klassenelement mit dem Mittelpunkt einer bestehenden Assoziation verbinden. Sie können Attribute wie bei einer normalen Klasse definieren. Hinweis: Die aktuellen Generatoren unterstützen keine Assoziationsklassen.</p>",
+          "alt": "Hilfe zur Assoziationsklasse"
+        }
+      },
+      "object": {
+        "label": "Objektdiagramm",
+        "summary": "Stellen Sie konkrete Laufzeitinstanzen und ihre Verknüpfungen dar.",
+        "about": {
+          "title": "Über Objektdiagramme",
+          "body": "<p>Objektdiagramme zeigen Instanzen von Klassen zu einem bestimmten Zeitpunkt, einschließlich aktueller Attributwerte und Verknüpfungen.</p>"
+        },
+        "addObject": {
+          "title": "Objekt hinzufügen",
+          "body": "<p>Ziehen Sie ein Objektelement per Drag-and-drop aus dem linken Bereich auf die Fläche.</p>",
+          "alt": "Objekt erstellen"
+        },
+        "editObject": {
+          "title": "Objekt bearbeiten",
+          "body": "<p>Doppelklicken Sie auf ein Objekt, um Name, Typ und Attributwerte zu bearbeiten.</p><p>Verwenden Sie das Namensformat <code>objectName : ClassName</code>. Verwenden Sie für Werte <code>attributeName = value</code> (zum Beispiel <code>age = 25</code>).</p>",
+          "alt": "Objekt bearbeiten"
+        },
+        "addLink": {
+          "title": "Objektverknüpfung hinzufügen",
+          "body": "<p>Klicken Sie auf ein Objekt, ziehen Sie von einem blauen Verbindungspunkt und lassen Sie es auf einem anderen Objekt los, um eine Verknüpfung zu erstellen.</p>",
+          "alt": "Objektverknüpfung erstellen"
+        },
+        "editLink": {
+          "title": "Objektverknüpfung bearbeiten",
+          "body": "<p>Doppelklicken Sie auf eine Verknüpfung, um ihre Eigenschaften wie Rollen-/Namensinformationen zu aktualisieren.</p>",
+          "alt": "Objektverknüpfung bearbeiten"
+        },
+        "deleteMove": {
+          "title": "Löschen, Verschieben und Best Practices",
+          "body": "<p>Löschen Sie Objekte/Verknüpfungen mit <code>Delete</code> oder <code>Backspace</code>. Verschieben Sie Objekte per Drag-and-drop oder mit den Pfeiltasten.</p><p>Verwenden Sie Objektdiagramme zusammen mit Klassendiagrammen, um reale Szenarien, Namen und die Konsistenz von Werten zu validieren.</p>"
+        }
+      },
+      "state": {
+        "label": "Zustandsautomat",
+        "summary": "Erfassen Sie dynamisches Verhalten mit Zuständen, Transitionen und Aktionen.",
+        "about": {
+          "title": "Über Zustandsautomaten-Diagramme",
+          "body": "<p>Zustandsautomaten-Diagramme beschreiben Verhaltensänderungen im Laufe der Zeit als Reaktion auf Ereignisse und Bedingungen.</p>"
+        },
+        "initialFinal": {
+          "title": "Anfangs- und Endfluss hinzufügen",
+          "body": "<p>Beginnen Sie mit einem Anfangsknoten und verbinden Sie ihn mit dem ersten Zustand.</p>",
+          "alt": "Anfangs- und Endzustände des Zustandsautomaten"
+        },
+        "editState": {
+          "title": "Zustand bearbeiten",
+          "body": "<p>Doppelklicken Sie auf einen Zustand, um seinen Namen, seinen <code>Body</code> und optionales <code>Fallback</code>-Verhalten zu aktualisieren.</p>",
+          "alt": "Zustand bearbeiten"
+        },
+        "codeBlock": {
+          "title": "Codeblock verknüpfen",
+          "body": "<p>Verknüpfen Sie Codeverhalten, indem Sie Funktionsnamen in den Body-/Fallback-Feldern des Zustands angeben, um eine präzise Ausführungszuordnung zu erreichen.</p>",
+          "alt": "Codeblock des Zustandsautomaten"
+        },
+        "bestPractices": {
+          "title": "Best Practices",
+          "body": "<p>Halten Sie Zustandsnamen eindeutig, sichern Sie Transitionen ordnungsgemäß ab und stellen Sie sicher, dass alle relevanten Ereignispfade modelliert sind.</p>"
+        }
+      },
+      "agent": {
+        "label": "Agentendiagramm",
+        "summary": "Modellieren Sie konversationelle BAF-Agenten mit Zuständen, Intents und Transitionslogik.",
+        "about": {
+          "title": "BAF-Agenten modellieren",
+          "body": "<p>Agentendiagramme folgen einem Zustandsautomaten-Stil, bei dem jeder Zustand einen Verhaltens-Body hat und Transitionen das Routing definieren.</p>"
+        },
+        "addState": {
+          "title": "Agentenzustand hinzufügen",
+          "body": "<p>Ziehen Sie einen Agentenzustand aus der Palette auf die Fläche.</p>",
+          "alt": "Agentenzustand hinzufügen"
+        },
+        "editBody": {
+          "title": "Body des Agentenzustands bearbeiten",
+          "body": "<p>Doppelklicken Sie auf einen Agentenzustand, um das Verhalten zu konfigurieren.</p><ul><li>Textantwort: vordefinierte Antwortnachricht.</li><li>LLM-Antwort: Delegieren Sie die Antwortgenerierung an ein LLM.</li><li>RAG-Antwort: Antworten Sie mithilfe einer Retrieval-Augmented-Wissensquelle.</li><li>Python-Code: Führen Sie benutzerdefinierte Verhaltenslogik aus.</li></ul>",
+          "alt": "Agenten-Body bearbeiten"
+        },
+        "addTransition": {
+          "title": "Transition zwischen Zuständen hinzufügen",
+          "body": "<p>Ziehen Sie vom äußeren Teil eines Quellzustands zu einem Zielzustand, um eine Transition zu definieren.</p>",
+          "alt": "Agententransition hinzufügen"
+        },
+        "transitionCondition": {
+          "title": "Transitionsbedingung festlegen",
+          "body": "<p>Doppelklicken Sie auf eine Transition und konfigurieren Sie Bedingungsregeln wie:</p><ul><li>Wenn Intent erkannt</li><li>Wenn kein Intent erkannt</li><li>Variablenoperation erkannt</li><li>Datei empfangen</li><li>Automatische Transition</li></ul>",
+          "alt": "Bedingungen für Agententransitionen"
+        },
+        "initialState": {
+          "title": "Anfangszustand festlegen",
+          "body": "<p>Verbinden Sie den Anfangsknoten mit dem Zustand, in dem die Konversation beginnen soll.</p>",
+          "alt": "Anfangszustand des Agenten"
+        },
+        "defineIntents": {
+          "title": "Intents definieren",
+          "body": "<p>Fügen Sie Intent-Elemente hinzu und definieren Sie Intent-Namen sowie Trainingssätze, um die Erkennungsqualität zu verbessern. Intent-Beschreibungen helfen, die Bedeutung und den Zweck jedes Intents zu verdeutlichen.</p>",
+          "alt": "Agenten-Intents definieren"
+        },
+        "customization": {
+          "title": "Agentenanpassung",
+          "body": "<p>Öffnen Sie Agent Config in der Seitenleiste, um Modell- und Laufzeiteinstellungen für generierte Agenten zu konfigurieren.</p><ul><li>Klassische Intent-Erkennung: Trainieren Sie ein lokales Modell aus den definierten Intents.</li><li>LLM-basierte Intent-Erkennung: Delegieren Sie die Intent-Klassifizierung an ein LLM.</li></ul>",
+          "alt": "Agentenkonfiguration"
+        }
+      },
+      "gui": {
+        "label": "GUI Editor",
+        "summary": "Erstellen Sie UI-Bildschirme visuell und generieren Sie Frontends für Webanwendungen.",
+        "coreWorkflow": {
+          "title": "Kern-Workflow",
+          "body": "<p>Verwenden Sie Vorlagenblöcke, komponieren Sie Layouts und binden Sie dann modellbasierte Daten und Aktionen ein.</p><p>Halten Sie Seiten modular, damit die generierte Ausgabe vorhersehbar und wartbar bleibt.</p>"
+        }
+      },
+      "quantum": {
+        "label": "Quantum Editor",
+        "summary": "Entwerfen Sie Schaltkreise, konfigurieren Sie Gatter und generieren Sie Qiskit-kompatible Artefakte.",
+        "coreWorkflow": {
+          "title": "Kern-Workflow",
+          "body": "<p>Platzieren Sie Gatter auf Qubit-Linien, validieren Sie die Struktur und generieren Sie dann mit den ausgewählten Backend-Einstellungen.</p><p>Verwenden Sie die Shot-Anzahl und die Backend-Auswahl in Generate für reproduzierbare Ergebnisse.</p>"
+        }
+      },
+      "nn": {
+        "label": "Neuronales Netz",
+        "summary": "Entwerfen Sie geschichtete neuronale Netze, hängen Sie Datensätze und Trainingskonfigurationen an und generieren Sie PyTorch- oder TensorFlow-Code.",
+        "coreWorkflow": {
+          "title": "Kern-Workflow",
+          "body": "<p>Erstellen Sie ein neuronales Netz, indem Sie einen NNContainer auf die Fläche ziehen. Ziehen Sie Schichten und TensorOps hinein und verbinden Sie sie dann mit NNNext-Beziehungen, um den Forward-Pass zu definieren.</p><p>Configuration sowie Training/Test-Datensätze sind optionale Elemente, die Trainingshyperparameter und Datensatz-Metadaten enthalten. Wenn das Diagramm fertig ist, generieren Sie PyTorch- oder TensorFlow-Code über das Menü Generate.</p>",
+          "alt": "Übersicht über das NN-Diagramm"
+        },
+        "containerLayers": {
+          "title": "NNContainer, Schichten und TensorOps hinzufügen",
+          "body": "<p>Ziehen Sie zunächst einen NNContainer aus der Palette auf die Fläche; alle Module des neuronalen Netzes müssen sich darin befinden.</p><p>Verfügbare Schichten: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. Verfügbare TensorOps: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
+          "alt": "NN-Palette mit einer abgelegten Schicht"
+        },
+        "connect": {
+          "title": "Module verbinden (NNNext)",
+          "body": "<p>Ziehen Sie von einem blauen Verbindungspunkt an einem Quellmodul zu einem beliebigen Zielmodul, um eine NNNext-Beziehung zu erstellen. Der resultierende \"next\"-Pfeil definiert die Reihenfolge des Forward-Pass, unabhängig davon, ob die verbundenen Module Schichten, TensorOps oder eine Mischung aus beidem sind.</p>",
+          "alt": "Zwei mit einem NNNext-Pfeil verbundene Module"
+        },
+        "editAttributes": {
+          "title": "Modulattribute bearbeiten",
+          "body": "<p>Doppelklicken Sie auf eine beliebige Schicht oder TensorOp, um ihr Attribut-Popup zu öffnen. Obligatorische Attribute werden immer angezeigt; optionale werden über Kontrollkästchen aktiviert.</p><p>Viele Felder verwenden Dropdowns: <code>pooling_type</code> (<code>max</code>, <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>, <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (<code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>, <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>, <code>same</code>).</p><p>Attribute vom Listentyp passen sich an die Dimension des Moduls an. Eine Pooling-Schicht mit <code>dimension = 2D</code> erwartet <code>kernel_dim = [3, 3]</code>, während <code>dimension = 3D</code> <code>[3, 3, 3]</code> erwartet. Dieselbe Regel gilt für <code>stride_dim</code> und <code>output_dim</code>. Bei TensorOps steuert der ausgewählte <code>tns_type</code>, welches Dimensionsattribut angezeigt wird (zum Beispiel <code>reshape_dim</code> für reshape, <code>concatenate_dim</code> für concatenate).</p>",
+          "alt": "Modulattribute bearbeiten"
+        },
+        "datasets": {
+          "title": "Datensätze (Training und Test)",
+          "body": "<p>Datensätze sind optional. Legen Sie einen Trainingsdatensatz und einen Testdatensatz ab, um Datenquellen für das Netz zu deklarieren.</p><p>Obligatorische Attribute sind <code>name</code> und <code>path_data</code> (Datei- oder Ordnerpfad zum Datensatz). Optionale Attribute sind <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) und <code>input_format</code> (<code>csv</code>, <code>images</code>). Wenn <code>input_format = images</code>, erscheinen zwei zusätzliche Attribute: <code>shape</code> (zum Beispiel <code>[32, 32, 3]</code>) und <code>normalize</code> (<code>true</code> oder <code>false</code>).</p><p>Verbinden Sie jeden Datensatz über eine Assoziationslinie mit dem NNContainer.</p>",
+          "alt": "Trainings- und Testdatensätze"
+        },
+        "configuration": {
+          "title": "Configuration",
+          "body": "<p>Configuration ist optional. Ziehen Sie ein Configuration-Element und verbinden Sie es über eine Kompositionsbeziehung mit dem NNContainer, um Trainingshyperparameter festzulegen.</p><p>Obligatorische Attribute: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>) und <code>metrics</code> (Mehrfachauswahl aus <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Optionale Attribute: <code>weight_decay</code> und <code>momentum</code>.</p>",
+          "alt": "Configuration-Element mit Optimizer-Dropdown"
+        },
+        "reference": {
+          "title": "Ein anderes Netz referenzieren (NNReference)",
+          "body": "<p>Verwenden Sie ein NNReference-Element, um ein bereits auf derselben Fläche definiertes NN wiederzuverwenden. Wählen Sie den Ziel-NNContainer im Popup aus; das referenzierte Netz wird bei der Codegenerierung als Teilnetz eingebunden.</p>",
+          "alt": "NNReference mit Popup zur Zielauswahl"
+        },
+        "validateGenerate": {
+          "title": "Validieren und generieren",
+          "body": "<p>Führen Sie Quality Check in der oberen Leiste aus, um strukturelle Probleme wie nicht verbundene Schichten oder fehlende obligatorische Attribute zu erkennen, bevor Sie Code generieren.</p><p>Öffnen Sie das Menü Generate und wählen Sie ein Framework und einen Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Unterklasse mit einem expliziten Forward-Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Komposition für streng sequenzielle Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Unterklasse mit einem benutzerdefinierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Komposition.</li></ul><p>Die NN-Architekturdefinition wird im ausgewählten Framework generiert, zusammen mit Trainings- und Evaluierungscode, wenn Datensätze und Configuration definiert sind.</p>",
+          "alt": "Menü zum Generieren von Code"
+        }
+      }
+    }
+  },
   "exportImport": {
     "dialogTitle": "Projekt exportieren",
     "dialogDescription": "Exportieren Sie vollständige Projektdateien oder Assets des aktuellen Diagramms.",

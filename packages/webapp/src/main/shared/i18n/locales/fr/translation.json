@@ -1160,6 +1160,257 @@
     "QuantumCircuitDiagram": "Diagramme de circuit quantique",
     "NNDiagram": "Diagramme de réseau de neurones"
   },
+  "dialogs": {
+    "about": {
+      "title": "À propos de BESSER",
+      "tagline": "Building Better Smart Software Faster",
+      "para1": "BESSER est une plateforme low-code pour la modélisation de logiciels intelligents et la génération de code. Elle fournit un métamodèle basé sur Python (B-UML) pour décrire des modèles de domaine, des machines à états, des conceptions d'interfaces graphiques, des agents, et plus encore.",
+      "para2": "Le <brand>Web Modeling Editor</brand> est l'éditeur visuel en ligne permettant de créer et modifier des modèles BESSER, de générer du code et de déployer des applications.",
+      "para3": "Développé par le groupe de recherche BESSER-PEARL de l'Université du Luxembourg.",
+      "besserRepository": "Dépôt BESSER",
+      "wmeRepository": "Dépôt WME",
+      "libraryRepository": "Dépôt de la bibliothèque"
+    },
+    "shortcuts": {
+      "title": "Raccourcis clavier",
+      "description": "Raccourcis clavier disponibles dans l'éditeur.",
+      "category": {
+        "general": "Général",
+        "guiEditor": "Éditeur d'interface graphique",
+        "quantumEditor": "Éditeur quantique",
+        "help": "Aide"
+      },
+      "action": {
+        "commandPalette": "Ouvrir la palette de commandes",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "redoAlt": "Rétablir (alternative)",
+        "deleteElement": "Supprimer l'élément sélectionné",
+        "moveElement": "Déplacer l'élément sélectionné",
+        "closeDeselect": "Fermer le panneau / désélectionner",
+        "save": "Enregistrer",
+        "copyComponent": "Copier le composant",
+        "pasteComponent": "Coller le composant",
+        "duplicateComponent": "Dupliquer le composant",
+        "togglePreview": "Activer/désactiver l'aperçu",
+        "exportTemplate": "Exporter le modèle",
+        "showJson": "Afficher le JSON",
+        "selectParent": "Sélectionner le composant parent",
+        "copyGate": "Copier la porte sélectionnée",
+        "pasteGate": "Coller la porte",
+        "showShortcuts": "Afficher les raccourcis clavier"
+      }
+    },
+    "guide": {
+      "title": "Fonctionnement de l'éditeur",
+      "description": "Guide de modélisation complet avec exemples et visuels.",
+      "diagramTypesHeading": "Types de diagrammes",
+      "noImage": "Aucune image pour cet élément.",
+      "openDocs": "Ouvrir la documentation BESSER",
+      "openWmeRepo": "Ouvrir le dépôt WME",
+      "class": {
+        "label": "Diagramme de classes",
+        "summary": "Modélisez des classes, des relations, des contraintes et des structures UML avancées.",
+        "addClass": {
+          "title": "Ajouter une classe",
+          "body": "<p>Glissez-déposez une forme de classe depuis la palette de gauche sur le canevas de modélisation.</p>",
+          "alt": "Créer un élément de classe"
+        },
+        "addAssociation": {
+          "title": "Ajouter une association ou une généralisation",
+          "body": "<p>Sélectionnez une classe source, puis faites glisser depuis un point de connexion bleu vers une autre classe. Pour les multiplicités, utilisez des valeurs comme <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code> ou <code>2..4</code>.</p>",
+          "alt": "Créer une relation de classe"
+        },
+        "editClass": {
+          "title": "Modifier une classe",
+          "body": "<p>Double-cliquez sur une classe pour modifier son nom, ses attributs et ses méthodes.</p><p>Exemples de format d'attribut : <code>+ attribute : type</code>, <code>+ attribute</code>, <code>attribute</code>. Les types primitifs incluent <code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>time</code>, <code>date</code>, <code>datetime</code>, <code>timedelta</code> et <code>any</code>.</p><p>Visibilité : <code>+</code> public, <code>-</code> privé, <code>#</code> protégé. Exemples de méthodes : <code>+ notify(sms: str = 'message')</code>, <code>- findBook(title: str): Book</code>, <code>validate()</code>.</p>",
+          "alt": "Modifier un élément de classe"
+        },
+        "editAssociation": {
+          "title": "Modifier une association ou une généralisation",
+          "body": "<p>Double-cliquez sur une relation pour modifier son type (unidirectionnelle, bidirectionnelle, composition, généralisation), son nom, les noms de rôle source/cible et les multiplicités.</p>",
+          "alt": "Modifier une association de classe"
+        },
+        "deleteMove": {
+          "title": "Supprimer et déplacer",
+          "body": "<p>Sélectionnez une classe et appuyez sur <code>Delete</code> ou <code>Backspace</code> pour la supprimer.</p><p>Déplacez les éléments en les faisant glisser ou à l'aide des flèches du clavier.</p><p>Utilisez <code>Ctrl+Z</code> et <code>Ctrl+Y</code> pour annuler/rétablir.</p>",
+          "alt": "Déplacer un élément de classe"
+        },
+        "oclConstraint": {
+          "title": "Contrainte OCL",
+          "body": "<p>Faites glisser la forme OCL, puis écrivez des contraintes telles que <code>Context \"ClassName\" ...</code>. Vous pouvez relier les contraintes aux classes à l'aide de liens en pointillés.</p><p>La validation de la syntaxe des contraintes s'exécute lors du Quality Check et repose sur <boclLink>B-OCL</boclLink>.</p>",
+          "alt": "Aide sur les contraintes OCL"
+        },
+        "associationClass": {
+          "title": "Classe d'association",
+          "body": "<p>Créez une classe d'association en reliant un élément de classe au point central d'une association existante. Vous pouvez définir des attributs comme pour une classe ordinaire. Remarque : les générateurs actuels ne prennent pas en charge les classes d'association.</p>",
+          "alt": "Aide sur les classes d'association"
+        }
+      },
+      "object": {
+        "label": "Diagramme d'objets",
+        "summary": "Représentez des instances concrètes à l'exécution et leurs liens.",
+        "about": {
+          "title": "À propos des diagrammes d'objets",
+          "body": "<p>Les diagrammes d'objets montrent des instances de classes à un instant précis, y compris les valeurs actuelles des attributs et les liens.</p>"
+        },
+        "addObject": {
+          "title": "Ajouter un objet",
+          "body": "<p>Glissez-déposez un élément objet depuis le panneau de gauche sur le canevas.</p>",
+          "alt": "Créer un objet"
+        },
+        "editObject": {
+          "title": "Modifier un objet",
+          "body": "<p>Double-cliquez sur un objet pour modifier son nom, son type et les valeurs de ses attributs.</p><p>Utilisez le format de nommage <code>objectName : ClassName</code>. Pour les valeurs, utilisez <code>attributeName = value</code> (par exemple <code>age = 25</code>).</p>",
+          "alt": "Modifier un objet"
+        },
+        "addLink": {
+          "title": "Ajouter un lien d'objet",
+          "body": "<p>Cliquez sur un objet, faites glisser depuis un point de connexion bleu et déposez sur un autre objet pour créer un lien.</p>",
+          "alt": "Créer un lien d'objet"
+        },
+        "editLink": {
+          "title": "Modifier un lien d'objet",
+          "body": "<p>Double-cliquez sur un lien pour mettre à jour ses propriétés, telles que les informations de rôle/nom.</p>",
+          "alt": "Modifier un lien d'objet"
+        },
+        "deleteMove": {
+          "title": "Supprimer, déplacer et bonnes pratiques",
+          "body": "<p>Supprimez les objets/liens avec <code>Delete</code> ou <code>Backspace</code>. Déplacez les objets par glisser-déposer ou avec les flèches.</p><p>Utilisez les diagrammes d'objets conjointement avec les diagrammes de classes pour valider des scénarios réels, les noms et la cohérence des valeurs.</p>"
+        }
+      },
+      "state": {
+        "label": "Machine à états",
+        "summary": "Capturez le comportement dynamique avec des états, des transitions et des actions.",
+        "about": {
+          "title": "À propos des diagrammes de machine à états",
+          "body": "<p>Les diagrammes de machine à états décrivent les changements de comportement au fil du temps en réponse à des événements et des conditions.</p>"
+        },
+        "initialFinal": {
+          "title": "Ajouter un flux initial et final",
+          "body": "<p>Commencez par un nœud initial et connectez-le au premier état.</p>",
+          "alt": "États initial et final de la machine à états"
+        },
+        "editState": {
+          "title": "Modifier un état",
+          "body": "<p>Double-cliquez sur un état pour mettre à jour son nom, son <code>Body</code> et son comportement <code>Fallback</code> optionnel.</p>",
+          "alt": "Modifier un état"
+        },
+        "codeBlock": {
+          "title": "Lier un bloc de code",
+          "body": "<p>Liez le comportement du code en fournissant des noms de fonctions dans les champs body/fallback de l'état pour un mappage d'exécution précis.</p>",
+          "alt": "Bloc de code de la machine à états"
+        },
+        "bestPractices": {
+          "title": "Bonnes pratiques",
+          "body": "<p>Gardez des noms d'états explicites, protégez correctement les transitions et vérifiez que tous les chemins d'événements pertinents sont modélisés.</p>"
+        }
+      },
+      "agent": {
+        "label": "Diagramme d'agent",
+        "summary": "Modélisez des agents conversationnels BAF avec des états, des intentions et une logique de transition.",
+        "about": {
+          "title": "Modélisation d'agents BAF",
+          "body": "<p>Les diagrammes d'agents suivent un style de machine à états où chaque état possède un corps de comportement et où les transitions définissent le routage.</p>"
+        },
+        "addState": {
+          "title": "Ajouter un état d'agent",
+          "body": "<p>Faites glisser un état d'agent depuis la palette sur le canevas.</p>",
+          "alt": "Ajouter un état d'agent"
+        },
+        "editBody": {
+          "title": "Modifier le corps de l'état d'agent",
+          "body": "<p>Double-cliquez sur un état d'agent pour configurer son comportement.</p><ul><li>Réponse textuelle : message de réponse prédéfini.</li><li>Réponse LLM : déléguer la génération de la réponse à un LLM.</li><li>Réponse RAG : répondre à l'aide d'une source de connaissances à récupération augmentée.</li><li>Code Python : exécuter une logique de comportement personnalisée.</li></ul>",
+          "alt": "Modifier le corps de l'agent"
+        },
+        "addTransition": {
+          "title": "Ajouter une transition entre états",
+          "body": "<p>Faites glisser depuis la partie externe d'un état source vers un état cible pour définir une transition.</p>",
+          "alt": "Ajouter une transition d'agent"
+        },
+        "transitionCondition": {
+          "title": "Définir une condition de transition",
+          "body": "<p>Double-cliquez sur une transition et configurez des règles de condition telles que :</p><ul><li>Lorsqu'une intention correspond</li><li>Lorsqu'aucune intention ne correspond</li><li>Opération sur variable correspondante</li><li>Fichier reçu</li><li>Transition automatique</li></ul>",
+          "alt": "Conditions de transition d'agent"
+        },
+        "initialState": {
+          "title": "Définir l'état initial",
+          "body": "<p>Connectez le nœud initial à l'état où la conversation doit commencer.</p>",
+          "alt": "État initial de l'agent"
+        },
+        "defineIntents": {
+          "title": "Définir les intentions",
+          "body": "<p>Ajoutez des éléments d'intention et définissez des noms d'intentions ainsi que des phrases d'entraînement pour améliorer la qualité de la reconnaissance. Les descriptions d'intentions aident à clarifier la signification et l'objectif de chaque intention.</p>",
+          "alt": "Définir les intentions de l'agent"
+        },
+        "customization": {
+          "title": "Personnalisation de l'agent",
+          "body": "<p>Ouvrez Agent Config depuis la barre latérale pour configurer le modèle et les paramètres d'exécution des agents générés.</p><ul><li>Reconnaissance d'intentions classique : entraîner un modèle local à partir des intentions définies.</li><li>Reconnaissance d'intentions basée sur un LLM : déléguer la classification des intentions à un LLM.</li></ul>",
+          "alt": "Configuration de l'agent"
+        }
+      },
+      "gui": {
+        "label": "Éditeur d'interface graphique",
+        "summary": "Construisez visuellement des écrans d'interface et générez des frontends d'applications web.",
+        "coreWorkflow": {
+          "title": "Flux de travail principal",
+          "body": "<p>Utilisez des blocs de modèle, composez des mises en page, puis liez les données et actions basées sur le modèle.</p><p>Gardez les pages modulaires afin que la sortie générée reste prévisible et maintenable.</p>"
+        }
+      },
+      "quantum": {
+        "label": "Éditeur quantique",
+        "summary": "Concevez des circuits, configurez des portes et générez des artefacts compatibles Qiskit.",
+        "coreWorkflow": {
+          "title": "Flux de travail principal",
+          "body": "<p>Placez des portes sur les lignes de qubits, validez la structure, puis générez avec les paramètres de backend sélectionnés.</p><p>Utilisez le nombre de tirs et la sélection du backend dans Generate pour des résultats reproductibles.</p>"
+        }
+      },
+      "nn": {
+        "label": "Réseau de neurones",
+        "summary": "Concevez des réseaux de neurones en couches, associez des jeux de données et une configuration d'entraînement, et générez du code PyTorch ou TensorFlow.",
+        "coreWorkflow": {
+          "title": "Flux de travail principal",
+          "body": "<p>Construisez un réseau de neurones en déposant un NNContainer sur le canevas. Faites glisser des couches et des TensorOps à l'intérieur, puis connectez-les avec des relations NNNext pour définir la passe avant.</p><p>La configuration et les jeux de données d'entraînement/test sont des éléments optionnels qui contiennent les hyperparamètres d'entraînement et les métadonnées des jeux de données. Lorsque le diagramme est prêt, générez du code PyTorch ou TensorFlow depuis le menu Generate.</p>",
+          "alt": "Vue d'ensemble du diagramme NN"
+        },
+        "containerLayers": {
+          "title": "Ajouter un conteneur NN, des couches et des TensorOps",
+          "body": "<p>Commencez par faire glisser un NNContainer depuis la palette sur le canevas ; tous les modules du réseau de neurones doivent se trouver à l'intérieur.</p><p>Couches disponibles : <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. TensorOps disponibles : <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
+          "alt": "Palette NN avec une couche déposée"
+        },
+        "connect": {
+          "title": "Connecter des modules (NNNext)",
+          "body": "<p>Faites glisser depuis un point de connexion bleu d'un module source vers n'importe quel module cible pour créer une relation NNNext. La flèche \"next\" résultante définit l'ordre de la passe avant, que les modules connectés soient des couches, des TensorOps ou un mélange des deux.</p>",
+          "alt": "Deux modules connectés par une flèche NNNext"
+        },
+        "editAttributes": {
+          "title": "Modifier les attributs d'un module",
+          "body": "<p>Double-cliquez sur n'importe quelle couche ou TensorOp pour ouvrir sa fenêtre d'attributs. Les attributs obligatoires sont toujours affichés ; les optionnels sont activés via des cases à cocher.</p><p>De nombreux champs utilisent des menus déroulants : <code>pooling_type</code> (<code>max</code>, <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>, <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (<code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>, <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>, <code>same</code>).</p><p>Les attributs de type liste s'adaptent à la dimension du module. Une couche Pooling avec <code>dimension = 2D</code> attend <code>kernel_dim = [3, 3]</code>, tandis que <code>dimension = 3D</code> attend <code>[3, 3, 3]</code>. La même règle s'applique à <code>stride_dim</code> et <code>output_dim</code>. Pour les TensorOps, le <code>tns_type</code> sélectionné détermine quel attribut de dimension est affiché (par exemple <code>reshape_dim</code> pour reshape, <code>concatenate_dim</code> pour concatenate).</p>",
+          "alt": "Modifier les attributs d'un module"
+        },
+        "datasets": {
+          "title": "Jeux de données (entraînement et test)",
+          "body": "<p>Les jeux de données sont optionnels. Déposez un jeu de données d'entraînement et un jeu de données de test pour déclarer les sources de données du réseau.</p><p>Les attributs obligatoires sont <code>name</code> et <code>path_data</code> (chemin de fichier ou de dossier vers le jeu de données). Les attributs optionnels sont <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) et <code>input_format</code> (<code>csv</code>, <code>images</code>). Lorsque <code>input_format = images</code>, deux attributs supplémentaires apparaissent : <code>shape</code> (par exemple <code>[32, 32, 3]</code>) et <code>normalize</code> (<code>true</code> ou <code>false</code>).</p><p>Connectez chaque jeu de données au NNContainer avec une ligne d'association.</p>",
+          "alt": "Jeux de données d'entraînement et de test"
+        },
+        "configuration": {
+          "title": "Configuration",
+          "body": "<p>La configuration est optionnelle. Faites glisser un élément Configuration et connectez-le au NNContainer avec une relation de composition pour définir les hyperparamètres d'entraînement.</p><p>Attributs obligatoires : <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>) et <code>metrics</code> (sélection multiple parmi <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Attributs optionnels : <code>weight_decay</code> et <code>momentum</code>.</p>",
+          "alt": "Élément Configuration avec menu déroulant de l'optimiseur"
+        },
+        "reference": {
+          "title": "Référencer un autre réseau (NNReference)",
+          "body": "<p>Utilisez un élément NNReference pour réutiliser un NN déjà défini sur le même canevas. Sélectionnez le NNContainer cible dans la fenêtre contextuelle ; le réseau référencé est inclus comme sous-réseau lors de la génération de code.</p>",
+          "alt": "NNReference avec fenêtre de sélection de cible"
+        },
+        "validateGenerate": {
+          "title": "Valider et générer",
+          "body": "<p>Exécutez le Quality Check depuis la barre supérieure pour détecter les problèmes structurels tels que des couches déconnectées ou des attributs obligatoires manquants avant de générer le code.</p><p>Ouvrez le menu Generate et choisissez un framework et un style :</p><ul><li><strong>PyTorch / Subclassing</strong> : sous-classe <code>torch.nn.Module</code> avec une passe avant explicite.</li><li><strong>PyTorch / Sequential</strong> : composition <code>nn.Sequential</code> pour des architectures strictement séquentielles.</li><li><strong>TensorFlow / Subclassing</strong> : sous-classe <code>tf.keras.Model</code> avec un <code>call()</code> personnalisé.</li><li><strong>TensorFlow / Sequential</strong> : composition <code>keras.Sequential</code>.</li></ul><p>La définition de l'architecture NN est générée dans le framework sélectionné, ainsi que le code d'entraînement et d'évaluation lorsque des jeux de données et une configuration sont définis.</p>",
+          "alt": "Menu de génération de code"
+        }
+      }
+    }
+  },
   "exportImport": {
     "dialogTitle": "Exporter le projet",
     "dialogDescription": "Exportez les fichiers complets du projet ou les ressources du diagramme actuel.",

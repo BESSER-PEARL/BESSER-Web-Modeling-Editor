@@ -1160,6 +1160,257 @@
     "QuantumCircuitDiagram": "Diagrama de circuit quàntic",
     "NNDiagram": "Diagrama de xarxa neuronal"
   },
+  "dialogs": {
+    "about": {
+      "title": "Sobre BESSER",
+      "tagline": "Building Better Smart Software Faster",
+      "para1": "BESSER és una plataforma low-code per al modelatge de programari intel·ligent i la generació de codi. Proporciona un metamodel basat en Python (B-UML) per descriure models de domini, màquines d'estats, dissenys d'interfícies gràfiques, agents i molt més.",
+      "para2": "El <brand>Web Modeling Editor</brand> és l'editor visual en línia per crear i editar models de BESSER, generar codi i desplegar aplicacions.",
+      "para3": "Desenvolupat pel grup de recerca BESSER-PEARL de la Universitat de Luxemburg.",
+      "besserRepository": "Repositori de BESSER",
+      "wmeRepository": "Repositori de WME",
+      "libraryRepository": "Repositori de la biblioteca"
+    },
+    "shortcuts": {
+      "title": "Dreceres de teclat",
+      "description": "Dreceres de teclat disponibles a l'editor.",
+      "category": {
+        "general": "General",
+        "guiEditor": "Editor d'interfícies gràfiques",
+        "quantumEditor": "Editor quàntic",
+        "help": "Ajuda"
+      },
+      "action": {
+        "commandPalette": "Obrir la paleta d'ordres",
+        "undo": "Desfés",
+        "redo": "Refés",
+        "redoAlt": "Refés (alternativa)",
+        "deleteElement": "Suprimeix l'element seleccionat",
+        "moveElement": "Mou l'element seleccionat",
+        "closeDeselect": "Tanca el tauler / desselecciona",
+        "save": "Desa",
+        "copyComponent": "Copia el component",
+        "pasteComponent": "Enganxa el component",
+        "duplicateComponent": "Duplica el component",
+        "togglePreview": "Commuta la previsualització",
+        "exportTemplate": "Exporta la plantilla",
+        "showJson": "Mostra el JSON",
+        "selectParent": "Selecciona el component pare",
+        "copyGate": "Copia la porta seleccionada",
+        "pasteGate": "Enganxa la porta",
+        "showShortcuts": "Mostra les dreceres de teclat"
+      }
+    },
+    "guide": {
+      "title": "Com funciona l'editor",
+      "description": "Guia de modelatge completa amb exemples i material visual.",
+      "diagramTypesHeading": "Tipus de diagrames",
+      "noImage": "No hi ha cap imatge per a aquest element.",
+      "openDocs": "Obrir la documentació de BESSER",
+      "openWmeRepo": "Obrir el repositori de WME",
+      "class": {
+        "label": "Diagrama de classes",
+        "summary": "Modela classes, relacions, restriccions i estructures UML avançades.",
+        "addClass": {
+          "title": "Afegir una classe",
+          "body": "<p>Arrossega i deixa anar una forma de classe des de la paleta de l'esquerra sobre el llenç de modelatge.</p>",
+          "alt": "Crear un element de classe"
+        },
+        "addAssociation": {
+          "title": "Afegir una associació o una generalització",
+          "body": "<p>Selecciona una classe origen i, tot seguit, arrossega des d'un punt de connexió blau cap a una altra classe. Per a les multiplicitats, utilitza valors com ara <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code> o <code>2..4</code>.</p>",
+          "alt": "Crear una relació de classe"
+        },
+        "editClass": {
+          "title": "Editar una classe",
+          "body": "<p>Fes doble clic en una classe per editar-ne el nom, els atributs i els mètodes.</p><p>Exemples de format d'atribut: <code>+ attribute : type</code>, <code>+ attribute</code>, <code>attribute</code>. Els tipus primitius inclouen <code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>time</code>, <code>date</code>, <code>datetime</code>, <code>timedelta</code> i <code>any</code>.</p><p>Visibilitat: <code>+</code> públic, <code>-</code> privat, <code>#</code> protegit. Exemples de mètode: <code>+ notify(sms: str = 'message')</code>, <code>- findBook(title: str): Book</code>, <code>validate()</code>.</p>",
+          "alt": "Editar un element de classe"
+        },
+        "editAssociation": {
+          "title": "Editar una associació o una generalització",
+          "body": "<p>Fes doble clic en una relació per editar-ne el tipus (unidireccional, bidireccional, composició, generalització), el nom, els noms de rol d'origen/destinació i les multiplicitats.</p>",
+          "alt": "Editar una associació de classe"
+        },
+        "deleteMove": {
+          "title": "Suprimir i moure",
+          "body": "<p>Selecciona una classe i prem <code>Delete</code> o <code>Backspace</code> per eliminar-la.</p><p>Mou els elements arrossegant-los o utilitzant les fletxes del teclat.</p><p>Utilitza <code>Ctrl+Z</code> i <code>Ctrl+Y</code> per desfer/refer.</p>",
+          "alt": "Moure un element de classe"
+        },
+        "oclConstraint": {
+          "title": "Restricció OCL",
+          "body": "<p>Arrossega la forma OCL i, tot seguit, escriu restriccions com ara <code>Context \"ClassName\" ...</code>. Pots connectar les restriccions a les classes mitjançant enllaços de punts.</p><p>La validació de la sintaxi de les restriccions s'executa durant el Quality Check i està impulsada per <boclLink>B-OCL</boclLink>.</p>",
+          "alt": "Ajuda sobre les restriccions OCL"
+        },
+        "associationClass": {
+          "title": "Classe d'associació",
+          "body": "<p>Crea una classe d'associació enllaçant un element de classe amb el punt central d'una associació existent. Pots definir-hi atributs com en una classe normal. Nota: els generadors actuals no admeten les classes d'associació.</p>",
+          "alt": "Ajuda sobre les classes d'associació"
+        }
+      },
+      "object": {
+        "label": "Diagrama d'objectes",
+        "summary": "Representa instàncies concretes en temps d'execució i els seus enllaços.",
+        "about": {
+          "title": "Sobre els diagrames d'objectes",
+          "body": "<p>Els diagrames d'objectes mostren instàncies de classes en un moment concret, incloent-hi els valors actuals dels atributs i els enllaços.</p>"
+        },
+        "addObject": {
+          "title": "Afegir un objecte",
+          "body": "<p>Arrossega i deixa anar un element d'objecte des del tauler de l'esquerra fins al llenç.</p>",
+          "alt": "Crear un objecte"
+        },
+        "editObject": {
+          "title": "Editar un objecte",
+          "body": "<p>Fes doble clic en un objecte per editar-ne el nom, el tipus i els valors dels atributs.</p><p>Utilitza el format de nom <code>objectName : ClassName</code>. Per als valors, utilitza <code>attributeName = value</code> (per exemple <code>age = 25</code>).</p>",
+          "alt": "Editar un objecte"
+        },
+        "addLink": {
+          "title": "Afegir un enllaç d'objecte",
+          "body": "<p>Fes clic en un objecte, arrossega des d'un punt de connexió blau i deixa'l anar sobre un altre objecte per crear un enllaç.</p>",
+          "alt": "Crear un enllaç d'objecte"
+        },
+        "editLink": {
+          "title": "Editar un enllaç d'objecte",
+          "body": "<p>Fes doble clic en un enllaç per actualitzar-ne les propietats, com ara la informació de rol/nom.</p>",
+          "alt": "Editar un enllaç d'objecte"
+        },
+        "deleteMove": {
+          "title": "Suprimir, moure i bones pràctiques",
+          "body": "<p>Suprimeix objectes/enllaços amb <code>Delete</code> o <code>Backspace</code>. Mou els objectes arrossegant-los o amb les fletxes.</p><p>Utilitza els diagrames d'objectes juntament amb els diagrames de classes per validar escenaris reals, noms i la coherència dels valors.</p>"
+        }
+      },
+      "state": {
+        "label": "Màquina d'estats",
+        "summary": "Captura el comportament dinàmic amb estats, transicions i accions.",
+        "about": {
+          "title": "Sobre els diagrames de màquina d'estats",
+          "body": "<p>Els diagrames de màquina d'estats descriuen els canvis de comportament al llarg del temps en resposta a esdeveniments i condicions.</p>"
+        },
+        "initialFinal": {
+          "title": "Afegir el flux inicial i final",
+          "body": "<p>Comença amb un node inicial i connecta'l al primer estat.</p>",
+          "alt": "Estats inicial i final de la màquina d'estats"
+        },
+        "editState": {
+          "title": "Editar un estat",
+          "body": "<p>Fes doble clic en un estat per actualitzar-ne el nom, el <code>Body</code> i el comportament opcional de <code>Fallback</code>.</p>",
+          "alt": "Editar un estat"
+        },
+        "codeBlock": {
+          "title": "Enllaçar un bloc de codi",
+          "body": "<p>Enllaça el comportament de codi proporcionant noms de funcions als camps body/fallback de l'estat per obtenir una assignació d'execució precisa.</p>",
+          "alt": "Bloc de codi de la màquina d'estats"
+        },
+        "bestPractices": {
+          "title": "Bones pràctiques",
+          "body": "<p>Mantén els noms dels estats explícits, protegeix les transicions correctament i verifica que tots els camins d'esdeveniments rellevants estiguin modelats.</p>"
+        }
+      },
+      "agent": {
+        "label": "Diagrama d'agent",
+        "summary": "Modela agents conversacionals BAF amb estats, intents i lògica de transició.",
+        "about": {
+          "title": "Modelatge d'agents BAF",
+          "body": "<p>Els diagrames d'agent segueixen un estil de màquina d'estats en què cada estat té un cos de comportament i les transicions defineixen l'encaminament.</p>"
+        },
+        "addState": {
+          "title": "Afegir un estat d'agent",
+          "body": "<p>Arrossega un estat d'agent des de la paleta fins al llenç.</p>",
+          "alt": "Afegir un estat d'agent"
+        },
+        "editBody": {
+          "title": "Editar el cos d'un estat d'agent",
+          "body": "<p>Fes doble clic en un estat d'agent per configurar-ne el comportament.</p><ul><li>Resposta de text: missatge de resposta predefinit.</li><li>Resposta LLM: delega la generació de la resposta a un LLM.</li><li>Resposta RAG: respon utilitzant una font de coneixement amb recuperació augmentada.</li><li>Codi Python: executa lògica de comportament personalitzada.</li></ul>",
+          "alt": "Editar el cos d'un agent"
+        },
+        "addTransition": {
+          "title": "Afegir una transició entre estats",
+          "body": "<p>Arrossega des de la part exterior d'un estat origen fins a un estat destinació per definir una transició.</p>",
+          "alt": "Afegir una transició d'agent"
+        },
+        "transitionCondition": {
+          "title": "Establir la condició de la transició",
+          "body": "<p>Fes doble clic en una transició i configura les regles de la condició, com ara:</p><ul><li>Quan es reconeix l'intent</li><li>Quan no es reconeix cap intent</li><li>Operació de variable reconeguda</li><li>Fitxer rebut</li><li>Transició automàtica</li></ul>",
+          "alt": "Condicions de transició d'agent"
+        },
+        "initialState": {
+          "title": "Establir l'estat inicial",
+          "body": "<p>Connecta el node inicial a l'estat on ha de començar la conversa.</p>",
+          "alt": "Estat inicial de l'agent"
+        },
+        "defineIntents": {
+          "title": "Definir els intents",
+          "body": "<p>Afegeix elements d'intent i defineix els noms dels intents i les frases d'entrenament per millorar la qualitat del reconeixement. Les descripcions dels intents ajuden a aclarir el significat i el propòsit de cada intent.</p>",
+          "alt": "Definir els intents de l'agent"
+        },
+        "customization": {
+          "title": "Personalització de l'agent",
+          "body": "<p>Obre l'Agent Config des de la barra lateral per configurar el model i els paràmetres d'execució dels agents generats.</p><ul><li>Reconeixement d'intents clàssic: entrena un model local a partir dels intents definits.</li><li>Reconeixement d'intents basat en LLM: delega la classificació d'intents a un LLM.</li></ul>",
+          "alt": "Configuració de l'agent"
+        }
+      },
+      "gui": {
+        "label": "Editor d'interfícies gràfiques",
+        "summary": "Construeix pantalles d'interfície visualment i genera frontends d'aplicacions web.",
+        "coreWorkflow": {
+          "title": "Flux de treball principal",
+          "body": "<p>Utilitza blocs de plantilla, compon dissenys i, tot seguit, vincula dades i accions basades en el model.</p><p>Mantén les pàgines modulars perquè la sortida generada continuï sent previsible i mantenible.</p>"
+        }
+      },
+      "quantum": {
+        "label": "Editor quàntic",
+        "summary": "Dissenya circuits, configura portes i genera artefactes compatibles amb Qiskit.",
+        "coreWorkflow": {
+          "title": "Flux de treball principal",
+          "body": "<p>Col·loca portes sobre les línies de qubits, valida l'estructura i, tot seguit, genera amb els paràmetres de backend seleccionats.</p><p>Utilitza el nombre de shots i la selecció de backend a Generate per obtenir resultats reproduïbles.</p>"
+        }
+      },
+      "nn": {
+        "label": "Xarxa neuronal",
+        "summary": "Dissenya xarxes neuronals en capes, adjunta-hi conjunts de dades i configuració d'entrenament, i genera codi de PyTorch o TensorFlow.",
+        "coreWorkflow": {
+          "title": "Flux de treball principal",
+          "body": "<p>Construeix una xarxa neuronal deixant anar un NNContainer sobre el llenç. Arrossega capes i TensorOps a dins seu i, tot seguit, connecta'ls amb relacions NNNext per definir el pas cap endavant.</p><p>La configuració i els conjunts de dades d'entrenament/prova són elements opcionals que contenen els hiperparàmetres d'entrenament i les metadades del conjunt de dades. Quan el diagrama estigui llest, genera codi de PyTorch o TensorFlow des del menú Generate.</p>",
+          "alt": "Visió general del diagrama de NN"
+        },
+        "containerLayers": {
+          "title": "Afegir un NN Container, capes i TensorOps",
+          "body": "<p>Comença arrossegant un NNContainer des de la paleta fins al llenç; tots els mòduls de la xarxa neuronal han de residir a dins seu.</p><p>Capes disponibles: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. TensorOps disponibles: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
+          "alt": "Paleta de NN amb una capa deixada anar"
+        },
+        "connect": {
+          "title": "Connectar mòduls (NNNext)",
+          "body": "<p>Arrossega des d'un punt de connexió blau d'un mòdul origen fins a qualsevol mòdul destinació per crear una relació NNNext. La fletxa \"next\" resultant defineix l'ordre del pas cap endavant, independentment de si els mòduls connectats són capes, TensorOps o una combinació de tots dos.</p>",
+          "alt": "Dos mòduls connectats amb una fletxa NNNext"
+        },
+        "editAttributes": {
+          "title": "Editar els atributs d'un mòdul",
+          "body": "<p>Fes doble clic en qualsevol capa o TensorOp per obrir-ne la finestra emergent d'atributs. Els atributs obligatoris es mostren sempre; els opcionals s'activen mitjançant caselles de selecció.</p><p>Molts camps utilitzen desplegables: <code>pooling_type</code> (<code>max</code>, <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>, <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (<code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>, <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>, <code>same</code>).</p><p>Els atributs de tipus llista s'adapten a la dimensió del mòdul. Una capa Pooling amb <code>dimension = 2D</code> espera <code>kernel_dim = [3, 3]</code>, mentre que <code>dimension = 3D</code> espera <code>[3, 3, 3]</code>. La mateixa regla s'aplica a <code>stride_dim</code> i <code>output_dim</code>. Per als TensorOps, el <code>tns_type</code> seleccionat controla quin atribut de dimensió es mostra (per exemple <code>reshape_dim</code> per a reshape, <code>concatenate_dim</code> per a concatenate).</p>",
+          "alt": "Editar els atributs d'un mòdul"
+        },
+        "datasets": {
+          "title": "Conjunts de dades (entrenament i prova)",
+          "body": "<p>Els conjunts de dades són opcionals. Deixa anar un Training Dataset i un Test Dataset per declarar les fonts de dades de la xarxa.</p><p>Els atributs obligatoris són <code>name</code> i <code>path_data</code> (ruta de fitxer o carpeta cap al conjunt de dades). Els atributs opcionals són <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) i <code>input_format</code> (<code>csv</code>, <code>images</code>). Quan <code>input_format = images</code>, apareixen dos atributs addicionals: <code>shape</code> (per exemple <code>[32, 32, 3]</code>) i <code>normalize</code> (<code>true</code> o <code>false</code>).</p><p>Connecta cada conjunt de dades a l'NNContainer amb una línia d'associació.</p>",
+          "alt": "Conjunts de dades d'entrenament i de prova"
+        },
+        "configuration": {
+          "title": "Configuració",
+          "body": "<p>La configuració és opcional. Arrossega un element Configuration i connecta'l a l'NNContainer amb una relació de composició per establir els hiperparàmetres d'entrenament.</p><p>Atributs obligatoris: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>) i <code>metrics</code> (selecció múltiple entre <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Atributs opcionals: <code>weight_decay</code> i <code>momentum</code>.</p>",
+          "alt": "Element de configuració amb el desplegable d'optimitzador"
+        },
+        "reference": {
+          "title": "Referenciar una altra xarxa (NNReference)",
+          "body": "<p>Utilitza un element NNReference per reutilitzar una NN ja definida al mateix llenç. Selecciona l'NNContainer destinació des de la finestra emergent; la xarxa referenciada s'inclou com a subxarxa durant la generació de codi.</p>",
+          "alt": "NNReference amb la finestra emergent de selecció de destinació"
+        },
+        "validateGenerate": {
+          "title": "Validar i generar",
+          "body": "<p>Executa el Quality Check des de la barra superior per detectar problemes estructurals, com ara capes desconnectades o atributs obligatoris que falten, abans de generar codi.</p><p>Obre el menú Generate i tria un framework i un estil:</p><ul><li><strong>PyTorch / Subclassing</strong>: subclasse de <code>torch.nn.Module</code> amb un pas cap endavant explícit.</li><li><strong>PyTorch / Sequential</strong>: composició <code>nn.Sequential</code> per a arquitectures estrictament seqüencials.</li><li><strong>TensorFlow / Subclassing</strong>: subclasse de <code>tf.keras.Model</code> amb un <code>call()</code> personalitzat.</li><li><strong>TensorFlow / Sequential</strong>: composició <code>keras.Sequential</code>.</li></ul><p>La definició de l'arquitectura de la NN es genera en el framework seleccionat, juntament amb el codi d'entrenament i d'avaluació quan es defineixen els conjunts de dades i la Configuration.</p>",
+          "alt": "Menú de generació de codi"
+        }
+      }
+    }
+  },
   "exportImport": {
     "dialogTitle": "Exporta el projecte",
     "dialogDescription": "Exporta els fitxers complets del projecte o els recursos del diagrama actual.",
