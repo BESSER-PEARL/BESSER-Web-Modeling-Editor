@@ -2415,8 +2415,6 @@ export const AgentConfigurationPanel: React.FC = () => {
                           <option value="original">Original</option>
                           <option value="formal">Formal</option>
                           <option value="informal">Informal</option>
-                          <option value="friendly">Friendly</option>
-                          <option value="technical">Technical</option>
                         </select>
                       </div>
 
