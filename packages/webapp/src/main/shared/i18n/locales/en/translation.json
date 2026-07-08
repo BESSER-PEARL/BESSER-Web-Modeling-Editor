@@ -726,7 +726,39 @@
         "description": "Hide perspectives you don't need. Use a preset to flip several at once, or toggle each individually below. Disabled perspectives are removed from the sidebar; existing models are preserved and restored on re-enable. Generators remain available regardless.",
         "quickPresets": "Quick presets",
         "lastEnabledTitle": "At least one perspective must be enabled.",
-        "toggleAria": "Toggle {{label}} visibility"
+        "toggleAria": "Toggle {{label}} visibility",
+        "presets": {
+          "data": {
+            "label": "Data Modeler",
+            "description": "Class + object diagrams (covers OOP, schemas, SQL, SQLAlchemy)."
+          },
+          "agent": {
+            "label": "Agent Developer",
+            "description": "Agent and user diagrams for conversational agents."
+          },
+          "fullApp": {
+            "label": "Full Web Application",
+            "description": "Class, agent, and no-code GUI diagrams."
+          },
+          "quantum": {
+            "label": "Quantum",
+            "description": "Quantum circuit diagrams only."
+          },
+          "all": {
+            "label": "Show All",
+            "description": "Every supported perspective."
+          }
+        },
+        "diagrams": {
+          "ClassDiagram": "Structural / data modeling, including OCL constraints attached to classes.",
+          "ObjectDiagram": "Instances of a class diagram, used for tests and OCL validation.",
+          "StateMachineDiagram": "State-based behavior modeling.",
+          "AgentDiagram": "Conversational / AI agent specification.",
+          "UserDiagram": "Actors and their interactions.",
+          "GUINoCodeDiagram": "Graphical user interface design (IFML-inspired).",
+          "QuantumCircuitDiagram": "Quantum program specification.",
+          "NNDiagram": "Neural network architecture (PyTorch / TensorFlow)."
+        }
       },
       "toast": {
         "updatePerspectiveFailed": "Failed to update perspective",
@@ -1119,6 +1151,16 @@
       "viewRepo": "View GitHub Repository"
     }
   },
+  "diagramTypes": {
+    "ClassDiagram": "Class Diagram",
+    "ObjectDiagram": "Object Diagram",
+    "StateMachineDiagram": "State Machine Diagram",
+    "AgentDiagram": "Agent Diagram",
+    "UserDiagram": "User Diagram",
+    "GUINoCodeDiagram": "GUI Diagram",
+    "QuantumCircuitDiagram": "Quantum Circuit Diagram",
+    "NNDiagram": "Neural Network Diagram"
+  },
   "exportImport": {
     "dialogTitle": "Export Project",
     "dialogDescription": "Export full project files or current diagram assets.",
@@ -1145,16 +1187,6 @@
     },
     "defaults": {
       "diagram": "Diagram"
-    },
-    "diagramTypes": {
-      "ClassDiagram": "Class Diagram",
-      "ObjectDiagram": "Object Diagram",
-      "StateMachineDiagram": "State Machine Diagram",
-      "AgentDiagram": "Agent Diagram",
-      "UserDiagram": "User Diagram",
-      "GUINoCodeDiagram": "GUI No-Code Diagram",
-      "QuantumCircuitDiagram": "Quantum Circuit Diagram",
-      "NNDiagram": "Neural Network Diagram"
     },
     "titles": {
       "importedClassDiagram": "Imported Class Diagram",

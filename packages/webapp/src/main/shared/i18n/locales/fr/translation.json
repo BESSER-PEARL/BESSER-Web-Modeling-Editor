@@ -726,7 +726,39 @@
         "description": "Masquez les perspectives dont vous n'avez pas besoin. Utilisez un préréglage pour en basculer plusieurs à la fois, ou activez chacune individuellement ci-dessous. Les perspectives désactivées sont retirées de la barre latérale ; les modèles existants sont conservés et restaurés lors de la réactivation. Les générateurs restent disponibles dans tous les cas.",
         "quickPresets": "Préréglages rapides",
         "lastEnabledTitle": "Au moins une perspective doit être activée.",
-        "toggleAria": "Activer/désactiver la visibilité de {{label}}"
+        "toggleAria": "Activer/désactiver la visibilité de {{label}}",
+        "presets": {
+          "data": {
+            "label": "Modélisateur de données",
+            "description": "Diagrammes de classes et d'objets (couvre POO, schémas, SQL, SQLAlchemy)."
+          },
+          "agent": {
+            "label": "Développeur d'agents",
+            "description": "Diagrammes d'agents et d'utilisateurs pour agents conversationnels."
+          },
+          "fullApp": {
+            "label": "Application web complète",
+            "description": "Diagrammes de classes, d'agents et d'interface no-code."
+          },
+          "quantum": {
+            "label": "Quantique",
+            "description": "Diagrammes de circuits quantiques uniquement."
+          },
+          "all": {
+            "label": "Tout afficher",
+            "description": "Toutes les perspectives prises en charge."
+          }
+        },
+        "diagrams": {
+          "ClassDiagram": "Modélisation structurelle / de données, y compris les contraintes OCL attachées aux classes.",
+          "ObjectDiagram": "Instances d'un diagramme de classes, utilisées pour les tests et la validation OCL.",
+          "StateMachineDiagram": "Modélisation du comportement basée sur les états.",
+          "AgentDiagram": "Spécification d'agent conversationnel / IA.",
+          "UserDiagram": "Acteurs et leurs interactions.",
+          "GUINoCodeDiagram": "Conception d'interface utilisateur graphique (inspirée d'IFML).",
+          "QuantumCircuitDiagram": "Spécification de programme quantique.",
+          "NNDiagram": "Architecture de réseau de neurones (PyTorch / TensorFlow)."
+        }
       },
       "toast": {
         "updatePerspectiveFailed": "Échec de la mise à jour de la perspective",
@@ -1119,6 +1151,16 @@
       "viewRepo": "Voir le dépôt GitHub"
     }
   },
+  "diagramTypes": {
+    "ClassDiagram": "Diagramme de classes",
+    "ObjectDiagram": "Diagramme d'objets",
+    "StateMachineDiagram": "Diagramme d'états",
+    "AgentDiagram": "Diagramme d'agent",
+    "UserDiagram": "Diagramme d'utilisateur",
+    "GUINoCodeDiagram": "Diagramme d'IUG",
+    "QuantumCircuitDiagram": "Diagramme de circuit quantique",
+    "NNDiagram": "Diagramme de réseau de neurones"
+  },
   "exportImport": {
     "dialogTitle": "Exporter le projet",
     "dialogDescription": "Exportez les fichiers complets du projet ou les ressources du diagramme actuel.",
@@ -1145,16 +1187,6 @@
     },
     "defaults": {
       "diagram": "Diagramme"
-    },
-    "diagramTypes": {
-      "ClassDiagram": "Diagramme de classes",
-      "ObjectDiagram": "Diagramme d'objets",
-      "StateMachineDiagram": "Diagramme de machine à états",
-      "AgentDiagram": "Diagramme d'agent",
-      "UserDiagram": "Diagramme utilisateur",
-      "GUINoCodeDiagram": "Diagramme GUI No-Code",
-      "QuantumCircuitDiagram": "Diagramme de circuit quantique",
-      "NNDiagram": "Diagramme de réseau de neurones"
     },
     "titles": {
       "importedClassDiagram": "Diagramme de classes importé",

@@ -22,11 +22,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
-import {
-  DIAGRAM_TYPE_BADGE,
-  PERSPECTIVE_DESCRIPTIONS,
-  PERSPECTIVE_LABELS,
-} from '../../shared/constants/diagramTypeStyles';
+import { DIAGRAM_TYPE_BADGE } from '../../shared/constants/diagramTypeStyles';
 import { useAppDispatch } from '../../app/store/hooks';
 import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../app/store/workspaceSlice';
 
@@ -369,12 +365,12 @@ export const ProjectSettingsPanel: React.FC = () => {
                           type="button"
                           variant={active ? 'default' : 'outline'}
                           size="sm"
-                          title={preset.description}
+                          title={t(`project.settings.perspectives.presets.${preset.key}.description`)}
                           onClick={() => handleApplyPreset(preset)}
                           data-testid={`perspective-preset-${preset.key}`}
                           aria-pressed={active}
                         >
-                          {preset.label}
+                          {t(`project.settings.perspectives.presets.${preset.key}.label`)}
                         </Button>
                       );
                     })}
@@ -401,13 +397,13 @@ export const ProjectSettingsPanel: React.FC = () => {
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium">{PERSPECTIVE_LABELS[type]}</p>
+                              <p className="text-sm font-medium">{t(`diagramTypes.${type}`)}</p>
                               <Badge className={DIAGRAM_TYPE_BADGE[type]}>
                                 {type.replace('Diagram', '')}
                               </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {PERSPECTIVE_DESCRIPTIONS[type]}
+                              {t(`project.settings.perspectives.diagrams.${type}`)}
                             </p>
                           </div>
                           <input
@@ -416,7 +412,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                             className="size-4 accent-brand"
                             checked={checked}
                             disabled={isLastEnabled}
-                            aria-label={t('project.settings.perspectives.toggleAria', { label: PERSPECTIVE_LABELS[type] })}
+                            aria-label={t('project.settings.perspectives.toggleAria', { label: t(`diagramTypes.${type}`) })}
                             data-testid={`perspective-toggle-${type}`}
                             onChange={(event) =>
                               handlePerspectiveToggle(type, event.target.checked)

@@ -726,7 +726,39 @@
         "description": "Verstoppt Perspektiven déi Dir net braucht. Benotzt eng Virastellung fir e puer op eemol ze wiesselen, oder schalt all eenzel hei drënner. Deaktivéiert Perspektive ginn aus der Säiteleescht ewechgeholl; bestoend Modeller ginn erhalen a beim Reaktivéieren erëmhiergestallt. Generatoren bleiwen onofhängeg disponibel.",
         "quickPresets": "Séier Virastellungen",
         "lastEnabledTitle": "Op d'mannst eng Perspektiv muss aktivéiert sinn.",
-        "toggleAria": "Sichtbarkeet vun {{label}} ëmschalten"
+        "toggleAria": "Sichtbarkeet vun {{label}} ëmschalten",
+        "presets": {
+          "data": {
+            "label": "Datemodelléierer",
+            "description": "Klassen- an Objetdiagrammer (deckt OOP, Schemaen, SQL, SQLAlchemy of)."
+          },
+          "agent": {
+            "label": "Agent-Entwéckler",
+            "description": "Agent- a Benotzerdiagrammer fir Konversatiounsagenten."
+          },
+          "fullApp": {
+            "label": "Komplett Webapplikatioun",
+            "description": "Klassen-, Agent- an No-Code-GUI-Diagrammer."
+          },
+          "quantum": {
+            "label": "Quantum",
+            "description": "Nëmme Quantenschaltkreesdiagrammer."
+          },
+          "all": {
+            "label": "Alles weisen",
+            "description": "All ënnerstëtzt Perspektiv."
+          }
+        },
+        "diagrams": {
+          "ClassDiagram": "Strukturell / Datemodelléierung, inklusiv OCL-Aschränkungen déi un Klassen ugehaange sinn.",
+          "ObjectDiagram": "Instanzen vun engem Klassendiagramm, benotzt fir Tester an OCL-Validéierung.",
+          "StateMachineDiagram": "Zoustandsbaséiert Verhalensmodelléierung.",
+          "AgentDiagram": "Konversatiouns- / KI-Agent-Spezifikatioun.",
+          "UserDiagram": "Akteuren an hir Interaktiounen.",
+          "GUINoCodeDiagram": "Grafesch Benotzerinterface-Gestaltung (IFML-inspiréiert).",
+          "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
+          "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow)."
+        }
       },
       "toast": {
         "updatePerspectiveFailed": "Perspektiv konnt net aktualiséiert ginn",
@@ -1119,6 +1151,16 @@
       "viewRepo": "GitHub-Repository uweisen"
     }
   },
+  "diagramTypes": {
+    "ClassDiagram": "Klassendiagramm",
+    "ObjectDiagram": "Objetdiagramm",
+    "StateMachineDiagram": "Zoustandsdiagramm",
+    "AgentDiagram": "Agentdiagramm",
+    "UserDiagram": "Benotzerdiagramm",
+    "GUINoCodeDiagram": "GUI-Diagramm",
+    "QuantumCircuitDiagram": "Quantenschaltkreesdiagramm",
+    "NNDiagram": "Neuronaalt-Netz-Diagramm"
+  },
   "exportImport": {
     "dialogTitle": "Projet exportéieren",
     "dialogDescription": "Exportéiert komplett Projetdateien oder Assets vum aktuellen Diagramm.",
@@ -1145,16 +1187,6 @@
     },
     "defaults": {
       "diagram": "Diagramm"
-    },
-    "diagramTypes": {
-      "ClassDiagram": "Klassendiagramm",
-      "ObjectDiagram": "Objektdiagramm",
-      "StateMachineDiagram": "Zoustandsmaschinn-Diagramm",
-      "AgentDiagram": "Agentdiagramm",
-      "UserDiagram": "Benotzerdiagramm",
-      "GUINoCodeDiagram": "GUI No-Code-Diagramm",
-      "QuantumCircuitDiagram": "Quantekreeslafdiagramm",
-      "NNDiagram": "Neuronaalt-Netz-Diagramm"
     },
     "titles": {
       "importedClassDiagram": "Importéiert Klassendiagramm",

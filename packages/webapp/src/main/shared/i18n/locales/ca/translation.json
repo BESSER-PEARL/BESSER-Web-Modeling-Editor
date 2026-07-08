@@ -726,7 +726,39 @@
         "description": "Amaga les perspectives que no necessitis. Utilitza un predefinit per alternar-ne diverses alhora, o activa cadascuna individualment a sota. Les perspectives desactivades s'eliminen de la barra lateral; els models existents es conserven i es restauren en reactivar-les. Els generadors continuen estant disponibles en qualsevol cas.",
         "quickPresets": "Predefinits ràpids",
         "lastEnabledTitle": "Com a mínim una perspectiva ha d'estar activada.",
-        "toggleAria": "Alternar la visibilitat de {{label}}"
+        "toggleAria": "Alternar la visibilitat de {{label}}",
+        "presets": {
+          "data": {
+            "label": "Modelador de dades",
+            "description": "Diagrames de classes i objectes (cobreix POO, esquemes, SQL, SQLAlchemy)."
+          },
+          "agent": {
+            "label": "Desenvolupador d'agents",
+            "description": "Diagrames d'agents i usuaris per a agents conversacionals."
+          },
+          "fullApp": {
+            "label": "Aplicació web completa",
+            "description": "Diagrames de classes, agents i interfície sense codi."
+          },
+          "quantum": {
+            "label": "Quàntic",
+            "description": "Només diagrames de circuits quàntics."
+          },
+          "all": {
+            "label": "Mostra-ho tot",
+            "description": "Totes les perspectives admeses."
+          }
+        },
+        "diagrams": {
+          "ClassDiagram": "Modelatge estructural / de dades, incloses les restriccions OCL adjuntes a les classes.",
+          "ObjectDiagram": "Instàncies d'un diagrama de classes, usades per a proves i validació OCL.",
+          "StateMachineDiagram": "Modelatge de comportament basat en estats.",
+          "AgentDiagram": "Especificació d'agent conversacional / d'IA.",
+          "UserDiagram": "Actors i les seves interaccions.",
+          "GUINoCodeDiagram": "Disseny d'interfície gràfica d'usuari (inspirat en IFML).",
+          "QuantumCircuitDiagram": "Especificació de programa quàntic.",
+          "NNDiagram": "Arquitectura de xarxa neuronal (PyTorch / TensorFlow)."
+        }
       },
       "toast": {
         "updatePerspectiveFailed": "No s'ha pogut actualitzar la perspectiva",
@@ -1119,6 +1151,16 @@
       "viewRepo": "Mostra el repositori de GitHub"
     }
   },
+  "diagramTypes": {
+    "ClassDiagram": "Diagrama de classes",
+    "ObjectDiagram": "Diagrama d'objectes",
+    "StateMachineDiagram": "Diagrama de màquina d'estats",
+    "AgentDiagram": "Diagrama d'agent",
+    "UserDiagram": "Diagrama d'usuari",
+    "GUINoCodeDiagram": "Diagrama de GUI",
+    "QuantumCircuitDiagram": "Diagrama de circuit quàntic",
+    "NNDiagram": "Diagrama de xarxa neuronal"
+  },
   "exportImport": {
     "dialogTitle": "Exporta el projecte",
     "dialogDescription": "Exporta els fitxers complets del projecte o els recursos del diagrama actual.",
@@ -1145,16 +1187,6 @@
     },
     "defaults": {
       "diagram": "Diagrama"
-    },
-    "diagramTypes": {
-      "ClassDiagram": "Diagrama de classes",
-      "ObjectDiagram": "Diagrama d'objectes",
-      "StateMachineDiagram": "Diagrama de màquina d'estats",
-      "AgentDiagram": "Diagrama d'agent",
-      "UserDiagram": "Diagrama d'usuari",
-      "GUINoCodeDiagram": "Diagrama GUI No-Code",
-      "QuantumCircuitDiagram": "Diagrama de circuit quàntic",
-      "NNDiagram": "Diagrama de xarxa neuronal"
     },
     "titles": {
       "importedClassDiagram": "Diagrama de classes importat",

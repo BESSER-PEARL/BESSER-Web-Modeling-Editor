@@ -11,17 +11,6 @@ export const PERSPECTIVE_LABELS: Record<SupportedDiagramType, string> = {
   NNDiagram: 'Neural Network Diagram',
 };
 
-export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
-  ClassDiagram: 'Structural / data modeling, including OCL constraints attached to classes.',
-  ObjectDiagram: 'Instances of a class diagram, used for tests and OCL validation.',
-  StateMachineDiagram: 'State-based behavior modeling.',
-  AgentDiagram: 'Conversational / AI agent specification.',
-  UserDiagram: 'Actors and their interactions.',
-  GUINoCodeDiagram: 'Graphical user interface design (IFML-inspired).',
-  QuantumCircuitDiagram: 'Quantum program specification.',
-  NNDiagram: 'Neural network architecture (PyTorch / TensorFlow).',
-};
-
 export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
   ClassDiagram: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
   ObjectDiagram: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
