@@ -1166,7 +1166,6 @@
       "tagline": "Building Better Smart Software Faster",
       "para1": "BESSER ist eine Low-Code-Plattform für die Modellierung intelligenter Software und die Codegenerierung. Sie bietet ein Python-basiertes Metamodell (B-UML) zur Beschreibung von Domänenmodellen, Zustandsautomaten, GUI-Designs, Agenten und mehr.",
       "para2": "Der <brand>Web Modeling Editor</brand> ist der visuelle Online-Editor zum Erstellen und Bearbeiten von BESSER-Modellen, zum Generieren von Code und zum Bereitstellen von Anwendungen.",
-      "para3": "Entwickelt von der Forschungsgruppe BESSER-PEARL an der Universität Luxemburg.",
       "besserRepository": "BESSER-Repository",
       "wmeRepository": "WME-Repository",
       "libraryRepository": "Bibliotheks-Repository"

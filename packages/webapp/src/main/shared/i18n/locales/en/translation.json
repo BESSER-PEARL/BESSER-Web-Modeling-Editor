@@ -1166,7 +1166,6 @@
       "tagline": "Building Better Smart Software Faster",
       "para1": "BESSER is a low-code platform for smart software modeling and code generation. It provides a Python-based metamodel (B-UML) for describing domain models, state machines, GUI designs, agents, and more.",
       "para2": "The <brand>Web Modeling Editor</brand> is the online visual editor for creating and editing BESSER models, generating code, and deploying applications.",
-      "para3": "Developed by the BESSER-PEARL research group at the University of Luxembourg.",
       "besserRepository": "BESSER Repository",
       "wmeRepository": "WME Repository",
       "libraryRepository": "Library Repository"

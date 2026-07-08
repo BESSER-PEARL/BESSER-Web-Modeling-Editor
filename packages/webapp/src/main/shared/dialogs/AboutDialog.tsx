@@ -34,7 +34,6 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
               components={{ brand: <span className="font-semibold text-brand" /> }}
             />
           </p>
-          <p className="text-xs text-muted-foreground">{t('dialogs.about.para3')}</p>
         </div>
         <DialogFooter className="flex-wrap gap-2 sm:justify-start sm:space-x-0">
           <Button variant="outline" onClick={onOpenMainRepository}>
