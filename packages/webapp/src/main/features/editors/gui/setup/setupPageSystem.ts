@@ -1,5 +1,6 @@
 ﻿import type { Editor } from 'grapesjs';
 import { globalConfirm } from '../../../../shared/services/confirm/globalConfirm';
+import i18n from '@/main/shared/i18n';
 
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
@@ -56,7 +57,7 @@ function setupPagesTabInSidebar(editor: Editor) {
       className: 'fa fa-file-alt gjs-pn-btn',
       command: 'open-pages-tab',
       togglable: true,
-      attributes: { title: 'Pages' },
+      attributes: { title: i18n.t('editors.gui.pages.title') },
       label: `<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;">
         <path d="M19,5V19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M7,7H9V9H7V7M7,11H9V13H7V11M7,15H9V17H7V15M11,7H17V9H11V7M11,11H17V13H11V11M11,15H17V17H11V15Z" />
       </svg>`,
@@ -158,17 +159,17 @@ function createAndAppendPagesPanel(editor: Editor) {
   
   container.innerHTML = `
     <div class="gjs-pages-header">
-      <span class="gjs-pages-title">Pages</span>
+      <span class="gjs-pages-title">${i18n.t('editors.gui.pages.title')}</span>
     </div>
     <div class="gjs-pages-search-container">
-      <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="Search pages..." />
+      <input type="text" id="gjs-page-search" class="gjs-pages-search" placeholder="${i18n.t('editors.gui.pages.searchPlaceholder')}" />
     </div>
     <div class="gjs-pages-actions">
-      <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="Add new page" aria-label="Add new page">
+      <button id="gjs-add-page-btn" class="gjs-pages-add-btn" title="${i18n.t('editors.gui.pages.addNewPage')}" aria-label="${i18n.t('editors.gui.pages.addNewPage')}">
         <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor;">
           <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
         </svg>
-        <span>Add Page</span>
+        <span>${i18n.t('editors.gui.pages.addPage')}</span>
       </button>
     </div>
     <div id="gjs-pages-list" class="gjs-pages-list"></div>
@@ -261,22 +262,22 @@ function updatePagesList(editor: Editor) {
           <span class="gjs-page-route">${pageRoute}</span>
         </div>
         <div class="gjs-page-actions">
-          <button class="gjs-page-btn route-page-btn" title="Edit URL route" aria-label="Edit URL route">
+          <button class="gjs-page-btn route-page-btn" title="${i18n.t('editors.gui.pages.editRoute')}" aria-label="${i18n.t('editors.gui.pages.editRoute')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C6.22,11.88 6.22,7.12 9.17,4.17C12.12,1.22 16.88,1.22 19.83,4.17C22.78,7.12 22.78,11.88 19.83,14.83C19.44,15.22 18.8,15.22 18.41,14.83C18,14.44 18,13.8 18.41,13.41C20.59,11.23 20.59,7.77 18.41,5.59C16.23,3.41 12.77,3.41 10.59,5.59C8.41,7.77 8.41,11.23 10.59,13.41M13.41,9.17C13.8,8.78 14.44,8.78 14.83,9.17C17.78,12.12 17.78,16.88 14.83,19.83C11.88,22.78 7.12,22.78 4.17,19.83C1.22,16.88 1.22,12.12 4.17,9.17C4.56,8.78 5.2,8.78 5.59,9.17C6,9.56 6,10.2 5.59,10.59C3.41,12.77 3.41,16.23 5.59,18.41C7.77,20.59 11.23,20.59 13.41,18.41C15.59,16.23 15.59,12.77 13.41,10.59C13,10.2 13,9.56 13.41,9.17Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn rename-page-btn" title="Rename page" aria-label="Rename page">
+          <button class="gjs-page-btn rename-page-btn" title="${i18n.t('editors.gui.pages.renamePage')}" aria-label="${i18n.t('editors.gui.pages.renamePage')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn duplicate-page-btn" title="Duplicate page" aria-label="Duplicate page">
+          <button class="gjs-page-btn duplicate-page-btn" title="${i18n.t('editors.gui.pages.duplicatePage')}" aria-label="${i18n.t('editors.gui.pages.duplicatePage')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" />
             </svg>
           </button>
-          <button class="gjs-page-btn delete-page-btn" title="Delete page" aria-label="Delete page">
+          <button class="gjs-page-btn delete-page-btn" title="${i18n.t('editors.gui.pages.deletePage')}" aria-label="${i18n.t('editors.gui.pages.deletePage')}">
             <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor;">
               <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
             </svg>
@@ -295,7 +296,7 @@ function updatePagesList(editor: Editor) {
       item.querySelector('.route-page-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         const currentRoute = page.get('route_path') || '/' + page.getName().toLowerCase().replace(/\s+/g, '-');
-        const newRoute = prompt('Enter URL route for this page (e.g., /about-us):', currentRoute);
+        const newRoute = prompt(i18n.t('editors.gui.pages.promptRoute'), currentRoute);
         if (newRoute !== null) {
           // Ensure route starts with /
           let cleanRoute = newRoute.trim();
@@ -311,7 +312,7 @@ function updatePagesList(editor: Editor) {
       
       item.querySelector('.rename-page-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newName = prompt('Enter new page name:', page.getName());
+        const newName = prompt(i18n.t('editors.gui.pages.promptRename'), page.getName());
         if (newName?.trim()) {
           page.set('name', newName.trim());
           updatePagesList(editor);
@@ -323,7 +324,7 @@ function updatePagesList(editor: Editor) {
         
         const originalName = page.getName();
         const originalId = page.getId();
-        const newName = prompt('Enter name for duplicated page:', originalName + ' Copy');
+        const newName = prompt(i18n.t('editors.gui.pages.promptDuplicate'), originalName + ' Copy');
         if (!newName?.trim()) return;
         
         // Create new page with unique ID
@@ -485,18 +486,18 @@ function updatePagesList(editor: Editor) {
         const totalPages = editor.Pages.getAll().length;
         if (totalPages <= 1) {
           await globalConfirm({
-            title: 'Cannot Delete Page',
-            description: 'Cannot delete the last page. At least one page is required.',
-            confirmLabel: 'OK',
-            cancelLabel: 'OK',
+            title: i18n.t('editors.gui.pages.cannotDeleteTitle'),
+            description: i18n.t('editors.gui.pages.cannotDeleteDescription'),
+            confirmLabel: i18n.t('editors.gui.pages.ok'),
+            cancelLabel: i18n.t('editors.gui.pages.ok'),
           });
           return;
         }
 
         const confirmed = await globalConfirm({
-          title: 'Delete Page',
-          description: 'Delete page "' + page.getName() + '"?',
-          confirmLabel: 'Delete',
+          title: i18n.t('editors.gui.pages.deletePageTitle'),
+          description: i18n.t('editors.gui.pages.deleteConfirm', { name: page.getName() }),
+          confirmLabel: i18n.t('editors.gui.pages.delete'),
           variant: 'danger',
         });
         if (confirmed) {
@@ -536,7 +537,7 @@ function setupPageCommands(editor: Editor) {
   
   editor.Commands.add('add-page', {
     run() {
-      const name = prompt('Enter page name:');
+      const name = prompt(i18n.t('editors.gui.pages.promptNewPage'));
       if (!name?.trim() || !editor.Pages) return;
       
       const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();

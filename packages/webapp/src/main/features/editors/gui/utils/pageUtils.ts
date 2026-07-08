@@ -1,3 +1,5 @@
+import i18n from '@/main/shared/i18n';
+
 /**
  * Get page options dynamically from the editor
  * @param editor - GrapesJS editor instance
@@ -5,8 +7,8 @@
  */
 export const getPageOptions = (editor: any) => {
   const options = [
-    { value: '', label: '-- Select Page --' },
-    { value: 'custom', label: 'Custom URL' },
+    { value: '', label: i18n.t('editors.gui.utils.selectPage') },
+    { value: 'custom', label: i18n.t('editors.gui.utils.customUrl') },
   ];
   
   // Check if Pages API is available

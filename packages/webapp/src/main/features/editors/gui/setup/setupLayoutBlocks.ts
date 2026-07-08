@@ -1,4 +1,5 @@
 import type { Editor } from 'grapesjs';
+import i18n from '@/main/shared/i18n';
 
 /**
  * Setup layout blocks (containers, grids, flexbox, sections)
@@ -44,8 +45,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Container Block
   bm.add('container', {
-    label: 'Container',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.container'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
         <p>Container - drag content here</p>
@@ -56,8 +57,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Section Block
   bm.add('section', {
-    label: 'Section',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.section'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <section style="padding: 60px 0; background: #f5f5f5;">
         <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
@@ -71,8 +72,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // 4 Column Grid
   bm.add('grid-4col', {
-    label: '4 Columns',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.fourColumns'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 20px;">
         <div style="padding: 20px; background: #f0f0f0; border: 2px dashed #ccc; min-height: 100px;">
@@ -94,8 +95,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Flexbox Row
   bm.add('flex-row', {
-    label: 'Flex Row',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.flexRow'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <div style="display: flex; flex-direction: row; gap: 20px; padding: 20px; align-items: stretch;">
         <div style="flex: 1; padding: 20px; background: #e3f2fd; border: 2px dashed #2196f3; min-height: 100px;">
@@ -111,8 +112,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Flexbox Column
   bm.add('flex-column', {
-    label: 'Flex Column',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.flexColumn'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <div style="display: flex; flex-direction: column; gap: 20px; padding: 20px;">
         <div style="padding: 20px; background: #fff3e0; border: 2px dashed #ff9800; min-height: 80px;">
@@ -128,8 +129,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Hero Section
   bm.add('hero-section', {
-    label: 'Hero Section',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.hero'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <section style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 100px 20px; text-align: center;">
         <div style="max-width: 1200px; margin: 0 auto;">
@@ -144,8 +145,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Card Layout
   bm.add('card', {
-    label: 'Card',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.card'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <div style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; margin: 20px;">
         <h3 style="margin-top: 0; color: #333;">Card Title</h3>
@@ -158,8 +159,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Split Section (50/50)
   bm.add('split-section', {
-    label: 'Split Section',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.splitSection'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <section style="display: grid; grid-template-columns: 1fr 1fr; min-height: 400px;">
         <div style="background: #f0f0f0; padding: 60px 40px; display: flex; flex-direction: column; justify-content: center;">
@@ -177,8 +178,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Header/Navbar
   bm.add('navbar', {
-    label: 'Navigation Bar/Header',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.navbar'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <nav style="background: linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%) !important; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; font-family: Arial, sans-serif;">
         <div style="font-size: 24px; font-weight: bold;">BESSER</div>
@@ -194,8 +195,8 @@ export function setupLayoutBlocks(editor: Editor) {
 
   // Header/Navbar 2 (Light — matches LLM-generated agent navbar)
   bm.add('navbar-light', {
-    label: 'Navbar Light',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.navbarLight'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <nav style="background-color: #ffffff; padding: 0 32px; height: 64px; display: flex; justify-content: space-between; align-items: center; font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 50;">
         <div style="font-size: 1.25rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">BESSER</div>
@@ -211,8 +212,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Footer
   bm.add('footer', {
-    label: 'Footer',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.footer'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <footer style="background: linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%) !important; color: white; padding: 40px 20px; margin-top: 60px; font-family: Arial, sans-serif;">
         <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px;">
@@ -241,8 +242,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Divider
   bm.add('divider', {
-    label: 'Divider',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.divider'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <hr style="border: none; border-top: 2px solid #ddd; margin: 30px 0;">
     `,
@@ -312,8 +313,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Feature Grid (3 features)
   bm.add('feature-grid', {
-    label: 'Feature Grid',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.featureGrid'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <section style="padding: 60px 20px;">
         <div style="max-width: 1200px; margin: 0 auto;">
@@ -398,8 +399,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // CTA Banner
   bm.add('cta-banner', {
-    label: 'CTA Banner',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.ctaBanner'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <section style="background: linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%) !important; padding: 80px 20px; text-align: center; color: white; font-family: Arial, sans-serif;">
         <div style="max-width: 800px; margin: 0 auto;">
@@ -446,8 +447,8 @@ export function setupLayoutBlocks(editor: Editor) {
   
   // Stats/Counter Section
   bm.add('stats-section', {
-    label: 'Stats Counter',
-    category: 'Layout',
+    label: i18n.t('editors.gui.blocks.statsCounter'),
+    category: i18n.t('editors.gui.categories.layout'),
     content: `
       <section style="padding: 80px 20px; background: #2c3e50; color: white;">
         <div style="max-width: 1200px; margin: 0 auto;">
@@ -481,8 +482,8 @@ export function setupLayoutBlocks(editor: Editor) {
 
   // Analytics Dashboard Template
   bm.add('analytics-dashboard', {
-    label: 'Analytics Dashboard',
-    category: 'Templates',
+    label: i18n.t('editors.gui.blocks.analyticsDashboard'),
+    category: i18n.t('editors.gui.categories.templates'),
     content: `
       <div data-gjs-type="analytics-dashboard" data-gjs-highlightable="true" style="padding: 20px; background-color: #4b3c82;">
         <div style="max-width: 1400px; margin: 0 auto;">
@@ -523,8 +524,8 @@ export function setupLayoutBlocks(editor: Editor) {
 
   // Full Home Page Template
   bm.add('full-home-page', {
-    label: 'Full Home Page',
-    category: 'Templates',
+    label: i18n.t('editors.gui.blocks.fullHomePage'),
+    category: i18n.t('editors.gui.categories.templates'),
     content: `
       <nav style="background:linear-gradient(135deg, #4b3c82 0%, #5a3d91 100%);color:white;padding:15px 30px;display:flex;justify-content:space-between;align-items:center;font-family:Arial, sans-serif;">
         <div style="font-size:24px;font-weight:bold;">BESSER</div>
@@ -571,8 +572,8 @@ export function setupLayoutBlocks(editor: Editor) {
 
   // KPI Dashboard Template
   bm.add('kpi-dashboard', {
-    label: 'KPI Dashboard',
-    category: 'Templates',
+    label: i18n.t('editors.gui.blocks.kpiDashboard'),
+    category: i18n.t('editors.gui.categories.templates'),
     content: `
       <div class="kpi-dashboard" style="padding: 40px 20px; background: #f5f7fa;">
         <div style="max-width: 1200px; margin: 0 auto;">

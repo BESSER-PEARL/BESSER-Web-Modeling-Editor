@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import i18n from '@/main/shared/i18n';
 import { MapConfig } from '../configs/mapConfig';
 
 /**
@@ -89,7 +90,7 @@ export const registerMapComponent = (editor: any, config: MapConfig) => {
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: 'Charts', // Changed from 'Maps' to 'Charts' for better visibility
+    category: i18n.t('editors.gui.categories.charts'), // Changed from 'Maps' to 'Charts' for better visibility
     content: { type: config.id },
     media: config.icon,
   });

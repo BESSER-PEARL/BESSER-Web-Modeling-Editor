@@ -1,5 +1,6 @@
 import { getPageOptions } from '../utils/pageUtils';
 import { getClassOptions, getMethodOptions, getMethodsByClassId, getTableOptions } from '../diagram-helpers';
+import i18n from '@/main/shared/i18n';
 
 /**
  * Register enhanced button component with actions (navigation, CRUD operations)
@@ -119,35 +120,35 @@ export const registerButtonComponent = (editor: any) => {
         const baseTraits = [
           {
             type: 'text',
-            label: 'Button Label',
+            label: i18n.t('editors.gui.traits.buttonLabel'),
             name: 'button-label',
             changeProp: 1,
           },
           {
             type: 'select',
-            label: 'Button Style',
+            label: i18n.t('editors.gui.traits.buttonStyle'),
             name: 'button-style',
             changeProp: 1,
             options: [
-              { value: 'primary', label: 'Primary' },
-              { value: 'secondary', label: 'Secondary' },
-              { value: 'success', label: 'Success' },
-              { value: 'danger', label: 'Danger' },
-              { value: 'warning', label: 'Warning' },
-              { value: 'info', label: 'Info' },
+              { value: 'primary', label: i18n.t('editors.gui.traits.buttonStyleOptions.primary') },
+              { value: 'secondary', label: i18n.t('editors.gui.traits.buttonStyleOptions.secondary') },
+              { value: 'success', label: i18n.t('editors.gui.traits.buttonStyleOptions.success') },
+              { value: 'danger', label: i18n.t('editors.gui.traits.buttonStyleOptions.danger') },
+              { value: 'warning', label: i18n.t('editors.gui.traits.buttonStyleOptions.warning') },
+              { value: 'info', label: i18n.t('editors.gui.traits.buttonStyleOptions.info') },
             ],
           },
           {
             type: 'select',
-            label: 'Action Type',
+            label: i18n.t('editors.gui.traits.actionType'),
             name: 'action-type',
             changeProp: 1,
             options: [
-              { value: 'navigate', label: 'Navigate to Screen' },
-              { value: 'run-method', label: 'Run Method' },
-              { value: 'create', label: 'Create Entity' },
-              { value: 'update', label: 'Update Entity' },
-              { value: 'delete', label: 'Delete Entity' },
+              { value: 'navigate', label: i18n.t('editors.gui.traits.actionTypeOptions.navigate') },
+              { value: 'run-method', label: i18n.t('editors.gui.traits.actionTypeOptions.runMethod') },
+              { value: 'create', label: i18n.t('editors.gui.traits.actionTypeOptions.create') },
+              { value: 'update', label: i18n.t('editors.gui.traits.actionTypeOptions.update') },
+              { value: 'delete', label: i18n.t('editors.gui.traits.actionTypeOptions.delete') },
             ],
           },
         ];
@@ -159,14 +160,14 @@ export const registerButtonComponent = (editor: any) => {
           actionSpecificTraits.push(
             {
               type: 'select',
-              label: 'Target Screen',
+              label: i18n.t('editors.gui.traits.targetScreen'),
               name: 'target-screen',
               changeProp: 1,
               options: pageOptions,
             },
             {
               type: 'checkbox',
-              label: 'Require Confirm',
+              label: i18n.t('editors.gui.traits.requireConfirm'),
               name: 'confirmation-required',
               changeProp: 1,
             }
@@ -176,7 +177,7 @@ export const registerButtonComponent = (editor: any) => {
           if (confirmRequired) {
             actionSpecificTraits.push({
               type: 'text',
-              label: 'Confirm Message',
+              label: i18n.t('editors.gui.traits.confirmMessage'),
               name: 'confirmation-message',
               changeProp: 1,
             });
@@ -185,28 +186,28 @@ export const registerButtonComponent = (editor: any) => {
           actionSpecificTraits.push(
             {
               type: 'select',
-              label: 'Method Class',
+              label: i18n.t('editors.gui.traits.methodClass'),
               name: 'method-class',
               changeProp: 1,
               options: classOptions,
             },
             {
               type: 'select',
-              label: 'Method',
+              label: i18n.t('editors.gui.traits.method'),
               name: 'method',
               changeProp: 1,
               options: [],
             },
             {
               type: 'select',
-              label: 'Instance Source',
+              label: i18n.t('editors.gui.traits.instanceSource'),
               name: 'instance-source',
               changeProp: 1,
               options: getTableOptions(editor),
             },
             {
               type: 'checkbox',
-              label: 'Require Confirm',
+              label: i18n.t('editors.gui.traits.requireConfirm'),
               name: 'confirmation-required',
               changeProp: 1,
             }
@@ -216,7 +217,7 @@ export const registerButtonComponent = (editor: any) => {
           if (confirmRequired) {
             actionSpecificTraits.push({
               type: 'text',
-              label: 'Confirm Message',
+              label: i18n.t('editors.gui.traits.confirmMessage'),
               name: 'confirmation-message',
               changeProp: 1,
             });
@@ -225,14 +226,14 @@ export const registerButtonComponent = (editor: any) => {
           actionSpecificTraits.push(
             {
               type: 'select',
-              label: 'Class',
+              label: i18n.t('editors.gui.traits.entityClass'),
               name: 'entity-class',
               changeProp: 1,
               options: classOptions,
             },
             {
               type: 'select',
-              label: 'Instance Source',
+              label: i18n.t('editors.gui.traits.instanceSource'),
               name: 'instance-source',
               changeProp: 1,
               options: getTableOptions(editor),
@@ -423,8 +424,8 @@ export const registerButtonComponent = (editor: any) => {
 
   // Add blocks to Block Manager
   editor.BlockManager.add('action-button', {
-    label: 'Button',
-    category: 'Basic',
+    label: i18n.t('editors.gui.blocks.button'),
+    category: i18n.t('editors.gui.categories.basic'),
     content: { type: 'action-button' },
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="8" width="18" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });

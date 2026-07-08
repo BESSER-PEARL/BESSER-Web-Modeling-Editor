@@ -2,10 +2,10 @@
 import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
 import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
-import { chartConfigs } from './configs/chartConfigs';
-import { tableConfig } from './configs/tableConfig';
-import { metricCardConfig } from './configs/metricCardConfigs';
-import { mapConfig } from './configs/mapConfig';
+import { getChartConfigs } from './configs/chartConfigs';
+import { getTableConfig } from './configs/tableConfig';
+import { getMetricCardConfig } from './configs/metricCardConfigs';
+import { getMapConfig } from './configs/mapConfig';
 import { registerChartComponent } from './component-registrars/registerChartComponent';
 import { registerTableComponent } from './component-registrars/registerTableComponent';
 import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
@@ -30,6 +30,21 @@ export const GraphicalUIEditor: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track the active language so a switch remounts the editor (see the init
+  // effect's dependency array). GrapesJS labels come from many imperative
+  // subsystems (blocks, traits, DOM-built panels); remounting re-runs every
+  // registrar/setup/config so they all read the new language. Canvas content
+  // survives via the remote StorageManager (autosave/autoload) plus the unmount
+  // flush; the only tradeoff is that undo history resets on a language switch.
+  const [lang, setLang] = useState(i18n.language);
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng: string) => setLang(lng);
+    i18n.on('languageChanged', handleLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged);
+    };
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -232,7 +247,9 @@ export const GraphicalUIEditor: React.FC = () => {
       cancelled = true;
       if (cleanupFn) cleanupFn();
     };
-  }, []);
+    // `lang` is a dependency so switching language remounts the editor and every
+    // GrapesJS registrar/config re-runs in the new language (see the `lang` state above).
+  }, [lang]);
 
   return (
     <div ref={containerRef} id="gjs"></div>
@@ -380,19 +397,21 @@ function setupEditorFeatures(
  * Register all custom components
  */
 function registerCustomComponents(editor: Editor) {
+  // Configs are built via factories so labels resolve in the current language
+  // on every (re)mount — e.g. after a language switch remounts the editor.
   // Register charts
-  chartConfigs.forEach((config) => {
+  getChartConfigs().forEach((config) => {
     registerChartComponent(editor, config);
   });
 
   // Register table
-  registerTableComponent(editor, tableConfig);
+  registerTableComponent(editor, getTableConfig());
 
   // Register metric card
-  registerMetricCardComponent(editor, metricCardConfig);
+  registerMetricCardComponent(editor, getMetricCardConfig());
 
   // Register other components
-  registerMapComponent(editor, mapConfig);
+  registerMapComponent(editor, getMapConfig());
   registerButtonComponent(editor);
   // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);

@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import i18n from '@/main/shared/i18n';
 import { MetricCardConfig } from '../configs/metricCardConfigs';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions } from '../diagram-helpers';
 
@@ -180,7 +181,7 @@ export const registerMetricCardComponent = (editor: any, config: MetricCardConfi
   // Add metric card to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: 'Basic',
+    category: i18n.t('editors.gui.categories.basic'),
     content: { type: config.id },
     media: config.icon,
   });

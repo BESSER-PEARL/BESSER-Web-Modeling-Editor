@@ -1,6 +1,7 @@
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { ClassMetadata, AttributeMetadata, isNumericType, isStringType } from './utils/classBindingHelpers';
+import i18n from '@/main/shared/i18n';
 
 /**
  * Remove UML visibility characters (+, -, #, ~) from the beginning of a string
@@ -503,7 +504,7 @@ export function getMethodOptions(classId: string): { value: string; label: strin
  */
 export function getTableOptions(editor: any): { value: string; label: string }[] {
   const options: Array<{ value: string; label: string }> = [
-    { value: '', label: '-- Select Source --' }
+    { value: '', label: i18n.t('editors.gui.utils.selectSource') }
   ];
   
   if (!editor) return options;

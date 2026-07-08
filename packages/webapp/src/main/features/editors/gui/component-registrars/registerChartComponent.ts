@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import i18n from '@/main/shared/i18n';
 import { ChartConfig } from '../configs/chartConfigs';
 import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
@@ -63,7 +64,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
     config.traits.push({
       type: 'series-manager',
       name: 'series',
-      label: 'Series',
+      label: i18n.t('editors.gui.traits.series'),
       value: '',
       changeProp: 1
     });
@@ -273,7 +274,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: 'Basic',
+    category: i18n.t('editors.gui.categories.basic'),
     content: { type: config.id },
     media: config.icon,
   });
