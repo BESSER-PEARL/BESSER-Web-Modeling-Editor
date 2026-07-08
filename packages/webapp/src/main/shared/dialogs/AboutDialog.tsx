@@ -35,7 +35,7 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
             editor for creating and editing BESSER models, generating code, and deploying applications.
           </p>
           <p className="text-xs text-muted-foreground">
-            Developed by the BESSER-PEARL research group at the University of Luxembourg.
+            Developed by the BESSER Team at the Luxembourg Institute of Science and Technology.
           </p>
         </div>
         <DialogFooter>
