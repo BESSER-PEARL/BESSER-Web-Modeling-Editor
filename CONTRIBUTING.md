@@ -196,10 +196,10 @@ python besser/utilities/web_modeling_editor/backend/backend.py
 | `npm run start:server`                          | Serve the built webapp via the Express server      |
 | `npm run lint`                                  | ESLint across workspaces                           |
 | `npm run prettier:check` / `prettier:write`     | Check / auto-format with Prettier                  |
-| `npm run test`                                  | Vitest unit tests (webapp)                        |
+| `npm run test --workspace=webapp`               | Vitest unit tests (webapp)                        |
 | `npm run i18n:check`                            | Translation key parity + coverage per language     |
-| `npm run test:e2e`                              | Playwright end-to-end tests                        |
-| `npm run test:e2e:ui`                           | Playwright with interactive UI                     |
+| `npm run test:e2e --workspace=webapp`           | Playwright end-to-end tests                        |
+| `npm run test:e2e:ui --workspace=webapp`        | Playwright with interactive UI                     |
 
 Per-workspace variants are available via `--workspace=<name>` (e.g.,
 `npm run lint --workspace=editor`).
@@ -324,6 +324,22 @@ directory (e.g., `packages/uml-class-diagram/your-element/`) with:
 A full walk-through is in
 [`docs/source/contributing/new-diagram-guide/`](docs/source/contributing/new-diagram-guide/).
 
+### Internationalization (i18n)
+
+The editor is multilingual (English, Luxembourgish, German, French, Spanish,
+Catalan), so **any new user-facing text must be translatable** — never hardcode
+a literal string into a component, or it will show English in every language.
+
+Route text through `t('some.key')` (plain) or `<Trans>` (rich text/links) and
+put the English in `packages/webapp/src/main/shared/i18n/locales/en/translation.json`
+(or `packages/editor/src/main/i18n/en.json` for canvas strings). Then seed the
+other five languages and run `npm run i18n:check` — it must report **100%** for
+every language.
+
+The full "make new text translatable" walk-through (with examples for plain
+text, interpolation, rich text, and menu/category data) and the translator
+workflow are in **[docs/TRANSLATING.md](docs/TRANSLATING.md)**.
+
 ---
 
 ## ✅ Testing Your Changes
@@ -341,7 +357,8 @@ npm run prettier:check
 npm run test --workspace=webapp
 ```
 
-While iterating, target a single test file with `npm run test -- <pattern>`.
+While iterating, target a single test file with
+`npm run test --workspace=webapp -- <pattern>`.
 
 ### End-to-end tests (Playwright)
 

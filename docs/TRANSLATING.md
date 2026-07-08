@@ -78,7 +78,8 @@ Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
 
 4. **Translate the values.** Keep the structure identical to English.
 
-5. **Verify** with `npm run i18n:check` (should report `100.0%` for `it`) and `npm run test`.
+5. **Verify** with `npm run i18n:check` (should report `100.0%` for `it`) and
+   `npm run test --workspace=webapp`.
 
 That's it — the language now appears in the top-bar selector automatically.
 
@@ -113,7 +114,99 @@ That's it — the language now appears in the top-bar selector automatically.
 
 ## Recommended workflow (LLM-assisted, human-verified)
 
-Machine translation gets you 90% of the way; a human gets it right.
+There are two different jobs here, and most PRs are one or the other:
+
+- **Track A — you're a feature developer** adding new UI (a new diagram type, a menu, a
+  dialog). Your job is to make the new text *translatable in the first place*, then seed the
+  other languages.
+- **Track B — you're translating** an existing language (filling gaps or fixing wording).
+
+Both end the same way: **machine translation gets you ~90%; a human speaker gets it right.**
+Every non-English string must be reviewed by a native/fluent speaker before merge.
+
+### Track A — Feature developers: making new text translatable
+
+The golden rule: **never hardcode a user-facing string.** If you write literal English into a
+component, it can never localize — it will show English in every language, silently. Instead,
+route it through `t()` (plain text) or `<Trans>` (rich text) with a **key**, and put the actual
+English text in `en/translation.json`. English is the single source of truth every other
+language is translated from; a key with no `en` entry renders the raw key string (e.g.
+`dialogs.feedback.title`) in the UI, which is your signal you forgot step 5.
+
+**1. Plain text** — the common case:
+
+```tsx
+import { useTranslation } from 'react-i18next';
+
+// ❌ Before — hardcoded, will never translate:
+<DialogTitle>Help Us Improve BESSER</DialogTitle>
+
+// ✅ After — the component references a key…
+const { t } = useTranslation();
+<DialogTitle>{t('dialogs.feedback.title')}</DialogTitle>
+```
+
+```jsonc
+// …and the English text lives in en/translation.json:
+"dialogs": { "feedback": { "title": "Help Us Improve BESSER" } }
+```
+
+**2. Runtime values (interpolation)** — pass the value as the second argument; put a `{{token}}`
+in the JSON string. Every language keeps the token verbatim and only moves it for natural word
+order:
+
+```tsx
+// label is computed at runtime (e.g. the diagram type name)
+t('project.settings.perspectives.toggleAria', { label })
+```
+
+```jsonc
+"toggleAria": "Toggle {{label}} visibility"   // fr: "Basculer la visibilité de {{label}}"
+```
+
+**3. Rich text — bold, links, lists** — use `<Trans>` with a `components` map. Structural
+props (a link's `href`/`target`, a span's `className`) live in the map, so the translated
+string only carries the human-readable text and lightweight tags:
+
+```tsx
+import { Trans } from 'react-i18next';
+
+<Trans
+  i18nKey="dialogs.about.para2"
+  components={{ brand: <span className="font-semibold text-brand" /> }}
+/>
+// en value: "The <brand>Web Modeling Editor</brand> is the online visual editor for ..."
+```
+
+**4. Module-level data (menus, category lists)** — don't call `t()` at module top level;
+i18n isn't initialised yet and you'd freeze the English strings. Instead **store the key and
+resolve at render**:
+
+```tsx
+// module scope: store i18n KEYS, not resolved text
+const categories = [
+  { value: 'bug',     labelKey: 'dialogs.feedback.category.bug' },
+  { value: 'feature', labelKey: 'dialogs.feedback.category.feature' },
+];
+
+// inside the component:
+const { t } = useTranslation();
+categories.map((c) => <option key={c.value}>{t(c.labelKey)}</option>);
+```
+
+**5. Add the keys and seed the languages.** Add your new English keys to
+`packages/webapp/src/main/shared/i18n/locales/en/translation.json` (or the editor
+`packages/editor/src/main/i18n/en.json` for canvas strings). Then create the same keys in the
+other five languages — draft them with an LLM (Track B) and get a human check. Finally run
+`npm run i18n:check`; it must return to **100%** for every language.
+
+> **Tip:** i18next *does* accept an inline English default (`t('key', 'English text')`), but
+> this project's convention is **key-only** — all English lives in `en/translation.json` as the
+> single source of truth (a quick grep finds ~1000 `t('…')` calls and zero inline defaults).
+> Keeping every string in `en.json` is what lets `npm run i18n:check` verify each key is
+> present in all six languages.
+
+### Track B — Translators: filling or fixing a language
 
 1. **Draft with an LLM.** Paste the English JSON and ask for a translation that *keeps the
    JSON keys and `{{placeholders}}` unchanged* and *leaves product/format names in English*.
@@ -131,13 +224,18 @@ Machine translation gets you 90% of the way; a human gets it right.
 ## Checking your work
 
 ```bash
-npm run i18n:check    # key parity + coverage % for every language (webapp + editor)
-npm run test          # includes the locale-parity unit test (webapp)
-npm run dev           # run the app and switch languages from the globe menu
+npm run i18n:check                 # key parity + coverage % for every language (webapp + editor)
+npm run test --workspace=webapp    # includes the locale-parity unit test (webapp)
+npm run dev                        # run the app and switch languages from the globe menu
 ```
 
-`i18n:check` exits non-zero if a language is missing keys, and `--strict`
-(`node scripts/i18n-check.mjs --strict`) also fails on stray/extra keys.
+`i18n:check` exits non-zero if a language is **missing** keys. It does **not** flag stray or
+renamed keys by default — for that (e.g. after renaming a key, or a copy-paste typo) run the
+strict form, which also fails on extra keys:
+
+```bash
+node scripts/i18n-check.mjs --strict
+```
 
 ---
 
@@ -146,8 +244,9 @@ npm run dev           # run the app and switch languages from the globe menu
 - [ ] Edited only translation **values** (keys unchanged).
 - [ ] All `{{placeholders}}` preserved.
 - [ ] Product / format names left in English.
-- [ ] `npm run i18n:check` passes (target 100% for the language you touched).
-- [ ] `npm run test` passes.
+- [ ] `npm run i18n:check` passes (target 100% for the language you touched); if you renamed
+      or removed any keys, `node scripts/i18n-check.mjs --strict` also passes.
+- [ ] `npm run test --workspace=webapp` passes.
 - [ ] Reviewed by a native/fluent speaker — name them or note "self, native speaker" in the PR.
 - [ ] For a brand-new language: registered in `editor-types.ts`, `i18n-provider.tsx`,
       `languages.ts`, and `shared/i18n/index.ts`.
