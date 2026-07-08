@@ -12,8 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const USER_STUDY_PDF_URL = '/Low_code_CA_personalization_study_instructions.pdf';
-
 const COMMUNITY_URLS = {
   contribute: 'https://github.com/BESSER-PEARL/BESSER/blob/master/CONTRIBUTING.md',
   repository: 'https://github.com/BESSER-PEARL/BESSER',
@@ -45,7 +43,6 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
   const openExternalUrl = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
-  const openUserStudyPdf = () => openExternalUrl(USER_STUDY_PDF_URL);
 
   return (
     <DropdownMenu>
@@ -58,7 +55,6 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end">
         <DropdownMenuItem onClick={onOpenHelpDialog}>{t('menu.help.howItWorks')}</DropdownMenuItem>
-        <DropdownMenuItem onClick={openUserStudyPdf}>{t('menu.help.userStudyPdf')}</DropdownMenuItem>
         {onShowWelcomeGuide && (
           <DropdownMenuItem onClick={onShowWelcomeGuide}>
             <PlayCircle className="mr-2 size-4" />
