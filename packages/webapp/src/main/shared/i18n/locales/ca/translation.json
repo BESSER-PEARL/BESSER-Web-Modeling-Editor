@@ -2022,6 +2022,12 @@
         "customUrl": "URL personalitzada",
         "selectSource": "-- Selecciona una font --"
       },
+      "styleManager": {
+        "position": "Posició",
+        "dimension": "Dimensió",
+        "typography": "Tipografia",
+        "decorations": "Decoracions"
+      },
       "guiGeneratedFromClass": "Interfície gràfica generada correctament a partir del diagrama de classes.",
       "unknownError": "Error desconegut",
       "errorGeneratingGui": "Error en generar la interfície: {{message}}",

@@ -2022,6 +2022,12 @@
         "customUrl": "Benutzerdefinierte URL",
         "selectSource": "-- Quelle auswählen --"
       },
+      "styleManager": {
+        "position": "Position",
+        "dimension": "Dimension",
+        "typography": "Typografie",
+        "decorations": "Dekorationen"
+      },
       "guiGeneratedFromClass": "GUI erfolgreich aus dem Klassendiagramm generiert.",
       "unknownError": "Unbekannter Fehler",
       "errorGeneratingGui": "Fehler beim Generieren der GUI: {{message}}",

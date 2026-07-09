@@ -271,15 +271,33 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     { default: gjsPresetWebpage },
     { default: gjsStyleBg },
     { default: gjsBlocksBasic },
+    { default: gjsLocaleDe },
+    { default: gjsLocaleFr },
+    { default: gjsLocaleEs },
+    { default: gjsLocaleCa },
   ] = await Promise.all([
     import('grapesjs'),
     import('grapesjs-preset-webpage'),
     import('grapesjs-style-bg'),
     // @ts-ignore
     import('grapesjs-blocks-basic'),
+    // GrapesJS built-in locale packs translate the editor's own chrome
+    // (Style Manager property labels, panel tooltips, selector/trait managers).
+    // No pack ships for `lb`, which falls back to English via `localeFallback`.
+    // @ts-ignore - locale subpaths have no bundled type declarations
+    import('grapesjs/locale/de'),
+    // @ts-ignore
+    import('grapesjs/locale/fr'),
+    // @ts-ignore
+    import('grapesjs/locale/es'),
+    // @ts-ignore
+    import('grapesjs/locale/ca'),
   ]);
   // Load GrapesJS CSS as a side-effect
   await import('grapesjs/dist/css/grapes.min.css');
+
+  // Match GrapesJS's own locale to the app language (base code, no region).
+  const grapesjsLocale = (i18n.language || 'en').split('-')[0];
 
   return grapesjs.init({
     container,
@@ -287,6 +305,24 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     width: 'auto',
     fromElement: false,
     components: '', // Empty initially - pages will load default content
+
+    // Translate GrapesJS's built-in UI chrome. `en` is the default; `lb` has no
+    // pack and falls back to English.
+    //  - `detectLocale: false` — otherwise GrapesJS overrides `locale` with the
+    //    browser language, ignoring the app's selected language.
+    //  - `messagesAdd` (not `messages`) — extends the built-in `en` set instead
+    //    of replacing it, so the English base and fallback stay intact.
+    i18n: {
+      locale: grapesjsLocale,
+      localeFallback: 'en',
+      detectLocale: false,
+      messagesAdd: {
+        de: gjsLocaleDe,
+        fr: gjsLocaleFr,
+        es: gjsLocaleEs,
+        ca: gjsLocaleCa,
+      },
+    },
 
     // Storage configuration
     storageManager: {
@@ -316,22 +352,22 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
         },
         customStyleManager: [
           {
-            name: 'Position',
+            name: i18n.t('editors.gui.styleManager.position'),
             open: true,
             buildProps: ['position', 'top', 'right', 'bottom', 'left', 'z-index'],
           },
           {
-            name: 'Dimension',
+            name: i18n.t('editors.gui.styleManager.dimension'),
             open: false,
             buildProps: ['width', 'height', 'max-width', 'min-height', 'padding', 'margin'],
           },
           {
-            name: 'Typography',
+            name: i18n.t('editors.gui.styleManager.typography'),
             open: false,
             buildProps: ['font-size', 'font-weight', 'font-family', 'color', 'line-height', 'text-align'],
           },
           {
-            name: 'Decorations',
+            name: i18n.t('editors.gui.styleManager.decorations'),
             open: false,
             buildProps: ['background-color', 'border-radius', 'border', 'box-shadow'],
           },

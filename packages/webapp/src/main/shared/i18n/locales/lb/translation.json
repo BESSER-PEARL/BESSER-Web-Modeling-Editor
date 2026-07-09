@@ -2022,6 +2022,12 @@
         "customUrl": "Personaliséiert URL",
         "selectSource": "-- Quell auswielen --"
       },
+      "styleManager": {
+        "position": "Positioun",
+        "dimension": "Dimensioun",
+        "typography": "Typografie",
+        "decorations": "Dekoratiounen"
+      },
       "guiGeneratedFromClass": "GUI erfollegräich aus der Klassendiagramm generéiert.",
       "unknownError": "Onbekannte Feeler",
       "errorGeneratingGui": "Feeler beim Generéiere vum GUI: {{message}}",
