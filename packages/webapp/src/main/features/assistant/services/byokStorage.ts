@@ -8,7 +8,7 @@
  *
  * Intentionally self-contained: it does NOT import from the smart-generation
  * feature (feature isolation). The assistant keeps its own independent key,
- * separate from the Vibe-Driven Generator's BYOK key.
+ * separate from the Spec-Driven Agent's BYOK key.
  *
  * The raw key is NEVER logged anywhere.
  */

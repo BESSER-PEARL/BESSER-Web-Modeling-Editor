@@ -568,7 +568,7 @@ export function useSmartGenTrigger(
 `) +
                 `  Click **Download** on the run card to save \`${event.fileName}\` to your device.`,
             );
-            toast.success('Vibe-Driven Generator finished -- ready to download');
+            toast.success('Spec-Driven Agent finished -- ready to download');
           }
           const generatorUsed =
             typeof event.recipe?.generator_used === 'string'
@@ -617,11 +617,11 @@ export function useSmartGenTrigger(
                 if (!isRunningRef.current || abortRequestedRef.current) return;
                 finalizeStreamingMessage(streamingId);
                 appendErrorToChat(
-                  `Vibe-Driven Generator exceeded the cost/runtime cap and the ` +
+                  `Spec-Driven Agent exceeded the cost/runtime cap and the ` +
                     `backend did not finalise the run. You may need to retry ` +
                     `with a larger budget.`,
                 );
-                toast.error('Vibe-Driven Generator cap reached — no response');
+                toast.error('Spec-Driven Agent cap reached — no response');
                 reportRunFinished({
                   ok: false,
                   runId: currentRunIdRef.current,
@@ -654,9 +654,9 @@ export function useSmartGenTrigger(
             { stopStreaming: true },
           );
           appendErrorToChat(
-            `❌ Vibe-Driven Generator error (${event.code}): ${event.message}`,
+            `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
           );
-          toast.error(`Vibe-Driven Generator: ${event.code}`);
+          toast.error(`Spec-Driven Agent: ${event.code}`);
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -714,7 +714,7 @@ export function useSmartGenTrigger(
       // store — a useAppSelector value could be stale in this commit).
       if (isRunningRef.current || dispatch(isSmartGenRunActive())) {
         appendErrorToChat(
-          'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
+          'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
         return;
       }
@@ -727,8 +727,8 @@ export function useSmartGenTrigger(
 
       const project = currentProjectRef.current;
       if (!project) {
-        appendErrorToChat('Vibe-Driven Generator needs an open project.');
-        toast.error('Vibe-Driven Generator needs an open project');
+        appendErrorToChat('Spec-Driven Agent needs an open project.');
+        toast.error('Spec-Driven Agent needs an open project');
         return;
       }
 
@@ -751,9 +751,9 @@ export function useSmartGenTrigger(
       const rawProvider: unknown = key.provider ?? payload.provider;
       if (!isValidProvider(rawProvider)) {
         appendErrorToChat(
-          `Vibe-Driven Generator: unknown provider ${String(rawProvider)}. Please save a valid key.`,
+          `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
         );
-        toast.error('Vibe-Driven Generator: invalid provider');
+        toast.error('Spec-Driven Agent: invalid provider');
         return;
       }
       const provider: SmartGenProvider = rawProvider;
@@ -765,7 +765,7 @@ export function useSmartGenTrigger(
       // 'running' and backs off.
       if (!dispatch(tryClaimRunSlot())) {
         appendErrorToChat(
-          'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
+          'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
         return;
       }
@@ -852,9 +852,9 @@ export function useSmartGenTrigger(
       } catch (err) {
         finalizeStreamingMessage(streamingId);
         appendErrorToChat(
-          `Vibe-Driven Generator failed to start: ${err instanceof Error ? err.message : String(err)}`,
+          `Spec-Driven Agent failed to start: ${err instanceof Error ? err.message : String(err)}`,
         );
-        toast.error('Vibe-Driven Generator failed to start');
+        toast.error('Spec-Driven Agent failed to start');
         isRunningRef.current = false;
         setIsGenerating(false);
         dispatch(releaseRunSlot());
@@ -880,7 +880,7 @@ export function useSmartGenTrigger(
           err instanceof DOMException && err.name === 'AbortError';
         finalizeStreamingMessage(streamingId);
         if (isAbort) {
-          appendAssistantMessage('⏹ Vibe-Driven Generator run stopped by user.');
+          appendAssistantMessage('⏹ Spec-Driven Agent run stopped by user.');
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -888,8 +888,8 @@ export function useSmartGenTrigger(
             costUsd: lastCostRef.current,
           });
         } else {
-          appendErrorToChat(`Vibe-Driven Generator stream error: ${msg}`);
-          toast.error('Vibe-Driven Generator stream error');
+          appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
+          toast.error('Spec-Driven Agent stream error');
           dispatch(setRunError({ code: 'INTERNAL', message: msg }));
           reportRunFinished({
             ok: false,
@@ -932,7 +932,7 @@ export function useSmartGenTrigger(
       // the store) — the run may be owned by the other mounted instance.
       if (isRunningRef.current || dispatch(isSmartGenRunActive())) {
         appendErrorToChat(
-          'Vibe-Driven Generator is already running — please wait for it to finish or click Stop.',
+          'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
         return;
       }

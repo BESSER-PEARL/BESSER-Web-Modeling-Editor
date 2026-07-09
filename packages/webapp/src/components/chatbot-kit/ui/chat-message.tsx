@@ -793,7 +793,7 @@ function SmartGenCard({
       {/* Header */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-muted/60 px-3 py-2 text-xs">
         <Sparkles className="h-3.5 w-3.5 text-primary" />
-        <span className="font-medium text-foreground">Vibe-Driven Generator</span>
+        <span className="font-medium text-foreground">Spec-Driven Agent</span>
         {runId ? (
           <span className="font-mono text-[11px] text-muted-foreground">
             {runId.slice(0, 8)}…

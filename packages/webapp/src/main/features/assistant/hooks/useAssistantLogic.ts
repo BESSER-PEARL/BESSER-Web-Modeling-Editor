@@ -425,11 +425,11 @@ export function useAssistantLogic({
         if (!assistantClient) return;
         const messageText = result.ok
           ? result.incomplete
-            ? `Vibe-Driven Generator produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
-            : `Vibe-Driven Generator finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
+            ? `Spec-Driven Agent produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
+            : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
           : result.errorCode === 'CANCELLED'
-            ? 'Vibe-Driven Generator run was cancelled by the user.'
-            : `Vibe-Driven Generator failed (${result.errorCode ?? 'UNKNOWN'}).`;
+            ? 'Spec-Driven Agent run was cancelled by the user.'
+            : `Spec-Driven Agent failed (${result.errorCode ?? 'UNKNOWN'}).`;
         assistantClient.sendFrontendEvent('generator_result', {
           ok: result.ok,
           message: messageText,
@@ -643,7 +643,7 @@ export function useAssistantLogic({
           ...prev,
           toKitMessage(
             'assistant',
-            'Vibe-Driven Generator: missing instructions from the modeling agent.',
+            'Spec-Driven Agent: missing instructions from the modeling agent.',
             { isError: true },
           ),
         ]);

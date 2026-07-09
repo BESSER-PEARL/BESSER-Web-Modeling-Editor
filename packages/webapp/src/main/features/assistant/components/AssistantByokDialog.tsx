@@ -2,7 +2,7 @@
  * AssistantByokDialog — bring-your-own-key (BYOK) entry dialog for the AI
  * modeling assistant.
  *
- * Mirrors the Vibe-Driven Generator's SmartGenByokDialog UX (same three
+ * Mirrors the Spec-Driven Agent's SmartGenByokDialog UX (same three
  * providers, password input, key-format hints, privacy reassurance) but is
  * fully self-contained: it does NOT import from the smart-generation feature
  * (feature isolation). The assistant keeps its own independent key.
