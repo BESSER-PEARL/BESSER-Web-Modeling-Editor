@@ -119,7 +119,7 @@ const getInitialState = ({ type, canvas, translate, colorEnabled }: Props) => {
     // );
     utils.push(
       new Comments({
-        name: 'Comments',
+        name: translate('packages.Comment.Comment'),
       }),
     );
   }

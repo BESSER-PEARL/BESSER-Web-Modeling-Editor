@@ -2,7 +2,8 @@
   "views": {
     "modelling": "Modelado",
     "exporting": "Interactivo",
-    "highlight": "Mostrar elementos interactivos"
+    "highlight": "Mostrar elementos interactivos",
+    "iconMode": "Mostrar diagrama de objetos en modo icono"
   },
   "sidebar": {
     "classAttribute": "atributo",
@@ -26,7 +27,109 @@
     "objectLink": "Enlace de objeto",
     "linkDetails": "Detalles del enlace",
     "noAssociation": "Sin asociación",
-    "noAssociationsAvailable": "No hay asociaciones disponibles para las clases de objetos conectadas"
+    "noAssociationsAvailable": "No hay asociaciones disponibles para las clases de objetos conectadas",
+    "name": "Nombre",
+    "objectClass": "Clase:",
+    "noClassSelected": "Ninguna clase seleccionada",
+    "linkNamePlaceholder": "Nombre del enlace",
+    "durationPlaceholder": "p. ej. 1d 2h 30m, P1DT2H30M, 1:30:00",
+    "durationTooltip": "Introduce la duración en formatos como: '1d 2h 30m', 'P1DT2H30M' (ISO 8601) o 'HH:mm:ss'",
+    "guard": "Guarda",
+    "guardPlaceholder": "Expresión de guarda",
+    "parameters": "Parámetros",
+    "parameterPlaceholder": "Parámetro",
+    "pythonCodeBlock": "Bloque de código Python",
+    "attributeValuePlaceholder": "valor",
+    "agent": {
+      "state": {
+        "action": "Acción del agente",
+        "fallbackAction": "Acción alternativa del agente",
+        "autoResponse": "Se generará una respuesta automática."
+      },
+      "reply": {
+        "text": "Respuesta de texto",
+        "llm": "Respuesta automática LLM",
+        "rag": "Respuesta RAG",
+        "db": "Acción de BD",
+        "code": "Código Python"
+      },
+      "rag": {
+        "select": "Seleccionar base de datos RAG",
+        "none": "No hay bases de datos RAG disponibles. Crea una desde la paleta primero.",
+        "name": "Nombre de la BD RAG"
+      },
+      "llm": {
+        "label": "LLM",
+        "useDefault": "(usar predeterminado)"
+      },
+      "db": {
+        "configuring": "Configurando acción de base de datos...",
+        "initialize": "Inicializar acción de base de datos",
+        "select": "Seleccionar una base de datos",
+        "default": "Predeterminada (usar la BD de la app)",
+        "custom": "Personalizada",
+        "customNamePlaceholder": "Nombre de base de datos personalizado",
+        "operation": "Operación de BD",
+        "any": "Cualquiera",
+        "llmQuery": "Consulta LLM",
+        "sql": "SQL",
+        "runtime": "La respuesta se generará con el LLM en tiempo de ejecución"
+      },
+      "transition": {
+        "type": "Tipo de transición",
+        "predefined": "Transición predefinida",
+        "custom": "Transición personalizada",
+        "condition": "Condición",
+        "whenIntentMatched": "Cuando coincide la intención",
+        "whenNoIntentMatched": "Cuando no coincide ninguna intención",
+        "whenVariableOperationMatched": "Operación de variable coincidente",
+        "whenFileReceived": "Archivo recibido",
+        "auto": "Transición automática",
+        "selectIntent": "Seleccionar intención",
+        "variablePlaceholder": "Variable",
+        "targetValuePlaceholder": "Valor objetivo",
+        "selectFileType": "Seleccionar tipo de archivo",
+        "event": "Evento",
+        "conditions": "Condiciones",
+        "addCondition": "Añadir condición"
+      },
+      "intent": {
+        "name": "Nombre de la intención",
+        "trainingSentences": "Frases de entrenamiento",
+        "description": "Descripción (opcional)"
+      },
+      "reasoning": {
+        "name": "Nombre del estado",
+        "llmName": "Nombre del LLM",
+        "maxSteps": "Pasos máx.",
+        "enablePlanning": "Habilitar planificación de tareas",
+        "streamSteps": "Transmitir pasos",
+        "systemPrompt": "Prompt del sistema",
+        "systemPromptPlaceholder": "Prefijo de prompt del sistema opcional para este estado",
+        "fallback": "Mensaje alternativo",
+        "fallbackPlaceholder": "Mensaje devuelto si falla el bucle de razonamiento"
+      },
+      "skill": {
+        "name": "Nombre de la habilidad",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción breve opcional",
+        "content": "Contenido Markdown"
+      },
+      "tool": {
+        "name": "Nombre de la herramienta",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción breve mostrada al LLM",
+        "code": "Código Python"
+      },
+      "workspace": {
+        "name": "Nombre del espacio de trabajo",
+        "path": "Ruta del sistema de archivos",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción opcional",
+        "writable": "Escribible",
+        "maxReadBytes": "Bytes máx. de lectura"
+      }
+    }
   },
   "assessment": {
     "assessment": "Evaluación de",
@@ -205,6 +308,38 @@
     },
     "OCLConstraint": {
       "Constraint": "Restricción OCL"
+    },
+    "StateDiagram": {
+      "StateTransition": "Transición",
+      "StateInitialNode": "Estado inicial",
+      "StateFinalNode": "Estado final",
+      "State": "Estado",
+      "StateBody": "Cuerpo",
+      "StateFallbackBody": "Cuerpo alternativo"
+    },
+    "AgentDiagram": {
+      "StateTransition": "Transición",
+      "palette": {
+        "flow": "Flujo",
+        "reasoning": "Razonamiento",
+        "knowledge": "Conocimiento",
+        "capabilities": "Capacidades"
+      },
+      "AgentState": "Estado del agente",
+      "AgentStateBody": "Cuerpo",
+      "ReasoningState": "Estado de razonamiento",
+      "Intent": "Nombre de la intención",
+      "RagElement": "Nombre de la BD RAG"
+    },
+    "Comment": {
+      "Comment": "Comentarios",
+      "placeholder": "Comentario"
     }
+  },
+  "common": {
+    "add": "Añadir",
+    "remove": "Eliminar",
+    "width": "Ancho",
+    "height": "Alto"
   }
 }

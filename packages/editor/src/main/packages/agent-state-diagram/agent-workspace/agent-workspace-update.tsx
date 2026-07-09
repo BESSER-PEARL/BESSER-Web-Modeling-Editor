@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AgentWorkspace } from './agent-workspace';
@@ -28,16 +31,16 @@ type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update }) => (
+const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, translate }) => (
   <div>
     <Section>
-      <Header>Workspace name</Header>
+      <Header>{translate('popup.agent.workspace.name')}</Header>
       <Textfield value={element.name} onChange={(name) => update<AgentWorkspace>(element.id, { name })} autoFocus />
     </Section>
     <Section>
-      <Header>Filesystem path</Header>
+      <Header>{translate('popup.agent.workspace.path')}</Header>
       <Textfield
         value={element.path}
         placeholder="/path/to/workspace"
@@ -45,12 +48,12 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update }) => 
       />
     </Section>
     <Section>
-      <Header>Description</Header>
+      <Header>{translate('popup.agent.workspace.description')}</Header>
       <Textfield
         value={element.description}
         multiline
         enterToSubmit={false}
-        placeholder="Optional description"
+        placeholder={translate('popup.agent.workspace.descriptionPlaceholder')}
         onChange={(description) => update<AgentWorkspace>(element.id, { description })}
       />
     </Section>
@@ -61,11 +64,11 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update }) => 
           checked={element.writable}
           onChange={(e) => update<AgentWorkspace>(element.id, { writable: e.target.checked })}
         />
-        Writable
+        {translate('popup.agent.workspace.writable')}
       </CheckboxRow>
     </Section>
     <Section>
-      <Header>Max read bytes</Header>
+      <Header>{translate('popup.agent.workspace.maxReadBytes')}</Header>
       <Textfield
         value={element.max_read_bytes}
         onChange={(value) => {
@@ -77,8 +80,11 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update }) => 
   </div>
 );
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-});
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    update: UMLElementRepository.update,
+  }),
+);
 
 export const AgentWorkspaceUpdate = enhance(AgentWorkspaceUpdateComponent);

@@ -2,7 +2,8 @@
   "views": {
     "modelling": "Modelatge",
     "exporting": "Interactiu",
-    "highlight": "Mostra els elements interactius"
+    "highlight": "Mostra els elements interactius",
+    "iconMode": "Mostra el diagrama d'objectes en mode icona"
   },
   "sidebar": {
     "classAttribute": "atribut",
@@ -26,7 +27,109 @@
     "objectLink": "Enllaç d'objecte",
     "linkDetails": "Detalls de l'enllaç",
     "noAssociation": "Cap associació",
-    "noAssociationsAvailable": "No hi ha associacions disponibles per a les classes d'objectes connectades"
+    "noAssociationsAvailable": "No hi ha associacions disponibles per a les classes d'objectes connectades",
+    "name": "Nom",
+    "objectClass": "Classe:",
+    "noClassSelected": "Cap classe seleccionada",
+    "linkNamePlaceholder": "Nom de l'enllaç",
+    "durationPlaceholder": "p. ex. 1d 2h 30m, P1DT2H30M, 1:30:00",
+    "durationTooltip": "Introduïu la durada en formats com: '1d 2h 30m', 'P1DT2H30M' (ISO 8601) o 'HH:mm:ss'",
+    "guard": "Guarda",
+    "guardPlaceholder": "Expressió de guarda",
+    "parameters": "Paràmetres",
+    "parameterPlaceholder": "Paràmetre",
+    "pythonCodeBlock": "Bloc de codi Python",
+    "attributeValuePlaceholder": "valor",
+    "agent": {
+      "state": {
+        "action": "Acció de l'agent",
+        "fallbackAction": "Acció alternativa de l'agent",
+        "autoResponse": "Es generarà una resposta automàtica."
+      },
+      "reply": {
+        "text": "Resposta de text",
+        "llm": "Resposta automàtica LLM",
+        "rag": "Resposta RAG",
+        "db": "Acció de BD",
+        "code": "Codi Python"
+      },
+      "rag": {
+        "select": "Selecciona una base de dades RAG",
+        "none": "No hi ha bases de dades RAG disponibles. Creeu-ne una des de la paleta primer.",
+        "name": "Nom de la BD RAG"
+      },
+      "llm": {
+        "label": "LLM",
+        "useDefault": "(usa el valor per defecte)"
+      },
+      "db": {
+        "configuring": "Configurant l'acció de base de dades...",
+        "initialize": "Inicialitza l'acció de base de dades",
+        "select": "Selecciona una base de dades",
+        "default": "Per defecte (usar la BD de l'app)",
+        "custom": "Personalitzada",
+        "customNamePlaceholder": "Nom de base de dades personalitzat",
+        "operation": "Operació de BD",
+        "any": "Qualsevol",
+        "llmQuery": "Consulta LLM",
+        "sql": "SQL",
+        "runtime": "La resposta es generarà amb el LLM en temps d'execució"
+      },
+      "transition": {
+        "type": "Tipus de transició",
+        "predefined": "Transició predefinida",
+        "custom": "Transició personalitzada",
+        "condition": "Condició",
+        "whenIntentMatched": "Quan coincideix la intenció",
+        "whenNoIntentMatched": "Quan no coincideix cap intenció",
+        "whenVariableOperationMatched": "Operació de variable coincident",
+        "whenFileReceived": "Fitxer rebut",
+        "auto": "Transició automàtica",
+        "selectIntent": "Selecciona una intenció",
+        "variablePlaceholder": "Variable",
+        "targetValuePlaceholder": "Valor objectiu",
+        "selectFileType": "Selecciona un tipus de fitxer",
+        "event": "Esdeveniment",
+        "conditions": "Condicions",
+        "addCondition": "Afegeix una condició"
+      },
+      "intent": {
+        "name": "Nom de la intenció",
+        "trainingSentences": "Frases d'entrenament",
+        "description": "Descripció (opcional)"
+      },
+      "reasoning": {
+        "name": "Nom de l'estat",
+        "llmName": "Nom del LLM",
+        "maxSteps": "Passos màx.",
+        "enablePlanning": "Activa la planificació de tasques",
+        "streamSteps": "Transmet els passos",
+        "systemPrompt": "Prompt del sistema",
+        "systemPromptPlaceholder": "Prefix de prompt del sistema opcional per a aquest estat",
+        "fallback": "Missatge alternatiu",
+        "fallbackPlaceholder": "Missatge retornat si falla el bucle de raonament"
+      },
+      "skill": {
+        "name": "Nom de la competència",
+        "description": "Descripció",
+        "descriptionPlaceholder": "Descripció breu opcional",
+        "content": "Contingut Markdown"
+      },
+      "tool": {
+        "name": "Nom de l'eina",
+        "description": "Descripció",
+        "descriptionPlaceholder": "Descripció breu mostrada al LLM",
+        "code": "Codi Python"
+      },
+      "workspace": {
+        "name": "Nom de l'espai de treball",
+        "path": "Camí del sistema de fitxers",
+        "description": "Descripció",
+        "descriptionPlaceholder": "Descripció opcional",
+        "writable": "Escrivible",
+        "maxReadBytes": "Bytes màx. de lectura"
+      }
+    }
   },
   "assessment": {
     "assessment": "Avaluació de",
@@ -205,6 +308,38 @@
     },
     "OCLConstraint": {
       "Constraint": "Restricció OCL"
+    },
+    "StateDiagram": {
+      "StateTransition": "Transició",
+      "StateInitialNode": "Estat inicial",
+      "StateFinalNode": "Estat final",
+      "State": "Estat",
+      "StateBody": "Cos",
+      "StateFallbackBody": "Cos alternatiu"
+    },
+    "AgentDiagram": {
+      "StateTransition": "Transició",
+      "palette": {
+        "flow": "Flux",
+        "reasoning": "Raonament",
+        "knowledge": "Coneixement",
+        "capabilities": "Capacitats"
+      },
+      "AgentState": "Estat de l'agent",
+      "AgentStateBody": "Cos",
+      "ReasoningState": "Estat de raonament",
+      "Intent": "Nom de la intenció",
+      "RagElement": "Nom de la BD RAG"
+    },
+    "Comment": {
+      "Comment": "Comentaris",
+      "placeholder": "Comentari"
     }
+  },
+  "common": {
+    "add": "Afegeix",
+    "remove": "Elimina",
+    "width": "Amplada",
+    "height": "Alçada"
   }
 }

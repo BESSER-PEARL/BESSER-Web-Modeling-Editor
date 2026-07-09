@@ -2,7 +2,8 @@
   "views": {
     "modelling": "Modellierung",
     "exporting": "Interaktiv",
-    "highlight": "Interaktive Elemente anzeigen"
+    "highlight": "Interaktive Elemente anzeigen",
+    "iconMode": "Objektdiagramm im Symbolmodus anzeigen"
   },
   "sidebar": {
     "classAttribute": "attribut",
@@ -26,7 +27,109 @@
     "objectLink": "Objektverknüpfung",
     "linkDetails": "Verknüpfungsdetails",
     "noAssociation": "Keine Assoziation",
-    "noAssociationsAvailable": "Keine Assoziationen für die verbundenen Objektklassen verfügbar"
+    "noAssociationsAvailable": "Keine Assoziationen für die verbundenen Objektklassen verfügbar",
+    "name": "Name",
+    "objectClass": "Klasse:",
+    "noClassSelected": "Keine Klasse ausgewählt",
+    "linkNamePlaceholder": "Verbindungsname",
+    "durationPlaceholder": "z. B. 1d 2h 30m, P1DT2H30M, 1:30:00",
+    "durationTooltip": "Dauer in Formaten wie '1d 2h 30m', 'P1DT2H30M' (ISO 8601) oder 'HH:mm:ss' eingeben",
+    "guard": "Wächter",
+    "guardPlaceholder": "Wächterausdruck",
+    "parameters": "Parameter",
+    "parameterPlaceholder": "Parameter",
+    "pythonCodeBlock": "Python-Codeblock",
+    "attributeValuePlaceholder": "Wert",
+    "agent": {
+      "state": {
+        "action": "Agentenaktion",
+        "fallbackAction": "Agenten-Fallback-Aktion",
+        "autoResponse": "Eine automatische Antwort wird generiert."
+      },
+      "reply": {
+        "text": "Textantwort",
+        "llm": "Automatische LLM-Antwort",
+        "rag": "RAG-Antwort",
+        "db": "DB-Aktion",
+        "code": "Python-Code"
+      },
+      "rag": {
+        "select": "RAG-Datenbank auswählen",
+        "none": "Keine RAG-Datenbanken verfügbar. Erstellen Sie zuerst eine über die Palette.",
+        "name": "Name der RAG-DB"
+      },
+      "llm": {
+        "label": "LLM",
+        "useDefault": "(Standard verwenden)"
+      },
+      "db": {
+        "configuring": "Datenbankaktion wird konfiguriert...",
+        "initialize": "Datenbankaktion initialisieren",
+        "select": "Datenbank auswählen",
+        "default": "Standard (App-DB verwenden)",
+        "custom": "Benutzerdefiniert",
+        "customNamePlaceholder": "Benutzerdefinierter Datenbankname",
+        "operation": "DB-Operation",
+        "any": "Beliebig",
+        "llmQuery": "LLM-Abfrage",
+        "sql": "SQL",
+        "runtime": "Die Antwort wird zur Laufzeit mit dem LLM generiert"
+      },
+      "transition": {
+        "type": "Übergangstyp",
+        "predefined": "Vordefinierter Übergang",
+        "custom": "Benutzerdefinierter Übergang",
+        "condition": "Bedingung",
+        "whenIntentMatched": "Wenn Intent übereinstimmt",
+        "whenNoIntentMatched": "Wenn kein Intent übereinstimmt",
+        "whenVariableOperationMatched": "Variablenoperation übereinstimmt",
+        "whenFileReceived": "Datei empfangen",
+        "auto": "Automatischer Übergang",
+        "selectIntent": "Intent auswählen",
+        "variablePlaceholder": "Variable",
+        "targetValuePlaceholder": "Zielwert",
+        "selectFileType": "Dateityp auswählen",
+        "event": "Ereignis",
+        "conditions": "Bedingungen",
+        "addCondition": "Bedingung hinzufügen"
+      },
+      "intent": {
+        "name": "Intent-Name",
+        "trainingSentences": "Trainingssätze",
+        "description": "Beschreibung (optional)"
+      },
+      "reasoning": {
+        "name": "Zustandsname",
+        "llmName": "LLM-Name",
+        "maxSteps": "Max. Schritte",
+        "enablePlanning": "Aufgabenplanung aktivieren",
+        "streamSteps": "Schritte streamen",
+        "systemPrompt": "System-Prompt",
+        "systemPromptPlaceholder": "Optionaler System-Prompt-Präfix für diesen Zustand",
+        "fallback": "Fallback-Nachricht",
+        "fallbackPlaceholder": "Nachricht, die zurückgegeben wird, wenn die Reasoning-Schleife fehlschlägt"
+      },
+      "skill": {
+        "name": "Skill-Name",
+        "description": "Beschreibung",
+        "descriptionPlaceholder": "Optionale Kurzbeschreibung",
+        "content": "Markdown-Inhalt"
+      },
+      "tool": {
+        "name": "Tool-Name",
+        "description": "Beschreibung",
+        "descriptionPlaceholder": "Kurzbeschreibung, die dem LLM angezeigt wird",
+        "code": "Python-Code"
+      },
+      "workspace": {
+        "name": "Workspace-Name",
+        "path": "Dateisystempfad",
+        "description": "Beschreibung",
+        "descriptionPlaceholder": "Optionale Beschreibung",
+        "writable": "Beschreibbar",
+        "maxReadBytes": "Max. Lesebytes"
+      }
+    }
   },
   "assessment": {
     "assessment": "Bewertung für",
@@ -205,6 +308,38 @@
     },
     "OCLConstraint": {
       "Constraint": "OCL-Einschränkung"
+    },
+    "StateDiagram": {
+      "StateTransition": "Übergang",
+      "StateInitialNode": "Startzustand",
+      "StateFinalNode": "Endzustand",
+      "State": "Zustand",
+      "StateBody": "Rumpf",
+      "StateFallbackBody": "Fallback-Rumpf"
+    },
+    "AgentDiagram": {
+      "StateTransition": "Übergang",
+      "palette": {
+        "flow": "Ablauf",
+        "reasoning": "Reasoning",
+        "knowledge": "Wissen",
+        "capabilities": "Fähigkeiten"
+      },
+      "AgentState": "Agentenzustand",
+      "AgentStateBody": "Rumpf",
+      "ReasoningState": "Reasoning-Zustand",
+      "Intent": "Intent-Name",
+      "RagElement": "Name der RAG-DB"
+    },
+    "Comment": {
+      "Comment": "Kommentare",
+      "placeholder": "Kommentar"
     }
+  },
+  "common": {
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "width": "Breite",
+    "height": "Höhe"
   }
 }

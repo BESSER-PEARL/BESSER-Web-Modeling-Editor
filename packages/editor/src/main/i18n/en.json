@@ -2,7 +2,8 @@
   "views": {
     "modelling": "Modeling",
     "exporting": "Interactive",
-    "highlight": "Show interactive elements"
+    "highlight": "Show interactive elements",
+    "iconMode": "Display Object Diagram in Icon Mode"
   },
   "sidebar": {
     "classAttribute": "attribute",
@@ -26,7 +27,109 @@
     "objectLink": "Object Link",
     "linkDetails": "Link Details",
     "noAssociation": "No Association",
-    "noAssociationsAvailable": "No associations available for the connected object classes"
+    "noAssociationsAvailable": "No associations available for the connected object classes",
+    "name": "Name",
+    "objectClass": "Class:",
+    "noClassSelected": "No class selected",
+    "linkNamePlaceholder": "Link name",
+    "durationPlaceholder": "e.g., 1d 2h 30m, P1DT2H30M, 1:30:00",
+    "durationTooltip": "Enter duration in formats like: '1d 2h 30m', 'P1DT2H30M' (ISO 8601), or 'HH:mm:ss'",
+    "guard": "Guard",
+    "guardPlaceholder": "Guard expression",
+    "parameters": "Parameters",
+    "parameterPlaceholder": "Parameter",
+    "pythonCodeBlock": "Python Code Block",
+    "attributeValuePlaceholder": "value",
+    "agent": {
+      "state": {
+        "action": "Agent Action",
+        "fallbackAction": "Agent Fallback Action",
+        "autoResponse": "An automated response will be generated."
+      },
+      "reply": {
+        "text": "Text Reply",
+        "llm": "LLM automatic reply",
+        "rag": "RAG reply",
+        "db": "DB action",
+        "code": "Python Code"
+      },
+      "rag": {
+        "select": "Select RAG database",
+        "none": "No RAG databases available. Create one from the palette first.",
+        "name": "Name of RAG DB"
+      },
+      "llm": {
+        "label": "LLM",
+        "useDefault": "(use default)"
+      },
+      "db": {
+        "configuring": "Configuring database action...",
+        "initialize": "Initialize database action",
+        "select": "Select a Database",
+        "default": "Default (using the app DB)",
+        "custom": "Custom",
+        "customNamePlaceholder": "Custom database name",
+        "operation": "DB operation",
+        "any": "Any",
+        "llmQuery": "LLM query",
+        "sql": "SQL",
+        "runtime": "Answer will be generated with LLM during runtime"
+      },
+      "transition": {
+        "type": "Transition Type",
+        "predefined": "Predefined transition",
+        "custom": "Custom transition",
+        "condition": "Condition",
+        "whenIntentMatched": "When Intent Matched",
+        "whenNoIntentMatched": "When No Intent Matched",
+        "whenVariableOperationMatched": "Variable Operation Matched",
+        "whenFileReceived": "File Received",
+        "auto": "Auto Transition",
+        "selectIntent": "Select intent",
+        "variablePlaceholder": "Variable",
+        "targetValuePlaceholder": "Target value",
+        "selectFileType": "Select file type",
+        "event": "Event",
+        "conditions": "Conditions",
+        "addCondition": "Add condition"
+      },
+      "intent": {
+        "name": "Intent Name",
+        "trainingSentences": "Training Sentences",
+        "description": "Description (Optional)"
+      },
+      "reasoning": {
+        "name": "State name",
+        "llmName": "LLM name",
+        "maxSteps": "Max steps",
+        "enablePlanning": "Enable task planning",
+        "streamSteps": "Stream steps",
+        "systemPrompt": "System prompt",
+        "systemPromptPlaceholder": "Optional system prompt prefix for this state",
+        "fallback": "Fallback message",
+        "fallbackPlaceholder": "Message returned if the reasoning loop fails"
+      },
+      "skill": {
+        "name": "Skill name",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional short description",
+        "content": "Markdown content"
+      },
+      "tool": {
+        "name": "Tool name",
+        "description": "Description",
+        "descriptionPlaceholder": "Short description shown to the LLM",
+        "code": "Python code"
+      },
+      "workspace": {
+        "name": "Workspace name",
+        "path": "Filesystem path",
+        "description": "Description",
+        "descriptionPlaceholder": "Optional description",
+        "writable": "Writable",
+        "maxReadBytes": "Max read bytes"
+      }
+    }
   },
   "assessment": {
     "assessment": "Assessment for",
@@ -205,6 +308,38 @@
     },
     "OCLConstraint": {
       "Constraint": "OCL Constraint"
+    },
+    "StateDiagram": {
+      "StateTransition": "Transition",
+      "StateInitialNode": "Initial State",
+      "StateFinalNode": "Final State",
+      "State": "State",
+      "StateBody": "Body",
+      "StateFallbackBody": "Fallback Body"
+    },
+    "AgentDiagram": {
+      "StateTransition": "Transition",
+      "palette": {
+        "flow": "Flow",
+        "reasoning": "Reasoning",
+        "knowledge": "Knowledge",
+        "capabilities": "Capabilities"
+      },
+      "AgentState": "AgentState",
+      "AgentStateBody": "Body",
+      "ReasoningState": "ReasoningState",
+      "Intent": "Intent Name",
+      "RagElement": "RAG DB Name"
+    },
+    "Comment": {
+      "Comment": "Comments",
+      "placeholder": "Comment"
     }
+  },
+  "common": {
+    "add": "Add",
+    "remove": "Remove",
+    "width": "Width",
+    "height": "Height"
   }
 }

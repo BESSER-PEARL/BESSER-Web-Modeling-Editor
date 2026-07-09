@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AgentReasoningState } from './agent-reasoning-state';
@@ -33,7 +36,7 @@ type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const Select = styled.select`
   width: 100%;
@@ -45,7 +48,7 @@ const Select = styled.select`
   color: inherit;
 `;
 
-const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, elements }) => {
+const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, elements, translate }) => {
   const llmNames = Array.from(
     new Set(
       Object.values(elements)
@@ -58,7 +61,7 @@ const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, 
   return (
   <div>
     <Section>
-      <Header>State name</Header>
+      <Header>{translate('popup.agent.reasoning.name')}</Header>
       <Textfield
         value={element.name}
         onChange={(name) => update<AgentReasoningState>(element.id, { name })}
@@ -66,12 +69,12 @@ const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, 
       />
     </Section>
     <Section>
-      <Header>LLM name</Header>
+      <Header>{translate('popup.agent.reasoning.llmName')}</Header>
       <Select
         value={element.llm_name || ''}
         onChange={(event) => update<AgentReasoningState>(element.id, { llm_name: event.target.value })}
       >
-        <option value="">(use default)</option>
+        <option value="">{translate('popup.agent.llm.useDefault')}</option>
         {llmNames.map((name) => (
           <option key={name} value={name}>
             {name}
@@ -80,7 +83,7 @@ const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, 
       </Select>
     </Section>
     <Section>
-      <Header>Max steps</Header>
+      <Header>{translate('popup.agent.reasoning.maxSteps')}</Header>
       <Textfield
         value={element.max_steps}
         onChange={(value) => {
@@ -96,7 +99,7 @@ const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, 
           checked={element.enable_task_planning}
           onChange={(e) => update<AgentReasoningState>(element.id, { enable_task_planning: e.target.checked })}
         />
-        Enable task planning
+        {translate('popup.agent.reasoning.enablePlanning')}
       </CheckboxRow>
       <CheckboxRow>
         <input
@@ -104,26 +107,26 @@ const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, 
           checked={element.stream_steps}
           onChange={(e) => update<AgentReasoningState>(element.id, { stream_steps: e.target.checked })}
         />
-        Stream steps
+        {translate('popup.agent.reasoning.streamSteps')}
       </CheckboxRow>
     </Section>
     <Section>
-      <Header>System prompt</Header>
+      <Header>{translate('popup.agent.reasoning.systemPrompt')}</Header>
       <Textfield
         value={element.system_prompt}
         multiline
         enterToSubmit={false}
-        placeholder="Optional system prompt prefix for this state"
+        placeholder={translate('popup.agent.reasoning.systemPromptPlaceholder')}
         onChange={(system_prompt) => update<AgentReasoningState>(element.id, { system_prompt })}
       />
     </Section>
     <Section>
-      <Header>Fallback message</Header>
+      <Header>{translate('popup.agent.reasoning.fallback')}</Header>
       <Textfield
         value={element.fallback_message}
         multiline
         enterToSubmit={false}
-        placeholder="Message returned if the reasoning loop fails"
+        placeholder={translate('popup.agent.reasoning.fallbackPlaceholder')}
         onChange={(fallback_message) => update<AgentReasoningState>(element.id, { fallback_message })}
       />
     </Section>
@@ -131,11 +134,14 @@ const AgentReasoningStateUpdateComponent: React.FC<Props> = ({ element, update, 
   );
 };
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
-  (state) => ({ elements: state.elements }),
-  {
-    update: UMLElementRepository.update,
-  },
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(
+    (state) => ({ elements: state.elements }),
+    {
+      update: UMLElementRepository.update,
+    },
+  ),
 );
 
 export const AgentReasoningStateUpdate = enhance(AgentReasoningStateUpdateComponent);

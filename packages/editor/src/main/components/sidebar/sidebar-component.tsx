@@ -117,7 +117,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
                   checked={shouldUseIconMode}
                   onChange={this.handleToggleIconMode}
                 />
-                Display Object Diagram in Icon Mode
+                {translate('views.iconMode')}
               </label>
             )}
             {/* Force CreatePane to rerender when showIcon changes by using key */}

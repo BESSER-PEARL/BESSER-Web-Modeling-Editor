@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AgentSkill } from './agent-skill';
@@ -21,26 +24,26 @@ type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update }) => (
+const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update, translate }) => (
   <div>
     <Section>
-      <Header>Skill name</Header>
+      <Header>{translate('popup.agent.skill.name')}</Header>
       <Textfield value={element.name} onChange={(name) => update<AgentSkill>(element.id, { name })} autoFocus />
     </Section>
     <Section>
-      <Header>Description</Header>
+      <Header>{translate('popup.agent.skill.description')}</Header>
       <Textfield
         value={element.description}
         multiline
         enterToSubmit={false}
-        placeholder="Optional short description"
+        placeholder={translate('popup.agent.skill.descriptionPlaceholder')}
         onChange={(description) => update<AgentSkill>(element.id, { description })}
       />
     </Section>
     <Section>
-      <Header>Markdown content</Header>
+      <Header>{translate('popup.agent.skill.content')}</Header>
       <Textfield
         value={element.content}
         multiline
@@ -52,8 +55,11 @@ const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update }) => (
   </div>
 );
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-});
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    update: UMLElementRepository.update,
+  }),
+);
 
 export const AgentSkillUpdate = enhance(AgentSkillUpdateComponent);

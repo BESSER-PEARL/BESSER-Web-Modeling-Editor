@@ -2,7 +2,8 @@
   "views": {
     "modelling": "Modelléierung",
     "exporting": "Interaktiv",
-    "highlight": "Interaktiv Elementer uweisen"
+    "highlight": "Interaktiv Elementer uweisen",
+    "iconMode": "Objektdiagramm am Symbolmodus uweisen"
   },
   "sidebar": {
     "classAttribute": "attribut",
@@ -26,7 +27,109 @@
     "objectLink": "Objet-Link",
     "linkDetails": "Link-Detailer",
     "noAssociation": "Keng Associatioun",
-    "noAssociationsAvailable": "Keng Associatioune verfügbar fir déi verbonne Objetklassen"
+    "noAssociationsAvailable": "Keng Associatioune verfügbar fir déi verbonne Objetklassen",
+    "name": "Numm",
+    "objectClass": "Klass:",
+    "noClassSelected": "Keng Klass ausgewielt",
+    "linkNamePlaceholder": "Numm vun der Verbindung",
+    "durationPlaceholder": "z. B. 1d 2h 30m, P1DT2H30M, 1:30:00",
+    "durationTooltip": "Dauer a Formater wéi '1d 2h 30m', 'P1DT2H30M' (ISO 8601) oder 'HH:mm:ss' aginn",
+    "guard": "Wiechter",
+    "guardPlaceholder": "Wiechterausdrock",
+    "parameters": "Parameteren",
+    "parameterPlaceholder": "Parameter",
+    "pythonCodeBlock": "Python-Codeblock",
+    "attributeValuePlaceholder": "Wäert",
+    "agent": {
+      "state": {
+        "action": "Agent-Aktioun",
+        "fallbackAction": "Agent-Fallback-Aktioun",
+        "autoResponse": "Eng automatesch Äntwert gëtt generéiert."
+      },
+      "reply": {
+        "text": "Textäntwert",
+        "llm": "Automatesch LLM-Äntwert",
+        "rag": "RAG-Äntwert",
+        "db": "DB-Aktioun",
+        "code": "Python-Code"
+      },
+      "rag": {
+        "select": "RAG-Datebank auswielen",
+        "none": "Keng RAG-Datebanken verfügbar. Erstellt der fir d'éischt eng aus der Palette.",
+        "name": "Numm vun der RAG-DB"
+      },
+      "llm": {
+        "label": "LLM",
+        "useDefault": "(Standard benotzen)"
+      },
+      "db": {
+        "configuring": "Datebank-Aktioun gëtt konfiguréiert...",
+        "initialize": "Datebank-Aktioun initialiséieren",
+        "select": "Eng Datebank auswielen",
+        "default": "Standard (App-DB benotzen)",
+        "custom": "Benotzerdefinéiert",
+        "customNamePlaceholder": "Benotzerdefinéierten Datebanksnumm",
+        "operation": "DB-Operatioun",
+        "any": "Iergendeen",
+        "llmQuery": "LLM-Ufro",
+        "sql": "SQL",
+        "runtime": "D'Äntwert gëtt zur Runtime mam LLM generéiert"
+      },
+      "transition": {
+        "type": "Iwwergangstyp",
+        "predefined": "Virdefinéierten Iwwergang",
+        "custom": "Benotzerdefinéierten Iwwergang",
+        "condition": "Bedingung",
+        "whenIntentMatched": "Wann Intent iwwereneestëmmt",
+        "whenNoIntentMatched": "Wann keen Intent iwwereneestëmmt",
+        "whenVariableOperationMatched": "Variabel-Operatioun stëmmt iwwereneen",
+        "whenFileReceived": "Fichier kritt",
+        "auto": "Automateschen Iwwergang",
+        "selectIntent": "Intent auswielen",
+        "variablePlaceholder": "Variabel",
+        "targetValuePlaceholder": "Zilwäert",
+        "selectFileType": "Fichierstyp auswielen",
+        "event": "Evenement",
+        "conditions": "Bedingungen",
+        "addCondition": "Bedingung dobäisetzen"
+      },
+      "intent": {
+        "name": "Intent-Numm",
+        "trainingSentences": "Trainingssätz",
+        "description": "Beschreiwung (optional)"
+      },
+      "reasoning": {
+        "name": "Zoustandsnumm",
+        "llmName": "LLM-Numm",
+        "maxSteps": "Max. Schrëtt",
+        "enablePlanning": "Aufgabeplanung aktivéieren",
+        "streamSteps": "Schrëtt streamen",
+        "systemPrompt": "System-Prompt",
+        "systemPromptPlaceholder": "Optionalen System-Prompt-Präfix fir dëse Zoustand",
+        "fallback": "Fallback-Message",
+        "fallbackPlaceholder": "Message, deen zréckginn gëtt, wann d'Reasoning-Schleef feelt"
+      },
+      "skill": {
+        "name": "Skill-Numm",
+        "description": "Beschreiwung",
+        "descriptionPlaceholder": "Optional kuerz Beschreiwung",
+        "content": "Markdown-Inhalt"
+      },
+      "tool": {
+        "name": "Tool-Numm",
+        "description": "Beschreiwung",
+        "descriptionPlaceholder": "Kuerz Beschreiwung, déi dem LLM ugewise gëtt",
+        "code": "Python-Code"
+      },
+      "workspace": {
+        "name": "Workspace-Numm",
+        "path": "Dateisystemwee",
+        "description": "Beschreiwung",
+        "descriptionPlaceholder": "Optional Beschreiwung",
+        "writable": "Beschreiwbar",
+        "maxReadBytes": "Max. Lies-Bytes"
+      }
+    }
   },
   "assessment": {
     "assessment": "Bewäertung fir",
@@ -205,6 +308,38 @@
     },
     "OCLConstraint": {
       "Constraint": "OCL-Aschränkung"
+    },
+    "StateDiagram": {
+      "StateTransition": "Iwwergang",
+      "StateInitialNode": "Ufankszoustand",
+      "StateFinalNode": "Endzoustand",
+      "State": "Zoustand",
+      "StateBody": "Kierper",
+      "StateFallbackBody": "Fallback-Kierper"
+    },
+    "AgentDiagram": {
+      "StateTransition": "Iwwergang",
+      "palette": {
+        "flow": "Flux",
+        "reasoning": "Reasoning",
+        "knowledge": "Wëssen",
+        "capabilities": "Fäegkeeten"
+      },
+      "AgentState": "Agentzoustand",
+      "AgentStateBody": "Kierper",
+      "ReasoningState": "Reasoning-Zoustand",
+      "Intent": "Intent-Numm",
+      "RagElement": "Numm vun der RAG-DB"
+    },
+    "Comment": {
+      "Comment": "Kommentaren",
+      "placeholder": "Kommentar"
     }
+  },
+  "common": {
+    "add": "Dobäisetzen",
+    "remove": "Ewechhuelen",
+    "width": "Breet",
+    "height": "Héicht"
   }
 }

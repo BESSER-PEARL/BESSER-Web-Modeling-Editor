@@ -153,7 +153,7 @@ class ObjectLinkUpdate extends Component<Props, State> {
             <Textfield
               value={element.name || ''}
               onChange={(value) => this.props.update(element.id, { name: value })}
-              placeholder="Link name"
+              placeholder={this.props.translate('popup.linkNamePlaceholder')}
             />
           </Flex>
             {availableAssociations.length > 0 && (

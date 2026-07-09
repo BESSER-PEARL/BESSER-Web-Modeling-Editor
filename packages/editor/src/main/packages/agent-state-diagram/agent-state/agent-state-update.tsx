@@ -239,7 +239,7 @@ class StateUpdate extends Component<Props, State> {
 
 
   render() {
-    const { element, getById, elements } = this.props;
+    const { element, getById, elements, translate } = this.props;
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
     const bodies = children.filter(
       (child): child is AgentStateMember => child instanceof AgentStateBody
@@ -320,7 +320,7 @@ class StateUpdate extends Component<Props, State> {
           <Divider />
         </Section>
         <Section>
-          <SectionHeader>Agent Action</SectionHeader>
+          <SectionHeader>{translate('popup.agent.state.action')}</SectionHeader>
           <RadioGroup>
             <label>
               <input
@@ -340,7 +340,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate();
                 }}
               />
-              Text Reply
+              {translate('popup.agent.reply.text')}
             </label>
 
             <label>
@@ -363,7 +363,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate()
                 }}
               />
-              LLM automatic reply
+              {translate('popup.agent.reply.llm')}
             </label>
             <label>
               <input
@@ -385,7 +385,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate();
                 }}
               />
-              RAG reply
+              {translate('popup.agent.reply.rag')}
             </label>
             <label>
               <input
@@ -414,7 +414,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate();
                 }}
               />
-              DB action
+              {translate('popup.agent.reply.db')}
             </label>
             <label>
               <input
@@ -435,7 +435,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate()
                 }}
               />
-              Python Code
+              {translate('popup.agent.reply.code')}
             </label>
           </RadioGroup>
 
@@ -540,7 +540,7 @@ class StateUpdate extends Component<Props, State> {
               >
                 {[
                   <Dropdown.Item value="__placeholder__" key="rag-placeholder">
-                    Select RAG database
+                    {translate('popup.agent.rag.select')}
                   </Dropdown.Item>,
                   ...ragDatabaseNames.map((name, index) => (
                     <Dropdown.Item key={`rag-${index}-${name}`} value={name}>
@@ -550,13 +550,13 @@ class StateUpdate extends Component<Props, State> {
                 ]}
               </Dropdown>
             ) : (
-              <p>No RAG databases available. Create one from the palette first.</p>
+              <p>{translate('popup.agent.rag.none')}</p>
             )
           ) : this.bodyReplyType === "db_reply" ? (
             this.renderDbReplyEditor(dbBody, AgentStateBody, llmNames)
           ) : (
             <>
-              <p>An automated response will be generated.</p>
+              <p>{translate('popup.agent.state.autoResponse')}</p>
               {llmBody && this.renderLlmNameField(llmBody, llmNames, 'body-llm-name')}
             </>
           )}
@@ -565,7 +565,7 @@ class StateUpdate extends Component<Props, State> {
           <Divider />
         </Section>
         <Section>
-          <SectionHeader>Agent Fallback Action</SectionHeader>
+          <SectionHeader>{translate('popup.agent.state.fallbackAction')}</SectionHeader>
           <RadioGroup>
             <label>
               <input
@@ -585,7 +585,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate()
                 }}
               />
-              Text Reply
+              {translate('popup.agent.reply.text')}
             </label>
 
             <label>
@@ -607,7 +607,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate()
                 }}
               />
-              LLM automatic reply
+              {translate('popup.agent.reply.llm')}
             </label>
             <label>
               <input
@@ -629,7 +629,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate();
                 }}
               />
-              RAG reply
+              {translate('popup.agent.reply.rag')}
             </label>
             <label>
               <input
@@ -658,7 +658,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate();
                 }}
               />
-              DB action
+              {translate('popup.agent.reply.db')}
             </label>
             <label>
               <input
@@ -679,7 +679,7 @@ class StateUpdate extends Component<Props, State> {
                   this.forceUpdate()
                 }}
               />
-              Python Code
+              {translate('popup.agent.reply.code')}
             </label>
           </RadioGroup>
 
@@ -771,7 +771,7 @@ class StateUpdate extends Component<Props, State> {
               >
                 {[
                   <Dropdown.Item value="__placeholder__" key="fallback-rag-placeholder">
-                    Select RAG database
+                    {translate('popup.agent.rag.select')}
                   </Dropdown.Item>,
                   ...ragDatabaseNames.map((name, index) => (
                     <Dropdown.Item key={`fallback-rag-${index}-${name}`} value={name}>
@@ -781,7 +781,7 @@ class StateUpdate extends Component<Props, State> {
                 ]}
               </Dropdown>
             ) : (
-              <p>No RAG databases available. Create one from the palette first.</p>
+              <p>{translate('popup.agent.rag.none')}</p>
             )
           ) : this.fallbackBodyReplyType === "db_reply" ? (
             this.renderDbReplyEditor(fallbackDbBody, AgentStateFallbackBody, llmNames)
@@ -841,13 +841,13 @@ class StateUpdate extends Component<Props, State> {
     fieldId: string,
   ) => (
     <LlmFieldRow>
-      <Header>LLM</Header>
+      <Header>{this.props.translate('popup.agent.llm.label')}</Header>
       <LlmSelect
         id={fieldId}
         value={member.llm_name || ''}
         onChange={(event) => this.props.update<AgentStateMember>(member.id, { llm_name: event.target.value })}
       >
-        <option value="">(use default)</option>
+        <option value="">{this.props.translate('popup.agent.llm.useDefault')}</option>
         {llmNames.map((name) => (
           <option key={`${fieldId}-${name}`} value={name}>
             {name}
@@ -876,9 +876,9 @@ class StateUpdate extends Component<Props, State> {
 
       return (
         <>
-          <p>Configuring database action...</p>
+          <p>{this.props.translate('popup.agent.db.configuring')}</p>
           <Button color="primary" onClick={handleInitializeDbReply}>
-            Initialize database action
+            {this.props.translate('popup.agent.db.initialize')}
           </Button>
         </>
       );
@@ -891,7 +891,7 @@ class StateUpdate extends Component<Props, State> {
     return (
       <>
         <DbFieldRow>
-          <label>Select a Database</label>
+          <label>{this.props.translate('popup.agent.db.select')}</label>
           <Dropdown
             value={dbSelectionType}
             onChange={(value) => {
@@ -904,10 +904,10 @@ class StateUpdate extends Component<Props, State> {
           >
             {[
               <Dropdown.Item value="default" key="db-default">
-                Default (using the app DB)
+                {this.props.translate('popup.agent.db.default')}
               </Dropdown.Item>,
               <Dropdown.Item value="custom" key="db-custom">
-                Custom
+                {this.props.translate('popup.agent.db.custom')}
               </Dropdown.Item>,
             ]}
           </Dropdown>
@@ -915,7 +915,7 @@ class StateUpdate extends Component<Props, State> {
           {dbSelectionType === 'custom' ? (
             <Textfield
               outline
-              placeholder="Custom database name"
+              placeholder={this.props.translate('popup.agent.db.customNamePlaceholder')}
               value={member.dbCustomName || ''}
               onChange={(value) => this.updateDbReply(member, { dbCustomName: value })}
             />
@@ -923,7 +923,7 @@ class StateUpdate extends Component<Props, State> {
         </DbFieldRow>
 
         <DbFieldRow>
-          <label>DB operation</label>
+          <label>{this.props.translate('popup.agent.db.operation')}</label>
           <Dropdown
             value={dbOperation}
             onChange={(value) => {
@@ -934,7 +934,7 @@ class StateUpdate extends Component<Props, State> {
           >
             {[
               <Dropdown.Item value="any" key="db-operation-any">
-                Any
+                {this.props.translate('popup.agent.db.any')}
               </Dropdown.Item>,
               <Dropdown.Item value="select" key="db-operation-select">
                 SELECT
@@ -962,7 +962,7 @@ class StateUpdate extends Component<Props, State> {
                 checked={dbQueryMode === 'llm_query'}
                 onChange={() => this.updateDbReply(member, { dbQueryMode: 'llm_query', dbSqlQuery: '' })}
               />
-              LLM query
+              {this.props.translate('popup.agent.db.llmQuery')}
             </label>
 
             <label>
@@ -973,7 +973,7 @@ class StateUpdate extends Component<Props, State> {
                 checked={dbQueryMode === 'sql'}
                 onChange={() => this.updateDbReply(member, { dbQueryMode: 'sql' })}
               />
-              SQL
+              {this.props.translate('popup.agent.db.sql')}
             </label>
           </RadioGroup>
 
@@ -988,7 +988,7 @@ class StateUpdate extends Component<Props, State> {
             />
           ) : (
             <>
-              <p>Answer will be generated with LLM during runtime</p>
+              <p>{this.props.translate('popup.agent.db.runtime')}</p>
               {this.renderLlmNameField(member, llmNames, `db-llm-name-${member.id}`)}
             </>
           )}
