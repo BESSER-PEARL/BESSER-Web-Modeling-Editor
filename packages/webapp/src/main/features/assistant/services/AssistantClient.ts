@@ -757,8 +757,24 @@ export class AssistantClient {
     this.clearResponseTimer();
     try {
       const payload = JSON.parse(event.data) as AgentResponse;
-      this.emitTyping(false);
       const directAction = this.extractActionPayload(payload);
+
+      // A 'progress' frame is an intermediate keep-alive emitted DURING a
+      // long generation — it is NOT the reply. Keep the "thinking…"
+      // indicator on for the whole run and re-arm the response-timeout
+      // safety net for the actual reply. The old code cleared typing on
+      // EVERY incoming frame, so the first progress update (~2s into a
+      // ~45s generation) hid the loading indicator for the rest of the run
+      // and the socket looked idle — the "I didn't get a loading message"
+      // report. Keeping isGenerating true also blocks a concurrent send
+      // while a generation is still in flight.
+      if (directAction && directAction.action === 'progress') {
+        this.startResponseTimer();
+        this.emitAction(directAction);
+        return;
+      }
+
+      this.emitTyping(false);
       if (directAction) {
         if (isInjectionCommand(directAction)) {
           this.emitInjection({
