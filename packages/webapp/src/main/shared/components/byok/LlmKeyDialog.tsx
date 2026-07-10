@@ -123,10 +123,12 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   openai: [
-    { value: 'gpt-5.5', label: 'GPT-5.5 — flagship, strongest for code' },
-    { value: 'gpt-5', label: 'GPT-5' },
-    { value: 'gpt-4o', label: 'GPT-4o — balanced' },
-    { value: 'gpt-4o-mini', label: 'GPT-4o mini — fast & cheap' },
+    { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol — most capable' },
+    { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra — balanced (recommended)' },
+    { value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna — fast & cheap' },
+    { value: 'gpt-5.5', label: 'GPT-5.5 — previous flagship' },
+    { value: 'gpt-5.4-mini', label: 'GPT-5.4 mini — fast & cheap' },
+    { value: 'gpt-4o', label: 'GPT-4o — legacy' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   mistral: [
