@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Settings, Flag, KeyRound } from 'lucide-react';
+import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -21,7 +21,7 @@ import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
 import { useAppDispatch } from '../../../app/store/hooks';
-import { openByokDialog, openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
+import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import { sessionStoragePendingAssistantPrompt } from '../../../shared/constants/constant';
 
 /* ------------------------------------------------------------------ */
@@ -805,20 +805,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         size="sm"
                         className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
                         onClick={() => setByokOpen(true)}
-                        title="Use your own API key for the assistant"
+                        title="Use your own API key (assistant + generator)"
                       >
                         <KeyRound className="size-3.5" />
                         API key
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
-                        onClick={() => dispatch(openByokDialog(null))}
-                        title="Spec-Driven Agent settings — change API key, provider, or model"
-                      >
-                        <Settings className="size-3.5" />
-                        Settings
                       </Button>
                       <Button
                         variant="outline"

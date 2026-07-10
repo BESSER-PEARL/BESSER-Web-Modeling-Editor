@@ -200,7 +200,7 @@ describe('SmartGenByokDialog — model selector', () => {
     fireEvent.change(modelSelect, { target: { value: 'claude-opus-4-6' } });
 
     fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
-    expect(window.sessionStorage.getItem('besser_smart_gen_llm_model')).toBe('claude-opus-4-6');
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe('claude-opus-4-6');
   });
 
   it('saves a custom model ID typed by the user', () => {
@@ -215,7 +215,7 @@ describe('SmartGenByokDialog — model selector', () => {
     fireEvent.change(customInput, { target: { value: 'claude-opus-4-7-20260101' } });
 
     fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
-    expect(window.sessionStorage.getItem('besser_smart_gen_llm_model')).toBe(
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe(
       'claude-opus-4-7-20260101',
     );
   });

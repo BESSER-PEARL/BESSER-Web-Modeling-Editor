@@ -133,6 +133,23 @@ const KNOWN_ACTIONS = new Set([
   'stream_done',
 ]);
 
+// Actions with real side effects: they mutate the user's model or start a
+// (possibly paid, BYOK-billed) backend run. They must only be honoured when
+// they arrive as the WHOLE structured reply — never when scraped out of prose.
+// Otherwise a prompt-injected JSON blob inside an otherwise-normal assistant
+// message could silently mutate the model or kick off a paid generation.
+// (Security hardening — assistant review finding C1c.)
+const SIDE_EFFECT_ACTIONS = new Set([
+  'inject_element',
+  'inject_complete_system',
+  'modify_model',
+  'trigger_generator',
+  'trigger_smart_generator',
+  'trigger_export',
+  'trigger_deploy',
+  'auto_generate_gui',
+]);
+
 const isActionPayload = (payload: unknown): payload is AssistantActionPayload => {
   if (!isObject(payload)) {
     return false;
@@ -142,6 +159,9 @@ const isActionPayload = (payload: unknown): payload is AssistantActionPayload =>
   }
   return KNOWN_ACTIONS.has(payload.action);
 };
+
+const isSideEffectAction = (payload: unknown): boolean =>
+  isObject(payload) && typeof payload.action === 'string' && SIDE_EFFECT_ACTIONS.has(payload.action);
 
 const isInjectionCommand = (payload: unknown): payload is InjectionCommand => {
   if (!isObject(payload) || typeof payload.action !== 'string') {
@@ -852,19 +872,23 @@ export class AssistantClient {
     }
 
     const message = payload.message.trim();
-    const candidates: string[] = [];
 
-    const strategies: Array<{ label: string; value: string }> = [];
+    // ``trusted`` = the WHOLE reply is the action envelope (the legitimate
+    // delivery channel). ``fenced-code-block`` / ``embedded-json-search``
+    // scrape an action object out of surrounding prose — that is the
+    // prompt-injection surface, so side-effect actions found that way are
+    // rejected below.
+    const strategies: Array<{ label: string; value: string; trusted: boolean }> = [];
 
     const fenceRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
     let match: RegExpExecArray | null;
     while ((match = fenceRegex.exec(message)) !== null) {
       if (match[1]) {
-        strategies.push({ label: 'fenced-code-block', value: match[1].trim() });
+        strategies.push({ label: 'fenced-code-block', value: match[1].trim(), trusted: false });
       }
     }
     if (message.startsWith('{') && message.endsWith('}')) {
-      strategies.push({ label: 'raw-json-object', value: message });
+      strategies.push({ label: 'raw-json-object', value: message, trusted: true });
     }
 
     // Also try to find a JSON object anywhere in the message (handles
@@ -872,16 +896,27 @@ export class AssistantClient {
     if (strategies.length === 0) {
       const jsonMatch = message.match(/\{[\s\S]*"action"\s*:\s*"[^"]+[\s\S]*\}/);
       if (jsonMatch) {
-        strategies.push({ label: 'embedded-json-search', value: jsonMatch[0] });
+        strategies.push({ label: 'embedded-json-search', value: jsonMatch[0], trusted: false });
       }
     }
 
-    for (const { label, value } of strategies) {
+    for (const { label, value, trusted } of strategies) {
       try {
         const parsed = JSON.parse(value);
-        if (isActionPayload(parsed)) {
-          return parsed;
+        if (!isActionPayload(parsed)) {
+          continue;
         }
+        // A side-effect action (model mutation / paid run) mined from prose
+        // is not honoured — only benign actions (assistant_message, etc.)
+        // may come from a scraped strategy. Blocks prompt-injected commands.
+        if (!trusted && isSideEffectAction(parsed)) {
+          console.warn(
+            `[AssistantClient] Ignoring side-effect action "${(parsed as { action: string }).action}" ` +
+              `scraped from prose via "${label}". Side-effect actions must be the whole structured reply.`,
+          );
+          continue;
+        }
+        return parsed;
       } catch (parseError) {
         console.debug(`[AssistantClient] extractActionPayload: strategy "${label}" failed to parse`, parseError);
         // Keep searching remaining strategies.

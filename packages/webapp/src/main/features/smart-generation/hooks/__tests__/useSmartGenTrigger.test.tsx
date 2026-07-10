@@ -207,7 +207,7 @@ function clearSessionKeyManual() {
   window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
   // Also clear the optional model key so prior tests don't leak
   // ``llmModel=o1`` into tests that expect the agent hint to win.
-  window.sessionStorage.removeItem('besser_smart_gen_llm_model');
+  window.sessionStorage.removeItem('besser_llm_model');
   // And the run budget — tests that don't set one expect the
   // maxCostUsd / maxRuntimeSeconds params to stay undefined.
   window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
@@ -542,7 +542,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
     window.sessionStorage.setItem(sessionStorageSmartGenApiKey, 'sk-proj-openai-TEST');
     window.sessionStorage.setItem(sessionStorageSmartGenProvider, 'openai');
     window.sessionStorage.setItem(
-      'besser_smart_gen_llm_model',
+      'besser_llm_model',
       'o1',
     );
 

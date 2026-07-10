@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { settingsService, ClassNotation } from '@besser/wme';
 import { toast } from 'react-toastify';
-import { Download, FolderKanban, Layers3, Monitor, Settings, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Download, FolderKanban, KeyRound, Layers3, Monitor, Settings, SlidersHorizontal, Sparkles } from 'lucide-react';
 import { useProject } from '../../app/hooks/useProject';
 import {
   ALL_DIAGRAM_TYPES,
@@ -28,6 +28,9 @@ import {
 } from '../../shared/constants/diagramTypeStyles';
 import { useAppDispatch } from '../../app/store/hooks';
 import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../app/store/workspaceSlice';
+import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
+import { readLlmKey } from '../../shared/services/llmKeyStorage';
+import { setApiKeyPresent } from '../smart-generation/state/smartGeneratorSlice';
 
 export const ProjectSettingsPanel: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -35,6 +38,9 @@ export const ProjectSettingsPanel: React.FC = () => {
   const [showAssociationNames, setShowAssociationNames] = useState(false);
   const [usePropertiesPanel, setUsePropertiesPanel] = useState(false);
   const [classNotation, setClassNotation] = useState<ClassNotation>('UML');
+  // Unified LLM BYOK key (shared by the assistant + Spec-Driven generator).
+  const [llmKeyOpen, setLlmKeyOpen] = useState(false);
+  const [llmKeyInfo, setLlmKeyInfo] = useState(() => readLlmKey());
 
   const { currentProject, loading, error, updateProject, exportProject } = useProject();
   const dispatch = useAppDispatch();
@@ -306,6 +312,46 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* AI / LLM API Key — the single place to set the BYOK key used by
+                BOTH the modeling assistant and the Spec-Driven generator. */}
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="size-4 text-brand" />
+                  <CardTitle className="text-base">AI / LLM API Key</CardTitle>
+                </div>
+                <CardDescription>
+                  Use your own Anthropic, OpenAI, or Mistral key. Entered once here, it powers both the
+                  modeling assistant and the Spec-Driven generator. Stored only in this browser tab, never
+                  on our servers.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 px-4 py-3">
+                  <div className="min-w-0">
+                    {llmKeyInfo ? (
+                      <>
+                        <p className="truncate text-sm font-medium">
+                          Key set · {llmKeyInfo.provider}
+                          {llmKeyInfo.model ? ` · ${llmKeyInfo.model}` : ''}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Applies to the assistant and generator</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="truncate text-sm font-medium">No key set</p>
+                        <p className="text-xs text-muted-foreground">Using the shared server key + rate limits</p>
+                      </>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setLlmKeyOpen(true)}>
+                    <KeyRound className="size-3.5" />
+                    {llmKeyInfo ? 'Change key' : 'Set API key'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right column — Diagrams + Modeling Perspectives */}
@@ -433,6 +479,19 @@ export const ProjectSettingsPanel: React.FC = () => {
 
         </div>
       </div>
+
+      <LlmKeyDialog
+        open={llmKeyOpen}
+        onOpenChange={setLlmKeyOpen}
+        onSaved={() => {
+          dispatch(setApiKeyPresent(true));
+          setLlmKeyInfo(readLlmKey());
+        }}
+        onRemoved={() => {
+          dispatch(setApiKeyPresent(false));
+          setLlmKeyInfo(readLlmKey());
+        }}
+      />
     </div>
   );
 };

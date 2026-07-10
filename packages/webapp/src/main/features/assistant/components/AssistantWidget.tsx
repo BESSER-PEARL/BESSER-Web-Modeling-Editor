@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, KeyRound, Settings, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, KeyRound, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
-import { openByokDialog, openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
+import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
@@ -241,21 +241,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 size="icon"
                 className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => setByokOpen(true)}
-                title="Use your own API key for the assistant"
+                title="Use your own API key (assistant + generator)"
                 aria-label="Use your own API key"
               >
                 <KeyRound className="size-3.5" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
-                onClick={() => dispatch(openByokDialog(null))}
-                title="Spec-Driven Agent settings — change API key, provider, or model"
-                aria-label="Spec-Driven Agent settings"
-              >
-                <Settings className="size-3.5" />
               </Button>
               <Button
                 type="button"

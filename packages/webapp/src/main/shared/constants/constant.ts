@@ -75,15 +75,23 @@ export const localStorageProjectPrefix = localStoragePrefix + 'project_';
 export const localStorageLatestProject = localStoragePrefix + 'latest_project';
 export const localStorageProjectsList = localStoragePrefix + 'projects';
 
-// Smart Generator — BYOK session-storage keys.
-// The raw API key is stored ONLY in sessionStorage (tab-lifetime, cleared on
-// tab close). It is never written to localStorage or Redux state.
-export const sessionStorageSmartGenApiKey = localStoragePrefix + 'smart_gen_api_key';
-export const sessionStorageSmartGenProvider = localStoragePrefix + 'smart_gen_provider';
-// Optional model override alongside the key. Empty / missing means "use
-// the backend default for this provider" (gpt-4o for openai,
-// claude-sonnet-4-6 for anthropic).
-export const sessionStorageSmartGenLlmModel = localStoragePrefix + 'smart_gen_llm_model';
+// Unified LLM BYOK session-storage keys — ONE key for the whole app.
+// The user's Anthropic / OpenAI / Mistral key is stored ONLY in sessionStorage
+// (tab-lifetime, cleared on tab close), never in localStorage or Redux. A
+// single shared key means the user enters it in ONE place (the shared BYOK
+// dialog, reachable from the assistant drawer, the assistant popup, and the
+// Settings page) and it applies to BOTH the assistant/modeling-agent AND the
+// Spec-Driven (smart) generator. The old per-feature keys used to be kept
+// separate for isolation; they were unified so the key is entered once.
+export const sessionStorageLlmApiKey = localStoragePrefix + 'llm_api_key';
+export const sessionStorageLlmProvider = localStoragePrefix + 'llm_provider';
+export const sessionStorageLlmModel = localStoragePrefix + 'llm_model';
+
+// Smart Generator — BYOK keys now alias the unified keys above (kept as named
+// exports so existing imports keep working with no consumer changes).
+export const sessionStorageSmartGenApiKey = sessionStorageLlmApiKey;
+export const sessionStorageSmartGenProvider = sessionStorageLlmProvider;
+export const sessionStorageSmartGenLlmModel = sessionStorageLlmModel;
 // User-chosen run budget (NOT secret — still session-scoped so it sits
 // next to the key/model it applies to). Values are plain numbers
 // serialised as strings: USD for cost, whole seconds for runtime.
@@ -91,16 +99,11 @@ export const sessionStorageSmartGenMaxCostUsd = localStoragePrefix + 'smart_gen_
 export const sessionStorageSmartGenMaxRuntimeSeconds =
   localStoragePrefix + 'smart_gen_max_runtime_seconds';
 
-// AI Assistant — BYOK session-storage keys.
-// The raw API key is stored ONLY in sessionStorage (tab-lifetime, cleared on
-// tab close). It is never written to localStorage or Redux state. Kept
-// independent from the Smart Generator key above so the two features don't
-// share secrets (feature isolation).
-export const sessionStorageAssistantApiKey = localStoragePrefix + 'assistant_api_key';
-export const sessionStorageAssistantProvider = localStoragePrefix + 'assistant_provider';
-// Optional model override alongside the key. Empty / missing means "use the
-// backend default for this provider".
-export const sessionStorageAssistantModel = localStoragePrefix + 'assistant_model';
+// AI Assistant — BYOK keys also alias the unified keys above, so entering the
+// key via the assistant fills the same store the smart generator reads.
+export const sessionStorageAssistantApiKey = sessionStorageLlmApiKey;
+export const sessionStorageAssistantProvider = sessionStorageLlmProvider;
+export const sessionStorageAssistantModel = sessionStorageLlmModel;
 
 // "Describe your app" (vibe) hand-off key.
 // The Project Hub's Describe flow stashes the user's plain-language prompt here,
