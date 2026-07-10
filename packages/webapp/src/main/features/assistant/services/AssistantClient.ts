@@ -341,7 +341,16 @@ export class AssistantClient {
   private _nextClientMessageId = 1;
   private shouldReconnect = true;
   private responseTimeout: ReturnType<typeof setTimeout> | null = null;
-  private readonly responseTimeoutMs = 45000;
+  // Better (slower) models can take a while on a full-system generation, and
+  // the modeling agent may be silent (no progress frame) for the whole run.
+  // After this much SILENCE we show a gentle "still working" reassurance but
+  // KEEP the loading indicator on and keep waiting — the request is still in
+  // flight. We only give up (real error) after the hard cap. Progress/keep-
+  // alive frames reset the clock via startResponseTimer().
+  private readonly responseSoftNoticeMs = 60000;
+  private readonly responseHardTimeoutMs = 240000;
+  private responseStartedAt = 0;
+  private responseSoftNoticeShown = false;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private readonly heartbeatMs = 15000;
 
@@ -938,9 +947,20 @@ export class AssistantClient {
     }, delay);
   }
 
-  private startResponseTimer(): void {
+  private startResponseTimer(fresh = true): void {
     this.clearResponseTimer();
-    this.responseTimeout = setTimeout(() => {
+    if (fresh) {
+      this.responseStartedAt = Date.now();
+      this.responseSoftNoticeShown = false;
+    }
+    this.responseTimeout = setTimeout(() => this.onResponseTick(), this.responseSoftNoticeMs);
+  }
+
+  private onResponseTick(): void {
+    const elapsed = Date.now() - this.responseStartedAt;
+    if (elapsed >= this.responseHardTimeoutMs) {
+      // Genuinely stuck (no reply after the hard cap) — give up so the user
+      // can retry.
       this.emitTyping(false);
       this.emitMessage({
         id: createMessageId(),
@@ -949,7 +969,23 @@ export class AssistantClient {
         isUser: false,
         timestamp: new Date(),
       });
-    }, this.responseTimeoutMs);
+      return;
+    }
+    // Still within tolerance: the request is in flight, just slow (a full
+    // system on a stronger model takes longer). Reassure ONCE, keep the
+    // loading indicator on, and keep waiting — do NOT surface a failure.
+    if (!this.responseSoftNoticeShown) {
+      this.responseSoftNoticeShown = true;
+      this.emitMessage({
+        id: createMessageId(),
+        action: 'assistant_message',
+        message:
+          'Still working on this — generating a full system can take a couple of minutes with the current model. Hang tight…',
+        isUser: false,
+        timestamp: new Date(),
+      });
+    }
+    this.startResponseTimer(false); // re-arm without resetting the clock
   }
 
   private clearResponseTimer(): void {

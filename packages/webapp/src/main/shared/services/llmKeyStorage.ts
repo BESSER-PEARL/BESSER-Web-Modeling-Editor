@@ -19,6 +19,8 @@ import {
   sessionStorageLlmApiKey,
   sessionStorageLlmModel,
   sessionStorageLlmProvider,
+  sessionStorageSmartGenMaxCostUsd,
+  sessionStorageSmartGenMaxRuntimeSeconds,
 } from '../constants/constant';
 
 export type LlmProvider = 'anthropic' | 'openai' | 'mistral';
@@ -94,4 +96,55 @@ export function clearLlmKey(): void {
 /** Quick "do we have a key at all?" check that avoids exposing the value. */
 export function hasLlmKey(): boolean {
   return readLlmKey() !== null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Spec-Driven Agent run budget (max cost / max runtime)              */
+/*  Not a secret, but session-scoped so it travels with the key. Reads */
+/*  the same keys the smart-generation feature uses, so the two stay   */
+/*  consistent no matter which surface sets them.                       */
+/* ------------------------------------------------------------------ */
+
+export interface LlmRunBudget {
+  /** Per-run cost budget in USD. */
+  maxCostUsd?: number;
+  /** Per-run runtime budget in whole seconds. */
+  maxRuntimeSeconds?: number;
+}
+
+/** Read the saved run budget, or `null` when none / unusable. */
+export function readLlmBudget(): LlmRunBudget | null {
+  if (!_hasSessionStorage()) return null;
+  try {
+    const rawCost = window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd);
+    const rawRuntime = window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds);
+    const budget: LlmRunBudget = {};
+    if (rawCost !== null) {
+      const cost = Number.parseFloat(rawCost);
+      if (Number.isFinite(cost) && cost > 0) budget.maxCostUsd = cost;
+    }
+    if (rawRuntime !== null) {
+      const runtime = Number.parseFloat(rawRuntime);
+      if (Number.isFinite(runtime) && runtime > 0) budget.maxRuntimeSeconds = Math.round(runtime);
+    }
+    if (budget.maxCostUsd === undefined && budget.maxRuntimeSeconds === undefined) return null;
+    return budget;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the run budget. Returns true on success. */
+export function writeLlmBudget(budget: { maxCostUsd: number; maxRuntimeSeconds: number }): boolean {
+  if (!_hasSessionStorage()) return false;
+  try {
+    window.sessionStorage.setItem(sessionStorageSmartGenMaxCostUsd, String(budget.maxCostUsd));
+    window.sessionStorage.setItem(
+      sessionStorageSmartGenMaxRuntimeSeconds,
+      String(Math.round(budget.maxRuntimeSeconds)),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
