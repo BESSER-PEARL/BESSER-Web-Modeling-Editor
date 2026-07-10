@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Gate as GateType } from '../types';
 import { GATE_SIZE, WIRE_SPACING, COLORS } from '../layout-constants';
@@ -111,6 +112,7 @@ interface GateProps {
 }
 
 export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = false }: GateProps): JSX.Element {
+  const { t } = useTranslation();
   const [showResizeTab, setShowResizeTab] = useState(false);
   const { showTooltip, hideTooltip } = useTooltip();
   const width = (gate.width || 1) * GATE_SIZE;
@@ -126,8 +128,14 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
     setShowResizeTab(true);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const tooltip = isFunctionGate
-      ? `${gate.label} - Double-click to edit nested circuit${hasNestedCircuit ? ' (configured)' : ' (empty)'}`
-      : (gate.description || '');
+      ? t('editors.quantum.functionGate.tooltip', {
+          label: gate.label,
+          status: hasNestedCircuit
+            ? t('editors.quantum.functionGate.configured', { defaultValue: '(configured)' })
+            : t('editors.quantum.functionGate.empty', { defaultValue: '(empty)' }),
+          defaultValue: '{{label}} - Double-click to edit nested circuit {{status}}',
+        })
+      : t(`editors.quantum.gateDescriptions.${gate.type}`, { defaultValue: gate.description || '' });
     showTooltip(rect.right + 5, rect.top, gate.label || gate.type, tooltip);
   };
 
