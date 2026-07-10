@@ -789,6 +789,21 @@
         "loadedProjectTemplate": "Projet-Schabloun \"{{name}}\" gelueden",
         "loadFailed": "Schabloun konnt net gelueden ginn: {{error}}"
       }
+    },
+    "toasts": {
+      "createOrLoadFirst": "Erstellt oder luet fir d'éischt e Projet."
+    },
+    "preview": {
+      "toasts": {
+        "jsonCopied": "Projet-JSON kopéiert.",
+        "jsonCopyFailed": "De Projet-JSON konnt net kopéiert ginn.",
+        "bumlFailedFallback": "D'B-UML-Virschau konnt net generéiert ginn.",
+        "bumlFailed": "D'B-UML-Virschau konnt net generéiert ginn: {{message}}",
+        "noBumlToCopy": "Keng B-UML-Virschau fir ze kopéieren.",
+        "bumlCopied": "Projet-B-UML kopéiert.",
+        "bumlCopyFailed": "D'B-UML-Virschau konnt net kopéiert ginn.",
+        "noBumlToDownload": "Keng B-UML-Virschau fir erofzelueden."
+      }
     }
   },
   "github": {
@@ -962,7 +977,15 @@
       "createRepoFailed": "Erstelle vum Repository feelgeschloen",
       "repoCreatedQuoted": "Repository \"{{name}}\" erstallt!",
       "createGistFailed": "Erstelle vum Gist feelgeschloen",
-      "gistCreated": "Gist erfollegräich erstallt!"
+      "gistCreated": "Gist erfollegräich erstallt!",
+      "invalidGitHubUrl": "Ongülteg GitHub-URL. Gitt w.e.g. eng gülteg GitHub-Repository-URL un.",
+      "fetchingFromGitHub": "{{filename}} gëtt vu GitHub gelueden...",
+      "fileNotFound": "Datei net op GitHub fonnt. Iwwerpréift w.e.g. d'URL a probéiert et nach eng Kéier.",
+      "fetchFileFailed": "D'Datei konnt net vu GitHub gelueden ginn: {{status}}",
+      "importProjectSuccess": "Projet erfollegräich importéiert: {{name}}",
+      "importModelFailed": "D'Modell konnt net vu GitHub importéiert ginn",
+      "starThanks": "Merci datt Dir BESSER e Stär ginn hutt!",
+      "starFailed": "De Stär konnt net aktualiséiert ginn"
     }
   },
   "assistant": {
@@ -975,7 +998,13 @@
       "uploadKgLabel": "Knowledge Graph eroplueden (TTL/RDF/JSON)",
       "selected": "Ausgewielt: {{name}}",
       "importing": "Gëtt importéiert...",
-      "import": "Importéieren"
+      "import": "Importéieren",
+      "errors": {
+        "noProject": "Erstellt oder lued fir d'éischt e Projet.",
+        "imageType": "Nëmmen PNG- oder JPEG-Dateien sinn erlaabt.",
+        "kgType": "Nëmmen TTL-, RDF- oder JSON-Dateien sinn erlaabt.",
+        "importFailed": "Import feelgeschloen: {{error}}"
+      }
     },
     "connection": {
       "connected": "Verbonnen",
@@ -1094,7 +1123,48 @@
       "readFileFailed": "D'ugehaangte Datei(en) konnt(en) net gelies ginn. Probéiert w.e.g. nach eng Kéier.",
       "sendFailed": "Äre Message konnt net geschéckt ginn — probéiert w.e.g. nach eng Kéier.",
       "sendVoiceFailed": "Äre Sproochmessage konnt net geschéckt ginn — probéiert w.e.g. nach eng Kéier.",
-      "voiceProcessFailed": "Äre Sproochmessage konnt net verschafft ginn. Probéiert w.e.g. nach eng Kéier."
+      "voiceProcessFailed": "Äre Sproochmessage konnt net verschafft ginn. Probéiert w.e.g. nach eng Kéier.",
+      "backendUnreachable": "Den KI-Assistent konnt net erreecht ginn — vergewëssert Iech, datt de Backend leeft."
+    },
+    "chatKit": {
+      "copiedToClipboard": "An d'Tëschenoflag kopéiert!",
+      "copyFailed": "Kopéieren an d'Tëschenoflag feelgeschloen.",
+      "copyToClipboard": "An d'Tëschenoflag kopéieren",
+      "copiedResponse": "Äntwert an d'Tëschenoflag kopéiert!",
+      "rateHelpful": "Äntwert als hëllefräich bewäerten",
+      "rateUnhelpful": "Äntwert als net hëllefräich bewäerten",
+      "tryPrompts": "Probéier dës Virschléi ✨",
+      "scrollToBottom": "No ënnen scrollen",
+      "badge": {
+        "inProgress": "A Gaang",
+        "error": "Feeler",
+        "applied": "Ugewannt",
+        "systemCreated": "System erstallt",
+        "modified": "Geännert",
+        "typing": "Schreift"
+      },
+      "attachmentAlt": "Unhang {{name}}",
+      "toggleReasoning": "Detailer vum Raisonnement uweisen oder verstoppen",
+      "thinking": "Iwwerleet",
+      "toolCancelled": "Ofgebrach",
+      "toolCalling": "Rifft op",
+      "toolResultFrom": "Resultat vun",
+      "loading": "Gëtt gelueden...",
+      "removeAttachment": "Unhang ewechhuelen",
+      "interruptPrompt": "Nach eemol Enter drécken fir z'ënnerbriechen",
+      "close": "Zoumaachen",
+      "pastedText": "Agefügten Text",
+      "promptAriaLabel": "Schreift Är Ufro hei",
+      "attachFile": "Eng Datei uhänken",
+      "stopAndSendVoice": "Sproochnoriicht stoppen an schécken",
+      "startVoiceRecording": "Sproochopnam starten",
+      "pressAgainToStop": "Nach eemol drécken fir ze stoppen an ze schécken",
+      "stopGenerating": "Generéierung stoppen",
+      "sendMessage": "Noriicht schécken",
+      "dropFiles": "Losst Är Dateien hei falen fir se unzehänken.",
+      "transcribingAudio": "Audio gëtt transkribéiert...",
+      "recordingPrompt": "Opnam leeft... klickt hei oder dréckt de Mikro nach eemol fir ze stoppen an ze schécken ({{time}})",
+      "stopSendVoiceTimer": "Sproochnoriicht stoppen an schécken ({{time}})"
     }
   },
   "deploy": {
@@ -1155,6 +1225,15 @@
       "openRenderDeployment": "Render-Deployment opmaachen",
       "openBlueprint": "Render-Blueprint opmaachen",
       "viewRepo": "GitHub-Repository uweisen"
+    },
+    "toasts": {
+      "availableFor": "D'Deployment ass fir Web-App- an Agent-Diagrammer verfügbar.",
+      "connectGitHubFirst": "Verbann dech fir d'éischt mat GitHub.",
+      "requiresDiagrams": "D'Deployment brauch Klassen- + GUI-Diagrammer (Web-App) oder op d'mannst ee Agent-Diagramm (eegestännegen Agent).",
+      "noProjectAvailable": "Kee Projet fir d'Deployment verfügbar.",
+      "githubSessionNotFound": "GitHub-Sitzung net fonnt. Verbann dech w.e.g. nach eng Kéier.",
+      "repoNameRequired": "De Repository-Numm ass erforderlech.",
+      "noPersonalizationMappings": "Keng gülteg Personaliséierungszouuerdnunge fonnt. Späichert personaliséiert Varianten, ier Dir dës Optioun aktivéiert."
     }
   },
   "diagramTypes": {
@@ -1873,7 +1952,8 @@
         "DETECT": "Detektéieren: Simuléiert d'Reaktioun vun engem physesche Detektor. Modelléiert realistesch Moossongenauegkeeten.",
         "AXIS_SAMPLE": "3-Achsen-Stéchprouf: Tast de Qubit gläichzäiteg an den X-, Y- an Z-Basen of. Fir d'tomographesch Rekonstruktioun.",
         "SPACER": "Ofstandshalter"
-      }
+      },
+      "nestedCircuitConfigured": "Verschachtelte Circuit konfiguréiert"
     },
     "gui": {
       "blocks": {
@@ -2280,7 +2360,40 @@
       "openUmlFirst": "Maacht fir d'éischt en UML-Diagramm op.",
       "selectAtLeastOne": "Wielt op d'mannst ee Diagramm fir z'exportéieren aus.",
       "noProject": "Kee Projet fir z'exportéieren verfügbar.",
-      "failed": "Export feelgeschloen: {{error}}"
+      "failed": "Export feelgeschloen: {{error}}",
+      "validationFailed": "Validéierung feelgeschloen",
+      "noDiagramToExport": "Kee Diagramm fir z'exportéieren",
+      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
+      "bumlExportSuccess": "B-UML-Export erfollegräich ofgeschloss",
+      "noProjectData": "Keng Projetsdaten fir z'exportéieren verfügbar",
+      "projectExportedAs": "Projet als {{filename}} exportéiert",
+      "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}"
+    }
+  },
+  "validation": {
+    "toast": {
+      "noDiagramToValidate": "Kee Diagramm fir ze validéieren",
+      "diagramEmpty": "D'Diagramm ass eidel. Füügt Elementer bäi ier Dir d'Qualitéitskontroll ausféiert.",
+      "validating": "D'Diagramm gëtt validéiert...",
+      "timedOut": "D'Validéierung huet d'Zäitlimit iwwerschratt. De Backend ass villäicht iwwerlaascht.",
+      "validationFailed": "Validéierung feelgeschloen",
+      "errorsLabel": "Validéierungsfeeler:",
+      "warningsLabel": "Warnungen:",
+      "validConstraintsLabel": "Gülteg Contrainten:",
+      "invalidConstraintsLabel": "Ongülteg Contrainten:",
+      "diagramValid": "D'Diagramm ass gülteg",
+      "validationErrorGeneric": "Validéierungsfeeler: {{error}}",
+      "unknownError": "Onbekannte Feeler"
+    }
+  },
+  "quantum": {
+    "circuitGrid": {
+      "cycleInitialStates": "Klickt fir duerch d'Ufanksstänn ze wiesselen: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩",
+      "addQubit": "Qubit derbäisetzen",
+      "addQubitButton": "+ Qubit",
+      "measurementOutput": "Mooss-Ausgab – automatesch aus de Moossgatter generéiert",
+      "dropHere": "Hei falen loossen",
+      "invalid": "Ongülteg"
     }
   }
 }

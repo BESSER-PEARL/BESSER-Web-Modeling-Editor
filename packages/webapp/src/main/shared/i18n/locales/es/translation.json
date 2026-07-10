@@ -789,6 +789,21 @@
         "loadedProjectTemplate": "Plantilla de proyecto «{{name}}» cargada",
         "loadFailed": "No se pudo cargar la plantilla: {{error}}"
       }
+    },
+    "toasts": {
+      "createOrLoadFirst": "Crea o carga primero un proyecto."
+    },
+    "preview": {
+      "toasts": {
+        "jsonCopied": "JSON del proyecto copiado.",
+        "jsonCopyFailed": "No se pudo copiar el JSON del proyecto.",
+        "bumlFailedFallback": "No se pudo generar la vista previa de B-UML.",
+        "bumlFailed": "No se pudo generar la vista previa de B-UML: {{message}}",
+        "noBumlToCopy": "No hay vista previa de B-UML para copiar.",
+        "bumlCopied": "B-UML del proyecto copiado.",
+        "bumlCopyFailed": "No se pudo copiar la vista previa de B-UML.",
+        "noBumlToDownload": "No hay vista previa de B-UML para descargar."
+      }
     }
   },
   "github": {
@@ -962,7 +977,15 @@
       "createRepoFailed": "No se pudo crear el repositorio",
       "repoCreatedQuoted": "¡Repositorio «{{name}}» creado!",
       "createGistFailed": "No se pudo crear el Gist",
-      "gistCreated": "¡Gist creado correctamente!"
+      "gistCreated": "¡Gist creado correctamente!",
+      "invalidGitHubUrl": "URL de GitHub no válida. Proporcione una URL válida de un repositorio de GitHub.",
+      "fetchingFromGitHub": "Obteniendo {{filename}} de GitHub...",
+      "fileNotFound": "Archivo no encontrado en GitHub. Compruebe la URL e inténtelo de nuevo.",
+      "fetchFileFailed": "No se pudo obtener el archivo de GitHub: {{status}}",
+      "importProjectSuccess": "Proyecto importado correctamente: {{name}}",
+      "importModelFailed": "No se pudo importar el modelo de GitHub",
+      "starThanks": "¡Gracias por marcar BESSER con una estrella!",
+      "starFailed": "No se pudo actualizar la estrella"
     }
   },
   "assistant": {
@@ -975,7 +998,13 @@
       "uploadKgLabel": "Subir grafo de conocimiento (TTL/RDF/JSON)",
       "selected": "Seleccionado: {{name}}",
       "importing": "Importando...",
-      "import": "Importar"
+      "import": "Importar",
+      "errors": {
+        "noProject": "Primero crea o carga un proyecto.",
+        "imageType": "Solo se permiten archivos PNG o JPEG.",
+        "kgType": "Solo se permiten archivos TTL, RDF o JSON.",
+        "importFailed": "Error en la importación: {{error}}"
+      }
     },
     "connection": {
       "connected": "Conectado",
@@ -1094,7 +1123,48 @@
       "readFileFailed": "No se pudo leer el archivo o los archivos adjuntos. Inténtalo de nuevo.",
       "sendFailed": "No se pudo enviar tu mensaje — inténtalo de nuevo.",
       "sendVoiceFailed": "No se pudo enviar tu mensaje de voz — inténtalo de nuevo.",
-      "voiceProcessFailed": "No se pudo procesar tu mensaje de voz. Inténtalo de nuevo."
+      "voiceProcessFailed": "No se pudo procesar tu mensaje de voz. Inténtalo de nuevo.",
+      "backendUnreachable": "No se pudo conectar con el asistente de IA. Asegúrate de que el backend esté en ejecución."
+    },
+    "chatKit": {
+      "copiedToClipboard": "¡Copiado al portapapeles!",
+      "copyFailed": "No se pudo copiar al portapapeles.",
+      "copyToClipboard": "Copiar al portapapeles",
+      "copiedResponse": "¡Respuesta copiada al portapapeles!",
+      "rateHelpful": "Valorar la respuesta como útil",
+      "rateUnhelpful": "Valorar la respuesta como no útil",
+      "tryPrompts": "Prueba estas sugerencias ✨",
+      "scrollToBottom": "Desplazarse al final",
+      "badge": {
+        "inProgress": "En curso",
+        "error": "Error",
+        "applied": "Aplicado",
+        "systemCreated": "Sistema creado",
+        "modified": "Modificado",
+        "typing": "Escribiendo"
+      },
+      "attachmentAlt": "Adjunto {{name}}",
+      "toggleReasoning": "Mostrar u ocultar los detalles del razonamiento",
+      "thinking": "Pensando",
+      "toolCancelled": "Cancelado",
+      "toolCalling": "Llamando",
+      "toolResultFrom": "Resultado de",
+      "loading": "Cargando...",
+      "removeAttachment": "Eliminar adjunto",
+      "interruptPrompt": "Pulsa Enter de nuevo para interrumpir",
+      "close": "Cerrar",
+      "pastedText": "Texto pegado",
+      "promptAriaLabel": "Escribe tu indicación aquí",
+      "attachFile": "Adjuntar un archivo",
+      "stopAndSendVoice": "Detener y enviar el mensaje de voz",
+      "startVoiceRecording": "Iniciar la grabación de voz",
+      "pressAgainToStop": "Pulsa de nuevo para detener y enviar",
+      "stopGenerating": "Detener la generación",
+      "sendMessage": "Enviar mensaje",
+      "dropFiles": "Suelta tus archivos aquí para adjuntarlos.",
+      "transcribingAudio": "Transcribiendo audio...",
+      "recordingPrompt": "Grabando... haz clic aquí o pulsa de nuevo el micrófono para detener y enviar ({{time}})",
+      "stopSendVoiceTimer": "Detener y enviar el mensaje de voz ({{time}})"
     }
   },
   "deploy": {
@@ -1155,6 +1225,15 @@
       "openRenderDeployment": "Abrir despliegue de Render",
       "openBlueprint": "Abrir Blueprint de Render",
       "viewRepo": "Ver repositorio de GitHub"
+    },
+    "toasts": {
+      "availableFor": "El despliegue está disponible para diagramas de aplicación web y de agente.",
+      "connectGitHubFirst": "Conéctate primero a GitHub.",
+      "requiresDiagrams": "El despliegue requiere diagramas de clase + GUI (aplicación web) o al menos un diagrama de agente (agente independiente).",
+      "noProjectAvailable": "No hay ningún proyecto disponible para desplegar.",
+      "githubSessionNotFound": "No se encontró la sesión de GitHub. Vuelve a conectarte.",
+      "repoNameRequired": "El nombre del repositorio es obligatorio.",
+      "noPersonalizationMappings": "No se encontraron asignaciones de personalización válidas. Guarda las variantes personalizadas antes de activar esta opción."
     }
   },
   "diagramTypes": {
@@ -1873,7 +1952,8 @@
         "DETECT": "Detectar: simula la respuesta de un detector físico. Modela imperfecciones de medición realistas.",
         "AXIS_SAMPLE": "Muestra de 3 ejes: muestrea el qubit en las bases X, Y y Z simultáneamente. Para la reconstrucción tomográfica.",
         "SPACER": "Espaciador"
-      }
+      },
+      "nestedCircuitConfigured": "Circuito anidado configurado"
     },
     "gui": {
       "blocks": {
@@ -2280,7 +2360,40 @@
       "openUmlFirst": "Abra primero un diagrama UML.",
       "selectAtLeastOne": "Seleccione al menos un diagrama para exportar.",
       "noProject": "No hay ningún proyecto disponible para exportar.",
-      "failed": "Error en la exportación: {{error}}"
+      "failed": "Error en la exportación: {{error}}",
+      "validationFailed": "La validación ha fallado",
+      "noDiagramToExport": "No hay ningún diagrama para exportar",
+      "couldNotParseError": "No se pudo analizar la respuesta de error",
+      "bumlExportSuccess": "Exportación de B-UML completada correctamente",
+      "noProjectData": "No hay datos de proyecto disponibles para exportar",
+      "projectExportedAs": "Proyecto exportado como {{filename}}",
+      "projectExportFailed": "No se pudo exportar el proyecto: {{error}}"
+    }
+  },
+  "validation": {
+    "toast": {
+      "noDiagramToValidate": "No hay ningún diagrama para validar",
+      "diagramEmpty": "El diagrama está vacío. Añada elementos antes de ejecutar la comprobación de calidad.",
+      "validating": "Validando el diagrama...",
+      "timedOut": "La validación ha superado el tiempo de espera. Es posible que el backend esté sobrecargado.",
+      "validationFailed": "La validación ha fallado",
+      "errorsLabel": "Errores de validación:",
+      "warningsLabel": "Advertencias:",
+      "validConstraintsLabel": "Restricciones válidas:",
+      "invalidConstraintsLabel": "Restricciones no válidas:",
+      "diagramValid": "El diagrama es válido",
+      "validationErrorGeneric": "Error de validación: {{error}}",
+      "unknownError": "Error desconocido"
+    }
+  },
+  "quantum": {
+    "circuitGrid": {
+      "cycleInitialStates": "Haz clic para recorrer los estados iniciales: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩",
+      "addQubit": "Añadir cúbit",
+      "addQubitButton": "+ Cúbit",
+      "measurementOutput": "Salida de medición: generada automáticamente a partir de las puertas de medición",
+      "dropHere": "Soltar aquí",
+      "invalid": "No válido"
     }
   }
 }

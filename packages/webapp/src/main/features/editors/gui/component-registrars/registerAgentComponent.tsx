@@ -95,10 +95,10 @@ const AgentComponentPreview: React.FC<{
       {/* Header */}
       <div style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img 
-            src="/img/agent_back.png" 
-            alt="Agent" 
-            style={{ 
+          <img
+            src="/img/agent_back.png"
+            alt={i18n.t('assistant.agentAvatarAlt')}
+            style={{
               width: '32px', 
               height: '32px', 
               borderRadius: '50%',
@@ -345,7 +345,7 @@ export const registerAgentComponent = (editor: any) => {
     label: i18n.t('editors.gui.blocks.agent'),
     category: i18n.t('editors.gui.categories.basic'),
     content: { type: 'agent-component' },
-    media: '<img src="/img/agent_back.png" alt="Agent" style="width: 24px; height: 24px; border-radius: 50%; object-fit: contain;" />',
+    media: `<img src="/img/agent_back.png" alt="${i18n.t('assistant.agentAvatarAlt')}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: contain;" />`,
   });
 };
 

@@ -789,6 +789,21 @@
         "loadedProjectTemplate": "Modèle de projet « {{name}} » chargé",
         "loadFailed": "Échec du chargement du modèle : {{error}}"
       }
+    },
+    "toasts": {
+      "createOrLoadFirst": "Créez ou chargez d'abord un projet."
+    },
+    "preview": {
+      "toasts": {
+        "jsonCopied": "JSON du projet copié.",
+        "jsonCopyFailed": "Échec de la copie du JSON du projet.",
+        "bumlFailedFallback": "Échec de la génération de l'aperçu B-UML.",
+        "bumlFailed": "Échec de la génération de l'aperçu B-UML : {{message}}",
+        "noBumlToCopy": "Aucun aperçu B-UML à copier.",
+        "bumlCopied": "B-UML du projet copié.",
+        "bumlCopyFailed": "Échec de la copie de l'aperçu B-UML.",
+        "noBumlToDownload": "Aucun aperçu B-UML à télécharger."
+      }
     }
   },
   "github": {
@@ -962,7 +977,15 @@
       "createRepoFailed": "Échec de la création du dépôt",
       "repoCreatedQuoted": "Dépôt « {{name}} » créé !",
       "createGistFailed": "Échec de la création du Gist",
-      "gistCreated": "Gist créé avec succès !"
+      "gistCreated": "Gist créé avec succès !",
+      "invalidGitHubUrl": "URL GitHub non valide. Veuillez fournir une URL de dépôt GitHub valide.",
+      "fetchingFromGitHub": "Récupération de {{filename}} depuis GitHub...",
+      "fileNotFound": "Fichier introuvable sur GitHub. Veuillez vérifier l'URL et réessayer.",
+      "fetchFileFailed": "Impossible de récupérer le fichier depuis GitHub : {{status}}",
+      "importProjectSuccess": "Projet importé avec succès : {{name}}",
+      "importModelFailed": "Échec de l'import du modèle depuis GitHub",
+      "starThanks": "Merci d'avoir mis une étoile à BESSER !",
+      "starFailed": "Échec de la mise à jour de l'étoile"
     }
   },
   "assistant": {
@@ -975,7 +998,13 @@
       "uploadKgLabel": "Téléverser un graphe de connaissances (TTL/RDF/JSON)",
       "selected": "Sélectionné : {{name}}",
       "importing": "Importation...",
-      "import": "Importer"
+      "import": "Importer",
+      "errors": {
+        "noProject": "Créez ou chargez d'abord un projet.",
+        "imageType": "Seuls les fichiers PNG ou JPEG sont autorisés.",
+        "kgType": "Seuls les fichiers TTL, RDF ou JSON sont autorisés.",
+        "importFailed": "Échec de l'importation : {{error}}"
+      }
     },
     "connection": {
       "connected": "Connecté",
@@ -1094,7 +1123,48 @@
       "readFileFailed": "Impossible de lire le(s) fichier(s) joint(s). Veuillez réessayer.",
       "sendFailed": "Impossible d'envoyer votre message — veuillez réessayer.",
       "sendVoiceFailed": "Impossible d'envoyer votre message vocal — veuillez réessayer.",
-      "voiceProcessFailed": "Impossible de traiter votre message vocal. Veuillez réessayer."
+      "voiceProcessFailed": "Impossible de traiter votre message vocal. Veuillez réessayer.",
+      "backendUnreachable": "Impossible de joindre l'assistant IA — assurez-vous que le backend est en cours d'exécution."
+    },
+    "chatKit": {
+      "copiedToClipboard": "Copié dans le presse-papiers !",
+      "copyFailed": "Échec de la copie dans le presse-papiers.",
+      "copyToClipboard": "Copier dans le presse-papiers",
+      "copiedResponse": "Réponse copiée dans le presse-papiers !",
+      "rateHelpful": "Évaluer la réponse comme utile",
+      "rateUnhelpful": "Évaluer la réponse comme inutile",
+      "tryPrompts": "Essayez ces suggestions ✨",
+      "scrollToBottom": "Défiler vers le bas",
+      "badge": {
+        "inProgress": "En cours",
+        "error": "Erreur",
+        "applied": "Appliqué",
+        "systemCreated": "Système créé",
+        "modified": "Modifié",
+        "typing": "En train d'écrire"
+      },
+      "attachmentAlt": "Pièce jointe {{name}}",
+      "toggleReasoning": "Afficher ou masquer les détails du raisonnement",
+      "thinking": "Réflexion",
+      "toolCancelled": "Annulé",
+      "toolCalling": "Appel",
+      "toolResultFrom": "Résultat de",
+      "loading": "Chargement...",
+      "removeAttachment": "Supprimer la pièce jointe",
+      "interruptPrompt": "Appuyez de nouveau sur Entrée pour interrompre",
+      "close": "Fermer",
+      "pastedText": "Texte collé",
+      "promptAriaLabel": "Écrivez votre message ici",
+      "attachFile": "Joindre un fichier",
+      "stopAndSendVoice": "Arrêter et envoyer le message vocal",
+      "startVoiceRecording": "Démarrer l'enregistrement vocal",
+      "pressAgainToStop": "Appuyez de nouveau pour arrêter et envoyer",
+      "stopGenerating": "Arrêter la génération",
+      "sendMessage": "Envoyer le message",
+      "dropFiles": "Déposez vos fichiers ici pour les joindre.",
+      "transcribingAudio": "Transcription de l'audio...",
+      "recordingPrompt": "Enregistrement... cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
+      "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})"
     }
   },
   "deploy": {
@@ -1155,6 +1225,15 @@
       "openRenderDeployment": "Ouvrir le déploiement Render",
       "openBlueprint": "Ouvrir le Blueprint Render",
       "viewRepo": "Voir le dépôt GitHub"
+    },
+    "toasts": {
+      "availableFor": "Le déploiement est disponible pour les diagrammes d'application web et d'agent.",
+      "connectGitHubFirst": "Connectez-vous d'abord à GitHub.",
+      "requiresDiagrams": "Le déploiement nécessite des diagrammes de classe + GUI (application web) ou au moins un diagramme d'agent (agent autonome).",
+      "noProjectAvailable": "Aucun projet disponible pour le déploiement.",
+      "githubSessionNotFound": "Session GitHub introuvable. Veuillez vous reconnecter.",
+      "repoNameRequired": "Le nom du dépôt est requis.",
+      "noPersonalizationMappings": "Aucune correspondance de personnalisation valide trouvée. Enregistrez les variantes personnalisées avant d'activer cette option."
     }
   },
   "diagramTypes": {
@@ -1873,7 +1952,8 @@
         "DETECT": "Détecter : simule la réponse d'un détecteur physique. Modélise des imperfections de mesure réalistes.",
         "AXIS_SAMPLE": "Échantillon 3 axes : échantillonne le qubit dans les bases X, Y et Z simultanément. Pour la reconstruction tomographique.",
         "SPACER": "Espaceur"
-      }
+      },
+      "nestedCircuitConfigured": "Circuit imbriqué configuré"
     },
     "gui": {
       "blocks": {
@@ -2280,7 +2360,40 @@
       "openUmlFirst": "Ouvrez d'abord un diagramme UML.",
       "selectAtLeastOne": "Sélectionnez au moins un diagramme à exporter.",
       "noProject": "Aucun projet disponible à exporter.",
-      "failed": "Échec de l'exportation : {{error}}"
+      "failed": "Échec de l'exportation : {{error}}",
+      "validationFailed": "Échec de la validation",
+      "noDiagramToExport": "Aucun diagramme à exporter",
+      "couldNotParseError": "Impossible d'analyser la réponse d'erreur",
+      "bumlExportSuccess": "Export B-UML terminé avec succès",
+      "noProjectData": "Aucune donnée de projet disponible à exporter",
+      "projectExportedAs": "Projet exporté sous {{filename}}",
+      "projectExportFailed": "Échec de l'export du projet : {{error}}"
+    }
+  },
+  "validation": {
+    "toast": {
+      "noDiagramToValidate": "Aucun diagramme à valider",
+      "diagramEmpty": "Le diagramme est vide. Ajoutez des éléments avant de lancer le contrôle qualité.",
+      "validating": "Validation du diagramme...",
+      "timedOut": "La validation a expiré. Le backend est peut-être surchargé.",
+      "validationFailed": "Échec de la validation",
+      "errorsLabel": "Erreurs de validation :",
+      "warningsLabel": "Avertissements :",
+      "validConstraintsLabel": "Contraintes valides :",
+      "invalidConstraintsLabel": "Contraintes non valides :",
+      "diagramValid": "Le diagramme est valide",
+      "validationErrorGeneric": "Erreur de validation : {{error}}",
+      "unknownError": "Erreur inconnue"
+    }
+  },
+  "quantum": {
+    "circuitGrid": {
+      "cycleInitialStates": "Cliquez pour parcourir les états initiaux : |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩",
+      "addQubit": "Ajouter un qubit",
+      "addQubitButton": "+ Qubit",
+      "measurementOutput": "Sortie de mesure — générée automatiquement à partir des portes de mesure",
+      "dropHere": "Déposer ici",
+      "invalid": "Non valide"
     }
   }
 }

@@ -789,6 +789,21 @@
         "loadedProjectTemplate": "Loaded project template \"{{name}}\"",
         "loadFailed": "Failed to load template: {{error}}"
       }
+    },
+    "toasts": {
+      "createOrLoadFirst": "Create or load a project first."
+    },
+    "preview": {
+      "toasts": {
+        "jsonCopied": "Project JSON copied.",
+        "jsonCopyFailed": "Failed to copy project JSON.",
+        "bumlFailedFallback": "Failed to generate B-UML preview.",
+        "bumlFailed": "Failed to generate B-UML preview: {{message}}",
+        "noBumlToCopy": "No B-UML preview to copy.",
+        "bumlCopied": "Project B-UML copied.",
+        "bumlCopyFailed": "Failed to copy B-UML preview.",
+        "noBumlToDownload": "No B-UML preview to download."
+      }
     }
   },
   "github": {
@@ -962,7 +977,15 @@
       "createRepoFailed": "Failed to create repository",
       "repoCreatedQuoted": "Repository \"{{name}}\" created!",
       "createGistFailed": "Failed to create Gist",
-      "gistCreated": "Gist created successfully!"
+      "gistCreated": "Gist created successfully!",
+      "invalidGitHubUrl": "Invalid GitHub URL. Please provide a valid GitHub repository URL.",
+      "fetchingFromGitHub": "Fetching {{filename}} from GitHub...",
+      "fileNotFound": "File not found on GitHub. Please check the URL and try again.",
+      "fetchFileFailed": "Failed to fetch file from GitHub: {{status}}",
+      "importProjectSuccess": "Successfully imported project: {{name}}",
+      "importModelFailed": "Failed to import model from GitHub",
+      "starThanks": "Thanks for starring BESSER!",
+      "starFailed": "Failed to update star"
     }
   },
   "assistant": {
@@ -975,7 +998,13 @@
       "uploadKgLabel": "Upload Knowledge Graph (TTL/RDF/JSON)",
       "selected": "Selected: {{name}}",
       "importing": "Importing...",
-      "import": "Import"
+      "import": "Import",
+      "errors": {
+        "noProject": "Create or load a project first.",
+        "imageType": "Only PNG or JPEG files are allowed.",
+        "kgType": "Only TTL, RDF, or JSON files are allowed.",
+        "importFailed": "Import failed: {{error}}"
+      }
     },
     "connection": {
       "connected": "Connected",
@@ -1094,7 +1123,48 @@
       "readFileFailed": "Could not read the attached file(s). Please try again.",
       "sendFailed": "Could not send your message — please try again.",
       "sendVoiceFailed": "Could not send your voice message — please try again.",
-      "voiceProcessFailed": "Could not process your voice message. Please try again."
+      "voiceProcessFailed": "Could not process your voice message. Please try again.",
+      "backendUnreachable": "Could not reach the AI assistant — make sure the backend is running."
+    },
+    "chatKit": {
+      "copiedToClipboard": "Copied to clipboard!",
+      "copyFailed": "Failed to copy to clipboard.",
+      "copyToClipboard": "Copy to clipboard",
+      "copiedResponse": "Copied response to clipboard!",
+      "rateHelpful": "Rate response as helpful",
+      "rateUnhelpful": "Rate response as unhelpful",
+      "tryPrompts": "Try these prompts ✨",
+      "scrollToBottom": "Scroll to bottom",
+      "badge": {
+        "inProgress": "In progress",
+        "error": "Error",
+        "applied": "Applied",
+        "systemCreated": "System created",
+        "modified": "Modified",
+        "typing": "Typing"
+      },
+      "attachmentAlt": "Attachment {{name}}",
+      "toggleReasoning": "Toggle reasoning details",
+      "thinking": "Thinking",
+      "toolCancelled": "Cancelled",
+      "toolCalling": "Calling",
+      "toolResultFrom": "Result from",
+      "loading": "Loading...",
+      "removeAttachment": "Remove attachment",
+      "interruptPrompt": "Press Enter again to interrupt",
+      "close": "Close",
+      "pastedText": "Pasted text",
+      "promptAriaLabel": "Write your prompt here",
+      "attachFile": "Attach a file",
+      "stopAndSendVoice": "Stop and send voice message",
+      "startVoiceRecording": "Start voice recording",
+      "pressAgainToStop": "Press again to stop and send",
+      "stopGenerating": "Stop generating",
+      "sendMessage": "Send message",
+      "dropFiles": "Drop your files here to attach them.",
+      "transcribingAudio": "Transcribing audio...",
+      "recordingPrompt": "Recording... click here or press mic again to stop and send ({{time}})",
+      "stopSendVoiceTimer": "Stop & send voice message ({{time}})"
     }
   },
   "deploy": {
@@ -1155,6 +1225,15 @@
       "openRenderDeployment": "Open Render Deployment",
       "openBlueprint": "Open Render Blueprint",
       "viewRepo": "View GitHub Repository"
+    },
+    "toasts": {
+      "availableFor": "Deploy is available for Web App and Agent diagrams.",
+      "connectGitHubFirst": "Connect to GitHub first.",
+      "requiresDiagrams": "Deploy requires Class + GUI diagrams (Web App) or at least one Agent diagram (Standalone Agent).",
+      "noProjectAvailable": "No project available for deployment.",
+      "githubSessionNotFound": "GitHub session not found. Please reconnect.",
+      "repoNameRequired": "Repository name is required.",
+      "noPersonalizationMappings": "No valid personalization mappings found. Save personalized variants before enabling this option."
     }
   },
   "diagramTypes": {
@@ -1873,7 +1952,8 @@
         "DETECT": "Detect: Simulates physical detector response. Models realistic measurement imperfections.",
         "AXIS_SAMPLE": "3-Axis Sample: Samples qubit in X, Y, and Z bases simultaneously. For tomographic reconstruction.",
         "SPACER": "Spacer"
-      }
+      },
+      "nestedCircuitConfigured": "Nested circuit configured"
     },
     "gui": {
       "blocks": {
@@ -2280,7 +2360,40 @@
       "openUmlFirst": "Open a UML diagram first.",
       "selectAtLeastOne": "Select at least one diagram to export.",
       "noProject": "No project available to export.",
-      "failed": "Export failed: {{error}}"
+      "failed": "Export failed: {{error}}",
+      "validationFailed": "Validation failed",
+      "noDiagramToExport": "No diagram to export",
+      "couldNotParseError": "Could not parse error response",
+      "bumlExportSuccess": "BUML export completed successfully",
+      "noProjectData": "No project data available to export",
+      "projectExportedAs": "Project exported as {{filename}}",
+      "projectExportFailed": "Failed to export project: {{error}}"
+    }
+  },
+  "validation": {
+    "toast": {
+      "noDiagramToValidate": "No diagram to validate",
+      "diagramEmpty": "The diagram is empty. Add elements before running the quality check.",
+      "validating": "Validating diagram...",
+      "timedOut": "Validation timed out. The backend may be overloaded.",
+      "validationFailed": "Validation failed",
+      "errorsLabel": "Validation Errors:",
+      "warningsLabel": "Warnings:",
+      "validConstraintsLabel": "Valid Constraints:",
+      "invalidConstraintsLabel": "Invalid Constraints:",
+      "diagramValid": "Diagram is valid",
+      "validationErrorGeneric": "Validation error: {{error}}",
+      "unknownError": "Unknown error"
+    }
+  },
+  "quantum": {
+    "circuitGrid": {
+      "cycleInitialStates": "Click to cycle through initial states: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩",
+      "addQubit": "Add qubit",
+      "addQubitButton": "+ Qubit",
+      "measurementOutput": "Measurement output - auto-generated from measurement gates",
+      "dropHere": "Drop here",
+      "invalid": "Invalid"
     }
   }
 }

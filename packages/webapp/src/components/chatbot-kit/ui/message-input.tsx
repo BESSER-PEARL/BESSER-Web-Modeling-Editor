@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { ArrowUp, Info, Loader2, Mic, Paperclip, Square, X } from "lucide-react"
 import { omit } from "remeda"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { useAudioRecording } from "@/components/chatbot-kit/hooks/use-audio-recording"
@@ -42,7 +43,7 @@ type MessageInputProps =
   | MessageInputWithAttachmentsProps
 
 export function MessageInput({
-  placeholder = "Describe what you want to create or modify...",
+  placeholder,
   className,
   onKeyDown: onKeyDownProp,
   submitOnEnter = true,
@@ -55,6 +56,8 @@ export function MessageInput({
   onValueChange,
   ...props
 }: MessageInputProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t("assistant.composer.placeholder")
   const [isDragging, setIsDragging] = useState(false)
   const [showInterruptPrompt, setShowInterruptPrompt] = useState(false)
 
@@ -127,7 +130,7 @@ export function MessageInput({
     if (text && text.length > 500 && props.allowAttachments) {
       event.preventDefault()
       const blob = new Blob([text], { type: "text/plain" })
-      const file = new File([blob], "Pasted text", {
+      const file = new File([blob], t("assistant.chatKit.pastedText"), {
         type: "text/plain",
         lastModified: Date.now(),
       })
@@ -237,8 +240,8 @@ export function MessageInput({
       <div className="relative flex w-full items-center space-x-2">
         <div className="relative flex-1">
           <textarea
-            aria-label="Write your prompt here"
-            placeholder={placeholder}
+            aria-label={t("assistant.chatKit.promptAriaLabel")}
+            placeholder={resolvedPlaceholder}
             ref={textAreaRef}
             onPaste={onPaste}
             onKeyDown={onKeyDown}
@@ -289,7 +292,7 @@ export function MessageInput({
             size="icon"
             variant="outline"
             className="h-8 w-8 hover:border-primary/40 hover:text-primary"
-            aria-label="Attach a file"
+            aria-label={t("assistant.chatKit.attachFile")}
             onClick={async () => {
               const files = await showFileUploadDialog()
               addFiles(files)
@@ -303,8 +306,8 @@ export function MessageInput({
             type="button"
             variant="outline"
             className="h-8 w-8 hover:border-primary/40 hover:text-primary"
-            aria-label={isListening ? "Stop and send voice message" : "Start voice recording"}
-            title={isListening ? "Press again to stop and send" : "Start voice recording"}
+            aria-label={isListening ? t("assistant.chatKit.stopAndSendVoice") : t("assistant.chatKit.startVoiceRecording")}
+            title={isListening ? t("assistant.chatKit.pressAgainToStop") : t("assistant.chatKit.startVoiceRecording")}
             size="icon"
             onClick={toggleListening}
           >
@@ -316,7 +319,7 @@ export function MessageInput({
             type="button"
             size="icon"
             className="h-8 w-8 bg-brand text-brand-foreground hover:bg-brand-dark"
-            aria-label="Stop generating"
+            aria-label={t("assistant.chatKit.stopGenerating")}
             onClick={stop}
           >
             <Square className="h-3 w-3 animate-pulse" fill="currentColor" />
@@ -326,7 +329,7 @@ export function MessageInput({
             type="submit"
             size="icon"
             className="h-8 w-8 bg-brand text-brand-foreground transition-opacity hover:bg-brand-dark disabled:opacity-40"
-            aria-label="Send message"
+            aria-label={t("assistant.chatKit.sendMessage")}
             disabled={props.value === "" || isGenerating}
           >
             <ArrowUp className="h-5 w-5" />
@@ -354,6 +357,7 @@ interface FileUploadOverlayProps {
 }
 
 function FileUploadOverlay({ isDragging }: FileUploadOverlayProps) {
+  const { t } = useTranslation()
   return (
     <AnimatePresence>
       {isDragging && (
@@ -366,7 +370,7 @@ function FileUploadOverlay({ isDragging }: FileUploadOverlayProps) {
           aria-hidden
         >
           <Paperclip className="h-4 w-4" />
-          <span>Drop your files here to attach them.</span>
+          <span>{t("assistant.chatKit.dropFiles")}</span>
         </motion.div>
       )}
     </AnimatePresence>
@@ -396,6 +400,7 @@ function showFileUploadDialog() {
 }
 
 function TranscribingOverlay() {
+  const { t } = useTranslation()
   return (
     <motion.div
       className="flex h-full w-full flex-col items-center justify-center rounded-xl bg-background/80 backdrop-blur-sm"
@@ -419,7 +424,7 @@ function TranscribingOverlay() {
         />
       </div>
       <p className="mt-4 text-sm font-medium text-muted-foreground">
-        Transcribing audio...
+        {t("assistant.chatKit.transcribingAudio")}
       </p>
     </motion.div>
   )
@@ -438,6 +443,7 @@ function formatRecordingTime(seconds: number): string {
 }
 
 function RecordingPrompt({ isVisible, onStopRecording, secondsLeft }: RecordingPromptProps) {
+  const { t } = useTranslation()
   return (
     <AnimatePresence>
       {isVisible && (
@@ -457,7 +463,7 @@ function RecordingPrompt({ isVisible, onStopRecording, secondsLeft }: RecordingP
         >
           <span className="mx-2.5 flex items-center">
             <Info className="mr-2 h-3 w-3" />
-            Recording... click here or press mic again to stop and send ({formatRecordingTime(secondsLeft)})
+            {t("assistant.chatKit.recordingPrompt", { time: formatRecordingTime(secondsLeft) })}
           </span>
         </motion.div>
       )}
@@ -482,6 +488,7 @@ function RecordingControls({
   secondsLeft,
   onStopRecording,
 }: RecordingControlsProps) {
+  const { t } = useTranslation()
   if (isRecording) {
     return (
       <div
@@ -500,7 +507,7 @@ function RecordingControls({
             className="pointer-events-auto inline-flex items-center rounded-full border border-primary/40 bg-background/95 px-3 py-1 text-xs font-medium text-foreground shadow-sm"
             onClick={onStopRecording}
           >
-            Stop &amp; send voice message ({formatRecordingTime(secondsLeft)})
+            {t("assistant.chatKit.stopSendVoiceTimer", { time: formatRecordingTime(secondsLeft) })}
           </button>
         </div>
       </div>

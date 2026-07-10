@@ -789,6 +789,21 @@
         "loadedProjectTemplate": "Plantilla de projecte «{{name}}» carregada",
         "loadFailed": "No s'ha pogut carregar la plantilla: {{error}}"
       }
+    },
+    "toasts": {
+      "createOrLoadFirst": "Crea o carrega primer un projecte."
+    },
+    "preview": {
+      "toasts": {
+        "jsonCopied": "S'ha copiat el JSON del projecte.",
+        "jsonCopyFailed": "No s'ha pogut copiar el JSON del projecte.",
+        "bumlFailedFallback": "No s'ha pogut generar la vista prèvia de B-UML.",
+        "bumlFailed": "No s'ha pogut generar la vista prèvia de B-UML: {{message}}",
+        "noBumlToCopy": "No hi ha cap vista prèvia de B-UML per copiar.",
+        "bumlCopied": "S'ha copiat el B-UML del projecte.",
+        "bumlCopyFailed": "No s'ha pogut copiar la vista prèvia de B-UML.",
+        "noBumlToDownload": "No hi ha cap vista prèvia de B-UML per baixar."
+      }
     }
   },
   "github": {
@@ -962,7 +977,15 @@
       "createRepoFailed": "No s'ha pogut crear el repositori",
       "repoCreatedQuoted": "Repositori «{{name}}» creat!",
       "createGistFailed": "No s'ha pogut crear el Gist",
-      "gistCreated": "Gist creat correctament!"
+      "gistCreated": "Gist creat correctament!",
+      "invalidGitHubUrl": "URL de GitHub no vàlida. Proporcioneu una URL vàlida d'un repositori de GitHub.",
+      "fetchingFromGitHub": "S'està obtenint {{filename}} de GitHub...",
+      "fileNotFound": "No s'ha trobat el fitxer a GitHub. Comproveu l'URL i torneu-ho a provar.",
+      "fetchFileFailed": "No s'ha pogut obtenir el fitxer de GitHub: {{status}}",
+      "importProjectSuccess": "Projecte importat correctament: {{name}}",
+      "importModelFailed": "No s'ha pogut importar el model de GitHub",
+      "starThanks": "Gràcies per marcar BESSER amb una estrella!",
+      "starFailed": "No s'ha pogut actualitzar l'estrella"
     }
   },
   "assistant": {
@@ -975,7 +998,13 @@
       "uploadKgLabel": "Puja un graf de coneixement (TTL/RDF/JSON)",
       "selected": "Seleccionat: {{name}}",
       "importing": "Important...",
-      "import": "Importa"
+      "import": "Importa",
+      "errors": {
+        "noProject": "Primer crea o carrega un projecte.",
+        "imageType": "Només es permeten fitxers PNG o JPEG.",
+        "kgType": "Només es permeten fitxers TTL, RDF o JSON.",
+        "importFailed": "Ha fallat la importació: {{error}}"
+      }
     },
     "connection": {
       "connected": "Connectat",
@@ -1094,7 +1123,48 @@
       "readFileFailed": "No s'han pogut llegir el(s) fitxer(s) adjunt(s). Torna-ho a provar.",
       "sendFailed": "No s'ha pogut enviar el teu missatge — torna-ho a provar.",
       "sendVoiceFailed": "No s'ha pogut enviar el teu missatge de veu — torna-ho a provar.",
-      "voiceProcessFailed": "No s'ha pogut processar el teu missatge de veu. Torna-ho a provar."
+      "voiceProcessFailed": "No s'ha pogut processar el teu missatge de veu. Torna-ho a provar.",
+      "backendUnreachable": "No s'ha pogut connectar amb l'assistent d'IA. Assegura't que el backend s'estigui executant."
+    },
+    "chatKit": {
+      "copiedToClipboard": "Copiat al porta-retalls!",
+      "copyFailed": "No s'ha pogut copiar al porta-retalls.",
+      "copyToClipboard": "Copia al porta-retalls",
+      "copiedResponse": "Resposta copiada al porta-retalls!",
+      "rateHelpful": "Valora la resposta com a útil",
+      "rateUnhelpful": "Valora la resposta com a poc útil",
+      "tryPrompts": "Prova aquestes indicacions ✨",
+      "scrollToBottom": "Desplaça't fins al final",
+      "badge": {
+        "inProgress": "En curs",
+        "error": "Error",
+        "applied": "Aplicat",
+        "systemCreated": "Sistema creat",
+        "modified": "Modificat",
+        "typing": "Escrivint"
+      },
+      "attachmentAlt": "Adjunt {{name}}",
+      "toggleReasoning": "Mostra o amaga els detalls del raonament",
+      "thinking": "Pensant",
+      "toolCancelled": "Cancel·lat",
+      "toolCalling": "Cridant",
+      "toolResultFrom": "Resultat de",
+      "loading": "S'està carregant...",
+      "removeAttachment": "Elimina l'adjunt",
+      "interruptPrompt": "Torna a prémer Retorn per interrompre",
+      "close": "Tanca",
+      "pastedText": "Text enganxat",
+      "promptAriaLabel": "Escriu la teva indicació aquí",
+      "attachFile": "Adjunta un fitxer",
+      "stopAndSendVoice": "Atura i envia el missatge de veu",
+      "startVoiceRecording": "Inicia la gravació de veu",
+      "pressAgainToStop": "Torna a prémer per aturar i enviar",
+      "stopGenerating": "Atura la generació",
+      "sendMessage": "Envia el missatge",
+      "dropFiles": "Deixa anar els fitxers aquí per adjuntar-los.",
+      "transcribingAudio": "S'està transcrivint l'àudio...",
+      "recordingPrompt": "Gravant... fes clic aquí o torna a prémer el micròfon per aturar i enviar ({{time}})",
+      "stopSendVoiceTimer": "Atura i envia el missatge de veu ({{time}})"
     }
   },
   "deploy": {
@@ -1155,6 +1225,15 @@
       "openRenderDeployment": "Obre el desplegament de Render",
       "openBlueprint": "Obre el Blueprint de Render",
       "viewRepo": "Mostra el repositori de GitHub"
+    },
+    "toasts": {
+      "availableFor": "El desplegament està disponible per a diagrames d'aplicació web i d'agent.",
+      "connectGitHubFirst": "Connecta't primer a GitHub.",
+      "requiresDiagrams": "El desplegament requereix diagrames de classe + GUI (aplicació web) o com a mínim un diagrama d'agent (agent independent).",
+      "noProjectAvailable": "No hi ha cap projecte disponible per desplegar.",
+      "githubSessionNotFound": "No s'ha trobat la sessió de GitHub. Torna a connectar-te.",
+      "repoNameRequired": "El nom del repositori és obligatori.",
+      "noPersonalizationMappings": "No s'ha trobat cap assignació de personalització vàlida. Desa les variants personalitzades abans d'activar aquesta opció."
     }
   },
   "diagramTypes": {
@@ -1873,7 +1952,8 @@
         "DETECT": "Detectar: simula la resposta d'un detector físic. Modela imperfeccions de mesura realistes.",
         "AXIS_SAMPLE": "Mostra de 3 eixos: mostreja el qubit en les bases X, Y i Z simultàniament. Per a la reconstrucció tomogràfica.",
         "SPACER": "Espaiador"
-      }
+      },
+      "nestedCircuitConfigured": "Circuit imbricat configurat"
     },
     "gui": {
       "blocks": {
@@ -2280,7 +2360,40 @@
       "openUmlFirst": "Obriu primer un diagrama UML.",
       "selectAtLeastOne": "Seleccioneu almenys un diagrama per exportar.",
       "noProject": "No hi ha cap projecte disponible per exportar.",
-      "failed": "L'exportació ha fallat: {{error}}"
+      "failed": "L'exportació ha fallat: {{error}}",
+      "validationFailed": "La validació ha fallat",
+      "noDiagramToExport": "No hi ha cap diagrama per exportar",
+      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
+      "bumlExportSuccess": "Exportació de B-UML completada correctament",
+      "noProjectData": "No hi ha dades de projecte disponibles per exportar",
+      "projectExportedAs": "Projecte exportat com a {{filename}}",
+      "projectExportFailed": "No s'ha pogut exportar el projecte: {{error}}"
+    }
+  },
+  "validation": {
+    "toast": {
+      "noDiagramToValidate": "No hi ha cap diagrama per validar",
+      "diagramEmpty": "El diagrama és buit. Afegiu-hi elements abans d'executar la comprovació de qualitat.",
+      "validating": "S'està validant el diagrama...",
+      "timedOut": "La validació ha excedit el temps d'espera. És possible que el servidor estigui sobrecarregat.",
+      "validationFailed": "La validació ha fallat",
+      "errorsLabel": "Errors de validació:",
+      "warningsLabel": "Avisos:",
+      "validConstraintsLabel": "Restriccions vàlides:",
+      "invalidConstraintsLabel": "Restriccions no vàlides:",
+      "diagramValid": "El diagrama és vàlid",
+      "validationErrorGeneric": "Error de validació: {{error}}",
+      "unknownError": "Error desconegut"
+    }
+  },
+  "quantum": {
+    "circuitGrid": {
+      "cycleInitialStates": "Fes clic per recórrer els estats inicials: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩",
+      "addQubit": "Afegeix un qubit",
+      "addQubitButton": "+ Qubit",
+      "measurementOutput": "Sortida de mesura: generada automàticament a partir de les portes de mesura",
+      "dropHere": "Deixa-ho anar aquí",
+      "invalid": "No vàlid"
     }
   }
 }

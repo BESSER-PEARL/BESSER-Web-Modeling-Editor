@@ -6,6 +6,7 @@ import {
   type ReactElement,
 } from "react"
 import { ArrowDown, ThumbsDown, ThumbsUp } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { useAutoScroll } from "@/components/chatbot-kit/hooks/use-auto-scroll"
@@ -61,6 +62,7 @@ export function Chat({
   setMessages,
   transcribeAudio,
 }: ChatProps) {
+  const { t } = useTranslation()
   const lastMessage = messages.at(-1)
   const isEmpty = messages.length === 0
   const isTyping = lastMessage?.role === "user"
@@ -159,7 +161,7 @@ export function Chat({
           <div className="border-r pr-1">
             <CopyButton
               content={message.content}
-              copyMessage="Copied response to clipboard!"
+              copyMessage={t("assistant.chatKit.copiedResponse")}
             />
           </div>
           <Button
@@ -167,7 +169,7 @@ export function Chat({
             variant="ghost"
             className="h-6 w-6 hover:text-primary"
             onClick={() => onRateResponse(message.id, "thumbs-up")}
-            aria-label="Rate response as helpful"
+            aria-label={t("assistant.chatKit.rateHelpful")}
           >
             <ThumbsUp className="h-4 w-4" />
           </Button>
@@ -176,7 +178,7 @@ export function Chat({
             variant="ghost"
             className="h-6 w-6 hover:text-destructive"
             onClick={() => onRateResponse(message.id, "thumbs-down")}
-            aria-label="Rate response as unhelpful"
+            aria-label={t("assistant.chatKit.rateUnhelpful")}
           >
             <ThumbsDown className="h-4 w-4" />
           </Button>
@@ -184,18 +186,18 @@ export function Chat({
       ) : (
         <CopyButton
           content={message.content}
-          copyMessage="Copied response to clipboard!"
+          copyMessage={t("assistant.chatKit.copiedResponse")}
         />
       ),
     }),
-    [onRateResponse]
+    [onRateResponse, t]
   )
 
   return (
     <ChatContainer className={className}>
       {isEmpty && append && suggestions ? (
         <PromptSuggestions
-          label="Try these prompts ✨"
+          label={t("assistant.chatKit.tryPrompts")}
           append={append}
           suggestions={suggestions}
         />
@@ -240,6 +242,7 @@ export function ChatMessages({
 }: React.PropsWithChildren<{
   messages: Message[]
 }>) {
+  const { t } = useTranslation()
   const {
     containerRef,
     scrollToBottom,
@@ -267,7 +270,7 @@ export function ChatMessages({
               className="pointer-events-auto h-8 w-8 rounded-full border border-border/60 bg-background shadow-sm ease-in-out animate-in fade-in-0 slide-in-from-bottom-1 hover:border-primary/40 hover:text-primary"
               size="icon"
               variant="ghost"
-              aria-label="Scroll to bottom"
+              aria-label={t("assistant.chatKit.scrollToBottom")}
             >
               <ArrowDown className="h-4 w-4" />
             </Button>
