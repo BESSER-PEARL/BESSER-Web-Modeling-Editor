@@ -587,7 +587,10 @@
     },
     "overlay": {
       "subtitle": "Espereu mentre es genera el vostre codi",
-      "title": "S'està generant el codi"
+      "title": "S'està generant el codi",
+      "stepPackaging": "S'està empaquetant la sortida...",
+      "stepGenerating": "S'està generant el codi...",
+      "stepParsing": "S'està analitzant el diagrama..."
     }
   },
   "project": {
@@ -2084,7 +2087,12 @@
       "importTemplateLabel": "Enganxeu aquí el vostre HTML/CSS i feu clic a Importa"
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI...",
-    "loadingQuantumEditor": "S'està carregant l'editor quàntic..."
+    "loadingQuantumEditor": "S'està carregant l'editor quàntic...",
+    "hiddenPerspectives": {
+      "messagePlural": "Aquest projecte utilitza {{labels}}, però aquestes perspectives estan amagades.",
+      "messageSingular": "Aquest projecte utilitza {{labels}}, però aquesta perspectiva està amagada.",
+      "enable": "Activa {{label}}"
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Digueu-nos què funciona, què no i què voleu a continuació.",
@@ -2093,7 +2101,8 @@
       "thankYou": "Gràcies pels vostres comentaris.",
       "submitFailedDefault": "No s'han pogut enviar els comentaris.",
       "selectRating": "Seleccioneu una valoració de satisfacció.",
-      "unknownError": "Error desconegut"
+      "unknownError": "Error desconegut",
+      "submitFailed": "L'enviament dels comentaris ha fallat: {{error}}"
     },
     "submitting": "S'està enviant...",
     "title": "Ajudeu-nos a millorar BESSER",
@@ -2102,7 +2111,32 @@
     "emailHelper": "Deixeu el vostre correu electrònic si voleu un seguiment de l'equip.",
     "submit": "Envia els comentaris",
     "category": "Categoria",
-    "emailLabel": "Correu electrònic (opcional)"
+    "emailLabel": "Correu electrònic (opcional)",
+    "satisfaction": {
+      "neutral": {
+        "helper": "Experiència mixta",
+        "label": "Neutral"
+      },
+      "sad": {
+        "label": "Insatisfet",
+        "helper": "Necessita millores"
+      },
+      "happy": {
+        "helper": "Gran experiència",
+        "label": "Molt satisfet"
+      }
+    },
+    "categoryOptions": {
+      "generators": "Generació de codi",
+      "feature_request": "Sol·licitud de funció",
+      "editor": "Editor de diagrames",
+      "none": "Selecciona una categoria (opcional)",
+      "deployment": "Desplegament",
+      "other": "Altres",
+      "bugs": "Informe d'errors",
+      "performance": "Rendiment",
+      "documentation": "Documentació"
+    }
   },
   "export": {
     "dialog": {
@@ -2121,13 +2155,15 @@
       "exportDiagramJson": "Exporta el diagrama com a JSON",
       "untitledDiagram": "Diagrama sense títol",
       "exportPngWhite": "Exporta PNG (blanc)",
-      "currentDescription": "Exporta el diagrama UML actual com a recursos d'imatge."
+      "currentDescription": "Exporta el diagrama UML actual com a recursos d'imatge.",
+      "diagramCount": "{{count}} diagrames: {{titles}}"
     },
     "toast": {
       "unknownError": "Error desconegut",
       "openUmlFirst": "Obriu primer un diagrama UML.",
       "selectAtLeastOne": "Seleccioneu almenys un diagrama per exportar.",
-      "noProject": "No hi ha cap projecte disponible per exportar."
+      "noProject": "No hi ha cap projecte disponible per exportar.",
+      "failed": "L'exportació ha fallat: {{error}}"
     }
   }
 }

@@ -587,7 +587,10 @@
     },
     "overlay": {
       "subtitle": "Espera mientras se genera tu código",
-      "title": "Generando código"
+      "title": "Generando código",
+      "stepPackaging": "Empaquetando la salida...",
+      "stepGenerating": "Generando código...",
+      "stepParsing": "Analizando el diagrama..."
     }
   },
   "project": {
@@ -2084,7 +2087,12 @@
       "importTemplateLabel": "Pegue aquí su HTML/CSS y haga clic en Importar"
     },
     "loadingGuiEditor": "Cargando el editor de GUI...",
-    "loadingQuantumEditor": "Cargando el editor cuántico..."
+    "loadingQuantumEditor": "Cargando el editor cuántico...",
+    "hiddenPerspectives": {
+      "messagePlural": "Este proyecto utiliza {{labels}}, pero esas perspectivas están ocultas.",
+      "messageSingular": "Este proyecto utiliza {{labels}}, pero esa perspectiva está oculta.",
+      "enable": "Activar {{label}}"
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Cuéntanos qué funciona, qué no y qué te gustaría a continuación.",
@@ -2093,7 +2101,8 @@
       "thankYou": "Gracias por tus comentarios.",
       "submitFailedDefault": "No se pudieron enviar los comentarios.",
       "selectRating": "Seleccione una valoración de satisfacción.",
-      "unknownError": "Error desconocido"
+      "unknownError": "Error desconocido",
+      "submitFailed": "Error al enviar los comentarios: {{error}}"
     },
     "submitting": "Enviando...",
     "title": "Ayúdanos a mejorar BESSER",
@@ -2102,7 +2111,32 @@
     "emailHelper": "Deja tu correo electrónico si quieres seguimiento por parte del equipo.",
     "submit": "Enviar comentarios",
     "category": "Categoría",
-    "emailLabel": "Correo electrónico (opcional)"
+    "emailLabel": "Correo electrónico (opcional)",
+    "satisfaction": {
+      "neutral": {
+        "helper": "Experiencia mixta",
+        "label": "Neutral"
+      },
+      "sad": {
+        "label": "No satisfecho",
+        "helper": "Necesita mejoras"
+      },
+      "happy": {
+        "helper": "Gran experiencia",
+        "label": "Muy satisfecho"
+      }
+    },
+    "categoryOptions": {
+      "generators": "Generación de código",
+      "feature_request": "Solicitud de función",
+      "editor": "Editor de diagramas",
+      "none": "Selecciona una categoría (opcional)",
+      "deployment": "Despliegue",
+      "other": "Otro",
+      "bugs": "Informe de errores",
+      "performance": "Rendimiento",
+      "documentation": "Documentación"
+    }
   },
   "export": {
     "dialog": {
@@ -2121,13 +2155,15 @@
       "exportDiagramJson": "Exportar diagrama como JSON",
       "untitledDiagram": "Diagrama sin título",
       "exportPngWhite": "Exportar PNG (blanco)",
-      "currentDescription": "Exporta el diagrama UML actual como recursos de imagen."
+      "currentDescription": "Exporta el diagrama UML actual como recursos de imagen.",
+      "diagramCount": "{{count}} diagramas: {{titles}}"
     },
     "toast": {
       "unknownError": "Error desconocido",
       "openUmlFirst": "Abra primero un diagrama UML.",
       "selectAtLeastOne": "Seleccione al menos un diagrama para exportar.",
-      "noProject": "No hay ningún proyecto disponible para exportar."
+      "noProject": "No hay ningún proyecto disponible para exportar.",
+      "failed": "Error en la exportación: {{error}}"
     }
   }
 }

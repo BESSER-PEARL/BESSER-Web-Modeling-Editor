@@ -587,7 +587,10 @@
     },
     "overlay": {
       "subtitle": "Bitte warten Sie, während Ihr Code generiert wird",
-      "title": "Code wird generiert"
+      "title": "Code wird generiert",
+      "stepPackaging": "Ausgabe wird verpackt...",
+      "stepGenerating": "Code wird generiert...",
+      "stepParsing": "Diagramm wird analysiert..."
     }
   },
   "project": {
@@ -2084,7 +2087,12 @@
       "importTemplateLabel": "Fügen Sie hier Ihr HTML/CSS ein und klicken Sie auf Importieren"
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",
-    "loadingQuantumEditor": "Quanten-Editor wird geladen..."
+    "loadingQuantumEditor": "Quanten-Editor wird geladen...",
+    "hiddenPerspectives": {
+      "messagePlural": "Dieses Projekt verwendet {{labels}}, aber diese Perspektiven sind ausgeblendet.",
+      "messageSingular": "Dieses Projekt verwendet {{labels}}, aber diese Perspektive ist ausgeblendet.",
+      "enable": "{{label}} aktivieren"
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Sagen Sie uns, was funktioniert, was nicht und was Sie sich als Nächstes wünschen.",
@@ -2093,7 +2101,8 @@
       "thankYou": "Vielen Dank für Ihr Feedback.",
       "submitFailedDefault": "Feedback konnte nicht gesendet werden.",
       "selectRating": "Bitte wählen Sie eine Zufriedenheitsbewertung aus.",
-      "unknownError": "Unbekannter Fehler"
+      "unknownError": "Unbekannter Fehler",
+      "submitFailed": "Senden des Feedbacks fehlgeschlagen: {{error}}"
     },
     "submitting": "Wird gesendet...",
     "title": "Helfen Sie uns, BESSER zu verbessern",
@@ -2102,7 +2111,32 @@
     "emailHelper": "Hinterlassen Sie Ihre E-Mail-Adresse, wenn Sie eine Rückmeldung vom Team wünschen.",
     "submit": "Feedback senden",
     "category": "Kategorie",
-    "emailLabel": "E-Mail (optional)"
+    "emailLabel": "E-Mail (optional)",
+    "satisfaction": {
+      "neutral": {
+        "helper": "Gemischte Erfahrung",
+        "label": "Neutral"
+      },
+      "sad": {
+        "label": "Nicht zufrieden",
+        "helper": "Verbesserungsbedarf"
+      },
+      "happy": {
+        "helper": "Großartige Erfahrung",
+        "label": "Sehr zufrieden"
+      }
+    },
+    "categoryOptions": {
+      "generators": "Codegenerierung",
+      "feature_request": "Funktionswunsch",
+      "editor": "Diagramm-Editor",
+      "none": "Kategorie auswählen (optional)",
+      "deployment": "Bereitstellung",
+      "other": "Sonstiges",
+      "bugs": "Fehlerbericht",
+      "performance": "Leistung",
+      "documentation": "Dokumentation"
+    }
   },
   "export": {
     "dialog": {
@@ -2121,13 +2155,15 @@
       "exportDiagramJson": "Diagramm als JSON exportieren",
       "untitledDiagram": "Unbenanntes Diagramm",
       "exportPngWhite": "PNG exportieren (weiß)",
-      "currentDescription": "Exportieren Sie das aktuelle UML-Diagramm als Bilddateien."
+      "currentDescription": "Exportieren Sie das aktuelle UML-Diagramm als Bilddateien.",
+      "diagramCount": "{{count}} Diagramme: {{titles}}"
     },
     "toast": {
       "unknownError": "Unbekannter Fehler",
       "openUmlFirst": "Öffnen Sie zuerst ein UML-Diagramm.",
       "selectAtLeastOne": "Wählen Sie mindestens ein Diagramm zum Exportieren aus.",
-      "noProject": "Kein Projekt zum Exportieren verfügbar."
+      "noProject": "Kein Projekt zum Exportieren verfügbar.",
+      "failed": "Export fehlgeschlagen: {{error}}"
     }
   }
 }

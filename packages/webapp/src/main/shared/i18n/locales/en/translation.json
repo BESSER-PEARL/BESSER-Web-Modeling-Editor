@@ -587,7 +587,10 @@
     },
     "overlay": {
       "subtitle": "Please wait while your code is being generated",
-      "title": "Generating Code"
+      "title": "Generating Code",
+      "stepPackaging": "Packaging output...",
+      "stepGenerating": "Generating code...",
+      "stepParsing": "Parsing diagram..."
     }
   },
   "project": {
@@ -2084,7 +2087,12 @@
       "importTemplateLabel": "Paste here your HTML/CSS and click Import"
     },
     "loadingGuiEditor": "Loading GUI editor...",
-    "loadingQuantumEditor": "Loading quantum editor..."
+    "loadingQuantumEditor": "Loading quantum editor...",
+    "hiddenPerspectives": {
+      "messagePlural": "This project uses {{labels}} but those perspectives are hidden.",
+      "messageSingular": "This project uses {{labels}} but that perspective is hidden.",
+      "enable": "Enable {{label}}"
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Tell us what works, what does not, and what you want next.",
@@ -2093,7 +2101,8 @@
       "thankYou": "Thank you for your feedback.",
       "submitFailedDefault": "Failed to submit feedback.",
       "selectRating": "Please select a satisfaction rating.",
-      "unknownError": "Unknown error"
+      "unknownError": "Unknown error",
+      "submitFailed": "Feedback submission failed: {{error}}"
     },
     "submitting": "Submitting...",
     "title": "Help Us Improve BESSER",
@@ -2102,7 +2111,32 @@
     "emailHelper": "Leave your email if you want follow-up from the team.",
     "submit": "Submit Feedback",
     "category": "Category",
-    "emailLabel": "Email (optional)"
+    "emailLabel": "Email (optional)",
+    "satisfaction": {
+      "neutral": {
+        "helper": "Mixed experience",
+        "label": "Neutral"
+      },
+      "sad": {
+        "label": "Not Satisfied",
+        "helper": "Needs improvements"
+      },
+      "happy": {
+        "helper": "Great experience",
+        "label": "Very Satisfied"
+      }
+    },
+    "categoryOptions": {
+      "generators": "Code Generation",
+      "feature_request": "Feature Request",
+      "editor": "Diagram Editor",
+      "none": "Select a category (optional)",
+      "deployment": "Deployment",
+      "other": "Other",
+      "bugs": "Bug Report",
+      "performance": "Performance",
+      "documentation": "Documentation"
+    }
   },
   "export": {
     "dialog": {
@@ -2121,13 +2155,15 @@
       "exportDiagramJson": "Export Diagram as JSON",
       "untitledDiagram": "Untitled diagram",
       "exportPngWhite": "Export PNG (White)",
-      "currentDescription": "Export the current UML diagram as image assets."
+      "currentDescription": "Export the current UML diagram as image assets.",
+      "diagramCount": "{{count}} diagrams: {{titles}}"
     },
     "toast": {
       "unknownError": "Unknown error",
       "openUmlFirst": "Open a UML diagram first.",
       "selectAtLeastOne": "Select at least one diagram to export.",
-      "noProject": "No project available to export."
+      "noProject": "No project available to export.",
+      "failed": "Export failed: {{error}}"
     }
   }
 }

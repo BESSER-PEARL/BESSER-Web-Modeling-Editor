@@ -587,7 +587,10 @@
     },
     "overlay": {
       "subtitle": "Waart w.e.g., wärend Äre Code generéiert gëtt",
-      "title": "Code gëtt generéiert"
+      "title": "Code gëtt generéiert",
+      "stepPackaging": "Ausgab gëtt verpaakt...",
+      "stepGenerating": "Code gëtt generéiert...",
+      "stepParsing": "Diagramm gëtt analyséiert..."
     }
   },
   "project": {
@@ -2084,7 +2087,12 @@
       "importTemplateLabel": "Paut hei ären HTML/CSS an a klickt op Importéieren"
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
-    "loadingQuantumEditor": "Quanten-Editor gëtt gelueden..."
+    "loadingQuantumEditor": "Quanten-Editor gëtt gelueden...",
+    "hiddenPerspectives": {
+      "messagePlural": "Dëse Projet benotzt {{labels}}, mä dës Perspektiven sinn verstoppt.",
+      "messageSingular": "Dëse Projet benotzt {{labels}}, mä dës Perspektiv ass verstoppt.",
+      "enable": "{{label}} aktivéieren"
+    }
   },
   "feedback": {
     "feedbackPlaceholder": "Sot eis, wat funktionéiert, wat net, a wat Dir als Nächst wëllt.",
@@ -2093,7 +2101,8 @@
       "thankYou": "Merci fir Äre Feedback.",
       "submitFailedDefault": "Feedback konnt net geschéckt ginn.",
       "selectRating": "Wielt w.e.g. eng Zefriddenheetsbewäertung aus.",
-      "unknownError": "Onbekannte Feeler"
+      "unknownError": "Onbekannte Feeler",
+      "submitFailed": "Schécke vum Feedback feelgeschloen: {{error}}"
     },
     "submitting": "Gëtt geschéckt...",
     "title": "Hëlleft eis, BESSER ze verbesseren",
@@ -2102,7 +2111,32 @@
     "emailHelper": "Loosst Är E-Mail do, wann Dir e Suivi vum Team wëllt.",
     "submit": "Feedback schécken",
     "category": "Kategorie",
-    "emailLabel": "E-Mail (fakultativ)"
+    "emailLabel": "E-Mail (fakultativ)",
+    "satisfaction": {
+      "neutral": {
+        "helper": "Gemëschten Erfarung",
+        "label": "Neutral"
+      },
+      "sad": {
+        "label": "Net zefridden",
+        "helper": "Brauch Verbesserungen"
+      },
+      "happy": {
+        "helper": "Super Erfarung",
+        "label": "Ganz zefridden"
+      }
+    },
+    "categoryOptions": {
+      "generators": "Codegeneréierung",
+      "feature_request": "Funktiounsufro",
+      "editor": "Diagramm-Editor",
+      "none": "Kategorie auswielen (fakultativ)",
+      "deployment": "Deployment",
+      "other": "Anert",
+      "bugs": "Feelerbericht",
+      "performance": "Leeschtung",
+      "documentation": "Dokumentatioun"
+    }
   },
   "export": {
     "dialog": {
@@ -2121,13 +2155,15 @@
       "exportDiagramJson": "Diagramm als JSON exportéieren",
       "untitledDiagram": "Diagramm ouni Titel",
       "exportPngWhite": "PNG exportéieren (wäiss)",
-      "currentDescription": "Exportéiert dat aktuellt UML-Diagramm als Biller."
+      "currentDescription": "Exportéiert dat aktuellt UML-Diagramm als Biller.",
+      "diagramCount": "{{count}} Diagrammer: {{titles}}"
     },
     "toast": {
       "unknownError": "Onbekannte Feeler",
       "openUmlFirst": "Maacht fir d'éischt en UML-Diagramm op.",
       "selectAtLeastOne": "Wielt op d'mannst ee Diagramm fir z'exportéieren aus.",
-      "noProject": "Kee Projet fir z'exportéieren verfügbar."
+      "noProject": "Kee Projet fir z'exportéieren verfügbar.",
+      "failed": "Export feelgeschloen: {{error}}"
     }
   }
 }
