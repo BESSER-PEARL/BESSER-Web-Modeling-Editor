@@ -90,8 +90,8 @@ describe('user-profile-form serialization', () => {
     expect(boxes).toHaveLength(5);
     // Links: PI, Accessibility, 2 Disabilities = 4 (User is the root, no inbound link)
     expect(links).toHaveLength(4);
-    // Only attributes with a value become criteria: age, d1.name, d1.affects, d2.name = 4
-    expect(attrs).toHaveLength(4);
+    // Every metamodel attribute becomes a row: PI.age(1) + d1(name,affects) + d2(name,affects) = 5
+    expect(attrs).toHaveLength(5);
 
     const ageAttr = attrs.find((a: any) => a.name.startsWith('age')) as any;
     expect(ageAttr.name).toBe('age >= 18');
@@ -111,20 +111,58 @@ describe('user-profile-form serialization', () => {
     expect(instanceSignature(parsed)).toBe(instanceSignature(original));
   });
 
-  it('omits attributes with empty values as criteria but keeps the part enabled', () => {
+  it('emits every metamodel attribute as a row even when unset (for manual editing on the canvas)', () => {
     const root = createEmptyInstance(syntheticTree.root!);
-    // Accessibility enabled but with no disabilities and no criteria
-    root.children.Accessibility = [createEmptyInstance(syntheticTree.byClassName.Accessibility)];
+    const acc = createEmptyInstance(syntheticTree.byClassName.Accessibility);
+    // A disability with no values entered in the form.
+    acc.children.Disability = [createEmptyInstance(syntheticTree.byClassName.Disability)];
+    root.children.Accessibility = [acc];
 
     const model = buildUserDiagramModel(root, syntheticTree) as any;
     const boxes = Object.values(model.elements).filter((e: any) => e.type === 'UserModelName');
     const attrs = Object.values(model.elements).filter((e: any) => e.type === 'UserModelAttribute');
 
-    expect(boxes).toHaveLength(2); // User + Accessibility
-    expect(attrs).toHaveLength(0);
+    expect(boxes).toHaveLength(3); // User + Accessibility + Disability
+    // Disability has 2 metamodel attributes; both appear as rows though unset.
+    expect(attrs).toHaveLength(2);
+    expect((attrs as any[]).map((a) => a.name).sort()).toEqual(['affects = ', 'name = ']);
 
     const parsed = parseUserDiagramModel(model, syntheticTree);
-    expect(parsed?.children.Accessibility).toHaveLength(1);
+    expect(parsed?.children.Accessibility?.[0].children.Disability).toHaveLength(1);
+  });
+
+  it('parses values from an editor-serialized model (manually-created shape) without loss', () => {
+    // Mimics what the editor stores for a hand-built model: boxes carry
+    // className, attribute children carry the criterion in `name` plus the
+    // editor's own visibility/attributeType metadata (which parse ignores).
+    const model = {
+      type: 'UserDiagram',
+      elements: {
+        u1: { id: 'u1', type: 'UserModelName', name: 'user_1', className: 'User', owner: null, attributes: [] },
+        pi1: {
+          id: 'pi1', type: 'UserModelName', name: 'personal_Information_1',
+          className: 'Personal_Information', owner: null, attributes: ['a1'],
+        },
+        a1: {
+          id: 'a1', type: 'UserModelAttribute', name: 'age >= 30', owner: 'pi1',
+          attributeId: 'a-pi-age', attributeOperator: '>=', visibility: 'public', attributeType: 'str',
+        },
+      },
+      relationships: {
+        r1: { id: 'r1', type: 'ObjectLink', source: { element: 'u1' }, target: { element: 'pi1' } },
+      },
+    } as unknown as UMLModel;
+
+    const parsed = parseUserDiagramModel(model, syntheticTree);
+    const pi = parsed?.children.Personal_Information?.[0];
+    const age = pi?.attributes.find((a) => a.name === 'age');
+    expect(age?.value).toBe('30');
+    expect(age?.operator).toBe('>=');
+
+    // Re-building from the parsed state keeps the value (no emptying on write-back).
+    const rebuilt = buildUserDiagramModel(parsed, syntheticTree) as any;
+    const ageRow = Object.values(rebuilt.elements).find((e: any) => e.type === 'UserModelAttribute' && e.name.startsWith('age')) as any;
+    expect(ageRow.name).toBe('age >= 30');
   });
 
   it('returns an empty root when the model has no elements', () => {

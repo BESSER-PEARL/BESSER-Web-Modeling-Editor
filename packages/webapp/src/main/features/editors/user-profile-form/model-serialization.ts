@@ -22,10 +22,10 @@ const normalizeOperator = (raw?: string): Operator => {
   return (OPERATORS as readonly string[]).includes(op) ? (op as Operator) : '==';
 };
 
-/** Render a criterion the way the editor does: `age >= 18` (equality as `=`). */
+/** Render a criterion the way the editor does: `age >= 18`, or `age = ` when unset (equality as `=`). */
 const attrDisplayName = (attr: AttrValue): string => {
   const symbol = attr.operator === '==' ? '=' : attr.operator;
-  return `${attr.name} ${symbol} ${attr.value ?? ''}`.trim();
+  return `${attr.name} ${symbol} ${attr.value ?? ''}`;
 };
 
 /** Split a criterion name like `age >= 18` into its parts. */
@@ -110,10 +110,11 @@ export const buildUserDiagramModel = (
     const ord = ordinalByClass[instance.className] ?? 0;
     ordinalByClass[instance.className] = ord + 1;
 
-    const criteria = instance.attributes.filter(
-      (a) => a.value != null && String(a.value).trim() !== '',
-    );
-    const height = 50 + criteria.length * 30;
+    // Emit every metamodel attribute as a row (not just the ones with a value),
+    // so all fields are present on the canvas box and can be edited manually
+    // there. Unset attributes render as `name = `.
+    const rows = instance.attributes;
+    const height = 50 + rows.length * 30;
 
     // Position: reuse the existing layout when we can match a box, else place
     // on a simple per-depth grid (User centred at top, parts in rows below).
@@ -160,7 +161,7 @@ export const buildUserDiagramModel = (
     }
 
     let currentY = y + 40;
-    criteria.forEach((attr) => {
+    rows.forEach((attr) => {
       const attrId = nextId('attr');
       box.attributes.push(attrId);
       const attrEl: any = {

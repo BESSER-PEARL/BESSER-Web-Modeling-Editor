@@ -270,7 +270,7 @@ const PartSection: React.FC<{
 /* ------------------------------------------------------------------ */
 
 export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open, onClose, editor }) => {
-  const { tree, formState, setFormState, ready } = useUserProfileForm(open, editor);
+  const { tree, formState, applyEdit, ready } = useUserProfileForm(open, editor);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Double-clicking a diagram element on the canvas opens its own editor popup;
@@ -288,8 +288,7 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
 
   const setAttr = useCallback(
     (instanceKey: string, attrIndex: number, patch: Partial<AttrValue>) => {
-      setFormState((prev) => {
-        if (!prev) return prev;
+      applyEdit((prev) => {
         const clone: Instance = structuredClone(prev);
         const target = findByKey(clone, instanceKey);
         if (target && target.attributes[attrIndex]) {
@@ -298,13 +297,13 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
         return clone;
       });
     },
-    [setFormState],
+    [applyEdit],
   );
 
   const addChild = useCallback(
     (parentKey: string, className: string) => {
-      setFormState((prev) => {
-        if (!prev || !tree) return prev;
+      applyEdit((prev) => {
+        if (!tree) return prev;
         const meta = tree.byClassName[className];
         if (!meta) return prev;
         const clone: Instance = structuredClone(prev);
@@ -315,13 +314,12 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
         return clone;
       });
     },
-    [setFormState, tree],
+    [applyEdit, tree],
   );
 
   const removeChild = useCallback(
     (parentKey: string, className: string, childKey: string) => {
-      setFormState((prev) => {
-        if (!prev) return prev;
+      applyEdit((prev) => {
         const clone: Instance = structuredClone(prev);
         const parent = findByKey(clone, parentKey);
         if (!parent || !parent.children[className]) return prev;
@@ -331,7 +329,7 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
         return clone;
       });
     },
-    [setFormState],
+    [applyEdit],
   );
 
   if (!open) return null;
